@@ -65,14 +65,30 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, g := range grants {
-				identity, err := subjectNameFromGrant(client, g)
-				if err != nil {
-					return err
+			for _, g := range grants.Items {
+				var name string
+
+				switch {
+				case g.Identity != 0:
+					identity, err := client.GetIdentity(g.Identity)
+					if err != nil {
+						return err
+					}
+
+					name = identity.Name
+				case g.Group != 0:
+					group, err := client.GetGroup(g.Group)
+					if err != nil {
+						return err
+					}
+
+					name = group.Name
+				default:
+					return fmt.Errorf("unknown grant subject")
 				}
 
 				rows = append(rows, row{
-					Identity: identity,
+					Identity: name,
 					Access:   g.Privilege,
 					Resource: g.Resource,
 				})
@@ -100,15 +116,15 @@ func newGrantRemoveCmd(cli *CLI) *cobra.Command {
 		Aliases: []string{"rm"},
 		Short:   "Revoke an identity's access from a destination",
 		Example: `# Remove all grants of an identity in a destination
-$ infra grants remove janedoe@example.com kubernetes.docker-desktop 
+$ infra grants remove janedoe@example.com docker-desktop
 
 # Remove all grants of a group in a destination
-$ infra grants remove group-a kubernetes.staging --group
+$ infra grants remove group-a staging --group
 
-# Remove a specific grant 
-$ infra grants remove janedoe@example.com kubernetes.staging --role viewer
+# Remove a specific grant
+$ infra grants remove janedoe@example.com staging --role viewer
 
-# Remove access to infra 
+# Remove adminaccess to infra
 $ infra grants remove janedoe@example.com infra --role admin
 `,
 		Args: ExactArgs(2),
@@ -130,13 +146,14 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	pid, err := getSubjectPolymorphicID(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	identity, group, err := identityOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		return err
 	}
 
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		Subject:   pid,
+		Identity:  identity,
+		Group:     group,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	})
@@ -144,7 +161,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	for _, g := range grants {
+	for _, g := range grants.Items {
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
 			return err
@@ -163,13 +180,13 @@ func newGrantAddCmd(cli *CLI) *cobra.Command {
 		Use:   "add IDENTITY DESTINATION",
 		Short: "Grant an identity access to a destination",
 		Example: `# Grant an identity access to a destination
-$ infra grants add johndoe@example.com kubernetes.docker-desktop 
+$ infra grants add johndoe@example.com docker-desktop
 
-# Grant a group access to a destination 
-$ infra grants add group-a kubernetes.staging --group
+# Grant a group access to a destination
+$ infra grants add group-a staging --group
 
 # Grant access with fine-grained permissions
-$ infra grants add johndoe@example.com kubernetes.staging --role viewer
+$ infra grants add johndoe@example.com staging --role viewer
 
 # Assign a user a role within Infra
 $ infra grants add johndoe@example.com infra --role admin
@@ -193,18 +210,20 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	pid, err := getSubjectPolymorphicID(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	identity, group, err := identityOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		if !errors.Is(err, ErrIdentityNotFound) {
 			return err
 		}
+
 		if cmdOptions.IsGroup {
-			pid, err = addGrantGroup(client, cmdOptions.Identity)
+			group, err = addGrantGroup(client, cmdOptions.Identity)
 			if err != nil {
 				return err
 			}
+
 		} else {
-			pid, err = addGrantIdentity(client, cmdOptions.Identity)
+			identity, err = addGrantIdentity(client, cmdOptions.Identity)
 			if err != nil {
 				return err
 			}
@@ -212,7 +231,8 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
-		Subject:   pid,
+		Identity:  identity,
+		Group:     group,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	})
@@ -225,21 +245,23 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	return nil
 }
 
-// getSubjectPolymorphicID gets the ID for either the group or identity in the subject of a grant
-func getSubjectPolymorphicID(client *api.Client, subject string, isGroup bool) (uid.PolymorphicID, error) {
+// identityOrGroupByName gets the ID of the identity or group to be associated with the grant
+func identityOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID, uid.ID, error) {
 	if isGroup {
-		identity, err := GetGroupByName(client, subject)
+		group, err := GetGroupByName(client, subject)
 		if err != nil {
-			return "", err
+			return 0, 0, err
 		}
-		return uid.NewGroupPolymorphicID(identity.ID), nil
+
+		return 0, group.ID, nil
 	}
 
 	identity, err := GetIdentityByName(client, subject)
 	if err != nil {
-		return "", err
+		return 0, 0, err
 	}
-	return uid.NewIdentityPolymorphicID(identity.ID), nil
+
+	return identity.ID, 0, nil
 }
 
 func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
@@ -248,59 +270,35 @@ func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
 		return nil, err
 	}
 
-	if len(groups) == 0 {
+	if groups.Count == 0 {
 		return nil, ErrIdentityNotFound
 	}
 
-	if len(groups) != 1 {
+	if groups.Count != 1 {
 		return nil, fmt.Errorf("invalid groups response, there should only be one group that matches a name, but multiple were found")
 	}
 
-	return &groups[0], nil
+	return &groups.Items[0], nil
 }
 
-func subjectNameFromGrant(client *api.Client, g api.Grant) (name string, err error) {
-	id, err := g.Subject.ID()
+func addGrantIdentity(client *api.Client, name string) (uid.ID, error) {
+	identity, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	if g.Subject.IsIdentity() {
-		identity, err := client.GetIdentity(id)
-		if err != nil {
-			return "", err
-		}
-
-		return identity.Name, nil
-	}
-
-	if g.Subject.IsGroup() {
-		group, err := client.GetGroup(id)
-		if err != nil {
-			return "", err
-		}
-
-		return group.Name, nil
-	}
-
-	return "", fmt.Errorf("unrecognized grant subject")
-}
-
-func addGrantIdentity(client *api.Client, name string) (uid.PolymorphicID, error) {
-	created, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
-	if err != nil {
-		return "", err
-	}
 	fmt.Printf("New unlinked identity %q added to Infra\n", name)
 
-	return uid.NewIdentityPolymorphicID(created.ID), nil
+	return identity.ID, nil
 }
 
-func addGrantGroup(client *api.Client, name string) (uid.PolymorphicID, error) {
-	created, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
+func addGrantGroup(client *api.Client, name string) (uid.ID, error) {
+	group, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
 	if err != nil {
-		return "", err
+		return 0, err
 	}
+
 	fmt.Printf("New group %q added to Infra\n", name)
-	return uid.NewGroupPolymorphicID(created.ID), nil
+
+	return group.ID, nil
 }

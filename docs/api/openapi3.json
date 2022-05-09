@@ -2,52 +2,6 @@
   "openapi": "3.0.0",
   "components": {
     "schemas": {
-      "AccessKey": {
-        "properties": {
-          "created": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "expires": {
-            "description": "key is no longer valid after this time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "extensionDeadline": {
-            "description": "key must be renewed after this time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "id": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "issuedFor": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "issuedForName": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "providerID": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          }
-        }
-      },
       "CreateAccessKeyResponse": {
         "properties": {
           "accessKey": {
@@ -215,7 +169,19 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "group": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
           "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "identity": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
@@ -227,13 +193,6 @@
           },
           "resource": {
             "description": "a resource name in Infra's Universal Resource Notation",
-            "type": "string"
-          },
-          "subject": {
-            "description": "a polymorphic field expecting an identity or group ID",
-            "example": "i:4yJ3n3D8E3",
-            "format": "poly-uid",
-            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "updated": {
@@ -303,6 +262,315 @@
           "name"
         ]
       },
+      "ListResponse[AccessKey]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "expires": {
+                  "description": "key is no longer valid after this time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "extensionDeadline": {
+                  "description": "key must be renewed after this time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "issuedFor": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "issuedForName": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "providerID": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[Destination]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "connection": {
+                  "properties": {
+                    "ca": {
+                      "example": "-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n",
+                      "type": "string"
+                    },
+                    "url": {
+                      "example": "aa60eexample.us-west-2.elb.amazonaws.com",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "type": "object"
+                },
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "uniqueID": {
+                  "example": "94c2c570a20311180ec325fd56",
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[Grant]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "created_by": {
+                  "description": "id of the identity that created the grant",
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "group": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "identity": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "privilege": {
+                  "description": "a role or permission",
+                  "type": "string"
+                },
+                "resource": {
+                  "description": "a resource name in Infra's Universal Resource Notation",
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[Group]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[Identity]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "lastSeenAt": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "ListResponse[Provider]": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "clientID": {
+                  "example": "0oapn0qwiQPiMIyR35d6",
+                  "type": "string"
+                },
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "name": {
+                  "example": "okta",
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "url": {
+                  "example": "infrahq.okta.com",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url",
+                "clientID"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        }
+      },
       "LoginResponse": {
         "properties": {
           "accessKey": {
@@ -314,17 +582,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
           "passwordUpdateRequired": {
             "type": "boolean"
-          },
-          "polymorphicID": {
-            "example": "i:4yJ3n3D8E3",
-            "format": "poly-uid",
-            "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
           }
         }
       },
@@ -471,10 +739,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/AccessKey"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[AccessKey]"
                 }
               }
             },
@@ -755,10 +1020,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Destination"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Destination]"
                 }
               }
             },
@@ -1173,22 +1435,33 @@
         "operationId": "ListGrants",
         "parameters": [
           {
-            "example": "i:4yJ3n3D8E3",
+            "example": "4yJ3n3D8E2",
             "in": "query",
-            "name": "subject",
+            "name": "identity",
             "schema": {
-              "example": "i:4yJ3n3D8E3",
-              "format": "poly-uid",
-              "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
           },
           {
-            "example": "kubernetes.production",
+            "example": "4yJ3n3D8E2",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          },
+          {
+            "example": "production",
             "in": "query",
             "name": "resource",
             "schema": {
-              "example": "kubernetes.production",
+              "example": "production",
               "type": "string"
             }
           },
@@ -1257,10 +1530,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Grant"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
                 }
               }
             },
@@ -1280,6 +1550,18 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "group": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
+                  "identity": {
+                    "example": "4yJ3n3D8E2",
+                    "format": "uid",
+                    "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
                   "privilege": {
                     "description": "a role or permission",
                     "example": "view",
@@ -1287,19 +1569,11 @@
                   },
                   "resource": {
                     "description": "a resource name in Infra's Universal Resource Notation",
-                    "example": "kubernetes.production",
-                    "type": "string"
-                  },
-                  "subject": {
-                    "description": "a polymorphic field expecting an identity or group ID",
-                    "example": "i:4yJ3n3D8E3",
-                    "format": "poly-uid",
-                    "pattern": "\\w:[\\da-zA-HJ-NP-Z]{1,11}",
+                    "example": "production",
                     "type": "string"
                   }
                 },
                 "required": [
-                  "subject",
                   "privilege",
                   "resource"
                 ],
@@ -1614,10 +1888,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Group"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Group]"
                 }
               }
             },
@@ -1876,10 +2147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Grant"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
                 }
               }
             },
@@ -1974,10 +2242,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Identity"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Identity]"
                 }
               }
             },
@@ -2425,10 +2690,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Grant"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
                 }
               }
             },
@@ -2515,10 +2777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Group"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Group]"
                 }
               }
             },
@@ -2799,10 +3058,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/Provider"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/ListResponse[Provider]"
                 }
               }
             },

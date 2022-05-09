@@ -18,7 +18,7 @@ func Test202204111503(t *testing.T) {
 		loadSQL(t, db, "202204111503")
 	})
 
-	err := migrate(db)
+	err := Migrate(db)
 	assert.NilError(t, err)
 
 	ids, err := ListIdentities(db, ByName("steven@example.com"))
@@ -37,7 +37,7 @@ func Test202204211705(t *testing.T) {
 
 	models.SymmetricKey = key
 
-	err = migrate(db)
+	err = Migrate(db)
 	assert.NilError(t, err)
 
 	// check it still works

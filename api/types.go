@@ -101,3 +101,21 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 func (d Duration) String() string {
 	return time.Duration(d).String()
 }
+
+type ListResponse[T any] struct {
+	Items []T `json:"items"`
+	Count int `json:"count"`
+}
+
+func NewListResponse[T, M any](items []M, fn func(item M) T) *ListResponse[T] {
+	result := &ListResponse[T]{
+		Items: make([]T, 0, len(items)),
+		Count: len(items),
+	}
+
+	for _, item := range items {
+		result.Items = append(result.Items, fn(item))
+	}
+
+	return result
+}

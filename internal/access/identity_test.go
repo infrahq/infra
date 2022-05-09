@@ -75,7 +75,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 
 	grantDestination := &models.Grant{
 		Subject:   identity.PolyID(),
-		Resource:  "kubernetes.example",
+		Resource:  "example",
 		Privilege: "cluster-admin",
 	}
 	err = data.CreateGrant(db, grantDestination)

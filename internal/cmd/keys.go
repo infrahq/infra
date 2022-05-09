@@ -112,15 +112,15 @@ func newKeysRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if len(keys) == 0 {
+			if keys.Count == 0 {
 				return fmt.Errorf("no access key found with this name")
 			}
 
-			if len(keys) != 1 {
+			if keys.Count != 1 {
 				return fmt.Errorf("invalid access key response, there should only be one access key that matches a name, but multiple were found")
 			}
 
-			key := keys[0]
+			key := keys.Items[0]
 
 			err = client.DeleteAccessKey(key.ID)
 			if err != nil {
@@ -157,7 +157,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			var keys []api.AccessKey
+			var keys *api.ListResponse[api.AccessKey]
 			if options.IdentityName != "" {
 				identity, err := GetIdentityByName(client, options.IdentityName)
 				if err != nil {
@@ -184,7 +184,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, k := range keys {
+			for _, k := range keys.Items {
 				name := k.IssuedFor.String()
 				if k.IssuedForName != "" {
 					name = k.IssuedForName

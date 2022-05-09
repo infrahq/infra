@@ -79,7 +79,7 @@ export default function () {
         <input type='password' placeholder='Password' onChange={e => setPassword(e.target.value)} className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.password ? 'border-pink-500' : ''}`} />
         {errors.password && <ErrorMessage message={errors.password} />}
 
-        <button className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
+        <button disabled={!email || !password} className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 disabled:opacity-30'>
           <div className='bg-black rounded-full text-sm px-4 py-3'>
             Get Started
           </div>

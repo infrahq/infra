@@ -50,7 +50,7 @@ export default function () {
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { id: res.data.polymorphicId.split(':')[1] }
+          query: { id: data.id }
         })
         return
       }
@@ -66,7 +66,7 @@ export default function () {
     return false
   }
 
-  const kindCount = providers.map(p => kind(p.url)).reduce((p, c) => {
+  const kindCount = providers?.items?.map(p => kind(p.url)).reduce((p, c) => {
     p[c] = (p[c] || 0) + 1
     return p
   }, {})
@@ -77,10 +77,10 @@ export default function () {
       <h1 className='mt-5 text-base font-bold'>Login to Infra</h1>
       <h2 className='text-sm text-center max-w-xs my-2 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
 
-      {providers?.length > 0 && (
+      {providers?.count > 0 && (
         <>
           <div className='w-full max-w-sm mt-8'>
-            {providers.map(p => (
+            {providers?.items?.map(p => (
               <button onClick={() => oidcLogin(p)} key={p.id} className='w-full bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-1.5'>
                 <div className='w-full flex flex-col items-center justify-center bg-black rounded-full text-sm px-4 py-4'>
                   {kind(p.url) ? <img className='h-4' src={`/providers/${kind(p.url)}.svg`} /> : <p className='font-bold h-4 m-1'>SSO</p>}
@@ -124,7 +124,7 @@ export default function () {
           }}
           className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-3 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${error ? 'border-pink-500' : ''}`}
         />
-        <button disabled={!email} className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 disabled:opacity-30'>
+        <button disabled={!email || !password} className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2 disabled:opacity-30'>
           <div className='bg-black rounded-full text-sm px-4 py-3'>
             Login
           </div>

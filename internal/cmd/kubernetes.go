@@ -56,18 +56,18 @@ func kubernetesSetContext(cluster, namespace string) error {
 	return nil
 }
 
-func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicID) error {
+func updateKubeconfig(client *api.Client, id uid.ID) error {
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
 		return nil
 	}
 
-	id, err := identityPolymorphicID.ID()
+	identity, err := client.GetIdentity(id)
 	if err != nil {
 		return err
 	}
 
-	grants, err := client.ListIdentityGrants(id)
+	grants, err := client.ListGrants(api.ListGrantsRequest{Identity: id})
 	if err != nil {
 		return err
 	}
@@ -77,19 +77,19 @@ func updateKubeconfig(client *api.Client, identityPolymorphicID uid.PolymorphicI
 		return err
 	}
 
-	for _, g := range groups {
-		groupGrants, err := client.ListGroupGrants(g.ID)
+	for _, g := range groups.Items {
+		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
 		if err != nil {
 			return err
 		}
 
-		grants = append(grants, groupGrants...)
+		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
-	return writeKubeconfig(destinations, grants)
+	return writeKubeconfig(identity, destinations.Items, grants.Items)
 }
 
-func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
+func writeKubeconfig(identity *api.Identity, destinations []api.Destination, grants []api.Grant) error {
 	defaultConfig := clientConfig()
 
 	kubeConfig, err := defaultConfig.RawConfig()
@@ -102,21 +102,11 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 	for _, g := range grants {
 		parts := strings.Split(g.Resource, ".")
 
-		kind := parts[0]
-
-		if kind != "kubernetes" {
-			continue
-		}
-
-		if len(parts) < 2 {
-			continue
-		}
-
-		cluster := parts[1]
+		cluster := parts[0]
 
 		var namespace string
-		if len(parts) > 2 {
-			namespace = parts[2]
+		if len(parts) > 1 {
+			namespace = parts[1]
 		}
 
 		context := "infra:" + cluster
@@ -131,8 +121,8 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 		)
 
 		for _, d := range destinations {
-			// eg resource:  "kubernetes.foo.bar"
-			// eg dest name: "kubernetes.foo"
+			// eg resource:  "foo.bar"
+			// eg dest name: "foo"
 			if strings.HasPrefix(g.Resource, d.Name) {
 				url = d.Connection.URL
 				ca = d.Connection.CA
@@ -177,7 +167,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 
 		kubeConfig.Contexts[context] = &clientcmdapi.Context{
 			Cluster:   context,
-			AuthInfo:  context,
+			AuthInfo:  identity.Name,
 			Namespace: namespace,
 		}
 
@@ -186,7 +176,7 @@ func writeKubeconfig(destinations []api.Destination, grants []api.Grant) error {
 			return err
 		}
 
-		kubeConfig.AuthInfos[context] = &clientcmdapi.AuthInfo{
+		kubeConfig.AuthInfos[identity.Name] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
 				Args:            []string{"tokens", "add"},

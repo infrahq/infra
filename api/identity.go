@@ -26,13 +26,13 @@ type CreateIdentityRequest struct {
 	SetOneTimePassword bool   `json:"setOneTimePassword"`
 }
 
-type UpdateIdentityRequest struct {
-	ID       uid.ID `uri:"id" json:"-" validate:"required"`
-	Password string `json:"password" validate:"required,min=8"`
-}
-
 type CreateIdentityResponse struct {
 	ID              uid.ID `json:"id"`
 	Name            string `json:"name" validate:"required"`
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
+}
+
+type UpdateIdentityRequest struct {
+	ID       uid.ID `uri:"id" json:"-" validate:"required"`
+	Password string `json:"password" validate:"required,min=8"`
 }

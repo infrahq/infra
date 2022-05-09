@@ -10,10 +10,10 @@ import (
 
 func newInfoCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
-		Use:    "info",
-		Short:  "Display the info about the current session",
-		Args:   NoArgs,
-		Hidden: true,
+		Use:   "info",
+		Short: "Display the info about the current session",
+		Args:  NoArgs,
+		Group: "Other commands:",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if err := mustBeLoggedIn(); err != nil {
 				return err
@@ -73,9 +73,9 @@ func info(cli *CLI) error {
 
 	groups := "(none)"
 
-	if len(identityGroups) > 0 {
-		g := make([]string, 0, len(identityGroups))
-		for _, identityGroup := range identityGroups {
+	if identityGroups.Count > 0 {
+		g := make([]string, 0, identityGroups.Count)
+		for _, identityGroup := range identityGroups.Items {
 			g = append(g, identityGroup.Name)
 		}
 

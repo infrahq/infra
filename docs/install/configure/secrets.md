@@ -115,10 +115,11 @@ secrets:
       base64Raw: false
 ```
 
-which you would then use like this. First create the environment variable:
+which you would then use like this. First define an environment variable in the context where it will be accessed. [There are many ways to do this in Kubernetes](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/). Typically the environment variable in Kubernetes will be defined in the [deployment](/helm/charts/infra/templates/server/deployment.yaml). To temporarily define an environment variable you can use `kubectl`:
 
 ```bash
-$ export OKTA_CLIENT_SECRET="c3VwZXIgc2VjcmV0IQ=="
+$ kubectl set env deployment/infra OKTA_CLIENT_SECRET=c3VwZXIgc2VjcmV0IQ==
+# you will need to restart any running pods for this to be applied
 ```
 
 Then use the name of the secret back-end and the name of the environment variable in the `infra.yaml` file:

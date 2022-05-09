@@ -45,6 +45,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -69,6 +70,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -85,7 +87,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 			urlPath: "/v1/identities?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `[]`)
+				assert.Equal(t, resp.Body.String(), `{"items":[],"count":0}`)
 			},
 		},
 		"name match": {
@@ -93,11 +95,14 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "me@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 1,
+					Items: []api.Identity{
+						{Name: "me@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -107,13 +112,16 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "HAL"},
-					{Name: "me@example.com"},
-					{Name: "other@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 3,
+					Items: []api.Identity{
+						{Name: "HAL"},
+						{Name: "me@example.com"},
+						{Name: "other@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -123,16 +131,19 @@ func TestAPI_ListIdentities(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
-				var actual []api.Identity
+				var actual api.ListResponse[api.Identity]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				expected := []api.Identity{
-					{Name: "HAL"},
-					{Name: "admin"},
-					{Name: "connector"},
-					{Name: "me@example.com"},
-					{Name: "other-HAL"},
-					{Name: "other@example.com"},
+				expected := api.ListResponse[api.Identity]{
+					Count: 6,
+					Items: []api.Identity{
+						{Name: "HAL"},
+						{Name: "admin"},
+						{Name: "connector"},
+						{Name: "me@example.com"},
+						{Name: "other-HAL"},
+						{Name: "other@example.com"},
+					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIIdentityShallow)
 			},
@@ -192,12 +203,67 @@ func TestListKeys(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	keys, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
+	resp, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
 	assert.NilError(t, err)
 
-	assert.Assert(t, len(keys) > 0)
+	assert.Assert(t, len(resp.Items) > 0)
+	assert.Equal(t, resp.Count, len(resp.Items))
 
-	assert.Equal(t, keys[0].IssuedForName, "foo@example.com")
+	assert.Equal(t, resp.Items[0].IssuedForName, user.Name)
+
+	srv := setupServer(t, withAdminIdentity)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	t.Run("latest", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := &api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), resp1)
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp1.Items) > 0)
+	})
+
+	t.Run("no version header", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := []api.AccessKey{}
+		err = json.Unmarshal(resp.Body.Bytes(), &resp1)
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp1) > 0)
+	})
+
+	t.Run("old version upgrades", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.11.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp2 := []api.AccessKey{}
+		err = json.Unmarshal(resp.Body.Bytes(), &resp2)
+		t.Log(resp.Body.String())
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp2) > 0)
+	})
 }
 
 func TestListProviders(t *testing.T) {
@@ -217,18 +283,19 @@ func TestListProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	req.Header.Add("Infra-Version", "0.12.3")
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
 
-	apiProviders := make([]api.Provider, 0)
+	var apiProviders api.ListResponse[Provider]
 	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(apiProviders), 1)
-	assert.Equal(t, apiProviders[0].Name, "mokta")
+	assert.Equal(t, len(apiProviders.Items), 1)
+	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
 }
 
 func TestAPI_DeleteProvider(t *testing.T) {
@@ -276,7 +343,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			},
 		},
 		"not authorized": {
-			urlPath: "/v1/providers/1234",
+			urlPath: "/v1/providers/2341",
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
 				req.Header.Set("Authorization", "Bearer "+key)
@@ -520,9 +587,9 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 
 	reqBody := strings.NewReader(`
 		{
-		  "subject": "i:12345",
+		  "identity": "TJ",
 		  "privilege": "admin-role",
-		  "resource": "kubernetes.some-cluster"
+		  "resource": "some-cluster"
 		}`)
 
 	resp := httptest.NewRecorder()
@@ -533,7 +600,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
 	assert.NilError(t, err)
 
-	runStep(t, "response is ok", func(t *testing.T) {
+	runStep(t, "full JSON response", func(t *testing.T) {
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusCreated)
 
@@ -542,8 +609,8 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		  "id": "<any-valid-uid>",
 		  "created_by": "%[1]v",
 		  "privilege": "admin-role",
-		  "resource": "kubernetes.some-cluster",
-		  "subject": "i:12345",
+		  "resource": "some-cluster",
+		  "identity": "TJ",
 		  "created": "%[2]v",
 		  "updated": "%[2]v"
 		}`,
@@ -572,11 +639,6 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		assert.NilError(t, err)
 		assert.DeepEqual(t, getGrant, newGrant)
 	})
-}
-
-var cmpAPIGrantJSON = gocmp.Options{
-	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
-	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
 // cmpApproximateTime is a gocmp.Option that compares a time formatted as an
@@ -729,7 +791,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 			},
 		},
 		"identity not found": {
-			urlPath: "/v1/identities/1234",
+			urlPath: "/v1/identities/2341",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNotFound)
 			},
@@ -772,7 +834,7 @@ func TestAPI_GetIdentity(t *testing.T) {
 				assert.Equal(t, idResponse.ID, idMe)
 			},
 		},
-		"full json response": {
+		"full JSON response": {
 			urlPath: "/v1/identities/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
@@ -925,7 +987,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		grant2 := &models.Grant{
 			Subject:   uid.NewIdentityPolymorphicID(user.ID),
 			Privilege: "admin",
-			Resource:  "kubernetes.example",
+			Resource:  "example",
 		}
 
 		err := data.CreateGrant(srv.db, grant2)

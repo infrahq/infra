@@ -11,13 +11,13 @@ Infra allows granting different levels of access via **roles**, such as `view`, 
 To grant access, use `infra grants add`:
 
 ```
-infra grants add user@example.com kubernetes.staging --role edit
+infra grants add user@example.com staging --role edit
 ```
 
 Note: the same command can be used to grant access to a group using the boolean [--group] flag, for example:
 
 ```
-infra grants add --group engineering kubernetes.staging --role edit
+infra grants add --group engineering staging --role edit
 ```
 
 ## Revoking access
@@ -25,17 +25,17 @@ infra grants add --group engineering kubernetes.staging --role edit
 Access is revoked via `infra grants remove`:
 
 ```
-infra grants remove user@example.com kubernetes.staging --role edit
+infra grants remove user@example.com staging --role edit
 ```
 
 ## Viewing access
 
 ```
 infra grants list
-  PROVIDER  IDENTITY     ACCESS  DESTINATION                   
-  okta      Everyone     edit    kubernetes.development
-  okta      Engineering  edit    kubernetes.development.monitoring  
-  okta      Design       edit    kubernetes.development.web 
-  okta      Engineering  view    kubernetes.production
-  okta      Engineering  edit    kubernetes.production.web
+  PROVIDER  IDENTITY     ACCESS  DESTINATION
+  okta      Everyone     edit    development
+  okta      Engineering  edit    development.monitoring
+  okta      Design       edit    development.web
+  okta      Engineering  view    production
+  okta      Engineering  edit    production.web
 ```

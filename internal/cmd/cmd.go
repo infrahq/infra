@@ -155,22 +155,18 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			err = updateKubeconfig(client, config.PolymorphicID)
+			id, err := config.PolymorphicID.ID()
+			if err != nil {
+				return err
+			}
+
+			err = updateKubeconfig(client, id)
 			if err != nil {
 				return err
 			}
 
 			parts := strings.Split(destination, ".")
 
-			if parts[0] == "kubernetes" {
-				if len(parts) > 2 {
-					return kubernetesSetContext(parts[1], parts[2])
-				}
-
-				return kubernetesSetContext(parts[1], "")
-			}
-
-			// no type specifier, guess at user intent
 			if len(parts) == 1 {
 				return kubernetesSetContext(destination, "")
 			}
@@ -239,16 +235,8 @@ func defaultConnectorOptions() connector.Options {
 	return connector.Options{}
 }
 
-// rootOptions are options specified by users on the command line that are
-// used by the root command.
-type rootOptions struct {
-	Info    bool
-	Version bool
-}
-
 func NewRootCmd(cli *CLI) *cobra.Command {
 	cobra.EnableCommandSorting = false
-	var rootOpts rootOptions
 
 	rootCmd := &cobra.Command{
 		Use:               "infra",
@@ -259,18 +247,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			return rootPreRun(cmd.Flags())
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if rootOpts.Version {
-				return version(cli)
-			}
-			if rootOpts.Info {
-				if err := mustBeLoggedIn(); err != nil {
-					return fmt.Errorf("login check: %w", err)
-				}
-				if err := info(cli); err != nil {
-					return fmt.Errorf("info: %w", err)
-				}
-				return nil
-			}
 			return cmd.Help()
 		},
 	}
@@ -288,15 +264,14 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
 
-	// Hidden
-	rootCmd.AddCommand(newTokensCmd(cli))
+	// Other commands:
 	rootCmd.AddCommand(newInfoCmd(cli))
-	rootCmd.AddCommand(newServerCmd())
-	rootCmd.AddCommand(newConnectorCmd())
 	rootCmd.AddCommand(newVersionCmd(cli))
 
-	rootCmd.Flags().BoolVar(&rootOpts.Version, "version", false, "Display Infra version")
-	rootCmd.Flags().BoolVar(&rootOpts.Info, "info", false, "Display info about the current logged in session")
+	// Hidden
+	rootCmd.AddCommand(newTokensCmd(cli))
+	rootCmd.AddCommand(newServerCmd())
+	rootCmd.AddCommand(newConnectorCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")

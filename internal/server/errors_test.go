@@ -87,7 +87,7 @@ func TestSendAPIError(t *testing.T) {
 			resp := httptest.NewRecorder()
 			c, _ := gin.CreateTestContext(resp)
 
-			(&API{}).sendAPIError(c, test.err)
+			sendAPIError(c, test.err)
 
 			assert.Equal(t, test.result.Code, int32(resp.Result().StatusCode))
 			actual := &api.Error{}

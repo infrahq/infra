@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func migrate(db *gorm.DB) error {
+func Migrate(db *gorm.DB) error {
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		// rename grants.identity -> grants.subject
 		{
@@ -94,7 +94,7 @@ func migrate(db *gorm.DB) error {
 					key.IssuedFor = strings.TrimPrefix(key.IssuedFor, "u:")
 					key.IssuedFor = strings.TrimPrefix(key.IssuedFor, "m:")
 
-					iss, err := uid.ParseString(key.IssuedFor)
+					iss, err := uid.Parse([]byte(key.IssuedFor))
 					if err != nil {
 						return fmt.Errorf("converting access keys: %w", err)
 					}
@@ -154,7 +154,7 @@ func migrate(db *gorm.DB) error {
 					cred.Identity = strings.TrimPrefix(cred.Identity, "u:")
 					cred.Identity = strings.TrimPrefix(cred.Identity, "m:")
 
-					identityID, err := uid.ParseString(cred.Identity)
+					identityID, err := uid.Parse([]byte(cred.Identity))
 					if err != nil {
 						return fmt.Errorf("converting credential identity: %w", err)
 					}
@@ -466,26 +466,26 @@ func migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	m.InitSchema(premigrate)
+	m.InitSchema(PreMigrate)
 
 	if err := m.Migrate(); err != nil {
 		return err
 	}
 
-	// automigrate again, so that for simple things like adding db fields we don't necessarily need to do a migration
-	return automigrate(db)
+	// initializeSchema again, so that for simple things like adding db fields we don't necessarily need to do a migration
+	return initializeSchema(db)
 }
 
-func premigrate(db *gorm.DB) error {
+func PreMigrate(db *gorm.DB) error {
 	if db.Migrator().HasTable("providers") {
-		// don't pre-auto-mgirate if tables already exist.
+		// don't pre-auto-migrate if tables already exist.
 		return nil
 	}
 
-	return automigrate(db)
+	return initializeSchema(db)
 }
 
-func automigrate(db *gorm.DB) error {
+func initializeSchema(db *gorm.DB) error {
 	tables := []interface{}{
 		&models.Identity{},
 		&models.Group{},

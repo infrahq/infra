@@ -88,14 +88,20 @@ func TestIdentitiesCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					b, err := json.Marshal([]models.Identity{{Model: models.Model{ID: uid.New()}, Name: "to-delete-user@example.com"}})
+					b, err := json.Marshal(api.ListResponse[api.Identity]{
+						Items: []api.Identity{
+							{
+								ID: uid.New(), Name: "to-delete-user@example.com",
+							},
+						},
+					})
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
 				case http.MethodDelete:
 					id := req.URL.Path[len("/v1/identities/"):]
 
-					uid, err := uid.ParseString(id)
+					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
 
 					modifiedIdentities = append(modifiedIdentities, models.Identity{Model: models.Model{ID: uid}})

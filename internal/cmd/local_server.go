@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type ErrResultTimedOut struct{}
@@ -106,7 +109,7 @@ func formatURLMsg(msg string, fallback string) string {
 	}
 
 	formatted := strings.ReplaceAll(msg, "_", " ")
-	formatted = strings.Title(strings.ToLower(formatted))
+	formatted = cases.Title(language.English).String(formatted)
 
 	return formatted
 }

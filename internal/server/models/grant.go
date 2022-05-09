@@ -41,14 +41,31 @@ type Grant struct {
 }
 
 func (r *Grant) ToAPI() *api.Grant {
-	return &api.Grant{
+	grant := &api.Grant{
 		ID:        r.ID,
 		Created:   api.Time(r.CreatedAt),
 		Updated:   api.Time(r.UpdatedAt),
 		CreatedBy: r.CreatedBy,
-
-		Subject:   r.Subject,
 		Privilege: r.Privilege,
 		Resource:  r.Resource,
 	}
+
+	switch {
+	case r.Subject.IsIdentity():
+		identity, err := r.Subject.ID()
+		if err != nil {
+			return nil
+		}
+
+		grant.Identity = identity
+	case r.Subject.IsGroup():
+		group, err := r.Subject.ID()
+		if err != nil {
+			return nil
+		}
+
+		grant.Group = group
+	}
+
+	return grant
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 type Properties = analytics.Properties
@@ -99,7 +98,7 @@ func (t *Telemetry) EnqueueHeartbeat() {
 		logging.S.Debug(err)
 	}
 
-	t.Event(nil, "infra.heartbeat", map[string]interface{}{
+	t.Event("heartbeat", "", map[string]interface{}{
 		"users":        users,
 		"groups":       groups,
 		"providers":    providers,
@@ -108,20 +107,27 @@ func (t *Telemetry) EnqueueHeartbeat() {
 	})
 }
 
-func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string]interface{}) {
+func (t *Telemetry) RouteEvent(c *gin.Context, event string, properties ...map[string]interface{}) {
+	var uid string
+	if c != nil {
+		if u := access.AuthenticatedIdentity(c); u != nil {
+			uid = u.ID.String()
+		}
+	}
+
+	t.Event(event, uid, properties...)
+}
+
+func (t *Telemetry) Event(event string, userId string, properties ...map[string]interface{}) {
 	if t == nil {
 		return
 	}
 	track := analytics.Track{
 		AnonymousId: "system",
+		UserId:      userId,
 		Timestamp:   time.Now().UTC(),
 		Event:       "server:" + event,
 		Properties:  analytics.Properties{},
-	}
-	if c != nil {
-		if u := access.AuthenticatedIdentity(c); u != nil {
-			track.UserId = u.ID.String()
-		}
 	}
 
 	if len(properties) > 0 {
@@ -135,28 +141,14 @@ func (t *Telemetry) Event(c *gin.Context, event string, properties ...map[string
 	}
 }
 
-func (t *Telemetry) User(user *models.Identity) {
+func (t *Telemetry) User(id string, name string) {
 	if t == nil {
 		return
 	}
 	err := t.Enqueue(analytics.Identify{
-		UserId:    user.ID.String(),
+		UserId:    id,
+		Traits:    analytics.NewTraits().SetEmail(name),
 		Timestamp: time.Now().UTC(),
-	})
-	if err != nil {
-		logging.S.Debug(err)
-	}
-}
-
-func (t *Telemetry) Group(identityID, groupID uid.ID, traits map[string]interface{}) {
-	if t == nil {
-		return
-	}
-	err := t.Enqueue(analytics.Group{
-		UserId:    identityID.String(),
-		GroupId:   groupID.String(),
-		Timestamp: time.Now().UTC(),
-		Traits:    traits,
 	})
 	if err != nil {
 		logging.S.Debug(err)

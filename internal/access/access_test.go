@@ -94,14 +94,29 @@ func TestBasicGrant(t *testing.T) {
 }
 
 func TestUsersGroupGrant(t *testing.T) {
+	models.SkipSymmetricKey = true
+	t.Cleanup(func() {
+		models.SkipSymmetricKey = false
+	})
 	db := setupDB(t)
-	err := data.CreateIdentity(db, tom)
+
+	tom = &models.Identity{Name: "tom@infrahq.com"}
+	tomsGroup = &models.Group{Name: "tom's group"}
+	provider := &models.Provider{Name: models.InternalInfraProviderName}
+
+	err := data.CreateProvider(db, provider)
+	assert.NilError(t, err)
+
+	err = data.CreateIdentity(db, tom)
+	assert.NilError(t, err)
+
+	_, err = data.CreateProviderUser(db, provider, tom)
 	assert.NilError(t, err)
 
 	err = data.CreateGroup(db, tomsGroup)
 	assert.NilError(t, err)
 
-	err = data.BindGroupIdentities(db, tomsGroup, *tom)
+	err = data.AssignIdentityToGroups(db, tom, provider, []string{tomsGroup.Name})
 	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())

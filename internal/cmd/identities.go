@@ -124,7 +124,7 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			for _, identity := range identities {
+			for _, identity := range identities.Items {
 				rows = append(rows, row{
 					Name:       identity.Name,
 					LastSeenAt: identity.LastSeenAt.Relative("never"),
@@ -165,7 +165,7 @@ $ infra identities remove janedoe@example.com`,
 				return err
 			}
 
-			if len(identities) == 0 {
+			if identities.Count == 0 {
 				if force {
 					return nil
 				}
@@ -174,8 +174,8 @@ $ infra identities remove janedoe@example.com`,
 				}
 			}
 
-			logging.S.Debug("deleting %s identities named [%s]...", len(identities), name)
-			for _, identity := range identities {
+			logging.S.Debug("deleting %d identities named [%s]...", identities.Count, name)
+			for _, identity := range identities.Items {
 				logging.S.Debug("...call server: delete identity [%s]", identity.ID)
 				err := client.DeleteIdentity(identity.ID)
 				if err != nil {
@@ -268,15 +268,15 @@ func GetIdentityByName(client *api.Client, name string) (*api.Identity, error) {
 		return nil, err
 	}
 
-	if len(users) == 0 {
+	if users.Count == 0 {
 		return nil, ErrIdentityNotFound
 	}
 
-	if len(users) != 1 {
+	if users.Count != 1 {
 		return nil, fmt.Errorf("invalid identities response, there should only be one identity that matches a name, but multiple were found")
 	}
 
-	return &users[0], nil
+	return &users.Items[0], nil
 }
 
 func promptUpdatePassword(oldPassword string) (string, error) {

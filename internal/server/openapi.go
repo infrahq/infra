@@ -163,14 +163,16 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 			Properties: openapi3.Schemas{},
 		}
 
+		name := strings.ReplaceAll(rst.Name(), rst.PkgPath()+".", "")
+
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
-		if _, ok := openAPISchema.Components.Schemas[rst.Name()]; ok {
+		if _, ok := openAPISchema.Components.Schemas[name]; ok {
 			return &openapi3.SchemaRef{
-				Ref: "#/components/schemas/" + rst.Name(),
+				Ref: "#/components/schemas/" + name,
 			}
 		}
 
@@ -178,10 +180,10 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 			Value: schema,
 		}
 
-		openAPISchema.Components.Schemas[rst.Name()] = schemaRef
+		openAPISchema.Components.Schemas[name] = schemaRef
 
 		return &openapi3.SchemaRef{
-			Ref: "#/components/schemas/" + rst.Name(),
+			Ref: "#/components/schemas/" + name,
 		}
 	default:
 		panic("unexpected component kind " + rst.Kind().String())

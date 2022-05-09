@@ -15,6 +15,18 @@ jobs:
       - run: go mod tidy
       - run: ~/go/bin/gotestsum -ftestname -- -race ./...
 
+  test-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 17
+      - working-directory: ui
+        run: |
+          npm install
+          npm test
+
   go-lint:
     runs-on: ubuntu-latest
     steps:

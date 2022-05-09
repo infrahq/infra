@@ -6,6 +6,7 @@
     "dev": "concurrently 'npm run dev:ui' 'npm run dev:server'",
     "dev:ui": "next dev",
     "dev:server": "go run .. server --enable-ui --ui-proxy-url http://localhost:3000",
+    "test": "jest --ci",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -13,9 +14,9 @@
     "export": "rm -rf .next out && npm install --silent --no-progress && next build && next export"
   },
   "dependencies": {
-    "@headlessui/react": "^1.5.0",
+    "@headlessui/react": "^1.6.1",
     "@heroicons/react": "^1.0.6",
-    "dayjs": "^1.11.0",
+    "dayjs": "^1.11.2",
     "next": "^12.1.4",
     "react": "17.0.2",
     "react-dom": "17.0.2",
@@ -25,11 +26,12 @@
   },
   "devDependencies": {
     "@types/node": "^17.0.31",
-    "@types/react": "18.0.6",
-    "autoprefixer": "^10.4.4",
+    "@types/react": "18.0.9",
+    "autoprefixer": "^10.4.7",
     "concurrently": "^7.1.0",
-    "eslint": "^8.14.0",
-    "eslint-config-next": "^12.1.4",
+    "eslint": "^8.15.0",
+    "eslint-config-next": "^12.1.6",
+    "jest": "^28.1.0",
     "postcss": "^8.4.13",
     "standard": "^16.0.4",
     "tailwindcss": "^3.0.23"
@@ -38,5 +40,9 @@
     "globals": [
       "fetch"
     ]
+  },
+  "engines": {
+    "node": ">=17.8.0",
+    "npm": ">=8.5.5"
   }
 }

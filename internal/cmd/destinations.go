@@ -53,7 +53,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, d := range destinations {
+			for _, d := range destinations.Items {
 				rows = append(rows, row{
 					Name: d.Name,
 					URL:  d.Connection.URL,
@@ -79,7 +79,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
-		Example: "$ infra destinations remove kubernetes.docker-desktop",
+		Example: "$ infra destinations remove docker-desktop",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
@@ -93,7 +93,7 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if len(destinations) == 0 {
+			if destinations.Count == 0 {
 				if force {
 					return nil
 				}
@@ -102,8 +102,8 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				}
 			}
 
-			logging.S.Debug("deleting %s destinations named [%s]...", len(destinations), args[0])
-			for _, d := range destinations {
+			logging.S.Debug("deleting %s destinations named [%s]...", destinations.Count, args[0])
+			for _, d := range destinations.Items {
 				logging.S.Debug("...call server: delete destination [%s]", d.ID)
 				err := client.DeleteDestination(d.ID)
 				if err != nil {

@@ -58,7 +58,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 func AuthenticationMiddleware(a *API) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
-			a.sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrUnauthorized, err))
+			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrUnauthorized, err))
 			return
 		}
 

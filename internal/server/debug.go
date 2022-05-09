@@ -12,7 +12,7 @@ import (
 
 func (a *API) pprofHandler(c *gin.Context) {
 	if _, err := access.RequireInfraRole(c, models.InfraAdminRole); err != nil {
-		a.sendAPIError(c, err)
+		sendAPIError(c, err)
 		return
 	}
 

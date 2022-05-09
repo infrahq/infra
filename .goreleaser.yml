@@ -13,6 +13,7 @@ builds:
         -X github.com/infrahq/infra/internal.Version={{ .Version }}
         -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
         -X github.com/infrahq/infra/internal.Date={{ .Date }}
+        -X github.com/infrahq/infra/internal.PrereleaseTag=
     binary: infra
     main: ./main.go
     goos:

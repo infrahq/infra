@@ -236,22 +236,17 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			continue
 		}
 
-		id, err := g.Subject.ID()
-		if err != nil {
-			return err
-		}
-
 		switch {
-		case g.Subject.IsGroup():
-			group, err := c.GetGroup(id)
+		case g.Group != 0:
+			group, err := c.GetGroup(g.Group)
 			if err != nil {
 				return err
 			}
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-		case g.Subject.IsIdentity():
-			identity, err := c.GetIdentity(id)
+		case g.Identity != 0:
+			identity, err := c.GetIdentity(g.Identity)
 			if err != nil {
 				return err
 			}
@@ -271,13 +266,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		var crn kubernetes.ClusterRoleNamespace
 
 		switch len(parts) {
-		// kubernetes.<cluster>
-		case 2:
+		// <cluster>
+		case 1:
 			crn.ClusterRole = g.Privilege
 			crSubjects[g.Privilege] = append(crSubjects[g.Privilege], subj)
 
-		// kubernetes.<cluster>.<namespace>
-		case 3:
+		// <cluster>.<namespace>
+		case 2:
 			crn.ClusterRole = g.Privilege
 			crn.Namespace = parts[2]
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
@@ -382,10 +377,6 @@ func Run(ctx context.Context, options Options) error {
 			return err
 		}
 		options.Name = autoname
-	}
-
-	if !strings.HasPrefix(options.Name, "kubernetes.") {
-		options.Name = fmt.Sprintf("kubernetes.%s", options.Name)
 	}
 
 	caCertPEM, err := os.ReadFile(options.CACert)
@@ -538,10 +529,10 @@ func Run(ctx context.Context, options Options) error {
 				return
 			}
 
-			grants = append(grants, g...)
+			grants.Items = append(grants.Items, g.Items...)
 		}
 
-		err = updateRoles(client, k8s, grants)
+		err = updateRoles(client, k8s, grants.Items)
 		if err != nil {
 			logging.S.Errorf("error updating grants: %v", err)
 			return
@@ -626,8 +617,8 @@ func createDestination(client *api.Client, local *api.Destination) error {
 		return fmt.Errorf("error listing destinations: %w", err)
 	}
 
-	if len(destinations) > 0 {
-		local.ID = destinations[0].ID
+	if destinations.Count > 0 {
+		local.ID = destinations.Items[0].ID
 		return updateDestination(client, local)
 	}
 

@@ -31,8 +31,11 @@ func TestKeysAddCmd(t *testing.T) {
 					return
 				}
 				resp.WriteHeader(http.StatusOK)
-				err := json.NewEncoder(resp).Encode([]*api.Identity{
-					{ID: uid.ID(12345678)},
+				err := json.NewEncoder(resp).Encode(api.ListResponse[api.Identity]{
+					Count: 1,
+					Items: []api.Identity{
+						{ID: uid.ID(12345678)},
+					},
 				})
 				assert.Check(t, err)
 				return
@@ -123,8 +126,11 @@ func TestKeysListCmd(t *testing.T) {
 					return
 				}
 				resp.WriteHeader(http.StatusOK)
-				err := json.NewEncoder(resp).Encode([]*api.Identity{
-					{ID: uid.ID(12345678)},
+				err := json.NewEncoder(resp).Encode(api.ListResponse[api.Identity]{
+					Count: 1,
+					Items: []api.Identity{
+						{ID: uid.ID(12345678)},
+					},
 				})
 				assert.Check(t, err)
 				return
@@ -137,39 +143,45 @@ func TestKeysListCmd(t *testing.T) {
 
 			resp.WriteHeader(http.StatusOK)
 			if query.Get("identity_id") == uid.ID(12345678).String() {
-				err := json.NewEncoder(resp).Encode([]api.AccessKey{
-					{
-						Name:          "user-key",
-						IssuedFor:     uid.ID(12345678),
-						IssuedForName: "my-user",
-						Created:       api.Time(base.Add(5 * time.Minute)),
-						Expires:       api.Time(base.Add(30 * time.Hour)),
+				err := json.NewEncoder(resp).Encode(api.ListResponse[api.AccessKey]{
+					Count: 1,
+					Items: []api.AccessKey{
+						{
+							Name:          "user-key",
+							IssuedFor:     uid.ID(12345678),
+							IssuedForName: "my-user",
+							Created:       api.Time(base.Add(5 * time.Minute)),
+							Expires:       api.Time(base.Add(30 * time.Hour)),
+						},
 					},
 				})
 				assert.Check(t, err)
 				return
 			}
-			err := json.NewEncoder(resp).Encode([]api.AccessKey{
-				{
-					Name:          "front-door",
-					IssuedFor:     uid.ID(12345),
-					IssuedForName: "admin",
-					Created:       api.Time(base.Add(time.Minute)),
-				},
-				{
-					Name:              "side-door",
-					IssuedFor:         uid.ID(12345),
-					IssuedForName:     "admin",
-					Created:           api.Time(base.Add(time.Minute)),
-					Expires:           api.Time(base.Add(30 * time.Hour)),
-					ExtensionDeadline: api.Time(base.Add(50 * time.Hour)),
-				},
-				{
-					Name:          "storage",
-					IssuedFor:     uid.ID(12349),
-					IssuedForName: "clerk",
-					Created:       api.Time(base.Add(4 * time.Hour)),
-					Expires:       api.Time(base.Add(30 * time.Hour)),
+			err := json.NewEncoder(resp).Encode(api.ListResponse[api.AccessKey]{
+				Count: 3,
+				Items: []api.AccessKey{
+					{
+						Name:          "front-door",
+						IssuedFor:     uid.ID(12345),
+						IssuedForName: "admin",
+						Created:       api.Time(base.Add(time.Minute)),
+					},
+					{
+						Name:              "side-door",
+						IssuedFor:         uid.ID(12345),
+						IssuedForName:     "admin",
+						Created:           api.Time(base.Add(time.Minute)),
+						Expires:           api.Time(base.Add(30 * time.Hour)),
+						ExtensionDeadline: api.Time(base.Add(50 * time.Hour)),
+					},
+					{
+						Name:          "storage",
+						IssuedFor:     uid.ID(12349),
+						IssuedForName: "clerk",
+						Created:       api.Time(base.Add(4 * time.Hour)),
+						Expires:       api.Time(base.Add(30 * time.Hour)),
+					},
 				},
 			})
 			assert.Check(t, err)

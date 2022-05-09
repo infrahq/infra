@@ -17,25 +17,26 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
-	t      *Telemetry
-	server *Server
+	t          *Telemetry
+	server     *Server
+	migrations []apiMigration
 }
 
-func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) ([]api.Identity, error) {
+func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) (*api.ListResponse[api.Identity], error) {
 	identities, err := access.ListIdentities(c, r.Name, r.IDs)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Identity, len(identities))
-	for i, identity := range identities {
-		results[i] = *identity.ToAPI()
-	}
+	result := api.NewListResponse(identities, func(identity models.Identity) api.Identity {
+		return *identity.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
 }
 
 func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Identity, error) {
@@ -101,8 +102,6 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 		resp.OneTimePassword = oneTimePassword
 	}
 
-	a.t.User(identity)
-
 	return resp, nil
 }
 
@@ -125,46 +124,30 @@ func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
 	return access.DeleteIdentity(c, r.ID)
 }
 
-func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
-	grants, err := access.ListIdentityGrants(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]api.Grant, len(grants))
-	for i, g := range grants {
-		results[i] = *g.ToAPI()
-	}
-
-	return results, nil
-}
-
-func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) ([]api.Group, error) {
+func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
 	groups, err := access.ListIdentityGroups(c, r.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Group, len(groups))
-	for i, g := range groups {
-		results[i] = *g.ToAPI()
-	}
+	result := api.NewListResponse(groups, func(group models.Group) api.Group {
+		return *group.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
 }
 
-func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) ([]api.Group, error) {
+func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	groups, err := access.ListGroups(c, r.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Group, len(groups))
-	for i, g := range groups {
-		results[i] = *g.ToAPI()
-	}
+	result := api.NewListResponse(groups, func(group models.Group) api.Group {
+		return *group.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
 }
 
 func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
@@ -189,34 +172,19 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 	return group.ToAPI(), nil
 }
 
-func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) ([]api.Grant, error) {
-	grants, err := access.ListGroupGrants(c, r.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]api.Grant, len(grants))
-	for i, d := range grants {
-		results[i] = *d.ToAPI()
-	}
-
-	return results, nil
-}
-
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) ([]api.Provider, error) {
+func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}
 	providers, err := access.ListProviders(c, r.Name, exclude)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Provider, len(providers))
-	for i, p := range providers {
-		results[i] = *p.ToAPI()
-	}
+	result := api.NewListResponse(providers, func(provider models.Provider) api.Provider {
+		return *provider.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
@@ -287,18 +255,17 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
 	return access.DeleteProvider(c, r.ID)
 }
 
-func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) ([]api.Destination, error) {
+func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
 	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Destination, len(destinations))
-	for i, d := range destinations {
-		results[i] = *d.ToAPI()
-	}
+	result := api.NewListResponse(destinations, func(destination models.Destination) api.Destination {
+		return *destination.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
 }
 
 func (a *API) GetDestination(c *gin.Context, r *api.Resource) (*api.Destination, error) {
@@ -366,28 +333,26 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	return nil, fmt.Errorf("no identity found in access key: %w", internal.ErrUnauthorized)
 }
 
-func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) ([]api.AccessKey, error) {
+func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
 	accessKeys, err := access.ListAccessKeys(c, r.IdentityID, r.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.AccessKey, len(accessKeys))
-
-	for i, a := range accessKeys {
-		results[i] = api.AccessKey{
-			ID:                a.ID,
-			Name:              a.Name,
-			Created:           api.Time(a.CreatedAt),
-			IssuedFor:         a.IssuedFor,
-			IssuedForName:     a.IssuedForIdentity.Name,
-			ProviderID:        a.ProviderID,
-			Expires:           api.Time(a.ExpiresAt),
-			ExtensionDeadline: api.Time(a.ExtensionDeadline),
+	result := api.NewListResponse(accessKeys, func(accessKey models.AccessKey) api.AccessKey {
+		return api.AccessKey{
+			ID:                accessKey.ID,
+			Name:              accessKey.Name,
+			Created:           api.Time(accessKey.CreatedAt),
+			IssuedFor:         accessKey.IssuedFor,
+			IssuedForName:     accessKey.IssuedForIdentity.Name,
+			ProviderID:        accessKey.ProviderID,
+			Expires:           api.Time(accessKey.ExpiresAt),
+			ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
 		}
-	}
+	})
 
-	return results, nil
+	return result, nil
 }
 
 func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
@@ -420,18 +385,36 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	}, nil
 }
 
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) ([]api.Grant, error) {
-	grants, err := access.ListGrants(c, r.Subject, r.Resource, r.Privilege)
+func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.Identity != 0:
+		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]api.Grant, len(grants))
-	for i, r := range grants {
-		results[i] = *r.ToAPI()
-	}
+	result := api.NewListResponse(grants, func(grant models.Grant) api.Grant {
+		return *grant.ToAPI()
+	})
 
-	return results, nil
+	return result, nil
+}
+
+// TODO: remove after deprecation period
+func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+	return a.ListGrants(c, &api.ListGrantsRequest{Identity: r.ID})
+}
+
+// TODO: remove after deprecation period
+func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+	return a.ListGrants(c, &api.ListGrantsRequest{Group: r.ID})
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
@@ -444,10 +427,19 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.Identity != 0:
+		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
 	grant := &models.Grant{
+		Subject:   subject,
 		Resource:  r.Resource,
 		Privilege: r.Privilege,
-		Subject:   r.Subject,
 	}
 
 	err := access.CreateGrant(c, grant)
@@ -517,6 +509,9 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error
 		return nil, err
 	}
 
+	a.t.User(identity.ID.String(), r.Name)
+	a.t.Event("signup", identity.ID.String(), Properties{})
+
 	return identity.ToAPI(), nil
 }
 
@@ -532,9 +527,9 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "exchange"})
+		a.t.Event("login", identity.ID.String(), Properties{"method": "exchange"})
 
-		return &api.LoginResponse{PolymorphicID: identity.PolyID(), Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		return &api.LoginResponse{ID: identity.ID, Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	case r.PasswordCredentials != nil:
 		if r.PasswordCredentials.Name == "" {
 			// #1825: remove, this is for migration
@@ -547,9 +542,9 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "credentials"})
+		a.t.Event("login", user.ID.String(), Properties{"method": "credentials"})
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
+		return &api.LoginResponse{ID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {
@@ -568,9 +563,9 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		setAuthCookie(c, key, expires)
 
-		a.t.Event(c, "login", Properties{"method": "oidc"})
+		a.t.Event("login", user.ID.String(), Properties{"method": "oidc"})
 
-		return &api.LoginResponse{PolymorphicID: user.PolyID(), Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		return &api.LoginResponse{ID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
 	}
 
 	return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)

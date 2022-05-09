@@ -4,13 +4,13 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
-	github.com/aws/aws-sdk-go v1.44.4
+	github.com/aws/aws-sdk-go v1.44.9
 	github.com/cli/browser v1.1.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.5.0 // indirect
-	github.com/jackc/pgconn v1.12.0
+	github.com/jackc/pgconn v1.12.1
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
@@ -35,7 +35,6 @@ require (
 
 require (
 	github.com/andanhm/go-prettytime v1.1.0
-	github.com/bwmarrin/snowflake v0.3.1-0.20210825212239-3cf6d89d1fe9
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-contrib/gzip v0.0.5
@@ -51,6 +50,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/text v0.3.7
 	gotest.tools/v3 v3.2.0
 )
 
@@ -145,7 +145,6 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
 	golang.org/x/xerrors v0.0.0-20220411194840-2f41105eb62f // indirect
 	google.golang.org/appengine v1.6.7 // indirect

@@ -40,14 +40,12 @@ func newTriangle(a, b, c *point3D, ch rune) *triangle {
 }
 
 func (t *triangle) Draw(surf *sprite.Surface) {
-	err := surf.Triangle(
+	// nolint
+	_ = surf.Triangle(
 		t.A.ScreenX(), t.A.ScreenY(),
 		t.B.ScreenX(), t.B.ScreenY(),
 		t.C.ScreenX(), t.C.ScreenY(),
 		t.Color, true)
-	if err != nil {
-		// don't do anything
-	}
 }
 
 type point3D struct {
@@ -137,8 +135,10 @@ type scrollText struct {
 }
 
 func newScrollText(width, height int) *scrollText {
-	s := &scrollText{BaseSprite: sprite.BaseSprite{
-		Visible: true},
+	s := &scrollText{
+		BaseSprite: sprite.BaseSprite{
+			Visible: true,
+		},
 		TimeOut: 2,
 	}
 	f := sprite.NewJRSMFont()
@@ -207,8 +207,10 @@ type logo3D struct {
 }
 
 func newLogo3D(width, height int) *logo3D {
-	s := &logo3D{BaseSprite: sprite.BaseSprite{
-		Visible: true},
+	s := &logo3D{
+		BaseSprite: sprite.BaseSprite{
+			Visible: true,
+		},
 		angleX: 0.05,
 		angleY: 0.1,
 		angleZ: 0.02,

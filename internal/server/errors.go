@@ -20,7 +20,7 @@ import (
 // sendAPIError translates err into the appropriate HTTP status code, builds a
 // response body using api.Error, then sends both as a response to the active
 // request.
-func (a *API) sendAPIError(c *gin.Context, err error) {
+func sendAPIError(c *gin.Context, err error) {
 	resp := &api.Error{
 		Code:    http.StatusInternalServerError,
 		Message: "internal server error", // don't leak any info by default
@@ -70,13 +70,6 @@ func (a *API) sendAPIError(c *gin.Context, err error) {
 	}
 
 	log("api request error", zap.Error(err), zap.Int32("statusCode", resp.Code))
-
-	if resp.Code >= 500 {
-		a.t.Event(c, "error", Properties{
-			"code": resp.Code,
-			"path": c.FullPath(),
-		})
-	}
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()

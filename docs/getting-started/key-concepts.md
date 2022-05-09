@@ -53,13 +53,10 @@ Groups are sets of identities (usually representing a team or organization) that
 
 `infra destinations` – `/v1/destinations`
 
-Destinations are infrastructure resources that can be accessed via Infra. Some examples of destinations include:
+Destinations are infrastructure resources that can be accessed via Infra. Examples of destinations include:
 
-* Kubernetes cluster (e.g. `kubernetes.production`)
-* Kubernetes namespace (e.g. `kubernetes.production.web`)
-* Database (e.g. `postgres.production`)
-* Database Table (e.g. `postgres.production.orders`)
-* SSH Server (e.g. `ssh.staging-1`)
+* Kubernetes clusters (e.g. `production-cluster`)
+* Kubernetes namespaces (e.g. `production-cluster.web`)
 
 ### Grants
 

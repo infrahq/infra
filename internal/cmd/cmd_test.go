@@ -14,6 +14,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
+	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/env"
 	"gotest.tools/v3/fs"
 
@@ -105,14 +106,16 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			switch {
 			case req.URL.Path == "/v1/destinations":
-				destinations := []api.Destination{
-					{
-						ID:       destinationID,
-						UniqueID: "uniqueID",
-						Name:     "kubernetes.cluster",
-						Connection: api.DestinationConnection{
-							URL: "kubernetes.docker.local",
-							CA:  ca,
+				destinations := api.ListResponse[api.Destination]{
+					Items: []api.Destination{
+						{
+							ID:       destinationID,
+							UniqueID: "uniqueID",
+							Name:     "cluster",
+							Connection: api.DestinationConnection{
+								URL: "kubernetes.docker.local",
+								CA:  ca,
+							},
 						},
 					},
 				}
@@ -122,19 +125,21 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/grants", userID):
-				grants := []api.Grant{
-					{
-						ID:        uid.New(),
-						Subject:   uid.NewIdentityPolymorphicID(userID),
-						Resource:  "kubernetes.cluster",
-						Privilege: "admin",
-					},
-					{
-						ID:        uid.New(),
-						Subject:   uid.NewIdentityPolymorphicID(userID),
-						Resource:  "kubernetes.cluster.namespace",
-						Privilege: "admin",
+			case req.URL.Path == "/v1/grants":
+				grants := api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{
+							ID:        uid.New(),
+							Identity:  userID,
+							Resource:  "cluster",
+							Privilege: "admin",
+						},
+						{
+							ID:        uid.New(),
+							Identity:  userID,
+							Resource:  "cluster.namespace",
+							Privilege: "admin",
+						},
 					},
 				}
 
@@ -144,9 +149,19 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
 			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/groups", userID):
-				groups := []api.Group{}
-
+				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
+				assert.NilError(t, err)
+
+				_, err = resp.Write(bytes)
+				assert.NilError(t, err)
+			case req.URL.Path == fmt.Sprintf("/v1/identities/%s", userID):
+				identity := api.Identity{
+					ID:   userID,
+					Name: "testuser@example.com",
+				}
+
+				bytes, err := json.Marshal(identity)
 				assert.NilError(t, err)
 
 				_, err = resp.Write(bytes)
@@ -169,7 +184,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		return &cfg
 	}
 
-	t.Run("UseClusterWithoutPrefix", func(t *testing.T) {
+	t.Run("UseCluster", func(t *testing.T) {
 		setup(t)
 
 		err := Run(context.Background(), "use", "cluster")
@@ -180,26 +195,12 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
-	t.Run("UseClusterWithPrefix", func(t *testing.T) {
-		setup(t)
-
-		err := Run(context.Background(), "use", "kubernetes.cluster")
-		assert.NilError(t, err)
-
-		kubeconfig, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
-
-		assert.Equal(t, len(kubeconfig.Clusters), 2)
-		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
-		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
-	})
-
-	t.Run("UseNamespaceWithoutPrefix", func(t *testing.T) {
+	t.Run("UseNamespace", func(t *testing.T) {
 		setup(t)
 
 		err := Run(context.Background(), "use", "cluster.namespace")
@@ -210,23 +211,9 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 		assert.Equal(t, len(kubeconfig.Clusters), 2)
 		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
+		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
-	})
-
-	t.Run("UseNamespaceWithPrefix", func(t *testing.T) {
-		setup(t)
-
-		err := Run(context.Background(), "use", "kubernetes.cluster.namespace")
-		assert.NilError(t, err)
-
-		kubeconfig, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
-
-		assert.Equal(t, len(kubeconfig.Clusters), 2)
-		assert.Equal(t, len(kubeconfig.Contexts), 2)
-		assert.Equal(t, len(kubeconfig.AuthInfos), 2)
-		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseUnknown", func(t *testing.T) {

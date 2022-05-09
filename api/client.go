@@ -11,6 +11,7 @@ import (
 
 	"github.com/ssoroka/slice"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -86,7 +87,7 @@ func get[Res any](client Client, path string) (*Res, error) {
 	return &res, nil
 }
 
-func list[Res any](client Client, path string, query map[string][]string) ([]Res, error) {
+func list[Res any](client Client, path string, query map[string][]string) (*Res, error) {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.URL, path), nil)
 	if err != nil {
 		return nil, err
@@ -113,12 +114,12 @@ func list[Res any](client Client, path string, query map[string][]string) ([]Res
 		return nil, fmt.Errorf("GET %v failed: %w", path, err)
 	}
 
-	var res []Res
+	var res Res
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 func request[Req, Res any](client Client, method string, path string, req *Req) (*Res, error) {
@@ -196,16 +197,17 @@ func delete(client Client, path string) error {
 }
 
 func addHeaders(req *http.Request, headers http.Header) {
+	req.Header.Set("Infra-Version", internal.FullVersion())
 	for key, values := range headers {
 		req.Header[key] = values
 	}
 }
 
-func (c Client) ListIdentities(req ListIdentitiesRequest) ([]Identity, error) {
+func (c Client) ListIdentities(req ListIdentitiesRequest) (*ListResponse[Identity], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return list[Identity](c, "/v1/identities", map[string][]string{"name": {req.Name}, "ids": ids})
+	return list[ListResponse[Identity]](c, "/v1/identities", map[string][]string{"name": {req.Name}, "ids": ids})
 }
 
 func (c Client) GetIdentity(id uid.ID) (*Identity, error) {
@@ -224,16 +226,17 @@ func (c Client) DeleteIdentity(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/identities/%s", id))
 }
 
-func (c Client) ListIdentityGrants(id uid.ID) ([]Grant, error) {
-	return list[Grant](c, fmt.Sprintf("/v1/identities/%s/grants", id), nil)
+// Deprecated: use ListGrants
+func (c Client) ListIdentityGrants(id uid.ID) (*ListResponse[Grant], error) {
+	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/identities/%s/grants", id), nil)
 }
 
-func (c Client) ListIdentityGroups(id uid.ID) ([]Group, error) {
-	return list[Group](c, fmt.Sprintf("/v1/identities/%s/groups", id), nil)
+func (c Client) ListIdentityGroups(id uid.ID) (*ListResponse[Group], error) {
+	return list[ListResponse[Group]](c, fmt.Sprintf("/v1/identities/%s/groups", id), nil)
 }
 
-func (c Client) ListGroups(req ListGroupsRequest) ([]Group, error) {
-	return list[Group](c, "/v1/groups", map[string][]string{"name": {req.Name}})
+func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
+	return list[ListResponse[Group]](c, "/v1/groups", map[string][]string{"name": {req.Name}})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {
@@ -244,12 +247,13 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 	return post[CreateGroupRequest, Group](c, "/v1/groups", req)
 }
 
-func (c Client) ListGroupGrants(id uid.ID) ([]Grant, error) {
-	return list[Grant](c, fmt.Sprintf("/v1/groups/%s/grants", id), nil)
+// Deprecated: use ListGrants
+func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
+	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/groups/%s/grants", id), nil)
 }
 
-func (c Client) ListProviders(name string) ([]Provider, error) {
-	return list[Provider](c, "/v1/providers", map[string][]string{"name": {name}})
+func (c Client) ListProviders(name string) (*ListResponse[Provider], error) {
+	return list[ListResponse[Provider]](c, "/v1/providers", map[string][]string{"name": {name}})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
@@ -268,10 +272,11 @@ func (c Client) DeleteProvider(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/providers/%s", id))
 }
 
-func (c Client) ListGrants(req ListGrantsRequest) ([]Grant, error) {
-	return list[Grant](c, "/v1/grants", map[string][]string{
+func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
+	return list[ListResponse[Grant]](c, "/v1/grants", map[string][]string{
+		"identity":  {req.Identity.String()},
+		"group":     {req.Group.String()},
 		"resource":  {req.Resource},
-		"subject":   {string(req.Subject)},
 		"privilege": {req.Privilege},
 	})
 }
@@ -284,8 +289,8 @@ func (c Client) DeleteGrant(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/grants/%s", id))
 }
 
-func (c Client) ListDestinations(req ListDestinationsRequest) ([]Destination, error) {
-	return list[Destination](c, "/v1/destinations", map[string][]string{
+func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
+	return list[ListResponse[Destination]](c, "/v1/destinations", map[string][]string{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
 	})
@@ -303,8 +308,8 @@ func (c Client) DeleteDestination(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/v1/destinations/%s", id))
 }
 
-func (c Client) ListAccessKeys(req ListAccessKeysRequest) ([]AccessKey, error) {
-	return list[AccessKey](c, "/v1/access-keys", map[string][]string{
+func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
+	return list[ListResponse[AccessKey]](c, "/v1/access-keys", map[string][]string{
 		"identity_id": {req.IdentityID.String()},
 		"name":        {req.Name},
 	})

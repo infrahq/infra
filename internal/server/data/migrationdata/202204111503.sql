@@ -20,8 +20,8 @@ CREATE TABLE `identities_groups` (`group_id` integer,`identity_id` integer,PRIMA
 INSERT INTO identities_groups VALUES(36547840424878080,36547838281588736);
 INSERT INTO identities_groups VALUES(36544743275307008,36547838281588736);
 CREATE TABLE `grants` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`subject` text,`privilege` text,`resource` text,`created_by` integer,PRIMARY KEY (`id`));
-INSERT INTO grants VALUES(36544743275307009,'2022-04-11 20:15:45.765891717+00:00','2022-04-11 20:15:45.765891717+00:00',NULL,'g:5VnbrkDoMw','cluster-admin','kubernetes.docker-desktop',1);
-INSERT INTO grants VALUES(36544743279501313,'2022-04-11 20:15:45.766258592+00:00','2022-04-11 20:15:45.766258592+00:00',NULL,'i:5Vnbrm1TB7','cluster-admin','kubernetes.docker-desktop',1);
+INSERT INTO grants VALUES(36544743275307009,'2022-04-11 20:15:45.765891717+00:00','2022-04-11 20:15:45.765891717+00:00',NULL,'g:5VnbrkDoMw','cluster-admin','docker-desktop',1);
+INSERT INTO grants VALUES(36544743279501313,'2022-04-11 20:15:45.766258592+00:00','2022-04-11 20:15:45.766258592+00:00',NULL,'i:5Vnbrm1TB7','cluster-admin','docker-desktop',1);
 INSERT INTO grants VALUES(36547838294171648,'2022-04-11 20:28:03.680813086+00:00','2022-04-11 20:28:03.680813086+00:00',NULL,'i:5VozJLKzWG','admin','infra',0);
 INSERT INTO grants VALUES(36548620389261312,'2022-04-11 20:31:10.152810048+00:00','2022-04-11 20:31:10.152810048+00:00',NULL,'i:5VozJLKzWH','admin','infra',36547838281588736);
 CREATE TABLE `providers` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`url` text,`client_id` text,`client_secret` text,PRIMARY KEY (`id`));
