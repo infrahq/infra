@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func newIdentitiesCmd(cli *CLI) *cobra.Command {
@@ -142,6 +143,7 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 }
 
 func newIdentitiesRemoveCmd(cli *CLI) *cobra.Command {
+	var force bool
 	cmd := &cobra.Command{
 		Use:     "remove IDENTITY",
 		Aliases: []string{"rm"},
@@ -157,12 +159,24 @@ $ infra identities remove janedoe@example.com`,
 				return err
 			}
 
+			logging.S.Debug("call server: list identities")
 			identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
 			if err != nil {
 				return err
 			}
 
+			if len(identities) == 0 {
+				if force {
+					return nil
+				}
+				return Error{
+					Message: fmt.Sprintf("No identities named [%s].", name),
+				}
+			}
+
+			logging.S.Debug("deleting %s identities named [%s]...", len(identities), name)
 			for _, identity := range identities {
+				logging.S.Debug("...call server: delete identity [%s]", identity.ID)
 				err := client.DeleteIdentity(identity.ID)
 				if err != nil {
 					return err
@@ -174,6 +188,8 @@ $ infra identities remove janedoe@example.com`,
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully destination not found")
 
 	return cmd
 }

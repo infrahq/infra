@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func newDestinationsCmd(cli *CLI) *cobra.Command {
@@ -40,6 +41,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debug("call server: list destinations")
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 			if err != nil {
 				return err
@@ -58,10 +60,11 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				})
 			}
 
+			logging.S.Debug("print destinations")
 			if len(rows) > 0 {
 				printTable(rows, cli.Stdout)
 			} else {
-				cli.Output("No destinations found")
+				cli.Output("No destinations found.")
 			}
 
 			return nil
@@ -70,7 +73,9 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 }
 
 func newDestinationsRemoveCmd() *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
@@ -82,16 +87,24 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				return err
 			}
 
+			logging.S.Debug("call server: list destinations named [%s]", args[0])
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: args[0]})
 			if err != nil {
 				return err
 			}
 
 			if len(destinations) == 0 {
-				return fmt.Errorf("no destinations named %s.", args[0])
+				if force {
+					return nil
+				}
+				return Error{
+					Message: fmt.Sprintf("No destinations named [%s].", args[0]),
+				}
 			}
 
+			logging.S.Debug("deleting %s destinations named [%s]...", len(destinations), args[0])
 			for _, d := range destinations {
+				logging.S.Debug("...call server: delete destination [%s]", d.ID)
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					return err
@@ -101,4 +114,8 @@ func newDestinationsRemoveCmd() *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully when destination not found")
+
+	return cmd
 }

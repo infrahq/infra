@@ -183,6 +183,12 @@ infra destinations remove DESTINATION [flags]
 $ infra destinations remove kubernetes.docker-desktop
 ```
 
+### Options
+
+```
+      --force   Exit successfully when destination not found
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -374,6 +380,12 @@ infra identities remove IDENTITY [flags]
 ```
 # Delete an identity
 $ infra identities remove janedoe@example.com
+```
+
+### Options
+
+```
+      --force   Exit successfully destination not found
 ```
 
 ### Options inherited from parent commands
