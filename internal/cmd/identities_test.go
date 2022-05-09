@@ -29,15 +29,6 @@ func TestCheckPasswordRequirements(t *testing.T) {
 	assert.ErrorContains(t, err, "unexpected type for password")
 }
 
-func TestCheckConfirmPassword(t *testing.T) {
-
-	err := checkConfirmPassword()("password")
-	assert.NilError(t, err)
-
-	err = checkConfirmPassword()(nil)
-	assert.ErrorContains(t, err, "unexpected type for password")
-}
-
 func TestIdentitiesCmd(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)

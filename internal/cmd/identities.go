@@ -280,7 +280,7 @@ PROMPT:
 		{
 			Name:     "Confirm",
 			Prompt:   &survey.Password{Message: "Confirm Password:"},
-			Validate: checkConfirmPassword(),
+			Validate: survey.Required,
 		},
 	}
 
@@ -311,16 +311,6 @@ func checkPasswordRequirements(oldPassword string) survey.Validator {
 			return fmt.Errorf("input must be different than the current password")
 		}
 
-		return nil
-	}
-}
-
-func checkConfirmPassword() survey.Validator {
-	return func(val interface{}) error {
-		_, ok := val.(string)
-		if !ok {
-			return fmt.Errorf("unexpected type for password: %T", val)
-		}
 		return nil
 	}
 }
