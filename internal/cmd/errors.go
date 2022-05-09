@@ -52,7 +52,7 @@ func (e *FailedLoginError) Error() string {
 		panic("LoggedInIdentity cannot be set unless user is logged in")
 	}
 	if isLoggedInCurrent() {
-		msg += fmt.Sprintf(" Your existing session as %s is still active.", e.LoggedInIdentity)
+		msg += fmt.Sprintf(" You are still logged in as [%s].", e.LoggedInIdentity)
 	}
 
 	return msg

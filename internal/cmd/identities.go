@@ -36,10 +36,10 @@ func newIdentitiesCmd(cli *CLI) *cobra.Command {
 func newIdentitiesAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add IDENTITY",
-		Short: "Create an identity.",
-		Long: `Create an identity.
+		Short: "Create an identity",
+		Long: `Create an identity
 
-A new user identity must change their one time password before further usage.`,
+Note: A new user identity must change their one time password before further usage.`,
 		Args: ExactArgs(1),
 		Example: `# Create a user
 $ infra identities add johndoe@example.com`,
@@ -228,7 +228,8 @@ func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 	}
 
 	if cmdOptions.Password {
-		req.Password, err = promptUpdatePassword("")
+		fmt.Fprintf(os.Stderr, "  Enter a new one time password (min length 8):\n")
+		req.Password, err = promptSetPassword("")
 		if err != nil {
 			return err
 		}
@@ -263,23 +264,13 @@ func GetIdentityByName(client *api.Client, name string) (*api.Identity, error) {
 	return &users[0], nil
 }
 
-func promptUpdatePassword(oldPassword string) (string, error) {
-	fmt.Fprintf(os.Stderr, "  Enter a new one time password (min length 8):\n")
-
-	newPassword, err := promptPasswordConfirm(oldPassword)
-	if err != nil {
-		return "", err
-	}
-
-	return newPassword, nil
-}
-
-func promptPasswordConfirm(oldPassword string) (string, error) {
+func promptSetPassword(oldPassword string) (string, error) {
 	var passwordConfirm struct {
 		Password string
 		Confirm  string
 	}
 
+PROMPT:
 	prompts := []*survey.Question{
 		{
 			Name:     "Password",
@@ -289,12 +280,17 @@ func promptPasswordConfirm(oldPassword string) (string, error) {
 		{
 			Name:     "Confirm",
 			Prompt:   &survey.Password{Message: "Confirm Password:"},
-			Validate: checkConfirmPassword(&passwordConfirm.Password),
+			Validate: checkConfirmPassword(),
 		},
 	}
 
 	if err := survey.Ask(prompts, &passwordConfirm, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
 		return "", err
+	}
+
+	if passwordConfirm.Password != passwordConfirm.Confirm {
+		fmt.Println("  Passwords do not match. Please try again.")
+		goto PROMPT
 	}
 
 	return passwordConfirm.Password, nil
@@ -319,17 +315,12 @@ func checkPasswordRequirements(oldPassword string) survey.Validator {
 	}
 }
 
-func checkConfirmPassword(password *string) survey.Validator {
+func checkConfirmPassword() survey.Validator {
 	return func(val interface{}) error {
-		confirm, ok := val.(string)
+		_, ok := val.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type for password: %T", val)
 		}
-
-		if *password != confirm {
-			return fmt.Errorf("input must match the new password")
-		}
-
 		return nil
 	}
 }
