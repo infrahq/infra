@@ -33,7 +33,6 @@ The local setup can be customized with environment varibles. Some are required f
 | Name             | Description                                                   | Default               |
 |------------------|---------------------------------------------------------------|-----------------------|
 | `NAMESPACE`      | Kubernetes namespace to install `infra`                       | `""`                  |
-| `IMAGE_TAG`      | Docker tag                                                    | `0.0.0-development`   |
 | `VALUES`         | Values file to pass to Helm                                   | `docker-desktop.yaml` |
 
 ```bash
