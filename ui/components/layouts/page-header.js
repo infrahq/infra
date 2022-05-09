@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { PlusIcon } from '@heroicons/react/outline'
 
-export default function ({header, buttonLabel, buttonHref}) {
-  return  (
+export default function ({ header, buttonLabel, buttonHref }) {
+  return (
     <div className='flex justify-between items-center'>
       <h1 className='text-title font-bold'>{header}</h1>
       {buttonHref && (

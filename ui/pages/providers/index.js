@@ -94,10 +94,9 @@ export default function Providers () {
             <PageHeader header='Providers' buttonHref='/providers/add' buttonLabel='Provider' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              :
-              <>
+              : <>
                 <Table {...table} />
-                {data?.count === 0 && 
+                {data?.count === 0 &&
                   <EmptyTable
                     title='There are no providers'
                     subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
@@ -105,10 +104,9 @@ export default function Providers () {
                     buttonHref='/providers/add'
                     buttonText='Provider'
                   />}
-              </>
-              }
+              </>}
           </div>
-        )}
+          )}
     </>
   )
 }

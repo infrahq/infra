@@ -69,7 +69,7 @@ export default function ({ children }) {
                   src={n.icon}
                   className={`${router.asPath.startsWith(n.href) ? '' : 'opacity-40'} mr-3 flex-shrink-0 h-3.5 w-3.5`}
                 />
-                  {n.name}
+                {n.name}
               </a>
             </Link>
           )}

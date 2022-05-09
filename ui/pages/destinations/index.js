@@ -1,6 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useState, useMemo } from 'react'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
@@ -12,7 +11,6 @@ import Dashboard from '../../components/layouts/dashboard'
 import Loader from '../../components/loader'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
-import HeaderIcon from '../../components/header-icon'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
 import PageHeader from '../../components/layouts/page-header'
@@ -157,23 +155,21 @@ export default function Destinations () {
             <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : 
-              <>
+              : <>
                 <Table {...table} />
                 {
-                  destinations?.count === 0 &&
-                  <EmptyTable
-                    title='There are no infrastructure'
-                    subtitle='There are currently no infrastructure connected to Infra. Get started by connecting one.'
-                    iconPath='/destinations.svg'
-                    buttonHref={admin && '/destinations/add'}
-                    buttonText='Infrastructure'
-                  />
-                }
-              </>
-              }
+                    destinations?.count === 0 &&
+                      <EmptyTable
+                        title='There are no infrastructure'
+                        subtitle='There are currently no infrastructure connected to Infra. Get started by connecting one.'
+                        iconPath='/destinations.svg'
+                        buttonHref={admin && '/destinations/add'}
+                        buttonText='Infrastructure'
+                      />
+                  }
+                </>}
           </div>
-        )}
+          )}
     </>
   )
 }
