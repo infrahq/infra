@@ -30,15 +30,11 @@ func TestCheckPasswordRequirements(t *testing.T) {
 }
 
 func TestCheckConfirmPassword(t *testing.T) {
-	password := "password"
 
-	err := checkConfirmPassword(&password)("password")
+	err := checkConfirmPassword()("password")
 	assert.NilError(t, err)
 
-	err = checkConfirmPassword(&password)("drowssap")
-	assert.ErrorContains(t, err, "input must match the new password")
-
-	err = checkConfirmPassword(&password)(nil)
+	err = checkConfirmPassword()(nil)
 	assert.ErrorContains(t, err, "unexpected type for password")
 }
 
