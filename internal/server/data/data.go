@@ -3,6 +3,7 @@ package data
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -64,6 +65,14 @@ func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
 			return nil, err
 		}
 	}
+	uri, err := url.Parse(connection)
+	if err != nil {
+		return nil, err
+	}
+	query := uri.Query()
+	query.Add("_journal_mode", "WAL")
+	uri.RawQuery = query.Encode()
+	connection = uri.String()
 
 	return sqlite.Open(connection), nil
 }
