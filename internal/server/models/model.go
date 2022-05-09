@@ -19,7 +19,8 @@ type Model struct {
 	ID uid.ID
 	// CreatedAt is set by GORM to time.Now when a record is first created.
 	// See https://gorm.io/docs/conventions.html#Timestamp-Tracking
-	CreatedAt time.Time
+	// gorm:"<-:create" allows read and create, but not updating
+	CreatedAt time.Time `gorm:"<-:create"`
 	// UpdatedAt is set by GORM to time.Now() when a record is updated.
 	// See https://gorm.io/docs/conventions.html#Timestamp-Tracking
 	UpdatedAt time.Time
