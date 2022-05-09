@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/goware/urlx v0.3.1
 	github.com/hashicorp/vault/api v1.5.0 // indirect
-	github.com/jackc/pgconn v1.12.0
+	github.com/jackc/pgconn v1.12.1
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
