@@ -14,7 +14,7 @@
     "export": "rm -rf .next out && npm install --silent --no-progress && next build && next export"
   },
   "dependencies": {
-    "@headlessui/react": "^1.5.0",
+    "@headlessui/react": "^1.6.1",
     "@heroicons/react": "^1.0.6",
     "dayjs": "^1.11.0",
     "next": "^12.1.4",
