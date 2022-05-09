@@ -157,7 +157,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			keys := &api.ListResponse[api.AccessKey]{}
+			keys := &api.ListResponse[api.AccessKey]{} // nolint
 			if options.IdentityName != "" {
 				identity, err := GetIdentityByName(client, options.IdentityName)
 				if err != nil {
