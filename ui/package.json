@@ -30,7 +30,7 @@
     "autoprefixer": "^10.4.7",
     "concurrently": "^7.1.0",
     "eslint": "^8.15.0",
-    "eslint-config-next": "^12.1.4",
+    "eslint-config-next": "^12.1.6",
     "jest": "^28.1.0",
     "postcss": "^8.4.13",
     "standard": "^16.0.4",
