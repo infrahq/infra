@@ -59,39 +59,39 @@ func TestCreateGroupDuplicate(t *testing.T) {
 }
 
 func TestGetGroup(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			everyone  = models.Group{Name: "Everyone"}
+			engineers = models.Group{Name: "Engineering"}
+			product   = models.Group{Name: "Product"}
+		)
 
-	var (
-		everyone  = models.Group{Name: "Everyone"}
-		engineers = models.Group{Name: "Engineering"}
-		product   = models.Group{Name: "Product"}
-	)
+		createGroups(t, db, everyone, engineers, product)
 
-	createGroups(t, db, everyone, engineers, product)
-
-	group, err := GetGroup(db, ByName(everyone.Name))
-	assert.NilError(t, err)
-	assert.Assert(t, 0 != group.ID)
+		group, err := GetGroup(db, ByName(everyone.Name))
+		assert.NilError(t, err)
+		assert.Assert(t, 0 != group.ID)
+	})
 }
 
 func TestListGroups(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			everyone  = models.Group{Name: "Everyone"}
+			engineers = models.Group{Name: "Engineering"}
+			product   = models.Group{Name: "Product"}
+		)
 
-	var (
-		everyone  = models.Group{Name: "Everyone"}
-		engineers = models.Group{Name: "Engineering"}
-		product   = models.Group{Name: "Product"}
-	)
+		createGroups(t, db, everyone, engineers, product)
 
-	createGroups(t, db, everyone, engineers, product)
+		groups, err := ListGroups(db)
+		assert.NilError(t, err)
+		assert.Equal(t, 3, len(groups))
 
-	groups, err := ListGroups(db)
-	assert.NilError(t, err)
-	assert.Equal(t, 3, len(groups))
-
-	groups, err = ListGroups(db, ByName(engineers.Name))
-	assert.NilError(t, err)
-	assert.Equal(t, 1, len(groups))
+		groups, err = ListGroups(db, ByName(engineers.Name))
+		assert.NilError(t, err)
+		assert.Equal(t, 1, len(groups))
+	})
 }
 
 func TestDeleteGroup(t *testing.T) {
