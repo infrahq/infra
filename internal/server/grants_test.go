@@ -85,6 +85,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	createGrant(t, idOther, "custom2")
 
 	groupID := createGroup(t, "humans", idInGroup)
+	otherGroup := createGroup(t, "others", idOther)
 
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup,
@@ -122,7 +123,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/api/grants?subject=i:" + idOther.String(),
+			urlPath: "/api/grants?user=" + idOther.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -131,13 +132,13 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"not authorized, wrong identity": {
-			urlPath: "/api/grants?subject=i:" + idOther.String(),
+			urlPath: "/api/grants?user=" + idOther.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"not authorized, wrong group": {
-			urlPath: "/api/grants?subject=g:abcde",
+			urlPath: "/api/grants?group=" + otherGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
