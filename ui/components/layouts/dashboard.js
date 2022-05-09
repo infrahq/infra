@@ -41,9 +41,9 @@ export default function ({ children }) {
   }
 
   return (
-    <div className='flex h-full relative'>
-      <nav className='flex-none flex w-1/6 flex-col inset-y-0 px-2 overflow-y-auto'>
-        <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-6 select-none'>
+    <div className='flex h-screen relative'>
+      <nav className='flex-none flex w-60 flex-col inset-y-0 px-1 overflow-y-auto'>
+        <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-4 select-none'>
           <Link href='/'>
             <a>
               <img
@@ -74,7 +74,7 @@ export default function ({ children }) {
             </Link>
           )}
         </div>
-        <div className='relative group mx-2 my-5 px-6 pb-20 h-16 hover:h-40 transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
+        <div className='relative group mx-2 my-5 px-4 pb-20 h-16 hover:h-40 transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
           <div className='flex items-center space-x-2 mt-4 mb-2'>
             <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
               <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-[4px]'>
