@@ -74,7 +74,7 @@ export default function ({ children }) {
             </Link>
           )}
         </div>
-        <div className='relative group mx-2 my-5 px-6 pb-2 h-16 hover:h-[160px] transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
+        <div className='relative group mx-2 my-5 px-6 pb-20 h-16 hover:h-40 transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
           <div className='flex items-center space-x-2 mt-4 mb-2'>
             <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
               <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-[4px]'>
@@ -87,7 +87,7 @@ export default function ({ children }) {
             </div>
             <div className='text-gray-400 hover:text-white text-title leading-none truncate'>{auth?.name}</div>
           </div>
-          <div className='w-full px-11 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
+          <div className='w-full pl-11 pr-2 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             {subNavigation.map(s => (
               <Link key={s.name} href={s.href}>
                 <a className={`w-full flex py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
@@ -98,9 +98,9 @@ export default function ({ children }) {
             <div onClick={() => logout()} className='w-full flex items-center py-2 cursor-pointer'>
               <div className='text-gray-400 text-title hover:text-white'>Sign Out</div>
             </div>
-          </div>
-          <div className='pl-11 pr-2 pt-2 pb-4 text-note text-gray-400/40'>
-            Infra version {version?.version}
+            <div className='pt-2 pb-4 text-note text-gray-400/40'>
+              Infra version {version?.version}
+            </div>
           </div>
         </div>
       </nav>
