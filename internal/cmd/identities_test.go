@@ -88,13 +88,15 @@ func TestIdentitiesCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
+					var apiIdentities []api.Identity
+					for _, mi := range modifiedIdentities {
+						apiIdentities = append(apiIdentities, *mi.ToAPI())
+					}
 					b, err := json.Marshal(api.ListResponse[api.Identity]{
-						Items: []api.Identity{
-							{
-								ID: uid.New(), Name: "to-delete-user@example.com",
-							},
-						},
-					})
+						Items: apiIdentities,
+						Count: len(apiIdentities),
+					},
+					)
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
@@ -104,7 +106,14 @@ func TestIdentitiesCmd(t *testing.T) {
 					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
 
-					modifiedIdentities = append(modifiedIdentities, models.Identity{Model: models.Model{ID: uid}})
+					var found int
+					for i := range modifiedIdentities {
+						if modifiedIdentities[i].ID == uid {
+							found = i
+						}
+					}
+					modifiedIdentities[found] = modifiedIdentities[len(modifiedIdentities)-1]
+					modifiedIdentities = modifiedIdentities[:len(modifiedIdentities)-1]
 
 					resp.WriteHeader(http.StatusNoContent)
 					return
@@ -161,10 +170,20 @@ func TestIdentitiesCmd(t *testing.T) {
 	t.Run("removes only the specified identity", func(t *testing.T) {
 		modifiedIdentities := setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "id", "remove", "to-delete-user@example.com")
+		err := Run(ctx, "id", "add", "to-delete-user@example.com")
 		assert.NilError(t, err)
-
 		assert.Equal(t, len(*modifiedIdentities), 1)
+
+		err = Run(ctx, "id", "remove", "to-delete-user@example.com")
+		assert.NilError(t, err)
+		assert.Equal(t, len(*modifiedIdentities), 0)
+	})
+
+	t.Run("remove non-existing user errors", func(t *testing.T) {
+		_ = setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "id", "remove", "to-delete-user@example.com")
+		assert.ErrorContains(t, err, "No identities named")
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {
