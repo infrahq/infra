@@ -29,7 +29,7 @@
     "@types/react": "18.0.6",
     "autoprefixer": "^10.4.7",
     "concurrently": "^7.1.0",
-    "eslint": "^8.14.0",
+    "eslint": "^8.15.0",
     "eslint-config-next": "^12.1.4",
     "jest": "^28.1.0",
     "postcss": "^8.4.13",
