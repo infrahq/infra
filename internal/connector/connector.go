@@ -274,7 +274,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		// <cluster>.<namespace>
 		case 2:
 			crn.ClusterRole = g.Privilege
-			crn.Namespace = parts[2]
+			crn.Namespace = parts[1]
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
 
 		default:
