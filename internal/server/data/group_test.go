@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
@@ -119,10 +118,6 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by identity membership", func(t *testing.T) {
-			fetched, err := GetIdentity(db, ByID(firstUser.ID))
-			assert.NilError(t, err)
-			fmt.Println(fetched.Groups)
-
 			actual, err := ListGroups(db, WhereGroupIncludesUser(firstUser.ID))
 			assert.NilError(t, err)
 			expected := []models.Group{
