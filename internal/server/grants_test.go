@@ -33,6 +33,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -57,6 +58,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/v1/grants", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -106,6 +108,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -230,6 +233,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			urlPath: "/v1/grants?resource=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Add("Infra-Version", "0.12.3")
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
