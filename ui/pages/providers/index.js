@@ -17,6 +17,7 @@ import HeaderIcon from '../../components/header-icon'
 
 const columns = [{
   Header: 'Identity Provider',
+  width: '55%',
   accessor: p => p,
   Cell: ({ value: provider }) => (
     <div className='flex items-center'>
