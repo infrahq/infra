@@ -179,11 +179,18 @@ func TestIdentitiesCmd(t *testing.T) {
 		assert.Equal(t, len(*modifiedIdentities), 0)
 	})
 
-	t.Run("remove non-existing user errors", func(t *testing.T) {
+	t.Run("remove non-existing user will error", func(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "id", "remove", "to-delete-user@example.com")
+		err := Run(ctx, "id", "remove", "non-existing-user@example.com")
 		assert.ErrorContains(t, err, "No identities named")
+	})
+
+	t.Run("remove non-existing user with force will not error", func(t *testing.T) {
+		_ = setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "id", "remove", "--force", "non-existing-user@example.com")
+		assert.NilError(t, err)
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {
