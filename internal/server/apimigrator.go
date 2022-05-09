@@ -177,8 +177,7 @@ type responseWriter struct {
 }
 
 const (
-	noWritten     = -1
-	defaultStatus = http.StatusOK
+	noWritten = -1
 )
 
 var _ gin.ResponseWriter = &responseWriter{}
