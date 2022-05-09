@@ -40,15 +40,12 @@ func newTriangle(a, b, c *point3D, ch rune) *triangle {
 }
 
 func (t *triangle) Draw(surf *sprite.Surface) {
-	err := surf.Triangle(
+	// nolint
+	surf.Triangle(
 		t.A.ScreenX(), t.A.ScreenY(),
 		t.B.ScreenX(), t.B.ScreenY(),
 		t.C.ScreenX(), t.C.ScreenY(),
 		t.Color, true)
-	//nolint
-	if err != nil {
-		// don't do anything
-	}
 }
 
 type point3D struct {
