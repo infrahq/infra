@@ -77,9 +77,9 @@ export default function ({ children }) {
         <div className='relative group mx-2 my-5 h-16 hover:h-[150px] transition-height transition-size px-6 duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
           <div className='flex items-center space-x-2 mt-4 mb-2'>
             <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
-              <div className='bg-black flex-none flex items-center justify-center w-6 h-6 rounded-[4px]'>
+              <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-[4px]'>
                 <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-sm p-px'>
-                  <div className='bg-black flex-none flex justify-center items-center w-4 h-4 text-icon font-bold select-none rounded-sm'>
+                  <div className='bg-black flex-none flex justify-center items-center w-6 h-6 pb-0.5 text-subtitle font-bold select-none rounded-sm'>
                     {auth?.name?.[0]}
                   </div>
                 </div>
@@ -87,7 +87,7 @@ export default function ({ children }) {
             </div>
             <div className='text-purple-50/90 hover:text-purple-50 text-name leading-none truncate'>{auth?.name}</div>
           </div>
-          <div className='w-full px-8 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
+          <div className='w-full px-11 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
             {subNavigation.map(s => (
               <Link key={s.name} href={s.href}>
                 <a className={`w-full flex py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>

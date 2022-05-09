@@ -17,6 +17,7 @@ module.exports = {
       colors: {
         black: '#0A0E12',
         pink: {
+          100: '#DECAFF',
           300: '#EB91C7',
           light: withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
@@ -25,6 +26,9 @@ module.exports = {
           200: '#78828A',
           300: '#B2B2B2',
           350: '#2A2D34',
+          400: '#868C9A',
+          500: '#6B6674',
+          800: '#32393F',
           900: '#1C2027',
           950: '#292E33'
         },
@@ -38,8 +42,9 @@ module.exports = {
         header: ['16px', '19px'],
         note: ['10px', '12px'],
         name: ['12px', '15px'],
-        icon: ['12px', '0px'],
-        title: ['13px', '16px']
+        title: ['13px', '16px'],
+        subtitle: ['12px', '0px'],
+        paragraph: ['12px', '22px']
       },
       transitionProperty: {
         size: 'height, padding, background'
