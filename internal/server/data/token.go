@@ -54,9 +54,7 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 	}
 
-	var custom claims.Custom
-
-	custom = claims.Custom{
+	custom := claims.Custom{
 		Name:   identity.Name,
 		Groups: groups,
 		Nonce:  nonce,

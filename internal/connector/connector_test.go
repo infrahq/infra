@@ -117,8 +117,7 @@ func generateJWT(priv *jose.JSONWebKey, email string, expiry time.Time) (string,
 		IssuedAt: jwt.NewNumericDate(time.Now()),
 	}
 
-	var custom claims.Custom
-	custom = claims.Custom{
+	custom := claims.Custom{
 		Name:   email,
 		Groups: []string{"developers"},
 		Nonce:  "randomstring",
