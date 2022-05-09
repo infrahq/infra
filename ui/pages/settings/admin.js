@@ -132,10 +132,10 @@ export default function () {
   }
 
   return (
-    <div className='w-4/12'>
+    <div className='sm:w-80 lg:w-[500px]'>
       <div className='text-subtitle uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
-      <div className={`flex ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
-        <div className='flex-1'>
+      <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
+        <div className='sm:flex-1'>
           <InputDropdown
             type='email'
             value={adminEmail}
@@ -150,10 +150,13 @@ export default function () {
           onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type='button'
-          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-px ml-4 rounded-md'
+          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
         >
-          <div className='bg-black flex items-center text-xs text-pink-100 px-6 py-3 rounded-md hover:text-pink-50'>
-            <PlusIcon className='w-3 h-3 mr-1.5' />Add
+          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-6 py-3'>
+            <PlusIcon className='w-3 h-3 mr-1.5' />
+            <div className='text-pink-100'>
+              Add
+            </div>
           </div>
         </button>
       </div>
