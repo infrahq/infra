@@ -605,7 +605,7 @@ func Run(ctx context.Context, options Options) error {
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 
-	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.Version, tlsServer.Addr, metricsServer.Addr)
+	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
 }
