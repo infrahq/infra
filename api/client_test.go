@@ -90,7 +90,6 @@ func TestGet(t *testing.T) {
 	expectedHeaders := http.Header{
 		"User-Agent":      []string{"testing"},
 		"X-Custom":        []string{"custom"},
-		"Infra-Version":   []string{"0.12.2"},
 		"Accept-Encoding": []string{"gzip"},
 		"Authorization":   []string{"Bearer the-access-key"},
 	}
@@ -101,6 +100,9 @@ func TestGet(t *testing.T) {
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/good")
+		ver := req.Header.Get("Infra-Version")
+		assert.Assert(t, len(ver) > 0)
+		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 
@@ -110,6 +112,9 @@ func TestGet(t *testing.T) {
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/bad")
+		ver := req.Header.Get("Infra-Version")
+		assert.Assert(t, len(ver) > 0)
+		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 
@@ -119,6 +124,9 @@ func TestGet(t *testing.T) {
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/invalid")
+		ver := req.Header.Get("Infra-Version")
+		assert.Assert(t, len(ver) > 0)
+		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 }

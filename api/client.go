@@ -197,7 +197,7 @@ func delete(client Client, path string) error {
 }
 
 func addHeaders(req *http.Request, headers http.Header) {
-	req.Header.Set("Infra-Version", internal.Version)
+	req.Header.Set("Infra-Version", internal.FullVersion())
 	for key, values := range headers {
 		req.Header[key] = values
 	}

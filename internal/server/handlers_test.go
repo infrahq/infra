@@ -45,7 +45,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Version", "0.12.0")
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -70,7 +70,7 @@ func TestAPI_ListIdentities(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.0")
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -219,7 +219,7 @@ func TestListKeys(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.0")
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
@@ -283,7 +283,7 @@ func TestListProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-	req.Header.Add("Infra-Version", "0.12.0")
+	req.Header.Add("Infra-Version", "0.12.3")
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)

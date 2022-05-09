@@ -6,9 +6,10 @@ import (
 )
 
 type Version struct {
-	Major uint8
-	Minor uint8
-	Patch uint8
+	Major      uint8
+	Minor      uint8
+	Patch      uint8
+	Prerelease string
 }
 
 func NewVersion(ver string) Version {
@@ -21,7 +22,11 @@ func NewVersion(ver string) Version {
 		v.Minor = parseuint8(parts[1])
 	}
 	if len(parts) > 2 {
-		v.Patch = parseuint8(parts[2])
+		patchParts := strings.Split(parts[2], "-")
+		v.Patch = parseuint8(patchParts[0])
+		if len(patchParts) > 1 {
+			v.Prerelease = patchParts[1]
+		}
 	}
 	return v
 }
@@ -48,6 +53,9 @@ func (v Version) GreaterThan(ver Version) bool {
 		return false
 	}
 	if v.Patch > ver.Patch {
+		return true
+	}
+	if len(v.Prerelease) > 0 {
 		return true
 	}
 	return false
