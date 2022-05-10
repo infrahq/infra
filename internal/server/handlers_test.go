@@ -252,7 +252,7 @@ func TestListKeys(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.11.0")
+		req.Header.Add("Infra-Version", "0.12.2")
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
@@ -641,6 +641,106 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		assert.NilError(t, err)
 		assert.DeepEqual(t, getGrant, newGrant)
 	})
+}
+
+func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "subject": "i:TJ",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	assert.NilError(t, err)
+
+	runStep(t, "full JSON response", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster",
+		  "subject": "i:TJ",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.2")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+func TestAPI_ListGrantsV0_12_2(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	admin, err := data.ListIdentities(srv.db, data.ByName("admin"))
+	assert.NilError(t, err)
+
+	expected := jsonUnmarshal(t, fmt.Sprintf(`
+	[
+		{
+			"id": "<any-valid-uid>",
+			"created_by": "%[1]v",
+			"privilege": "admin",
+			"resource": "infra",
+			"subject": "%[2]v",
+			"created": "%[3]v",
+			"updated": "%[3]v"
+		}
+	]`,
+		uid.ID(1),
+		uid.NewIdentityPolymorphicID(admin[0].ID),
+		time.Now().UTC().Format(time.RFC3339),
+	))
+
+	actual := jsonUnmarshal(t, resp.Body.String())
+	assert.NilError(t, err)
+	assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 }
 
 // cmpApproximateTime is a gocmp.Option that compares a time formatted as an
