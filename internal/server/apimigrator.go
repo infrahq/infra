@@ -240,16 +240,13 @@ func (w *responseWriter) Flush() {
 	bytesToFlush := len(w.body)
 	w.size = bytesToFlush
 	for bytesToFlush > 0 {
-		bytesFlushed, err := w.ResponseWriter.Write(w.body)
+		bytesFlushed, err := w.ResponseWriter.Write(w.body[w.size-bytesToFlush:])
 		if err != nil {
 			w.flushErr = err
 			return
 		}
 		bytesToFlush -= bytesFlushed
-		w.body = w.body[bytesFlushed:]
 	}
-	//nolint:forcetypeassert
-	w.ResponseWriter.(http.Flusher).Flush()
 	w.flushErr = nil
 }
 

@@ -133,7 +133,7 @@ type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(http.MethodGet, fullPath, handler)
+	register(a, http.MethodGet, fullPath, handler)
 	handlers := includeRewritesFor(a, http.MethodGet, fullPath, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -158,7 +158,7 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(http.MethodPost, fullPath, handler)
+	register(a, http.MethodPost, fullPath, handler)
 
 	handlers := includeRewritesFor(a, http.MethodPost, fullPath, func(c *gin.Context) {
 		req := new(Req)
@@ -187,7 +187,7 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqRes
 
 func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(http.MethodPut, fullPath, handler)
+	register(a, http.MethodPut, fullPath, handler)
 
 	handlers := includeRewritesFor(a, http.MethodPut, fullPath, func(c *gin.Context) {
 		req := new(Req)
@@ -216,7 +216,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 
 func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
 	fullPath := path.Join(r.BasePath(), route)
-	registerReq(http.MethodDelete, fullPath, handler)
+	registerReq(a, http.MethodDelete, fullPath, handler)
 
 	handlers := includeRewritesFor(a, http.MethodDelete, fullPath, func(c *gin.Context) {
 		req := new(Req)
