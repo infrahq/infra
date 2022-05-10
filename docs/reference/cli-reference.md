@@ -293,13 +293,13 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 ## `infra users add`
 
-Create an identity
+Create a user.
 
 ### Synopsis
 
-Create an identity
+Create a user.
 
-Note: A new user identity must change their one time password before further usage.
+Note: A new user must change their one time password before further usage.
 
 ```
 infra users add USER [flags]
