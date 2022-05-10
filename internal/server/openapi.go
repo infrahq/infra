@@ -36,7 +36,10 @@ var (
 	}
 )
 
-func register[Req, Res any](method, path string, handler ReqResHandlerFunc[Req, Res]) {
+func register[Req, Res any](a *API, method, path string, handler ReqResHandlerFunc[Req, Res]) {
+	if a.disableOpenAPIGeneration {
+		return
+	}
 	funcName := getFuncName(handler)
 
 	//nolint:gocritic
@@ -47,7 +50,10 @@ func register[Req, Res any](method, path string, handler ReqResHandlerFunc[Req, 
 	reg(method, path, funcName, rqt, rst)
 }
 
-func registerReq[Req any](method, path string, handler ReqHandlerFunc[Req]) {
+func registerReq[Req any](a *API, method, path string, handler ReqHandlerFunc[Req]) {
+	if a.disableOpenAPIGeneration {
+		return
+	}
 	funcName := getFuncName(handler)
 
 	//nolint:gocritic
