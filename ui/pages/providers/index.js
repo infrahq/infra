@@ -62,7 +62,7 @@ const columns = [{
                 method: 'DELETE'
               })
 
-              return providers?.items?.filter(p => p?.id !== provider.id)
+              return providers?.filter(p => p?.id !== provider.id)
             }, { optimisticData: rows.map(r => r.original).filter(p => p?.id !== provider.id) })
 
             setOpen(false)
@@ -78,7 +78,7 @@ const columns = [{
 export default function Providers () {
   const { data, error } = useSWR('/v1/providers')
 
-  const table = useTable({ columns, data: data?.items || [] })
+  const table = useTable({ columns, data: data || [] })
 
   const loading = !data && !error
 
@@ -91,13 +91,13 @@ export default function Providers () {
         ? (<Loader />)
         : (
           <div className='flex flex-row mt-4 lg:mt-6'>
-            {data?.count > 0 && (
+            {data?.length > 0 && (
               <div className='mt-2 mr-8'>
                 <HeaderIcon iconPath='/providers-color.svg' />
               </div>
             )}
             <div className='flex-1 flex flex-col space-y-4'>
-              {data?.count > 0 && (
+              {data?.length > 0 && (
                 <div className='flex justify-between items-center'>
                   <h1 className='text-base font-bold mt-6 mb-4'>Identity Providers</h1>
                   <Link href='/providers/add'>
@@ -111,7 +111,7 @@ export default function Providers () {
               )}
               {error?.status
                 ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : data?.count === 0
+                : data?.length === 0
                   ? (
                     <EmptyTable
                       title='There are no identity providers'
