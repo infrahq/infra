@@ -62,15 +62,15 @@ $ infra logout --all --clear`,
 	return cmd
 }
 
-func logoutOfServer(hostConfig *ClientHostConfig) (success bool, err error) {
+func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	if !hostConfig.isLoggedIn() {
 		logging.S.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
-		return false, nil
+		return false
 	}
 
 	client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	hostConfig.AccessKey = ""
@@ -80,14 +80,13 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool, err error) {
 	err = client.Logout()
 	switch {
 	case api.ErrorStatusCode(err) == http.StatusUnauthorized:
-		logging.S.Warn(err.Error())
-		return false, nil
+		return false
 	case err != nil:
-		return false, err
+		return false
 	}
 
 	logging.S.Debugf("logged out of server [%s]", hostConfig.Host)
-	return true, nil
+	return true
 }
 
 func logout(clear bool, server string, all bool) error {
@@ -117,14 +116,8 @@ func logoutAll(clear bool) error {
 		return err
 	}
 
-	var logoutErr error
 	for i := range config.Hosts {
-		if _, err = logoutOfServer(&config.Hosts[i]); err != nil {
-			logoutErr = err
-		}
-	}
-	if logoutErr != nil {
-		return logoutErr
+		logoutOfServer(&config.Hosts[i])
 	}
 
 	fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
@@ -160,10 +153,7 @@ func logoutOne(clear bool, server string) error {
 		return nil
 	}
 
-	success, err := logoutOfServer(host)
-	if err != nil {
-		return fmt.Errorf("Failed to logout of server %s due to an internal error: %w.", host.Host, err)
-	}
+	success := logoutOfServer(host)
 	if success {
 		fmt.Fprintf(os.Stderr, "Logged out of server %s\n", host.Host)
 	}
