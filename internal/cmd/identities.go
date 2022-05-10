@@ -189,7 +189,7 @@ $ infra identities remove janedoe@example.com`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully destination not found")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully when destination not found")
 
 	return cmd
 }
