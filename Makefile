@@ -1,8 +1,11 @@
 tag := $(patsubst v%,%,$(shell git describe --tags --abbrev=0))
 version := $(tag:v%=%)
 
-generate:
-	go generate ./...
+ui/generate:
+	$(MAKE) -C $(@D) $(@F)
+
+internal/server/ui: ui/generate
+	cp -a $(abspath $<) $@
 
 test:
 	go test -short ./...
@@ -30,7 +33,8 @@ docs: docs/api/openapi3.json
 	go run ./internal/docgen
 
 clean: helm/clean
-	$(RM) -r dist
+	$(MAKE) -C ui $@
+	$(RM) -r dist internal/server/ui
 
 goreleaser:
 	@command -v goreleaser >/dev/null || { echo "install goreleaser @ https://goreleaser.com/install/#install-the-pre-compiled-binary" && exit 1; }
@@ -39,7 +43,7 @@ goreleaser:
 build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
-dev/docker:
+dev/docker: internal/server/ui
 	docker build --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:dev
 
 %.yaml: %.yaml.in
@@ -68,13 +72,13 @@ dev/clean:
 	kubectl config use-context docker-desktop
 	helm $(NS) uninstall infra || true
 
-docker:
+docker: internal/server/ui
 	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version)
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
-release/docker:
+release/docker: internal/server/ui
 	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version) -t infrahq/infra
 
 release/helm: helm

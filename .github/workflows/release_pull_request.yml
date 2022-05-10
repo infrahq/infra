@@ -18,7 +18,22 @@ jobs:
       - run: go build github.com/$GITHUB_REPOSITORY
       - uses: github/codeql-action/analyze@v2
 
+  generate-ui:
+    if: startsWith(github.head_ref, 'release-please-') == true
+    rusn-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 17
+      - run: make ui/generate
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ui
+          path: ui/generate
+
   docker:
+    needs: generate-ui
     if: startsWith(github.head_ref, 'release-please-') == true
     runs-on: ubuntu-latest
     steps:
@@ -28,6 +43,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui/generate
       - run: make docker tag=next
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}

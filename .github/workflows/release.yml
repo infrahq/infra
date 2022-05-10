@@ -47,8 +47,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
 
+  generate-ui:
+    if: startsWith(github.head_ref, 'release-please-') == true
+    rusn-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 17
+      - run: make ui/generate
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ui
+          path: ui/generate
+
   docker:
-    needs: release-please
+    needs: [release-please, generate-ui]
     if: needs.release-please.outputs.release_created
     runs-on: ubuntu-latest
     steps:
@@ -58,6 +72,10 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: actions/download-artifact@v3
+        with:
+          name: ui
+          path: ui/generate
       - run: make release/docker tag=${{ needs.release-please.outputs.release_name }}
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
