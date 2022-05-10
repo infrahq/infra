@@ -122,7 +122,7 @@ func (a *API) addResponseRewrites() {
 	})
 	addResponseRewrite(a, http.MethodPost, "/v1/login", "0.12.2", func(newResponse *api.LoginResponse) loginResponseV0_12_2 {
 		return loginResponseV0_12_2{
-			PolymorphicID:          uid.NewIdentityPolymorphicID(newResponse.ID),
+			PolymorphicID:          uid.NewIdentityPolymorphicID(newResponse.UserID),
 			Name:                   newResponse.Name,
 			AccessKey:              newResponse.AccessKey,
 			PasswordUpdateRequired: newResponse.PasswordUpdateRequired,
