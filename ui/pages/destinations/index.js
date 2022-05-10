@@ -45,8 +45,8 @@ function columns (admin) {
             const [shareOpen, setShareOpen] = useState(false)
             const { data: grants } = useSWR(`/v1/grants?resource=${row.original.name}`)
 
-            const users = new Set(grants?.items?.filter(g => !g?.subject?.startsWith('g:'))).size
-            const groups = new Set(grants?.items?.filter(g => g?.subject?.startsWith('g:'))).size
+            const users = new Set(grants?.filter(g => !g?.subject?.startsWith('g:'))).size
+            const groups = new Set(grants?.filter(g => g?.subject?.startsWith('g:'))).size
 
             return (
               <div className='flex text-right justify-end w-24 h-8 ml-auto'>
@@ -121,7 +121,7 @@ function columns (admin) {
                         method: 'DELETE'
                       })
 
-                      return destinations?.items?.filter(d => d?.id !== id)
+                      return destinations?.filter(d => d?.id !== id)
                     }, { optimisticData: rows.map(r => r.original).filter(d => d?.id !== id) })
 
                     setOpen(false)
@@ -153,13 +153,13 @@ export default function Destinations () {
         ? (<Loader />)
         : (
           <div className='flex flex-row mt-4 lg:mt-6'>
-            {destinations?.count > 0 && (
+            {destinations?.length > 0 && (
               <div className='mt-2 mr-8'>
                 <HeaderIcon iconPath='/destinations-color.svg' />
               </div>
             )}
             <div className='flex-1 flex flex-col space-y-4'>
-              {destinations?.count > 0 && (
+              {destinations?.length > 0 && (
                 <div className='flex justify-between items-center'>
                   <h1 className='text-base font-bold mt-6 mb-4'>Clusters</h1>
                   {admin && (
@@ -175,7 +175,7 @@ export default function Destinations () {
               )}
               {error?.status
                 ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : destinations?.count === 0
+                : destinations?.length === 0
                   ? <EmptyTable
                       title='There are no clusters'
                       subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'

@@ -8,7 +8,12 @@ import '../lib/dayjs'
 import '../styles/globals.css'
 
 const fetcher = async (resource, init) => {
-  const res = await fetch(resource, init)
+  const res = await fetch(resource, {
+    ...init,
+    headers: {
+      "Infra-Version": "0.12.2",
+    },
+  })
   const data = await res.json()
 
   if (!res.ok) {
