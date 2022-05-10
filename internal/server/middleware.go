@@ -58,7 +58,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 func AuthenticationMiddleware(a *API) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
-			sendAPIError(c, fmt.Errorf("%w: %s", internal.ErrUnauthorized, err))
+			sendAPIError(c, err)
 			return
 		}
 
@@ -109,7 +109,7 @@ func RequireAccessKey(c *gin.Context) error {
 
 	identity.LastSeenAt = time.Now().UTC()
 	if err = data.SaveIdentity(db, identity); err != nil {
-		return fmt.Errorf("%w: identity update fail: %s", internal.ErrUnauthorized, err)
+		return fmt.Errorf("identity update fail: %w", err)
 	}
 
 	c.Set("identity", identity)
