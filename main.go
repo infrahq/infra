@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 
 	"github.com/infrahq/infra/internal/cmd"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 		var userErr cmd.Error
 		switch {
 		case errors.Is(err, terminal.InterruptErr):
-			// print nothing, the user initiated the exit
+			logging.S.Debug("user interrupted (kill, stop) the process")
 		case errors.As(err, &userErr):
 			fmt.Fprintln(os.Stderr, userErr.Error())
 		default:
