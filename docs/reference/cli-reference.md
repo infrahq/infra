@@ -387,7 +387,7 @@ $ infra identities remove janedoe@example.com
 ### Options
 
 ```
-      --force   Exit successfully destination not found
+      --force   Exit successfully when destination not found
 ```
 
 ### Options inherited from parent commands
