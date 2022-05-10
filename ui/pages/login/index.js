@@ -50,7 +50,7 @@ export default function () {
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { id: data.id }
+          query: { id: data.polymorphicID.replace('i:', '') }
         })
         return
       }
