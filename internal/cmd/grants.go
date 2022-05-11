@@ -58,19 +58,19 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			type userTable struct {
+			type userRow struct {
 				User     string `header:"USER"`
 				Access   string `header:"ACCESS"`
 				Resource string `header:"DESTINATION"`
 			}
-			type groupTable struct {
+			type groupRow struct {
 				Group    string `header:"GROUP"`
 				Access   string `header:"ACCESS"`
 				Resource string `header:"DESTINATION"`
 			}
 
-			var userRows []userTable
-			var groupRows []groupTable
+			var userRows []userRow
+			var groupRows []groupRow
 			for _, g := range grants.Items {
 
 				switch {
@@ -79,7 +79,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 					if err != nil {
 						return err
 					}
-					userRows = append(userRows, userTable{
+					userRows = append(userRows, userRow{
 						User:     identity.Name,
 						Access:   g.Privilege,
 						Resource: g.Resource,
@@ -90,7 +90,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 						return err
 					}
 
-					groupRows = append(groupRows, groupTable{
+					groupRows = append(groupRows, groupRow{
 						Group:    group.Name,
 						Access:   g.Privilege,
 						Resource: g.Resource,
