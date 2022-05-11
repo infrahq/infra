@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,6 +27,15 @@ type apiMigration struct {
 }
 
 func addRedirect(a *API, method, path, newPath, version string) {
+	// update any existing migrations with the legacy path
+	for i, mig := range a.migrations {
+		if len(mig.redirect) == 0 && mig.path == path {
+			a.migrations[i].path = newPath
+		}
+		if len(mig.redirect) > 0 && mig.redirect == path {
+			a.migrations[i].redirect = newPath
+		}
+	}
 	a.migrations = append(a.migrations, apiMigration{
 		method:   method,
 		path:     path,
@@ -100,6 +110,7 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 			}
 		}
 		if fieldname, ok := t.Field(i).Tag.Lookup("json"); ok {
+			fieldname = strings.SplitN(fieldname, ",", 2)[0]
 			body[fieldname] = f.Interface()
 		}
 	}
