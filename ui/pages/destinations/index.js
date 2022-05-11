@@ -158,10 +158,10 @@ export default function Destinations () {
               : <>
                 <Table {...table} />
                 {
-                    destinations?.count === 0 &&
+                    destinations?.count === 0 || destinations?.length === 0 &&
                       <EmptyTable
                         title='There are no infrastructure'
-                        subtitle='There are currently no infrastructure connected to Infra. Get started by connecting one.'
+                        subtitle={`There are currently no infrastructure connected to Infra. ${admin ? 'Get started by connecting one.' : ''}`}
                         iconPath='/destinations.svg'
                         buttonHref={admin && '/destinations/add'}
                         buttonText='Infrastructure'
