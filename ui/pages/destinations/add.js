@@ -90,7 +90,7 @@ export default function () {
     fetch('/v1/identities?name=connector')
       .then((response) => response.json())
       .then((data) => {
-        const { id } = data.items[0]
+        const { id } = data[0]
         const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
 
         return { UserID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
