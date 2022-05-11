@@ -323,7 +323,7 @@ func healthHandler(c *gin.Context) {
 // TODO: use the HTTP Accept header instead of the path to determine the
 // format of the response body. https://github.com/infrahq/infra/issues/1610
 func (a *API) notFoundHandler(c *gin.Context) {
-	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
+	if strings.HasPrefix(c.Request.URL.Path, "/api") {
 		sendAPIError(c, internal.ErrNotFound)
 		return
 	}

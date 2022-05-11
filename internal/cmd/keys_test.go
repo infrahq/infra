@@ -25,7 +25,7 @@ func TestKeysAddCmd(t *testing.T) {
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			// the command does a lookup for user ID
-			if requestMatches(req, http.MethodGet, "/v1/users") {
+			if requestMatches(req, http.MethodGet, "/api/users") {
 				if req.URL.Query().Get("name") != "my-user" {
 					resp.WriteHeader(http.StatusBadRequest)
 					return
@@ -41,7 +41,7 @@ func TestKeysAddCmd(t *testing.T) {
 				return
 			}
 
-			if !requestMatches(req, http.MethodPost, "/v1/access-keys") {
+			if !requestMatches(req, http.MethodPost, "/api/access-keys") {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -120,7 +120,7 @@ func TestKeysListCmd(t *testing.T) {
 			query := req.URL.Query()
 
 			// the command does a lookup for user ID
-			if requestMatches(req, http.MethodGet, "/v1/users") {
+			if requestMatches(req, http.MethodGet, "/api/users") {
 				if query.Get("name") != "my-user" {
 					resp.WriteHeader(http.StatusBadRequest)
 					return
@@ -136,7 +136,7 @@ func TestKeysListCmd(t *testing.T) {
 				return
 			}
 
-			if !requestMatches(req, http.MethodGet, "/v1/access-keys") {
+			if !requestMatches(req, http.MethodGet, "/api/access-keys") {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}

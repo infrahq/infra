@@ -26,7 +26,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			query := req.URL.Query()
 
-			if requestMatches(req, http.MethodGet, "/v1/users") {
+			if requestMatches(req, http.MethodGet, "/api/users") {
 				resp.WriteHeader(http.StatusOK)
 				switch query.Get("name") {
 				case "existing@example.com":
@@ -39,7 +39,7 @@ func TestGrantsAddCmd(t *testing.T) {
 				return
 			}
 
-			if requestMatches(req, http.MethodGet, "/v1/groups") {
+			if requestMatches(req, http.MethodGet, "/api/groups") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existingGroup" {
 					writeResponse(t, resp, api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 4000}}})
@@ -49,7 +49,7 @@ func TestGrantsAddCmd(t *testing.T) {
 				return
 			}
 
-			if requestMatches(req, http.MethodGet, "/v1/destinations") {
+			if requestMatches(req, http.MethodGet, "/api/destinations") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "the-destination" {
 					writeResponse(t, resp, api.ListResponse[api.Destination]{Count: 1, Items: []api.Destination{{ID: 5000, Roles: []string{"role"}, Resources: []string{"default"}}}})
@@ -59,7 +59,7 @@ func TestGrantsAddCmd(t *testing.T) {
 				return
 			}
 
-			if !requestMatches(req, http.MethodPost, "/v1/grants") {
+			if !requestMatches(req, http.MethodPost, "/api/grants") {
 				resp.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -179,7 +179,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			query := req.URL.Query()
 
-			if requestMatches(req, http.MethodGet, "/v1/users") {
+			if requestMatches(req, http.MethodGet, "/api/users") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existing@example.com" {
 					writeResponse(t, resp, api.ListResponse[api.User]{Count: 1, Items: []api.User{{ID: 3000}}})
@@ -189,7 +189,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 				return
 			}
 
-			if requestMatches(req, http.MethodGet, "/v1/groups") {
+			if requestMatches(req, http.MethodGet, "/api/groups") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("name") == "existingGroup" {
 					writeResponse(t, resp, api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 4000}}})
@@ -199,7 +199,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 				return
 			}
 
-			if requestMatches(req, http.MethodGet, "/v1/grants") {
+			if requestMatches(req, http.MethodGet, "/api/grants") {
 				resp.WriteHeader(http.StatusOK)
 				if query.Get("resource") != "the-destination" {
 					writeResponse(t, resp, api.ListResponse[api.Grant]{})
@@ -240,7 +240,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 				return
 			}
 
-			if requestMatchesPrefix(req, http.MethodDelete, "/v1/grants") {
+			if requestMatchesPrefix(req, http.MethodDelete, "/api/grants") {
 				resp.WriteHeader(http.StatusOK)
 
 				requestCh <- path.Base(req.URL.Path)

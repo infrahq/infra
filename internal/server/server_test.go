@@ -129,7 +129,7 @@ func TestServer_Run(t *testing.T) {
 
 	t.Run("metrics server started", func(t *testing.T) {
 		// perform one API call to populate metrics
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/version")
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/api/version")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -221,7 +221,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/v1/signup")
+		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/api/signup")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -257,8 +257,8 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "/v1 path prefix",
-			path: "/v1/not/found",
+			name: "/api path prefix",
+			path: "/api/not/found",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				contentType := resp.Header().Get("Content-Type")
 				expected := "application/json; charset=utf-8"
@@ -375,7 +375,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/signup", &buf)
+	req := httptest.NewRequest(http.MethodPost, "/api/signup", &buf)
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -389,7 +389,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	err = json.NewEncoder(&buf).Encode(loginReq)
 	assert.NilError(t, err)
 
-	req = httptest.NewRequest(http.MethodPost, "/v1/login", &buf)
+	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -399,7 +399,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	assert.NilError(t, err)
 
 	checkAuthenticated := func() {
-		req = httptest.NewRequest(http.MethodGet, "/v1/users", nil)
+		req = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
 		resp = httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

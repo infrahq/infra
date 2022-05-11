@@ -31,7 +31,7 @@ func TestLogout(t *testing.T) {
 	setup := func(t *testing.T) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if req.URL.Path != "/v1/logout" {
+			if req.URL.Path != "/api/logout" {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -94,7 +94,7 @@ func TestLogout(t *testing.T) {
 	setupError := func(t *testing.T) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if req.URL.Path != "/v1/logout" {
+			if req.URL.Path != "/api/logout" {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
