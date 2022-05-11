@@ -58,15 +58,20 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			type row struct {
-				Identity string `header:"IDENTITY"`
+			type userRow struct {
+				User     string `header:"USER"`
+				Access   string `header:"ACCESS"`
+				Resource string `header:"DESTINATION"`
+			}
+			type groupRow struct {
+				Group    string `header:"GROUP"`
 				Access   string `header:"ACCESS"`
 				Resource string `header:"DESTINATION"`
 			}
 
-			var rows []row
+			var userRows []userRow
+			var groupRows []groupRow
 			for _, g := range grants.Items {
-				var name string
 
 				switch {
 				case g.User != 0:
@@ -74,30 +79,41 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 					if err != nil {
 						return err
 					}
-
-					name = identity.Name
+					userRows = append(userRows, userRow{
+						User:     identity.Name,
+						Access:   g.Privilege,
+						Resource: g.Resource,
+					})
 				case g.Group != 0:
 					group, err := client.GetGroup(g.Group)
 					if err != nil {
 						return err
 					}
 
-					name = group.Name
+					groupRows = append(groupRows, groupRow{
+						Group:    group.Name,
+						Access:   g.Privilege,
+						Resource: g.Resource,
+					})
 				default:
-					return fmt.Errorf("unknown grant subject")
+					// unknown grant subject
+					continue
 				}
-
-				rows = append(rows, row{
-					Identity: name,
-					Access:   g.Privilege,
-					Resource: g.Resource,
-				})
 			}
 
-			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
-			} else {
+			if len(userRows)+len(groupRows) == 0 {
 				cli.Output("No grants found")
+				return nil
+			}
+
+			if len(userRows) > 0 {
+				printTable(userRows, cli.Stdout)
+			}
+			if len(groupRows) > 0 {
+				if len(userRows) > 0 {
+					cli.Output("")
+				}
+				printTable(groupRows, cli.Stdout)
 			}
 
 			return nil
