@@ -1,4 +1,4 @@
-function withOpacityValue(variable) {
+function withOpacityValue (variable) {
   return ({ opacityValue }) => {
     if (opacityValue === undefined) {
       return `rgb(${variable})`
@@ -18,7 +18,7 @@ module.exports = {
         black: '#0A0E12',
         pink: {
           300: '#EB91C7',
-          'light': withOpacityValue('228 64 255'),
+          light: withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
         },
         gray: {
@@ -34,7 +34,7 @@ module.exports = {
         label: ['11px', '0px'],
         name: ['12px', '15px'],
         title: ['13px', '16px'],
-        header: ['16px', '19px'],
+        header: ['16px', '19px']
       },
       transitionProperty: {
         size: 'height, padding, background'

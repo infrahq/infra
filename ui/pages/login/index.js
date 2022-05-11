@@ -66,11 +66,6 @@ export default function () {
     return false
   }
 
-  const kindCount = providers?.map(p => kind(p.url)).reduce((p, c) => {
-    p[c] = (p[c] || 0) + 1
-    return p
-  }, {})
-
   return (
     <div className='h-auto w-full max-w-sm mx-auto overflow-hidden'>
       <div className='flex flex-col justify-center items-center px-5 py-5 mt-40 border rounded-lg border-gray-950'>
@@ -84,12 +79,12 @@ export default function () {
               {providers?.map(p => (
                 <button onClick={() => oidcLogin(p)} key={p.id} className='w-full border border-gray-950 hover:to-pink-50 rounded-md p-0.5 my-1.5'>
                   <div className='flex flex-col items-center justify-center px-4 py-2'>
-                    {kind(p.url) ? 
-                    <div className='flex flex-col items-center text-center'>
-                      <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
-                      <div className='text-name text-gray-300'>{p.url}</div>
-                    </div>
-                       : <p className='font-bold h-4 m-1'>SSO</p>}
+                    {kind(p.url)
+                      ? <div className='flex flex-col items-center text-center'>
+                        <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
+                        <div className='text-name text-gray-300'>{p.url}</div>
+                      </div>
+                      : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
                   </div>
                 </button>
               ))}
@@ -107,7 +102,7 @@ export default function () {
 
         <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
           <div className='w-full my-4'>
-            <div className="text-label text-gray-200 uppercase">Email</div>
+            <div className='text-label text-gray-200 uppercase'>Email</div>
             <input
               required
               autoFocus
@@ -121,7 +116,7 @@ export default function () {
             />
           </div>
           <div className='w-full my-4'>
-            <div className="text-label text-gray-200 uppercase">Password</div>
+            <div className='text-label text-gray-200 uppercase'>Password</div>
             <input
               required
               type='password'

@@ -75,22 +75,24 @@ export default function () {
         <h2 className='text-title text-center max-w-md my-3 text-gray-300'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
         <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>
           <div className='w-full my-4'>
-            <div className="text-label text-gray-200 uppercase">Email</div>
-            <input 
-              autoFocus 
-              type='email' 
-              placeholder='email@address.com' 
-              onChange={e => setEmail(e.target.value)} 
-              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.email ? 'border-pink-300' : ''}`} />
+            <div className='text-label text-gray-200 uppercase'>Email</div>
+            <input
+              autoFocus
+              type='email'
+              placeholder='email@address.com'
+              onChange={e => setEmail(e.target.value)}
+              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.email ? 'border-pink-300' : ''}`}
+            />
             {errors.email && <ErrorMessage message={errors.email} />}
           </div>
           <div className='w-full my-4'>
-            <div className="text-label text-gray-200 uppercase">Password</div>
-            <input 
-              type='password' 
-              placeholder='enter your password' 
-              onChange={e => setPassword(e.target.value)} 
-              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.password ? 'border-pink-300' : ''}`} />
+            <div className='text-label text-gray-200 uppercase'>Password</div>
+            <input
+              type='password'
+              placeholder='enter your password'
+              onChange={e => setPassword(e.target.value)}
+              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.password ? 'border-pink-300' : ''}`}
+            />
             {errors.password && <ErrorMessage message={errors.password} />}
           </div>
 

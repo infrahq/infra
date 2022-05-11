@@ -23,7 +23,6 @@ const columns = [{
     const { data: auth } = useSWR('/v1/users/self')
     const { mutate } = useSWRConfig()
 
-
     const [open, setOpen] = useState(false)
 
     const isSelf = admin.subject.replace('i:', '') === auth.id

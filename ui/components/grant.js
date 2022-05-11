@@ -40,7 +40,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
       const data = await res.json()
 
-      if(exist) {
+      if (exist) {
         await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
       }
 
@@ -68,7 +68,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         let res = await fetch(`/v1/users?name=${email}`)
         const data = await res.json()
 
-        if(!res.ok) {
+        if (!res.ok) {
           throw data
         }
 
@@ -85,7 +85,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         } else {
           grantPrivilege('i:' + data[0].id)
         }
-      } catch(e) {
+      } catch (e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
       }
     } else {
@@ -104,7 +104,6 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       return grants?.filter(item => item?.id !== grantId)
     }, { optimisticData: list?.filter(item => item?.id !== grantId) })
   }
-
 
   return (
     <InfoModal
@@ -161,7 +160,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             </div>
           ))}
         </div>}
-        {grantError && <ErrorMessage message={grantError} />}
+      {grantError && <ErrorMessage message={grantError} />}
 
     </InfoModal>
   )

@@ -4,7 +4,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import HeaderIcon from '../../components/header-icon'
 import Admin from './admin'
 
-export default function Settings() {
+export default function Settings () {
   return (
     <>
       <Head>
