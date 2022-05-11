@@ -11,12 +11,11 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-func newIdentitiesCmd(cli *CLI) *cobra.Command {
+func newUsersCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "identities",
-		Aliases: []string{"id", "identity"},
-		Short:   "Manage user identities",
-		Group:   "Management commands:",
+		Use:   "users",
+		Short: "Manage user identities",
+		Group: "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
@@ -25,33 +24,33 @@ func newIdentitiesCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(newIdentitiesAddCmd(cli))
-	cmd.AddCommand(newIdentitiesEditCmd())
-	cmd.AddCommand(newIdentitiesListCmd(cli))
-	cmd.AddCommand(newIdentitiesRemoveCmd(cli))
+	cmd.AddCommand(newUsersAddCmd(cli))
+	cmd.AddCommand(newUsersEditCmd())
+	cmd.AddCommand(newUsersListCmd(cli))
+	cmd.AddCommand(newUsersRemoveCmd(cli))
 
 	return cmd
 }
 
-func newIdentitiesAddCmd(cli *CLI) *cobra.Command {
+func newUsersAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add IDENTITY",
-		Short: "Create an identity",
-		Long: `Create an identity
+		Use:   "add USER",
+		Short: "Create a user.",
+		Long: `Create a user.
 
-Note: A new user identity must change their one time password before further usage.`,
+Note: A new user must change their one time password before further usage.`,
 		Args: ExactArgs(1),
 		Example: `# Create a user
-$ infra identities add johndoe@example.com`,
+$ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			createResp, err := CreateIdentity(&api.CreateIdentityRequest{Name: name, SetOneTimePassword: true})
+			createResp, err := CreateUser(&api.CreateUserRequest{Name: name, SetOneTimePassword: true})
 			if err != nil {
 				return err
 			}
 
-			fmt.Fprintf(cli.Stderr, "Identity created.\n")
+			fmt.Fprintf(cli.Stderr, "User created.\n")
 			cli.Output("Name: %s", createResp.Name)
 
 			if createResp.OneTimePassword != "" {
@@ -65,31 +64,31 @@ $ infra identities add johndoe@example.com`,
 	return cmd
 }
 
-type editIdentityCmdOptions struct {
+type editUserCmdOptions struct {
 	Password       bool
 	NonInteractive bool
 }
 
-func newIdentitiesEditCmd() *cobra.Command {
-	var opts editIdentityCmdOptions
+func newUsersEditCmd() *cobra.Command {
+	var opts editUserCmdOptions
 	cmd := &cobra.Command{
-		Use:   "edit IDENTITY",
-		Short: "Update an identity",
-		Example: `# Set a new one time password for an identity
-$ infra identities edit janedoe@example.com --password`,
+		Use:   "edit USER",
+		Short: "Update a user",
+		Example: `# Set a new one time password for a user
+$ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
 			if !opts.Password {
-				return errors.New("Please specify a field to update. For options, run 'infra identities edit --help'")
+				return errors.New("Please specify a field to update. For options, run 'infra users edit --help'")
 			}
 
 			if opts.Password && opts.NonInteractive {
 				return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
 			}
 
-			return UpdateIdentity(name, opts)
+			return UpdateUser(name, opts)
 		},
 	}
 
@@ -99,11 +98,11 @@ $ infra identities edit janedoe@example.com --password`,
 	return cmd
 }
 
-func newIdentitiesListCmd(cli *CLI) *cobra.Command {
+func newUsersListCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List identities",
+		Short:   "List users",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := defaultAPIClient()
@@ -118,22 +117,22 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{})
+			users, err := client.ListUsers(api.ListUsersRequest{})
 			if err != nil {
 				return err
 			}
 
-			for _, identity := range identities.Items {
+			for _, user := range users.Items {
 				rows = append(rows, row{
-					Name:       identity.Name,
-					LastSeenAt: identity.LastSeenAt.Relative("never"),
+					Name:       user.Name,
+					LastSeenAt: user.LastSeenAt.Relative("never"),
 				})
 			}
 
 			if len(rows) > 0 {
 				printTable(rows, cli.Stdout)
 			} else {
-				cli.Output("No identities found")
+				cli.Output("No users found")
 			}
 
 			return nil
@@ -141,13 +140,13 @@ func newIdentitiesListCmd(cli *CLI) *cobra.Command {
 	}
 }
 
-func newIdentitiesRemoveCmd(cli *CLI) *cobra.Command {
+func newUsersRemoveCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "remove IDENTITY",
+		Use:     "remove USER",
 		Aliases: []string{"rm"},
-		Short:   "Delete an identity",
-		Example: `# Delete an identity
-$ infra identities remove janedoe@example.com`,
+		Short:   "Delete a user",
+		Example: `# Delete a user
+$ infra users remove janedoe@example.com`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
@@ -157,19 +156,19 @@ $ infra identities remove janedoe@example.com`,
 				return err
 			}
 
-			identities, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
+			users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 			if err != nil {
 				return err
 			}
 
-			for _, identity := range identities.Items {
-				err := client.DeleteIdentity(identity.ID)
+			for _, user := range users.Items {
+				err := client.DeleteUser(user.ID)
 				if err != nil {
 					return err
 				}
 			}
 
-			fmt.Fprintf(cli.Stderr, "Deleted identity %q\n", name)
+			fmt.Fprintf(cli.Stderr, "Deleted user %q\n", name)
 
 			return nil
 		},
@@ -178,14 +177,14 @@ $ infra identities remove janedoe@example.com`,
 	return cmd
 }
 
-// CreateIdentity creates an identity within infra
-func CreateIdentity(req *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
+// CreateUser creates an user within infra
+func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.CreateIdentity(req)
+	resp, err := client.CreateUser(req)
 	if err != nil {
 		return nil, err
 	}
@@ -193,15 +192,15 @@ func CreateIdentity(req *api.CreateIdentityRequest) (*api.CreateIdentityResponse
 	return resp, nil
 }
 
-func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
+func UpdateUser(name string, cmdOptions editUserCmdOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
 
-	req := &api.UpdateIdentityRequest{}
+	req := &api.UpdateUserRequest{}
 
-	isSelf, err := isIdentitySelf(name)
+	isSelf, err := isUserSelf(name)
 	if err != nil {
 		return err
 	}
@@ -216,10 +215,10 @@ func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 			return err
 		}
 	} else {
-		user, err := GetIdentityByName(client, name)
+		user, err := GetUserByName(client, name)
 		if err != nil {
-			if errors.Is(err, ErrIdentityNotFound) {
-				return fmt.Errorf("Identity %s not found in local provider; only local identities can be edited", name)
+			if errors.Is(err, ErrUserNotFound) {
+				return fmt.Errorf("User %s not found in local provider; only local users can be edited", name)
 			}
 			return err
 		}
@@ -235,30 +234,30 @@ func UpdateIdentity(name string, cmdOptions editIdentityCmdOptions) error {
 		}
 	}
 
-	if _, err := client.UpdateIdentity(req); err != nil {
+	if _, err := client.UpdateUser(req); err != nil {
 		return err
 	}
 
 	if !isSelf {
 		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-		fmt.Fprintf(os.Stderr, "  Updated one time password for identity.\n")
+		fmt.Fprintf(os.Stderr, "  Updated one time password for user.\n")
 	}
 
 	return nil
 }
 
-func GetIdentityByName(client *api.Client, name string) (*api.Identity, error) {
-	users, err := client.ListIdentities(api.ListIdentitiesRequest{Name: name})
+func GetUserByName(client *api.Client, name string) (*api.User, error) {
+	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
 	if users.Count == 0 {
-		return nil, ErrIdentityNotFound
+		return nil, ErrUserNotFound
 	}
 
 	if users.Count != 1 {
-		return nil, fmt.Errorf("invalid identities response, there should only be one identity that matches a name, but multiple were found")
+		return nil, fmt.Errorf("invalid users response, there should only be one user that matches a name, but multiple were found")
 	}
 
 	return &users.Items[0], nil
@@ -315,8 +314,8 @@ func checkPasswordRequirements(oldPassword string) survey.Validator {
 	}
 }
 
-// isIdentitySelf checks if the caller is updating their current local user
-func isIdentitySelf(name string) (bool, error) {
+// isUserSelf checks if the caller is updating their current local user
+func isUserSelf(name string) (bool, error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return false, err

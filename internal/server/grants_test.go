@@ -20,17 +20,17 @@ import (
 )
 
 func TestAPI_ListGrants(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
-		body := api.CreateIdentityRequest{Name: name}
+		body := api.CreateUserRequest{Name: name}
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/v1/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -38,7 +38,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
-		respObj := &api.CreateIdentityResponse{}
+		respObj := &api.CreateUserResponse{}
 		err = json.Unmarshal(resp.Body.Bytes(), respObj)
 		assert.NilError(t, err)
 		return respObj.ID
@@ -48,7 +48,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		t.Helper()
 		var buf bytes.Buffer
 		body := api.CreateGrantRequest{
-			Identity:  user,
+			User:      user,
 			Privilege: privilege,
 			Resource:  "res1",
 		}
@@ -159,11 +159,10 @@ func TestAPI_ListGrants(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 				assert.Equal(t, len(grants.Items), 0) // no grants for this resource
-
 			},
 		},
 		"authorized by identity matching subject": {
-			urlPath: "/v1/grants?identity=" + idInGroup.String(),
+			urlPath: "/v1/grants?user=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
@@ -171,7 +170,7 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
-						Identity:  idInGroup,
+						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
@@ -206,22 +205,22 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						Identity:  admin.ID,
+						User:      admin.ID,
 						Privilege: "admin",
 						Resource:  "infra",
 					},
 					{
-						Identity:  connector.ID,
+						User:      connector.ID,
 						Privilege: "connector",
 						Resource:  "infra",
 					},
 					{
-						Identity:  idInGroup,
+						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 					{
-						Identity:  idOther,
+						User:      idOther,
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
@@ -243,12 +242,12 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						Identity:  idInGroup,
+						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
 					{
-						Identity:  idOther,
+						User:      idOther,
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
@@ -269,7 +268,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						Identity:  idInGroup,
+						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
@@ -278,7 +277,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"full JSON response": {
-			urlPath: "/v1/grants?identity=" + idInGroup.String(),
+			urlPath: "/v1/grants?user=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
@@ -290,7 +289,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		"created_by": "%[1]v",
 		"privilege": "custom1",
 		"resource": "res1",
-		"identity": "%[2]v",
+		"user": "%[2]v",
 		"created": "%[3]v",
 		"updated": "%[3]v"
 	}]
@@ -312,7 +311,7 @@ func TestAPI_ListGrants(t *testing.T) {
 }
 
 var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
-	return x.Identity == y.Identity && x.Privilege == y.Privilege && x.Resource == y.Resource
+	return x.User == y.User && x.Privilege == y.Privilege && x.Resource == y.Resource
 })
 
 var cmpAPIGrantJSON = gocmp.Options{

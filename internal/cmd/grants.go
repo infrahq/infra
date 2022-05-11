@@ -69,8 +69,8 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				var name string
 
 				switch {
-				case g.Identity != 0:
-					identity, err := client.GetIdentity(g.Identity)
+				case g.User != 0:
+					identity, err := client.GetUser(g.User)
 					if err != nil {
 						return err
 					}
@@ -146,13 +146,13 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	identity, group, err := identityOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	user, group, err := userOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
 		return err
 	}
 
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		Identity:  identity,
+		User:      user,
 		Group:     group,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
@@ -210,9 +210,9 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	identity, group, err := identityOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	user, group, err := userOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
 	if err != nil {
-		if !errors.Is(err, ErrIdentityNotFound) {
+		if !errors.Is(err, ErrUserNotFound) {
 			return err
 		}
 
@@ -223,7 +223,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			}
 
 		} else {
-			identity, err = addGrantIdentity(client, cmdOptions.Identity)
+			user, err = addGrantUser(client, cmdOptions.Identity)
 			if err != nil {
 				return err
 			}
@@ -231,7 +231,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
-		Identity:  identity,
+		User:      user,
 		Group:     group,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
@@ -245,8 +245,8 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	return nil
 }
 
-// identityOrGroupByName gets the ID of the identity or group to be associated with the grant
-func identityOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID, uid.ID, error) {
+// userOrGroupByName gets the ID of the identity or group to be associated with the grant
+func userOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID, uid.ID, error) {
 	if isGroup {
 		group, err := GetGroupByName(client, subject)
 		if err != nil {
@@ -256,12 +256,12 @@ func identityOrGroupByName(client *api.Client, subject string, isGroup bool) (ui
 		return 0, group.ID, nil
 	}
 
-	identity, err := GetIdentityByName(client, subject)
+	user, err := GetUserByName(client, subject)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	return identity.ID, 0, nil
+	return user.ID, 0, nil
 }
 
 func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
@@ -271,7 +271,7 @@ func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
 	}
 
 	if groups.Count == 0 {
-		return nil, ErrIdentityNotFound
+		return nil, ErrUserNotFound
 	}
 
 	if groups.Count != 1 {
@@ -281,13 +281,13 @@ func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
 	return &groups.Items[0], nil
 }
 
-func addGrantIdentity(client *api.Client, name string) (uid.ID, error) {
-	identity, err := CreateIdentity(&api.CreateIdentityRequest{Name: name})
+func addGrantUser(client *api.Client, name string) (uid.ID, error) {
+	identity, err := CreateUser(&api.CreateUserRequest{Name: name})
 	if err != nil {
 		return 0, err
 	}
 
-	fmt.Printf("New unlinked identity %q added to Infra\n", name)
+	fmt.Printf("New unlinked user %q added to Infra\n", name)
 
 	return identity.ID, nil
 }

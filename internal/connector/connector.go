@@ -245,13 +245,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-		case g.Identity != 0:
-			identity, err := c.GetIdentity(g.Identity)
+		case g.User != 0:
+			user, err := c.GetUser(g.User)
 			if err != nil {
 				return err
 			}
 
-			name = identity.Name
+			name = user.Name
 			kind = rbacv1.UserKind
 		}
 

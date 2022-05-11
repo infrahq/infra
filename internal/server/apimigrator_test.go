@@ -22,7 +22,7 @@ type upgradedTestRequest struct {
 }
 
 func TestAddRequestRewrite(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -46,7 +46,7 @@ func TestAddRequestRewrite(t *testing.T) {
 }
 
 func TestStackedAddRequestRewrite(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -76,7 +76,7 @@ func TestStackedAddRequestRewrite(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -105,7 +105,7 @@ type upgradedResponse struct {
 }
 
 func TestAddResponseRewrite(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -154,7 +154,7 @@ func TestAddResponseRewrite(t *testing.T) {
 }
 
 func TestStackedResponseRewrites(t *testing.T) {
-	srv := setupServer(t, withAdminIdentity)
+	srv := setupServer(t, withAdminUser)
 
 	a := &API{server: srv, disableOpenAPIGeneration: true}
 	router := gin.New()
@@ -190,5 +190,4 @@ func TestStackedResponseRewrites(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), r)
 	assert.NilError(t, err)
 	assert.Equal(t, r.Shoes, 16)
-
 }

@@ -49,7 +49,7 @@ export default function () {
         throw await res.json()
       }
 
-      mutate('/v1/identities/self', { optimisticData: { name: email } })
+      mutate('/v1/users/self', { optimisticData: { name: email } })
       mutate('/v1/signup', { optimisticData: { enabled: false } })
       router.replace('/')
     } catch (e) {

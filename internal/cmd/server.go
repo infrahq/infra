@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
@@ -29,12 +28,7 @@ func newServerCmd() *cobra.Command {
 				configFilename = os.Getenv("INFRA_SERVER_CONFIG_FILE")
 			}
 
-			err := cliopts.Load(&options, cliopts.Options{
-				Filename:  configFilename,
-				EnvPrefix: "INFRA_SERVER",
-				Flags:     cmd.Flags(),
-			})
-			if err != nil {
+			if err := server.ApplyOptions(&options, configFilename, cmd.Flags()); err != nil {
 				return err
 			}
 

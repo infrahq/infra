@@ -57,7 +57,7 @@ func (r *Grant) ToAPI() *api.Grant {
 			return nil
 		}
 
-		grant.Identity = identity
+		grant.User = identity
 	case r.Subject.IsGroup():
 		group, err := r.Subject.ID()
 		if err != nil {

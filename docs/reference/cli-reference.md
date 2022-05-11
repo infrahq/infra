@@ -11,10 +11,10 @@
 * [infra grants list](#infra-grants-list)
 * [infra grants add](#infra-grants-add)
 * [infra grants remove](#infra-grants-remove)
-* [infra identities add](#infra-identities-add)
-* [infra identities edit](#infra-identities-edit)
-* [infra identities list](#infra-identities-list)
-* [infra identities remove](#infra-identities-remove)
+* [infra users add](#infra-users-add)
+* [infra users edit](#infra-users-edit)
+* [infra users list](#infra-users-list)
+* [infra users remove](#infra-users-remove)
 * [infra keys list](#infra-keys-list)
 * [infra keys add](#infra-keys-add)
 * [infra keys remove](#infra-keys-remove)
@@ -291,25 +291,25 @@ $ infra grants remove janedoe@example.com infra --role admin
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
 
-## `infra identities add`
+## `infra users add`
 
-Create an identity
+Create a user.
 
 ### Synopsis
 
-Create an identity
+Create a user.
 
-Note: A new user identity must change their one time password before further usage.
+Note: A new user must change their one time password before further usage.
 
 ```
-infra identities add IDENTITY [flags]
+infra users add USER [flags]
 ```
 
 ### Examples
 
 ```
 # Create a user
-$ infra identities add johndoe@example.com
+$ infra users add johndoe@example.com
 ```
 
 ### Options inherited from parent commands
@@ -319,19 +319,19 @@ $ infra identities add johndoe@example.com
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
 
-## `infra identities edit`
+## `infra users edit`
 
-Update an identity
+Update a user
 
 ```
-infra identities edit IDENTITY [flags]
+infra users edit USER [flags]
 ```
 
 ### Examples
 
 ```
-# Set a new one time password for an identity
-$ infra identities edit janedoe@example.com --password
+# Set a new one time password for a user
+$ infra users edit janedoe@example.com --password
 ```
 
 ### Options
@@ -348,12 +348,12 @@ $ infra identities edit janedoe@example.com --password
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
 
-## `infra identities list`
+## `infra users list`
 
-List identities
+List users
 
 ```
-infra identities list [flags]
+infra users list [flags]
 ```
 
 ### Options inherited from parent commands
@@ -363,19 +363,19 @@ infra identities list [flags]
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
 
-## `infra identities remove`
+## `infra users remove`
 
-Delete an identity
+Delete a user
 
 ```
-infra identities remove IDENTITY [flags]
+infra users remove USER [flags]
 ```
 
 ### Examples
 
 ```
-# Delete an identity
-$ infra identities remove janedoe@example.com
+# Delete a user
+$ infra users remove janedoe@example.com
 ```
 
 ### Options inherited from parent commands
@@ -396,7 +396,7 @@ infra keys list [flags]
 ### Options
 
 ```
-  -i, --identity string   The name of a identity to list access keys for
+      --user string   The name of a user to list access keys for
 ```
 
 ### Options inherited from parent commands
@@ -412,10 +412,10 @@ Create an access key
 
 ### Synopsis
 
-Create an access key for an identity.
+Create an access key for a user.
 
 ```
-infra keys add IDENTITY [flags]
+infra keys add USER [flags]
 ```
 
 ### Examples

@@ -537,7 +537,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 				ClientSecret: "client-secret",
 			},
 		},
-		Identities: []Identity{
+		Users: []User{
 			{
 				Name: "r2d2",
 			},
