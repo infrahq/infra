@@ -1,11 +1,11 @@
 import useSWR from 'swr'
 
 export function useAdmin () {
-  const { data: auth } = useSWR('/v1/users/self')
-  const { data: grants, error: grantsError } = useSWR(() => `/v1/users/${auth?.id}/grants?resource=infra`)
+  const { data: auth } = useSWR('/v1/identities/self')
+  const { data: grants, error: grantsError } = useSWR(() => `/v1/identities/${auth?.id}/grants?resource=infra`)
 
   return {
     loading: !grants && !grantsError,
-    admin: !!grants?.find(g => g.privilege === 'admin')
+    admin: !!grants?.items.find(g => g.privilege === 'admin')
   }
 }

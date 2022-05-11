@@ -19,8 +19,8 @@ const columns = [{
   id: 'delete',
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
-    const { data: user } = useSWR(`/v1/users/${admin.subject}`, { fallbackData: { name: '', kind: '' } })
-    const { data: auth } = useSWR('/v1/users/self')
+    const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+    const { data: auth } = useSWR('/v1/identities/self')
     const { mutate } = useSWRConfig()
 
 
@@ -58,7 +58,7 @@ const AdminName = ({ id }) => {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
   
   return (
     <div className='flex items-center'>
@@ -108,11 +108,11 @@ export default function () {
     if (validateEmail(adminEmail)) {
       setError('')
 
-      fetch(`/v1/users?name=${adminEmail}`)
+      fetch(`/v1/identities?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          if (data.length === 0) {
-            fetch('/v1/users', {
+          if (data.count === 0) {
+            fetch('/v1/identities', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail })
             })
@@ -120,7 +120,8 @@ export default function () {
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            grantAdminAccess(data[0].id)
+            console.log(data)
+            grantAdminAccess(data.items[0].id)
           }
         })
     } else {

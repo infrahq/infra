@@ -12,7 +12,7 @@ function Grant ({ id }) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
     <p className='text-sm'>{user.name}</p>
@@ -65,15 +65,15 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        let res = await fetch(`/v1/users?name=${email}`)
+        let res = await fetch(`/v1/identities?name=${email}`)
         const data = await res.json()
 
         if(!res.ok) {
           throw data
         }
 
-        if (data.length === 0) {
-          res = await fetch('/v1/users', {
+        if (data.count === 0) {
+          res = await fetch('/v1/identities', {
                   method: 'POST',
                   body: JSON.stringify({ name: email })
                 })
@@ -83,7 +83,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data[0].id)
+          grantPrivilege('i:' + data.items[0].id)
         }
       } catch(e) {
         setGrantError(e.message || 'something went wrong, please try again later.')

@@ -6,7 +6,7 @@ import { useAdmin } from '../../lib/admin'
 
 export default function ({ children }) {
   const router = useRouter()
-  const { data: auth } = useSWR('/v1/users/self')
+  const { data: auth } = useSWR('/v1/identities/self')
   const { data: version } = useSWR('/v1/version')
   const { admin, loading } = useAdmin()
   const { mutate } = useSWRConfig()
@@ -19,7 +19,7 @@ export default function ({ children }) {
     fetch('/v1/logout', {
       method: 'POST'
     })
-    await mutate('/v1/users/self', async () => undefined)
+    await mutate('/v1/identities/self', async () => undefined)
     router.replace('/login')
   }
 
