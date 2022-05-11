@@ -55,7 +55,7 @@ export default function () {
           .then((response) => response.json())
           .then((data) => {
             if (!connected) {
-              if (data.count === numDestinations) {
+              if (data.length === numDestinations) {
                 pollingTimeout = setTimeout(handleDestinationConnection, 5000)
               } else {
                 setConnected(true)
@@ -85,12 +85,12 @@ export default function () {
     setDisabledInput(true)
     setCurrentDestinationName(name)
     setEnabledCommandInput(name.length > 0)
-    setNumDestinations(destinations?.items?.filter((item) => item.name === name).length)
+    setNumDestinations(destinations?.filter((item) => item.name === name).length)
 
-    fetch('/v1/identities?name=connector')
+    fetch('/v1/users?name=connector')
       .then((response) => response.json())
       .then((data) => {
-        const { id } = data.items[0]
+        const { id } = data[0]
         const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
 
         return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }

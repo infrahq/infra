@@ -10,7 +10,7 @@ var (
 	//lint:ignore ST1005, user facing error
 	ErrConfigNotFound    = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 	ErrProviderNotUnique = errors.New(`more than one provider exists with this name`)
-	ErrIdentityNotFound  = errors.New(`no identity found with this name`)
+	ErrUserNotFound      = errors.New(`no user found with this name`)
 )
 
 // Standard panic messages: it should not be possible for a user to arrive at this state - hence there is a bug in the code.
@@ -21,7 +21,7 @@ var (
 // User facing messages: to let user know the state they are in
 var (
 	NoProviderFoundMsg = "No provider found with name %s"
-	NoIdentityFoundMsg = "No identity found with name %s"
+	NoUserFoundMsg     = "No user found with name %s"
 )
 
 // User facing constant errors: to let user know why their command failed. Not meant for a stack trace, but a readable output of the reason for failure.
@@ -52,7 +52,7 @@ func (e *FailedLoginError) Error() string {
 		panic("LoggedInIdentity cannot be set unless user is logged in")
 	}
 	if isLoggedInCurrent() {
-		msg += fmt.Sprintf(" Your existing session as %s is still active.", e.LoggedInIdentity)
+		msg += fmt.Sprintf(" You are still logged in as [%s].", e.LoggedInIdentity)
 	}
 
 	return msg

@@ -8,7 +8,12 @@ import '../lib/dayjs'
 import '../styles/globals.css'
 
 const fetcher = async (resource, init) => {
-  const res = await fetch(resource, init)
+  const res = await fetch(resource, {
+    ...init,
+    headers: {
+      "Infra-Version": "0.12.2",
+    },
+  })
   const data = await res.json()
 
   if (!res.ok) {
@@ -19,7 +24,7 @@ const fetcher = async (resource, init) => {
 }
 
 function App ({ Component, pageProps }) {
-  const { data: auth, error: authError } = useSWRImmutable('/v1/identities/self', fetcher)
+  const { data: auth, error: authError } = useSWRImmutable('/v1/users/self', fetcher)
   const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher)
   const router = useRouter()
 

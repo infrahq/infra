@@ -40,6 +40,7 @@ import (
 )
 
 type Options struct {
+	Version         float64       `mapstructure:"version"`
 	TLSCache        string        `mapstructure:"tlsCache"`
 	EnableTelemetry bool          `mapstructure:"enableTelemetry"`
 	EnableSignup    bool          `mapstructure:"enableSignup"`
@@ -186,7 +187,7 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 
 	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s",
-		internal.Version, s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
+		internal.FullVersion(), s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
 
 	return group.Wait()
 }

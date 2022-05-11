@@ -34,18 +34,18 @@ type Grant struct {
 	Resource string `mapstructure:"resource" validate:"required"`
 }
 
-type Identity struct {
-	Name      string `mapstructure:"name" validate:"required_without=Email"`
-	AccessKey string `mapstructure:"accessKey"`
-	Password  string `mapstructure:"password"`
+type User struct {
+	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
+	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Password"`
+	Password  string `mapstructure:"password" validate:"excluded_with=AccessKey"`
 
-	Email string `mapstructure:"email"`
+	Email string `mapstructure:"email" validate:"excluded_with=Name"`
 }
 
 type Config struct {
-	Providers  []Provider `mapstructure:"providers" validate:"dive"`
-	Grants     []Grant    `mapstructure:"grants" validate:"dive"`
-	Identities []Identity `mapstructure:"identities" validate:"dive"`
+	Providers []Provider `mapstructure:"providers" validate:"dive"`
+	Grants    []Grant    `mapstructure:"grants" validate:"dive"`
+	Users     []User     `mapstructure:"users" validate:"dive"`
 }
 
 type KeyProvider struct {
@@ -534,7 +534,7 @@ func (s Server) loadConfig(config Config) error {
 			Name: models.InternalInfraProviderName,
 		})
 
-		config.Identities = append(config.Identities, Identity{
+		config.Users = append(config.Users, User{
 			Name: models.InternalInfraConnectorIdentityName,
 		})
 
@@ -548,19 +548,19 @@ func (s Server) loadConfig(config Config) error {
 			return fmt.Errorf("load providers: %w", err)
 		}
 
-		// extract identities from grants and add them to identities
+		// extract users from grants and add them to users
 		for _, g := range config.Grants {
 			switch {
 			case g.User != "":
-				config.Identities = append(config.Identities, Identity{Name: g.User})
+				config.Users = append(config.Users, User{Name: g.User})
 			case g.Machine != "":
 				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
-				config.Identities = append(config.Identities, Identity{Name: g.Machine})
+				config.Users = append(config.Users, User{Name: g.Machine})
 			}
 		}
 
-		if err := s.loadIdentities(tx, config.Identities); err != nil {
-			return fmt.Errorf("load identities: %w", err)
+		if err := s.loadUsers(tx, config.Users); err != nil {
+			return fmt.Errorf("load users: %w", err)
 		}
 
 		if err := s.loadGrants(tx, config.Grants); err != nil {
@@ -717,24 +717,24 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	return grant, nil
 }
 
-func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
-	keep := make([]uid.ID, 0, len(identities)+1)
+func (s Server) loadUsers(db *gorm.DB, users []User) error {
+	keep := make([]uid.ID, 0, len(users)+1)
 
 	internalProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
 	if err != nil {
 		return err
 	}
 
-	for _, i := range identities {
-		identity, err := s.loadIdentity(db, i, internalProvider)
+	for _, i := range users {
+		user, err := s.loadUser(db, i, internalProvider)
 		if err != nil {
 			return err
 		}
 
-		keep = append(keep, identity.ID)
+		keep = append(keep, user.ID)
 	}
 
-	// remove any provider previously defined by config
+	// remove any users previously defined by config
 	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
 		return err
 	}
@@ -742,7 +742,7 @@ func (s Server) loadIdentities(db *gorm.DB, identities []Identity) error {
 	return nil
 }
 
-func (s Server) loadIdentity(db *gorm.DB, input Identity, provider *models.Provider) (*models.Identity, error) {
+func (s Server) loadUser(db *gorm.DB, input User, provider *models.Provider) (*models.Identity, error) {
 	name := input.Name
 	if name == "" {
 		if input.Email != "" {

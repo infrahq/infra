@@ -13,20 +13,20 @@ const columns = [{
   id: 'name',
   accessor: a => a,
   Cell: ({ value: admin }) => (
-    <AdminName id={admin.identity} />
+    <AdminName id={admin.subject} />
   )
 }, {
   id: 'delete',
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
-    const { data: user } = useSWR(`/v1/identities/${admin.identity}`, { fallbackData: { name: '', kind: '' } })
-    const { data: auth } = useSWR('/v1/identities/self')
+    const { data: user } = useSWR(`/v1/users/${admin.subject}`, { fallbackData: { name: '', kind: '' } })
+    const { data: auth } = useSWR('/v1/users/self')
     const { mutate } = useSWRConfig()
 
 
     const [open, setOpen] = useState(false)
 
-    const isSelf = admin.identity === auth.id
+    const isSelf = admin.subject.replace('i:', '') === auth.id
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
@@ -40,7 +40,7 @@ const columns = [{
             mutate('/v1/grants?resource=infra&privilege=admin', async admins => {
               await fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
 
-              return admins?.items?.filter(a => a?.id !== admin.id)
+              return admins?.filter(a => a?.id !== admin.id)
             }, { optimisticData: rows.map(r => r.original).filter(a => a?.id !== admin.id) })
 
             setOpen(false)
@@ -58,7 +58,7 @@ const AdminName = ({ id }) => {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
   
   return (
     <div className='flex items-center'>
@@ -77,7 +77,7 @@ export default function () {
   const { data: adminList } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
 
-  const table = useTable({ columns, data: adminList?.items || [] })
+  const table = useTable({ columns, data: adminList || [] })
 
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
@@ -85,7 +85,7 @@ export default function () {
   const grantAdminAccess = (id) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ identity: id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ subject: "i:" + id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
         mutate('/v1/grants?resource=infra&privilege=admin')
@@ -108,19 +108,19 @@ export default function () {
     if (validateEmail(adminEmail)) {
       setError('')
 
-      fetch(`/v1/identities?name=${adminEmail}`)
+      fetch(`/v1/users?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          if (data.count === 0) {
-            fetch('/v1/identities', {
+          if (data.length === 0) {
+            fetch('/v1/users', {
               method: 'POST',
-              body: JSON.stringify({ name: adminEmail, kind: 'user' })
+              body: JSON.stringify({ name: adminEmail })
             })
               .then((response) => response.json())
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            grantAdminAccess(data.items[0].id)
+            grantAdminAccess(data[0].id)
           }
         })
     } else {
@@ -158,7 +158,7 @@ export default function () {
       {error && <ErrorMessage message={error} />}
 
       <h4 className='text-gray-300 my-3 text-xs'>These users have full administration privileges</h4>
-      {adminList?.count > 0 &&
+      {adminList?.length > 0 &&
         <div className='w-3/4'>
           <Table {...table} showHeader={false} />
         </div>}

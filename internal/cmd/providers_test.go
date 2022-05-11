@@ -38,7 +38,7 @@ func TestProvidersAddCmd(t *testing.T) {
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := newTestClientConfig(srv, api.Identity{})
+		cfg := newTestClientConfig(srv, api.User{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 		return requestCh

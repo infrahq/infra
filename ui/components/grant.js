@@ -12,7 +12,7 @@ function Grant ({ id }) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
     <p className='text-sm'>{user.name}</p>
@@ -35,7 +35,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
-        body: JSON.stringify({ identity: id, resource: destination.name, privilege })
+        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
       })
 
       const data = await res.json()
@@ -46,7 +46,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
       setEmail('')
 
-      return [...(grants?.items || []).filter(grant => grant?.identity !== id), data]
+      return [...(grants || []).filter(grant => grant?.subject !== id), data]
     })
   }
 
@@ -65,17 +65,17 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        let res = await fetch(`/v1/identities?name=${email}`)
+        let res = await fetch(`/v1/users?name=${email}`)
         const data = await res.json()
 
         if(!res.ok) {
           throw data
         }
 
-        if (data.count === 0) {
-          res = await fetch('/v1/identities', {
+        if (data.length === 0) {
+          res = await fetch('/v1/users', {
                   method: 'POST',
-                  body: JSON.stringify({ name: email, kind: 'user' })
+                  body: JSON.stringify({ name: email })
                 })
           const user = await res.json()
 
@@ -83,7 +83,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data.items[0].id)
+          grantPrivilege('i:' + data[0].id)
         }
       } catch(e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
@@ -101,8 +101,8 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     mutate(`/v1/grants?resource=${destination.name}`, async grants => {
       await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
 
-      return grants?.items?.filter(item => item?.id !== grantId)
-    }, { optimisticData: list?.items?.filter(item => item?.id !== grantId) })
+      return grants?.filter(item => item?.id !== grantId)
+    }, { optimisticData: list?.filter(item => item?.id !== grantId) })
   }
 
 
@@ -140,18 +140,18 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
-      {list?.count > 0 &&
+      {list?.length > 0 &&
         <div className='py-2 max-h-48 sm:max-h-80 overflow-y-auto'>
-          {list?.items?.sort((a, b) => (a.identity).localeCompare(b.identity)).map((item) => (
+          {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
             <div className='flex justify-between items-center px-4' key={item.id}>
-              <Grant id={item.identity} />
+              <Grant id={item.subject} />
               <div>
                 <select
                   id='role'
                   name='role'
                   className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none sm:text-sm bg-transparent'
                   defaultValue={item.privilege}
-                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.identity)}
+                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
                 >
                   {options.map((option) => (
                     <option key={option} value={option}>{option}</option>

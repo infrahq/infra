@@ -245,13 +245,13 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 
 			name = group.Name
 			kind = rbacv1.GroupKind
-		case g.Identity != 0:
-			identity, err := c.GetIdentity(g.Identity)
+		case g.User != 0:
+			user, err := c.GetUser(g.User)
 			if err != nil {
 				return err
 			}
 
-			name = identity.Name
+			name = user.Name
 			kind = rbacv1.UserKind
 		}
 
@@ -274,7 +274,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 		// <cluster>.<namespace>
 		case 2:
 			crn.ClusterRole = g.Privilege
-			crn.Namespace = parts[2]
+			crn.Namespace = parts[1]
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
 
 		default:
@@ -605,7 +605,7 @@ func Run(ctx context.Context, options Options) error {
 		ErrorLog:  logging.StandardErrorLog(),
 	}
 
-	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.Version, tlsServer.Addr, metricsServer.Addr)
+	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
 }

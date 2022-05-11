@@ -1,4 +1,4 @@
-tag := $(patsubst v%,%,$(shell git describe --tags))
+tag := $(patsubst v%,%,$(shell git describe --tags --abbrev=0))
 version := $(tag:v%=%)
 
 generate:
@@ -39,12 +39,8 @@ goreleaser:
 build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
-export IMAGE_TAG=0.0.0-development
-
-build/docker:
-	docker build --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(IMAGE_TAG)
-
-export OKTA_SECRET=infra-okta
+dev/docker:
+	docker build --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:dev
 
 %.yaml: %.yaml.in
 	envsubst <$< >$@
@@ -54,7 +50,7 @@ docker-desktop.yaml: docker-desktop.yaml.in
 NS = $(patsubst %,-n %,$(NAMESPACE))
 VALUES ?= docker-desktop.yaml
 
-dev: $(VALUES) build/docker
+dev: $(VALUES) dev/docker
 	# docker desktop setup for the dev environment
 	# create a token and get the token secret from:
 	# https://dev-02708987-admin.okta.com/admin/access/api/tokens

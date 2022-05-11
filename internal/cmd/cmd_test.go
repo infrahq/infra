@@ -130,13 +130,13 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 					Items: []api.Grant{
 						{
 							ID:        uid.New(),
-							Identity:  userID,
+							User:      userID,
 							Resource:  "cluster",
 							Privilege: "admin",
 						},
 						{
 							ID:        uid.New(),
-							Identity:  userID,
+							User:      userID,
 							Resource:  "cluster.namespace",
 							Privilege: "admin",
 						},
@@ -148,20 +148,20 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/identities/%s/groups", userID):
+			case req.URL.Path == fmt.Sprintf("/v1/users/%s/groups", userID):
 				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/identities/%s", userID):
-				identity := api.Identity{
+			case req.URL.Path == fmt.Sprintf("/v1/users/%s", userID):
+				user := api.User{
 					ID:   userID,
 					Name: "testuser@example.com",
 				}
 
-				bytes, err := json.Marshal(identity)
+				bytes, err := json.Marshal(user)
 				assert.NilError(t, err)
 
 				_, err = resp.Write(bytes)
@@ -174,7 +174,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
 
-		cfg := newTestClientConfig(srv, api.Identity{ID: userID})
+		cfg := newTestClientConfig(srv, api.User{ID: userID})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
 
@@ -237,19 +237,19 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 // the need to perform a full login. The returned value may be modified, and then
 // should be saved to a file with writeConfig.
 // If any fields in identity are not set, they will be set to default values.
-func newTestClientConfig(srv *httptest.Server, identity api.Identity) ClientConfig {
-	if identity.Name == "" {
-		identity.Name = "testuser@example.com"
+func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
+	if user.Name == "" {
+		user.Name = "testuser@example.com"
 	}
-	if identity.ID == 0 {
-		identity.ID = uid.New()
+	if user.ID == 0 {
+		user.ID = uid.New()
 	}
 	return ClientConfig{
 		Version: "0.3",
 		Hosts: []ClientHostConfig{
 			{
-				PolymorphicID: uid.NewIdentityPolymorphicID(identity.ID),
-				Name:          identity.Name,
+				PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),
+				Name:          user.Name,
 				Host:          srv.Listener.Addr().String(),
 				SkipTLSVerify: true,
 				AccessKey:     "the-access-key",

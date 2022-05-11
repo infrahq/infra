@@ -21,25 +21,26 @@ import (
 )
 
 type API struct {
-	t          *Telemetry
-	server     *Server
-	migrations []apiMigration
+	t                        *Telemetry
+	server                   *Server
+	migrations               []apiMigration
+	disableOpenAPIGeneration bool
 }
 
-func (a *API) ListIdentities(c *gin.Context, r *api.ListIdentitiesRequest) (*api.ListResponse[api.Identity], error) {
-	identities, err := access.ListIdentities(c, r.Name, r.IDs)
+func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
+	users, err := access.ListIdentities(c, r.Name, r.IDs)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(identities, func(identity models.Identity) api.Identity {
+	result := api.NewListResponse(users, func(identity models.Identity) api.User {
 		return *identity.ToAPI()
 	})
 
 	return result, nil
 }
 
-func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Identity, error) {
+func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 	if r.ID.IsSelf {
 		iden := access.AuthenticatedIdentity(c)
 		if iden == nil {
@@ -55,46 +56,46 @@ func (a *API) GetIdentity(c *gin.Context, r *api.GetIdentityRequest) (*api.Ident
 	return identity.ToAPI(), nil
 }
 
-func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api.CreateIdentityResponse, error) {
-	identity := &models.Identity{Name: r.Name}
+func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
+	user := &models.Identity{Name: r.Name}
 
 	setOTP := r.SetOneTimePassword
 
 	// infra identity creation should be attempted even if an identity is already known
 	if setOTP {
-		identities, err := access.ListIdentities(c, identity.Name, nil)
+		identities, err := access.ListIdentities(c, user.Name, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
 		}
 
 		switch len(identities) {
 		case 0:
-			if err := access.CreateIdentity(c, identity); err != nil {
+			if err := access.CreateIdentity(c, user); err != nil {
 				return nil, fmt.Errorf("create identity: %w", err)
 			}
 		case 1:
-			identity.ID = identities[0].ID
+			user.ID = identities[0].ID
 		default:
 			return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 		}
 	} else {
-		if err := access.CreateIdentity(c, identity); err != nil {
+		if err := access.CreateIdentity(c, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
 	}
 
-	resp := &api.CreateIdentityResponse{
-		ID:   identity.ID,
-		Name: identity.Name,
+	resp := &api.CreateUserResponse{
+		ID:   user.ID,
+		Name: user.Name,
 	}
 
 	if setOTP {
-		_, err := access.CreateProviderUser(c, access.InfraProvider(c), identity)
+		_, err := access.CreateProviderUser(c, access.InfraProvider(c), user)
 		if err != nil {
 			return nil, fmt.Errorf("create provider user")
 		}
 
-		oneTimePassword, err := access.CreateCredential(c, *identity)
+		oneTimePassword, err := access.CreateCredential(c, *user)
 		if err != nil {
 			return nil, fmt.Errorf("create credential: %w", err)
 		}
@@ -105,7 +106,7 @@ func (a *API) CreateIdentity(c *gin.Context, r *api.CreateIdentityRequest) (*api
 	return resp, nil
 }
 
-func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api.Identity, error) {
+func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
 	// right now this endpoint can only update a user's credentials, so get the user identity
 	identity, err := access.GetIdentity(c, r.ID)
 	if err != nil {
@@ -120,11 +121,11 @@ func (a *API) UpdateIdentity(c *gin.Context, r *api.UpdateIdentityRequest) (*api
 	return identity.ToAPI(), nil
 }
 
-func (a *API) DeleteIdentity(c *gin.Context, r *api.Resource) error {
+func (a *API) DeleteUser(c *gin.Context, r *api.Resource) error {
 	return access.DeleteIdentity(c, r.ID)
 }
 
-func (a *API) ListIdentityGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
+func (a *API) ListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
 	groups, err := access.ListIdentityGroups(c, r.ID)
 	if err != nil {
 		return nil, err
@@ -334,7 +335,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	accessKeys, err := access.ListAccessKeys(c, r.IdentityID, r.Name)
+	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +362,7 @@ func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		IssuedFor:         r.IdentityID,
+		IssuedFor:         r.UserID,
 		Name:              r.Name,
 		ProviderID:        access.InfraProvider(c).ID,
 		ExpiresAt:         time.Now().Add(time.Duration(r.TTL)).UTC(),
@@ -369,7 +370,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),
 	}
 
-	raw, err := access.CreateAccessKey(c, accessKey, r.IdentityID)
+	raw, err := access.CreateAccessKey(c, accessKey, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -389,8 +390,8 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 	var subject uid.PolymorphicID
 
 	switch {
-	case r.Identity != 0:
-		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.User != 0:
+		subject = uid.NewIdentityPolymorphicID(r.User)
 	case r.Group != 0:
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
@@ -408,8 +409,8 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 }
 
 // TODO: remove after deprecation period
-func (a *API) ListIdentityGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
-	return a.ListGrants(c, &api.ListGrantsRequest{Identity: r.ID})
+func (a *API) ListUserGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+	return a.ListGrants(c, &api.ListGrantsRequest{User: r.ID})
 }
 
 // TODO: remove after deprecation period
@@ -430,8 +431,8 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	var subject uid.PolymorphicID
 
 	switch {
-	case r.Identity != 0:
-		subject = uid.NewIdentityPolymorphicID(r.Identity)
+	case r.User != 0:
+		subject = uid.NewIdentityPolymorphicID(r.User)
 	case r.Group != 0:
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
@@ -485,7 +486,7 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 	}, nil
 }
 
-func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.Identity, error) {
+func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	if !a.server.options.EnableSignup {
 		return nil, internal.ErrForbidden
 	}

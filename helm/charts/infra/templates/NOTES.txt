@@ -54,10 +54,10 @@
 ################################# WARNING ######################################
 
   server.config.adminAccessKey is deprecated and will be removed in a
-  future update. Please migrate to server.additionalIdentities:
+  future update. Please migrate to server.additionalUsers:
 
   server:
-    additionalIdentities:
+    additionalUsers:
       - name: admin
         accessKey: {{ .Values.server.config.adminAccessKey }}
 

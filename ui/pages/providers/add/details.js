@@ -53,7 +53,7 @@ export default function () {
           throw data
         }
 
-        return [...(providers?.items || []), data]
+        return [...(providers || []), data]
       })
     } catch (e) {
       if (e.fieldErrors) {

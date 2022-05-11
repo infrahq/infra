@@ -253,15 +253,15 @@ func TestLogout(t *testing.T) {
 	t.Run("error", func(t *testing.T) {
 		testFields := setupError(t)
 		err := Run(context.Background(), "logout", testFields.serverURLs[0])
-		assert.ErrorContains(t, err, "Failed to logout of server "+testFields.serverURLs[0])
+		assert.NilError(t, err)
 
 		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := testFields.config
-		assert.DeepEqual(t, &expected, updatedCfg)
+		assert.Assert(t, updatedCfg.Hosts[0].Name == "")
+		assert.Assert(t, updatedCfg.Hosts[0].AccessKey == "")
 	})
 
 	t.Run("with too many arguments", func(t *testing.T) {

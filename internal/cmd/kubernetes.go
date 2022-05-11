@@ -62,17 +62,17 @@ func updateKubeconfig(client *api.Client, id uid.ID) error {
 		return nil
 	}
 
-	identity, err := client.GetIdentity(id)
+	user, err := client.GetUser(id)
 	if err != nil {
 		return err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{Identity: id})
+	grants, err := client.ListGrants(api.ListGrantsRequest{User: id})
 	if err != nil {
 		return err
 	}
 
-	groups, err := client.ListIdentityGroups(id)
+	groups, err := client.ListUserGroups(id)
 	if err != nil {
 		return err
 	}
@@ -86,10 +86,10 @@ func updateKubeconfig(client *api.Client, id uid.ID) error {
 		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
-	return writeKubeconfig(identity, destinations.Items, grants.Items)
+	return writeKubeconfig(user, destinations.Items, grants.Items)
 }
 
-func writeKubeconfig(identity *api.Identity, destinations []api.Destination, grants []api.Grant) error {
+func writeKubeconfig(user *api.User, destinations []api.Destination, grants []api.Grant) error {
 	defaultConfig := clientConfig()
 
 	kubeConfig, err := defaultConfig.RawConfig()
@@ -167,7 +167,7 @@ func writeKubeconfig(identity *api.Identity, destinations []api.Destination, gra
 
 		kubeConfig.Contexts[context] = &clientcmdapi.Context{
 			Cluster:   context,
-			AuthInfo:  identity.Name,
+			AuthInfo:  user.Name,
 			Namespace: namespace,
 		}
 
@@ -176,7 +176,7 @@ func writeKubeconfig(identity *api.Identity, destinations []api.Destination, gra
 			return err
 		}
 
-		kubeConfig.AuthInfos[identity.Name] = &clientcmdapi.AuthInfo{
+		kubeConfig.AuthInfos[user.Name] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
 				Command:         executable,
 				Args:            []string{"tokens", "add"},

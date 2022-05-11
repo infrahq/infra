@@ -290,14 +290,14 @@ func oidcflow(host string, clientId string) (string, error) {
 // Prompt user to change their preset password when loggin in for the first time
 func updateUserPassword(client *api.Client, id uid.ID, oldPassword string) error {
 	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-	fmt.Println("\n  One time password was used.")
+	fmt.Println("\n  One time password was used. Enter a new password (min length 8):")
 
-	newPassword, err := promptUpdatePassword(oldPassword)
+	newPassword, err := promptSetPassword(oldPassword)
 	if err != nil {
 		return err
 	}
 
-	if _, err := client.UpdateIdentity(&api.UpdateIdentityRequest{ID: id, Password: newPassword}); err != nil {
+	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: id, Password: newPassword}); err != nil {
 		return fmt.Errorf("update user login: %w", err)
 	}
 
@@ -339,7 +339,7 @@ func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials
 		return nil, err
 	}
 
-	password, err := promptPasswordConfirm("")
+	password, err := promptSetPassword("")
 	if err != nil {
 		return nil, err
 	}

@@ -181,6 +181,7 @@ func serverOptionsWithDefaults() server.Options {
 	o.TLSCache = "/home/user/.infra/cache"
 	o.DBFile = "/home/user/.infra/sqlite3.db"
 	o.DBEncryptionKey = "/home/user/.infra/sqlite3.db.key"
+	o.Version = 0.2 // update this as the config version changes
 	return o
 }
 
