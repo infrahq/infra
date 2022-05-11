@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
 
@@ -21,10 +22,10 @@ import (
 )
 
 type API struct {
-	t                        *Telemetry
-	server                   *Server
-	migrations               []apiMigration
-	disableOpenAPIGeneration bool
+	t          *Telemetry
+	server     *Server
+	migrations []apiMigration
+	openAPIDoc openapi3.T
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {

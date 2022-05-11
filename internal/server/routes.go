@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
@@ -17,16 +18,22 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
+// Routes is the return value of GenerateRoutes.
+type Routes struct {
+	http.Handler
+	OpenAPIDocument openapi3.T
+}
+
 // GenerateRoutes constructs a http.Handler for the primary http and https servers.
 // The handler includes gin middleware, API routes, UI routes, and others.
 //
-// As a side effect of building the handler all API endpoints are registered in
-// the global openAPISchema.
+// The returned Routes also include an OpenAPIDocument which can be used to
+// generate document about the routes.
 //
 // The order of routes in this function is important! Gin saves a route along
 // with all the middleware that will apply to the route when the
 // Router.{GET,POST,etc} method is called.
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine {
+func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	a := &API{t: s.tel, server: s}
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
@@ -118,7 +125,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 	// This is a limitation because we serve the UI from / instead of a specific
 	// path prefix.
 	registerUIRoutes(router, s.options.UI)
-	return router
+	return Routes{Handler: router, OpenAPIDocument: a.openAPIDoc}
 }
 
 type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
@@ -210,7 +217,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 
 func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
 	fullPath := path.Join(r.BasePath(), route)
-	registerReq(a, http.MethodDelete, fullPath, handler)
+	registerDelete(a, http.MethodDelete, fullPath, handler)
 
 	handlers := includeRewritesFor(a, http.MethodDelete, fullPath, func(c *gin.Context) {
 		req := new(Req)
