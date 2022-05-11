@@ -37,6 +37,7 @@ func setup(t *testing.T) *gorm.DB {
 	assert.NilError(t, err)
 
 	setupLogging(t)
+	t.Cleanup(InvalidateCache)
 
 	return db
 }
