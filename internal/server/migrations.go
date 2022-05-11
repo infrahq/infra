@@ -89,13 +89,13 @@ func (a *API) addResponseRewrites() {
 	addResponseRewrite(a, "get", "/v1/access-keys", "0.12.2", func(newResponse *api.ListResponse[api.AccessKey]) []api.AccessKey {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/identities", "0.12.2", func(newResponse *api.ListResponse[api.User]) []api.User {
+	addResponseRewrite(a, "get", "/v1/users", "0.12.2", func(newResponse *api.ListResponse[api.User]) []api.User {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/identities/:id/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []api.Grant {
+	addResponseRewrite(a, "get", "/v1/users/:id/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []api.Grant {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/identities/:id/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
+	addResponseRewrite(a, "get", "/v1/users/:id/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
 		return newResponse.Items
 	})
 	addResponseRewrite(a, "get", "/v1/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
