@@ -3,12 +3,12 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useTable } from 'react-table'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import { validateEmail } from '../../lib/email'
+import { validateEmail } from '../lib/email'
 
-import InputDropdown from '../../components/input'
-import Table from '../../components/table'
-import DeleteModal from '../../components/modals/delete'
-import ErrorMessage from '../../components/error-message'
+import InputDropdown from './input'
+import Table from './table'
+import DeleteModal from './modals/delete'
+import ErrorMessage from './error-message'
 
 const columns = [{
   id: 'name',

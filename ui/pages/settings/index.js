@@ -1,7 +1,7 @@
 import Head from 'next/head'
 
 import Dashboard from '../../components/layouts/dashboard'
-import Admin from './admin'
+import Admin from '../../components/admin'
 
 export default function Settings () {
   return (
