@@ -21,7 +21,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	ID                     uid.ID `json:"id"`
+	UserID                 uid.ID `json:"userID"`
 	Name                   string `json:"name"`
 	AccessKey              string `json:"accessKey"`
 	PasswordUpdateRequired bool   `json:"passwordUpdateRequired,omitempty"`

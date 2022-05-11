@@ -179,12 +179,12 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 		return err
 	}
 
-	if err := updateKubeconfig(client, loginRes.ID); err != nil {
+	if err := updateKubeconfig(client, loginRes.UserID); err != nil {
 		return err
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.ID, loginReq.PasswordCredentials.Password); err != nil {
+		if err := updateUserPassword(client, loginRes.UserID, loginReq.PasswordCredentials.Password); err != nil {
 			return err
 		}
 	}
@@ -196,7 +196,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:       true,
-		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.ID),
+		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.UserID),
 		Name:          loginRes.Name,
 		AccessKey:     loginRes.AccessKey,
 		Expires:       loginRes.Expires,
