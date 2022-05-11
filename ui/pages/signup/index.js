@@ -68,7 +68,7 @@ export default function () {
   }
 
   return (
-    <div className='h-full w-full max-w-sm mx-auto'>
+    <div className='h-auto w-full max-w-sm mx-auto overflow-hidden'>
       <div className='flex flex-col justify-center items-center px-5 py-5 mt-40 border rounded-lg border-gray-950'>
         <HeaderIcon size={12} iconPath='/infra-color.svg' />
         <h1 className='text-header font-bold'>Welcome to Infra</h1>

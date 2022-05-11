@@ -72,8 +72,8 @@ export default function () {
   }, {})
 
   return (
-    <div className='h-full w-full max-w-sm mx-auto mb-48'>
-      <div className='flex flex-col justify-center items-center px-5 pt-5 pb-8 mt-40 border rounded-lg border-gray-950'>
+    <div className='h-auto w-full max-w-sm mx-auto overflow-hidden'>
+      <div className='flex flex-col justify-center items-center px-5 py-5 mt-40 border rounded-lg border-gray-950'>
         <HeaderIcon size={12} iconPath='/infra-color.svg' />
         <h1 className='text-header font-bold'>Login to Infra</h1>
         <h2 className='text-title text-center max-w-md my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
@@ -81,13 +81,15 @@ export default function () {
         {providers?.length > 0 && (
           <>
             <div className='w-full max-w-sm mt-8'>
-              {providers?.items?.map(p => (
-                <button onClick={() => oidcLogin(p)} key={p.id} className='w-full bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-1.5'>
-                  <div className='w-full flex flex-col items-center justify-center bg-black rounded-full text-sm px-4 py-4'>
-                    {kind(p.url) ? <img className='h-4' src={`/providers/${kind(p.url)}.svg`} /> : <p className='font-bold h-4 m-1'>SSO</p>}
-                    {kindCount[kind(p.url)] > 1 && (
-                      <div className='text-[10px] -mb-2 text-gray-300'>{p.url}</div>
-                    )}
+              {providers?.map(p => (
+                <button onClick={() => oidcLogin(p)} key={p.id} className='w-full border border-gray-950 hover:to-pink-50 rounded-md p-0.5 my-1.5'>
+                  <div className='flex flex-col items-center justify-center px-4 py-2'>
+                    {kind(p.url) ? 
+                    <div className='flex flex-col items-center text-center'>
+                      <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
+                      <div className='text-name text-gray-300'>{p.url}</div>
+                    </div>
+                       : <p className='font-bold h-4 m-1'>SSO</p>}
                   </div>
                 </button>
               ))}
@@ -97,7 +99,7 @@ export default function () {
                 <div className='w-full border-t border-gray-800' />
               </div>
               <div className='relative flex justify-center text-sm'>
-                <span className='px-8 bg-black text-gray-300'>OR</span>
+                <span className='px-2 bg-black text-name text-gray-300'>OR</span>
               </div>
             </div>
           </>
