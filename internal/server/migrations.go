@@ -156,7 +156,6 @@ func migrateUserGrantToIdentity(grant api.Grant) identityGrant {
 		CreatedBy: grant.CreatedBy,
 		Updated:   grant.Updated,
 		Subject:   sub,
-		Group:     grant.Group,
 		Privilege: grant.Privilege,
 		Resource:  grant.Resource,
 	}
