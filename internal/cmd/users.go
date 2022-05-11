@@ -188,7 +188,7 @@ $ infra users remove janedoe@example.com`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully when destination not found")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully when user not found")
 
 	return cmd
 }
