@@ -23,7 +23,6 @@ const columns = [{
     const { data: auth } = useSWR('/v1/identities/self')
     const { mutate } = useSWRConfig()
 
-
     const [open, setOpen] = useState(false)
 
     const isSelf = admin.subject.replace('i:', '') === auth.id
@@ -59,7 +58,7 @@ const AdminName = ({ id }) => {
   }
 
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-  
+
   return (
     <div className='flex items-center'>
       <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
@@ -85,7 +84,7 @@ export default function () {
   const grantAdminAccess = (id) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: "i:" + id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ subject: 'i:' + id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
         mutate('/v1/grants?resource=infra&privilege=admin')
@@ -120,7 +119,6 @@ export default function () {
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            console.log(data)
             grantAdminAccess(data.items[0].id)
           }
         })

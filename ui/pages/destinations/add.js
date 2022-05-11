@@ -25,7 +25,7 @@ function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName 
   return (
     <div className='border border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
       <textarea
-        spellCheck="false"
+        spellCheck='false'
         rows={5}
         name='commandInput'
         id='commandInput'
@@ -96,7 +96,6 @@ export default function () {
         return { UserID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
       })
       .then((config) => {
-        console.log(config)
         return fetch('/v1/access-keys', {
           method: 'POST',
           body: JSON.stringify(config)
