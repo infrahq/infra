@@ -22,7 +22,7 @@ func TestProvidersAddCmd(t *testing.T) {
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			defer close(requestCh)
-			if !requestMatches(req, http.MethodPost, "/v1/providers") {
+			if !requestMatches(req, http.MethodPost, "/api/providers") {
 				resp.WriteHeader(http.StatusInternalServerError)
 				return
 			}

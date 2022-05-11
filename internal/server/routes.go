@@ -52,52 +52,52 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) *gin.Engine 
 
 	authn := api.Group("/", AuthenticationMiddleware(a))
 
-	get(a, authn, "/v1/users", a.ListUsers)
-	post(a, authn, "/v1/users", a.CreateUser)
-	get(a, authn, "/v1/users/:id", a.GetUser)
-	put(a, authn, "/v1/users/:id", a.UpdateUser)
-	delete(a, authn, "/v1/users/:id", a.DeleteUser)
-	get(a, authn, "/v1/users/:id/groups", a.ListUserGroups)
+	get(a, authn, "/api/users", a.ListUsers)
+	post(a, authn, "/api/users", a.CreateUser)
+	get(a, authn, "/api/users/:id", a.GetUser)
+	put(a, authn, "/api/users/:id", a.UpdateUser)
+	delete(a, authn, "/api/users/:id", a.DeleteUser)
+	get(a, authn, "/api/users/:id/groups", a.ListUserGroups)
 
-	get(a, authn, "/v1/access-keys", a.ListAccessKeys)
-	post(a, authn, "/v1/access-keys", a.CreateAccessKey)
-	delete(a, authn, "/v1/access-keys/:id", a.DeleteAccessKey)
+	get(a, authn, "/api/access-keys", a.ListAccessKeys)
+	post(a, authn, "/api/access-keys", a.CreateAccessKey)
+	delete(a, authn, "/api/access-keys/:id", a.DeleteAccessKey)
 
-	get(a, authn, "/v1/groups", a.ListGroups)
-	post(a, authn, "/v1/groups", a.CreateGroup)
-	get(a, authn, "/v1/groups/:id", a.GetGroup)
+	get(a, authn, "/api/groups", a.ListGroups)
+	post(a, authn, "/api/groups", a.CreateGroup)
+	get(a, authn, "/api/groups/:id", a.GetGroup)
 
-	get(a, authn, "/v1/grants", a.ListGrants)
-	get(a, authn, "/v1/grants/:id", a.GetGrant)
-	post(a, authn, "/v1/grants", a.CreateGrant)
-	delete(a, authn, "/v1/grants/:id", a.DeleteGrant)
+	get(a, authn, "/api/grants", a.ListGrants)
+	get(a, authn, "/api/grants/:id", a.GetGrant)
+	post(a, authn, "/api/grants", a.CreateGrant)
+	delete(a, authn, "/api/grants/:id", a.DeleteGrant)
 
-	post(a, authn, "/v1/providers", a.CreateProvider)
-	put(a, authn, "/v1/providers/:id", a.UpdateProvider)
-	delete(a, authn, "/v1/providers/:id", a.DeleteProvider)
+	post(a, authn, "/api/providers", a.CreateProvider)
+	put(a, authn, "/api/providers/:id", a.UpdateProvider)
+	delete(a, authn, "/api/providers/:id", a.DeleteProvider)
 
-	get(a, authn, "/v1/destinations", a.ListDestinations)
-	get(a, authn, "/v1/destinations/:id", a.GetDestination)
-	post(a, authn, "/v1/destinations", a.CreateDestination)
-	put(a, authn, "/v1/destinations/:id", a.UpdateDestination)
-	delete(a, authn, "/v1/destinations/:id", a.DeleteDestination)
+	get(a, authn, "/api/destinations", a.ListDestinations)
+	get(a, authn, "/api/destinations/:id", a.GetDestination)
+	post(a, authn, "/api/destinations", a.CreateDestination)
+	put(a, authn, "/api/destinations/:id", a.UpdateDestination)
+	delete(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
-	post(a, authn, "/v1/tokens", a.CreateToken)
-	post(a, authn, "/v1/logout", a.Logout)
+	post(a, authn, "/api/tokens", a.CreateToken)
+	post(a, authn, "/api/logout", a.Logout)
 
-	authn.GET("/v1/debug/pprof/*profile", a.pprofHandler)
+	authn.GET("/api/debug/pprof/*profile", a.pprofHandler)
 
 	// these endpoints do not require authentication
 	noAuthn := api.Group("/")
-	get(a, noAuthn, "/v1/signup", a.SignupEnabled)
-	post(a, noAuthn, "/v1/signup", a.Signup)
+	get(a, noAuthn, "/api/signup", a.SignupEnabled)
+	post(a, noAuthn, "/api/signup", a.Signup)
 
-	post(a, noAuthn, "/v1/login", a.Login)
+	post(a, noAuthn, "/api/login", a.Login)
 
-	get(a, noAuthn, "/v1/providers", a.ListProviders)
-	get(a, noAuthn, "/v1/providers/:id", a.GetProvider)
+	get(a, noAuthn, "/api/providers", a.ListProviders)
+	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
 
-	get(a, noAuthn, "/v1/version", a.Version)
+	get(a, noAuthn, "/api/version", a.Version)
 
 	// Deprecated in 0.12
 	// TODO: remove after a couple versions
@@ -323,7 +323,7 @@ func healthHandler(c *gin.Context) {
 // TODO: use the HTTP Accept header instead of the path to determine the
 // format of the response body. https://github.com/infrahq/infra/issues/1610
 func (a *API) notFoundHandler(c *gin.Context) {
-	if strings.HasPrefix(c.Request.URL.Path, "/v1") {
+	if strings.HasPrefix(c.Request.URL.Path, "/api") {
 		sendAPIError(c, internal.ErrNotFound)
 		return
 	}

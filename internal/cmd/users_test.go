@@ -40,7 +40,7 @@ func TestUsersCmd(t *testing.T) {
 		modifiedUsers := []models.Identity{}
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if strings.Contains(req.URL.Path, "/v1/providers") {
+			if strings.Contains(req.URL.Path, "/api/providers") {
 				resp.WriteHeader(http.StatusOK)
 
 				providers := []*api.Provider{
@@ -55,7 +55,7 @@ func TestUsersCmd(t *testing.T) {
 				return
 			}
 
-			if strings.Contains(req.URL.Path, "/v1/users") {
+			if strings.Contains(req.URL.Path, "/api/users") {
 				switch req.Method {
 				case http.MethodPost:
 					createUserReq := api.CreateUserRequest{}
@@ -80,7 +80,7 @@ func TestUsersCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodDelete:
-					id := req.URL.Path[len("/v1/users/"):]
+					id := req.URL.Path[len("/api/users/"):]
 
 					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)

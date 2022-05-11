@@ -42,7 +42,7 @@ func TestAPI_ListUsers(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/users", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -84,14 +84,14 @@ func TestAPI_ListUsers(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"no name match": {
-			urlPath: "/v1/users?name=doesnotmatch",
+			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 				assert.Equal(t, resp.Body.String(), `{"items":[],"count":0}`)
 			},
 		},
 		"name match": {
-			urlPath: "/v1/users?name=me@example.com",
+			urlPath: "/api/users?name=me@example.com",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -108,7 +108,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		"filter by ids": {
-			urlPath: fmt.Sprintf("/v1/users?ids=%s&ids=%s&ids=%s", id1, id2, id3),
+			urlPath: fmt.Sprintf("/api/users?ids=%s&ids=%s&ids=%s", id1, id2, id3),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -127,7 +127,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		"no filter": {
-			urlPath: "/v1/users",
+			urlPath: "/api/users",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -149,7 +149,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		"no authorization": {
-			urlPath: "/v1/users",
+			urlPath: "/api/users",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -216,7 +216,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("latest", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -233,7 +233,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -249,7 +249,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("old version upgrades", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.2")
@@ -279,7 +279,7 @@ func TestListProviders(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 
-	req, err := http.NewRequest(http.MethodGet, "/v1/providers", nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
 	assert.NilError(t, err)
 
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
@@ -334,7 +334,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/v1/providers/1234",
+			urlPath: "/api/providers/1234",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -343,7 +343,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			},
 		},
 		"not authorized": {
-			urlPath: "/v1/providers/2341",
+			urlPath: "/api/providers/2341",
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
 				req.Header.Set("Authorization", "Bearer "+key)
@@ -353,13 +353,13 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			},
 		},
 		"successful delete": {
-			urlPath: "/v1/providers/" + provider1.ID.String(),
+			urlPath: "/api/providers/" + provider1.ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
 			},
 		},
 		"infra provider can not be deleted": {
-			urlPath: "/v1/providers/" + data.InfraProvider(srv.db).ID.String(),
+			urlPath: "/api/providers/" + data.InfraProvider(srv.db).ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
 			},
@@ -403,7 +403,7 @@ func TestCreateIdentity(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
-		req, err := http.NewRequest(http.MethodPost, "/v1/users", body)
+		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -518,7 +518,7 @@ func TestDeleteUser(t *testing.T) {
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
-	route := fmt.Sprintf("/v1/users/%s", testUser.ID)
+	route := fmt.Sprintf("/api/users/%s", testUser.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
@@ -536,7 +536,7 @@ func TestDeleteUser_NoDeleteInternalIdentities(t *testing.T) {
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 	connector := data.InfraConnectorIdentity(s.db)
 
-	route := fmt.Sprintf("/v1/users/%s", connector.ID)
+	route := fmt.Sprintf("/api/users/%s", connector.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
@@ -569,7 +569,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	route := fmt.Sprintf("/v1/users/%s", testUser.ID)
+	route := fmt.Sprintf("/api/users/%s", testUser.ID)
 	req, err := http.NewRequest(http.MethodDelete, route, nil)
 	assert.NilError(t, err)
 
@@ -593,7 +593,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		}`)
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.3")
@@ -628,7 +628,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 
 	runStep(t, "grant exists", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -655,7 +655,7 @@ func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
 		}`)
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.2")
@@ -690,7 +690,7 @@ func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
 
 	runStep(t, "grant exists", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.2")
@@ -710,7 +710,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/grants?privilege=admin", nil)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.2")
@@ -826,7 +826,7 @@ func TestAPI_GetUser(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/users", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -873,7 +873,7 @@ func TestAPI_GetUser(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/v1/users/" + idMe.String(),
+			urlPath: "/api/users/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -882,7 +882,7 @@ func TestAPI_GetUser(t *testing.T) {
 			},
 		},
 		"not authorized": {
-			urlPath: "/v1/users/" + idHal.String(),
+			urlPath: "/api/users/" + idHal.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
 
@@ -893,13 +893,13 @@ func TestAPI_GetUser(t *testing.T) {
 			},
 		},
 		"identity not found": {
-			urlPath: "/v1/users/2341",
+			urlPath: "/api/users/2341",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNotFound)
 			},
 		},
 		"identity by ID for self": {
-			urlPath: "/v1/users/" + idMe.String(),
+			urlPath: "/api/users/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
 			},
@@ -908,13 +908,13 @@ func TestAPI_GetUser(t *testing.T) {
 			},
 		},
 		"identity by ID for someone else": {
-			urlPath: "/v1/users/" + idMe.String(),
+			urlPath: "/api/users/" + idMe.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 			},
 		},
 		"identity by self": {
-			urlPath: "/v1/users/self",
+			urlPath: "/api/users/self",
 			setup: func(t *testing.T, req *http.Request) {
 				token := &models.AccessKey{
 					IssuedFor:  idMe,
@@ -937,7 +937,7 @@ func TestAPI_GetUser(t *testing.T) {
 			},
 		},
 		"full JSON response": {
-			urlPath: "/v1/users/" + idMe.String(),
+			urlPath: "/api/users/" + idMe.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
 			},
@@ -984,7 +984,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/access-keys", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -1038,7 +1038,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
 
-		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", infraAdminGrants[0].ID), nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants[0].ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()
@@ -1057,7 +1057,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		err := data.CreateGrant(srv.db, grant2)
 		assert.NilError(t, err)
 
-		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()
@@ -1076,7 +1076,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		err := data.CreateGrant(srv.db, grant2)
 		assert.NilError(t, err)
 
-		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()
@@ -1095,7 +1095,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		err := data.CreateGrant(srv.db, grant2)
 		assert.NilError(t, err)
 
-		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/grants/%s", grant2.ID), nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()

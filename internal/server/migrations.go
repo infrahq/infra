@@ -147,6 +147,49 @@ func (a *API) addRedirects() {
 
 	addRedirect(a, http.MethodGet, "/v1/identities/:id/groups", "/v1/users/:id/groups", "0.12.2")
 	addRedirect(a, http.MethodGet, "/v1/identities/:id/grants", "/v1/users/:id/grants", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/users", "/api/users", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/users", "/api/users", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/users/:id/groups", "/api/users/:id/groups", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/access-keys", "/api/access-keys", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/access-keys", "/api/access-keys", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/access-keys/:id", "/api/access-keys/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/groups", "/api/groups", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/groups", "/api/groups", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/groups/:id", "/api/groups/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/grants", "/api/grants", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/grants/:id", "/api/grants/:id", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/grants", "/api/grants", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/grants/:id", "/api/grants/:id", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/providers", "/api/providers", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/destinations", "/api/destinations", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/destinations", "/api/destinations", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/tokens", "/api/tokens", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/logout", "/api/logout", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/signup", "/api/signup", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/signup", "/api/signup", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/login", "/api/login", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/providers", "/api/providers", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/version", "/api/version", "0.12.2")
 }
 
 type identityGrant struct {

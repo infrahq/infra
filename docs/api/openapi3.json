@@ -684,7 +684,7 @@
     "version": "0.12.2"
   },
   "paths": {
-    "/v1/access-keys": {
+    "/api/access-keys": {
       "get": {
         "description": "ListAccessKeys",
         "operationId": "ListAccessKeys",
@@ -883,7 +883,7 @@
         ]
       }
     },
-    "/v1/access-keys/{id}": {
+    "/api/access-keys/{id}": {
       "delete": {
         "description": "DeleteAccessKey",
         "operationId": "DeleteAccessKey",
@@ -969,7 +969,7 @@
         ]
       }
     },
-    "/v1/destinations": {
+    "/api/destinations": {
       "get": {
         "description": "ListDestinations",
         "operationId": "ListDestinations",
@@ -1175,7 +1175,7 @@
         ]
       }
     },
-    "/v1/destinations/{id}": {
+    "/api/destinations/{id}": {
       "delete": {
         "description": "DeleteDestination",
         "operationId": "DeleteDestination",
@@ -1477,7 +1477,7 @@
         ]
       }
     },
-    "/v1/grants": {
+    "/api/grants": {
       "get": {
         "description": "ListGrants",
         "operationId": "ListGrants",
@@ -1698,7 +1698,7 @@
         ]
       }
     },
-    "/v1/grants/{id}": {
+    "/api/grants/{id}": {
       "delete": {
         "description": "DeleteGrant",
         "operationId": "DeleteGrant",
@@ -1868,7 +1868,7 @@
         ]
       }
     },
-    "/v1/groups": {
+    "/api/groups": {
       "get": {
         "description": "ListGroups",
         "operationId": "ListGroups",
@@ -2036,7 +2036,7 @@
         ]
       }
     },
-    "/v1/groups/{id}": {
+    "/api/groups/{id}": {
       "get": {
         "description": "GetGroup",
         "operationId": "GetGroup",
@@ -2122,94 +2122,7 @@
         ]
       }
     },
-    "/v1/groups/{id}/grants": {
-      "get": {
-        "description": "ListGroupGrants",
-        "operationId": "ListGroupGrants",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListGroupGrants",
-        "tags": [
-          "Grants",
-          "Groups"
-        ]
-      }
-    },
-    "/v1/login": {
+    "/api/login": {
       "post": {
         "description": "Login",
         "operationId": "Login",
@@ -2334,7 +2247,7 @@
         ]
       }
     },
-    "/v1/logout": {
+    "/api/logout": {
       "post": {
         "description": "Logout",
         "operationId": "Logout",
@@ -2406,7 +2319,7 @@
         ]
       }
     },
-    "/v1/providers": {
+    "/api/providers": {
       "get": {
         "description": "ListProviders",
         "operationId": "ListProviders",
@@ -2592,7 +2505,7 @@
         ]
       }
     },
-    "/v1/providers/{id}": {
+    "/api/providers/{id}": {
       "delete": {
         "description": "DeleteProvider",
         "operationId": "DeleteProvider",
@@ -2879,7 +2792,7 @@
         ]
       }
     },
-    "/v1/signup": {
+    "/api/signup": {
       "get": {
         "description": "SignupEnabled",
         "operationId": "SignupEnabled",
@@ -3044,7 +2957,7 @@
         ]
       }
     },
-    "/v1/tokens": {
+    "/api/tokens": {
       "post": {
         "description": "CreateToken",
         "operationId": "CreateToken",
@@ -3116,7 +3029,7 @@
         ]
       }
     },
-    "/v1/users": {
+    "/api/users": {
       "get": {
         "description": "ListUsers",
         "operationId": "ListUsers",
@@ -3300,7 +3213,7 @@
         ]
       }
     },
-    "/v1/users/{id}": {
+    "/api/users/{id}": {
       "delete": {
         "description": "DeleteUser",
         "operationId": "DeleteUser",
@@ -3572,93 +3485,7 @@
         ]
       }
     },
-    "/v1/users/{id}/grants": {
-      "get": {
-        "description": "ListUserGrants",
-        "operationId": "ListUserGrants",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListUserGrants",
-        "tags": [
-          "Grants"
-        ]
-      }
-    },
-    "/v1/users/{id}/groups": {
+    "/api/users/{id}/groups": {
       "get": {
         "description": "ListUserGroups",
         "operationId": "ListUserGroups",
@@ -3744,7 +3571,7 @@
         ]
       }
     },
-    "/v1/version": {
+    "/api/version": {
       "get": {
         "description": "Version",
         "operationId": "Version",
@@ -3813,6 +3640,179 @@
         "summary": "Version",
         "tags": [
           "Misc"
+        ]
+      }
+    },
+    "/v1/groups/{id}/grants": {
+      "get": {
+        "description": "ListGroupGrants",
+        "operationId": "ListGroupGrants",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListGroupGrants",
+        "tags": [
+          "Grants",
+          "Groups"
+        ]
+      }
+    },
+    "/v1/users/{id}/grants": {
+      "get": {
+        "description": "ListUserGrants",
+        "operationId": "ListUserGrants",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListUserGrants",
+        "tags": [
+          "Grants"
         ]
       }
     }

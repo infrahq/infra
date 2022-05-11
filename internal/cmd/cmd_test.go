@@ -105,7 +105,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 	setup := func(t *testing.T) *ClientConfig {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			switch {
-			case req.URL.Path == "/v1/destinations":
+			case req.URL.Path == "/api/destinations":
 				destinations := api.ListResponse[api.Destination]{
 					Items: []api.Destination{
 						{
@@ -125,7 +125,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == "/v1/grants":
+			case req.URL.Path == "/api/grants":
 				grants := api.ListResponse[api.Grant]{
 					Items: []api.Grant{
 						{
@@ -148,14 +148,14 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/users/%s/groups", userID):
+			case req.URL.Path == fmt.Sprintf("/api/users/%s/groups", userID):
 				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/v1/users/%s", userID):
+			case req.URL.Path == fmt.Sprintf("/api/users/%s", userID):
 				user := api.User{
 					ID:   userID,
 					Name: "testuser@example.com",

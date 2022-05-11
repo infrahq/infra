@@ -23,6 +23,6 @@ func (a *API) pprofHandler(c *gin.Context) {
 		pprof.Profile(c.Writer, c.Request)
 	default:
 		// All other types of profiles are served from Index
-		http.StripPrefix("/v1", http.HandlerFunc(pprof.Index)).ServeHTTP(c.Writer, c.Request)
+		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(c.Writer, c.Request)
 	}
 }

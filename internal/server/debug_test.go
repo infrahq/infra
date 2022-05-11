@@ -30,7 +30,8 @@ func TestAPI_PProfHandler(t *testing.T) {
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, "/v1/debug/pprof/heap?debug=1", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/debug/pprof/heap?debug=1", nil)
+		req.Header.Add("Infra-Version", "0.12.3")
 		assert.NilError(t, err)
 
 		if tc.setupRequest != nil {
