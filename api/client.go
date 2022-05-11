@@ -274,7 +274,7 @@ func (c Client) DeleteProvider(id uid.ID) error {
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return list[ListResponse[Grant]](c, "/v1/grants", map[string][]string{
-		"identity":  {req.User.String()},
+		"user":      {req.User.String()},
 		"group":     {req.Group.String()},
 		"resource":  {req.Resource},
 		"privilege": {req.Privilege},
