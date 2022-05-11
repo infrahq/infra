@@ -162,7 +162,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 				}
 
 				if query.Get("privilege") == "custom" {
-					if query.Get("identity") == "TK" { // ID=3001
+					if query.Get("user") == "TK" { // ID=3001
 						writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 6001}, {ID: 6002}}})
 						return
 					}
@@ -181,7 +181,7 @@ func TestGrantRemoveCmd(t *testing.T) {
 					return
 				}
 
-				if query.Get("identity") == "TJ" { // ID=3000
+				if query.Get("user") == "TJ" { // ID=3000
 					writeResponse(t, resp, api.ListResponse[api.Grant]{Count: 1, Items: []api.Grant{{ID: 5001}, {ID: 5002}, {ID: 5003}}})
 					return
 				}
