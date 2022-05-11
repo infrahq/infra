@@ -17,12 +17,24 @@ module.exports = {
       colors: {
         black: '#0A0E12',
         pink: {
+          300: '#EB91C7',
           light: withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
         },
         gray: {
-          300: '#B2B2B2'
+          200: '#78828A',
+          300: '#B2B2B2',
+          950: '#292E33'
+        },
+        purple: {
+          50: '#F4E2FF'
         }
+      },
+      fontSize: {
+        label: ['11px', '0px'],
+        name: ['12px', '15px'],
+        title: ['13px', '16px'],
+        header: ['16px', '19px']
       },
       transitionProperty: {
         size: 'height, padding, background'
