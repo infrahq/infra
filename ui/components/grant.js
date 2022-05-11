@@ -72,7 +72,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           throw data
         }
 
-        if (data.count === 0) {
+        if (data.length === 0) {
           res = await fetch('/v1/identities', {
             method: 'POST',
             body: JSON.stringify({ name: email })
@@ -83,7 +83,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data.items[0].id)
+          grantPrivilege('i:' + data[0].id)
         }
       } catch (e) {
         setGrantError(e.message || 'something went wrong, please try again later.')

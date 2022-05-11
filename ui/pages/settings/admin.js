@@ -110,7 +110,7 @@ export default function () {
       fetch(`/v1/identities?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
-          if (data.count === 0) {
+          if (data.length === 0) {
             fetch('/v1/identities', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail })
@@ -119,7 +119,7 @@ export default function () {
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            grantAdminAccess(data.items[0].id)
+            grantAdminAccess(data[0].id)
           }
         })
     } else {
