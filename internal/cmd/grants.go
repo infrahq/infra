@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -246,6 +247,10 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 	}
 
+	if err := checkResourcesPrivileges(client, cmdOptions.Destination, cmdOptions.Role); err != nil {
+		return err
+	}
+
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
 		User:      user,
 		Group:     group,
@@ -261,7 +266,55 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	return nil
 }
 
-// userOrGroupByName gets the ID of the identity or group to be associated with the grant
+func checkResourcesPrivileges(client *api.Client, resource, privilege string) error {
+	parts := strings.SplitN(resource, ".", 2)
+	destination := parts[0]
+	subresource := ""
+
+	if len(parts) > 1 {
+		subresource = parts[1]
+	}
+
+	supportedResources := make(map[string]struct{})
+	supportedRoles := make(map[string]struct{})
+
+	if destination != "infra" {
+		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: destination})
+		if err != nil {
+			return err
+		}
+
+		if destinations.Count == 0 {
+			return fmt.Errorf("unknown destination %q", destination)
+		}
+
+		for _, d := range destinations.Items {
+			for _, r := range d.Resources {
+				supportedResources[r] = struct{}{}
+			}
+
+			for _, r := range d.Roles {
+				supportedRoles[r] = struct{}{}
+			}
+		}
+
+		if subresource != "" {
+			if _, ok := supportedResources[subresource]; !ok {
+				return fmt.Errorf("unknown resource %q for %q", subresource, destination)
+			}
+		}
+
+		if privilege != "connect" {
+			if _, ok := supportedRoles[privilege]; !ok {
+				return fmt.Errorf("unknown role %q for %q", privilege, destination)
+			}
+		}
+	}
+
+	return nil
+}
+
+// identityOrGroupByName gets the ID of the identity or group to be associated with the grant
 func userOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID, uid.ID, error) {
 	if isGroup {
 		group, err := GetGroupByName(client, subject)

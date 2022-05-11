@@ -284,6 +284,8 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		UniqueID:      r.UniqueID,
 		ConnectionURL: r.Connection.URL,
 		ConnectionCA:  r.Connection.CA,
+		Resources:     r.Resources,
+		Roles:         r.Roles,
 	}
 
 	err := access.CreateDestination(c, destination)
@@ -303,6 +305,8 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		UniqueID:      r.UniqueID,
 		ConnectionURL: r.Connection.URL,
 		ConnectionCA:  r.Connection.CA,
+		Resources:     r.Resources,
+		Roles:         r.Roles,
 	}
 
 	if err := access.SaveDestination(c, destination); err != nil {

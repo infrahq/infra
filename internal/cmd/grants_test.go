@@ -49,6 +49,16 @@ func TestGrantsAddCmd(t *testing.T) {
 				return
 			}
 
+			if requestMatches(req, http.MethodGet, "/v1/destinations") {
+				resp.WriteHeader(http.StatusOK)
+				if query.Get("name") == "the-destination" {
+					writeResponse(t, resp, api.ListResponse[api.Destination]{Count: 1, Items: []api.Destination{{ID: 5000, Roles: []string{"role"}, Resources: []string{"default"}}}})
+					return
+				}
+				writeResponse(t, resp, &api.ListResponse[api.Destination]{})
+				return
+			}
+
 			if !requestMatches(req, http.MethodPost, "/v1/grants") {
 				resp.WriteHeader(http.StatusInternalServerError)
 				return
@@ -85,6 +95,20 @@ func TestGrantsAddCmd(t *testing.T) {
 		}
 		assert.DeepEqual(t, createReq, expected)
 	})
+	t.Run("add default role to existing identity for namespace", func(t *testing.T) {
+		ch := setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination.default")
+		assert.NilError(t, err)
+
+		createReq := <-ch
+		expected := api.CreateGrantRequest{
+			User:      3000,
+			Privilege: "connect",
+			Resource:  "the-destination.default",
+		}
+		assert.DeepEqual(t, createReq, expected)
+	})
 	t.Run("add role to existing identity", func(t *testing.T) {
 		ch := setup(t)
 		ctx := context.Background()
@@ -114,6 +138,27 @@ func TestGrantsAddCmd(t *testing.T) {
 			Resource:  "the-destination",
 		}
 		assert.DeepEqual(t, createReq, expected)
+	})
+
+	t.Run("add role to non-existent destination", func(t *testing.T) {
+		_ = setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "grants", "add", "existing@example.com", "nonexistent")
+		assert.ErrorContains(t, err, "unknown destination")
+	})
+
+	t.Run("add role to non-existent namespace", func(t *testing.T) {
+		_ = setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination.nonexistent")
+		assert.ErrorContains(t, err, "unknown resource")
+	})
+
+	t.Run("add role to non-existent destination", func(t *testing.T) {
+		_ = setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination", "--role", "nonexistent")
+		assert.ErrorContains(t, err, "unknown role")
 	})
 }
 
