@@ -387,7 +387,7 @@ $ infra users remove janedoe@example.com
 ### Options
 
 ```
-      --force   Exit successfully when destination not found
+      --force   Exit successfully when user not found
 ```
 
 ### Options inherited from parent commands
