@@ -136,20 +136,26 @@ type identityGrant struct {
 	CreatedBy uid.ID   `json:"created_by"`
 	Updated   api.Time `json:"updated"`
 
-	Identity  uid.ID `json:"identity,omitempty"`
-	Group     uid.ID `json:"group,omitempty"`
-	Privilege string `json:"privilege"`
-	Resource  string `json:"resource"`
+	Subject   uid.PolymorphicID `json:"subject,omitempty"`
+	Privilege string            `json:"privilege"`
+	Resource  string            `json:"resource"`
 }
 
 func migrateUserGrantToIdentity(grant api.Grant) identityGrant {
+	var sub uid.PolymorphicID
+
+	if grant.User != 0 {
+		sub = uid.NewIdentityPolymorphicID(grant.User)
+	} else {
+		sub = uid.NewGroupPolymorphicID(grant.Group)
+	}
+
 	return identityGrant{
 		ID:        grant.ID,
 		Created:   grant.Created,
 		CreatedBy: grant.CreatedBy,
 		Updated:   grant.Updated,
-		Identity:  grant.User,
-		Group:     grant.Group,
+		Subject:   sub,
 		Privilege: grant.Privilege,
 		Resource:  grant.Resource,
 	}
