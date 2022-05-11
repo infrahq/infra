@@ -15,19 +15,19 @@ func (a *API) addRequestRewrites() {
 		IdentityID uid.ID `form:"identity_id"`
 		Name       string `form:"name"`
 	}
-	addRequestRewrite(a, http.MethodGet, "/access-keys", "0.12.2", func(old deprecatedListAccessKeysRequest) api.ListAccessKeysRequest {
+	addRequestRewrite(a, http.MethodGet, "/v1/access-keys", "0.12.2", func(old deprecatedListAccessKeysRequest) api.ListAccessKeysRequest {
 		return api.ListAccessKeysRequest{
 			UserID: old.IdentityID,
 			Name:   old.Name,
 		}
 	})
 	type deprecatedCreateAccessKeyRequest struct {
-		IdentityID        uid.ID       `json:"identityID" validate:"required"`
-		Name              string       `json:"name" validate:"excludes= "`
-		TTL               api.Duration `json:"ttl" validate:"required"`
-		ExtensionDeadline api.Duration `json:"extensionDeadline,omitempty" validate:"required"`
+		IdentityID        uid.ID       `json:"identityID"`
+		Name              string       `json:"name"`
+		TTL               api.Duration `json:"ttl"`
+		ExtensionDeadline api.Duration `json:"extensionDeadline"`
 	}
-	addRequestRewrite(a, http.MethodPost, "/access-keys", "0.12.2", func(old deprecatedCreateAccessKeyRequest) api.CreateAccessKeyRequest {
+	addRequestRewrite(a, http.MethodPost, "/v1/access-keys", "0.12.2", func(old deprecatedCreateAccessKeyRequest) api.CreateAccessKeyRequest {
 		return api.CreateAccessKeyRequest{
 			UserID:            old.IdentityID,
 			Name:              old.Name,
