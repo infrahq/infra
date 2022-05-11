@@ -85,7 +85,7 @@ export default function () {
   const grantAdminAccess = (id) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ subject: "i:" + id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
         mutate('/v1/grants?resource=infra&privilege=admin')
