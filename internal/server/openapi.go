@@ -228,7 +228,7 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	spec.OpenAPI = "3.0.0"
 	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     internal.Version,
+		Version:     internal.FullVersion(),
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
 	}
