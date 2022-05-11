@@ -16,18 +16,7 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	user := AuthenticatedIdentity(c)
 
 	if user != nil {
-		lookupDB := getDB(c)
-
-		groups, err := data.ListIdentityGroups(lookupDB, user.ID)
-		if err != nil {
-			return false, err
-		}
-
-		for _, g := range groups {
-			if g.ID == requestedResourceID {
-				return true, nil
-			}
-		}
+		return userInGroup(getDB(c), user.ID, requestedResourceID), nil
 	}
 
 	return false, nil
@@ -39,7 +28,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID) ([]models.Group, err
 		selectors = append(selectors, data.ByName(name))
 	}
 	if userID != 0 {
-		selectors = append(selectors, data.WhereGroupIncludesUser(userID))
+		selectors = append(selectors, data.ByGroupMember(userID))
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)

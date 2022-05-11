@@ -118,11 +118,11 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by identity membership", func(t *testing.T) {
-			actual, err := ListGroups(db, WhereGroupIncludesUser(firstUser.ID))
+			actual, err := ListGroups(db, ByGroupMember(firstUser.ID))
 			assert.NilError(t, err)
 			expected := []models.Group{
-				{Name: "Everyone"},
 				{Name: "Engineering"},
+				{Name: "Everyone"},
 			}
 			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
 		})

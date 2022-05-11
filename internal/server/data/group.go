@@ -16,22 +16,16 @@ func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
 }
 
 func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
+	db = db.Order("name ASC")
 	return list[models.Group](db, selectors...)
 }
 
-func WhereGroupIncludesUser(id uid.ID) SelectorFunc {
+func ByGroupMember(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.
 			Joins("JOIN identities_groups ON groups.id = identities_groups.group_id").
 			Where("identities_groups.identity_id = ?", id)
 	}
-}
-
-// TODO: replace calls with ListGroups(..., WhereGroupIncludesUser(id))
-func ListIdentityGroups(db *gorm.DB, identityID uid.ID) ([]models.Group, error) {
-	var result []models.Group
-	err := db.Model(&models.Identity{Model: models.Model{ID: identityID}}).Association("Groups").Find(&result)
-	return result, err
 }
 
 func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
