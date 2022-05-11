@@ -24,8 +24,7 @@ var (
 	pathIDReplacer            = regexp.MustCompile(`:\w+`)
 	funcPartialNameToTagNames = map[string]string{
 		"Grant":       "Grants",
-		"Identities":  "Identities",
-		"Identity":    "Identities",
+		"User":        "Users",
 		"Group":       "Groups",
 		"AccessKey":   "Authentication",
 		"Provider":    "Providers",
