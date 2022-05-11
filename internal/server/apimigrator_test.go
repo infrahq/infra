@@ -10,6 +10,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 type legacyTestRequest struct {
@@ -95,13 +96,121 @@ func TestRedirect(t *testing.T) {
 	assert.Assert(t, resp.Result().StatusCode == 200)
 }
 
+func TestRedirectOfRequestAndResponseRewrite(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv, disableOpenAPIGeneration: true}
+	router := gin.New()
+
+	addRedirect(a, "get", "/oldtest", "/test", "0.1.0")
+
+	addRequestRewrite(a, "get", "/test", "0.1.1", func(old legacyTestRequest) upgradedTestRequest {
+		return upgradedTestRequest{
+			VegetableCount: old.CarrotCount + old.CucumberCount,
+		}
+	})
+
+	addResponseRewrite(a, "get", "/test", "0.1.1", func(ur upgradedResponse) legacyResponse {
+		return legacyResponse{
+			Shoes: ur.Loafers + ur.Sneakers,
+		}
+	})
+
+	get(a, router.Group("/"), "/test", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+		assert.Equal(t, req.VegetableCount, 12)
+
+		return &upgradedResponse{
+			Loafers:  5,
+			Sneakers: 3,
+		}, nil
+	})
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/oldtest?cucumberCount=5&carrotCount=7", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Result().StatusCode, 200)
+
+	lr := &legacyResponse{}
+	err := json.Unmarshal(resp.Body.Bytes(), lr)
+	assert.NilError(t, err)
+	assert.Equal(t, lr.Shoes, 8)
+}
+
+func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv, disableOpenAPIGeneration: true}
+	router := gin.New()
+
+	addRequestRewrite(a, "get", "/test", "0.1.1", func(old legacyTestRequest) upgradedTestRequest {
+		return upgradedTestRequest{
+			VegetableCount: old.CarrotCount + old.CucumberCount,
+		}
+	})
+
+	addResponseRewrite(a, "get", "/test", "0.1.1", func(ur upgradedResponse) legacyResponse {
+		return legacyResponse{
+			Shoes: ur.Loafers + ur.Sneakers,
+		}
+	})
+
+	addRedirect(a, "get", "/test", "/superbettertest", "0.1.2")
+	addRedirect(a, "get", "/superbettertest", "/awesometest", "0.1.3")
+
+	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+		assert.Equal(t, req.VegetableCount, 12)
+
+		return &upgradedResponse{
+			Loafers:  5,
+			Sneakers: 3,
+		}, nil
+	})
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Result().StatusCode, 200)
+
+	lr := &legacyResponse{}
+	err := json.Unmarshal(resp.Body.Bytes(), lr)
+	assert.NilError(t, err)
+	assert.Equal(t, lr.Shoes, 8)
+}
+
+func TestRedirectWithPathVariable(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv, disableOpenAPIGeneration: true}
+	router := gin.New()
+
+	type getUserRequest struct {
+		ID uid.ID `uri:"id"`
+	}
+	id := uid.New()
+	addRedirect(a, "get", "/identity/:id", "/user/:id", "0.1.0")
+
+	get(a, router.Group("/"), "/user/:id", func(c *gin.Context, req *getUserRequest) (*api.EmptyResponse, error) {
+		assert.Equal(t, req.ID, id)
+
+		return nil, nil
+	})
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/identity/"+id.String(), nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Result().StatusCode, 200)
+}
+
 type legacyResponse struct {
 	Shoes int
 }
 
 type upgradedResponse struct {
 	Loafers  int
-	Sneakers int
+	Sneakers int `json:"sneakers,omitempty"`
 }
 
 func TestAddResponseRewrite(t *testing.T) {
