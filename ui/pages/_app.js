@@ -4,6 +4,7 @@ import Head from 'next/head'
 import { SWRConfig } from 'swr'
 import useSWRImmutable from 'swr/immutable'
 
+import '../lib/fetch'
 import '../lib/dayjs'
 import '../styles/globals.css'
 
