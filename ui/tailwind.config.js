@@ -1,4 +1,4 @@
-function withOpacityValue(variable) {
+function withOpacityValue (variable) {
   return ({ opacityValue }) => {
     if (opacityValue === undefined) {
       return `rgb(${variable})`
@@ -17,7 +17,7 @@ module.exports = {
       colors: {
         black: '#0A0E12',
         pink: {
-          'light': withOpacityValue('228 64 255'),
+          light: withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
         },
         gray: {

@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: 17
+          node-version: 18
       - working-directory: ui
         run: |
           npm install
@@ -60,6 +60,9 @@ jobs:
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
       - name: Check generated code is updated
         run: |
           go generate ./...

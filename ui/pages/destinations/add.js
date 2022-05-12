@@ -25,7 +25,7 @@ function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName 
   return (
     <div className='border border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
       <textarea
-        spellcheck="false"
+        spellCheck='false'
         rows={5}
         name='commandInput'
         id='commandInput'
@@ -87,7 +87,7 @@ export default function () {
     setEnabledCommandInput(name.length > 0)
     setNumDestinations(destinations?.filter((item) => item.name === name).length)
 
-    fetch('/v1/users?name=connector')
+    fetch('/v1/identities?name=connector')
       .then((response) => response.json())
       .then((data) => {
         const { id } = data[0]

@@ -140,7 +140,7 @@ function columns (admin) {
 export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
   const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({ columns: useMemo(() => columns(admin), [admin]), data: destinations?.items || [] })
+  const table = useTable({ columns: useMemo(() => columns(admin), [admin]), data: destinations || [] })
 
   const loading = adminLoading || (!destinations && !error)
 

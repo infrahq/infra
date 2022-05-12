@@ -12,7 +12,7 @@ function Grant ({ id }) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
     <p className='text-sm'>{user.name}</p>
@@ -40,7 +40,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
 
       const data = await res.json()
 
-      if(exist) {
+      if (exist) {
         await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
       }
 
@@ -65,18 +65,18 @@ export default function ({ id, modalOpen, handleCloseModal }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        let res = await fetch(`/v1/users?name=${email}`)
+        let res = await fetch(`/v1/identities?name=${email}`)
         const data = await res.json()
 
-        if(!res.ok) {
+        if (!res.ok) {
           throw data
         }
 
         if (data.length === 0) {
-          res = await fetch('/v1/users', {
-                  method: 'POST',
-                  body: JSON.stringify({ name: email })
-                })
+          res = await fetch('/v1/identities', {
+            method: 'POST',
+            body: JSON.stringify({ name: email })
+          })
           const user = await res.json()
 
           await grantPrivilege('i:' + user.id)
@@ -85,7 +85,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
         } else {
           grantPrivilege('i:' + data[0].id)
         }
-      } catch(e) {
+      } catch (e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
       }
     } else {
@@ -104,7 +104,6 @@ export default function ({ id, modalOpen, handleCloseModal }) {
       return grants?.filter(item => item?.id !== grantId)
     }, { optimisticData: list?.filter(item => item?.id !== grantId) })
   }
-
 
   return (
     <InfoModal
@@ -161,7 +160,7 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             </div>
           ))}
         </div>}
-        {grantError && <ErrorMessage message={grantError} />}
+      {grantError && <ErrorMessage message={grantError} />}
 
     </InfoModal>
   )

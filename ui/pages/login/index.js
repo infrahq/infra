@@ -55,7 +55,7 @@ export default function () {
         return
       }
 
-      mutate('/v1/users/self', { optimisticData: { name: email } })
+      mutate('/v1/identities/self', { optimisticData: { name: email } })
 
       router.replace('/')
     } catch (e) {

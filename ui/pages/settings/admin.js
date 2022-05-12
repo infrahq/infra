@@ -19,10 +19,9 @@ const columns = [{
   id: 'delete',
   accessor: a => a,
   Cell: ({ value: admin, rows }) => {
-    const { data: user } = useSWR(`/v1/users/${admin.subject}`, { fallbackData: { name: '', kind: '' } })
-    const { data: auth } = useSWR('/v1/users/self')
+    const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+    const { data: auth } = useSWR('/v1/identities/self')
     const { mutate } = useSWRConfig()
-
 
     const [open, setOpen] = useState(false)
 
@@ -30,9 +29,7 @@ const columns = [{
 
     return (
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        {!isSelf && <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>
-          Revoke
-        </button>}
+        {!isSelf && <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>Revoke</button>}
         <DeleteModal
           open={open}
           setOpen={setOpen}
@@ -58,8 +55,8 @@ const AdminName = ({ id }) => {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/users/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-  
+  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+
   return (
     <div className='flex items-center'>
       <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
@@ -85,7 +82,7 @@ export default function () {
   const grantAdminAccess = (id) => {
     fetch('/v1/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: "i:" + id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ subject: 'i:' + id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
         mutate('/v1/grants?resource=infra&privilege=admin')
@@ -108,11 +105,11 @@ export default function () {
     if (validateEmail(adminEmail)) {
       setError('')
 
-      fetch(`/v1/users?name=${adminEmail}`)
+      fetch(`/v1/identities?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.length === 0) {
-            fetch('/v1/users', {
+            fetch('/v1/identities', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail })
             })
