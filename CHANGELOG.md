@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.13.0](https://github.com/infrahq/infra/compare/v0.12.2...v0.13.0) (2022-05-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove `kubernetes.` prefix from destinations (#1849)
+
+### Features
+
+* add api versioning with request/response migrations ([#1884](https://github.com/infrahq/infra/issues/1884)) ([41527b8](https://github.com/infrahq/infra/commit/41527b8e82ee95883d2bfdd05629491cccbda812))
+* add api versioning with request/response migrations ([#1884](https://github.com/infrahq/infra/issues/1884)) ([#1911](https://github.com/infrahq/infra/issues/1911)) ([a2c0c12](https://github.com/infrahq/infra/commit/a2c0c12e2131350919f46c84d91ea6fa58e0e3d4))
+* add resources/roles to destinations api ([71598e0](https://github.com/infrahq/infra/commit/71598e0cc94e90abf1fadc562186f8ac2ecce4d0))
+* **cmd:** check namespace/role exists in grant add ([e257ba2](https://github.com/infrahq/infra/commit/e257ba205a7b00f50a1e2f03b3980b9ff995bd0e))
+* dereference polymorhpic IDs in grant responses ([2b82143](https://github.com/infrahq/infra/commit/2b82143f0ce712f4f308f6e39723ea59b46687ef))
+* introduce cli errors ([#1786](https://github.com/infrahq/infra/issues/1786)) ([d7dab70](https://github.com/infrahq/infra/commit/d7dab707cfaec8e547e5a8249869bc68aee1e491))
+* list responses as objects ([406915f](https://github.com/infrahq/infra/commit/406915fb1e8e45e4b354f589d21aae2e84cd31f6))
+* move info and version from flags to other commands ([#1864](https://github.com/infrahq/infra/issues/1864)) ([cf9e073](https://github.com/infrahq/infra/commit/cf9e073ee99fbabdf05a263576729f09684f1ae4))
+* remove polymorphic id from login response ([3aa34e5](https://github.com/infrahq/infra/commit/3aa34e5fdf2a30cbe697315366a7fa5c2a0dabd5))
+* update clients to use list responses ([b679426](https://github.com/infrahq/infra/commit/b6794260e8f270b322378f48acef43b59f99537f))
+* use email name for authinfo inside of kube ([#1852](https://github.com/infrahq/infra/issues/1852)) ([e93cd84](https://github.com/infrahq/infra/commit/e93cd84c06499780b77cade085f8fa3b5dffa4b5))
+
+
+### Bug Fixes
+
+* `created_at` no longer zeros on save ([#1893](https://github.com/infrahq/infra/issues/1893)) ([22be9b8](https://github.com/infrahq/infra/commit/22be9b86267879cceb8274fc1017d7a170cb72c3))
+* add additional signup check ([703966e](https://github.com/infrahq/infra/commit/703966eca8be62874a77b3e69f373dc5539ef29d))
+* add button to add users ([#1826](https://github.com/infrahq/infra/issues/1826)) ([681d79c](https://github.com/infrahq/infra/commit/681d79c7c3f7680874a8d0dbf8879db8d13cd439))
+* cleanup telemetry ([#1874](https://github.com/infrahq/infra/issues/1874)) ([69c61ad](https://github.com/infrahq/infra/commit/69c61ada4e9622b68b334c306d38c43fd669fe58))
+* **connector:** index out of bounds ([1190126](https://github.com/infrahq/infra/commit/119012655ee95f45fcd82c2c934c198ce3c41dbb))
+* disable sign-up before username and pass set ([#1870](https://github.com/infrahq/infra/issues/1870)) ([19d04cc](https://github.com/infrahq/infra/commit/19d04ccc555abd1bf5904bb70e425a77948fdb6c))
+* general ui bugs ([#1785](https://github.com/infrahq/infra/issues/1785)) ([5638a0e](https://github.com/infrahq/infra/commit/5638a0ed05aededf84c7ae404f0c4814dceabf99))
+* golint 1.6.0 errors ([#1909](https://github.com/infrahq/infra/issues/1909)) ([cf22f66](https://github.com/infrahq/infra/commit/cf22f667b3b2a786b007a1fa972397c6ae5b5fe9))
+* issues in documentation to reflect latest changes ([#1950](https://github.com/infrahq/infra/issues/1950)) ([aca1f68](https://github.com/infrahq/infra/commit/aca1f6870d3094004384565106cc47ff8f17179b))
+* load identities using name or email ([d72128f](https://github.com/infrahq/infra/commit/d72128f649bffcdd1716ee7156bd335ffacdd303))
+* logout failure and error on safari ([#1799](https://github.com/infrahq/infra/issues/1799)) ([2a711dc](https://github.com/infrahq/infra/commit/2a711dc710fba8341df9238b09314031c154ffac))
+* logout should always succeed ([#1926](https://github.com/infrahq/infra/issues/1926)) ([73b2a84](https://github.com/infrahq/infra/commit/73b2a8444919b0532a4384fce9d171a93de66e27))
+* make dev using wrong version ([a9b1dd7](https://github.com/infrahq/infra/commit/a9b1dd71bd6acbf454ea5b701d53804c00cf8c55))
+* make setting secrets in env clear ([#1869](https://github.com/infrahq/infra/issues/1869)) ([6fd0552](https://github.com/infrahq/infra/commit/6fd0552aaffa96af8178862c8100e7d8bbbb53bf))
+* migrate grants subject ([#1935](https://github.com/infrahq/infra/issues/1935)) ([785dae4](https://github.com/infrahq/infra/commit/785dae4717634f251f296d016d25f7abf8efe9b4))
+* minor presentational ui bugs ([#1876](https://github.com/infrahq/infra/issues/1876)) ([8d9a4ed](https://github.com/infrahq/infra/commit/8d9a4ed3d01e39b4c0a1409172ccc6172446faf6))
+* multi providers ui bug ([#1827](https://github.com/infrahq/infra/issues/1827)) ([c6d9932](https://github.com/infrahq/infra/commit/c6d9932682d3183edb2f2cb34d500ccaf47bed09))
+* pin UI API version ([d1fdbc6](https://github.com/infrahq/infra/commit/d1fdbc603755f4b3e20d00a9b2a5355356c3b847))
+* polymorphic id api migration ([f5286d6](https://github.com/infrahq/infra/commit/f5286d659873931c403c9134db8d34886ecd082c))
+* remove `kubernetes.` prefix from destinations ([#1849](https://github.com/infrahq/infra/issues/1849)) ([bbecdf1](https://github.com/infrahq/infra/commit/bbecdf17ea76af59b0385c6bfb41b814179af1df))
+* remove and update helm links ([#1866](https://github.com/infrahq/infra/issues/1866)) ([b8bc11f](https://github.com/infrahq/infra/commit/b8bc11f6d4c33c451a286653f5ecdcdb911e1e39))
+* resolves issue with stacked response migrations ([#1928](https://github.com/infrahq/infra/issues/1928)) ([4e4c282](https://github.com/infrahq/infra/commit/4e4c2823ea62498800d1768a993527f2fe473527))
+* revert "feat: add api versioning with request/response migrations ([#1884](https://github.com/infrahq/infra/issues/1884))" ([4cf2272](https://github.com/infrahq/infra/commit/4cf22726f8aee072939265bfee2ccc76a95254a9))
+* revert ui's api version to 0.12.2 ([#1938](https://github.com/infrahq/infra/issues/1938)) ([02b94b1](https://github.com/infrahq/infra/commit/02b94b1ba1a202ade9e3890ada51d00cef6f98ca))
+* safari ui support ([#1879](https://github.com/infrahq/infra/issues/1879)) ([0dcdd7e](https://github.com/infrahq/infra/commit/0dcdd7e5b215eeb9b215dca5e8ab0c98cc378382))
+* serialize empty ID to 0 ([4c00719](https://github.com/infrahq/infra/commit/4c00719ec59749718def4cf501b405c0d74d8cd4))
+* share modal input bugs ([#1842](https://github.com/infrahq/infra/issues/1842)) ([25501d8](https://github.com/infrahq/infra/commit/25501d8ac29279e125e902f74a0e4943702a5d2b))
+* support redirecting previous path rewrites ([#1943](https://github.com/infrahq/infra/issues/1943)) ([569d1ca](https://github.com/infrahq/infra/commit/569d1ca344742cb34e745ac14a7f386d8539b1ab))
+* **ui:** create admin grant ([5ee3fd0](https://github.com/infrahq/infra/commit/5ee3fd0d1066da9820e65136ed0c73e6e2a0103d))
+* **ui:** UI does not show reset password page ([172b1d9](https://github.com/infrahq/infra/commit/172b1d971906b8b251b9bd6e4a110875cd868f40))
+* **ui:** update to use grant.identity instead of grant.subject ([e8f075d](https://github.com/infrahq/infra/commit/e8f075d48a0d31711486262809c5256277d2c06f))
+* undefined function ([84cfd53](https://github.com/infrahq/infra/commit/84cfd53f23c837fc283f6ffae50a6f9455ca2694))
+
 ### [0.12.2](https://github.com/infrahq/infra/compare/v0.12.1...v0.12.2) (2022-04-29)
 
 
