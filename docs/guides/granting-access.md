@@ -8,7 +8,7 @@ Infra allows granting different levels of access via **roles**, such as `view`, 
 
 ## Grant access
 
-To grant access, use `infra grants add`:
+To grant access, use `infra grants add`. For example, to give `edit` access to a cluster named `staging` run:
 
 ```
 infra grants add user@example.com staging --role edit
