@@ -165,7 +165,7 @@ export default function () {
       </div>}
 
       <h4 className='text-gray-400 my-3 text-paragraph'>These users have full administration privileges</h4>
-      {adminList?.count > 0 &&
+      {adminList?.length > 0 &&
         <Table {...table} showHeader={false} />}
     </div>
   )
