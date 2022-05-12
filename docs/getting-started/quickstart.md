@@ -1,58 +1,62 @@
 # Quickstart
 
 In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
-* Install Infra CLI
-* Deploy Infra
-* Connect a Kubernetes cluster
-* Create a user and grant them view (read-only) access to the cluster
+
+- Install Infra CLI
+- Deploy Infra
+- Connect a Kubernetes cluster
+- Create a user and grant them view (read-only) access to the cluster
 
 ### Prerequisites
 
-* Install [helm](https://helm.sh/docs/intro/install/) (v3+)
-* Install Kubernetes [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) (v1.14+)
-* A Kubernetes cluster. For local testing we recommend [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Install [helm](https://helm.sh/docs/intro/install/) (v3+)
+- Install Kubernetes [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) (v1.14+)
+- A Kubernetes cluster. For local testing we recommend [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### 1. Install Infra CLI
 
 <details>
   <summary><strong>macOS</strong></summary>
 
-  ```bash
-  brew install infrahq/tap/infra
-  ```
+```bash
+brew install infrahq/tap/infra
+```
 
-  You may need to perform `brew link` if your symlinks are not working.
-  ```bash
-  brew link infrahq/tap/infra
-  ```
+You may need to perform `brew link` if your symlinks are not working.
+
+```bash
+brew link infrahq/tap/infra
+```
+
 </details>
 
 <details>
   <summary><strong>Windows</strong></summary>
 
-  ```powershell
-  scoop bucket add infrahq https://github.com/infrahq/scoop.git
-  scoop install infra
-  ```
+```powershell
+scoop bucket add infrahq https://github.com/infrahq/scoop.git
+scoop install infra
+```
 
 </details>
 
 <details>
   <summary><strong>Linux</strong></summary>
 
-  ```bash
-  # Ubuntu & Debian
-  echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' | sudo tee /etc/apt/sources.list.d/infrahq.list
-  sudo apt update
-  sudo apt install infra
-  ```
-  ```bash
-  # Fedora & Red Hat Enterprise Linux
-  sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
-  sudo dnf install infra
-  ```
-</details>
+```bash
+# Ubuntu & Debian
+echo 'deb [trusted=yes] https://apt.fury.io/infrahq/ /' | sudo tee /etc/apt/sources.list.d/infrahq.list
+sudo apt update
+sudo apt install infra
+```
 
+```bash
+# Fedora & Red Hat Enterprise Linux
+sudo dnf config-manager --add-repo https://yum.fury.io/infrahq/
+sudo dnf install infra
+```
+
+</details>
 
 ### 2. Deploy Infra
 
@@ -78,6 +82,7 @@ Login to the Infra server using the hostname above and follow the prompt to crea
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 ```
 
+![Step 2](../images/quickstartgif-step2.gif)
 
 ### 3. Connect your first Kubernetes cluster
 
@@ -91,9 +96,9 @@ Next, use this access key to connect your first cluster via `helm`. **Note:** th
 
 Prepare your values:
 
-* `connector.config.name`: choose a name for this cluster
-* `connector.config.server`: the same hostname used for `infra login`
-* `connector.config.accessKey`: the key created above via `infra keys add`
+- `connector.config.name`: choose a name for this cluster
+- `connector.config.server`: the same hostname used for `infra login`
+- `connector.config.accessKey`: the key created above via `infra keys add`
 
 Install the Infra connector via `helm`:
 
@@ -107,6 +112,7 @@ helm upgrade --install infra-connector infrahq/infra \
 
 | Note: it may take a few minutes for the cluster to connect. You can verify the connection by running `infra destinations list`
 
+![Step 3](../images/quickstartgif-step3.gif)
 ### 4. Add a user and grant access to the cluster
 
 Next, add a user:
@@ -122,6 +128,8 @@ Grant this user read-only access to the Kubernetes cluster you just connected to
 ```
 infra grants add user@example.com example-cluster --role view
 ```
+
+![Step 4](../images/quickstartgif-step4.gif)
 
 ### 5. Login as the example user and access the cluster:
 
@@ -149,15 +157,17 @@ kubectl get pods -A
 kubectl create namespace test-namespace
 ```
 
+![Step 5](../images/quickstartgif-step5.gif)
+
 Congratulations, you've:
-* Installed Infra
-* Connected your first cluster
-* Created a user and granted them `view` access to the cluster
+
+- Installed Infra
+- Connected your first cluster
+- Created a user and granted them `view` access to the cluster
 
 ### Next Steps
 
-* [Connect Okta](../guides/identity-providers/okta.md) to onboard & offboard your team automatically
-* [Manage & revoke access](../guides/granting-access.md) to users or groups
-* [Understand Kubernetes roles](../connectors/kubernetes.md#roles) for understand different access levels Infra supports for Kubernetes
-* [Customize your install](../install/install-on-kubernetes.md)
-
+- [Connect Okta](../guides/identity-providers/okta.md) to onboard & offboard your team automatically
+- [Manage & revoke access](../guides/granting-access.md) to users or groups
+- [Understand Kubernetes roles](../connectors/kubernetes.md#roles) for understand different access levels Infra supports for Kubernetes
+- [Customize your install](../install/install-on-kubernetes.md)
