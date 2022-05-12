@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/goware/urlx"
 	"github.com/lensesio/tableprinter"
@@ -113,6 +114,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
 		HTTP: http.Client{
+			Timeout: 60 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					//nolint:gosec // We may purposely set insecureskipverify via a flag
