@@ -15,19 +15,19 @@ func (a *API) addRequestRewrites() {
 		IdentityID uid.ID `form:"identity_id"`
 		Name       string `form:"name"`
 	}
-	addRequestRewrite(a, http.MethodGet, "/v1/access-keys", "0.12.2", func(old deprecatedListAccessKeysRequest) api.ListAccessKeysRequest {
+	addRequestRewrite(a, http.MethodGet, "/access-keys", "0.12.2", func(old deprecatedListAccessKeysRequest) api.ListAccessKeysRequest {
 		return api.ListAccessKeysRequest{
 			UserID: old.IdentityID,
 			Name:   old.Name,
 		}
 	})
 	type deprecatedCreateAccessKeyRequest struct {
-		IdentityID        uid.ID       `json:"identityID"`
-		Name              string       `json:"name"`
-		TTL               api.Duration `json:"ttl"`
-		ExtensionDeadline api.Duration `json:"extensionDeadline"`
+		IdentityID        uid.ID       `json:"identityID" validate:"required"`
+		Name              string       `json:"name" validate:"excludes= "`
+		TTL               api.Duration `json:"ttl" validate:"required"`
+		ExtensionDeadline api.Duration `json:"extensionDeadline,omitempty" validate:"required"`
 	}
-	addRequestRewrite(a, http.MethodPost, "/v1/access-keys", "0.12.2", func(old deprecatedCreateAccessKeyRequest) api.CreateAccessKeyRequest {
+	addRequestRewrite(a, http.MethodPost, "/access-keys", "0.12.2", func(old deprecatedCreateAccessKeyRequest) api.CreateAccessKeyRequest {
 		return api.CreateAccessKeyRequest{
 			UserID:            old.IdentityID,
 			Name:              old.Name,
@@ -89,13 +89,13 @@ func (a *API) addResponseRewrites() {
 	addResponseRewrite(a, "get", "/v1/access-keys", "0.12.2", func(newResponse *api.ListResponse[api.AccessKey]) []api.AccessKey {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/users", "0.12.2", func(newResponse *api.ListResponse[api.User]) []api.User {
+	addResponseRewrite(a, "get", "/v1/identities", "0.12.2", func(newResponse *api.ListResponse[api.User]) []api.User {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/users/:id/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []api.Grant {
+	addResponseRewrite(a, "get", "/v1/identities/:id/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []api.Grant {
 		return newResponse.Items
 	})
-	addResponseRewrite(a, "get", "/v1/users/:id/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
+	addResponseRewrite(a, "get", "/v1/identities/:id/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
 		return newResponse.Items
 	})
 	addResponseRewrite(a, "get", "/v1/groups", "0.12.2", func(newResponse *api.ListResponse[api.Group]) []api.Group {
