@@ -82,7 +82,12 @@ Login to the Infra server using the hostname above and follow the prompt to crea
 infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 ```
 
+<details>
+  <summary><strong>Watch This Step</strong></summary>
+
 ![Step 2](../images/quickstartgif-step2.gif)
+
+</details>
 
 ### 3. Connect your first Kubernetes cluster
 
@@ -112,7 +117,13 @@ helm upgrade --install infra-connector infrahq/infra \
 
 | Note: it may take a few minutes for the cluster to connect. You can verify the connection by running `infra destinations list`
 
+<details>
+  <summary><strong>Watch This Step</strong></summary>
+
 ![Step 3](../images/quickstartgif-step3.gif)
+
+</details>
+
 ### 4. Add a user and grant access to the cluster
 
 Next, add a user:
@@ -129,7 +140,12 @@ Grant this user read-only access to the Kubernetes cluster you just connected to
 infra grants add user@example.com example-cluster --role view
 ```
 
+<details>
+  <summary><strong>Watch This Step</strong></summary>
+
 ![Step 4](../images/quickstartgif-step4.gif)
+
+</details>
 
 ### 5. Login as the example user and access the cluster:
 
@@ -157,7 +173,12 @@ kubectl get pods -A
 kubectl create namespace test-namespace
 ```
 
+<details>
+  <summary><strong>Watch This Step</strong></summary>
+
 ![Step 5](../images/quickstartgif-step5.gif)
+
+</details>
 
 Congratulations, you've:
 
