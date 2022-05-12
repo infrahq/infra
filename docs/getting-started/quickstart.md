@@ -81,7 +81,7 @@ infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 
 ### 3. Connect your first Kubernetes cluster
 
-Generate an access key named `key` to connect Kubernetes clusters:
+Generate an access key:
 
 ```
 infra keys add connector
@@ -112,7 +112,7 @@ helm upgrade --install infra-connector infrahq/infra \
 Next, add a user:
 
 ```
-infra id add user@example.com
+infra users add user@example.com
 ```
 
 | Note: Infra will provide you a one-time password. Please note this password for step 5.
