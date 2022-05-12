@@ -32,10 +32,12 @@ infra grants remove user@example.com staging --role edit
 
 ```
 infra grants list
-  PROVIDER  IDENTITY     ACCESS  DESTINATION
-  okta      Everyone     edit    development
-  okta      Engineering  edit    development.monitoring
-  okta      Design       edit    development.web
-  okta      Engineering  view    production
-  okta      Engineering  edit    production.web
+  USER                 ACCESS   DESTINATION
+  jeff@infrahq.com     edit     development
+  michael@infrahq.com  view     production
+
+  GROUP          ACCESS    DESTINATION
+  Engineering    edit      development.monitoring
+  Engineering    view      production
+  Design         edit      development.web
 ```
