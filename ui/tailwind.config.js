@@ -18,6 +18,7 @@ module.exports = {
         black: '#0A0E12',
         pink: {
           100: '#DECAFF',
+          200: '#F4E2FF',
           300: '#EB91C7',
           light: withOpacityValue('228 64 255'),
           dark: '#CB2EEC'
@@ -44,7 +45,8 @@ module.exports = {
         name: ['12px', '15px'],
         title: ['13px', '16px'],
         subtitle: ['12px', '0px'],
-        paragraph: ['12px', '22px']
+        paragraph: ['12px', '22px'],
+        secondary: ['10px', '12px']
       },
       transitionProperty: {
         size: 'height, padding, background'

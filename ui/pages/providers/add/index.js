@@ -23,7 +23,18 @@ export default function () {
       <Head>
         <title>Add Identity Provider</title>
       </Head>
-      <div className='flex flex-col mb-24'>
+      <div className='w-full max-w-sm'>
+        <div className='flex flex-col py-8 px-4 border rounded-lg border-gray-950'>
+          <div className='flex flex-row space-x-2 items-center'>
+            <img src='/providers.svg' className='w-6 h-6' />
+            <div>
+              <h1 className='text-[12px] leading-[4px] tracking-tight'>Connect an Identity Provider</h1>
+              <h2 className='text-[12px] leading-[4px] text-gray-400 mt-3'>Select an identity provider to continue</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* <div className='flex flex-col mb-24'>
         <div className='flex my-4 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto'>
           <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
             <img className='w-8 h-8' src='/providers-color.svg' />
@@ -46,7 +57,7 @@ export default function () {
                 )
           ))}
         </div>
-      </div>
+      </div> */}
     </FullscreenModal>
   )
 }

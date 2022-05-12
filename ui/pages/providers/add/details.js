@@ -80,71 +80,71 @@ export default function () {
         <title>Add Identity Provider - {kind}</title>
       </Head>
       <div className='w-full max-w-sm'>
-        <div className='flex flex-col pt-8 pb-6 px-4 border rounded-lg border-gray-950'>
+        <div className='flex flex-col py-8 px-4 border rounded-lg border-gray-950'>
           <div className='flex flex-row space-x-2'>
             <img src='/providers.svg' className='w-6 h-6' />
             <h1 className='text-base tracking-tight capitalize'>Connect {kind}</h1>
           </div>
           <form onSubmit={onSubmit} className='flex flex-col mt-12'>
             <div className='mb-8'>
-              <label className='text-xs uppercase'>NAME YOUR PROVIDER</label>
+              <label className='text-label text-gray-300 uppercase'>Name your provider</label>
               <input
                 required
                 autoFocus
                 placeholder='Name'
                 onChange={e => setName(e.target.value)}
-                className={`w-full bg-transparent border-b border-gray-950 text-name px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-300' : ''}`}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-300' : ''}`}
               />
               {errors.name && <ErrorMessage message={errors.name} />}
             </div>
 
-            <label className='text-xs'>
-              Additional details (<a className='text-pink-300 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>)
+            <label className='text-name text-white/90'>
+              Additional details <a className='text-pink-100/90 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>
             </label>
             <div className='mt-4'>
-              <label className='text-xs uppercase'>URL (Domain)</label>
+              <label className='text-label text-gray-300 uppercase'>URL (Domain)</label>
               <input
                 required
                 placeholder='URL (Domain)'
                 value={url}
                 onChange={e => setURL(e.target.value)}
-                className={`w-full bg-transparent border-b border-gray-950 text-name px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-300' : ''}`}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-300' : ''}`}
               />
               {errors.url && <ErrorMessage message={errors.url} />}
             </div>
             <div className='mt-4'>
-              <label className='text-xs uppercase'>Client ID</label>
+              <label className='text-label text-gray-300 uppercase'>Client ID</label>
               <input
                 required
                 placeholder='Client ID'
                 value={clientID}
                 onChange={e => setClientID(e.target.value)}
-                className={`w-full bg-transparent border-b border-gray-950 text-name px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-300' : ''}`}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-300' : ''}`}
               />
               {errors.clientid && <ErrorMessage message={errors.clientid} />}
             </div>
             <div className='mt-4'>
-              <label className='text-xs uppercase'>Client Secret</label>
+              <label className='text-label text-gray-300 uppercase'>Client Secret</label>
               <input
                 required
                 type='password'
                 placeholder='Client Secret'
                 value={clientSecret}
                 onChange={e => setClientSecret(e.target.value)}
-                className={`w-full bg-transparent border-b border-gray-950 text-name px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-300' : ''}`}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-300' : ''}`}
               />
               {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
             </div>
             <div className='flex flex-row justify-between mt-6 items-center'>
               <Link href='/providers'>
-                <a className='uppercase border-0 hover:text-white text-gray-300'>Cancel</a>
+                <a className='uppercase border-0 hover:text-white text-gray-300 text-secondary'>Cancel</a>
               </Link>
               <button
                 type='submit'
                 disabled={!name || !url || !clientID || !clientSecret}
                 className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'
               >
-                <div className='bg-black rounded-md tracking-tight text-sm px-6 py-3 '>
+                <div className='bg-black rounded-md tracking-tight text-name px-6 py-3 text-pink-200'>
                   Connect Provider
                 </div>
               </button>
