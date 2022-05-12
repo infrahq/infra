@@ -80,10 +80,12 @@ export default function () {
                 <button onClick={() => oidcLogin(p)} key={p.id} className='w-full border border-gray-950 hover:to-pink-50 rounded-md p-0.5 my-1.5'>
                   <div className='flex flex-col items-center justify-center px-4 py-2'>
                     {kind(p.url)
-                      ? <div className='flex flex-col items-center text-center'>
-                        <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
-                        <div className='text-name text-gray-300'>{p.url}</div>
-                      </div>
+                      ? (
+                        <div className='flex flex-col items-center text-center'>
+                          <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
+                          <div className='text-name text-gray-300'>{p.url}</div>
+                        </div>
+                        )
                       : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
                   </div>
                 </button>
