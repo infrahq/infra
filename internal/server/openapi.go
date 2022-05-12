@@ -170,6 +170,8 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 		}
 
 		name := strings.ReplaceAll(rst.Name(), rst.PkgPath()+".", "")
+		name = strings.ReplaceAll(name, "[", "_")
+		name = strings.ReplaceAll(name, "]", "")
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)

@@ -240,7 +240,7 @@
           }
         }
       },
-      "ListResponse[AccessKey]": {
+      "ListResponse_AccessKey": {
         "properties": {
           "count": {
             "format": "int",
@@ -298,7 +298,7 @@
           }
         }
       },
-      "ListResponse[Destination]": {
+      "ListResponse_Destination": {
         "properties": {
           "count": {
             "format": "int",
@@ -367,7 +367,7 @@
           }
         }
       },
-      "ListResponse[Grant]": {
+      "ListResponse_Grant": {
         "properties": {
           "count": {
             "format": "int",
@@ -428,7 +428,7 @@
           }
         }
       },
-      "ListResponse[Group]": {
+      "ListResponse_Group": {
         "properties": {
           "count": {
             "format": "int",
@@ -465,7 +465,7 @@
           }
         }
       },
-      "ListResponse[Provider]": {
+      "ListResponse_Provider": {
         "properties": {
           "count": {
             "format": "int",
@@ -515,7 +515,7 @@
           }
         }
       },
-      "ListResponse[User]": {
+      "ListResponse_User": {
         "properties": {
           "count": {
             "format": "int",
@@ -763,7 +763,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[AccessKey]"
+                  "$ref": "#/components/schemas/ListResponse_AccessKey"
                 }
               }
             },
@@ -1044,7 +1044,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Destination]"
+                  "$ref": "#/components/schemas/ListResponse_Destination"
                 }
               }
             },
@@ -1578,7 +1578,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                  "$ref": "#/components/schemas/ListResponse_Grant"
                 }
               }
             },
@@ -1936,7 +1936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Group]"
+                  "$ref": "#/components/schemas/ListResponse_Group"
                 }
               }
             },
@@ -2389,7 +2389,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Provider]"
+                  "$ref": "#/components/schemas/ListResponse_Provider"
                 }
               }
             },
@@ -3110,7 +3110,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[User]"
+                  "$ref": "#/components/schemas/ListResponse_User"
                 }
               }
             },
@@ -3558,7 +3558,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Group]"
+                  "$ref": "#/components/schemas/ListResponse_Group"
                 }
               }
             },
@@ -3716,7 +3716,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                  "$ref": "#/components/schemas/ListResponse_Grant"
                 }
               }
             },
@@ -3803,7 +3803,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                  "$ref": "#/components/schemas/ListResponse_Grant"
                 }
               }
             },
