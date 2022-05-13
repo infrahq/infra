@@ -11,9 +11,10 @@ import (
 
 	"github.com/ssoroka/slice"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
+
+var clientVersion = "0.13.0"
 
 type Client struct {
 	URL       string
@@ -197,7 +198,7 @@ func delete(client Client, path string) error {
 }
 
 func addHeaders(req *http.Request, headers http.Header) {
-	req.Header.Set("Infra-Version", internal.FullVersion())
+	req.Header.Set("Infra-Version", clientVersion)
 	for key, values := range headers {
 		req.Header[key] = values
 	}
