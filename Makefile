@@ -1,5 +1,6 @@
-tag := $(patsubst v%,%,$(shell git describe --tags --abbrev=0))
-version := $(tag:v%=%)
+v ?= $(shell git describe --tags --abbrev=0)
+BUILDVERSION ?= $(v:v%=%)
+IMAGEVERSION ?= $(v:v%=%)
 
 generate:
 	go generate ./...
@@ -16,7 +17,7 @@ test/update:
 
 .PHONY: helm
 helm:
-	helm package -d $@ helm/charts/* --version $(version) --app-version $(version)
+	helm package -d $@ helm/charts/* --version $(BUILDVERSION) --app-version $(IMAGEVERSION)
 	helm repo index helm
 
 helm/lint:
@@ -40,7 +41,12 @@ build: goreleaser
 	goreleaser build --snapshot --rm-dist
 
 dev/docker:
-	docker build --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:dev
+	docker build \
+		--build-arg BUILDVERSION=$(BUILDVERSION) \
+		--build-arg BUILDVERSION_METADATA=dev \
+		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
+		-t infrahq/infra:dev \
+		.
 
 %.yaml: %.yaml.in
 	envsubst <$< >$@
@@ -69,13 +75,25 @@ dev/clean:
 	helm $(NS) uninstall infra || true
 
 docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version)
+	docker buildx build --push \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg BUILDVERSION=$(BUILDVERSION) \
+		--build-arg BUILDVERSION_PRERELEASE=$(BUILDVERSION_PRERELEASE) \
+		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
+		--tag infrahq/infra:$(IMAGEVERSION) \
+		.
 
 release: goreleaser
 	goreleaser release -f .goreleaser.yml --rm-dist
 
 release/docker:
-	docker buildx build --push --platform linux/amd64,linux/arm64 --build-arg BUILDVERSION=$(version) --build-arg TELEMETRY_WRITE_KEY=${TELEMETRY_WRITE_KEY} . -t infrahq/infra:$(version) -t infrahq/infra
+	docker buildx build --push \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg BUILDVERSION=$(BUILDVERSION) \
+		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
+		--tag infrahq/infra:$(IMAGEVERSION) \
+		--tag infrahq/infra \
+		.
 
 release/helm: helm
 	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"

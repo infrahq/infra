@@ -7,10 +7,10 @@ var (
 	// {x-release-please-start-version}
 	Version = "0.13.0"
 	// {x-release-please-end}
-	PrereleaseTag = ""
-	Metadata      = "dev"
-	Commit        = ""
-	Date          = ""
+	Prerelease = ""
+	Metadata   = "dev"
+	Commit     = ""
+	Date       = ""
 )
 
 // FullVersion returns the full semver version string, however it also increments the patch version if you're working on a pre-release.
@@ -21,7 +21,7 @@ func FullVersion() string {
 	if Metadata == "dev" {
 		*v = v.IncPatch()
 	}
-	*v, _ = v.SetPrerelease(PrereleaseTag)
+	*v, _ = v.SetPrerelease(Prerelease)
 	*v, _ = v.SetMetadata(Metadata)
 
 	return v.String()
