@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -299,4 +302,52 @@ func TestStackedResponseRewrites(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), r)
 	assert.NilError(t, err)
 	assert.Equal(t, r.Shoes, 16)
+}
+
+func TestEmptyVersionHeader(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv, disableOpenAPIGeneration: true}
+	router := gin.New()
+
+	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {
+		return legacyResponse{
+			Shoes: n.Loafers + n.Sneakers,
+		}
+	})
+
+	get(a, router.Group("/"), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
+		return &upgradedResponse{
+			Loafers:  3,
+			Sneakers: 5,
+		}, nil
+	})
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Add("Infra-Version", "")
+	router.ServeHTTP(resp, req)
+
+	if afterVersion("0.14.0") {
+		assert.Equal(t, resp.Result().StatusCode, http.StatusBadRequest, "Request should fail: Client must provide Infra-Version")
+
+		apiErr := &api.Error{}
+		err := json.Unmarshal(resp.Body.Bytes(), apiErr)
+		assert.NilError(t, err)
+		assert.Assert(t, strings.Contains(apiErr.Message, "Infra-Version header required"))
+
+	} else {
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		r := &legacyResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), r)
+		assert.NilError(t, err)
+		assert.Equal(t, r.Shoes, 8)
+	}
+}
+
+func afterVersion(ver string) bool {
+	serverVer, _ := semver.NewVersion(internal.FullVersion())
+	checkVer, _ := semver.NewVersion(ver)
+	return !serverVer.LessThan(checkVer)
 }

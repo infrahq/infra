@@ -34,6 +34,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/andanhm/go-prettytime v1.1.0
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/getkin/kin-openapi v0.94.0

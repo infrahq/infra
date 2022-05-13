@@ -12,8 +12,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -45,20 +47,23 @@ func addRedirect(a *API, method, path, newPath, version string) {
 }
 
 func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version string, f func(oldReq) newReq) {
+	migrationVersion, err := semver.NewVersion(version)
+	if err != nil {
+		panic(err) // dev mistake
+	}
 	a.migrations = append(a.migrations, apiMigration{
 		method:  method,
 		path:    path,
 		version: version,
 		requestRewrite: func(c *gin.Context) {
-			reqVer := NewVersion(c.Request.Header.Get("Infra-Version"))
-			if reqVer.GreaterThanStr(version) {
+			if !rewriteRequired(c, migrationVersion) {
 				c.Next()
 				return
 			}
 
 			oldReqObj := new(oldReq)
 
-			err := bind(c, oldReqObj)
+			err = bind(c, oldReqObj)
 			if err != nil {
 				sendAPIError(c, err)
 				return
@@ -71,6 +76,25 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 			c.Next()
 		},
 	})
+}
+
+func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
+	headerVer := c.Request.Header.Get("Infra-Version")
+	if headerVer == "" {
+		// remove this conditional in v0.15.0
+		headerVer = "0.0.0"
+	}
+	if headerVer == "" {
+		sendAPIError(c, fmt.Errorf("%w: Infra-Version header required", internal.ErrBadRequest))
+		return false
+	}
+	reqVer, err := semver.NewVersion(headerVer)
+	if err != nil {
+		sendAPIError(c, fmt.Errorf("%w: invalid Infra-Version header: %s", internal.ErrBadRequest, err))
+		return false
+	}
+
+	return reqVer.LessThan(migrationVersion) || reqVer.Equal(migrationVersion)
 }
 
 func rebuildRequest(c *gin.Context, newReqObj interface{}) {
@@ -128,13 +152,17 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 }
 
 func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version string, f func(newResp) oldResp) {
+	migrationVersion, err := semver.NewVersion(version)
+	if err != nil {
+		panic(err) // dev mistake
+	}
+
 	a.migrations = append(a.migrations, apiMigration{
 		method:  method,
 		path:    path,
 		version: version,
 		responseRewrite: func(c *gin.Context) {
-			reqVer := NewVersion(c.Request.Header.Get("Infra-Version"))
-			if reqVer.GreaterThanStr(version) {
+			if !rewriteRequired(c, migrationVersion) {
 				c.Next()
 				return
 			}
