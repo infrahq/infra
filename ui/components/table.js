@@ -24,10 +24,10 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='text-sm group' key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className='table-flex text-sm group hover:bg-gray-350/50 shadow hover:shadow-lg' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
-                  <td key={cell.id} className='py-1 group-first:pt-3' {...cell.getCellProps()}>
+                  <td key={cell.id} className={`px-2.5 py-2 ${showHeader ? 'group-first:pt-3' : ''}`} {...cell.getCellProps()}>
                     {cell.render('Cell')}
                   </td>
                 )
