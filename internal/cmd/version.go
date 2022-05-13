@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -28,7 +28,7 @@ func version(cli *CLI) error {
 	defer w.Flush()
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "Client:\t", strings.TrimPrefix(api.GetClientVersion(), "v"))
+	fmt.Fprintln(w, "Client:\t", strings.TrimPrefix(internal.FullVersion(), "v"))
 
 	// Note that we use the client to get this version, but it is in fact the server version
 	client, err := defaultAPIClient()
