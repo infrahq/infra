@@ -1,14 +1,14 @@
 name: Fuzzing
 
 on:
-  # TODO: remove push, replace with pull_request label
-  push:
-    branches: [dnephin/ci-fuzz]
+  pull_request:
+    types: [labeled]
   schedule:
     - cron: "14 3 * * *"
 
 jobs:
   fuzz-matrix:
+    if: ${{ github.event.label.name == 'action/fuzz' }}
     runs-on: ubuntu-latest
     outputs:
       fuzz-names: ${{ steps.list-fuzz.outputs.list }}
@@ -45,11 +45,14 @@ jobs:
           restore-keys: go-fuzz-corpus-${{ matrix.name }}-
           path: /tmp/go/cache/fuzz
 
+      - name: Set fuzz time
+        run: echo "fuzz_time=5m" >> $GITHUB_ENV
+        if: "${{ github.event_name == 'pull_request' }}"
+
       - name: Run fuzzing
         run: |
           name=${{ matrix.name }}
           # fuzz won't run with ./..., so lookup the package name
           dir="$(git grep -l "^func ${name}" | xargs dirname)"
-          # TODO: change fuzztime
-          go test -v -fuzz=${name} -fuzztime 5m "./${dir}"
+          go test -v -fuzz=${name} -fuzztime "${fuzz_time:-30m}" "./${dir}"
 
