@@ -588,7 +588,7 @@ func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, e
 }
 
 func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error) {
-	return &api.Version{Version: internal.Version}, nil
+	return &api.Version{Version: internal.FullVersion()}, nil
 }
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
