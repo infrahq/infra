@@ -349,10 +349,6 @@ func (c Client) GetServerVersion() (*Version, error) {
 	return get[Version](c, "/api/version")
 }
 
-func GetClientVersion() string {
-	return clientVersion
-}
-
 func partialText(body []byte, limit int) string {
 	if len(body) <= limit {
 		return string(body)
