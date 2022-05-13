@@ -345,8 +345,12 @@ func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
 	return post[SignupRequest, CreateAccessKeyResponse](c, "/api/signup", req)
 }
 
-func (c Client) GetVersion() (*Version, error) {
+func (c Client) GetServerVersion() (*Version, error) {
 	return get[Version](c, "/api/version")
+}
+
+func GetClientVersion() string {
+	return clientVersion
 }
 
 func partialText(body []byte, limit int) string {
