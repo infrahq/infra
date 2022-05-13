@@ -13,9 +13,10 @@ import (
 
 func newUsersCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "users",
-		Short: "Manage user identities",
-		Group: "Management commands:",
+		Use:     "users",
+		Short:   "Manage user identities",
+		Aliases: []string{"user"},
+		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
