@@ -30,11 +30,21 @@ jobs:
     strategy:
       matrix:
         name: ${{ fromJson(needs.fuzz-matrix.outputs.fuzz-names) }}
+    env:
+      GOCACHE: /tmp/go/cache
     steps:
+      - run: mkdir -p ${GOCACHE}
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
+
+      - uses: actions/cache@v3
+        with:
+          key: go-fuzz-corpus-${{ matrix.name }}-${{ github.run_number }}
+          restore-keys: go-fuzz-corpus-${{ matrix.name }}-
+          path: /tmp/go/cache/fuzz
+
       - name: Run fuzzing
         run: |
           name=${{ matrix.name }}
