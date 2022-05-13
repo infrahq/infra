@@ -1,6 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useState, useMemo } from 'react'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
@@ -12,9 +11,9 @@ import Dashboard from '../../components/layouts/dashboard'
 import Loader from '../../components/loader'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
-import HeaderIcon from '../../components/header-icon'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
+import PageHeader from '../../components/layouts/page-header'
 
 function columns (admin) {
   return [
@@ -152,39 +151,23 @@ export default function Destinations () {
       {loading
         ? (<Loader />)
         : (
-          <div className='flex flex-row mt-4 lg:mt-6'>
-            {destinations?.length > 0 && (
-              <div className='mt-2 mr-8'>
-                <HeaderIcon iconPath='/destinations-color.svg' />
-              </div>
-            )}
-            <div className='flex-1 flex flex-col space-y-4'>
-              {destinations?.length > 0 && (
-                <div className='flex justify-between items-center'>
-                  <h1 className='text-base font-bold mt-6 mb-4'>Clusters</h1>
-                  {admin && (
-                    <Link href='/destinations/add'>
-                      <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
-                        <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5 '>
-                          Add Cluster
-                        </div>
-                      </button>
-                    </Link>
-                  )}
-                </div>
-              )}
-              {error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : destinations?.length === 0
-                  ? <EmptyTable
-                      title='There are no clusters'
-                      subtitle='There are currently no clusters connected to Infra. Get started by connecting one.'
-                      iconPath='/destinations-color.svg'
-                      buttonHref={admin && '/destinations/add'}
-                      buttonText='Add Cluster'
-                    />
-                  : <Table {...table} />}
-            </div>
+          <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
+            <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : <>
+                <Table {...table} />
+                {
+                    destinations?.length === 0 &&
+                      <EmptyTable
+                        title='There are no infrastructure'
+                        subtitle={`There are currently no infrastructure connected to Infra. ${admin ? 'Get started by connecting one.' : ''}`}
+                        iconPath='/destinations.svg'
+                        buttonHref={admin && '/destinations/add'}
+                        buttonText='Infrastructure'
+                      />
+                  }
+                </>}
           </div>
           )}
     </>

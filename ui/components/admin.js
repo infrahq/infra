@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useTable } from 'react-table'
+import { PlusIcon } from '@heroicons/react/outline'
 
-import { validateEmail } from '../../lib/email'
+import { validateEmail } from '../lib/email'
 
-import InputDropdown from '../../components/input'
-import Table from '../../components/table'
-import DeleteModal from '../../components/modals/delete'
-import ErrorMessage from '../../components/error-message'
+import InputDropdown from './input'
+import Table from './table'
+import DeleteModal from './modals/delete'
+import ErrorMessage from './error-message'
 
 const columns = [{
   id: 'name',
@@ -58,13 +59,18 @@ const AdminName = ({ id }) => {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
 
   return (
-    <div className='flex items-center'>
-      <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
-        {user.name && user.name[0].toUpperCase()}
+    <div className='flex items-center space-x-4'>
+      <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-lg p-px'>
+        <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-lg'>
+          <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
+            <div className='bg-black flex-none text-gray-500 flex justify-center items-center w-6 h-6 font-bold rounded-[4px]'>
+              {user?.name?.[0]}
+            </div>
+          </div>
+        </div>
       </div>
       <div className='flex flex-col leading-tight'>
-        <div>{user.name}</div>
-        <div className='text-gray-300 text-xs'>{user.kind}</div>
+        <div className='text-subtitle'>{user.name}</div>
       </div>
     </div>
   )
@@ -126,15 +132,14 @@ export default function () {
   }
 
   return (
-    <>
-      <h3 className='text-sm font-bold mb-4'>Admins</h3>
-      <h4 className='text-gray-300 mb-4 text-xs w-3/4'>Infra admins have full access to the Infra API, including creating additional grants, managing identity providers, managing destinations, and managing other users.</h4>
-      <div className={`flex gap-1 ${error ? 'mt-10 mb-2' : 'my-10'} my-10 w-9/12`}>
-        <div className='flex-1'>
+    <div className='sm:w-80 lg:w-[500px]'>
+      <div className='text-subtitle uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
+      <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
+        <div className='sm:flex-1'>
           <InputDropdown
             type='email'
             value={adminEmail}
-            placeholder='email'
+            placeholder='Email address'
             hasDropdownSelection={false}
             handleInputChange={e => handleInputChang(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
@@ -145,20 +150,23 @@ export default function () {
           onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
+          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
         >
-          <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
-            Add
+          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-6 py-3'>
+            <PlusIcon className='w-3 h-3 mr-1.5' />
+            <div className='text-pink-100'>
+              Add
+            </div>
           </div>
         </button>
       </div>
-      {error && <ErrorMessage message={error} />}
+      {error && <div className='mb-10'>
+        <ErrorMessage message={error} />
+      </div>}
 
-      <h4 className='text-gray-300 my-3 text-xs'>These users have full administration privileges</h4>
+      <h4 className='text-gray-400 my-3 text-paragraph'>These users have full administration privileges</h4>
       {adminList?.length > 0 &&
-        <div className='w-3/4'>
-          <Table {...table} showHeader={false} />
-        </div>}
-    </>
+        <Table {...table} showHeader={false} />}
+    </div>
   )
 }

@@ -1,7 +1,6 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useTable } from 'react-table'
 import { XIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
@@ -13,10 +12,11 @@ import DeleteModal from '../../components/modals/delete'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
 import EmptyTable from '../../components/empty-table'
-import HeaderIcon from '../../components/header-icon'
+import PageHeader from '../../components/layouts/page-header'
 
 const columns = [{
   Header: 'Identity Provider',
+  width: '55%',
   accessor: p => p,
   Cell: ({ value: provider }) => (
     <div className='flex items-center'>
@@ -90,39 +90,21 @@ export default function Providers () {
       {loading
         ? (<Loader />)
         : (
-          <div className='flex flex-row mt-4 lg:mt-6'>
-            {data?.length > 0 && (
-              <div className='mt-2 mr-8'>
-                <HeaderIcon iconPath='/providers-color.svg' />
-              </div>
-            )}
-            <div className='flex-1 flex flex-col space-y-4'>
-              {data?.length > 0 && (
-                <div className='flex justify-between items-center'>
-                  <h1 className='text-base font-bold mt-6 mb-4'>Identity Providers</h1>
-                  <Link href='/providers/add'>
-                    <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 my-2'>
-                      <div className='bg-black rounded-full flex items-center text-sm px-4 py-1.5'>
-                        Add Identity Provider
-                      </div>
-                    </button>
-                  </Link>
-                </div>
-              )}
-              {error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : data?.length === 0
-                  ? (
-                    <EmptyTable
-                      title='There are no identity providers'
-                      subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
-                      iconPath='/providers-color.svg'
-                      buttonHref='/providers/add'
-                      buttonText='Add Identity Provider'
-                    />
-                    )
-                  : <Table {...table} />}
-            </div>
+          <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
+            <PageHeader header='Providers' buttonHref='/providers/add' buttonLabel='Provider' />
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : <>
+                <Table {...table} />
+                {data?.length === 0 &&
+                  <EmptyTable
+                    title='There are no providers'
+                    subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
+                    iconPath='/providers.svg'
+                    buttonHref='/providers/add'
+                    buttonText='Provider'
+                  />}
+              </>}
           </div>
           )}
     </>
