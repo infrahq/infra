@@ -32,32 +32,23 @@ export default function () {
               <h2 className='text-[12px] leading-[4px] text-gray-400 mt-3'>Select an identity provider to continue</h2>
             </div>
           </div>
-        </div>
-      </div>
-      {/* <div className='flex flex-col mb-24'>
-        <div className='flex my-4 bg-gradient-to-br from-violet-400/30 to-pink-200/30 items-center justify-center rounded-full mx-auto'>
-          <div className='flex bg-black items-center justify-center rounded-full w-16 h-16 m-0.5'>
-            <img className='w-8 h-8' src='/providers-color.svg' />
+          <div className='flex flex-col mt-12'>
+            {providers.map(p => (
+              p.available
+                ? (
+                  <Link key={p.name} href={`/providers/add/details?kind=${p.kind}`}>
+                    <a>
+                      <Provider {...p} />
+                    </a>
+                  </Link>
+                  )
+                : (
+                  <Provider key={p.name} {...p} />
+                  )
+            ))}
           </div>
         </div>
-        <h1 className='text-base font-bold mb-1 text-center'>Add Identity Provider</h1>
-        <h2 className='text-gray-300 mb-4 text-sm max-w-xs mx-auto text-center'>Select an identity provider to continue</h2>
-        <div className='grid grid-cols-2 lg:grid-cols-3 gap-1 my-8'>
-          {providers.map(p => (
-            p.available
-              ? (
-                <Link key={p.name} href={`/providers/add/details?kind=${p.kind}`}>
-                  <a>
-                    <Provider {...p} />
-                  </a>
-                </Link>
-                )
-              : (
-                <Provider key={p.name} {...p} />
-                )
-          ))}
-        </div>
-      </div> */}
+      </div>
     </FullscreenModal>
   )
 }
