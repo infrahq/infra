@@ -1,0 +1,45 @@
+name: Fuzzing
+
+on:
+  # TODO: remove push, replace with pull_request label
+  push:
+    branches: [dnephin/ci-fuzz]
+  schedule:
+    - cron: "14 3 * * *"
+
+jobs:
+  fuzz-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      fuzz-names: ${{ steps.list-fuzz.outputs.list }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - id: list-fuzz
+        run: |
+          list="$(go test -list '^Fuzz' ./... | \
+                  grep '^Fuzz' | \
+                  xargs jq -n '$ARGS.positional' --compact-output --args)"
+          echo "::set-output name=list::${list}"
+
+  fuzz:
+    needs: fuzz-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        name: ${{ fromJson(needs.fuzz-matrix.outputs.fuzz-names) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.18'
+      - name: Run fuzzing
+        run: |
+          name=${{ matrix.name }}
+          # fuzz won't run with ./..., so lookup the package name
+          dir="$(git grep -l "^func ${name}" | xargs dirname)"
+          # TODO: change fuzztime
+          go test -v -fuzz=${name} -fuzztime 5m "./${dir}"
+
