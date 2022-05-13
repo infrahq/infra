@@ -4,7 +4,7 @@
 
 {{- if include "server.enabled" . | eq "true" }}
 
-  To get started, login via the Infra CLI:
+  To get started, login via the Infra CLI
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}
