@@ -3119,7 +3119,7 @@
         },
         "summary": "ListUsers",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "post": {
@@ -3209,7 +3209,7 @@
         },
         "summary": "CreateUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       }
     },
@@ -3295,7 +3295,7 @@
         },
         "summary": "DeleteUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "get": {
@@ -3379,7 +3379,7 @@
         },
         "summary": "GetUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "put": {
@@ -3481,7 +3481,7 @@
         },
         "summary": "UpdateUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       }
     },
@@ -3567,7 +3567,8 @@
         },
         "summary": "ListUserGroups",
         "tags": [
-          "Groups"
+          "Groups",
+          "Users"
         ]
       }
     },
@@ -3812,7 +3813,8 @@
         },
         "summary": "ListUserGrants",
         "tags": [
-          "Grants"
+          "Grants",
+          "Users"
         ]
       }
     }
