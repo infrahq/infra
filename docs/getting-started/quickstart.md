@@ -56,7 +56,7 @@ In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
 
 ### 2. Deploy Infra
 
-Deploy an Infra to your Kubernetes cluster via `helm`:
+Deploy Infra to your Kubernetes cluster via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com/
@@ -64,7 +64,7 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Next, find the hostname for Infra server you just deployed:
+Next, find the hostname for the Infra server you just deployed:
 
 ```
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
