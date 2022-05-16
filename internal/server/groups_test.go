@@ -59,7 +59,7 @@ func TestAPI_ListGroups(t *testing.T) {
 	idOther := createID(t, "other@example.com")
 
 	humansID := createGroup(t, "humans", idInGroup)
-	createGroup(t, "second", idInGroup)
+	secondID := createGroup(t, "second", idInGroup)
 	createGroup(t, "others", idOther)
 
 	token := &models.AccessKey{
@@ -81,7 +81,7 @@ func TestAPI_ListGroups(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", "0.13.0")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -95,7 +95,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/v1/groups",
+			urlPath: "/api/groups",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -104,19 +104,19 @@ func TestAPI_ListGroups(t *testing.T) {
 			},
 		},
 		"not authorized, wrong identity": {
-			urlPath: "/v1/groups?userID=" + idOther.String(),
+			urlPath: "/api/groups?userID=" + idOther.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"not authorized, no identity in query": {
-			urlPath: "/v1/groups?name=humans",
+			urlPath: "/api/groups?name=humans",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"authorized by grant": {
-			urlPath: "/v1/groups",
+			urlPath: "/api/groups",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -130,7 +130,7 @@ func TestAPI_ListGroups(t *testing.T) {
 			},
 		},
 		"authorized by group membership": {
-			urlPath: "/v1/groups?userID=" + idInGroup.String(),
+			urlPath: "/api/groups?userID=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
@@ -140,8 +140,65 @@ func TestAPI_ListGroups(t *testing.T) {
 				assert.Equal(t, len(actual.Items), 2)
 			},
 		},
-		"full JSON response": {
+		"version 0.12.2 - list groups": {
 			urlPath: "/v1/groups?name=humans",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Infra-Version", "0.12.2")
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+[
+	{
+		"id": "%[1]v",
+		"name": "humans",
+		"created": "%[2]v",
+		"updated": "%[2]v"
+	}
+]`,
+					humansID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"version 0.13.0 - list user groups": {
+			urlPath: fmt.Sprintf("/api/users/%v/groups", idInGroup),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Add("Infra-Version", "0.13.0")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+{
+	"count": 2,
+	"items": [{
+		"id": "%[1]v",
+		"name": "humans",
+		"created": "%[3]v",
+		"updated": "%[3]v"
+	},
+	{
+		"id": "%[2]v",
+		"name": "second",
+		"created": "%[3]v",
+		"updated": "%[3]v"
+	}]
+}`,
+					humansID,
+					secondID,
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"full JSON response": {
+			urlPath: "/api/groups?name=humans",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
