@@ -36,15 +36,6 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid
 		return "", err
 	}
 
-	identity, err := data.GetIdentity(db, data.ByID(identityID))
-	if err != nil {
-		return "", fmt.Errorf("get access key identity: %w", err)
-	}
-
-	if accessKey.Name == "" {
-		accessKey.Name = fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000"))
-	}
-
 	body, err = data.CreateAccessKey(db, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
