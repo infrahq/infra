@@ -183,9 +183,9 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 			return err
 		}
-	}
 
-	cli.Output("Access revoked!")
+		cli.Output("Revoked access to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+	}
 
 	return nil
 }
