@@ -66,7 +66,7 @@ $ infra keys add example-key identity@example.com --ttl=12h
 				return err
 			}
 
-			user, err := GetUserByName(client, userName)
+			user, err := getUserByName(client, userName)
 			if err != nil {
 				return err
 			}
@@ -159,7 +159,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 
 			var keys *api.ListResponse[api.AccessKey]
 			if options.UserName != "" {
-				user, err := GetUserByName(client, options.UserName)
+				user, err := getUserByName(client, options.UserName)
 				if err != nil {
 					return err
 				}
