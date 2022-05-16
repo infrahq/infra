@@ -6,6 +6,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_PASSWORD: password123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ["5432:5432"]
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
@@ -13,7 +25,12 @@ jobs:
           go-version: '1.18'
       - run: go install gotest.tools/gotestsum@v1.8.0
       - run: go mod tidy
-      - run: ~/go/bin/gotestsum -ftestname -- -race ./...
+
+      - name: go test
+        run: ~/go/bin/gotestsum -ftestname -- -race ./...
+        env:
+          POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
+
       - name: Check that tests leave a clean git checkout
         run: |
           # show and check changes to committed files
