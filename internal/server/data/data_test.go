@@ -15,14 +15,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// TODO: replace all calls to setup with runDBTests, or setupDB
-func setup(t *testing.T) *gorm.DB {
-	t.Helper()
-	driver, err := NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-	return setupDB(t, driver)
-}
-
 func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	t.Helper()
 	db, err := NewRawDB(driver)
