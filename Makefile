@@ -1,5 +1,4 @@
 v ?= $(shell git describe --tags --abbrev=0)
-BUILDVERSION ?= $(v:v%=%)
 IMAGEVERSION ?= $(v:v%=%)
 
 generate:
@@ -42,7 +41,6 @@ build: goreleaser
 
 dev/docker:
 	docker build \
-		--build-arg BUILDVERSION=$(BUILDVERSION) \
 		--build-arg BUILDVERSION_METADATA=dev \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
 		-t infrahq/infra:dev \
@@ -77,7 +75,6 @@ dev/clean:
 docker:
 	docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
-		--build-arg BUILDVERSION=$(BUILDVERSION) \
 		--build-arg BUILDVERSION_PRERELEASE=$(BUILDVERSION_PRERELEASE) \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
 		--tag infrahq/infra:$(IMAGEVERSION) \
@@ -89,7 +86,6 @@ release: goreleaser
 release/docker:
 	docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
-		--build-arg BUILDVERSION=$(BUILDVERSION) \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
 		--tag infrahq/infra:$(IMAGEVERSION) \
 		--tag infrahq/infra \
