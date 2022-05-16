@@ -91,7 +91,7 @@ export default function () {
               <input
                 required
                 autoFocus
-                placeholder='Name'
+                placeholder='create a name for your IdP'
                 onChange={e => setName(e.target.value)}
                 className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-300' : ''}`}
               />
@@ -105,7 +105,7 @@ export default function () {
               <label className='text-label text-gray-300 uppercase'>URL (Domain)</label>
               <input
                 required
-                placeholder='URL (Domain)'
+                placeholder='enter the domain URL here'
                 value={url}
                 onChange={e => setURL(e.target.value)}
                 className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-300' : ''}`}
@@ -116,7 +116,7 @@ export default function () {
               <label className='text-label text-gray-300 uppercase'>Client ID</label>
               <input
                 required
-                placeholder='Client ID'
+                placeholder='enter client ID here'
                 value={clientID}
                 onChange={e => setClientID(e.target.value)}
                 className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-300' : ''}`}
@@ -128,7 +128,7 @@ export default function () {
               <input
                 required
                 type='password'
-                placeholder='Client Secret'
+                placeholder='enter the password for the IdP'
                 value={clientSecret}
                 onChange={e => setClientSecret(e.target.value)}
                 className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-300' : ''}`}
