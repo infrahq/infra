@@ -167,9 +167,9 @@ $ infra users remove janedoe@example.com`,
 				if err != nil {
 					return err
 				}
-			}
 
-			fmt.Fprintf(cli.Stderr, "Deleted user %q\n", name)
+				cli.Output("Removed user %q", name)
+			}
 
 			return nil
 		},
