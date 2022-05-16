@@ -6,7 +6,6 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
     data
   })
 
-  console.log(columns)
   return (
     <table className='w-full table-auto' {...getTableProps()}>
       {showHeader &&
