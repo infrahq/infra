@@ -52,8 +52,8 @@ jobs:
           go-version: '1.18'
       - name: Check generated docs are updated
         run: |
-          # if checking a release candidate pull request, unset `internal.Metadat`
-          if [[ "$GITHUB_REF_NAME" =~ ^release-please-.*$ ]]; then LDFLAGS='-X github.com/infrahq/infra/internal.Metadata='; fi
+          # if checking a release candidate pull request, unset `internal.Metadata`
+          if [[ "$GITHUB_HEAD_REF" =~ ^release-please-.*$ ]]; then LDFLAGS='-X github.com/infrahq/infra/internal.Metadata='; fi
           # fake a terminal to get the right defaults for non-interactive
           script -e -q -c "go run ${LDFLAGS:+-ldflags \"$LDFLAGS\"} ./internal/docgen"
           go run ${LDFLAGS:+-ldflags "$LDFLAGS"} ./internal/openapigen docs/api/openapi3.json
