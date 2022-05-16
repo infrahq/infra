@@ -307,7 +307,7 @@ func TestStackedResponseRewrites(t *testing.T) {
 func TestEmptyVersionHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {

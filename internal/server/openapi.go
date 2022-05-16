@@ -86,7 +86,7 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 		buildRequest(rqt, op)
 	}
 
-	op.Responses = buildResponse(a.openAPIDoc, rst)
+	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
 tagLoop:
 	for _, partialName := range orderedTagNames() {
@@ -142,17 +142,15 @@ func orderedTagNames() []string {
 	return tagNames
 }
 
-func createComponent(openAPIDoc openapi3.T, rst reflect.Type) *openapi3.SchemaRef {
-	if openAPIDoc.Components.Schemas == nil {
-		openAPIDoc.Components.Schemas = openapi3.Schemas{}
-	}
-
+// createComponent creates and returns the SchemaRef for a type. If the type is
+// a struct, the definition of the struct is added  to the schemas map.
+func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
 	//nolint:exhaustive
 	switch rst.Kind() {
 	case reflect.Pointer:
-		return createComponent(openAPIDoc, rst.Elem())
+		return createComponent(schemas, rst.Elem())
 	case reflect.Slice:
-		schema := createComponent(openAPIDoc, rst.Elem())
+		schema := createComponent(schemas, rst.Elem())
 
 		return &openapi3.SchemaRef{
 			Value: &openapi3.Schema{
@@ -174,18 +172,13 @@ func createComponent(openAPIDoc openapi3.T, rst reflect.Type) *openapi3.SchemaRe
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
-		if _, ok := openAPIDoc.Components.Schemas[name]; ok {
+		if _, ok := schemas[name]; ok {
 			return &openapi3.SchemaRef{
 				Ref: "#/components/schemas/" + name,
 			}
 		}
 
-		schemaRef := &openapi3.SchemaRef{
-			Value: schema,
-		}
-
-		openAPIDoc.Components.Schemas[name] = schemaRef
-
+		schemas[name] = &openapi3.SchemaRef{Value: schema}
 		return &openapi3.SchemaRef{
 			Ref: "#/components/schemas/" + name,
 		}
@@ -361,13 +354,13 @@ func pstr(s string) *string {
 	return &s
 }
 
-func buildResponse(openAPIDoc openapi3.T, rst reflect.Type) openapi3.Responses {
+func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Responses {
 	schema := &openapi3.SchemaRef{
 		Value: &openapi3.Schema{Type: "object"},
 	}
 
 	if rst != nil {
-		schema = createComponent(openAPIDoc, rst)
+		schema = createComponent(schemas, rst)
 	}
 
 	resp := openapi3.NewResponses()
@@ -384,7 +377,7 @@ func buildResponse(openAPIDoc openapi3.T, rst reflect.Type) openapi3.Responses {
 
 	errStruct := &api.Error{}
 	t := reflect.TypeOf(errStruct)
-	errComp := createComponent(openAPIDoc, t)
+	errComp := createComponent(schemas, t)
 
 	content := openapi3.Content{"application/json": &openapi3.MediaType{
 		Schema: errComp,
