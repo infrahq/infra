@@ -34,33 +34,43 @@ var (
 	}
 )
 
-// register an API endpoint that has both a request and response value.
-func register[Req, Res any](a *API, method, path string, handler ReqResHandlerFunc[Req, Res]) {
-	funcName := getFuncName(handler)
-
-	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	//nolint:gocritic
-	rst := reflect.TypeOf(*new(Res))
-
-	a.register(method, path, funcName, rqt, rst)
+type routeDefinition struct {
+	Method   string
+	Path     string
+	Name     string
+	Request  reflect.Type
+	Response reflect.Type
 }
 
-// registerDelete registers an API endpoint that has no response value, which is
-// currently only endpoints that use the DELETE method.
-func registerDelete[Req any](a *API, method, path string, handler ReqHandlerFunc[Req]) {
-	funcName := getFuncName(handler)
+// newDefinition creates a new routeDefinition for a handler function. The
+// handler function should have a signature of one of the following:
+//
+//    func(gin.Context, Request) (Response, error)
+//    func(gin.Context, Request) (error)
+func newDefinition(method string, path string, handler interface{}) routeDefinition {
+	fn := reflect.TypeOf(handler)
+	if fn.Kind() != reflect.Func {
+		panic("API routes must be functions")
+	}
 
-	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	rst := reflect.TypeOf(nil)
+	resp := reflect.TypeOf(nil)
+	if fn.NumOut() == 2 { // the last out is always type error
+		resp = fn.Out(0)
+	}
 
-	a.register(method, path, funcName, rqt, rst)
+	return routeDefinition{
+		Method: method,
+		Path:   path,
+		Name:   getFuncName(handler),
+		//  parameter 1 is the Request struct in func(gin.Context, Request)
+		Request:  fn.In(1),
+		Response: resp,
+	}
 }
 
 // register adds the route to the API.OpenAPIDocument.
-func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
-	path = pathIDReplacer.ReplaceAllStringFunc(path, func(s string) string {
+func (a *API) register(def routeDefinition) {
+	path := pathIDReplacer.ReplaceAllStringFunc(def.Path, func(s string) string {
 		return "{" + strings.TrimLeft(s, ":") + "}"
 	})
 
@@ -78,20 +88,20 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 	}
 
 	op := openapi3.NewOperation()
-	op.OperationID = funcName
-	op.Description = funcName
-	op.Summary = funcName
+	op.OperationID = def.Name
+	op.Description = def.Name
+	op.Summary = def.Name
 
-	if rqt != nil {
-		buildRequest(rqt, op)
+	if def.Request != nil {
+		buildRequest(def.Request, op)
 	}
 
-	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
+	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, def.Response)
 
 tagLoop:
 	for _, partialName := range orderedTagNames() {
 		tagName := funcPartialNameToTagNames[partialName]
-		if strings.Contains(funcName, partialName) {
+		if strings.Contains(def.Name, partialName) {
 			for _, tag := range op.Tags {
 				if tag == tagName {
 					continue tagLoop
@@ -106,7 +116,7 @@ tagLoop:
 		op.Tags = append(op.Tags, "Misc")
 	}
 
-	switch method {
+	switch def.Method {
 	case "GET":
 		p.Get = op
 	case "PATCH":
@@ -118,7 +128,7 @@ tagLoop:
 	case "DELETE":
 		p.Delete = op
 	default:
-		panic("unexpected http method " + method)
+		panic("unexpected http method " + def.Method)
 	}
 
 	a.openAPIDoc.Paths[path] = p

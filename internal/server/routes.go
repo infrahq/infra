@@ -129,12 +129,11 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 }
 
 type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
-type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
 type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodGet, fullPath, handler)
+	a.register(newDefinition(http.MethodGet, fullPath, handler))
 	handlers := includeRewritesFor(a, http.MethodGet, fullPath, func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
@@ -159,7 +158,7 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 
 func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodPost, fullPath, handler)
+	a.register(newDefinition(http.MethodPost, fullPath, handler))
 
 	handlers := includeRewritesFor(a, http.MethodPost, fullPath, func(c *gin.Context) {
 		req := new(Req)
@@ -188,7 +187,7 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqRes
 
 func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
 	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodPut, fullPath, handler)
+	a.register(newDefinition(http.MethodPut, fullPath, handler))
 
 	handlers := includeRewritesFor(a, http.MethodPut, fullPath, func(c *gin.Context) {
 		req := new(Req)
@@ -217,7 +216,7 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResH
 
 func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
 	fullPath := path.Join(r.BasePath(), route)
-	registerDelete(a, http.MethodDelete, fullPath, handler)
+	a.register(newDefinition(http.MethodDelete, fullPath, handler))
 
 	handlers := includeRewritesFor(a, http.MethodDelete, fullPath, func(c *gin.Context) {
 		req := new(Req)
