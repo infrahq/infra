@@ -21,12 +21,7 @@ func secretChecksum(secret string) []byte {
 
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
 	if accessKey.KeyID == "" {
-		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
-		if err != nil {
-			return "", err
-		}
-
-		accessKey.KeyID = key
+		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength)
 	}
 
 	if len(accessKey.KeyID) != models.AccessKeyKeyLength {
