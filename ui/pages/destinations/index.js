@@ -14,6 +14,7 @@ import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
 import PageHeader from '../../components/layouts/page-header'
+import Slide from '../../components/slide'
 
 function columns (admin) {
   return [
@@ -139,9 +140,23 @@ function columns (admin) {
 export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
   const { admin, loading: adminLoading } = useAdmin()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState(null)
+  const [slideActionBtns, setSlideActionBtns] = useState([])
+
   const table = useTable({ columns: useMemo(() => columns(admin), [admin]), data: destinations || [] })
 
   const loading = adminLoading || (!destinations && !error)
+
+  const handleDestinationDetail = (row) => {
+    setModalOpen(true)
+    setSelectedRow(row)
+    setSlideActionBtns([{handleOnClick: () => handleDisconnect(row.original.id), text: 'Disconnect Cluster'}])
+  }
+
+  const handleDisconnect = (id) => {
+    console.log('disconnect:', id)
+  }
 
   return (
     <>
@@ -153,12 +168,27 @@ export default function Destinations () {
         : (
           <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
             <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-            {
-              error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : <>
-                  <Table {...table} />
-                  {
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : <>
+                <Table 
+                  {...table} 
+                  getRowProps={row => ({
+                    onClick: () => handleDestinationDetail(row),
+                    style: {
+                      cursor: 'pointer'
+                    }
+                  })}
+                />
+                {
+                  modalOpen && 
+                  <Slide open={modalOpen} handleClose={() => setModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns}>
+                    <>
+                      this is just testing
+                    </>
+                  </Slide>
+                }
+                {
                     destinations?.length === 0 &&
                       <EmptyTable
                         title='There are no infrastructure'
