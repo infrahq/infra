@@ -22,22 +22,33 @@ import (
 )
 
 // NewDB creates a new database connection and runs any required database migrations
-// before returning the connection.
-func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
-	db, err := NewRawDB(connection)
+// before returning the connection. The loadDBKey function is called after
+// initializing the schema, but before any migrations.
+func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.DB, error) {
+	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err = Migrate(db); err != nil {
+	if err := preMigrate(db); err != nil {
+		return nil, err
+	}
+
+	if loadDBKey != nil {
+		if err := loadDBKey(db); err != nil {
+			return nil, fmt.Errorf("load DB key failed: %w", err)
+		}
+	}
+
+	if err = migrate(db); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil
 }
 
-// NewRawDB creates a new database connection without running migrations
-func NewRawDB(connection gorm.Dialector) (*gorm.DB, error) {
+// newRawDB creates a new database connection without running migrations.
+func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logging.ToGormLogger(logging.S),
 	})

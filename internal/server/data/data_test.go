@@ -25,22 +25,28 @@ func setup(t *testing.T) *gorm.DB {
 
 func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	t.Helper()
-	db, err := NewRawDB(driver)
-	assert.NilError(t, err)
-
-	// TODO: change this to use the same calls as production.
-	assert.NilError(t, Migrate(db))
-
-	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
+	t.Cleanup(func() {
+		models.SymmetricKey = nil
 	})
 
-	kp := secrets.NewNativeKeyProvider(fp)
+	loadDBKey := func(db *gorm.DB) error {
+		fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+			Path: os.TempDir(),
+		})
 
-	key, err := kp.GenerateDataKey("")
+		kp := secrets.NewNativeKeyProvider(fp)
+
+		key, err := kp.GenerateDataKey("")
+		if err != nil {
+			return err
+		}
+
+		models.SymmetricKey = key
+		return nil
+	}
+
+	db, err := NewDB(driver, loadDBKey)
 	assert.NilError(t, err)
-
-	models.SymmetricKey = key
 
 	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
 	assert.NilError(t, err)
@@ -130,7 +136,7 @@ func TestDatabaseSelectors(t *testing.T) {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := NewRawDB(driver)
+	db, err := newRawDB(driver)
 	assert.NilError(t, err)
 	t.Logf("DB pointer: %p", db)
 

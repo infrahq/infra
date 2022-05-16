@@ -129,21 +129,9 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
-	server.db, err = data.NewRawDB(driver)
+	server.db, err = data.NewDB(driver, server.loadDBKey)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
-	}
-
-	if err := data.PreMigrate(server.db); err != nil {
-		return nil, err
-	}
-
-	if err = server.loadDBKey(); err != nil {
-		return nil, fmt.Errorf("loading database key: %w", err)
-	}
-
-	if err := data.Migrate(server.db); err != nil {
-		return nil, err
 	}
 
 	if err = server.loadCertificates(); err != nil {
@@ -502,22 +490,22 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 var dbKeyName = "dbkey"
 
 // load encrypted db key from database
-func (s *Server) loadDBKey() error {
-	key, ok := s.keys[s.options.DBEncryptionKeyProvider]
+func (s *Server) loadDBKey(db *gorm.DB) error {
+	provider, ok := s.keys[s.options.DBEncryptionKeyProvider]
 	if !ok {
 		return fmt.Errorf("key provider %s not configured", s.options.DBEncryptionKeyProvider)
 	}
 
-	keyRec, err := data.GetEncryptionKey(s.db, data.ByName(dbKeyName))
+	keyRec, err := data.GetEncryptionKey(db, data.ByName(dbKeyName))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
-			return s.createDBKey(key, s.options.DBEncryptionKey)
+			return createDBKey(db, provider, s.options.DBEncryptionKey)
 		}
 
 		return err
 	}
 
-	sKey, err := key.DecryptDataKey(s.options.DBEncryptionKey, keyRec.Encrypted)
+	sKey, err := provider.DecryptDataKey(s.options.DBEncryptionKey, keyRec.Encrypted)
 	if err != nil {
 		return err
 	}
@@ -528,7 +516,7 @@ func (s *Server) loadDBKey() error {
 }
 
 // creates db key
-func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId string) error {
+func createDBKey(db *gorm.DB, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
 	sKey, err := provider.GenerateDataKey(rootKeyId)
 	if err != nil {
 		return err
@@ -541,7 +529,7 @@ func (s *Server) createDBKey(provider secrets.SymmetricKeyProvider, rootKeyId st
 		RootKeyID: sKey.RootKeyID,
 	}
 
-	_, err = data.CreateEncryptionKey(s.db, key)
+	_, err = data.CreateEncryptionKey(db, key)
 	if err != nil {
 		return err
 	}

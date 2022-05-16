@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/infrahq/secrets"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -30,13 +31,19 @@ func TestEncryptedAtRest(t *testing.T) {
 	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
 	assert.NilError(t, err)
 
-	models.SymmetricKey = symmetricKey
-
 	// test
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := data.NewDB(driver)
+	loadDBKey := func(db *gorm.DB) error {
+		models.SymmetricKey = symmetricKey
+		return nil
+	}
+	t.Cleanup(func() {
+		models.SymmetricKey = nil
+	})
+
+	db, err := data.NewDB(driver, loadDBKey)
 	assert.NilError(t, err)
 
 	err = db.AutoMigrate(&StructForTesting{})

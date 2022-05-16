@@ -18,7 +18,7 @@ func Test202204111503(t *testing.T) {
 		loadSQL(t, db, "202204111503")
 	})
 
-	err := Migrate(db)
+	err := migrate(db)
 	assert.NilError(t, err)
 
 	ids, err := ListIdentities(db, ByName("steven@example.com"))
@@ -36,8 +36,11 @@ func Test202204211705(t *testing.T) {
 	assert.NilError(t, err)
 
 	models.SymmetricKey = key
+	t.Cleanup(func() {
+		models.SymmetricKey = nil
+	})
 
-	err = Migrate(db)
+	err = migrate(db)
 	assert.NilError(t, err)
 
 	// check it still works
@@ -105,7 +108,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := NewRawDB(driver)
+	db, err := newRawDB(driver)
 	assert.NilError(t, err)
 
 	f(db)

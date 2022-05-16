@@ -19,19 +19,27 @@ func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := data.NewDB(driver)
-	assert.NilError(t, err)
+	loadDBKey := func(db *gorm.DB) error {
+		fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
+			Path: os.TempDir(),
+		})
 
-	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
+		kp := secrets.NewNativeKeyProvider(fp)
+
+		key, err := kp.GenerateDataKey("")
+		if err != nil {
+			return err
+		}
+
+		models.SymmetricKey = key
+		return nil
+	}
+	t.Cleanup(func() {
+		models.SymmetricKey = nil
 	})
 
-	kp := secrets.NewNativeKeyProvider(fp)
-
-	key, err := kp.GenerateDataKey("")
+	db, err := data.NewDB(driver, loadDBKey)
 	assert.NilError(t, err)
-
-	models.SymmetricKey = key
 
 	return db
 }
