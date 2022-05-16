@@ -28,7 +28,7 @@ type upgradedTestRequest struct {
 func TestAddRequestRewrite(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addRequestRewrite(a, "get", "/test", "0.1.0", func(old legacyTestRequest) upgradedTestRequest {
@@ -52,7 +52,7 @@ func TestAddRequestRewrite(t *testing.T) {
 func TestStackedAddRequestRewrite(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addRequestRewrite(a, "get", "/test", "0.1.0", func(old legacyTestRequest) upgradedTestRequest {
@@ -82,7 +82,7 @@ func TestStackedAddRequestRewrite(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addRedirect(a, http.MethodGet, "/test", "/supertest", "0.1.0")
@@ -102,7 +102,7 @@ func TestRedirect(t *testing.T) {
 func TestRedirectOfRequestAndResponseRewrite(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addRedirect(a, "get", "/oldtest", "/test", "0.1.0")
@@ -143,7 +143,7 @@ func TestRedirectOfRequestAndResponseRewrite(t *testing.T) {
 func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addRequestRewrite(a, "get", "/test", "0.1.1", func(old legacyTestRequest) upgradedTestRequest {
@@ -185,7 +185,7 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 func TestRedirectWithPathVariable(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	type getUserRequest struct {
@@ -212,14 +212,14 @@ type legacyResponse struct {
 }
 
 type upgradedResponse struct {
-	Loafers  int
+	Loafers  int `json:"loafers"`
 	Sneakers int `json:"sneakers,omitempty"`
 }
 
 func TestAddResponseRewrite(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {
@@ -268,7 +268,7 @@ func TestAddResponseRewrite(t *testing.T) {
 func TestStackedResponseRewrites(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {
@@ -307,7 +307,7 @@ func TestStackedResponseRewrites(t *testing.T) {
 func TestEmptyVersionHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
-	a := &API{server: srv, disableOpenAPIGeneration: true}
+	a := &API{server: srv}
 	router := gin.New()
 
 	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {

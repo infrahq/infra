@@ -192,7 +192,9 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, e
 
 var infraProviderCache *models.Provider
 
-// InfraProvider is a lazy-loaded cached reference to the infra provider, since it's used in a lot of places
+// InfraProvider is a lazy-loaded cached reference to the infra provider. The
+// cache lasts for the entire lifetime of the process, so any test or test
+// helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
 	if infraProviderCache == nil {
 		infra, err := get[models.Provider](db, ByName(models.InternalInfraProviderName))
@@ -209,7 +211,9 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 
 var infraConnectorCache *models.Identity
 
-// InfraConnectorIdentity is a lazy-loaded reference to the connector identity
+// InfraConnectorIdentity is a lazy-loaded reference to the connector identity.
+// The cache lasts for the entire lifetime of the process, so any test or test
+// helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))

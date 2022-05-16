@@ -14,6 +14,12 @@ jobs:
       - run: go install gotest.tools/gotestsum@v1.8.0
       - run: go mod tidy
       - run: ~/go/bin/gotestsum -ftestname -- -race ./...
+      - name: Check that tests leave a clean git checkout
+        run: |
+          # show and check changes to committed files
+          git diff --exit-code
+          # show and check for uncommitted files
+          git status --short; [[ "$(git status --short)" == "" ]]
 
   test-ui:
     runs-on: ubuntu-latest
