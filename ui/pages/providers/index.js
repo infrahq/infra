@@ -15,31 +15,36 @@ import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/layouts/page-header'
 
 const columns = [{
-  Header: 'Identity Provider',
-  width: '55%',
+  Header: 'Name',
   accessor: p => p,
   Cell: ({ value: provider }) => (
     <div className='flex items-center'>
-      <div className='w-10 h-10 mr-4 bg-purple-100/10 font-bold rounded-lg flex items-center justify-center'>
-        {kind(provider.url)
-          ? (
-            <img className='h-2.5' src={`/providers/${kind(provider.url)}.svg`} />
-            )
-          : (
-              provider.name[0].toUpperCase()
-            )}
+      <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-lg p-px'>
+        <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-lg'>
+          {kind(provider.url)
+            ? (
+              <img className='h-2' src={`/providers/${kind(provider.url)}.svg`} />
+              )
+            : (
+                provider.name[0].toUpperCase()
+              )}
+        </div>
       </div>
-      <div className='flex flex-col leading-tight'>
-        <div>{provider.name}</div>
-        <div className='text-gray-300 text-xs'>{provider.url}</div>
-      </div>
+      <div className='text-subtitle ml-3'>{provider.name}</div>
     </div>
   )
 }, {
+  Header: 'URL',
+  accessor: p => p,
+  Cell: ({ value: provider }) => (
+    <div className='text-name text-gray-400'>{provider.url}</div>
+  )
+}, {
   Header: 'Added',
-  accessor: p => {
-    return dayjs(p.created).fromNow()
-  }
+  accessor: p => p,
+  Cell: ({ value: provider }) => (
+    <div className='text-name text-gray-400'>{dayjs(provider.created).fromNow()}</div>
+  )
 }, {
   id: 'delete',
   accessor: p => p,
@@ -92,19 +97,23 @@ export default function Providers () {
         : (
           <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
             <PageHeader header='Providers' buttonHref='/providers/add' buttonLabel='Provider' />
-            {error?.status
+            {
+            error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : <>
                 <Table {...table} />
-                {data?.length === 0 &&
-                  <EmptyTable
-                    title='There are no providers'
-                    subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
-                    iconPath='/providers.svg'
-                    buttonHref='/providers/add'
-                    buttonText='Provider'
-                  />}
-              </>}
+                {
+                    data?.length === 0 &&
+                      <EmptyTable
+                        title='There are no providers'
+                        subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}
+                        iconPath='/providers.svg'
+                        buttonHref='/providers/add'
+                        buttonText='Provider'
+                      />
+                }
+              </>
+            }
           </div>
           )}
     </>

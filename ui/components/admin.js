@@ -160,9 +160,12 @@ export default function () {
           </div>
         </button>
       </div>
-      {error && <div className='mb-10'>
-        <ErrorMessage message={error} />
-      </div>}
+      {
+        error &&
+          <div className='mb-10'>
+            <ErrorMessage message={error} />
+          </div>
+      }
 
       <h4 className='text-gray-400 my-3 text-paragraph'>These users have full administration privileges</h4>
       {adminList?.length > 0 &&

@@ -6,14 +6,15 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
     data
   })
 
+  console.log(columns)
   return (
     <table className='w-full table-auto' {...getTableProps()}>
       {showHeader &&
-        <thead className='border-b border-zinc-800'>
+        <thead className='border-b border-gray-800'>
           {headerGroups.map(headerGroup => (
             <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map(column => (
-                <th key={column.id} className='text-left uppercase py-2 font-normal text-xs text-gray-300' {...column.getHeaderProps()}>
+                <th key={column.id} className='text-left uppercase px-2.5 py-4 font-normal text-label text-gray-400' {...column.getHeaderProps()}>
                   {column.render('Header')}
                 </th>
               ))}
@@ -24,7 +25,7 @@ export default function ({ columns, data, getRowProps = () => ({}), showHeader =
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='table-flex text-sm group hover:bg-gray-350/50 shadow hover:shadow-lg' key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className='table-flex text-sm group border-b border-gray-800 hover:bg-gray-350/50 shadow hover:shadow-lg' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} className={`px-2.5 py-2 ${showHeader ? 'group-first:pt-3' : ''}`} {...cell.getCellProps()}>

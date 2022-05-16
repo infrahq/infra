@@ -7,11 +7,11 @@ import FullscreenModal from '../../../components/modals/fullscreen'
 
 function Provider ({ kind, name, available }) {
   return (
-    <div className={`rounded-xl px-6 py-4 flex items-center select-none bg-purple-100/5 ${available ? 'hover:bg-purple-100/10 cursor-pointer' : 'opacity-50 grayscale select-none'}`}>
-      <img className='flex-none w-8 mr-4' src={`/providers/${kind}.svg`} />
+    <div className={`rounded-xl px-6 py-4 flex items-center select-none bg-transparent border border-gray-950 ${available ? 'hover:border-white cursor-pointer' : 'opacity-50 grayscale select-none'}`}>
+      <img className='flex-none w-7 mr-4' src={`/providers/${kind}.svg`} />
       <div>
-        <h3 className='flex-1'>{name}</h3>
-        <h4 className='text-sm text-gray-300'>{available ? 'Identity Provider' : 'Coming Soon'}</h4>
+        <h3 className='flex-1 text-name'>{name}</h3>
+        <h4 className='text-note text-gray-400'>{available ? 'Identity Provider' : 'Coming Soon'}</h4>
       </div>
     </div>
   )
@@ -24,15 +24,15 @@ export default function () {
         <title>Add Identity Provider</title>
       </Head>
       <div className='w-full max-w-sm'>
-        <div className='flex flex-col py-8 px-4 border rounded-lg border-gray-950'>
-          <div className='flex flex-row space-x-2 items-center'>
+        <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
+          <div className='flex flex-row space-x-2 items-center px-4'>
             <img src='/providers.svg' className='w-6 h-6' />
             <div>
-              <h1 className='text-[12px] leading-[4px] tracking-tight'>Connect an Identity Provider</h1>
-              <h2 className='text-[12px] leading-[4px] text-gray-400 mt-3'>Select an identity provider to continue</h2>
+              <h1 className='text-name'>Connect an Identity Provider</h1>
+              <h2 className='text-name text-gray-400'>Select an identity provider to continue</h2>
             </div>
           </div>
-          <div className='flex flex-col mt-12'>
+          <div className='flex flex-col mt-11 space-y-1'>
             {providers.map(p => (
               p.available
                 ? (

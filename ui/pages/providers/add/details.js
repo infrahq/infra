@@ -81,9 +81,9 @@ export default function () {
       </Head>
       <div className='w-full max-w-sm'>
         <div className='flex flex-col py-8 px-4 border rounded-lg border-gray-950'>
-          <div className='flex flex-row space-x-2'>
+          <div className='flex flex-row space-x-2 items-center'>
             <img src='/providers.svg' className='w-6 h-6' />
-            <h1 className='text-base tracking-tight capitalize'>Connect {kind}</h1>
+            <h1 className='text-name capitalize'>Connect {kind}</h1>
           </div>
           <form onSubmit={onSubmit} className='flex flex-col mt-12'>
             <div className='mb-8'>
