@@ -16,7 +16,7 @@ test/update:
 
 .PHONY: helm
 helm:
-	helm package -d $@ helm/charts/* --version $(BUILDVERSION) --app-version $(IMAGEVERSION)
+	helm package -d $@ helm/charts/* --app-version $(IMAGEVERSION)
 	helm repo index helm
 
 helm/lint:
