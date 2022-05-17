@@ -374,7 +374,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),
 	}
 
-	raw, err := access.CreateAccessKey(c, accessKey, r.UserID)
+	raw, err := access.CreateAccessKey(c, accessKey)
 	if err != nil {
 		return nil, err
 	}

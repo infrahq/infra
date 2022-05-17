@@ -30,7 +30,7 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string) ([]models.Ac
 	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name))
 }
 
-func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid.ID) (body string, err error) {
+func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", err
