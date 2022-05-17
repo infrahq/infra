@@ -34,6 +34,7 @@ const columns = [{
         <DeleteModal
           open={open}
           setOpen={setOpen}
+          onCancel={() => setOpen(false)}
           onSubmit={() => {
             mutate('/v1/grants?resource=infra&privilege=admin', async admins => {
               await fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })

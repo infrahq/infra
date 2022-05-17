@@ -20,14 +20,14 @@ export default function ({
           spellCheck='false'
           type={type}
           value={value}
-          className={`block ${hasDropdownSelection ? 'w-10/12' : 'w-full'} sm:text-sm bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-paragraph`}
+          className={`block ${hasDropdownSelection ? '' : 'w-full'} sm:text-sm bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-paragraph`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
         />
         {hasDropdownSelection &&
-          <div className='absolute inset-y-0 right-6 flex items-center'>
+          <div className='absolute inset-y-0 right-2 flex items-center'>
             <label htmlFor={optionType} className='sr-only'>
               {optionType}
             </label>
@@ -36,7 +36,7 @@ export default function ({
               name={optionType}
               onChange={handleSelectOption}
               value={selectedItem}
-              className='h-full py-0 pl-2 border-transparent bg-transparent text-sm focus:outline-none'
+              className='h-full py-0 pl-2 border-transparent bg-transparent text-paragraph text-gray-400 focus:outline-none'
             >
               {options.map((option) => (
                 <option key={option} value={option}>{option}</option>

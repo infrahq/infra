@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Dialog } from '@headlessui/react'
 import { ExclamationIcon } from '@heroicons/react/outline'
 
-export default function ({ open, setOpen, onSubmit, title, message }) {
+export default function ({ open, setOpen, onSubmit, title, message, onCancel}) {
   const cancelButtonRef = useRef(null)
 
   return (
@@ -46,7 +46,7 @@ export default function ({ open, setOpen, onSubmit, title, message }) {
               <button
                 type='button'
                 className='w-auto inline-flex items-center justify-center rounded-full px-10 py-3.5 bg-black hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-zinc-600'
-                onClick={() => setOpen(false)}
+                onClick={() => onCancel()}
                 ref={cancelButtonRef}
               >
                 Cancel

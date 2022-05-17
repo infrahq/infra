@@ -93,7 +93,7 @@ export default function () {
         const { id } = data[0]
         const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
 
-        return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
+        return { UserID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
       })
       .then((config) => {
         return fetch('/v1/access-keys', {
