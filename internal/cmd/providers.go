@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -27,7 +26,7 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 
 	cmd.AddCommand(newProvidersListCmd(cli))
 	cmd.AddCommand(newProvidersAddCmd(cli))
-	cmd.AddCommand(newProvidersRemoveCmd())
+	cmd.AddCommand(newProvidersRemoveCmd(cli))
 
 	return cmd
 }
@@ -128,7 +127,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				return err
 			}
 
-			cli.Output("Provider %s added", args[0])
+			cli.Output("Added provider %q (%s)", args[0], opts.URL)
 			return nil
 		},
 	}
@@ -139,7 +138,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 	return cmd
 }
 
-func newProvidersRemoveCmd() *cobra.Command {
+func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove PROVIDER",
 		Aliases: []string{"rm"},
@@ -152,24 +151,17 @@ func newProvidersRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			providerName := args[0]
-
-			providers, err := client.ListProviders(providerName)
+			providers, err := client.ListProviders(args[0])
 			if err != nil {
 				return err
 			}
 
-			switch providers.Count {
-			case 0:
-				return fmt.Errorf("Cannot remove provider %s: not found", providerName)
-			case 1:
-				if err := client.DeleteProvider(providers.Items[0].ID); err != nil {
+			for _, provider := range providers.Items {
+				if err := client.DeleteProvider(provider.ID); err != nil {
 					return err
 				}
 
-				fmt.Fprintf(os.Stderr, "Provider %s removed\n", providerName)
-			default:
-				panic(fmt.Sprintf(DuplicateEntryPanic, "provider", providerName))
+				cli.Output("Removed provider %q (%s)", provider.Name, provider.URL)
 			}
 
 			return nil

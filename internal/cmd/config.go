@@ -143,7 +143,7 @@ func writeConfig(config *ClientConfig) error {
 }
 
 func currentHostConfig() (*ClientHostConfig, error) {
-	return readHostConfig("")
+	return readHostConfig()
 }
 
 // Save (create or update) the current hostconfig
@@ -174,18 +174,14 @@ func saveHostConfig(hostConfig ClientHostConfig) error {
 	return nil
 }
 
-func readHostConfig(host string) (*ClientHostConfig, error) {
+func readHostConfig() (*ClientHostConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	for i, c := range cfg.Hosts {
-		if len(host) == 0 && c.Current {
-			return &cfg.Hosts[i], nil
-		}
-
-		if c.Host == host {
+		if c.Current {
 			return &cfg.Hosts[i], nil
 		}
 	}
