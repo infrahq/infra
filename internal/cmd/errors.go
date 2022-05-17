@@ -18,17 +18,6 @@ var (
 	ErrUserNotFound      = errors.New(`no user found with this name`)
 )
 
-// Standard panic messages: it should not be possible for a user to arrive at this state - hence there is a bug in the code.
-var (
-	DuplicateEntryPanic = "more than one %s found with name '%s', which should not be possible"
-)
-
-// User facing messages: to let user know the state they are in
-var (
-	NoProviderFoundMsg = "No provider found with name %s"
-	NoUserFoundMsg     = "No user found with name %s"
-)
-
 // User facing constant errors: to let user know why their command failed. Not meant for a stack trace, but a readable output of the reason for failure.
 var (
 	ErrTLSNotVerified = errors.New(`The authenticity of the host can't be established.`)
