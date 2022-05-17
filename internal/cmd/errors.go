@@ -3,6 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/muesli/termenv"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 // internal errors
@@ -29,31 +34,23 @@ var (
 	ErrTLSNotVerified = errors.New(`The authenticity of the host can't be established.`)
 )
 
-// User facing variable errors
-type FailedLoginError struct {
-	LoggedInIdentity string
-	LoginMethod      loginMethod
+type LoginError struct {
+	Message string
 }
 
-func (e *FailedLoginError) Error() string {
-	var errorReason string
+func (e *LoginError) Error() string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Login error: %s.", e.Message)
 
-	switch e.LoginMethod {
-	case localLogin:
-		errorReason = "your id or password may be incorrect"
-	case accessKeyLogin:
-		errorReason = "your access key is may not be valid"
-	case oidcLogin:
-		errorReason = "could not login to infra through this connected identity provider"
+	hostConfig, err := currentHostConfig()
+	if err != nil {
+		logging.S.Debugf("current host config: %v", err)
+		return sb.String()
 	}
 
-	msg := fmt.Sprintf("Login failed: %s.", errorReason)
-	if (isLoggedInCurrent() && e.LoggedInIdentity == "") || (!isLoggedInCurrent() && e.LoggedInIdentity != "") {
-		panic("LoggedInIdentity cannot be set unless user is logged in")
-	}
-	if isLoggedInCurrent() {
-		msg += fmt.Sprintf(" You are still logged in as [%s].", e.LoggedInIdentity)
+	if hostConfig.isLoggedIn() {
+		fmt.Fprintf(&sb, " Your session as %s to %s is still active.", termenv.String(hostConfig.Name).Bold().String(), termenv.String(hostConfig.Host).Bold().String())
 	}
 
-	return msg
+	return sb.String()
 }
