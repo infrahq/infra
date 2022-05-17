@@ -30,8 +30,8 @@ type Grant struct {
 	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
 	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
 	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"` // deprecated
-	Role     string `mapstructure:"role" validate:"required"`
 	Resource string `mapstructure:"resource" validate:"required"`
+	Role     string `mapstructure:"role"`
 }
 
 type User struct {
