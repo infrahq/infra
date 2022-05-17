@@ -8,7 +8,7 @@ on:
 
 jobs:
   fuzz-matrix:
-    if: ${{ github.event.label.name == 'action/fuzz' }}
+    if: ${{ github.event_name == 'schedule' || github.event.label.name == 'action/fuzz' }}
     runs-on: ubuntu-latest
     outputs:
       fuzz-names: ${{ steps.list-fuzz.outputs.list }}
