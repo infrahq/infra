@@ -34,28 +34,19 @@ var (
 	}
 )
 
-// register an API endpoint that has both a request and response value.
-func register[Req, Res any](a *API, method, path string, handler ReqResHandlerFunc[Req, Res]) {
-	funcName := getFuncName(handler)
-
+// openAPIRouteDefinition converts the route into a format that can be used
+// by API.register. This is necessary because currently methods can not have
+// generic parameters.
+func openAPIRouteDefinition[Req, Res any](route route[Req, Res]) (
+	method string,
+	path string,
+	funcName string,
+	requestType reflect.Type,
+	resultType reflect.Type,
+) {
 	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	//nolint:gocritic
-	rst := reflect.TypeOf(*new(Res))
-
-	a.register(method, path, funcName, rqt, rst)
-}
-
-// registerDelete registers an API endpoint that has no response value, which is
-// currently only endpoints that use the DELETE method.
-func registerDelete[Req any](a *API, method, path string, handler ReqHandlerFunc[Req]) {
-	funcName := getFuncName(handler)
-
-	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	rst := reflect.TypeOf(nil)
-
-	a.register(method, path, funcName, rqt, rst)
+	reqT, resultT := reflect.TypeOf(*new(Req)), reflect.TypeOf(*new(Res))
+	return route.method, route.path, getFuncName(route.handler), reqT, resultT
 }
 
 // register adds the route to the API.OpenAPIDocument.
