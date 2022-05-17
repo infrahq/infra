@@ -26,7 +26,7 @@ func newUsersCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newUsersAddCmd(cli))
-	cmd.AddCommand(newUsersEditCmd())
+	cmd.AddCommand(newUsersEditCmd(cli))
 	cmd.AddCommand(newUsersListCmd(cli))
 	cmd.AddCommand(newUsersRemoveCmd(cli))
 
@@ -44,20 +44,17 @@ Note: A new user must change their one time password before further usage.`,
 		Example: `# Create a user
 $ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
 			}
 
-			createResp, err := createUser(client, name, true)
+			createResp, err := createUser(client, args[0], true)
 			if err != nil {
 				return err
 			}
 
-			fmt.Fprintf(cli.Stderr, "User created.\n")
-			cli.Output("Name: %s", createResp.Name)
+			cli.Output("Added user %q", args[0])
 
 			if createResp.OneTimePassword != "" {
 				cli.Output("Password: %s", createResp.OneTimePassword)
@@ -70,13 +67,9 @@ $ infra users add johndoe@example.com`,
 	return cmd
 }
 
-type editUserCmdOptions struct {
-	Password       bool
-	NonInteractive bool
-}
+func newUsersEditCmd(cli *CLI) *cobra.Command {
+	var editPassword bool
 
-func newUsersEditCmd() *cobra.Command {
-	var opts editUserCmdOptions
 	cmd := &cobra.Command{
 		Use:   "edit USER",
 		Short: "Update a user",
@@ -84,22 +77,15 @@ func newUsersEditCmd() *cobra.Command {
 $ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-
-			if !opts.Password {
+			if !editPassword {
 				return errors.New("Please specify a field to update. For options, run 'infra users edit --help'")
 			}
 
-			if opts.Password && opts.NonInteractive {
-				return errors.New("Non-interactive mode is not supported to edit sensitive fields.")
-			}
-
-			return UpdateUser(name, opts)
+			return updateUser(cli, args[0])
 		},
 	}
 
-	cmd.Flags().BoolVarP(&opts.Password, "password", "p", false, "Set a new one time password")
-	addNonInteractiveFlag(cmd.Flags(), &opts.NonInteractive)
+	cmd.Flags().BoolVarP(&editPassword, "password", "p", false, "Set a new one time password")
 
 	return cmd
 }
@@ -168,12 +154,11 @@ $ infra users remove janedoe@example.com`,
 			}
 
 			for _, user := range users.Items {
-				err := client.DeleteUser(user.ID)
-				if err != nil {
+				if err := client.DeleteUser(user.ID); err != nil {
 					return err
 				}
 
-				cli.Output("Removed user %q", name)
+				cli.Output("Removed user %q", user.Name)
 			}
 
 			return nil
@@ -183,7 +168,7 @@ $ infra users remove janedoe@example.com`,
 	return cmd
 }
 
-// CreateUser creates an user within infra
+// CreateUser creates an user within Infra
 func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	client, err := defaultAPIClient()
 	if err != nil {
@@ -198,7 +183,7 @@ func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	return resp, nil
 }
 
-func UpdateUser(name string, cmdOptions editUserCmdOptions) error {
+func updateUser(cli *CLI, name string) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -232,21 +217,20 @@ func UpdateUser(name string, cmdOptions editUserCmdOptions) error {
 		req.ID = user.ID
 	}
 
-	if cmdOptions.Password {
-		fmt.Fprintf(os.Stderr, "  Enter a new one time password (min length 8):\n")
-		req.Password, err = promptSetPassword("")
-		if err != nil {
-			return err
-		}
+	fmt.Fprintf(os.Stderr, "  Enter a new password (min. length 8):\n")
+	req.Password, err = promptSetPassword("")
+	if err != nil {
+		return err
 	}
 
 	if _, err := client.UpdateUser(req); err != nil {
 		return err
 	}
 
-	if !isSelf {
-		// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-		fmt.Fprintf(os.Stderr, "  Updated one time password for user.\n")
+	if isSelf {
+		cli.Output("  Updated password")
+	} else {
+		cli.Output("  Updated password for %q", name)
 	}
 
 	return nil

@@ -338,8 +338,7 @@ $ infra users edit janedoe@example.com --password
 ### Options
 
 ```
-      --non-interactive   Disable all prompts for input
-  -p, --password          Set a new one time password
+  -p, --password   Set a new one time password
 ```
 
 ### Options inherited from parent commands
