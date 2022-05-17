@@ -127,7 +127,7 @@ func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, e
 }
 
 // TODO: remove after deprecation period
-func (a *API) ListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
+func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
 	return a.ListGroups(c, &api.ListGroupsRequest{UserID: r.ID})
 }
 
@@ -406,12 +406,12 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 }
 
 // TODO: remove after deprecation period
-func (a *API) ListUserGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+func (a *API) deprecatedListUserGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
 	return a.ListGrants(c, &api.ListGrantsRequest{User: r.ID})
 }
 
 // TODO: remove after deprecation period
-func (a *API) ListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
+func (a *API) deprecatedListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
 	return a.ListGrants(c, &api.ListGrantsRequest{Group: r.ID})
 }
 
