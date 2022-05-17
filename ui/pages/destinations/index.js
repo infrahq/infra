@@ -16,34 +16,34 @@ import PageHeader from '../../components/layouts/page-header'
 import Slide from '../../components/slide'
 
 const columns = [{
-    Header: 'Cluster',
-    accessor: 'name',
-    Cell: ({ value }) => (
-      <div className='flex items-center'>
-        <div className='py-2'>{value}</div>
-      </div>
-    )
-  }, {
-    Header: 'Added',
-    accessor: i => {
-      return dayjs(i.created).fromNow()
-    }
+  Header: 'Cluster',
+  accessor: 'name',
+  Cell: ({ value }) => (
+    <div className='flex items-center'>
+      <div className='py-2'>{value}</div>
+    </div>
+  )
+}, {
+  Header: 'Added',
+  accessor: i => {
+    return dayjs(i.created).fromNow()
   }
+}
 ]
 
-function SlideContent ({id, isAdmin}) {
+function SlideContent ({ id, isAdmin }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   return (
     <>
-      {isAdmin && 
-      <>
-        <div className='border-b border-gray-800 mt-4'>
-          <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
-        </div>
-        <div className='pt-3 pb-12'>
-          <Grant id={id} />
-        </div>
-      </>}
+      {isAdmin &&
+        <>
+          <div className='border-b border-gray-800 mt-4'>
+            <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
+          </div>
+          <div className='pt-3 pb-12'>
+            <Grant id={id} />
+          </div>
+        </>}
       <>
         <div className='border-b border-gray-800 mt-4'>
           <div className='text-label text-gray-400 uppercase pb-5'>Meta</div>
@@ -51,11 +51,15 @@ function SlideContent ({id, isAdmin}) {
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-name w-1/3'>Kind</div>
-            <div className='text-name'></div>
+            <div className='text-name' />
           </div>
-          <div className='flex flex-row items-center'>
+          <div className='flex flex-row flex-start'>
             <div className='text-gray-400 text-name w-1/3'>Namespace</div>
-            <div className='text-name'>{destination?.resources}</div>
+            <div className='flex flex-col'>
+              {destination?.resources.map(r => (
+                <div key={r} className='text-name'>{r}</div>
+              ))}
+            </div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-name w-1/3'>Age</div>
@@ -63,7 +67,7 @@ function SlideContent ({id, isAdmin}) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-name w-1/3'>Images</div>
-            <div className='text-name'></div>
+            <div className='text-name' />
           </div>
         </div>
       </>
@@ -85,15 +89,9 @@ export default function Destinations () {
   const loading = adminLoading || (!destinations && !error)
 
   const handleDestinationDetail = (row) => {
-    console.log(row)
     setSlideModalOpen(true)
     setSelectedRow(row)
-    setSlideActionBtns([{handleOnClick: () => handleDisconnect(row), text: 'Disconnect Cluster'}])
-  }
-
-  const handleDisconnect = (row) => {
-    console.log('disconnect:', row)
-    setDeleteModalOpen(true)
+    setSlideActionBtns([{ handleOnClick: () => setDeleteModalOpen(true), text: 'Disconnect Cluster' }])
   }
 
   const handleCancelDeleteModal = () => {
@@ -114,8 +112,8 @@ export default function Destinations () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : <>
-                <Table 
-                  {...table} 
+                <Table
+                  {...table}
                   getRowProps={row => ({
                     onClick: () => handleDestinationDetail(row),
                     style: {
@@ -123,32 +121,30 @@ export default function Destinations () {
                     }
                   })}
                 />
-                {
-                  <>
-                    {slideModalOpen && 
+                <>
+                  {slideModalOpen &&
                     <Slide open={slideModalOpen} handleClose={() => setSlideModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns} deleteModalShown={DeleteModalOpen}>
                       <SlideContent id={selectedRow.original.id} isAdmin={admin} />
                     </Slide>}
-                    <DeleteModal
-                      open={DeleteModalOpen}
-                      setOpen={setDeleteModalOpen}
-                      onCancel={handleCancelDeleteModal}
-                      onSubmit={async () => {
-                        mutate('/v1/destinations', async destinations => {
-                          await fetch(`/v1/destinations/${selectedRow.original.id}`, {
-                            method: 'DELETE'
-                          })
-                
-                          return destinations?.filter(d => d?.id !== selectedRow.original.id)
+                  <DeleteModal
+                    open={DeleteModalOpen}
+                    setOpen={setDeleteModalOpen}
+                    onCancel={handleCancelDeleteModal}
+                    onSubmit={async () => {
+                      mutate('/v1/destinations', async destinations => {
+                        await fetch(`/v1/destinations/${selectedRow.original.id}`, {
+                          method: 'DELETE'
                         })
-                
-                        setDeleteModalOpen(false)
-                      }}
-                      title='Delete Cluster'
-                      message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
-                    />
-                  </>
-                }
+
+                        return destinations?.filter(d => d?.id !== selectedRow.original.id)
+                      })
+
+                      setDeleteModalOpen(false)
+                    }}
+                    title='Delete Cluster'
+                    message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+                  />
+                </>
                 {
                     destinations?.length === 0 &&
                       <EmptyTable
@@ -159,8 +155,7 @@ export default function Destinations () {
                         buttonText='Infrastructure'
                       />
                   }
-                  </>
-            }
+              </>}
           </div>
           )}
     </>

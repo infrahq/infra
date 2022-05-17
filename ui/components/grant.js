@@ -138,7 +138,7 @@ export default function ({ id }) {
       </div>
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
-        <div className='py-2 h-10 max-h-40 overflow-y-auto'>
+        <div className='py-2 max-h-40 overflow-y-auto'>
           {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
             <div className='flex justify-between items-center' key={item.id}>
               <Grant id={item.subject} />
@@ -158,9 +158,9 @@ export default function ({ id }) {
             </div>
           ))}
         </div>}
-        {list?.length === 0 && <div className='text-paragraph text-gray-400 italic w-2/3'>
-          *Share access to this cluster by inviting your team and assigning their roles.
-        </div>}
+      {list?.length === 0 && <div className='text-paragraph text-gray-400 italic w-2/3'>
+        *Share access to this cluster by inviting your team and assigning their roles.
+      </div>}
       {grantError && <ErrorMessage message={grantError} />}
     </>
   )

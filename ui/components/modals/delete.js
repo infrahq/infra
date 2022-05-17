@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Dialog } from '@headlessui/react'
 import { ExclamationIcon } from '@heroicons/react/outline'
 
-export default function ({ open, setOpen, onSubmit, title, message, onCancel}) {
+export default function ({ open, setOpen, onSubmit, title, message, onCancel }) {
   const cancelButtonRef = useRef(null)
 
   return (
