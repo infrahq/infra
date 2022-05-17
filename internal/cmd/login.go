@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -360,6 +361,13 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
 		if err := verifyTLS(options.Server); err != nil {
+			urlErr := &url.Error{}
+			if errors.As(err, &urlErr) {
+				if urlErr.Timeout() {
+					return nil, fmt.Errorf("%w: %s", api.ErrTimeout, err)
+				}
+			}
+
 			if !errors.Is(err, ErrTLSNotVerified) {
 				return nil, err
 			}

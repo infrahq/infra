@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,8 @@ import (
 )
 
 var clientVersion = "0.13.0"
+
+var ErrTimeout = errors.New("client timed out waiting for response from server")
 
 type Client struct {
 	URL       string
@@ -140,12 +143,21 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 
 	resp, err := client.HTTP.Do(httpReq)
 	if err != nil {
+		urlErr := &url.Error{}
+		if errors.As(err, &urlErr) {
+			if urlErr.Timeout() {
+				return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
+			}
+		}
 		return nil, fmt.Errorf("%s %q: %w", method, path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
+		}
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
@@ -180,12 +192,21 @@ func delete(client Client, path string) error {
 
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
+		urlErr := &url.Error{}
+		if errors.As(err, &urlErr) {
+			if urlErr.Timeout() {
+				return fmt.Errorf("%w: %s", ErrTimeout, err)
+			}
+		}
 		return fmt.Errorf("DELETE %q: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", ErrTimeout, err)
+		}
 		return fmt.Errorf("reading response: %w", err)
 	}
 
