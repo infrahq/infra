@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -51,13 +52,13 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	a.addRedirects()
 
 	// This group of middleware only applies to non-ui routes
-	api := router.Group("/",
+	apiGroup := router.Group("/",
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
-	api.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
+	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := api.Group("/", AuthenticationMiddleware(a))
+	authn := apiGroup.Group("/", AuthenticationMiddleware(a))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -95,7 +96,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", a.pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := api.Group("/")
+	noAuthn := apiGroup.Group("/")
 	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 
@@ -108,8 +109,18 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	// Deprecated in 0.12
 	// TODO: remove after a couple versions
-	get(a, authn, "/v1/users/:id/grants", a.ListUserGrants)
-	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
+	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
+		method:       http.MethodGet,
+		path:         "/v1/users/:id/grants",
+		handler:      a.ListUserGrants,
+		omitFromDocs: true,
+	})
+	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
+		method:       http.MethodGet,
+		path:         "/v1/groups/:id/grants",
+		handler:      a.ListGroupGrants,
+		omitFromDocs: true,
+	})
 
 	noAuthn.GET("/v1/machines", removed("v0.9.0"))
 	noAuthn.POST("/v1/machines", removed("v0.9.0"))
