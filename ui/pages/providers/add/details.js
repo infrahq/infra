@@ -128,7 +128,7 @@ export default function () {
               <input
                 required
                 type='password'
-                placeholder='enter the password for the IdP'
+                placeholder='enter the client secret for the IdP'
                 value={clientSecret}
                 onChange={e => setClientSecret(e.target.value)}
                 className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-300' : ''}`}
