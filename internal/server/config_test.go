@@ -385,6 +385,36 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
 }
 
+func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Resource: "test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var provider models.Provider
+	err = s.db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
+	assert.NilError(t, err)
+
+	var user models.Identity
+	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	assert.NilError(t, err)
+
+	var grant models.Grant
+	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "connect", grant.Privilege)
+	assert.Equal(t, "test-cluster", grant.Resource)
+}
+
 func TestLoadConfigWithUserGrants(t *testing.T) {
 	s := setupServer(t)
 
