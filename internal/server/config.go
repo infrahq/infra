@@ -720,13 +720,8 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 func (s Server) loadUsers(db *gorm.DB, users []User) error {
 	keep := make([]uid.ID, 0, len(users)+1)
 
-	internalProvider, err := data.GetProvider(db, data.ByName(models.InternalInfraProviderName))
-	if err != nil {
-		return err
-	}
-
 	for _, i := range users {
-		user, err := s.loadUser(db, i, internalProvider)
+		user, err := s.loadUser(db, i)
 		if err != nil {
 			return err
 		}
@@ -742,7 +737,7 @@ func (s Server) loadUsers(db *gorm.DB, users []User) error {
 	return nil
 }
 
-func (s Server) loadUser(db *gorm.DB, input User, provider *models.Provider) (*models.Identity, error) {
+func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	name := input.Name
 	if name == "" {
 		if input.Email != "" {
@@ -767,18 +762,18 @@ func (s Server) loadUser(db *gorm.DB, input User, provider *models.Provider) (*m
 		}
 	}
 
-	if err := s.loadCredential(db, identity, provider, input.Password); err != nil {
+	if err := s.loadCredential(db, identity, input.Password); err != nil {
 		return nil, err
 	}
 
-	if err := s.loadAccessKey(db, identity, provider, input.AccessKey); err != nil {
+	if err := s.loadAccessKey(db, identity, input.AccessKey); err != nil {
 		return nil, err
 	}
 
 	return identity, nil
 }
 
-func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, provider *models.Provider, password string) error {
+func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, password string) error {
 	if password == "" {
 		return nil
 	}
@@ -808,7 +803,7 @@ func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, provider 
 			return err
 		}
 
-		if _, err := data.CreateProviderUser(db, provider, identity); err != nil {
+		if _, err := data.CreateProviderUser(db, data.InfraProvider(db), identity); err != nil {
 			return err
 		}
 
@@ -824,7 +819,7 @@ func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, provider 
 	return nil
 }
 
-func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, provider *models.Provider, key string) error {
+func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, key string) error {
 	if key == "" {
 		return nil
 	}
@@ -846,19 +841,18 @@ func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, provider *
 		}
 
 		accessKey := &models.AccessKey{
-			Name:       fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000")),
 			IssuedFor:  identity.ID,
 			ExpiresAt:  time.Now().AddDate(10, 0, 0),
 			KeyID:      keyID,
 			Secret:     secret,
-			ProviderID: provider.ID,
+			ProviderID: data.InfraProvider(db).ID,
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {
 			return err
 		}
 
-		if _, err := data.CreateProviderUser(db, provider, identity); err != nil {
+		if _, err := data.CreateProviderUser(db, data.InfraProvider(db), identity); err != nil {
 			return err
 		}
 
