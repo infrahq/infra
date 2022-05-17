@@ -123,7 +123,7 @@ In order to add connectors to Infra, you will need to generate an access key. If
 > Using the Infra admin access key is _not_ recommended as it provides more privileges than is necessary for a connector and may pose a security risk.
 
 ```bash
-infra keys add <keyName> connector
+infra keys add connector
 ```
 
 ### Step 2: Install Infra Connector
