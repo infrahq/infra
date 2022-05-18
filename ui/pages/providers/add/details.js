@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { SwitchHorizontalIcon } from '@heroicons/react/outline'
+import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 
 import { providers } from '../../../lib/providers'
@@ -79,65 +79,79 @@ export default function () {
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
-      <div className='flex flex-col mb-10 w-full max-w-sm'>
-        <h1 className='text-base font-bold tracking-tight text-center'>Add Identity Provider</h1>
-        <h2 className='mt-1 mb-10 text-sm text-gray-300 text-center'>Provide your identity provider's details.</h2>
-        <div className='flex items-center space-x-4 mx-auto select-none'>
-          <img className='h-4' src={`/providers/${kind}.svg`} /><SwitchHorizontalIcon className='w-4 h-4 text-gray-500' /><img src='/icon-light.svg' />
-        </div>
-        <form onSubmit={onSubmit} className='flex flex-col my-12'>
-          <label className='text-xs'>Choose a name</label>
-          <input
-            required
-            autoFocus
-            placeholder='Name'
-            onChange={e => setName(e.target.value)}
-            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.name ? 'border-pink-500' : ''}`}
-          />
-          {errors.name && <ErrorMessage message={errors.name} />}
-
-          <label className='text-xs mt-4'>
-            Additional details (<a className='text-cyan-400 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>)
-          </label>
-          <input
-            required
-            placeholder='URL (Domain)'
-            value={url}
-            onChange={e => setURL(e.target.value)}
-            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.url ? 'border-pink-500' : ''}`}
-          />
-          {errors.url && <ErrorMessage message={errors.url} />}
-
-          <input
-            required
-            placeholder='Client ID'
-            value={clientID}
-            onChange={e => setClientID(e.target.value)}
-            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientid ? 'border-pink-500' : ''}`}
-          />
-          {errors.clientid && <ErrorMessage message={errors.clientid} />}
-
-          <input
-            required
-            type='password'
-            placeholder='Client Secret'
-            value={clientSecret}
-            onChange={e => setClientSecret(e.target.value)}
-            className={`bg-purple-100/5 border border-zinc-800 text-sm px-5 mt-2 py-2.5 rounded-full focus:outline-none focus:ring focus:ring-cyan-600 ${errors.clientsecret ? 'border-pink-500' : ''}`}
-          />
-          {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
-
-          <button
-            type='submit'
-            disabled={!name || !url || !clientID || !clientSecret}
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center disabled:opacity-30'
-          >
-            <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3 '>
-              Add Identity Provider
+      <div className='w-full max-w-sm'>
+        <div className='flex flex-col py-8 px-4 border rounded-lg border-gray-950'>
+          <div className='flex flex-row space-x-2 items-center'>
+            <img src='/providers.svg' className='w-6 h-6' />
+            <h1 className='text-name capitalize'>Connect {kind}</h1>
+          </div>
+          <form onSubmit={onSubmit} className='flex flex-col mt-12'>
+            <div className='mb-8'>
+              <label className='text-label text-gray-300 uppercase'>Name your provider</label>
+              <input
+                required
+                autoFocus
+                placeholder='create a name for your IdP'
+                onChange={e => setName(e.target.value)}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-300' : ''}`}
+              />
+              {errors.name && <ErrorMessage message={errors.name} />}
             </div>
-          </button>
-          {error && <ErrorMessage message={error} center />}
-        </form>
+
+            <label className='text-name text-white/90'>
+              Additional details <a className='text-pink-100/90 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>
+            </label>
+            <div className='mt-4'>
+              <label className='text-label text-gray-300 uppercase'>URL (Domain)</label>
+              <input
+                required
+                placeholder='enter the domain URL here'
+                value={url}
+                onChange={e => setURL(e.target.value)}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-300' : ''}`}
+              />
+              {errors.url && <ErrorMessage message={errors.url} />}
+            </div>
+            <div className='mt-4'>
+              <label className='text-label text-gray-300 uppercase'>Client ID</label>
+              <input
+                required
+                placeholder='enter client ID here'
+                value={clientID}
+                onChange={e => setClientID(e.target.value)}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-300' : ''}`}
+              />
+              {errors.clientid && <ErrorMessage message={errors.clientid} />}
+            </div>
+            <div className='mt-4'>
+              <label className='text-label text-gray-300 uppercase'>Client Secret</label>
+              <input
+                required
+                type='password'
+                placeholder='enter the client secret for the IdP'
+                value={clientSecret}
+                onChange={e => setClientSecret(e.target.value)}
+                className={`w-full bg-transparent border-b border-gray-950 text-label px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-300' : ''}`}
+              />
+              {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
+            </div>
+            <div className='flex flex-row justify-between mt-6 items-center'>
+              <Link href='/providers'>
+                <a className='uppercase border-0 hover:text-white text-gray-300 text-secondary'>Cancel</a>
+              </Link>
+              <button
+                type='submit'
+                disabled={!name || !url || !clientID || !clientSecret}
+                className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'
+              >
+                <div className='bg-black rounded-md tracking-tight text-name px-6 py-3 text-pink-200'>
+                  Connect Provider
+                </div>
+              </button>
+            </div>
+            {error && <ErrorMessage message={error} center />}
+          </form>
+        </div>
       </div>
     </FullscreenModal>
   )

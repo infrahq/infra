@@ -83,7 +83,7 @@ export default function () {
                       ? <div className='flex flex-col items-center text-center'>
                         <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
                         <div className='text-name text-gray-300'>{p.url}</div>
-                      </div>
+                        </div>
                       : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
                   </div>
                 </button>
