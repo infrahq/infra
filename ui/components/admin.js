@@ -9,6 +9,7 @@ import InputDropdown from './input'
 import Table from './table'
 import DeleteModal from './modals/delete'
 import ErrorMessage from './error-message'
+import ProfileIcon from './profile-icon'
 
 const columns = [{
   id: 'name',
@@ -61,15 +62,7 @@ const AdminName = ({ id }) => {
 
   return (
     <div className='flex items-center space-x-4'>
-      <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-lg p-px'>
-        <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-lg'>
-          <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
-            <div className='bg-black flex-none text-gray-500 flex justify-center items-center w-6 h-6 font-bold rounded-[4px]'>
-              {user?.name?.[0]}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ProfileIcon name={user.name[0]} />
       <div className='flex flex-col leading-tight'>
         <div className='text-subtitle'>{user.name}</div>
       </div>

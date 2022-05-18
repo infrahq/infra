@@ -1,7 +1,8 @@
 import { Dialog } from '@headlessui/react'
 import { XIcon } from '@heroicons/react/outline'
+import ProfileIcon from './profile-icon'
 
-export default ({ children, open, handleClose, title, iconPath, footerBtns, deleteModalShown }) => {
+export default ({ children, open, handleClose, title, iconPath, footerBtns, deleteModalShown, profileIconName }) => {
   return (
     <Dialog as='div' className={`relative ${deleteModalShown ? '' : 'z-10'}`} onClose={handleClose} open={open}>
       <div className='fixed inset-0 overflow-hidden'>
@@ -13,11 +14,13 @@ export default ({ children, open, handleClose, title, iconPath, footerBtns, dele
                   <div className='px-4 sm:px-6'>
                     <div className='flex flex-start justify-between'>
                       <Dialog.Title className='flex flex-row items-center space-x-4'>
-                        <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-md p-0.5 my-2 mx-auto'>
-                          <div className='bg-black rounded-md flex items-center tracking-tight text-sm px-2 py-2'>
-                            <img src={iconPath} className='w-4 h-4' />
-                          </div>
-                        </div>
+                        {profileIconName
+                          ? <ProfileIcon name={profileIconName} hasOpacity={false} />
+                          : <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-md p-0.5 my-2 mx-auto'>
+                            <div className='bg-black rounded-md flex items-center tracking-tight text-sm px-2 py-2'>
+                              <img src={iconPath} className='w-4 h-4' />
+                            </div>
+                          </div>}
                         <div className='text-subtitle text-white'>{title}</div>
                       </Dialog.Title>
                       <div className='ml-3 flex h-7 items-center'>

@@ -79,7 +79,7 @@ export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
   const { mutate } = useSWRConfig()
   const { admin, loading: adminLoading } = useAdmin()
-  const [DeleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [slideModalOpen, setSlideModalOpen] = useState(false)
   const [selectedRow, setSelectedRow] = useState(null)
   const [slideActionBtns, setSlideActionBtns] = useState([])
@@ -123,11 +123,18 @@ export default function Destinations () {
                 />
                 <>
                   {slideModalOpen &&
-                    <Slide open={slideModalOpen} handleClose={() => setSlideModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns} deleteModalShown={DeleteModalOpen}>
+                    <Slide
+                      open={slideModalOpen}
+                      handleClose={() => setSlideModalOpen(false)}
+                      title={selectedRow.values.name}
+                      iconPath='/destinations.svg'
+                      footerBtns={slideActionBtns}
+                      deleteModalShown={deleteModalOpen}
+                    >
                       <SlideContent id={selectedRow.original.id} isAdmin={admin} />
                     </Slide>}
                   <DeleteModal
-                    open={DeleteModalOpen}
+                    open={deleteModalOpen}
                     setOpen={setDeleteModalOpen}
                     onCancel={handleCancelDeleteModal}
                     onSubmit={async () => {
