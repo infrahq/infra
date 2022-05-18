@@ -5,7 +5,7 @@ import { validateEmail } from '../lib/email'
 
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
-import InfoModal from './modals/info'
+import { PlusIcon } from '@heroicons/react/outline'
 
 function Grant ({ id }) {
   if (!id) {
@@ -15,11 +15,11 @@ function Grant ({ id }) {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
-    <p className='text-sm'>{user.name}</p>
+    <p className='text-paragraph'>{user.name}</p>
   )
 }
 
-export default function ({ id, modalOpen, handleCloseModal }) {
+export default function ({ id }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
@@ -106,18 +106,13 @@ export default function ({ id, modalOpen, handleCloseModal }) {
   }
 
   return (
-    <InfoModal
-      header='Share'
-      handleCloseModal={handleCloseModal}
-      modalOpen={modalOpen}
-      iconPath='/grant-access-color.svg'
-    >
-      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-6'}`}>
+    <>
+      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-4'}`}>
         <div className='flex-1'>
           <InputDropdown
             type='email'
             value={email}
-            placeholder='email'
+            placeholder='Email'
             error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}
@@ -131,24 +126,27 @@ export default function ({ id, modalOpen, handleCloseModal }) {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-full hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-4 disabled:opacity-30'
+          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
         >
-          <div className='bg-black flex items-center text-sm rounded-full px-12 py-2.5'>
-            Share
+          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-3 py-3'>
+            <PlusIcon className='w-3 h-3 mr-1.5' />
+            <div className='text-pink-100'>
+              Share
+            </div>
           </div>
         </button>
       </div>
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
-        <div className='py-2 max-h-48 sm:max-h-80 overflow-y-auto'>
+        <div className='py-2 max-h-40 overflow-y-auto'>
           {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
-            <div className='flex justify-between items-center px-4' key={item.id}>
+            <div className='flex justify-between items-center' key={item.id}>
               <Grant id={item.subject} />
               <div>
                 <select
                   id='role'
                   name='role'
-                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none sm:text-sm bg-transparent'
+                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-paragraph text-gray-400 bg-transparent'
                   defaultValue={item.privilege}
                   onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
                 >
@@ -160,8 +158,10 @@ export default function ({ id, modalOpen, handleCloseModal }) {
             </div>
           ))}
         </div>}
+      {list?.length === 0 && <div className='text-paragraph text-gray-400 italic w-2/3'>
+        *Share access to this cluster by inviting your team and assigning their roles.
+      </div>}
       {grantError && <ErrorMessage message={grantError} />}
-
-    </InfoModal>
+    </>
   )
 }

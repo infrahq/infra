@@ -61,6 +61,7 @@ const columns = [{
         <DeleteModal
           open={open}
           setOpen={setOpen}
+          onCancel={() => setOpen(false)}
           onSubmit={() => {
             mutate('/v1/providers', async providers => {
               await fetch(`/v1/providers/${provider.id}`, {

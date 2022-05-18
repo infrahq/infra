@@ -1,9 +1,8 @@
 import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
-import { ShareIcon, XIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -14,134 +13,91 @@ import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
 import PageHeader from '../../components/layouts/page-header'
+import Slide from '../../components/slide'
 
-function columns (admin) {
-  return [
-    {
-      Header: 'Cluster',
-      accessor: 'name',
-      Cell: ({ value }) => (
-        <div className='flex items-center'>
-          <div className='py-2'>{value}</div>
+const columns = [{
+  Header: 'Cluster',
+  accessor: 'name',
+  Cell: ({ value }) => (
+    <div className='flex items-center'>
+      <div className='py-2'>{value}</div>
+    </div>
+  )
+}, {
+  Header: 'Added',
+  accessor: i => {
+    return dayjs(i.created).fromNow()
+  }
+}
+]
+
+function SlideContent ({ id, isAdmin }) {
+  const { data: destination } = useSWR(`/v1/destinations/${id}`)
+  return (
+    <>
+      {isAdmin &&
+        <>
+          <div className='border-b border-gray-800 mt-4'>
+            <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
+          </div>
+          <div className='pt-3 pb-12'>
+            <Grant id={id} />
+          </div>
+        </>}
+      <>
+        <div className='border-b border-gray-800 mt-4'>
+          <div className='text-label text-gray-400 uppercase pb-5'>Meta</div>
         </div>
-      )
-    }, {
-      Header: 'Added',
-      accessor: i => {
-        return dayjs(i.created).fromNow()
-      }
-    },
-    ...admin
-      ? [{
-          id: 'access',
-          accessor: i => i,
-          Header: () => (
-            <div className='text-right'>
-              Access
+        <div className='pt-3 flex flex-col space-y-2'>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-name w-1/3'>Kind</div>
+            <div className='text-name' />
+          </div>
+          <div className='flex flex-row flex-start'>
+            <div className='text-gray-400 text-name w-1/3'>Namespace</div>
+            <div className='flex flex-col'>
+              {destination?.resources.map(r => (
+                <div key={r} className='text-name'>{r}</div>
+              ))}
             </div>
-          ),
-          Cell: ({ row }) => {
-            const [shareOpen, setShareOpen] = useState(false)
-            const { data: grants } = useSWR(`/v1/grants?resource=${row.original.name}`)
-
-            const users = new Set(grants?.filter(g => !g?.subject?.startsWith('g:'))).size
-            const groups = new Set(grants?.filter(g => g?.subject?.startsWith('g:'))).size
-
-            return (
-              <div className='flex text-right justify-end w-24 h-8 ml-auto'>
-                {grants && (
-                  <div className='group-hover:hidden flex justify-center items-center text-gray-300'>
-                    {users === 0 && groups === 0
-                      ? (
-                        <div>
-                          No access
-                        </div>
-                        )
-                      : (
-                        <>
-                          {users > 0 && (
-                            <div>
-                              {users}&nbsp;User{users > 1 && 's'}
-                            </div>
-                          )}
-                          {users > 0 && groups > 0 && (
-                            <div className='mx-1'>•</div>
-                          )}
-                          {groups > 0 && (
-                            <div>
-                              {groups}&nbsp;Group{groups > 1 && 's'}
-                            </div>
-                          )}
-                        </>
-                        )}
-                  </div>
-                )}
-                <div className='group-hover:flex space-x-1 hidden'>
-                  <button onClick={() => setShareOpen(true)} className='cursor-pointer bg-zinc-900 rounded-lg'>
-                    <div className='flex items-center py-1 px-3 text-gray-300 hover:text-white'>
-                      <ShareIcon className='w-4 h-4 ' /><div className='text-sm ml-1'>Share</div>
-                    </div>
-                  </button>
-
-                  {/* grant modal */}
-                  <Grant
-                    id={row.original.id}
-                    modalOpen={shareOpen}
-                    handleCloseModal={() => setShareOpen(false)}
-                  />
-                </div>
-              </div>
-            )
-          }
-        }]
-      : [],
-    ...admin
-      ? [{
-          id: 'remove',
-          accessor: d => d,
-          Cell: ({ rows, value: { id, name } }) => {
-            const { mutate } = useSWRConfig()
-
-            const [open, setOpen] = useState(false)
-
-            return (
-              <div className='flex justify-end w-6 ml-auto opacity-0 group-hover:opacity-100'>
-                <button onClick={() => setOpen(true)} className='py-1 px-2 -mr-2 cursor-pointer'>
-                  <XIcon className='w-5 h-5 text-gray-500 hover:text-white' />
-                </button>
-
-                {/* delete modal */}
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  onSubmit={async () => {
-                    mutate('/v1/destinations', async destinations => {
-                      await fetch(`/v1/destinations/${id}`, {
-                        method: 'DELETE'
-                      })
-
-                      return destinations?.filter(d => d?.id !== id)
-                    }, { optimisticData: rows.map(r => r.original).filter(d => d?.id !== id) })
-
-                    setOpen(false)
-                  }}
-                  title='Delete Cluster'
-                  message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
-                />
-              </div>
-            )
-          }
-        }]
-      : []
-  ]
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-name w-1/3'>Age</div>
+            <div className='text-name'>{dayjs(destination?.created).fromNow()}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-name w-1/3'>Images</div>
+            <div className='text-name' />
+          </div>
+        </div>
+      </>
+    </>
+  )
 }
 
 export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
+  const { mutate } = useSWRConfig()
   const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({ columns: useMemo(() => columns(admin), [admin]), data: destinations || [] })
+  const [DeleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [slideModalOpen, setSlideModalOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState(null)
+  const [slideActionBtns, setSlideActionBtns] = useState([])
+
+  const table = useTable({ columns, data: destinations || [] })
 
   const loading = adminLoading || (!destinations && !error)
+
+  const handleDestinationDetail = (row) => {
+    setSlideModalOpen(true)
+    setSelectedRow(row)
+    setSlideActionBtns([{ handleOnClick: () => setDeleteModalOpen(true), text: 'Disconnect Cluster' }])
+  }
+
+  const handleCancelDeleteModal = () => {
+    setDeleteModalOpen(false)
+    setSlideModalOpen(true)
+  }
 
   return (
     <>
@@ -151,14 +107,45 @@ export default function Destinations () {
       {loading
         ? (<Loader />)
         : (
-          <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
+          <div className={`flex-1 flex flex-col space-y-8 mt-3 mb-4 ${slideModalOpen ? 'w-7/12' : ''}`}>
             <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-            {
-              error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : <>
-                  <Table {...table} />
-                  {
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : <>
+                <Table
+                  {...table}
+                  getRowProps={row => ({
+                    onClick: () => handleDestinationDetail(row),
+                    style: {
+                      cursor: 'pointer'
+                    }
+                  })}
+                />
+                <>
+                  {slideModalOpen &&
+                    <Slide open={slideModalOpen} handleClose={() => setSlideModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns} deleteModalShown={DeleteModalOpen}>
+                      <SlideContent id={selectedRow.original.id} isAdmin={admin} />
+                    </Slide>}
+                  <DeleteModal
+                    open={DeleteModalOpen}
+                    setOpen={setDeleteModalOpen}
+                    onCancel={handleCancelDeleteModal}
+                    onSubmit={async () => {
+                      mutate('/v1/destinations', async destinations => {
+                        await fetch(`/v1/destinations/${selectedRow.original.id}`, {
+                          method: 'DELETE'
+                        })
+
+                        return destinations?.filter(d => d?.id !== selectedRow.original.id)
+                      })
+
+                      setDeleteModalOpen(false)
+                    }}
+                    title='Delete Cluster'
+                    message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+                  />
+                </>
+                {
                     destinations?.length === 0 &&
                       <EmptyTable
                         title='There are no infrastructure'
@@ -168,8 +155,7 @@ export default function Destinations () {
                         buttonText='Infrastructure'
                       />
                   }
-                  </>
-            }
+              </>}
           </div>
           )}
     </>
