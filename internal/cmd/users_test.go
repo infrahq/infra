@@ -125,14 +125,6 @@ func TestUsersCmd(t *testing.T) {
 		assert.ErrorContains(t, err, "Please specify a field to update. For options, run 'infra users edit --help'")
 	})
 
-	t.Run("edit user interactive with password", func(t *testing.T) {
-		setup(t)
-		t.Setenv("INFRA_PASSWORD", "true")
-		t.Setenv("INFRA_NON_INTERACTIVE", "true")
-		err := Run(context.Background(), "users", "edit", "new-user@example.com")
-		assert.ErrorContains(t, err, "Non-interactive mode is not supported to edit sensitive fields.")
-	})
-
 	t.Run("edit without required argument", func(t *testing.T) {
 		err := Run(context.Background(), "users", "edit")
 		assert.ErrorContains(t, err, `"infra users edit" requires exactly 1 argument`)
