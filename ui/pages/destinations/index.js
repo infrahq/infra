@@ -153,11 +153,12 @@ export default function Destinations () {
         : (
           <div className='flex-1 flex flex-col space-y-8 mt-3 mb-4'>
             <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-            {error?.status
-              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : <>
-                <Table {...table} />
-                {
+            {
+              error?.status
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+                : <>
+                  <Table {...table} />
+                  {
                     destinations?.length === 0 &&
                       <EmptyTable
                         title='There are no infrastructure'
@@ -167,7 +168,8 @@ export default function Destinations () {
                         buttonText='Infrastructure'
                       />
                   }
-                </>}
+                  </>
+            }
           </div>
           )}
     </>
