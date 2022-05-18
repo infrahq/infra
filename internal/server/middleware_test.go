@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -25,26 +24,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	t.Cleanup(func() {
-		models.SymmetricKey = nil
-	})
-	loadDBKey := func(db *gorm.DB) error {
-		fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-			Path: os.TempDir(),
-		})
-
-		kp := secrets.NewNativeKeyProvider(fp)
-
-		key, err := kp.GenerateDataKey("")
-		if err != nil {
-			return err
-		}
-
-		models.SymmetricKey = key
-		return nil
-	}
-
-	db, err := data.NewDB(driver, loadDBKey)
+	patch.ModelsSymmetricKey(t)
+	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	err = data.CreateProvider(db, &models.Provider{

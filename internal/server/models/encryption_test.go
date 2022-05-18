@@ -1,16 +1,14 @@
 package models_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -20,30 +18,12 @@ type StructForTesting struct {
 }
 
 func TestEncryptedAtRest(t *testing.T) {
-	var err error
-	// secret provider setup
-	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
+	patch.ModelsSymmetricKey(t)
 
-	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
-	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-	assert.NilError(t, err)
-
-	// test
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	loadDBKey := func(db *gorm.DB) error {
-		models.SymmetricKey = symmetricKey
-		return nil
-	}
-	t.Cleanup(func() {
-		models.SymmetricKey = nil
-	})
-
-	db, err := data.NewDB(driver, loadDBKey)
+	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	err = db.AutoMigrate(&StructForTesting{})

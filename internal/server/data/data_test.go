@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -25,27 +25,9 @@ func setup(t *testing.T) *gorm.DB {
 
 func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	t.Helper()
-	t.Cleanup(func() {
-		models.SymmetricKey = nil
-	})
+	patch.ModelsSymmetricKey(t)
 
-	loadDBKey := func(db *gorm.DB) error {
-		fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-			Path: os.TempDir(),
-		})
-
-		kp := secrets.NewNativeKeyProvider(fp)
-
-		key, err := kp.GenerateDataKey("")
-		if err != nil {
-			return err
-		}
-
-		models.SymmetricKey = key
-		return nil
-	}
-
-	db, err := NewDB(driver, loadDBKey)
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error

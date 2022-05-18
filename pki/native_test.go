@@ -2,43 +2,23 @@ package pki
 
 import (
 	"crypto/x509"
-	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 )
 
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	loadDBKey := func(db *gorm.DB) error {
-		fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-			Path: os.TempDir(),
-		})
-
-		kp := secrets.NewNativeKeyProvider(fp)
-
-		key, err := kp.GenerateDataKey("")
-		if err != nil {
-			return err
-		}
-
-		models.SymmetricKey = key
-		return nil
-	}
-	t.Cleanup(func() {
-		models.SymmetricKey = nil
-	})
-
-	db, err := data.NewDB(driver, loadDBKey)
+	patch.ModelsSymmetricKey(t)
+	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	return db

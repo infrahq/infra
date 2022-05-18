@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 )
 
 // see loadSQL for setting up your own migration test
@@ -18,6 +18,7 @@ func Test202204111503(t *testing.T) {
 		loadSQL(t, db, "202204111503")
 	})
 
+	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
 	err := migrate(db)
 	assert.NilError(t, err)
 
@@ -32,15 +33,8 @@ func Test202204211705(t *testing.T) {
 		loadSQL(t, db, "202204211705")
 	})
 
-	key, err := tmpSymmetricKey()
-	assert.NilError(t, err)
-
-	models.SymmetricKey = key
-	t.Cleanup(func() {
-		models.SymmetricKey = nil
-	})
-
-	err = migrate(db)
+	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
+	err := migrate(db)
 	assert.NilError(t, err)
 
 	// check it still works
@@ -60,16 +54,6 @@ func Test202204211705(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Assert(t, rawSettings.PrivateJWK[0] != '{')
-}
-
-func tmpSymmetricKey() (*secrets.SymmetricKey, error) {
-	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
-
-	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
-	return symmetricKeyProvider.GenerateDataKey(rootKey)
 }
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
@@ -113,11 +97,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 
 	f(db)
 
-	models.SkipSymmetricKey = true
-	t.Cleanup(func() {
-		models.SkipSymmetricKey = false
-	})
-
+	patch.ModelsSymmetricKey(t)
 	setupLogging(t)
 
 	return db
