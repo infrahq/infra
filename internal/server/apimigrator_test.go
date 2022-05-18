@@ -170,16 +170,47 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 		}, nil
 	})
 
-	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
-	router.ServeHTTP(resp, req)
+	t.Run("v0.1.1", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
+		req.Header.Add("Infra-Version", "0.1.1")
+		router.ServeHTTP(resp, req)
 
-	assert.Equal(t, resp.Result().StatusCode, 200)
+		assert.Equal(t, resp.Result().StatusCode, 200)
 
-	lr := &legacyResponse{}
-	err := json.Unmarshal(resp.Body.Bytes(), lr)
-	assert.NilError(t, err)
-	assert.Equal(t, lr.Shoes, 8)
+		lr := &legacyResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Shoes, 8)
+	})
+	t.Run("v0.1.2", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/superbettertest?vegetableCount=12", nil)
+		req.Header.Add("Infra-Version", "0.1.2")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &upgradedResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Loafers, 5)
+		assert.Equal(t, lr.Sneakers, 3)
+	})
+	t.Run("v0.1.3", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/awesometest?vegetableCount=12", nil)
+		req.Header.Add("Infra-Version", "0.1.2")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &upgradedResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Loafers, 5)
+		assert.Equal(t, lr.Sneakers, 3)
+	})
 }
 
 func TestRedirectWithPathVariable(t *testing.T) {
@@ -344,6 +375,45 @@ func TestEmptyVersionHeader(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, r.Shoes, 8)
 	}
+}
+
+func TestRedirectWithARequestRewriteToQueryParameter(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv}
+	router := gin.New()
+
+	addRedirect(a, "get", "/oldtest/:id", "/awesometest", "0.1.3", func(c *gin.Context) {
+		id := c.Param("id")
+		q := c.Request.URL.Query()
+		q.Add("vegetableCount", id)
+		c.Request.URL.RawQuery = q.Encode()
+		c.Next()
+	})
+
+	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+		assert.Equal(t, req.VegetableCount, 152)
+
+		return &upgradedResponse{
+			Loafers:  5,
+			Sneakers: 3,
+		}, nil
+	})
+
+	t.Run("v0.1.2", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/oldtest/152", nil)
+		req.Header.Add("Infra-Version", "0.1.2")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &upgradedResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Loafers, 5)
+	})
+
 }
 
 func afterVersion(ver string) bool {

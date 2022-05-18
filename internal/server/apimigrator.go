@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -26,23 +27,22 @@ type apiMigration struct {
 	redirect        string
 	requestRewrite  func(c *gin.Context)
 	responseRewrite func(c *gin.Context)
+	redirectHandler func(c *gin.Context)
+	index           int
 }
 
-func addRedirect(a *API, method, path, newPath, version string) {
-	// update any existing migrations with the legacy path
-	for i, mig := range a.migrations {
-		if len(mig.redirect) == 0 && mig.path == path {
-			a.migrations[i].path = newPath
-		}
-		if len(mig.redirect) > 0 && mig.redirect == path {
-			a.migrations[i].redirect = newPath
-		}
+func addRedirect(a *API, method, path, newPath, version string, optMiddleware ...gin.HandlerFunc) {
+	var optRedirectMiddleware gin.HandlerFunc
+	if len(optMiddleware) > 0 {
+		optRedirectMiddleware = optMiddleware[0]
 	}
 	a.migrations = append(a.migrations, apiMigration{
-		method:   method,
-		path:     path,
-		version:  version,
-		redirect: newPath,
+		method:          method,
+		path:            path,
+		version:         version,
+		redirect:        newPath,
+		redirectHandler: optRedirectMiddleware,
+		index:           len(a.migrations),
 	})
 }
 
@@ -55,6 +55,7 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 		method:  method,
 		path:    path,
 		version: version,
+		index:   len(a.migrations),
 		requestRewrite: func(c *gin.Context) {
 			if !rewriteRequired(c, migrationVersion) {
 				c.Next()
@@ -161,6 +162,7 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 		method:  method,
 		path:    path,
 		version: version,
+		index:   len(a.migrations),
 		responseRewrite: func(c *gin.Context) {
 			if !rewriteRequired(c, migrationVersion) {
 				c.Next()
@@ -203,6 +205,48 @@ func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Request.URL.Path = m.redirect
 		c.Next()
+	}
+}
+
+type HTTPMethodBindFunc func(relativePath string, handlers ...gin.HandlerFunc) gin.IRoutes
+
+func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc HTTPMethodBindFunc) {
+	// build up the routes
+	routes := map[string][]gin.HandlerFunc{}
+	routes[path] = []gin.HandlerFunc{handler}
+	sort.Slice(a.migrations, sortVersionDescendingOrder(a.migrations))
+	for _, migration := range a.migrations {
+		if strings.ToUpper(migration.method) != method {
+			continue
+		}
+		route, ok := routes[migration.path]
+		// nolint:gocritic
+		if ok {
+			if migration.requestRewrite != nil {
+				route = append([]gin.HandlerFunc{migration.requestRewrite}, route...)
+			}
+			if migration.responseRewrite != nil {
+				route = append([]gin.HandlerFunc{migration.responseRewrite}, route...)
+			}
+		} else if len(migration.redirect) > 0 {
+			route, ok = routes[migration.redirect]
+			if !ok {
+				panic(fmt.Sprintf("invalid migration: there is no http %s route named %q defined to redirect to", migration.method, migration.redirect))
+			}
+			// this route will duplicate to the new path
+			route = append([]gin.HandlerFunc{migration.RedirectHandler()}, route...)
+			if migration.redirectHandler != nil {
+				route = append([]gin.HandlerFunc{migration.redirectHandler}, route...)
+			}
+		} else {
+			panic(fmt.Sprintf("invalid migration: there is no http %s route named %q to rewrite", migration.method, migration.path))
+		}
+		routes[migration.path] = route
+	}
+
+	// bind all relevant paths with Gin
+	for path, handlers := range routes {
+		methodFunc(path, handlers...)
 	}
 }
 
@@ -294,4 +338,18 @@ func (w *responseWriter) Pusher() (pusher http.Pusher) {
 		return pusher
 	}
 	return nil
+}
+
+func sortVersionDescendingOrder(m []apiMigration) func(i, j int) bool {
+	return func(i, j int) bool {
+		iver, _ := semver.NewVersion(m[i].version)
+		jver, _ := semver.NewVersion(m[j].version)
+		if iver.LessThan(jver) {
+			return false
+		}
+		if iver.GreaterThan(jver) {
+			return true
+		}
+		return m[i].index > m[j].index
+	}
 }
