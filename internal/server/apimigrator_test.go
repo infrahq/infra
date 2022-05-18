@@ -213,6 +213,76 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 	})
 }
 
+func TestRewriteOfRedirectedRoute(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	a := &API{server: srv}
+	router := gin.New()
+
+	addRedirect(a, "get", "/test", "/awesometest", "0.1.3")
+
+	addRequestRewrite(a, "get", "/awesometest", "0.1.4", func(old legacyTestRequest) upgradedTestRequest {
+		return upgradedTestRequest{
+			VegetableCount: old.CarrotCount + old.CucumberCount,
+		}
+	})
+
+	addResponseRewrite(a, "get", "/awesometest", "0.1.4", func(ur upgradedResponse) legacyResponse {
+		return legacyResponse{
+			Shoes: ur.Loafers + ur.Sneakers,
+		}
+	})
+
+	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+		assert.Equal(t, req.VegetableCount, 12)
+
+		return &upgradedResponse{
+			Loafers:  5,
+			Sneakers: 3,
+		}, nil
+	})
+
+	t.Run("v0.1.3", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
+		req.Header.Add("Infra-Version", "0.1.3")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &legacyResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Shoes, 8)
+	})
+	t.Run("v0.1.4", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/awesometest?cucumberCount=5&carrotCount=7", nil)
+		req.Header.Add("Infra-Version", "0.1.4")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &legacyResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Shoes, 8)
+	})
+	t.Run("v0.1.5", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/awesometest?vegetableCount=12", nil)
+		req.Header.Add("Infra-Version", "0.1.5")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 200)
+
+		lr := &upgradedResponse{}
+		err := json.Unmarshal(resp.Body.Bytes(), lr)
+		assert.NilError(t, err)
+		assert.Equal(t, lr.Loafers, 5)
+	})
+}
+
 func TestRedirectWithPathVariable(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 

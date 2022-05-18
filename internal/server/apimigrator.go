@@ -211,9 +211,14 @@ func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
 type HTTPMethodBindFunc func(relativePath string, handlers ...gin.HandlerFunc) gin.IRoutes
 
 func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc HTTPMethodBindFunc) {
-	// build up the routes
+	// build up the handlers into a map of all the paths we need to bind into.
 	routes := map[string][]gin.HandlerFunc{}
+	// set the default path
 	routes[path] = []gin.HandlerFunc{handler}
+
+	// we're going to build this list in referse order, prepending middleware.
+	// we start with the current migration and prepend versions backwards,
+	// 0.1.3, then 0.1.2, then 0.1.1.
 	sort.Slice(a.migrations, sortVersionDescendingOrder(a.migrations))
 	for _, migration := range a.migrations {
 		if strings.ToUpper(migration.method) != method {
@@ -229,13 +234,14 @@ func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc 
 				route = append([]gin.HandlerFunc{migration.responseRewrite}, route...)
 			}
 		} else if len(migration.redirect) > 0 {
+			// Redirects end up duplicating/splitting into a new path without destroying the old one
 			route, ok = routes[migration.redirect]
 			if !ok {
 				panic(fmt.Sprintf("invalid migration: there is no http %s route named %q defined to redirect to", migration.method, migration.redirect))
 			}
-			// this route will duplicate to the new path
 			route = append([]gin.HandlerFunc{migration.RedirectHandler()}, route...)
 			if migration.redirectHandler != nil {
+				// if the migration has a custom redirect handler, prepend it.
 				route = append([]gin.HandlerFunc{migration.redirectHandler}, route...)
 			}
 		} else {
@@ -244,7 +250,7 @@ func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc 
 		routes[migration.path] = route
 	}
 
-	// bind all relevant paths with Gin
+	// now bind all relevant paths with Gin
 	for path, handlers := range routes {
 		methodFunc(path, handlers...)
 	}
