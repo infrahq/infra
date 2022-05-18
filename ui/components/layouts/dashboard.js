@@ -42,70 +42,68 @@ export default function ({ children }) {
 
   return (
     <div className='flex h-full relative'>
-      <nav className='flex-none flex w-64 lg:w-72 flex-col inset-y-0 px-1 overflow-y-auto'>
-        <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-4 select-none'>
+      <nav className='flex-none flex w-56 flex-col inset-y-0 overflow-y-auto'>
+        <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-5 select-none'>
           <Link href='/'>
             <a>
               <img
-                className='h-[13px] w-[36px]'
+                className='h-[15px]'
                 src='infra.svg'
                 alt='Infra'
               />
             </a>
           </Link>
         </div>
-        <div className='flex-1 space-y-1.5 px-3 select-none'>
+        <div className='flex-1 space-y-1 px-5 select-none'>
           {navigation.map(n =>
             <Link key={n.name} href={n.href}>
               <a
                 href={n.href}
                 className={`
                   ${router.asPath.startsWith(n.href) ? 'text-white' : 'text-gray-400'}
-                  rounded-lg py-2 px-3 flex items-center text-title transition-colors duration-100 
+                  rounded-lg py-2 flex items-center text-[13px] leading-none transition-colors duration-100
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
               >
                 <img
                   src={n.icon}
-                  className={`${router.asPath.startsWith(n.href) ? '' : 'opacity-40'} mr-3 flex-shrink-0 h-3.5 w-3.5`}
+                  className={`${router.asPath.startsWith(n.href) ? '' : 'opacity-40'} mr-3 flex-shrink-0 h-[18px] w-[18px]`}
                 />
                 {n.name}
               </a>
             </Link>
           )}
         </div>
-        <div className='relative group mx-2 my-5 px-4 pb-20 h-16 hover:h-40 transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
-          <div className='flex items-center space-x-2 mt-4 mb-2'>
-            <div className='bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px'>
-              <div className='bg-black flex-none flex items-center justify-center w-8 h-8 rounded-[4px]'>
-                <div className='bg-gradient-to-tr from-indigo-300 to-pink-100 rounded-sm p-px'>
-                  <div className='bg-black flex-none flex justify-center items-center w-6 h-6 pb-0.5 text-subtitle font-bold select-none rounded-sm'>
-                    {auth?.name?.[0]}
-                  </div>
-                </div>
+        <div className='relative flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
+          <div className='flex flex-none self-start items-stretch bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] w-[23px] h-[23px]'>
+            <div className='flex-1 bg-gradient-to-tr border-2 border-black from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px m-px'>
+              <div className='bg-black w-full h-full flex justify-center items-center text-[12px] leading-none font-normal mb-px select-none rounded-sm'>
+                {auth?.name?.[0]}
               </div>
             </div>
-            <div className='text-gray-400 hover:text-white text-title leading-none truncate pb-px'>{auth?.name}</div>
           </div>
-          <div className='w-full pl-11 pr-2 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 select-none text-sm'>
-            {subNavigation.map(s => (
-              <Link key={s.name} href={s.href}>
-                <a className={`w-full flex py-2 ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
-                  <div className='text-gray-400 text-title hover:text-white'>{s.name}</div>
-                </a>
-              </Link>
-            ))}
-            <div onClick={() => logout()} className='w-full flex items-center py-2 cursor-pointer'>
-              <div className='text-gray-400 text-title hover:text-white'>Sign Out</div>
-            </div>
-            <div className='pt-2 pb-4 text-note text-gray-400/40'>
-              Infra version {version?.version}
-            </div>
+          <div className='w-full ml-1 px-2 items-center select-none'>
+            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-1 mb-2 leding-none truncate text-xs pb-px'>{auth?.name}</div>
+            <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+              {subNavigation.map(s => (
+                <Link key={s.name} href={s.href}>
+                  <a className={`w-full flex py-1.5 text-[13px] ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
+                    <div className='text-gray-400 hover:text-white'>{s.name}</div>
+                  </a>
+                </Link>
+              ))}
+              <div onClick={() => logout()} className='w-full flex items-center py-1.5 cursor-pointer'>
+                <div className='text-gray-400 text-[13px] hover:text-white'>Sign Out</div>
+              </div>
+              <div className='text-[10px] mt-2 leading-none text-gray-300/50'>
+                Infra version {version?.version}
+              </div>
+            </nav>
           </div>
         </div>
       </nav>
       <main className='w-full overflow-x-hidden overflow-y-scroll'>
-        <div className='mx-10'>
+        <div className='mx-6'>
           {children}
         </div>
       </main>

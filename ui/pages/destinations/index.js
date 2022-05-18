@@ -16,20 +16,30 @@ import PageHeader from '../../components/layouts/page-header'
 import Slide from '../../components/slide'
 
 const columns = [{
-  Header: 'Cluster',
+  Header: 'Name',
   accessor: 'name',
   Cell: ({ value }) => (
     <div className='flex items-center'>
-      <div className='py-2'>{value}</div>
+      <div className='py-2 flex items-center'><img className='opacity-25 mr-4' src='/infrastructure.svg' /> {value}</div>
     </div>
   )
 }, {
-  Header: 'Added',
-  accessor: i => {
-    return dayjs(i.created).fromNow()
-  }
-}
-]
+  Header: 'Kind',
+  id: 'kind',
+  Cell: 'Cluster'
+}, {
+  id: 'connected',
+  Header: () => (
+    <div className='text-right'>Connection</div>
+  ),
+  accessor: 'updated',
+  Cell: ({ value: updated }) => (
+    <div className='flex items-center justify-end'>
+      <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-2' />
+      {new Date() - new Date(updated)}
+    </div>
+  )
+}]
 
 function SlideContent ({ id, isAdmin }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
