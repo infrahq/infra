@@ -241,6 +241,7 @@ $ infra grants add johndoe@example.com infra --role admin
 ### Options
 
 ```
+      --force         Create grant even if requested resources are missing
   -g, --group         Required if identity is of type 'group'
       --role string   Type of access that identity will be given (default "connect")
 ```

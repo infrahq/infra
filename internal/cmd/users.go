@@ -46,7 +46,12 @@ $ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			createResp, err := CreateUser(&api.CreateUserRequest{Name: name, SetOneTimePassword: true})
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
+
+			createResp, err := createUser(client, name, true)
 			if err != nil {
 				return err
 			}
@@ -216,7 +221,7 @@ func UpdateUser(name string, cmdOptions editUserCmdOptions) error {
 			return err
 		}
 	} else {
-		user, err := GetUserByName(client, name)
+		user, err := getUserByName(client, name)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				return fmt.Errorf("User %s not found in local provider; only local users can be edited", name)
@@ -247,18 +252,18 @@ func UpdateUser(name string, cmdOptions editUserCmdOptions) error {
 	return nil
 }
 
-func GetUserByName(client *api.Client, name string) (*api.User, error) {
+func getUserByName(client *api.Client, name string) (*api.User, error) {
 	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
 	if users.Count == 0 {
-		return nil, ErrUserNotFound
+		return nil, fmt.Errorf("unknown user %q", name)
 	}
 
-	if users.Count != 1 {
-		return nil, fmt.Errorf("invalid users response, there should only be one user that matches a name, but multiple were found")
+	if users.Count > 1 {
+		return nil, fmt.Errorf("multiple results found for %q. check your server configurations", name)
 	}
 
 	return &users.Items[0], nil
@@ -323,4 +328,14 @@ func isUserSelf(name string) (bool, error) {
 	}
 
 	return config.Name == name, nil
+}
+
+// createUser creates a user with the requested name
+func createUser(client *api.Client, name string, setOTP bool) (*api.CreateUserResponse, error) {
+	user, err := client.CreateUser(&api.CreateUserRequest{Name: name, SetOneTimePassword: setOTP})
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
