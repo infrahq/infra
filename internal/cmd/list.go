@@ -30,48 +30,9 @@ func newListCmd(cli *CLI) *cobra.Command {
 }
 
 func list(cli *CLI) error {
-	client, err := defaultAPIClient()
+	user, destinations, grants, err := getUserDestinationGrants()
 	if err != nil {
 		return err
-	}
-
-	config, err := currentHostConfig()
-	if err != nil {
-		return err
-	}
-
-	id := config.PolymorphicID
-	if id == "" {
-		return fmt.Errorf("no active identity")
-	}
-
-	identityID, err := id.ID()
-	if err != nil {
-		return err
-	}
-
-	user, err := client.GetUser(identityID)
-	if err != nil {
-		return err
-	}
-
-	grants, err := client.ListGrants(api.ListGrantsRequest{User: identityID})
-	if err != nil {
-		return err
-	}
-
-	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
-	if err != nil {
-		return err
-	}
-
-	for _, g := range groups.Items {
-		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
-		if err != nil {
-			return err
-		}
-
-		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
 	gs := make(map[string]map[string]struct{})
@@ -82,11 +43,6 @@ func list(cli *CLI) error {
 		}
 
 		gs[g.Resource][g.Privilege] = struct{}{}
-	}
-
-	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
-	if err != nil {
-		return err
 	}
 
 	type row struct {
@@ -144,4 +100,57 @@ func list(cli *CLI) error {
 	}
 
 	return writeKubeconfig(user, destinations.Items, grants.Items)
+}
+
+func getUserDestinationGrants() (*api.User, *api.ListResponse[api.Destination], *api.ListResponse[api.Grant], error) {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	config, err := currentHostConfig()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	id := config.PolymorphicID
+	if id == "" {
+		return nil, nil, nil, fmt.Errorf("no active identity")
+	}
+
+	identityID, err := id.ID()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	user, err := client.GetUser(identityID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	grants, err := client.ListGrants(api.ListGrantsRequest{User: identityID})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for _, g := range groups.Items {
+		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		grants.Items = append(grants.Items, groupGrants.Items...)
+	}
+
+	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return user, destinations, grants, nil
 }

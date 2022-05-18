@@ -258,6 +258,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newTokensCmd(cli))
 	rootCmd.AddCommand(newServerCmd())
 	rootCmd.AddCommand(newConnectorCmd())
+	rootCmd.AddCommand(newAgentCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")

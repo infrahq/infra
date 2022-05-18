@@ -2,6 +2,7 @@ package repeat
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -68,4 +69,39 @@ func TestStart_SkipsRunWhenPreviousRunsLongerThanInterval(t *testing.T) {
 	<-done
 	// 30 * 5 + 10 = 160 Milliseconds
 	assert.Assert(t, time.Since(start) > 160*time.Millisecond)
+}
+
+func TestInGroup_StopsWithContextCancelled(t *testing.T) {
+	var wg sync.WaitGroup
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	start := time.Now()
+	InGroup(&wg, ctx, cancel, 2*time.Second, func(ctx2 context.Context, cancel2 context.CancelFunc) {
+		cancel()
+	})
+
+	wg.Wait()
+
+	assert.Assert(t, time.Since(start) < time.Second)
+}
+
+func TestInGroup_StopsAllWithContextCancelled(t *testing.T) {
+	var wg sync.WaitGroup
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	start := time.Now()
+	InGroup(&wg, ctx, cancel, 2*time.Second, func(ctx2 context.Context, cancel2 context.CancelFunc) {
+		cancel()
+	})
+	InGroup(&wg, ctx, cancel, 2*time.Second, func(ctx2 context.Context, cancel2 context.CancelFunc) {
+		// intentionally blank, does not cancel
+	})
+
+	wg.Wait()
+
+	assert.Assert(t, time.Since(start) < time.Second)
 }

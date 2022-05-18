@@ -2,6 +2,7 @@ package repeat
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,27 @@ func Start(ctx context.Context, interval time.Duration, run func(context.Context
 			select {
 			case <-timer.C:
 				run(ctx)
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			}
+		}
+	}()
+}
+
+// InGroup starts a repeated goroutine as part of a group
+func InGroup(wg *sync.WaitGroup, ctx context.Context, cancel context.CancelFunc, interval time.Duration, run func(context.Context, context.CancelFunc)) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		run(ctx, cancel)
+
+		for {
+			timer := time.NewTimer(interval)
+			select {
+			case <-timer.C:
+				run(ctx, cancel)
 			case <-ctx.Done():
 				timer.Stop()
 				return

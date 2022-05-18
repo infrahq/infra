@@ -200,6 +200,21 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 
 	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
+	backgroundAgentRunning, err := configAgentRunning()
+	if err != nil {
+		// do not block login, just proceed, potentially without the agent
+		logging.S.Errorf("unable to check background agent: %v", err)
+	}
+
+	if !backgroundAgentRunning {
+		// the agent is started in a separate command so that it continues after the login command has finished
+		if err := execAgent(); err != nil {
+			// user still has a valid session, so do not fail
+			logging.S.Errorf("exec login agent: %w", err)
+			fmt.Fprintf(os.Stderr, "  Unable to start agent, destinations will not be updated automatically")
+		}
+	}
+
 	return nil
 }
 
