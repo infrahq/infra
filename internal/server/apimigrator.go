@@ -224,30 +224,31 @@ func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc 
 		if strings.ToUpper(migration.method) != method {
 			continue
 		}
-		route, ok := routes[migration.path]
-		// nolint:gocritic
-		if ok {
+
+		// check if the migration path matches the route we're defining
+		if route, ok := routes[migration.path]; ok {
 			if migration.requestRewrite != nil {
 				route = append([]gin.HandlerFunc{migration.requestRewrite}, route...)
 			}
 			if migration.responseRewrite != nil {
 				route = append([]gin.HandlerFunc{migration.responseRewrite}, route...)
 			}
-		} else if len(migration.redirect) > 0 {
-			// Redirects end up duplicating/splitting into a new path without destroying the old one
-			route, ok = routes[migration.redirect]
-			if !ok {
-				panic(fmt.Sprintf("invalid migration: there is no http %s route named %q defined to redirect to", migration.method, migration.redirect))
-			}
-			route = append([]gin.HandlerFunc{migration.RedirectHandler()}, route...)
-			if migration.redirectHandler != nil {
-				// if the migration has a custom redirect handler, prepend it.
-				route = append([]gin.HandlerFunc{migration.redirectHandler}, route...)
-			}
-		} else {
-			panic(fmt.Sprintf("invalid migration: there is no http %s route named %q to rewrite", migration.method, migration.path))
+			routes[migration.path] = route
+			continue
 		}
-		routes[migration.path] = route
+
+		// check if the migration redirects to the route we're defining
+		if len(migration.redirect) > 0 {
+			// Redirects end up duplicating/splitting into a new path without destroying the old one
+			if route, ok := routes[migration.redirect]; ok {
+				route = append([]gin.HandlerFunc{migration.RedirectHandler()}, route...)
+				if migration.redirectHandler != nil {
+					// if the migration has a custom redirect handler, prepend it.
+					route = append([]gin.HandlerFunc{migration.redirectHandler}, route...)
+				}
+				routes[migration.path] = route
+			}
+		}
 	}
 
 	// now bind all relevant paths with Gin
