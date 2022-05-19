@@ -108,7 +108,7 @@ func TestGet(t *testing.T) {
 
 	t.Run("bad request", func(t *testing.T) {
 		_, err := get[stubResponse](c, "/bad")
-		assert.Error(t, err, `GET /bad failed: bad request: it failed because`)
+		assert.Error(t, err, `bad request: it failed because`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/bad")
@@ -120,7 +120,7 @@ func TestGet(t *testing.T) {
 
 	t.Run("server error", func(t *testing.T) {
 		_, err := get[stubResponse](c, "/invalid")
-		assert.Error(t, err, `GET /invalid failed: 500 internal server error`)
+		assert.Error(t, err, `500 internal server error`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/invalid")
