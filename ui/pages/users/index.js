@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import { useState } from 'react'
 import { useTable } from 'react-table'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
@@ -13,6 +13,8 @@ import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import Slide from '../../components/slide'
 import ProfileIcon from '../../components/profile-icon'
+import DeleteModal from '../../components/modals/delete'
+import ResourcesGrant from '../../components/resources-grant'
 
 const columns = [{
   Header: 'Name',
@@ -44,13 +46,15 @@ function SlideContent ({ id, isAdmin }) {
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
 
   return (
-    <>
+    <div className='pl-4'>
       {isAdmin &&
         <>
           <div className='border-b border-gray-800 mt-4'>
             <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
           </div>
-          <div className='pt-3 pb-12' />
+          <div className='pt-3 pb-12'>
+            <ResourcesGrant id={id} />
+          </div>
         </>}
       <>
         <div className='border-b border-gray-800 mt-4'>
@@ -71,7 +75,7 @@ function SlideContent ({ id, isAdmin }) {
           </div>
         </div>
       </>
-    </>
+    </div>
   )
 }
 
@@ -79,6 +83,7 @@ export default function Users () {
   const { data: users, error } = useSWR('/v1/identities')
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({ columns, data: users || [] })
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [slideModalOpen, setSlideModalOpen] = useState(false)
   const [selectedRow, setSelectedRow] = useState(null)
   const [slideActionBtns, setSlideActionBtns] = useState([])
@@ -86,10 +91,14 @@ export default function Users () {
   const loading = adminLoading || (!users && !error)
 
   const handleUserDetail = (row) => {
-    console.log('row:', row)
     setSlideModalOpen(true)
     setSelectedRow(row)
-    setSlideActionBtns([{ handleOnClick: () => {}, text: 'Remove User' }])
+    setSlideActionBtns([{ handleOnClick: () => setDeleteModalOpen(true), text: 'Remove User' }])
+  }
+
+  const handleCancelDeleteModal = () => {
+    setDeleteModalOpen(false)
+    setSlideModalOpen(true)
   }
 
   return (
@@ -123,9 +132,28 @@ export default function Users () {
                   title={selectedRow.original.name}
                   footerBtns={slideActionBtns}
                   profileIconName={selectedRow.original.name[0]}
+                  deleteModalShown={deleteModalOpen}
                 >
                   <SlideContent id={selectedRow.original.id} isAdmin={admin} />
                 </Slide>}
+              <DeleteModal
+                open={deleteModalOpen}
+                setOpen={setDeleteModalOpen}
+                onCancel={handleCancelDeleteModal}
+                onSubmit={async () => {
+                  mutate('/v1/identities', async users => {
+                    await fetch(`/v1/identities/${selectedRow.original.id}`, {
+                      method: 'DELETE'
+                    })
+
+                    return users?.filter(u => u?.id !== selectedRow.original.id)
+                  })
+
+                  setDeleteModalOpen(false)
+                }}
+                title='Delete User'
+                message={<>Are you sure you want to remove <span className='text-white font-bold'>{selectedRow?.original.name}?</span></>}
+              />
               {
                 users?.length === 0 &&
                   <EmptyTable

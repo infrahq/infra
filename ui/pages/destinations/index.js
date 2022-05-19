@@ -34,7 +34,7 @@ const columns = [{
 function SlideContent ({ id, isAdmin }) {
   const { data: destination } = useSWR(`/v1/destinations/${id}`)
   return (
-    <>
+    <div className='pl-4'>
       {isAdmin &&
         <>
           <div className='border-b border-gray-800 mt-4'>
@@ -71,7 +71,7 @@ function SlideContent ({ id, isAdmin }) {
           </div>
         </div>
       </>
-    </>
+    </div>
   )
 }
 
