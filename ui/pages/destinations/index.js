@@ -12,7 +12,7 @@ import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
-import PageHeader from '../../components/layouts/page-header'
+import PageHeader from '../../components/page-header'
 import Slide from '../../components/slide'
 
 const columns = [{

@@ -25,13 +25,21 @@ export default function () {
     const urlSearchParams = new URLSearchParams(window.location.search)
     const params = Object.fromEntries(urlSearchParams.entries())
 
+    const providerID = window.localStorage.getItem('providerID')
+    const redirectURL = window.localStorage.getItem('redirectURL')
+
+    if (!params.code || !providerID || !redirectURL) {
+      router.replace('/login')
+      return
+    }
+
     if (params.state === window.localStorage.getItem('state')) {
       login({
-        providerID: window.localStorage.getItem('providerId'),
+        providerID,
         code: params.code,
-        redirectURL: window.localStorage.getItem('redirectURL')
+        redirectURL: redirectURL
       })
-      window.localStorage.removeItem('providerId')
+      window.localStorage.removeItem('providerID')
       window.localStorage.removeItem('state')
       window.localStorage.removeItem('redirectURL')
     }

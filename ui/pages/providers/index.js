@@ -11,7 +11,7 @@ import DeleteModal from '../../components/modals/delete'
 import Table from '../../components/table'
 import Loader from '../../components/loader'
 import EmptyTable from '../../components/empty-table'
-import PageHeader from '../../components/layouts/page-header'
+import PageHeader from '../../components/page-header'
 
 const columns = [{
   Header: 'Name',

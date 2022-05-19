@@ -3,11 +3,10 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
 import { kind } from '../../lib/providers'
-
-import HeaderIcon from '../../components/header-icon'
+import LoginLayout from '../../components/layouts/login'
 
 function oidcLogin ({ id, url, clientID }) {
-  window.localStorage.setItem('providerId', id)
+  window.localStorage.setItem('providerID', id)
 
   const state = [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
   window.localStorage.setItem('state', state)
@@ -49,12 +48,12 @@ function Providers ({ providers }) {
   )
 }
 
-export default function () {
+export default function Login () {
   const { data: providers } = useSWR('/v1/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
@@ -66,7 +65,7 @@ export default function () {
         method: 'post',
         body: JSON.stringify({
           passwordCredentials: {
-            email,
+            name,
             password
           }
         })
@@ -86,7 +85,7 @@ export default function () {
         return
       }
 
-      mutate('/v1/identities/self', { optimisticData: { name: email } })
+      mutate('/v1/identities/self', { optimisticData: { name } })
 
       router.replace('/')
     } catch (e) {
@@ -98,48 +97,47 @@ export default function () {
   }
 
   return (
-    <div className='w-full min-h-full flex flex-col'>
-      <div className='flex flex-col justify-center items-center px-5 py-5 my-10 border rounded-lg border-gray-800'>
-        <HeaderIcon size={12} iconPath='/infra-color.svg' />
-        <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-        <h2 className='text-[13px] text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
-        {providers?.length > 0 && <Providers providers={providers} />}
+    <>
+      <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
+      <h2 className='text-[13px] text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
+      {providers?.length > 0 && <Providers providers={providers} />}
 
-        <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
-          <div className='w-full my-4'>
-            <div className='text-xxs text-gray-500 uppercase'>Email</div>
-            <input
-              required
-              autoFocus
-              type='email'
-              placeholder='email@address.com'
-              onChange={e => {
-                setEmail(e.target.value)
-                setError('')
-              }}
-              className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
-            />
-          </div>
-          <div className='w-full my-4'>
-            <label for='password' className='text-xxs text-gray-500 uppercase'>Password</label>
-            <input
-              required
-              name='password'
-              type='password'
-              placeholder='enter your password'
-              onChange={e => {
-                setPassword(e.target.value)
-                setError('')
-              }}
-              className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
-            />
-          </div>
-          <button disabled={!email || !password} className='border border-violet-300 hover:border-violet-100 my-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
-            Login
-          </button>
-          {error && <p className='absolute -bottom-3.5 w-full mx-auto text-xs text-pink-400 text-center'>{error}</p>}
-        </form>
-      </div>
-    </div>
+      <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
+        <div className='w-full my-4'>
+          <label htmlFor='name' className='text-xxs text-gray-500 uppercase'>Username</label>
+          <input
+            required
+            autoFocus
+            name='name'
+            placeholder='enter your username or email'
+            onChange={e => {
+              setName(e.target.value)
+              setError('')
+            }}
+            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+          />
+        </div>
+        <div className='w-full my-4'>
+          <label htmlFor='password' className='text-xxs text-gray-500 uppercase'>Password</label>
+          <input
+            required
+            name='password'
+            type='password'
+            placeholder='enter your password'
+            onChange={e => {
+              setPassword(e.target.value)
+              setError('')
+            }}
+            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+          />
+        </div>
+        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 my-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+          Login
+        </button>
+        {error && <p className='absolute -bottom-3.5 w-full mx-auto text-xs text-pink-400 text-center'>{error}</p>}
+      </form>
+    </>
   )
 }
+
+Login.layout = page => <LoginLayout>{page}</LoginLayout>

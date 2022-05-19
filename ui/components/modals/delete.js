@@ -5,7 +5,7 @@ export default function ({ open, setOpen, onSubmit, title, message, onCancel }) 
   return (
     <Dialog as='div' className='fixed z-10 inset-0 overflow-y-auto flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center' open={open} onClose={() => setOpen(false)}>
       <Dialog.Overlay className='fixed inset-0 bg-black bg-opacity-80 transition-opacity' />
-      <aside className='relative inline-block rounded-lg text-left border border-gray-800 overflow-hidden transform transition-all align-middle max-w-xs w-full p-5'>
+      <aside className='relative inline-block rounded-lg text-left bg-black border border-gray-800 overflow-hidden transform transition-all align-middle max-w-xs w-full p-5'>
         <header className='flex items-center my-2 text-left'>
           <ExclamationIcon className='h-6 w-6 stroke-[1.5] text-pink-400 mr-2' aria-hidden='true' />
           <Dialog.Title as='h3' className='text-sm'>

@@ -80,7 +80,7 @@ export default function ({ children }) {
 
           {/* user info */}
           <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
-            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-[13px] pb-px'>{auth?.name}</div>
+            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-xs pb-px'>{auth?.name}</div>
             <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
               {subNavigation.map(s => (
                 <Link key={s.name} href={s.href}>
