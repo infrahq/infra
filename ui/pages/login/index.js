@@ -20,7 +20,7 @@ function oidcLogin ({ id, url, clientID }) {
 function Providers ({ providers }) {
   return (
     <>
-      <div className='w-full max-w-sm mt-8'>
+      <div className='w-full max-w-sm mt-2'>
         {providers?.map(p => (
           <button onClick={() => oidcLogin(p)} key={p.id} className='w-full border border-gray-800 hover:to-pink-50 rounded-md p-0.5 my-1.5'>
             <div className='flex flex-col items-center justify-center px-4 py-2'>
@@ -36,7 +36,7 @@ function Providers ({ providers }) {
           </button>
         ))}
       </div>
-      <div className='w-full my-8 relative'>
+      <div className='w-full mt-4 relative'>
         <div className='absolute inset-0 flex items-center' aria-hidden='true'>
           <div className='w-full border-t border-gray-800' />
         </div>
@@ -103,7 +103,7 @@ export default function Login () {
       {providers?.length > 0 && <Providers providers={providers} />}
 
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
-        <div className='w-full my-4'>
+        <div className='w-full my-2'>
           <label htmlFor='name' className='text-xxs text-gray-500 uppercase'>Username</label>
           <input
             required
@@ -114,10 +114,10 @@ export default function Login () {
               setName(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
           />
         </div>
-        <div className='w-full my-4'>
+        <div className='w-full my-2'>
           <label htmlFor='password' className='text-xxs text-gray-500 uppercase'>Password</label>
           <input
             required
@@ -128,10 +128,10 @@ export default function Login () {
               setPassword(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-3 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-2 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
           />
         </div>
-        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 my-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
           Login
         </button>
         {error && <p className='absolute -bottom-3.5 w-full mx-auto text-xs text-pink-400 text-center'>{error}</p>}

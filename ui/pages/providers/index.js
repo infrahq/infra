@@ -89,7 +89,7 @@ export default function Providers () {
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
                 <>
-                  <Table {...table} />
+                  <Table highlight={false} {...table} />
                   {data?.length === 0 &&
                     <EmptyTable
                       title='There are no providers'

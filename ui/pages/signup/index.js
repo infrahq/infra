@@ -73,7 +73,7 @@ export default function Signup () {
       <h2 className='text-[13px] text-center max-w-md my-1.5 text-gray-400'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm'>
         <div className='w-full my-4'>
-          <label for='email' className='text-xxs text-gray-400 uppercase'>Email</label>
+          <label htmlFor='email' className='text-xxs text-gray-400 uppercase'>Email</label>
           <input
             autoFocus
             name='email'
@@ -85,7 +85,7 @@ export default function Signup () {
           {errors.email && <ErrorMessage message={errors.email} />}
         </div>
         <div className='w-full my-4'>
-          <label for='password' className='text-xxs text-gray-400 uppercase'>Password</label>
+          <label htmlFor='password' className='text-xxs text-gray-400 uppercase'>Password</label>
           <input
             type='password'
             placeholder='enter your password'
