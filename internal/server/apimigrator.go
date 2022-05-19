@@ -202,8 +202,19 @@ func addResponseRewrite[newResp any, oldResp any](a *API, method, path, version 
 }
 
 func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
+	migrationVersion, err := semver.NewVersion(m.version)
+	if err != nil {
+		panic(err) // dev mistake
+	}
 	return func(c *gin.Context) {
+		if !rewriteRequired(c, migrationVersion) {
+			// requesting a path that doesn't exist in the version you asked for
+			sendAPIError(c, internal.ErrNotFound)
+			return
+		}
+
 		c.Request.URL.Path = m.redirect
+
 		c.Next()
 	}
 }

@@ -200,7 +200,7 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 	t.Run("v0.1.3", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/awesometest?vegetableCount=12", nil)
-		req.Header.Add("Infra-Version", "0.1.2")
+		req.Header.Add("Infra-Version", "0.1.3")
 		router.ServeHTTP(resp, req)
 
 		assert.Equal(t, resp.Result().StatusCode, 200)
@@ -210,6 +210,24 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, lr.Loafers, 5)
 		assert.Equal(t, lr.Sneakers, 3)
+	})
+	t.Run("living in the past: select the 0.1.3 path for v0.1.4", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/superbettertest?vegetableCount=12", nil)
+		req.Header.Add("Infra-Version", "0.1.4")
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Result().StatusCode, 404)
+	})
+	t.Run("living in the future: select the 0.1.3 path for v0.1.2", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/awesometest?vegetableCount=12", nil)
+		req.Header.Add("Infra-Version", "0.1.2")
+		router.ServeHTTP(resp, req)
+
+		// I guess this is okay.
+		// As long as the client knows how to handle the request this will work.
+		assert.Equal(t, resp.Result().StatusCode, 200)
 	})
 }
 
