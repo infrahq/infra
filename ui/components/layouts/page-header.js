@@ -3,16 +3,14 @@ import { PlusIcon } from '@heroicons/react/outline'
 
 export default function ({ header, buttonLabel, buttonHref }) {
   return (
-    <div className='flex justify-between items-center'>
+    <div className='flex justify-between items-center my-3'>
       <h1 className='text-[13px] font-semibold'>{header}</h1>
       {buttonHref && (
         <Link href={buttonHref}>
-          <button className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-px my-2'>
-            <div className='bg-black rounded-md flex items-center text-sm px-4 py-2.5'>
-              <PlusIcon className='w-2 h-2 mr-1' />
-              <div className='text-purple-50 text-name'>
-                {buttonLabel}
-              </div>
+          <button className='border border-violet-300 text-violet-100  rounded-md flex items-center text-sm px-4 py-2.5'>
+            <PlusIcon className='w-3 h-3 mr-1' />
+            <div className='font-medium text-xs'>
+              {buttonLabel}
             </div>
           </button>
         </Link>

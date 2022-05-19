@@ -19,26 +19,43 @@ const columns = [{
   Header: 'Name',
   accessor: 'name',
   Cell: ({ value }) => (
-    <div className='flex items-center'>
-      <div className='py-2 flex items-center'><img className='opacity-25 mr-4' src='/infrastructure.svg' /> {value}</div>
+    <div className='flex py-1.5 items-center'>
+      <div className='border border-gray-800 flex-none flex items-center justify-center w-7 h-7 mr-3 rounded-md'>
+        <img className='opacity-25' src='/row-infrastructure.svg' />
+      </div>
+      {value}
     </div>
   )
 }, {
   Header: 'Kind',
   id: 'kind',
-  Cell: 'Cluster'
+  Cell: () => <span className='text-gray-400'>Cluster</span>
 }, {
   id: 'connected',
   Header: () => (
     <div className='text-right'>Connection</div>
   ),
   accessor: 'updated',
-  Cell: ({ value: updated }) => (
-    <div className='flex items-center justify-end'>
-      <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-2' />
-      {new Date() - new Date(updated)}
-    </div>
-  )
+  Cell: ({ value: updated }) => {
+    const connected = (new Date() - new Date(updated)) < 24 * 60 * 60 * 1000
+    return (
+      <div className='flex items-center text-gray-400 justify-end'>
+        {connected
+          ? (
+            <>
+              <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-1' />
+              Connected
+            </>
+            )
+          : (
+            <div className='flex items-center'>
+              <div className='w-[7px] h-[7px] bg-gray-600 rounded-full mr-1.5' />
+              Disconnected
+            </div>
+            )}
+      </div>
+    )
+  }
 }]
 
 function SlideContent ({ id, isAdmin }) {
@@ -48,7 +65,7 @@ function SlideContent ({ id, isAdmin }) {
       {isAdmin &&
         <>
           <div className='border-b border-gray-800 mt-4'>
-            <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
+            <div className='text-xxs text-gray-400 uppercase pb-5'>Access</div>
           </div>
           <div className='pt-3 pb-12'>
             <Grant id={id} />
@@ -56,28 +73,28 @@ function SlideContent ({ id, isAdmin }) {
         </>}
       <>
         <div className='border-b border-gray-800 mt-4'>
-          <div className='text-label text-gray-400 uppercase pb-5'>Meta</div>
+          <div className='text-xxs text-gray-400 uppercase pb-5'>Meta</div>
         </div>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Kind</div>
-            <div className='text-name' />
+            <div className='text-gray-400 text-xs w-1/3'>Kind</div>
+            <div className='text-xs' />
           </div>
           <div className='flex flex-row flex-start'>
-            <div className='text-gray-400 text-name w-1/3'>Namespace</div>
+            <div className='text-gray-400 text-xs w-1/3'>Namespace</div>
             <div className='flex flex-col'>
               {destination?.resources.map(r => (
-                <div key={r} className='text-name'>{r}</div>
+                <div key={r} className='text-xs'>{r}</div>
               ))}
             </div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Age</div>
-            <div className='text-name'>{dayjs(destination?.created).fromNow()}</div>
+            <div className='text-gray-400 text-xs w-1/3'>Age</div>
+            <div className='text-xs'>{dayjs(destination?.created).fromNow()}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Images</div>
-            <div className='text-name' />
+            <div className='text-gray-400 text-xs w-1/3'>Images</div>
+            <div className='text-xs' />
           </div>
         </div>
       </>
@@ -117,21 +134,21 @@ export default function Destinations () {
       {loading
         ? (<Loader />)
         : (
-          <div className={`flex-1 flex flex-col space-y-8 mt-3 mb-4 ${slideModalOpen ? 'w-7/12' : ''}`}>
+          <div className={`flex-1 flex flex-col space-y-8 mb-4 ${slideModalOpen ? 'w-7/12' : ''}`}>
             <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : <>
-                <Table
-                  {...table}
-                  getRowProps={row => ({
-                    onClick: () => handleDestinationDetail(row),
-                    style: {
-                      cursor: 'pointer'
-                    }
-                  })}
-                />
+              : (
                 <>
+                  <Table
+                    {...table}
+                    getRowProps={row => ({
+                      onClick: () => handleDestinationDetail(row),
+                      style: {
+                        cursor: 'pointer'
+                      }
+                    })}
+                  />
                   {slideModalOpen &&
                     <Slide open={slideModalOpen} handleClose={() => setSlideModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns} deleteModalShown={DeleteModalOpen}>
                       <SlideContent id={selectedRow.original.id} isAdmin={admin} />
@@ -154,18 +171,18 @@ export default function Destinations () {
                     title='Delete Cluster'
                     message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
                   />
-                </>
-                {
+                  {
                     destinations?.length === 0 &&
                       <EmptyTable
-                        title='There are no infrastructure'
-                        subtitle={`There are currently no infrastructure connected to Infra. ${admin ? 'Get started by connecting one.' : ''}`}
+                        title='There is no infrastructure'
+                        subtitle='There is currently no infrastructure connected to Infra'
                         iconPath='/destinations.svg'
                         buttonHref={admin && '/destinations/add'}
                         buttonText='Infrastructure'
                       />
                   }
-              </>}
+                </>
+                )}
           </div>
           )}
     </>

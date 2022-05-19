@@ -68,38 +68,37 @@ export default function () {
   }
 
   return (
-    <div className='h-auto w-full max-w-sm mx-auto overflow-hidden'>
-      <div className='flex flex-col justify-center items-center px-5 py-5 mt-40 border rounded-lg border-gray-950'>
+    <div className='w-full min-h-full flex flex-col justify-center'>
+      <div className='flex flex-col w-full max-w-xs mx-auto justify-center items-center px-5 pb-4 border rounded-lg border-gray-800'>
         <HeaderIcon size={12} iconPath='/infra-color.svg' />
-        <h1 className='text-header font-bold'>Welcome to Infra</h1>
-        <h2 className='text-title text-center max-w-md my-3 text-gray-300'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
-        <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm my-8'>
+        <h1 className='text-base leading-snug font-bold'>Welcome to Infra</h1>
+        <h2 className='text-[13px] text-center max-w-md my-2 text-gray-400'>You've successfully installed Infra.<br />Set up your admin user to get started.</h2>
+        <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm'>
           <div className='w-full my-4'>
-            <div className='text-label text-gray-200 uppercase'>Email</div>
+            <label for='email' className='text-xxs text-gray-400 uppercase'>Email</label>
             <input
               autoFocus
+              name='email'
               type='email'
               placeholder='email@address.com'
               onChange={e => setEmail(e.target.value)}
-              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.email ? 'border-pink-300' : ''}`}
+              className={`w-full bg-transparent border-b border-gray-800 text-xs px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.email ? 'border-pink-500/60' : ''}`}
             />
             {errors.email && <ErrorMessage message={errors.email} />}
           </div>
           <div className='w-full my-4'>
-            <div className='text-label text-gray-200 uppercase'>Password</div>
+            <label for='password' className='text-xxs text-gray-400 uppercase'>Password</label>
             <input
               type='password'
               placeholder='enter your password'
               onChange={e => setPassword(e.target.value)}
-              className={`w-full bg-transparent border-b border-gray-950 text-name px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.password ? 'border-pink-300' : ''}`}
+              className={`w-full bg-transparent border-b border-gray-800 text-xs px-px mt-2 py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.password ? 'border-pink-500/60' : ''}`}
             />
             {errors.password && <ErrorMessage message={errors.password} />}
           </div>
 
-          <button disabled={!email || !password} className='bg-gradient-to-tr mt-5 from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 my-2 disabled:opacity-30'>
-            <div className='bg-black text-purple-50 rounded-md text-name px-4 py-3'>
-              Get Started
-            </div>
+          <button disabled={!email || !password} className='border border-violet-300 hover:border-violet-100 my-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+            Get Started
             {error && <ErrorMessage message={error} center />}
           </button>
         </form>

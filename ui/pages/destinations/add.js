@@ -138,7 +138,7 @@ export default function () {
             onClick={() => handleNext()}
             disabled={name.length === 0 || disabledInput}
             type='button'
-            className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
+            className='bg-gradient-to-tr from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
           >
             <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
               Next
@@ -158,10 +158,10 @@ export default function () {
             <h2 className='text-gray-300 text-center px-2 mb-2 mt-4'>
               Your cluster will be detected automatically. This may take a few minutes.
             </h2>
-            <div className='border border-dashed border-pink-light/20 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
+            <div className='border border-dashed border-violet-100 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
               <div className='flex items-center justify-center p-0.5 w-full'>
                 <img className={`w-8 h-8' ${connected ? '' : 'animate-pulse'}`} src='/connected-icon.svg' />
-                <p className='text-pink-dark text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
+                <p className='text-fuchsia-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
               </div>
             </div>
             {connected &&
@@ -169,7 +169,7 @@ export default function () {
                 onClick={() => handleFinished()}
                 disabled={name.length === 0}
                 type='button'
-                className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
+                className='bg-gradient-to-tr from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
               >
                 <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
                   Finished

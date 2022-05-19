@@ -1,6 +1,6 @@
 import { useTable } from 'react-table'
 
-export default function ({ columns, data, getRowProps = () => ({}) }) {
+export default function ({ columns, data, getRowProps = () => ({}), highlight = true }) {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data
@@ -12,7 +12,7 @@ export default function ({ columns, data, getRowProps = () => ({}) }) {
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th key={column.id} className='text-left uppercase font-normal text-[11px] py-1 text-gray-400 border-b border-zinc-800' {...column.getHeaderProps()}>
+              <th key={column.id} className='text-left uppercase font-normal text-[11px] py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
                 {column.render('Header')}
               </th>
             ))}
@@ -23,10 +23,10 @@ export default function ({ columns, data, getRowProps = () => ({}) }) {
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='group border-b border-zinc-800' key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className={`group border-b border-gray-800 text-xs ${highlight ? 'hover:bg-gray-900/60' : ''}`} key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
-                  <td className='group-hover:bg-zinc-900 text-sm py-[3px]' key={cell.id} {...cell.getCellProps()}>
+                  <td key={cell.id} {...cell.getCellProps()}>
                     {cell.render('Cell')}
                   </td>
                 )

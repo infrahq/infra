@@ -44,14 +44,14 @@ export default function () {
           type='password'
           name='password'
           id='password'
-          className={`block w-full px-4 py-2 text-md -my-px border font-light rounded-lg text-gray-100 bg-zinc-900/50 placeholder-gray-500 ${error ? 'border-red-500' : 'border-zinc-800'}`}
+          className={`block w-full px-4 py-2 text-md -my-px border font-light rounded-lg text-gray-100 bg-gray-900/50 placeholder-gray-500 ${error ? 'border-red-500' : 'border-gray-800'}`}
           placeholder='password'
           onChange={e => {
             setError('')
             setPassword(e.target.value)
           }}
         />
-        <input type='submit' value='Login' className='w-full my-3 bg-zinc-500/20 hover:bg-gray-500/25 py-2.5 rounded-md text-white text-md hover:cursor-pointer' />
+        <input type='submit' value='Login' className='w-full my-3 bg-gray-500/20 hover:bg-gray-500/25 py-2.5 rounded-md text-white text-md hover:cursor-pointer' />
         {error && (
           <p className='mt-2 text-sm absolute text-red-500 -bottom-4'>
             {error}

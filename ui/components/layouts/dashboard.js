@@ -42,16 +42,10 @@ export default function ({ children }) {
 
   return (
     <div className='flex h-full relative'>
-      <nav className='flex-none flex w-56 flex-col inset-y-0 overflow-y-auto'>
+      <nav className='flex-none flex flex-col w-56 inset-y-0 overflow-hidden'>
         <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-5 select-none'>
           <Link href='/'>
-            <a>
-              <img
-                className='h-[15px]'
-                src='infra.svg'
-                alt='Infra'
-              />
-            </a>
+            <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
           </Link>
         </div>
         <div className='flex-1 space-y-1 px-5 select-none'>
@@ -67,36 +61,39 @@ export default function ({ children }) {
               >
                 <img
                   src={n.icon}
-                  className={`${router.asPath.startsWith(n.href) ? '' : 'opacity-40'} mr-3 flex-shrink-0 h-[18px] w-[18px]`}
+                  className={`
+                    ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
+                    mr-3 flex-shrink-0 h-[18px] w-[18px]
+                  `}
                 />
                 {n.name}
               </a>
             </Link>
           )}
         </div>
-        <div className='relative flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl overflow-hidden bg-transparent hover:bg-gray-900 shadow hover:shadow-lg'>
-          <div className='flex flex-none self-start items-stretch bg-gradient-to-tr from-indigo-300/40 to-pink-100/40 rounded-[4px] w-[23px] h-[23px]'>
-            <div className='flex-1 bg-gradient-to-tr border-2 border-black from-indigo-300/40 to-pink-100/40 rounded-[4px] p-px m-px'>
-              <div className='bg-black w-full h-full flex justify-center items-center text-[12px] leading-none font-normal mb-px select-none rounded-sm'>
-                {auth?.name?.[0]}
-              </div>
+        <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900'>
+          <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
+            <div className='flex flex-1 justify-center items-center border border-violet-300/70 text-[11px] rounded-[4px] leading-none font-normal m-0.5 select-none'>
+              <span className='inline-block -mt-0.5'>{auth?.name?.[0]}</span>
             </div>
           </div>
-          <div className='w-full ml-1 px-2 items-center select-none'>
-            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-1 mb-2 leding-none truncate text-xs pb-px'>{auth?.name}</div>
+
+          {/* user info */}
+          <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
+            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-[13px] pb-px'>{auth?.name}</div>
             <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
               {subNavigation.map(s => (
                 <Link key={s.name} href={s.href}>
-                  <a className={`w-full flex py-1.5 text-[13px] ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
-                    <div className='text-gray-400 hover:text-white'>{s.name}</div>
+                  <a className={`w-full flex py-1.5 text-[13px] text-gray-400 hover:text-white ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
+                    {s.name}
                   </a>
                 </Link>
               ))}
-              <div onClick={() => logout()} className='w-full flex items-center py-1.5 cursor-pointer'>
-                <div className='text-gray-400 text-[13px] hover:text-white'>Sign Out</div>
-              </div>
-              <div className='text-[10px] mt-2 leading-none text-gray-300/50'>
-                Infra version {version?.version}
+              <button onClick={() => logout()} className='w-full text-left py-1.5 text-gray-400 text-[13px] hover:text-white cursor-pointer'>
+                Sign Out
+              </button>
+              <div className='text-[11px] mt-2 leading-none text-violet-50/40'>
+                Infra version <span className='font-mono select-text'>{version?.version}</span>
               </div>
             </nav>
           </div>

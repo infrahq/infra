@@ -13,12 +13,12 @@ export default ({ children, open, handleClose, title, iconPath, footerBtns, dele
                   <div className='px-4 sm:px-6'>
                     <div className='flex flex-start justify-between'>
                       <Dialog.Title className='flex flex-row items-center space-x-4'>
-                        <div className='bg-gradient-to-tr from-indigo-300/20 to-pink-100/20 rounded-md p-0.5 my-2 mx-auto'>
+                        <div className='bg-gradient-to-tr from-violet-300/20 to-pink-100/20 rounded-md p-0.5 my-2 mx-auto'>
                           <div className='bg-black rounded-md flex items-center tracking-tight text-sm px-2 py-2'>
                             <img src={iconPath} className='w-4 h-4' />
                           </div>
                         </div>
-                        <div className='text-subtitle text-white'>{title}</div>
+                        <div className='text-xs leading-none text-white'>{title}</div>
                       </Dialog.Title>
                       <div className='ml-3 flex h-7 items-center'>
                         <button
@@ -38,9 +38,9 @@ export default ({ children, open, handleClose, title, iconPath, footerBtns, dele
                 <div className='flex flex-shrink-0 justify-end px-4 py-4'>
                   {footerBtns && <div className='flex flex-shrink-0 justify-end px-4 py-4'>
                     {footerBtns.map(b => (
-                      <button key={b.text} type='button' onClick={b.handleOnClick} className='bg-gradient-to-tr cursor-pointer from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5'>
-                        <div className='bg-black rounded-md flex items-center text-name px-6 py-3'>
-                          <div className='text-purple-50'>
+                      <button key={b.text} type='button' onClick={b.handleOnClick} className='bg-gradient-to-tr cursor-pointer from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 rounded-md p-0.5'>
+                        <div className='bg-black rounded-md flex items-center text-xs px-6 py-3'>
+                          <div className='text-violet-100'>
                             {b.text}
                           </div>
                         </div>
