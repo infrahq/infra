@@ -90,7 +90,7 @@ func printTable(data interface{}, out io.Writer) {
 
 // Creates a new API Client from the current config
 func defaultAPIClient() (*api.Client, error) {
-	config, err := readHostConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}

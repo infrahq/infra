@@ -118,10 +118,6 @@ func writeConfig(config *ClientConfig) error {
 	return nil
 }
 
-func currentHostConfig() (*ClientHostConfig, error) {
-	return readHostConfig()
-}
-
 // Save (create or update) the current hostconfig
 func saveHostConfig(hostConfig ClientHostConfig) error {
 	config, err := readOrCreateClientConfig()
@@ -150,7 +146,7 @@ func saveHostConfig(hostConfig ClientHostConfig) error {
 	return nil
 }
 
-func readHostConfig() (*ClientHostConfig, error) {
+func currentHostConfig() (*ClientHostConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
