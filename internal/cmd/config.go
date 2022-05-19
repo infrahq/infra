@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -39,48 +38,43 @@ func (c *ClientHostConfig) isExpired() bool {
 	return time.Now().After(time.Time(c.Expires))
 }
 
-// Retrieves client config if it exists, else instances a new one.
-func readOrCreateClientConfig() (*ClientConfig, error) {
-	config, err := readConfig()
-	if err != nil && !errors.Is(err, ErrConfigNotFound) {
-		return nil, err
+func infraHomeDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
 	}
 
-	if config == nil {
-		return NewClientConfig(), nil
+	infraDir := filepath.Join(homeDir, ".infra")
+
+	if err := os.MkdirAll(infraDir, os.ModePerm); err != nil {
+		return "", err
 	}
 
-	return config, nil
-}
-
-func NewClientConfig() *ClientConfig {
-	return &ClientConfig{
-		Version: "0.3",
-	}
+	return infraDir, nil
 }
 
 func readConfig() (*ClientConfig, error) {
-	config := &ClientConfig{}
-
 	infraDir, err := infraHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
-	if os.IsNotExist(err) {
-		return nil, ErrConfigNotFound
-	}
-
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
+	if len(contents) == 0 {
+		return &ClientConfig{Version: "0.3"}, nil
+	}
+
+	config := &ClientConfig{}
 	if err = json.Unmarshal(contents, &config); err != nil {
 		return nil, err
 	}
 
-	if config.Version == "" {
+	switch config.Version {
+	case "":
 		// if version is missing, it needs to be updated to the latest
 		configv0dot1 := ClientConfigV0dot1{}
 		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
@@ -88,7 +82,8 @@ func readConfig() (*ClientConfig, error) {
 		}
 
 		return configv0dot1.ToV0dot2().ToV0dot3(), nil
-	} else if config.Version == "0.2" {
+
+	case "0.2":
 		configv0dot2 := ClientConfigV0dot2{}
 		if err = json.Unmarshal(contents, &configv0dot2); err != nil {
 			return nil, err
@@ -120,7 +115,7 @@ func writeConfig(config *ClientConfig) error {
 
 // Save (create or update) the current hostconfig
 func saveHostConfig(hostConfig ClientHostConfig) error {
-	config, err := readOrCreateClientConfig()
+	config, err := readConfig()
 	if err != nil {
 		return err
 	}
