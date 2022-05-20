@@ -3,7 +3,7 @@ import { PlusIcon } from '@heroicons/react/outline'
 
 export default function ({ header, buttonLabel, buttonHref }) {
   return (
-    <div className='flex justify-between items-center my-3'>
+    <div className='flex justify-between items-center my-3 min-h-[40px]'>
       <h1 className='text-[13px] font-semibold'>{header}</h1>
       {buttonHref && (
         <Link href={buttonHref}>

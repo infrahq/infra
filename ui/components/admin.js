@@ -109,8 +109,6 @@ export default function () {
     }
   }
 
-  console.log(grants)
-
   return (
     <div className='sm:w-80 lg:w-[500px]'>
       <div className='text-xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>

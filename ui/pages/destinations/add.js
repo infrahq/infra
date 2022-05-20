@@ -118,7 +118,7 @@ export default function DestinationsAdd () {
             </Link>
           </footer>
         ) : (
-        <footer className='flex items-center px-4 my-5'>
+        <footer className='flex items-center px-4 my-7'>
           <h3 className='text-xs mr-3 text-gray-200'>Waiting for connection</h3>
           {submitted && <span className='animate-[ping_1.25s_ease-in-out_infinite] flex-none inline-flex h-2 w-2 rounded-full border border-white opacity-75' />}
         </footer>

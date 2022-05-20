@@ -83,7 +83,7 @@ export default function Providers () {
       {loading
         ? <Loader />
         : (
-          <div className='flex-1 flex flex-col space-y-8 mb-4'>
+          <div className='flex-1 flex flex-col space-y-4'>
             <PageHeader header='Providers' buttonHref='/providers/add' buttonLabel='Provider' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
