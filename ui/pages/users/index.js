@@ -82,6 +82,7 @@ function SlideContent ({ id, isAdmin }) {
 export default function Users () {
   const { data: users, error } = useSWR('/v1/identities')
   const { admin, loading: adminLoading } = useAdmin()
+  const { data: auth } = useSWR('/v1/identities/self')
   const table = useTable({ columns, data: users || [] })
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [slideModalOpen, setSlideModalOpen] = useState(false)
@@ -93,7 +94,7 @@ export default function Users () {
   const handleUserDetail = (row) => {
     setSlideModalOpen(true)
     setSelectedRow(row)
-    setSlideActionBtns([{ handleOnClick: () => setDeleteModalOpen(true), text: 'Remove User' }])
+    setSlideActionBtns(row.original.id === auth.id ? [] : [{ handleOnClick: () => setDeleteModalOpen(true), text: 'Remove User' }])
   }
 
   const handleCancelDeleteModal = () => {

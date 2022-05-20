@@ -7,6 +7,7 @@ import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
+  const { data: destinations } = useSWR(`v1/destinations`)
 
   const [infrastructure, setInfrastructure] = useState('')
   const [error, setError] = useState('')
@@ -20,17 +21,21 @@ export default function ({ id }) {
   }
 
   const handleKeyDownEvent = key => {
-    if (key === 'Enter' && email.length > 0) {
+    if (key === 'Enter' && infrastructure.length > 0) {
       handleShareGrant()
     }
   }
 
-  const handleShareGrant = () => {
-    console.log('handleShareGrant')
+  const handleShareGrant = async () => {
+    if (destinations.find((d => d.name === infrastructure))) {
+      grant(id)
+    } else {
+      setError('TODO: the infrastructure does not exist')
+    }
   }
 
-  const updateGrant = (privilege, resource, user, deleteGrantId) => {
-    mutate(`/v1/grants?resource=${resource}`, async grantsList => {
+  const grant = (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) => {
+    mutate(`/v1/identities/${id}/grants`, async grantsList => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
         body: JSON.stringify({ subject: 'i:' + user, resource, privilege })
@@ -38,17 +43,21 @@ export default function ({ id }) {
 
       const data = await res.json()
 
-      await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
+      setInfrastructure('')
 
-      return [...(grantsList || []).filter(grant => grant?.subject !== 'i:' + user), data]
+      if (exist) {
+        await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
+
+        return [...(grantsList || []).filter(grant => grant?.subject !== 'i:' + user), data]
+      }
+
+      return [...(grantsList || []), data]
     })
   }
 
   const handleUpdateGrant = (privilege, resource, grantId, user) => {
-    console.log('updating grant')
     if (privilege !== 'remove') {
-      console.log('updating', resource)
-      return updateGrant(privilege, resource, user, grantId)
+      return grant(user, privilege, resource, true, grantId)
     }
 
     mutate(`/v1/identities/${user}/grants`, async userGrantsList => {

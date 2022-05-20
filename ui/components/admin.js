@@ -23,6 +23,7 @@ const columns = [{
   Cell: ({ value: admin, rows }) => {
     const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
     const { data: auth } = useSWR('/v1/identities/self')
+    
     const { mutate } = useSWRConfig()
 
     const [open, setOpen] = useState(false)
