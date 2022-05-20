@@ -7,6 +7,7 @@ import { validateEmail } from '../lib/email'
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
+
 function Grant ({ id }) {
   if (!id) {
     return null
