@@ -24,7 +24,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      {grants?.filter(g => g.resource === destination.name)?.length > 0 && (
+      {grants?.length > 0 && (
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
           <p className='text-2xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a>:</p>
