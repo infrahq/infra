@@ -74,7 +74,7 @@ export default function () {
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
-  const handleInputChang = (value) => {
+  const handleInputChange = (value) => {
     setAdminEmail(value)
     setError('')
   }
@@ -119,7 +119,7 @@ export default function () {
             value={adminEmail}
             placeholder='Email address'
             hasDropdownSelection={false}
-            handleInputChange={e => handleInputChang(e.target.value)}
+            handleInputChange={e => handleInputChange(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
             error={error}
           />
