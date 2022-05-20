@@ -14,9 +14,9 @@ export default function Finish () {
   const { query } = router
   const { id } = query
 
-  // if (!id) {
-  //   router.replace('/login')
-  // }
+  if (!id) {
+    router.replace('/login')
+  }
 
   async function finish (e) {
     e.preventDefault()
