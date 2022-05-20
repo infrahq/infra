@@ -17,7 +17,7 @@ import Sidebar from '../../components/sidebar'
 
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/v1/identities/self')
-  const { data: grants, error: grantsError } = useSWR(() => `/v1/identities/${auth?.id}/grants?resource=${destination.name}`)
+  const { data: grants } = useSWR(() => `/v1/identities/${auth?.id}/grants?resource=${destination.name}`)
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -26,34 +26,34 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
     <div className='flex-1 flex flex-col space-y-6'>
       {grants?.filter(g => g.resource === destination.name)?.length > 0 && (
         <section>
-          <h3 className='py-4 text-xxs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
-          <p className='text-xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium'>Infra CLI</a>:</p>
-          <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-xs'>
-          infra login {window.location.host}<br />
-          infra use {destination.name}<br />
-          kubectl get pods
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
+          <p className='text-2xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a>:</p>
+          <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs'>
+            infra login {window.location.host}<br />
+            infra use {destination.name}<br />
+            kubectl get pods
           </pre>
         </section>
       )}
       {admin &&
         <section>
-          <h3 className='py-4 text-xxs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
           <Grant id={destination.id} />
         </section>}
       <section>
-        <h3 className='py-4 text-xxs text-gray-400 border-b border-gray-800 uppercase'>Meta</h3>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Meta</h3>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>ID</div>
-            <div className='text-xs font-mono'>{destination.id}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+            <div className='text-2xs font-mono'>{destination.id}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>Added</div>
-            <div className='text-xs'>{dayjs(destination?.created).fromNow()}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>Added</div>
+            <div className='text-2xs'>{dayjs(destination?.created).fromNow()}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>Last Seen</div>
-            <div className='text-xs'>{dayjs(destination?.lastSeen).fromNow()}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>Last Seen</div>
+            <div className='text-2xs'>{dayjs(destination?.lastSeen).fromNow()}</div>
           </div>
         </div>
       </section>
@@ -61,7 +61,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
         <button
           type='button'
           onClick={() => setDeleteModalOpen(true)}
-          className='border border-violet-300 rounded-md flex items-center text-xs px-6 py-3 text-violet-100'
+          className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
         >
           Delete
         </button>
@@ -87,7 +87,6 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
     </div>
   )
 }
-
 
 const columns = [{
   Header: 'Name',
@@ -148,27 +147,27 @@ export default function Destinations () {
             <main className='flex-1 flex flex-col space-y-4'>
               <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
               {error?.status
-              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : (
-                <div>
-                  {<Table
-                    {...table}
-                    getRowProps={row => ({
-                      onClick: () => setSelectedDestination(row.original),
-                      style: {
-                        cursor: 'pointer'
-                      }
-                    })}
-                  />}
-                  {destinations?.length === 0 && <EmptyTable
-                    title='There is no infrastructure'
-                    subtitle='There is currently no infrastructure connected to Infra'
-                    iconPath='/destinations.svg'
-                    buttonHref={admin && '/destinations/add'}
-                    buttonText='Infrastructure'
-                  />}
-                </div>
-                )}
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+                : (
+                  <div>
+                    <Table
+                      {...table}
+                      getRowProps={row => ({
+                        onClick: () => setSelectedDestination(row.original),
+                        style: {
+                          cursor: 'pointer'
+                        }
+                      })}
+                    />
+                    {destinations?.length === 0 && <EmptyTable
+                      title='There is no infrastructure'
+                      subtitle='There is currently no infrastructure connected to Infra'
+                      iconPath='/destinations.svg'
+                      buttonHref={admin && '/destinations/add'}
+                      buttonText='Infrastructure'
+                                                   />}
+                  </div>
+                  )}
             </main>
             {selectedDestination &&
               <Sidebar

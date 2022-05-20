@@ -12,7 +12,7 @@ export default function ({ columns, data, getRowProps = () => ({}), highlight = 
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th key={column.id} className='text-left uppercase font-normal text-[11px] py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
+              <th key={column.id} className='text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
                 {column.render('Header')}
               </th>
             ))}
@@ -23,7 +23,7 @@ export default function ({ columns, data, getRowProps = () => ({}), highlight = 
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className={`group border-b border-gray-800 text-xs ${highlight ? 'hover:bg-gray-900/60' : ''}`} key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className={`group border-b border-gray-800 text-2xs ${highlight ? 'hover:bg-gray-900/60' : ''}`} key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} {...cell.getCellProps()}>

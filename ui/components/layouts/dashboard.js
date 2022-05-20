@@ -55,7 +55,7 @@ export default function ({ children }) {
                 href={n.href}
                 className={`
                   ${router.asPath.startsWith(n.href) ? 'text-white' : 'text-gray-400'}
-                  rounded-lg py-2 flex items-center text-[13px] leading-none transition-colors duration-100
+                  rounded-lg py-2 flex items-center text-xs leading-none transition-colors duration-100
                   ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
                 `}
               >
@@ -73,24 +73,24 @@ export default function ({ children }) {
         </div>
         <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 overflow-hidden'>
           <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
-            <div className='flex flex-1 justify-center items-center border border-violet-300/70 text-[11px] rounded-[4px] leading-none font-normal m-0.5 select-none'>
+            <div className='flex flex-1 justify-center items-center border border-violet-300/70 text-3xs rounded-[4px] leading-none font-normal m-0.5 select-none'>
               <span className='inline-block -mt-0.5'>{auth?.name?.[0]}</span>
             </div>
           </div>
           <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
-            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-xs pb-px'>{auth?.name}</div>
+            <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-2xs pb-px'>{auth?.name}</div>
             <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
               {subNavigation.map(s => (
                 <Link key={s.name} href={s.href}>
-                  <a className={`w-full flex py-1.5 text-[13px] text-gray-400 hover:text-white ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
+                  <a className={`w-full flex py-1.5 text-xs text-gray-400 hover:text-white ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
                     {s.name}
                   </a>
                 </Link>
               ))}
-              <button onClick={() => logout()} className='w-full text-left py-1.5 text-gray-400 text-[13px] hover:text-white cursor-pointer'>
+              <button onClick={() => logout()} className='w-full text-left py-1.5 text-gray-400 text-xs hover:text-white cursor-pointer'>
                 Sign Out
               </button>
-              <div className='text-[11px] mt-2 leading-none text-violet-50/40'>
+              <div className='text-3xs mt-2 leading-none text-violet-50/40'>
                 Infra version <span className='font-mono select-text'>{version?.version}</span>
               </div>
             </nav>

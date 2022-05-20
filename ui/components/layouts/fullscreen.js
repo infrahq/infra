@@ -6,7 +6,7 @@ export default function ({ children, closeHref }) {
     <div className='flex flex-col w-full h-full'>
       <div className='flex flex-none text-right justify-end'>
         <Link href={closeHref || '/'}>
-          <a className='flex items-center p-4 text-gray-400 hover:text-white text-xxs uppercase'>
+          <a className='flex items-center p-4 text-gray-400 hover:text-white text-3xs uppercase'>
             Close<XIcon className='w-6 h-6 ml-1 stroke-1' />
           </a>
         </Link>

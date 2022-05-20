@@ -21,7 +21,9 @@ module.exports = {
         }
       },
       fontSize: {
-        xxs: '11px'
+        xs: ['13px', '16px'],
+        '2xs': ['12px', '15px'],
+        '3xs': ['11px', '13px']
       },
       animation: {
         'spin-fast': 'spin 0.75s linear infinite'

@@ -23,14 +23,14 @@ const columns = [{
           ? <img className='h-2' src={`/providers/${kind(provider.url)}.svg`} />
           : provider.name[0].toUpperCase()}
       </div>
-      <div className='text-xs leading-none ml-3'>{provider.name}</div>
+      <div className='text-2xs leading-none ml-3'>{provider.name}</div>
     </div>
   )
 }, {
   Header: 'URL',
   accessor: p => p,
   Cell: ({ value: provider }) => (
-    <div className='text-xxs text-gray-400 font-mono'>{provider.url}</div>
+    <div className='text-3xs text-gray-400 font-mono'>{provider.url}</div>
   )
 }, {
   id: 'delete',

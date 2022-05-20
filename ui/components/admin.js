@@ -29,12 +29,12 @@ function Grant ({ id, subject, grants }) {
           </div>
         </div>
         <div className='flex flex-col leading-tight'>
-          <div className='text-xs leading-none'>{user.name}</div>
+          <div className='text-2xs leading-none'>{user.name}</div>
         </div>
       </div>
 
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        {!isSelf && <button onClick={() => setOpen(true)} className='flex-none p-2 -mr-2 cursor-pointer text-xs text-gray-500 hover:text-violet-100'>Revoke</button>}
+        {!isSelf && <button onClick={() => setOpen(true)} className='flex-none p-2 -mr-2 cursor-pointer text-2xs text-gray-500 hover:text-violet-100'>Revoke</button>}
         <DeleteModal
           open={open}
           setOpen={setOpen}
@@ -111,7 +111,7 @@ export default function () {
 
   return (
     <div className='sm:w-80 lg:w-[500px]'>
-      <div className='text-xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
+      <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
       <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
         <div className='sm:flex-1'>
           <InputDropdown
@@ -128,7 +128,7 @@ export default function () {
           onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type='button'
-          className='flex items-center cursor-pointer border border-violet-300 px-5 mt-4 text-xs sm:ml-4 sm:mt-0 rounded-md disabled:pointer-events-none disabled:opacity-30'
+          className='flex items-center cursor-pointer border border-violet-300 px-5 mt-4 text-2xs sm:ml-4 sm:mt-0 rounded-md disabled:pointer-events-none disabled:opacity-30'
         >
           <PlusIcon className='w-3 h-3 mr-1.5' />
           Add Admin
@@ -138,7 +138,7 @@ export default function () {
         <div className='mb-10'>
           <ErrorMessage message={error} />
         </div>}
-      <h4 className='text-gray-400 my-3 text-xs'>These users have full administration privileges</h4>
+      <h4 className='text-gray-400 my-3 text-2xs'>These users have full administration privileges</h4>
       {grants.map(g => (
         <Grant key={g.id} id={g.id} subject={g.subject} grants={grants} />
       ))}

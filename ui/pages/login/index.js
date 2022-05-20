@@ -28,7 +28,7 @@ function Providers ({ providers }) {
                 ? (
                   <button className='flex flex-col items-center text-center py-0.5'>
                     <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
-                    {providers?.length > 1 && <div className='text-xs text-gray-300'>{p.url}</div>}
+                    {providers?.length > 1 && <div className='text-2xs text-gray-300'>{p.url}</div>}
                   </button>
                   )
                 : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
@@ -41,7 +41,7 @@ function Providers ({ providers }) {
           <div className='w-full border-t border-gray-800' />
         </div>
         <div className='relative flex justify-center text-sm'>
-          <span className='px-2 bg-black text-xs text-gray-300'>OR</span>
+          <span className='px-2 bg-black text-2xs text-gray-300'>OR</span>
         </div>
       </div>
     </>
@@ -99,12 +99,12 @@ export default function Login () {
   return (
     <>
       <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-      <h2 className='text-[13px] text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
+      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
       {providers?.length > 0 && <Providers providers={providers} />}
 
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
         <div className='w-full my-2'>
-          <label htmlFor='name' className='text-xxs text-gray-500 uppercase'>Username</label>
+          <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username</label>
           <input
             required
             autoFocus
@@ -114,11 +114,11 @@ export default function Login () {
               setName(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
           />
         </div>
         <div className='w-full my-2'>
-          <label htmlFor='password' className='text-xxs text-gray-500 uppercase'>Password</label>
+          <label htmlFor='password' className='text-3xs text-gray-500 uppercase'>Password</label>
           <input
             required
             name='password'
@@ -128,13 +128,13 @@ export default function Login () {
               setPassword(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-xs px-px py-2 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
           />
         </div>
-        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-2xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
           Login
         </button>
-        {error && <p className='absolute -bottom-3.5 w-full mx-auto text-xs text-pink-400 text-center'>{error}</p>}
+        {error && <p className='absolute -bottom-3.5 w-full mx-auto text-2xs text-pink-400 text-center'>{error}</p>}
       </form>
     </>
   )

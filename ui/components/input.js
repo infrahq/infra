@@ -20,7 +20,7 @@ export default function ({
           spellCheck='false'
           type={type}
           value={value}
-          className={`block ${hasDropdownSelection ? '' : 'w-full'} sm:text-xs bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-xs`}
+          className={`block ${hasDropdownSelection ? '' : 'w-full'} sm:text-2xs bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-2xs`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -36,7 +36,7 @@ export default function ({
               name={optionType}
               onChange={handleSelectOption}
               value={selectedItem}
-              className='h-full py-0 pl-2 border-transparent bg-transparent text-xs text-gray-400 focus:outline-none'
+              className='h-full py-0 pl-2 border-transparent bg-transparent text-2xs text-gray-400 focus:outline-none'
             >
               {options.map((option) => (
                 <option key={option} value={option}>{option}</option>
