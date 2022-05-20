@@ -13,7 +13,7 @@ import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
 import PageHeader from '../../components/page-header'
-import Slide from '../../components/slide'
+import Sidebar from '../../components/sidebar'
 
 const columns = [{
   Header: 'Name',
@@ -58,60 +58,78 @@ const columns = [{
   }
 }]
 
-function SlideContent ({ id, isAdmin }) {
-  const { data: destination } = useSWR(`/v1/destinations/${id}`)
+function SlideContent ({ destination, isAdmin, setSelectedDestination }) {
+  const { mutate } = useSWRConfig()
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
   return (
     <>
       {isAdmin &&
-        <>
+        <section>
           <div className='border-b border-gray-800 mt-4'>
             <div className='text-xxs text-gray-400 uppercase pb-5'>Access</div>
           </div>
           <div className='pt-3 pb-12'>
-            <Grant id={id} />
+            <Grant id={destination.id} />
           </div>
-        </>}
-      <>
+        </section>}
+      <section>
         <div className='border-b border-gray-800 mt-4'>
           <div className='text-xxs text-gray-400 uppercase pb-5'>Meta</div>
         </div>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-xs w-1/3'>ID</div>
+            <div className='text-xs font-mono'>{destination.id}</div>
+          </div>
+          <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-xs w-1/3'>Added</div>
             <div className='text-xs'>{dayjs(destination?.created).fromNow()}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-xs' />
+            <div className='text-gray-400 text-xs w-1/3'>Last Seen</div>
+            <div className='text-xs'>{dayjs(destination?.lastSeen).fromNow()}</div>
           </div>
         </div>
-      </>
+      </section>
+      <section className='flex-1 flex flex-col items-end flex-shrink-0 justify-end py-6'>
+        <button
+          type='button'
+          onClick={() => setDeleteModalOpen(true)}
+          className='border border-violet-300 rounded-md flex items-center text-xs px-6 py-3 text-violet-100'
+        >
+          Delete
+        </button>
+        <DeleteModal
+          open={deleteModalOpen}
+          onCancel={() => setDeleteModalOpen(false)}
+          onSubmit={async () => {
+            mutate('/v1/destinations', async destinations => {
+              await fetch(`/v1/destinations/${destination.id}`, {
+                method: 'DELETE'
+              })
+
+              return destinations?.filter(d => d?.id !== destination.id)
+            })
+
+            setDeleteModalOpen(false)
+            setSelectedDestination(null)
+          }}
+          title='Delete Cluster'
+          message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+        />
+      </section>
     </>
   )
 }
 
 export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
-  const { mutate } = useSWRConfig()
   const { admin, loading: adminLoading } = useAdmin()
-  const [DeleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [slideModalOpen, setSlideModalOpen] = useState(false)
-  const [selectedRow, setSelectedRow] = useState(null)
-  const [slideActionBtns, setSlideActionBtns] = useState([])
-
+  const [selectedDestination, setSelectedDestination] = useState(null)
   const table = useTable({ columns, data: destinations || [] })
 
   const loading = adminLoading || (!destinations && !error)
-
-  const handleDestinationDetail = (row) => {
-    setSlideModalOpen(true)
-    setSelectedRow(row)
-    setSlideActionBtns([{ handleOnClick: () => setDeleteModalOpen(true), text: 'Disconnect Cluster' }])
-  }
-
-  const handleCancelDeleteModal = () => {
-    setDeleteModalOpen(false)
-    setSlideModalOpen(true)
-  }
 
   return (
     <>
@@ -121,62 +139,40 @@ export default function Destinations () {
       {loading
         ? (<Loader />)
         : (
-          <div className={`flex-1 flex flex-col space-y-8 mb-4 ${slideModalOpen ? 'w-7/12' : ''}`}>
-            <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-            {error?.status
+          <div className='flex-1 flex h-full'>
+            <main className='flex-1 space-y-8'>
+              <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
+              {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
-                <>
-                  <Table
+                <div>
+                  {<Table
                     {...table}
                     getRowProps={row => ({
-                      onClick: () => handleDestinationDetail(row),
+                      onClick: () => setSelectedDestination(row.original),
                       style: {
                         cursor: 'pointer'
                       }
                     })}
-                  />
-                  {slideModalOpen &&
-                    <Slide
-                      open={slideModalOpen}
-                      handleClose={() => setSlideModalOpen(false)}
-                      title={selectedRow.values.name}
-                      iconPath='/destinations.svg'
-                      footerBtns={slideActionBtns}
-                      deleteModalShown={DeleteModalOpen}
-                    >
-                      <SlideContent id={selectedRow.original.id} isAdmin={admin} />
-                    </Slide>}
-                  <DeleteModal
-                    open={DeleteModalOpen}
-                    setOpen={setDeleteModalOpen}
-                    onCancel={handleCancelDeleteModal}
-                    onSubmit={async () => {
-                      mutate('/v1/destinations', async destinations => {
-                        await fetch(`/v1/destinations/${selectedRow.original.id}`, {
-                          method: 'DELETE'
-                        })
-
-                        return destinations?.filter(d => d?.id !== selectedRow.original.id)
-                      })
-
-                      setDeleteModalOpen(false)
-                    }}
-                    title='Delete Cluster'
-                    message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
-                  />
-                  {
-                    destinations?.length === 0 &&
-                      <EmptyTable
-                        title='There is no infrastructure'
-                        subtitle='There is currently no infrastructure connected to Infra'
-                        iconPath='/destinations.svg'
-                        buttonHref={admin && '/destinations/add'}
-                        buttonText='Infrastructure'
-                      />
-                  }
-                </>
+                  />}
+                  {destinations?.length === 0 && <EmptyTable
+                    title='There is no infrastructure'
+                    subtitle='There is currently no infrastructure connected to Infra'
+                    iconPath='/destinations.svg'
+                    buttonHref={admin && '/destinations/add'}
+                    buttonText='Infrastructure'
+                  />}
+                </div>
                 )}
+            </main>
+            {selectedDestination &&
+              <Sidebar
+                handleClose={() => setSelectedDestination(null)}
+                title={selectedDestination.name}
+                iconPath='/destinations.svg'
+              >
+                <SlideContent destination={selectedDestination} isAdmin={admin} setSelectedDestination={setSelectedDestination} />
+              </Sidebar>}
           </div>
           )}
     </>

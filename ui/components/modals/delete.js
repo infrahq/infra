@@ -12,11 +12,9 @@ export default function ({ open, setOpen, onSubmit, title, message, onCancel }) 
             {title}
           </Dialog.Title>
         </header>
-
         <Dialog.Description className='text-xs text-gray-300 my-12'>
           {message}
         </Dialog.Description>
-
         <footer className='mt-8 text-sm flex flex-row-reverse'>
           <button
             type='button'
@@ -28,7 +26,7 @@ export default function ({ open, setOpen, onSubmit, title, message, onCancel }) 
           <button
             type='button'
             className='px-8 py-2 text-xxs text-gray-400 uppercase focus:outline-none focus:text-gray-100'
-            onClick={() => onCancel()}
+            onClick={() => onCancel && onCancel()}
           >
             Cancel
           </button>

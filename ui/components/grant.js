@@ -50,7 +50,7 @@ export default function ({ id }) {
     })
   }
 
-  const handleInputChang = value => {
+  const handleInputChange = value => {
     setEmail(value)
     setError('')
   }
@@ -116,7 +116,7 @@ export default function ({ id }) {
             error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}
-            handleInputChange={e => handleInputChang(e.target.value)}
+            handleInputChange={e => handleInputChange(e.target.value)}
             handleSelectOption={e => setRole(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
             selectedItem={role}

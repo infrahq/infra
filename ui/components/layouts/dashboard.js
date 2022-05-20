@@ -98,7 +98,7 @@ export default function ({ children }) {
         </div>
       </nav>
       <main className='w-full overflow-x-hidden overflow-y-scroll'>
-        <div className='mx-6'>
+        <div className='mx-6 h-full'>
           {children}
         </div>
       </main>
