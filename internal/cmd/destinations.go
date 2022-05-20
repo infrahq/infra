@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -23,7 +21,7 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newDestinationsListCmd(cli))
-	cmd.AddCommand(newDestinationsRemoveCmd())
+	cmd.AddCommand(newDestinationsRemoveCmd(cli))
 
 	return cmd
 }
@@ -69,7 +67,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 	}
 }
 
-func newDestinationsRemoveCmd() *cobra.Command {
+func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
@@ -87,15 +85,13 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if destinations.Count == 0 {
-				return fmt.Errorf("no destinations named %s.", args[0])
-			}
-
 			for _, d := range destinations.Items {
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					return err
 				}
+
+				cli.Output("Removed destination %q", d.Name)
 			}
 
 			return nil
