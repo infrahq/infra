@@ -71,14 +71,12 @@ export default function ({ children }) {
             </Link>
           )}
         </div>
-        <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900'>
+        <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 overflow-hidden'>
           <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
             <div className='flex flex-1 justify-center items-center border border-violet-300/70 text-[11px] rounded-[4px] leading-none font-normal m-0.5 select-none'>
               <span className='inline-block -mt-0.5'>{auth?.name?.[0]}</span>
             </div>
           </div>
-
-          {/* user info */}
           <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
             <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-xs pb-px'>{auth?.name}</div>
             <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>

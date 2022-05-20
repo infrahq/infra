@@ -13,6 +13,7 @@
   "dependencies": {
     "@headlessui/react": "^1.6.1",
     "@heroicons/react": "^1.0.6",
+    "copy-to-clipboard": "^3.3.1",
     "dayjs": "^1.11.2",
     "next": "^12.1.4",
     "react": "17.0.2",

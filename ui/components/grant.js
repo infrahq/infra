@@ -126,13 +126,11 @@ export default function ({ id }) {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
+          className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md text-xs px-3 py-3'
         >
-          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-3 py-3'>
-            <PlusIcon className='w-3 h-3 mr-1.5' />
-            <div className='text-violet-100'>
-              Share
-            </div>
+          <PlusIcon className='w-3 h-3 mr-1.5' />
+          <div className='text-violet-100'>
+            Share
           </div>
         </button>
       </div>

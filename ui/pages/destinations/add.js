@@ -1,182 +1,134 @@
 import Head from 'next/head'
-import Router from 'next/router'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import useSWR from 'swr'
+import copy from 'copy-to-clipboard'
 
-import Fullscreen from '../../components/modals/fullscreen'
-import HeaderIcon from '../../components/header-icon'
-import InputDropdown from '../../components/input'
+import Fullscreen from '../../components/layouts/fullscreen'
 
-function CommandInput ({ enabledCommandInput, accessKey, currentDestinationName }) {
+export default function DestinationsAdd () {
+  const [accessKey, setAccessKey] = useState('')
+  const [name, setName] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [connected, setConnected] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  async function checkConnection () {
+    if (accessKey && name.length > 0) {
+      const res = await fetch(`/v1/destinations?name=${name}`)
+      const destinations = await res.json()
+      if (destinations.length > 0) {
+        setConnected(true)
+      }
+    }
+  }
+
+  useEffect(() => {
+    let interval = setInterval(checkConnection, 5000)
+    return () => {
+      clearInterval(interval)
+    }
+  }, [accessKey])
+
+  async function handleNext () {
+    setConnected(false)
+    let res = await fetch('/v1/identities?name=connector')
+    const connectors = await res.json()
+    const { id } = connectors[0]
+    const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
+    res = await fetch('/v1/access-keys', {
+      method: 'POST',
+      body: JSON.stringify({ userID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' })
+    })
+    const key = await res.json()
+    setAccessKey(key.accessKey)
+  }
+
   const server = window.location.host
-  const isHttps = window.location.origin.includes('https')
-  const defaultValue = `helm install infra-connector infrahq/infra \\
-  --set connector.config.accessKey=${accessKey} \\
-  --set connector.config.server=${server} \\
-  --set connector.config.name=${currentDestinationName}`
-
-  const commandValue = isHttps
-    ? defaultValue
-    : defaultValue + ` \\
-  --set connector.config.skipTLSVerify=true`
-
-  const value = enabledCommandInput ? commandValue : ''
+  const command = `helm install infra-connector infrahq/infra \\
+    --set connector.config.accessKey=${accessKey} \\
+    --set connector.config.server=${server} \\
+    --set connector.config.name=${name} \\
+    --set connector.config.skipTLSVerify=true`
 
   return (
-    <div className='border border-gray-800 rounded-lg shadow-sm overflow-hidden my-5'>
-      <textarea
-        spellCheck='false'
-        rows={5}
-        name='commandInput'
-        id='commandInput'
-        className='block w-full px-5 py-4 border-0 resize-none sm:text-sm bg-black focus:outline-none whitespace-pre font-mono'
-        value={value}
-        readOnly
-      />
+    <div>
+      <Head>
+        <title>Add Infrastructure - Infra</title>
+      </Head>
+      <header className='flex flex-row px-4 pt-5 pb-6 items-center'>
+        <img src='/destinations.svg' className='w-6 h-6 mr-2 mt-0.5' />
+        <h1 className='text-xs capitalize'>Connect infrastructure</h1>
+      </header>
+      <form
+        onSubmit={e => {
+          e.preventDefault()
+          setSubmitted(true)
+          handleNext()
+          return false
+        }}
+        className='flex space-x-2 px-4 mb-10'
+      >
+        <div className='flex-1'>
+          <label className='text-xxs text-gray-400 uppercase'>Cluster Name</label>
+          <input
+            autoFocus
+            required
+            placeholder='provide a cluster name'
+            value={name}
+            onChange={e => setName(e.target.value)}
+            disabled={submitted}
+            className='w-full bg-transparent border-b border-gray-800 text-xxs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic disabled:opacity-10'
+          />
+        </div>
+        <button
+          className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-xs px-4 py-2 disabled:opacity-10'
+          disabled={submitted}
+        >
+          Next
+        </button>
+      </form>
+      <section className={`flex flex-col my-2 ${submitted ? '' : 'opacity-10 pointer-events-none'}`}>
+        <h2 className='px-4 text-xs mb-2 text-gray-100'>Run this command on your Kubernetes cluster:</h2>
+        <pre className={`text-xs p-4 min-h-[120px] text-gray-300 bg-gray-900 ${submitted ? 'overflow-auto' : 'overflow-hidden'}`}>
+          {submitted ? command : ''}
+        </pre>
+        <button
+          className='self-end text-xxs text-violet-200 mt-2 mb-3 py-2 px-3 mr-2 font-medium uppercase disabled:text-gray-500'
+          disabled={copied}
+          onClick={() => {
+            copy(command)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          }}
+        >
+          {copied ? '✓ Copied' : 'Copy command'}
+        </button>
+        <p className='text-gray-500 text-xs px-4'>Your cluster will be detected automatically.<br />This may take a few minutes.</p>
+        {connected ? (
+          <footer className='flex justify-between px-4 my-4 mr-3 items-center'>
+            <h3 className='text-xs text-gray-200'>✓ Connected</h3>
+            <Link href='/destinations'>
+              <a
+                className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-xs px-4 py-2 disabled:opacity-20'
+                disabled={submitted}
+              >
+                Finish
+              </a>
+            </Link>
+          </footer>
+        ) : (
+        <footer className='flex items-center px-4 my-5'>
+          <h3 className='text-xs mr-3 text-gray-200'>Waiting for connection</h3>
+          {submitted && <span className='animate-[ping_1.25s_ease-in-out_infinite] flex-none inline-flex h-2 w-2 rounded-full border border-white opacity-75' />}
+        </footer>
+        )}
+      </section>
     </div>
   )
 }
 
-export default function () {
-  const { data: destinations } = useSWR('/v1/destinations')
-
-  const [accessKey, setAccessKey] = useState('')
-  const [name, setName] = useState('')
-  const [currentDestinationName, setCurrentDestinationName] = useState('')
-  const [connected, setConnected] = useState(false)
-  const [enabledCommandInput, setEnabledCommandInput] = useState(false)
-  const [disabledInput, setDisabledInput] = useState(false)
-  const [numDestinations, setNumDestinations] = useState(0)
-
-  useEffect(() => {
-    const handleDestinationConnection = () => {
-      if (accessKey && name.length > 0) {
-        fetch(`/v1/destinations?name=${name}`)
-          .then((response) => response.json())
-          .then((data) => {
-            if (!connected) {
-              if (data.length === numDestinations) {
-                pollingTimeout = setTimeout(handleDestinationConnection, 5000)
-              } else {
-                setConnected(true)
-                clearTimeout(pollingTimeout)
-              }
-            }
-          })
-          .catch((error) => {
-            console.error(error)
-            clearTimeout(pollingTimeout)
-          })
-      }
-    }
-
-    let pollingTimeout = setTimeout(handleDestinationConnection, 5000)
-
-    return () => {
-      clearTimeout(pollingTimeout)
-    }
-  }, [accessKey])
-
-  const handleFinished = () => {
-    Router.replace('/destinations')
-  }
-
-  const handleNext = () => {
-    setDisabledInput(true)
-    setCurrentDestinationName(name)
-    setEnabledCommandInput(name.length > 0)
-    setNumDestinations(destinations?.filter((item) => item.name === name).length)
-
-    fetch('/v1/identities?name=connector')
-      .then((response) => response.json())
-      .then((data) => {
-        const { id } = data[0]
-        const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
-
-        return { identityID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' }
-      })
-      .then((config) => {
-        return fetch('/v1/access-keys', {
-          method: 'POST',
-          body: JSON.stringify(config)
-        })
-      })
-      .then((response) => response.json())
-      .then((accessKeyInfo) => {
-        setAccessKey(accessKeyInfo.accessKey)
-      })
-      .catch((error) => console.error(error))
-  }
-
-  const handleKeyDownEvent = (key) => {
-    if (key === 'Enter' && name.length > 0) {
-      handleNext()
-    }
-  }
-
-  return (
-    <Fullscreen closeHref='/destinations' verticalCenteredContent={false}>
-      <Head>
-        <title>Infra - Destinations</title>
-      </Head>
-      <div className='flex flex-col mb-10 w-full max-w-md'>
-        <HeaderIcon iconPath='/destinations-color.svg' position='center' />
-        <h1 className='text-base font-bold tracking-tight text-center'>Connect a Cluster</h1>
-        <div className='flex gap-1 mt-8 mb-5'>
-          <div className='flex-1'>
-            <InputDropdown
-              type='text'
-              value={name}
-              placeholder='Choose a name for your cluster'
-              hasDropdownSelection={false}
-              handleInputChange={e => setName(e.target.value)}
-              handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-              disabled={disabledInput}
-            />
-          </div>
-          <button
-            onClick={() => handleNext()}
-            disabled={name.length === 0 || disabledInput}
-            type='button'
-            className='bg-gradient-to-tr from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 p-0.5 ml-2 rounded-full disabled:opacity-30'
-          >
-            <div className='bg-black flex items-center text-sm px-12 py-2.5 rounded-full'>
-              Next
-            </div>
-          </button>
-        </div>
-        {enabledCommandInput &&
-          <>
-            <h2 className='text-gray-300 text-center px-2 mt-4'>
-              Next, deploy the Infra Connector to your cluster via <span className='font-mono'>helm:</span>
-            </h2>
-            <CommandInput
-              enabledCommandInput={enabledCommandInput}
-              accessKey={accessKey}
-              currentDestinationName={currentDestinationName}
-            />
-            <h2 className='text-gray-300 text-center px-2 mb-2 mt-4'>
-              Your cluster will be detected automatically. This may take a few minutes.
-            </h2>
-            <div className='border border-dashed border-violet-100 rounded-lg shadow-sm overflow-hidden my-5 px-5 py-3'>
-              <div className='flex items-center justify-center p-0.5 w-full'>
-                <img className={`w-8 h-8' ${connected ? '' : 'animate-pulse'}`} src='/connected-icon.svg' />
-                <p className='text-fuchsia-500 text-sm px-2 py-3'>{connected ? 'Connected!' : 'Waiting for connection...'}</p>
-              </div>
-            </div>
-            {connected &&
-              <button
-                onClick={() => handleFinished()}
-                disabled={name.length === 0}
-                type='button'
-                className='bg-gradient-to-tr from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 rounded-full p-0.5 w-full mt-6 text-center'
-              >
-                <div className='bg-black rounded-full tracking-tight text-sm px-6 py-3'>
-                  Finished
-                </div>
-              </button>}
-          </>}
-      </div>
-    </Fullscreen>
-  )
-}
+DestinationsAdd.layout = page =>
+  <Fullscreen closeHref='/destinations'>
+    {page}
+  </Fullscreen>

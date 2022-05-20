@@ -38,12 +38,13 @@ export default ({ children, open, handleClose, title, iconPath, footerBtns, dele
                 <div className='flex flex-shrink-0 justify-end px-4 py-4'>
                   {footerBtns && <div className='flex flex-shrink-0 justify-end px-4 py-4'>
                     {footerBtns.map(b => (
-                      <button key={b.text} type='button' onClick={b.handleOnClick} className='bg-gradient-to-tr cursor-pointer from-violet-300 to-pink-100 hover:from-violet-200 hover:to-pink-50 rounded-md p-0.5'>
-                        <div className='bg-black rounded-md flex items-center text-xs px-6 py-3'>
-                          <div className='text-violet-100'>
-                            {b.text}
-                          </div>
-                        </div>
+                      <button
+                        key={b.text}
+                        type='button'
+                        onClick={b.handleOnClick}
+                        className='border border-violet-300 rounded-md flex items-center text-xs px-6 py-3 text-violet-100'
+                      >
+                        {b.text}
                       </button>
                     ))}
                   </div>}

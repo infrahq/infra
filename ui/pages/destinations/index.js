@@ -43,7 +43,7 @@ const columns = [{
         {connected
           ? (
             <>
-              <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-1' />
+              <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-1.5' />
               Connected
             </>
             )
@@ -77,23 +77,10 @@ function SlideContent ({ id, isAdmin }) {
         </div>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>Kind</div>
-            <div className='text-xs' />
-          </div>
-          <div className='flex flex-row flex-start'>
-            <div className='text-gray-400 text-xs w-1/3'>Namespace</div>
-            <div className='flex flex-col'>
-              {destination?.resources.map(r => (
-                <div key={r} className='text-xs'>{r}</div>
-              ))}
-            </div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>Age</div>
+            <div className='text-gray-400 text-xs w-1/3'>Added</div>
             <div className='text-xs'>{dayjs(destination?.created).fromNow()}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-xs w-1/3'>Images</div>
             <div className='text-xs' />
           </div>
         </div>
@@ -150,7 +137,14 @@ export default function Destinations () {
                     })}
                   />
                   {slideModalOpen &&
-                    <Slide open={slideModalOpen} handleClose={() => setSlideModalOpen(false)} title={selectedRow.values.name} iconPath='/destinations.svg' footerBtns={slideActionBtns} deleteModalShown={DeleteModalOpen}>
+                    <Slide
+                      open={slideModalOpen}
+                      handleClose={() => setSlideModalOpen(false)}
+                      title={selectedRow.values.name}
+                      iconPath='/destinations.svg'
+                      footerBtns={slideActionBtns}
+                      deleteModalShown={DeleteModalOpen}
+                    >
                       <SlideContent id={selectedRow.original.id} isAdmin={admin} />
                     </Slide>}
                   <DeleteModal

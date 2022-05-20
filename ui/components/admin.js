@@ -133,9 +133,7 @@ export default function () {
           className='flex items-center cursor-pointer border border-violet-300 px-5 mt-4 text-xs sm:ml-4 sm:mt-0 rounded-md disabled:pointer-events-none disabled:opacity-30'
         >
           <PlusIcon className='w-3 h-3 mr-1.5' />
-          <div className='text-'>
-            Add
-          </div>
+          Add Admin
         </button>
       </div>
       {error &&
