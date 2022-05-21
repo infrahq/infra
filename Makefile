@@ -20,13 +20,13 @@ helm/lint:
 	helm lint helm/charts/*
 
 helm/clean:
-	rm -r helm/*.tgz
+	$(RM) -r helm/*.tgz
 
 dev:
 	docker build . -t infrahq/infra:dev
 	kubectl config use-context docker-desktop
 	helm upgrade --install --wait infra ./helm/charts/infra --set global.image.pullPolicy=Never --set global.image.tag=dev $(flags)
-	kubectl delete pod -l app.kubernetes.io/instance=infra
+	kubectl delete pod -A -l app.kubernetes.io/instance=infra
 
 dev/clean:
 	kubectl config use-context docker-desktop
