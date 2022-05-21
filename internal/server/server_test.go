@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/infrahq/secrets"
@@ -282,6 +283,23 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 	}
 }
 
+func TestServer_GenerateRoutes_UI_NoRoute_Serves404File(t *testing.T) {
+	fs := fstest.MapFS{
+		"ui/static/404.html": {
+			Data: []byte("<html>404 - example</html>"),
+		},
+	}
+
+	s := &Server{options: Options{UI: UIOptions{Enabled: true, FS: fs}}}
+	router := s.GenerateRoutes(prometheus.NewRegistry())
+
+	req := httptest.NewRequest(http.MethodGet, "/notfound", nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
+}
+
 func TestServer_GenerateRoutes_UI(t *testing.T) {
 	type testCase struct {
 		name         string
@@ -290,7 +308,19 @@ func TestServer_GenerateRoutes_UI(t *testing.T) {
 		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{options: Options{UI: UIOptions{Enabled: true}}}
+	fs := fstest.MapFS{
+		"ui/static/index.html": {
+			Data: []byte("<html>infra home</html>"),
+		},
+		"ui/static/providers/add/details.html": {
+			Data: []byte("<html>mokta provider</html>"),
+		},
+		"ui/static/icon.svg": {
+			Data: []byte("<svg>image</svg>"),
+		},
+	}
+
+	s := &Server{options: Options{UI: UIOptions{Enabled: true, FS: fs}}}
 	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {

@@ -1,5 +1,3 @@
-//go:generate ./generate-ui.sh
-
 package server
 
 import (
@@ -12,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -80,6 +79,7 @@ type ListenerOptions struct {
 type UIOptions struct {
 	Enabled  bool
 	ProxyURL types.URL `mapstructure:"proxyURL"`
+	FS       fs.FS     `mapstructure:"-"`
 }
 
 type Server struct {
@@ -282,7 +282,7 @@ func (s *Server) loadCertificates() (err error) {
 }
 
 //go:embed all:ui/*
-var assetFS embed.FS
+var uiFS embed.FS
 
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 	if !opts.Enabled {
@@ -306,7 +306,12 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		return
 	}
 
-	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
+	fs := opts.FS
+	if fs == nil {
+		fs = uiFS
+	}
+
+	staticFS := &StaticFileSystem{base: http.FS(fs)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
 }
 
