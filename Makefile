@@ -1,5 +1,5 @@
-v ?= $(shell git describe --tags --abbrev=0)
-IMAGEVERSION ?= $(v:v%=%)
+tag ?= $(shell git describe --tags --abbrev=0)
+version ?= $(tag:v%=%)
 
 test:
 	go test -short ./...
@@ -13,7 +13,7 @@ test/update:
 
 .PHONY: helm
 helm:
-	helm package -d helm helm/charts/* --app-version $(IMAGEVERSION)
+	helm package -d helm helm/charts/* --app-version $(version)
 	helm repo index helm
 
 helm/lint:
@@ -26,8 +26,6 @@ dev:
 	docker build . -t infrahq/infra:dev
 	kubectl config use-context docker-desktop
 	helm upgrade --install --wait infra ./helm/charts/infra --set global.image.pullPolicy=Never --set global.image.tag=dev $(flags)
-	kubectl rollout restart deployment/infra-server || true
-	kubectl rollout restart deployment/infra-connector || true
 
 dev/clean:
 	kubectl config use-context docker-desktop
@@ -38,7 +36,7 @@ docker:
 		--platform linux/amd64,linux/arm64 \
 		--build-arg BUILDVERSION_PRERELEASE=$(BUILDVERSION_PRERELEASE) \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(IMAGEVERSION) \
+		--tag infrahq/infra:$(version) \
 		.
 
 release:
@@ -48,7 +46,7 @@ release/docker:
 	docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(IMAGEVERSION) \
+		--tag infrahq/infra:$(version) \
 		--tag infrahq/infra \
 		.
 
