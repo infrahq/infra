@@ -258,10 +258,9 @@ func healthHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// TODO: use the HTTP Accept header instead of the path to determine the
-// format of the response body. https://github.com/infrahq/infra/issues/1610
 func (a *API) notFoundHandler(c *gin.Context) {
-	if strings.HasPrefix(c.Request.URL.Path, "/api") {
+	accept := c.Request.Header.Get("Accept")
+	if strings.HasPrefix(accept, "application/json") {
 		sendAPIError(c, internal.ErrNotFound)
 		return
 	}
@@ -270,15 +269,19 @@ func (a *API) notFoundHandler(c *gin.Context) {
 
 	buf := []byte("404 not found")
 
-	const filePath404 = "ui/static/404.html"
-	uiFS := a.server.options.UI.FS
-	if _, err := fs.Stat(uiFS, filePath404); err == nil {
-		buf, err = fs.ReadFile(uiFS, filePath404)
-		if err != nil {
-			logging.S.Error(err)
+	if strings.HasPrefix(accept, "text/html") {
+
+		const filePath404 = "ui/static/404.html"
+		uiFS := a.server.options.UI.FS
+		if _, err := fs.Stat(uiFS, filePath404); err == nil {
+			buf, err = fs.ReadFile(uiFS, filePath404)
+			if err != nil {
+				logging.S.Error(err)
+			}
 		}
 	}
-
+	// If there's any other Accept header or an error in reading,
+	// the response will default to "404 not found"
 	_, err := c.Writer.Write(buf)
 	if err != nil {
 		logging.S.Error(err)

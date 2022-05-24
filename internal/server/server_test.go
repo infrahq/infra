@@ -252,6 +252,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		req.Header.Set("Accept", tc.name)
 		resp := httptest.NewRecorder()
 		router.ServeHTTP(resp, req)
 
@@ -263,7 +264,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "/api path prefix",
+			name: "application/json",
 			path: "/api/not/found",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				contentType := resp.Header().Get("Content-Type")
@@ -272,13 +273,21 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			},
 		},
 		{
-			name: "ui path",
+			name: "text/html",
 			path: "/not/found",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				// response should have an html body
 				assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
+
 			},
 		},
+		{
+			name: "other (this will give plaintext)",
+			path: "/not/found",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should have an html body
+				assert.Equal(t, "404 not found", resp.Body.String())
+			}},
 	}
 
 	for _, tc := range testCases {

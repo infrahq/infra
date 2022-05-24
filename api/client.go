@@ -140,6 +140,7 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 	addHeaders(httpReq, client.Headers)
 	httpReq.Header.Add("Authorization", "Bearer "+client.AccessKey)
 	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "application/json")
 
 	resp, err := client.HTTP.Do(httpReq)
 	if err != nil {
