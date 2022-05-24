@@ -269,15 +269,17 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	c.Status(http.StatusNotFound)
 
 	buf := []byte("404 not found")
-	var err error
-	if a.server.options.UI.FS != nil {
-		buf, err = fs.ReadFile(a.server.options.UI.FS, "ui/static/404.html")
+
+	const filePath404 = "ui/static/404.html"
+	uiFS := a.server.options.UI.FS
+	if _, err := fs.Stat(uiFS, filePath404); err == nil {
+		buf, err = fs.ReadFile(uiFS, filePath404)
 		if err != nil {
 			logging.S.Error(err)
 		}
 	}
 
-	_, err = c.Writer.Write(buf)
+	_, err := c.Writer.Write(buf)
 	if err != nil {
 		logging.S.Error(err)
 	}

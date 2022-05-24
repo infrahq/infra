@@ -72,6 +72,6 @@ func TestStaticFileSystemExistsAppendDotHtml(t *testing.T) {
 		base: http.FS(fs),
 	}
 
-	exists := sfs.Exists("/", "/foo.html")
+	exists := sfs.Exists("/", "/foo")
 	assert.Equal(t, exists, true)
 }

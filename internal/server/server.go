@@ -79,7 +79,8 @@ type ListenerOptions struct {
 type UIOptions struct {
 	Enabled  bool
 	ProxyURL types.URL `mapstructure:"proxyURL"`
-	FS       fs.FS     `mapstructure:"-"`
+	// FS is the filesystem which contains the static files for the UI.
+	FS fs.FS `mapstructure:"-"`
 }
 
 type Server struct {
@@ -101,6 +102,7 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
+	options.UI.FS = uiFS
 	return &Server{
 		options: options,
 		secrets: map[string]secrets.SecretStorage{},
@@ -306,12 +308,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		return
 	}
 
-	fs := opts.FS
-	if fs == nil {
-		fs = uiFS
-	}
-
-	staticFS := &StaticFileSystem{base: http.FS(fs)}
+	staticFS := &StaticFileSystem{base: http.FS(opts.FS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
 }
 
