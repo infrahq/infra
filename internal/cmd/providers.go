@@ -139,7 +139,9 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 }
 
 func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "remove PROVIDER",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect an identity provider",
@@ -156,6 +158,10 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			if providers.Count == 0 && !force {
+				return fmt.Errorf("unknown provider %q", args[0])
+			}
+
 			for _, provider := range providers.Items {
 				if err := client.DeleteProvider(provider.ID); err != nil {
 					return err
@@ -167,6 +173,10 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Remove provider even if it does not exist")
+
+	return cmd
 }
 
 func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {

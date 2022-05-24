@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -68,7 +70,9 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 }
 
 func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "remove DESTINATION",
 		Aliases: []string{"rm"},
 		Short:   "Disconnect a destination",
@@ -85,6 +89,10 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			if destinations.Count == 0 && !force {
+				return fmt.Errorf("unknown destination %q", args[0])
+			}
+
 			for _, d := range destinations.Items {
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
@@ -97,4 +105,8 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Remove destination even if it does not exist")
+
+	return cmd
 }

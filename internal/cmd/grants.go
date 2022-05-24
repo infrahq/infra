@@ -154,6 +154,8 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Group to revoke access from")
 	cmd.Flags().StringVar(&options.Role, "role", "", "Role to revoke")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Remove grant even if it does not exist")
+
 	return cmd
 }
 
@@ -176,6 +178,10 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if grants.Count == 0 && !cmdOptions.Force {
+		return fmt.Errorf("unknown grant")
 	}
 
 	for _, g := range grants.Items {

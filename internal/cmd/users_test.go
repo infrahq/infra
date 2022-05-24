@@ -75,7 +75,14 @@ func TestUsersCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					b, err := json.Marshal(api.ListResponse[api.User]{Items: []api.User{{Name: "to-delete-user@example.com"}}})
+					if req.URL.Query().Get("name") == "to-delete-user@example.com" {
+						b, err := json.Marshal(api.ListResponse[api.User]{Count: 1, Items: []api.User{{Name: "to-delete-user@example.com"}}})
+						assert.NilError(t, err)
+						_, _ = resp.Write(b)
+						return
+					}
+
+					b, err := json.Marshal(api.ListResponse[api.User]{})
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
@@ -138,6 +145,13 @@ func TestUsersCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Equal(t, len(*modifiedUsers), 1)
+	})
+
+	t.Run("remove unknown user", func(t *testing.T) {
+		setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "users", "remove", "unknown@example.com")
+		assert.ErrorContains(t, err, "unknown user")
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {

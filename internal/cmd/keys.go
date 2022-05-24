@@ -94,7 +94,9 @@ $ infra keys add example-key identity@example.com --ttl=12h
 }
 
 func newKeysRemoveCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "remove KEY",
 		Aliases: []string{"rm"},
 		Short:   "Delete an access key",
@@ -108,6 +110,10 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
 				return err
+			}
+
+			if keys.Count == 0 && !force {
+				return fmt.Errorf("unknown access key %q", args[0])
 			}
 
 			for _, key := range keys.Items {
@@ -127,6 +133,10 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Remove access key even if it does not exist")
+
+	return cmd
 }
 
 type keyListOptions struct {
