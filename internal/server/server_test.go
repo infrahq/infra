@@ -252,7 +252,11 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
-		req.Header.Set("Accept", tc.name)
+
+		if tc.name != "no header" {
+			req.Header.Set("Accept", tc.name)
+		}
+
 		resp := httptest.NewRecorder()
 		router.ServeHTTP(resp, req)
 
@@ -287,7 +291,16 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				// response should have an html body
 				assert.Equal(t, "404 not found", resp.Body.String())
-			}},
+			},
+		},
+		{
+			name: "no header",
+			path: "/not/found/again",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should have an html body
+				assert.Equal(t, "404 not found", resp.Body.String())
+			},
+		},
 	}
 
 	for _, tc := range testCases {
