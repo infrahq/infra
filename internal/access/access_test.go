@@ -3,12 +3,10 @@ package access
 import (
 	"fmt"
 	"net/http/httptest"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/secrets"
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -18,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -25,7 +24,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := data.NewDB(driver)
+	patch.ModelsSymmetricKey(t)
+	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	return db
@@ -51,8 +51,6 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	}
 	err = data.CreateGrant(db, adminGrant)
 	assert.NilError(t, err)
-
-	SetupTestSecretProvider(t)
 
 	provider := &models.Provider{Name: models.InternalInfraProviderName}
 	err = data.CreateProvider(db, provider)
@@ -94,10 +92,6 @@ func TestBasicGrant(t *testing.T) {
 }
 
 func TestUsersGroupGrant(t *testing.T) {
-	models.SkipSymmetricKey = true
-	t.Cleanup(func() {
-		models.SkipSymmetricKey = false
-	})
 	db := setupDB(t)
 
 	tom = &models.Identity{Name: "tom@infrahq.com"}
@@ -393,8 +387,6 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Set("db", db)
 
-		SetupTestSecretProvider(t)
-
 		// setup fake identity provider
 		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com"}
 		err := data.CreateProvider(db, provider)
@@ -421,17 +413,4 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			}
 		})
 	}
-}
-
-func SetupTestSecretProvider(t *testing.T) {
-	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
-
-	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
-	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-	assert.NilError(t, err)
-
-	models.SymmetricKey = symmetricKey
 }
