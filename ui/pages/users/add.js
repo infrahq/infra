@@ -6,7 +6,7 @@ import ErrorMessage from '../../components/error-message'
 import Fullscreen from '../../components/layouts/fullscreen'
 import { validateEmail } from '../../lib/email'
 
-function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, error }) {
+function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
   return (
     <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
       <div className='flex flex-row space-x-2 items-center px-4'>
@@ -24,8 +24,8 @@ function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, 
             type='email'
             placeholder='enter the user email here'
             value={email}
-            onChange={handleOnChange}
-            onKeyDown={handleKeyDown}
+            onChange={onChange}
+            onKeyDown={onKeyDown}
             className={`w-full bg-transparent border-b border-gray-950 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500' : 'border-gray-800'}`}
           />
         </div>
@@ -37,7 +37,7 @@ function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, 
         </Link>
         <button
           type='button'
-          onClick={handleAddUserOnClick}
+          onClick={onAddUser}
           disabled={!email}
           className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'
         >
@@ -50,7 +50,7 @@ function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, 
   )
 }
 
-function UserOneTimePassword ({ password, handleAddUserOnClick }) {
+function UserOneTimePassword ({ password, onAddUser }) {
   return (
     <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
       <div className='flex flex-row space-x-2 items-center px-4'>
@@ -69,7 +69,7 @@ function UserOneTimePassword ({ password, handleAddUserOnClick }) {
         />
       </div>
       <div className='flex flex-row justify-between m-6 items-center'>
-        <button onClick={handleAddUserOnClick} className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Add Another</button>
+        <button onClick={onAddUser} className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Add Another</button>
         <Link href='/users'>
           <a className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'>
             <div className='bg-black rounded-md tracking-tight text-2xs px-6 py-3 text-pink-200'>
@@ -145,8 +145,16 @@ export default function () {
         <title>Add User</title>
       </Head>
       <div className='w-full max-w-sm'>
-        {state === 'add' && <AddUser email={email} handleOnChange={e => handleInputChang(e.target.value)} handleKeyDown={e => handleKeyDownEvent(e.key)} handleAddUserOnClick={() => handleGetOneTimePassword()} error={errors.name} />}
-        {state === 'password' && <UserOneTimePassword password={password} handleAddUserOnClick={() => handleAddUser()} />}
+        {state === 'add' && 
+          <AddUser 
+            email={email} 
+            onChange={e => handleInputChang(e.target.value)} 
+            onKeyDown={e => handleKeyDownEvent(e.key)} 
+            onAddUser={() => handleGetOneTimePassword()} 
+            error={errors.name} 
+          />
+        }
+        {state === 'password' && <UserOneTimePassword password={password} onAddUser={() => handleAddUser()} />}
         {error && <ErrorMessage message={error} />}
       </div>
     </Fullscreen>

@@ -15,18 +15,18 @@ export default function ({ id }) {
 
   const options = ['view', 'edit', 'admin', 'remove']
 
-  const handleInputChang = value => {
+  function handleInputChang (value) {
     setInfrastructure(value)
     setError('')
   }
 
-  const handleKeyDownEvent = key => {
+  function handleKeyDownEvent (key) {
     if (key === 'Enter' && infrastructure.length > 0) {
       handleShareGrant()
     }
   }
 
-  const handleShareGrant = async () => {
+  async function handleShareGrant() {
     if (destinations.find(d => d.name === infrastructure)) {
       grant(id)
     } else {
@@ -34,7 +34,7 @@ export default function ({ id }) {
     }
   }
 
-  const grant = (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) => {
+  function grant (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) {
     mutate(`/v1/identities/${id}/grants`, async grantsList => {
       const res = await fetch('/v1/grants', {
         method: 'POST',
@@ -55,7 +55,7 @@ export default function ({ id }) {
     })
   }
 
-  const handleUpdateGrant = (privilege, resource, grantId, user) => {
+  function handleUpdateGrant (privilege, resource, grantId, user) {
     if (privilege !== 'remove') {
       return grant(user, privilege, resource, true, grantId)
     }

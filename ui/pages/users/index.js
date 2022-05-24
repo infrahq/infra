@@ -119,7 +119,7 @@ export default function Users () {
         <title>Users - Infra</title>
       </Head>
       {loading
-        ? (<Loader />)
+        ? <Loader />
         : (
           <div className='flex-1 flex h-full'>
             <main className='flex-1 flex flex-col space-y-4'>
