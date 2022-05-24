@@ -85,7 +85,7 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVarP(&editPassword, "password", "p", false, "Set a new one time password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new one time password")
 
 	return cmd
 }
