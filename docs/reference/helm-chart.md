@@ -108,6 +108,8 @@ server:
 # example values.yaml
 ---
 server:
+  service:
+    type: ClusterIP
   ingress:
     enabled: true
     hosts:
@@ -130,6 +132,8 @@ server:
 # example values.yaml
 ---
 server:
+  service:
+    type: ClusterIP
   ingress:
     enabled: true
     hosts:
