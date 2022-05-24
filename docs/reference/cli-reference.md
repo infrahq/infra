@@ -185,6 +185,12 @@ infra destinations remove DESTINATION [flags]
 $ infra destinations remove docker-desktop
 ```
 
+### Options
+
+```
+      --force   Remove destination even if it does not exist
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -281,6 +287,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 ### Options
 
 ```
+      --force         Remove grant even if it does not exist
   -g, --group         Group to revoke access from
       --role string   Role to revoke
 ```
@@ -338,7 +345,7 @@ $ infra users edit janedoe@example.com --password
 ### Options
 
 ```
-  -p, --password   Set a new one time password
+      --password   Set a new one time password
 ```
 
 ### Options inherited from parent commands
@@ -376,6 +383,12 @@ infra users remove USER [flags]
 ```
 # Delete a user
 $ infra users remove janedoe@example.com
+```
+
+### Options
+
+```
+      --force   Remove user even if it does not exist
 ```
 
 ### Options inherited from parent commands
@@ -450,6 +463,12 @@ Delete an access key
 infra keys remove KEY [flags]
 ```
 
+### Options
+
+```
+      --force   Remove access key even if it does not exist
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -519,6 +538,12 @@ infra providers remove PROVIDER [flags]
 
 ```
 $ infra providers remove okta
+```
+
+### Options
+
+```
+      --force   Remove provider even if it does not exist
 ```
 
 ### Options inherited from parent commands
