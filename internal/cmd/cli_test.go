@@ -50,3 +50,12 @@ type writerWithFd struct {
 func (w writerWithFd) Fd() uintptr {
 	return w.fd
 }
+
+func PatchCLIWithPTY(ctx context.Context, pty *os.File) context.Context {
+	cli := &CLI{
+		Stdout: pty,
+		Stderr: pty,
+		Stdin:  pty,
+	}
+	return context.WithValue(ctx, ctxKey, cli)
+}
