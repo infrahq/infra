@@ -150,4 +150,4 @@ export default function ProvidersAddDetails () {
   )
 }
 
-ProvidersAddDetails.layout = page => <Fullscreen closeHref='/providers'>{page}</Fullscreen>
+ProvidersAddDetails.layout = page => <Fullscreen backHref='/providers/add' closeHref='/providers'>{page}</Fullscreen>
