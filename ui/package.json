@@ -13,6 +13,7 @@
   "dependencies": {
     "@headlessui/react": "^1.6.1",
     "@heroicons/react": "^1.0.6",
+    "copy-to-clipboard": "^3.3.1",
     "dayjs": "^1.11.2",
     "next": "^12.1.4",
     "react": "17.0.2",
@@ -26,7 +27,7 @@
     "@types/react": "18.0.9",
     "autoprefixer": "^10.4.7",
     "concurrently": "^7.2.0",
-    "eslint": "^8.15.0",
+    "eslint": "^8.16.0",
     "eslint-config-next": "^12.1.6",
     "jest": "^28.1.0",
     "postcss": "^8.4.13",
