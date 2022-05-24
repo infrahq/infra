@@ -1,5 +1,5 @@
-tag ?= $(shell git describe --tags --abbrev=0)
-version ?= $(tag:v%=%)
+v ?= $(shell git describe --tags --abbrev=0)
+IMAGEVERSION ?= $(v:v%=%)
 
 test:
 	go test -short ./...
@@ -37,7 +37,7 @@ docker:
 		--platform linux/amd64,linux/arm64 \
 		--build-arg BUILDVERSION_PRERELEASE=$(BUILDVERSION_PRERELEASE) \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(version) \
+		--tag infrahq/infra:$(IMAGEVERSION) \
 		.
 
 release:
@@ -47,7 +47,7 @@ release/docker:
 	docker buildx build --push \
 		--platform linux/amd64,linux/arm64 \
 		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(version) \
+		--tag infrahq/infra:$(IMAGEVERSION) \
 		--tag infrahq/infra \
 		.
 
