@@ -97,25 +97,7 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 
 		// if either cert or key is missing, create it
 		if certBytes == nil || keyBytes == nil {
-			// Generate a CA to sign self-signed certificates
-			serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
-			if err != nil {
-				return nil, err
-			}
-
-			ca := &x509.Certificate{
-				SerialNumber: serialNumber,
-				Subject: pkix.Name{
-					Organization: []string{"Infra"},
-				},
-				NotBefore:             time.Now().Add(-5 * time.Minute).UTC(),
-				NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
-				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
-				ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-				BasicConstraintsValid: true,
-			}
-
-			caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+			ca, caPrivKey, err := newCA()
 			if err != nil {
 				return nil, err
 			}
@@ -141,4 +123,30 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 
 		return &keypair, nil
 	}
+}
+
+func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
+	// Generate a CA to sign self-signed certificates
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ca := &x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Infra"},
+		},
+		NotBefore:             time.Now().Add(-5 * time.Minute).UTC(),
+		NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ca, caPrivKey, nil
 }
