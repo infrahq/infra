@@ -45,10 +45,17 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 18
-      - working-directory: ui
+      - name: install npm dependencies
+        working-directory: ui
+        run: npm install
+      - name: run ui tests
+        working-directory: ui
+        run: npm test
+      - name: Check ui build
+        working-directory: ui
         run: |
-          npm install
-          npm test
+           npm run build
+           npm run export
 
   go-lint:
     runs-on: ubuntu-latest

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path"
 	"strings"
@@ -266,12 +267,19 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNotFound)
-	buf, err := assetFS.ReadFile("ui/404.html")
-	if err != nil {
-		logging.S.Error(err)
+
+	buf := []byte("404 not found")
+
+	const filePath404 = "ui/static/404.html"
+	uiFS := a.server.options.UI.FS
+	if _, err := fs.Stat(uiFS, filePath404); err == nil {
+		buf, err = fs.ReadFile(uiFS, filePath404)
+		if err != nil {
+			logging.S.Error(err)
+		}
 	}
 
-	_, err = c.Writer.Write(buf)
+	_, err := c.Writer.Write(buf)
 	if err != nil {
 		logging.S.Error(err)
 	}
