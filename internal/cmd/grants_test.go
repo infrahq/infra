@@ -37,6 +37,10 @@ func TestGrantsAddCmd(t *testing.T) {
 					writeResponse(t, resp, &api.ListResponse[api.User]{})
 				}
 				return
+			} else if requestMatches(req, http.MethodPost, "/api/users") {
+				resp.WriteHeader(http.StatusOK)
+				writeResponse(t, resp, &api.CreateUserResponse{ID: 3002})
+				return
 			}
 
 			if requestMatches(req, http.MethodGet, "/api/groups") {
@@ -46,6 +50,10 @@ func TestGrantsAddCmd(t *testing.T) {
 					return
 				}
 				writeResponse(t, resp, &api.ListResponse[api.Group]{})
+				return
+			} else if requestMatches(req, http.MethodPost, "/api/groups") {
+				resp.WriteHeader(http.StatusOK)
+				writeResponse(t, resp, &api.Group{ID: 4001})
 				return
 			}
 
@@ -140,6 +148,48 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.DeepEqual(t, createReq, expected)
 	})
 
+	t.Run("add grant for nonexistent user", func(t *testing.T) {
+		_ = setup(t)
+		err := Run(context.Background(), "grants", "add", "nonexistent", "destination")
+		assert.ErrorContains(t, err, "unknown user")
+	})
+
+	t.Run("add grant for nonexistent group", func(t *testing.T) {
+		_ = setup(t)
+		err := Run(context.Background(), "grants", "add", "nonexistent", "destination", "--group")
+		assert.ErrorContains(t, err, "unknown group")
+	})
+
+	t.Run("force add grant for nonexistent user", func(t *testing.T) {
+		ch := setup(t)
+		err := Run(context.Background(), "grants", "add", "nonexistent", "destination", "--force")
+		assert.NilError(t, err)
+
+		actual := <-ch
+		expected := api.CreateGrantRequest{
+			User:      3002,
+			Privilege: "connect",
+			Resource:  "destination",
+		}
+
+		assert.DeepEqual(t, actual, expected)
+	})
+
+	t.Run("force add grant for nonexistent group", func(t *testing.T) {
+		ch := setup(t)
+		err := Run(context.Background(), "grants", "add", "nonexistent", "destination", "--group", "--force")
+		assert.NilError(t, err)
+
+		actual := <-ch
+		expected := api.CreateGrantRequest{
+			Group:     4001,
+			Privilege: "connect",
+			Resource:  "destination",
+		}
+
+		assert.DeepEqual(t, actual, expected)
+	})
+
 	t.Run("add role to non-existent destination", func(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
@@ -159,6 +209,51 @@ func TestGrantsAddCmd(t *testing.T) {
 		ctx := context.Background()
 		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination", "--role", "nonexistent")
 		assert.ErrorContains(t, err, "unknown role")
+	})
+
+	t.Run("force add grant for nonexistent destination", func(t *testing.T) {
+		ch := setup(t)
+		err := Run(context.Background(), "grants", "add", "existing@example.com", "nonexistent", "--force")
+		assert.NilError(t, err)
+
+		actual := <-ch
+		expected := api.CreateGrantRequest{
+			User:      3000,
+			Privilege: "connect",
+			Resource:  "nonexistent",
+		}
+
+		assert.DeepEqual(t, actual, expected)
+	})
+
+	t.Run("force add grant for nonexistent namespace", func(t *testing.T) {
+		ch := setup(t)
+		err := Run(context.Background(), "grants", "add", "existing@example.com", "the-destination.nonexistent", "--force")
+		assert.NilError(t, err)
+
+		actual := <-ch
+		expected := api.CreateGrantRequest{
+			User:      3000,
+			Privilege: "connect",
+			Resource:  "the-destination.nonexistent",
+		}
+
+		assert.DeepEqual(t, actual, expected)
+	})
+
+	t.Run("force add grant for nonexistent role", func(t *testing.T) {
+		ch := setup(t)
+		err := Run(context.Background(), "grants", "add", "existing@example.com", "the-destination", "--role", "nonexistent", "--force")
+		assert.NilError(t, err)
+
+		actual := <-ch
+		expected := api.CreateGrantRequest{
+			User:      3000,
+			Privilege: "nonexistent",
+			Resource:  "the-destination",
+		}
+
+		assert.DeepEqual(t, actual, expected)
 	})
 }
 

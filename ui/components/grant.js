@@ -7,7 +7,6 @@ import { validateEmail } from '../lib/email'
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
-
 function Grant ({ id }) {
   if (!id) {
     return null
@@ -16,7 +15,7 @@ function Grant ({ id }) {
   const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
 
   return (
-    <p className='text-paragraph'>{user.name}</p>
+    <p className='text-2xs'>{user.name}</p>
   )
 }
 
@@ -51,7 +50,7 @@ export default function ({ id }) {
     })
   }
 
-  const handleInputChang = value => {
+  const handleInputChange = value => {
     setEmail(value)
     setError('')
   }
@@ -117,7 +116,7 @@ export default function ({ id }) {
             error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}
-            handleInputChange={e => handleInputChang(e.target.value)}
+            handleInputChange={e => handleInputChange(e.target.value)}
             handleSelectOption={e => setRole(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
             selectedItem={role}
@@ -127,13 +126,11 @@ export default function ({ id }) {
           onClick={() => handleShareGrant()}
           disabled={email.length === 0}
           type='button'
-          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
+          className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md text-2xs px-3 py-3'
         >
-          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-3 py-3'>
-            <PlusIcon className='w-3 h-3 mr-1.5' />
-            <div className='text-pink-100'>
-              Share
-            </div>
+          <PlusIcon className='w-3 h-3 mr-1.5' />
+          <div className='text-violet-100'>
+            Share
           </div>
         </button>
       </div>
@@ -147,7 +144,7 @@ export default function ({ id }) {
                 <select
                   id='role'
                   name='role'
-                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-paragraph text-gray-400 bg-transparent'
+                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-2xs text-gray-400 bg-transparent'
                   defaultValue={item.privilege}
                   onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
                 >
@@ -159,9 +156,11 @@ export default function ({ id }) {
             </div>
           ))}
         </div>}
-      {list?.length === 0 && <div className='text-paragraph text-gray-400 italic w-2/3'>
-        *Share access to this cluster by inviting your team and assigning their roles.
-      </div>}
+      {list?.length === 0 && (
+        <div className='text-2xs text-gray-400 italic w-2/3'>
+          *Share access to this cluster by inviting your team and assigning their roles.
+        </div>
+      )}
       {grantError && <ErrorMessage message={grantError} />}
     </>
   )

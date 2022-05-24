@@ -1,1 +1,31 @@
-* @infrahq/engineering
+# Tips: File is ordered by precedence. list each path once. define deeper paths later as they override more generic paths.
+#       /api/ is root api folder where api/ is any api folder. If you want to be on _every_ PR, you need to be mentioned on every line.
+# see https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @dnephin @jmorganca @pdevine
+
+/helm/ @mxyng @dnephin @jmorganca @pdevine
+
+/internal/access/ @BruceMacD @dnephin @jmorganca @pdevine
+/internal/claims/ @BruceMacD @dnephin @jmorganca @pdevine
+/internal/cmd/ @BruceMacD @kimskimchi @dnephin @jmorganca @pdevine
+/internal/connector/ @BruceMacD @dnephin @jmorganca @pdevine
+/internal/kubernetes/ @BruceMacD @mxyng @dnephin @jmorganca @pdevine
+/internal/server/ @BruceMacD @dnephin @jmorganca @pdevine
+/internal/server/apimigrator.go @ssoroka
+/internal/server/middleware.go @ssoroka
+/internal/server/migrations.go @ssoroka
+/internal/server/openapi.go @ssoroka
+/internal/server/routes.go @ssoroka
+/internal/server/validator.go @ssoroka
+
+pki/ @ssoroka @dnephin
+ui/ @FSHA @hoyyeva @jmorganca
+uid/ @ssoroka @dnephin
+
+docs/ @FSHA @technovangelist @dnephin @jmorganca @pdevine @mchiang0610
+/docs/reference/helm-chart.md @mxyng @FSHA @technovangelist @dnephin @jmorganca @pdevine @mchiang0610
+/docs/api/openapi3.json @ssoroka @hoyyeva @dnephin @jmorganca @pdevine
+
+grants.go @ssoroka
+grant.go @ssoroka

@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -51,13 +52,13 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	a.addRedirects()
 
 	// This group of middleware only applies to non-ui routes
-	api := router.Group("/",
+	apiGroup := router.Group("/",
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
-	api.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
+	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := api.Group("/", AuthenticationMiddleware(a))
+	authn := apiGroup.Group("/", AuthenticationMiddleware(a))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -95,7 +96,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", a.pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := api.Group("/")
+	noAuthn := apiGroup.Group("/")
 	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 
@@ -108,8 +109,18 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	// Deprecated in 0.12
 	// TODO: remove after a couple versions
-	get(a, authn, "/v1/users/:id/grants", a.ListUserGrants)
-	get(a, authn, "/v1/groups/:id/grants", a.ListGroupGrants)
+	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
+		method:       http.MethodGet,
+		path:         "/v1/users/:id/grants",
+		handler:      a.ListUserGrants,
+		omitFromDocs: true,
+	})
+	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
+		method:       http.MethodGet,
+		path:         "/v1/groups/:id/grants",
+		handler:      a.ListGroupGrants,
+		omitFromDocs: true,
+	})
 
 	noAuthn.GET("/v1/machines", removed("v0.9.0"))
 	noAuthn.POST("/v1/machines", removed("v0.9.0"))
@@ -128,157 +139,76 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	return Routes{Handler: router, OpenAPIDocument: a.openAPIDoc}
 }
 
-type ReqHandlerFunc[Req any] func(c *gin.Context, req *Req) error
-type ResHandlerFunc[Res any] func(c *gin.Context) (Res, error)
-type ReqResHandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
+type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
-func get[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
-	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodGet, fullPath, handler)
-	handlers := includeRewritesFor(a, http.MethodGet, fullPath, func(c *gin.Context) {
+type route[Req, Res any] struct {
+	method            string
+	path              string
+	handler           HandlerFunc[Req, Res]
+	omitFromDocs      bool
+	omitFromTelemetry bool
+}
+
+func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
+	route.path = path.Join(r.BasePath(), route.path)
+
+	if !route.omitFromDocs {
+		a.register(openAPIRouteDefinition(route))
+	}
+
+	wrappedHandler := func(c *gin.Context) {
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
-		resp, err := handler(c, req)
+		resp, err := route.handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
-		c.JSON(http.StatusOK, resp)
+		if !route.omitFromTelemetry {
+			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
+		}
+
+		c.JSON(defaultResponseCodeForMethod(route.method), resp)
+	}
+
+	bindRoute(a, r, route.method, route.path, wrappedHandler)
+}
+
+func defaultResponseCodeForMethod(method string) int {
+	switch method {
+	case http.MethodPost:
+		return http.StatusCreated
+	case http.MethodDelete:
+		return http.StatusNoContent
+	default:
+		return http.StatusOK
+	}
+}
+
+func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{
+		method:            http.MethodGet,
+		path:              path,
+		handler:           handler,
+		omitFromTelemetry: true,
 	})
-	r.GET(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodGet, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.GET(migration.path, handlers...)
-	}
 }
 
-func post[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
-	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodPost, fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodPost, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "post"})
-
-		c.JSON(http.StatusCreated, resp)
-	})
-
-	r.POST(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodPost, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.POST(migration.path, handlers...)
-	}
+func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{method: http.MethodPost, path: path, handler: handler})
 }
 
-func put[Req, Res any](a *API, r *gin.RouterGroup, route string, handler ReqResHandlerFunc[Req, Res]) {
-	fullPath := path.Join(r.BasePath(), route)
-	register(a, http.MethodPut, fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodPut, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		resp, err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "put"})
-
-		c.JSON(http.StatusOK, resp)
-	})
-
-	r.PUT(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodPut, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.PUT(migration.path, handlers...)
-	}
+func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{method: http.MethodPut, path: path, handler: handler})
 }
 
-func delete[Req any](a *API, r *gin.RouterGroup, route string, handler ReqHandlerFunc[Req]) {
-	fullPath := path.Join(r.BasePath(), route)
-	registerDelete(a, http.MethodDelete, fullPath, handler)
-
-	handlers := includeRewritesFor(a, http.MethodDelete, fullPath, func(c *gin.Context) {
-		req := new(Req)
-		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		err := handler(c, req)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-
-		a.t.RouteEvent(c, fullPath, Properties{"method": "delete"})
-
-		c.Status(http.StatusNoContent)
-		c.Writer.WriteHeaderNow()
-	})
-
-	r.DELETE(route, handlers...)
-	for _, migration := range redirectsFor(a, http.MethodDelete, fullPath) {
-		handlers = append([]gin.HandlerFunc{migration.RedirectHandler()}, handlers...)
-		r.DELETE(migration.path, handlers...)
-	}
-}
-
-func redirectsFor(a *API, method, path string) []apiMigration {
-	redirectPaths := []apiMigration{}
-	for _, migration := range a.migrations {
-		if strings.ToUpper(migration.method) != method {
-			continue
-		}
-		if migration.redirect != path {
-			continue
-		}
-		if len(migration.redirect) > 0 {
-			redirectPaths = append(redirectPaths, migration)
-		}
-	}
-	return redirectPaths
-}
-
-func includeRewritesFor(a *API, method, path string, handler gin.HandlerFunc) gin.HandlersChain {
-	result := []gin.HandlerFunc{}
-	for _, migration := range a.migrations {
-		if strings.ToUpper(migration.method) != method {
-			continue
-		}
-		if migration.path != path {
-			continue
-		}
-		if migration.requestRewrite != nil {
-			result = append(result, migration.requestRewrite)
-		}
-		if migration.responseRewrite != nil {
-			result = append(result, migration.responseRewrite)
-		}
-	}
-	result = append(result, handler)
-	return result
+func delete[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
 }
 
 func bind(c *gin.Context, req interface{}) error {

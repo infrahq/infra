@@ -5,42 +5,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
-// TODO: replace all calls to setup with runDBTests, or setupDB
-func setup(t *testing.T) *gorm.DB {
-	t.Helper()
-	driver, err := NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-	return setupDB(t, driver)
-}
-
 func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	t.Helper()
-	db, err := NewRawDB(driver)
+	patch.ModelsSymmetricKey(t)
+
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
-
-	// TODO: change this to use the same calls as production.
-	assert.NilError(t, Migrate(db))
-
-	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
-
-	kp := secrets.NewNativeKeyProvider(fp)
-
-	key, err := kp.GenerateDataKey("")
-	assert.NilError(t, err)
-
-	models.SymmetricKey = key
 
 	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
 	assert.NilError(t, err)
@@ -130,7 +110,7 @@ func TestDatabaseSelectors(t *testing.T) {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := NewRawDB(driver)
+	db, err := newRawDB(driver)
 	assert.NilError(t, err)
 	t.Logf("DB pointer: %p", db)
 

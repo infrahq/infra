@@ -1,4 +1,0 @@
-global:
-  image:
-    tag: dev
-    pullPolicy: Never

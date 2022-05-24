@@ -13,7 +13,7 @@ func TestDestinationSaveCreatedPersists(t *testing.T) {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := NewDB(driver)
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	destination := &models.Destination{

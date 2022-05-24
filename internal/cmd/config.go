@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -34,29 +33,6 @@ type ClientHostConfig struct {
 // checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != "" && c.Name != "" && c.PolymorphicID != ""
-}
-
-// checks if user is logged in to the current session
-func isLoggedInCurrent() bool {
-	return getLoggedInIdentityName() != ""
-}
-
-// Retrieves current logged in user, empty if logged out
-func getLoggedInIdentityName() string {
-	hostConfig, err := currentHostConfig()
-	if err != nil {
-		logging.S.Debug(err)
-		return ""
-	}
-	if hostConfig == nil {
-		logging.S.Debug("No saved sessions found.")
-		return ""
-	}
-	if !hostConfig.isLoggedIn() {
-		logging.S.Debug("User is not logged in.")
-		return ""
-	}
-	return hostConfig.Name
 }
 
 func (c *ClientHostConfig) isExpired() bool {

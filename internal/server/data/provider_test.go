@@ -11,17 +11,18 @@ import (
 )
 
 func TestProvider(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 
-	providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
-	err := db.Create(&providerDevelop).Error
-	assert.NilError(t, err)
+		err := db.Create(&providerDevelop).Error
+		assert.NilError(t, err)
 
-	var provider models.Provider
-	err = db.Not("name = ?", models.InternalInfraProviderName).First(&provider).Error
-	assert.NilError(t, err)
-	assert.Equal(t, "dev.okta.com", provider.URL)
+		var provider models.Provider
+		err = db.Not("name = ?", models.InternalInfraProviderName).First(&provider).Error
+		assert.NilError(t, err)
+		assert.Equal(t, "dev.okta.com", provider.URL)
+	})
 }
 
 func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
@@ -32,90 +33,90 @@ func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 }
 
 func TestCreateProviderDuplicate(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+		)
 
-	var (
-		providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-		providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
-	)
+		createProviders(t, db, providerDevelop, providerProduction)
 
-	createProviders(t, db, providerDevelop, providerProduction)
-
-	err := CreateProvider(db, &providerDevelop)
-	assert.ErrorIs(t, err, internal.ErrDuplicate)
+		err := CreateProvider(db, &providerDevelop)
+		assert.ErrorIs(t, err, internal.ErrDuplicate)
+	})
 }
 
 func TestGetProvider(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+		)
 
-	var (
-		providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-		providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
-	)
+		createProviders(t, db, providerDevelop, providerProduction)
 
-	createProviders(t, db, providerDevelop, providerProduction)
-
-	provider, err := GetProvider(db, ByName("okta-development"))
-	assert.NilError(t, err)
-	assert.Assert(t, 0 != provider.ID)
-	assert.Equal(t, providerDevelop.URL, provider.URL)
+		provider, err := GetProvider(db, ByName("okta-development"))
+		assert.NilError(t, err)
+		assert.Assert(t, 0 != provider.ID)
+		assert.Equal(t, providerDevelop.URL, provider.URL)
+	})
 }
 
 func TestListProviders(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+		)
 
-	var (
-		providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-		providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
-	)
+		createProviders(t, db, providerDevelop, providerProduction)
 
-	createProviders(t, db, providerDevelop, providerProduction)
+		providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
+		assert.NilError(t, err)
+		assert.Equal(t, 2, len(providers))
 
-	providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
-	assert.NilError(t, err)
-	assert.Equal(t, 2, len(providers))
-
-	providers, err = ListProviders(db, ByOptionalName("okta-development"))
-	assert.NilError(t, err)
-	assert.Equal(t, 1, len(providers))
+		providers, err = ListProviders(db, ByOptionalName("okta-development"))
+		assert.NilError(t, err)
+		assert.Equal(t, 1, len(providers))
+	})
 }
 
 func TestDeleteProviders(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+		)
 
-	var (
-		providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-		providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
-	)
+		createProviders(t, db, providerDevelop, providerProduction)
 
-	createProviders(t, db, providerDevelop, providerProduction)
+		providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
+		assert.NilError(t, err)
+		assert.Equal(t, 2, len(providers))
 
-	providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
-	assert.NilError(t, err)
-	assert.Equal(t, 2, len(providers))
+		err = DeleteProviders(db, ByOptionalName("okta-development"))
+		assert.NilError(t, err)
 
-	err = DeleteProviders(db, ByOptionalName("okta-development"))
-	assert.NilError(t, err)
-
-	_, err = GetProvider(db, ByOptionalName("okta-development"))
-	assert.Error(t, err, "record not found")
+		_, err = GetProvider(db, ByOptionalName("okta-development"))
+		assert.Error(t, err, "record not found")
+	})
 }
 
 func TestRecreateProviderSameDomain(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+		)
 
-	var (
-		providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-		providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
-	)
+		createProviders(t, db, providerDevelop, providerProduction)
 
-	createProviders(t, db, providerDevelop, providerProduction)
+		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
+			return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com"})
+		})
+		assert.NilError(t, err)
 
-	err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-		return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com"})
+		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "dev.okta.com"})
+		assert.NilError(t, err)
 	})
-	assert.NilError(t, err)
-
-	err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "dev.okta.com"})
-	assert.NilError(t, err)
 }

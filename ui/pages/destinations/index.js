@@ -12,78 +12,126 @@ import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
-import PageHeader from '../../components/layouts/page-header'
-import Slide from '../../components/slide'
+import PageHeader from '../../components/page-header'
+import Sidebar from '../../components/sidebar'
+
+function SidebarContent ({ destination, admin, setSelectedDestination }) {
+  const { data: auth } = useSWR('/v1/identities/self')
+  const { data: grants } = useSWR(() => `/v1/identities/${auth?.id}/grants?resource=${destination.name}`)
+
+  const { mutate } = useSWRConfig()
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
+  return (
+    <div className='flex-1 flex flex-col space-y-6'>
+      {grants?.length > 0 && (
+        <section>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
+          <p className='text-2xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
+          <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal'>
+            infra login {window.location.host}<br />
+            infra use {destination.name}<br />
+            kubectl get pods
+          </pre>
+        </section>
+      )}
+      {admin &&
+        <section>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          <Grant id={destination.id} />
+        </section>}
+      <section>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Meta</h3>
+        <div className='pt-3 flex flex-col space-y-2'>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+            <div className='text-2xs font-mono'>{destination.id}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>Added</div>
+            <div className='text-2xs'>{dayjs(destination?.created).fromNow()}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>Last Seen</div>
+            <div className='text-2xs'>{dayjs(destination?.lastSeen).fromNow()}</div>
+          </div>
+        </div>
+      </section>
+      <section className='flex-1 flex flex-col items-end justify-end py-6'>
+        <button
+          type='button'
+          onClick={() => setDeleteModalOpen(true)}
+          className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
+        >
+          Delete
+        </button>
+        <DeleteModal
+          open={deleteModalOpen}
+          onCancel={() => setDeleteModalOpen(false)}
+          onSubmit={async () => {
+            mutate('/v1/destinations', async destinations => {
+              await fetch(`/v1/destinations/${destination.id}`, {
+                method: 'DELETE'
+              })
+
+              return destinations?.filter(d => d?.id !== destination.id)
+            })
+
+            setDeleteModalOpen(false)
+            setSelectedDestination(null)
+          }}
+          title='Delete Cluster'
+          message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+        />
+      </section>
+    </div>
+  )
+}
 
 const columns = [{
-  Header: 'Cluster',
+  Header: 'Name',
   accessor: 'name',
   Cell: ({ value }) => (
-    <div className='flex items-center'>
-      <div className='py-2'>{value}</div>
+    <div className='flex py-1.5 items-center'>
+      <div className='border border-gray-800 flex-none flex items-center justify-center w-7 h-7 mr-3 rounded-md'>
+        <img className='opacity-25' src='/row-infrastructure.svg' />
+      </div>
+      {value}
     </div>
   )
 }, {
-  Header: 'Added',
-  accessor: i => {
-    return dayjs(i.created).fromNow()
-  }
-}
-]
-
-function SlideContent ({ id, isAdmin }) {
-  const { data: destination } = useSWR(`/v1/destinations/${id}`)
-  return (
-    <div className='pl-4'>
-      {isAdmin &&
-        <>
-          <div className='border-b border-gray-800 mt-4'>
-            <div className='text-label text-gray-400 uppercase pb-5'>Access</div>
-          </div>
-          <div className='pt-3 pb-12'>
-            <Grant id={id} />
-          </div>
-        </>}
-      <>
-        <div className='border-b border-gray-800 mt-4'>
-          <div className='text-label text-gray-400 uppercase pb-5'>Meta</div>
-        </div>
-        <div className='pt-3 flex flex-col space-y-2'>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Kind</div>
-            <div className='text-name' />
-          </div>
-          <div className='flex flex-row flex-start'>
-            <div className='text-gray-400 text-name w-1/3'>Namespace</div>
-            <div className='flex flex-col'>
-              {destination?.resources.map(r => (
-                <div key={r} className='text-name'>{r}</div>
-              ))}
+  id: 'connected',
+  Header: () => (
+    <div className='text-right'>Connection</div>
+  ),
+  accessor: 'updated',
+  Cell: ({ value: updated }) => {
+    const connected = (new Date() - new Date(updated)) < 24 * 60 * 60 * 1000
+    return (
+      <div className='flex items-center text-gray-400 justify-end'>
+        {connected
+          ? (
+            <>
+              <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-1.5' />
+              Connected
+            </>
+            )
+          : (
+            <div className='flex items-center'>
+              <div className='w-[7px] h-[7px] bg-gray-600 rounded-full mr-1.5' />
+              Disconnected
             </div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Age</div>
-            <div className='text-name'>{dayjs(destination?.created).fromNow()}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-name w-1/3'>Images</div>
-            <div className='text-name' />
-          </div>
-        </div>
-      </>
-    </div>
-  )
-}
+            )}
+      </div>
+    )
+  }
+}]
 
 export default function Destinations () {
   const { data: destinations, error } = useSWR('/v1/destinations')
   const { mutate } = useSWRConfig()
   const { admin, loading: adminLoading } = useAdmin()
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [slideModalOpen, setSlideModalOpen] = useState(false)
-  const [selectedRow, setSelectedRow] = useState(null)
-  const [slideActionBtns, setSlideActionBtns] = useState([])
-
+  const [selectedDestination, setSelectedDestination] = useState(null)
   const table = useTable({ columns, data: destinations || [] })
 
   const loading = adminLoading || (!destinations && !error)
@@ -107,62 +155,40 @@ export default function Destinations () {
       {loading
         ? (<Loader />)
         : (
-          <div className={`flex-1 flex flex-col space-y-8 mt-3 mb-4 ${slideModalOpen ? 'w-7/12' : ''}`}>
-            <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-            {error?.status
-              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : <>
-                <Table
-                  {...table}
-                  getRowProps={row => ({
-                    onClick: () => handleDestinationDetail(row),
-                    style: {
-                      cursor: 'pointer'
-                    }
-                  })}
-                />
-                <>
-                  {slideModalOpen &&
-                    <Slide
-                      open={slideModalOpen}
-                      handleClose={() => setSlideModalOpen(false)}
-                      title={selectedRow.values.name}
+          <div className='flex-1 flex h-full'>
+            <main className='flex-1 flex flex-col space-y-4'>
+              <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
+              {error?.status
+                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+                : (
+                  <div>
+                    <Table
+                      {...table}
+                      getRowProps={row => ({
+                        onClick: () => setSelectedDestination(row.original),
+                        style: {
+                          cursor: 'pointer'
+                        }
+                      })}
+                    />
+                    {destinations?.length === 0 && <EmptyTable
+                      title='There is no infrastructure'
+                      subtitle='There is currently no infrastructure connected to Infra'
                       iconPath='/destinations.svg'
-                      footerBtns={slideActionBtns}
-                      deleteModalShown={deleteModalOpen}
-                    >
-                      <SlideContent id={selectedRow.original.id} isAdmin={admin} />
-                    </Slide>}
-                  <DeleteModal
-                    open={deleteModalOpen}
-                    setOpen={setDeleteModalOpen}
-                    onCancel={handleCancelDeleteModal}
-                    onSubmit={async () => {
-                      mutate('/v1/destinations', async destinations => {
-                        await fetch(`/v1/destinations/${selectedRow.original.id}`, {
-                          method: 'DELETE'
-                        })
-
-                        return destinations?.filter(d => d?.id !== selectedRow.original.id)
-                      })
-
-                      setDeleteModalOpen(false)
-                    }}
-                    title='Delete Cluster'
-                    message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{selectedRow?.original.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
-                  />
-                </>
-                {
-                    destinations?.length === 0 &&
-                      <EmptyTable
-                        title='There are no infrastructure'
-                        subtitle={`There are currently no infrastructure connected to Infra. ${admin ? 'Get started by connecting one.' : ''}`}
-                        iconPath='/destinations.svg'
-                        buttonHref={admin && '/destinations/add'}
-                        buttonText='Infrastructure'
-                      />
-                  }
-              </>}
+                      buttonHref={admin && '/destinations/add'}
+                      buttonText='Infrastructure'
+                                                   />}
+                  </div>
+                  )}
+            </main>
+            {selectedDestination &&
+              <Sidebar
+                handleClose={() => setSelectedDestination(null)}
+                title={selectedDestination.name}
+                iconPath='/destinations.svg'
+              >
+                <SidebarContent destination={selectedDestination} admin={admin} setSelectedDestination={setSelectedDestination} />
+              </Sidebar>}
           </div>
           )}
     </>

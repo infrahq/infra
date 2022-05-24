@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -29,7 +28,7 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 
 	cmd.AddCommand(newKeysListCmd(cli))
 	cmd.AddCommand(newKeysAddCmd(cli))
-	cmd.AddCommand(newKeysRemoveCmd())
+	cmd.AddCommand(newKeysRemoveCmd(cli))
 
 	return cmd
 }
@@ -66,7 +65,7 @@ $ infra keys add example-key identity@example.com --ttl=12h
 				return err
 			}
 
-			user, err := GetUserByName(client, userName)
+			user, err := getUserByName(client, userName)
 			if err != nil {
 				return err
 			}
@@ -81,8 +80,7 @@ $ infra keys add example-key identity@example.com --ttl=12h
 				return err
 			}
 
-			fmt.Fprintf(cli.Stderr, "Created access key for %q\n", userName)
-			cli.Output("Name: %s", resp.Name)
+			cli.Output("Issued access key %q for %q", resp.Name, userName)
 			cli.Output("Key: %s", resp.AccessKey)
 			return nil
 		},
@@ -95,7 +93,7 @@ $ infra keys add example-key identity@example.com --ttl=12h
 	return cmd
 }
 
-func newKeysRemoveCmd() *cobra.Command {
+func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:     "remove KEY",
 		Aliases: []string{"rm"},
@@ -112,27 +110,19 @@ func newKeysRemoveCmd() *cobra.Command {
 				return err
 			}
 
-			if keys.Count == 0 {
-				return fmt.Errorf("no access key found with this name")
+			for _, key := range keys.Items {
+				err = client.DeleteAccessKey(key.ID)
+				if err != nil {
+					return err
+				}
+
+				issuedFor := key.IssuedForName
+				if issuedFor == "" {
+					issuedFor = key.IssuedFor.String()
+				}
+
+				cli.Output("Removed access key %q issued for %q", key.Name, issuedFor)
 			}
-
-			if keys.Count != 1 {
-				return fmt.Errorf("invalid access key response, there should only be one access key that matches a name, but multiple were found")
-			}
-
-			key := keys.Items[0]
-
-			err = client.DeleteAccessKey(key.ID)
-			if err != nil {
-				return err
-			}
-
-			issuedFor := key.IssuedForName
-			if issuedFor == "" {
-				issuedFor = key.IssuedFor.String()
-			}
-
-			fmt.Fprintf(os.Stderr, "Deleted access key %q issued for %q\n", key.Name, issuedFor)
 
 			return nil
 		},
@@ -159,7 +149,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 
 			var keys *api.ListResponse[api.AccessKey]
 			if options.UserName != "" {
-				user, err := GetUserByName(client, options.UserName)
+				user, err := getUserByName(client, options.UserName)
 				if err != nil {
 					return err
 				}
