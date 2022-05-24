@@ -1,12 +1,3 @@
-function withOpacityValue (variable) {
-  return ({ opacityValue }) => {
-    if (opacityValue === undefined) {
-      return `rgb(${variable})`
-    }
-    return `rgb(${variable} / ${opacityValue})`
-  }
-}
-
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx}',
@@ -16,23 +7,30 @@ module.exports = {
     extend: {
       colors: {
         black: '#0A0E12',
-        pink: {
-          light: withOpacityValue('228 64 255'),
-          dark: '#CB2EEC'
-        },
         gray: {
-          300: '#B2B2B2'
+          50: '#FDFDFE',
+          100: '#F3F4F6',
+          200: '#E5E7EB',
+          300: '#D2D5DA',
+          400: '#9DA3AE',
+          500: '#747B8B',
+          600: '#4D5562',
+          700: '#394150',
+          800: '#222833',
+          900: '#151A1E'
         }
       },
-      transitionProperty: {
-        size: 'height, padding, background'
+      fontSize: {
+        xs: ['13px', '16px'],
+        '2xs': ['12px', '15px'],
+        '3xs': ['11px', '13px']
       },
       animation: {
         'spin-fast': 'spin 0.75s linear infinite'
       },
       fontFamily: {
-        sans: ['SF Pro Text', 'BlinkMacSystemFont', 'Segoe UI', 'Ubuntu', 'sans-serif'],
-        mono: ['SF Mono', 'monospace']
+        sans: ['SF Pro Text', 'ui-sans-serif', 'sans-serif'],
+        mono: ['SF Mono', 'ui-monospace', 'monospace']
       }
     }
   }

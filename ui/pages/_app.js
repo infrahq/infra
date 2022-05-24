@@ -9,7 +9,12 @@ import '../lib/dayjs'
 import '../styles/globals.css'
 
 const fetcher = async (resource, init) => {
-  const res = await fetch(resource, init)
+  const res = await fetch(resource, {
+    ...init,
+    headers: {
+      'Infra-Version': '0.12.2'
+    }
+  })
   const data = await res.json()
 
   if (!res.ok) {
@@ -19,9 +24,15 @@ const fetcher = async (resource, init) => {
   return data
 }
 
+const swrOptions = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false
+}
+
 function App ({ Component, pageProps }) {
-  const { data: auth, error: authError } = useSWRImmutable('/v1/identities/self', fetcher)
-  const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher)
+  const { data: auth, error: authError } = useSWRImmutable('/v1/identities/self', fetcher, swrOptions)
+  const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher, swrOptions)
+
   const router = useRouter()
 
   const authLoading = !auth && !authError
@@ -32,19 +43,19 @@ function App ({ Component, pageProps }) {
   }
 
   // redirect to signup if required
-  if (signup?.enabled && !router.asPath.startsWith('/signup')) {
+  if (signup?.enabled && !router.pathname.startsWith('/signup')) {
     router.replace('/signup')
     return null
   }
 
   // redirect to login if required
-  if (!signup?.enabled && !auth && !router.asPath.startsWith('/login')) {
+  if (!signup?.enabled && !auth && !router.pathname.startsWith('/login')) {
     router.replace('/login')
     return null
   }
 
   // redirect to dashboard if logged in
-  if (auth?.id && (router.asPath.startsWith('/login') || router.asPath.startsWith('/signup'))) {
+  if (auth?.id && (router.pathname === '/login' || router.pathname === '/login/callback' || router.pathname === '/signup')) {
     router.replace('/')
     return null
   }
@@ -54,8 +65,7 @@ function App ({ Component, pageProps }) {
   return (
     <SWRConfig value={{
       fetcher: (resource, init) => fetcher(resource, init),
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false
+      ...swrOptions
     }}
     >
       <Head>
