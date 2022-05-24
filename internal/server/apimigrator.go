@@ -221,7 +221,7 @@ func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
 
 type HTTPMethodBindFunc func(relativePath string, handlers ...gin.HandlerFunc) gin.IRoutes
 
-func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc HTTPMethodBindFunc) {
+func bindRoute(a *API, r *gin.RouterGroup, method, path string, handler gin.HandlerFunc) {
 	// build up the handlers into a map of all the paths we need to bind into.
 	routes := map[string][]gin.HandlerFunc{}
 	// set the default path
@@ -264,7 +264,7 @@ func bindRoute(a *API, method, path string, handler gin.HandlerFunc, methodFunc 
 
 	// now bind all relevant paths with Gin
 	for path, handlers := range routes {
-		methodFunc(path, handlers...)
+		r.Handle(method, path, handlers...)
 	}
 }
 
