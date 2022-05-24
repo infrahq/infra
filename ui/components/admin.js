@@ -8,17 +8,17 @@ import InputDropdown from './input'
 import DeleteModal from './modals/delete'
 import ErrorMessage from './error-message'
 
-function Grant ({ id, subject, grants }) {
-  if (!id || !subject) {
+function Grant ({ id, userID, grants }) {
+  if (!id || !userID) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/identities/${subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-  const { data: auth } = useSWR('/v1/identities/self')
+  const { data: user } = useSWR(`/api/users/${userID}`, { fallbackData: { name: '', kind: '' } })
+  const { data: auth } = useSWR('/api/users/self')
   const { mutate } = useSWRConfig()
   const [open, setOpen] = useState(false)
 
-  const isSelf = subject.replace('i:', '') === auth.id
+  const isSelf = userID === auth.id
 
   return (
     <div className='flex group'>
@@ -40,8 +40,8 @@ function Grant ({ id, subject, grants }) {
           setOpen={setOpen}
           onCancel={() => setOpen(false)}
           onSubmit={() => {
-            mutate('/v1/grants?resource=infra&privilege=admin', async grants => {
-              await fetch(`/v1/grants/${id}`, { method: 'DELETE' })
+            mutate('/api/grants?resource=infra&privilege=admin', async grants => {
+              await fetch(`/api/grants/${id}`, { method: 'DELETE' })
 
               return grants?.filter(g => g?.id !== id)
             }, { optimisticData: grants.filter(g => g?.id !== id) })
@@ -57,43 +57,43 @@ function Grant ({ id, subject, grants }) {
 }
 
 export default function () {
-  const { data: grants } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { data: { items: grants } = {} } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
 
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
 
-  const grantAdminAccess = (id) => {
-    fetch('/v1/grants', {
+  function grantAdminAccess (id) {
+    fetch('/api/grants', {
       method: 'POST',
-      body: JSON.stringify({ subject: 'i:' + id, resource: 'infra', privilege: 'admin' })
+      body: JSON.stringify({ user: id, resource: 'infra', privilege: 'admin' })
     })
       .then(() => {
-        mutate('/v1/grants?resource=infra&privilege=admin')
+        mutate('/api/grants?resource=infra&privilege=admin')
         setAdminEmail('')
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
-  const handleInputChange = (value) => {
+  function handleInputChange (value) {
     setAdminEmail(value)
     setError('')
   }
 
-  const handleKeyDownEvent = (key) => {
+  function handleKeyDownEvent (key) {
     if (key === 'Enter' && adminEmail.length > 0) {
       handleAddAdmin()
     }
   }
 
-  const handleAddAdmin = () => {
+  function handleAddAdmin () {
     if (validateEmail(adminEmail)) {
       setError('')
 
-      fetch(`/v1/identities?name=${adminEmail}`)
+      fetch(`/api/users?name=${adminEmail}`)
         .then((response) => response.json())
         .then((data) => {
           if (data.length === 0) {
-            fetch('/v1/identities', {
+            fetch('/api/users', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail })
             })
@@ -139,8 +139,8 @@ export default function () {
           <ErrorMessage message={error} />
         </div>}
       <h4 className='text-gray-400 my-3 text-2xs'>These users have full administration privileges</h4>
-      {grants.map(g => (
-        <Grant key={g.id} id={g.id} subject={g.subject} grants={grants} />
+      {grants?.map(g => (
+        <Grant key={g.id} id={g.id} userID={g.user} grants={grants} />
       ))}
     </div>
   )

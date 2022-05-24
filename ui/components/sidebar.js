@@ -2,7 +2,7 @@ import { XIcon } from '@heroicons/react/outline'
 
 export default ({ children, handleClose, title, iconPath }) => {
   return (
-    <aside className='flex w-full h-full max-w-xs lg:max-w-md ml-20 my-0 flex-col'>
+    <aside className='flex w-full h-full max-w-xs xl:max-w-sm ml-20 my-0 flex-col'>
       <header className='flex flex-start justify-between items-center my-3'>
         <div className='flex items-center space-x-3'>
           <div className='border border-violet-300/20 rounded-md flex items-center tracking-tight text-sm px-2 py-2'>

@@ -7,7 +7,7 @@ export default function () {
   const router = useRouter()
 
   async function login ({ providerID, code, redirectURL }) {
-    await fetch('/v1/login', {
+    await fetch('/api/login', {
       method: 'POST',
       body: JSON.stringify({
         oidc: {
@@ -17,7 +17,7 @@ export default function () {
         }
       })
     })
-    await mutate('/v1/identities/self')
+    await mutate('/api/users/self')
     router.replace('/')
   }
 

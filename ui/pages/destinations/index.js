@@ -16,8 +16,8 @@ import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
-  const { data: auth } = useSWR('/v1/identities/self')
-  const { data: grants } = useSWR(() => `/v1/identities/${auth?.id}/grants?resource=${destination.name}`)
+  const { data: auth } = useSWR('/api/users/self')
+  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -69,8 +69,8 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           open={deleteModalOpen}
           onCancel={() => setDeleteModalOpen(false)}
           onSubmit={async () => {
-            mutate('/v1/destinations', async destinations => {
-              await fetch(`/v1/destinations/${destination.id}`, {
+            mutate('/api/destinations', async destinations => {
+              await fetch(`/api/destinations/${destination.id}`, {
                 method: 'DELETE'
               })
 
@@ -128,7 +128,7 @@ const columns = [{
 }]
 
 export default function Destinations () {
-  const { data: destinations, error } = useSWR('/v1/destinations')
+  const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
   const table = useTable({ columns, data: destinations || [] })
@@ -159,13 +159,14 @@ export default function Destinations () {
                         }
                       })}
                     />
-                    {destinations?.length === 0 && <EmptyTable
-                      title='There is no infrastructure'
-                      subtitle='There is currently no infrastructure connected to Infra'
-                      iconPath='/destinations.svg'
-                      buttonHref={admin && '/destinations/add'}
-                      buttonText='Infrastructure'
-                                                   />}
+                    {destinations?.length === 0 &&
+                      <EmptyTable
+                        title='There is no infrastructure'
+                        subtitle='There is currently no infrastructure connected to Infra'
+                        iconPath='/destinations.svg'
+                        buttonHref={admin && '/destinations/add'}
+                        buttonText='Infrastructure'
+                      />}
                   </div>
                   )}
             </main>

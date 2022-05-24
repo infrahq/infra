@@ -6,8 +6,8 @@ import { useAdmin } from '../../lib/admin'
 
 export default function ({ children }) {
   const router = useRouter()
-  const { data: auth } = useSWR('/v1/identities/self')
-  const { data: version } = useSWR('/v1/version')
+  const { data: auth } = useSWR('/api/users/self')
+  const { data: version } = useSWR('/api/version')
   const { admin, loading } = useAdmin()
   const { mutate } = useSWRConfig()
 
@@ -16,10 +16,10 @@ export default function ({ children }) {
   }
 
   async function logout () {
-    fetch('/v1/logout', {
+    fetch('/api/logout', {
       method: 'POST'
     })
-    await mutate('/v1/identities/self', async () => undefined)
+    await mutate('/api/users/self', async () => undefined)
     router.replace('/login')
   }
 
@@ -48,7 +48,7 @@ export default function ({ children }) {
             <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
           </Link>
         </div>
-        <div className='flex-1 space-y-1 px-5 select-none'>
+        <div className='flex-1 px-5 select-none'>
           {navigation.map(n =>
             <Link key={n.name} href={n.href}>
               <a
