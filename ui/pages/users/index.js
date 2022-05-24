@@ -42,7 +42,7 @@ const columns = [{
 }]
 
 function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
-  const { id, name } = selectedUser;
+  const { id, name } = selectedUser
   const { data: user } = useSWR(`/v1/identities/${id}`)
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
   const { data: auth } = useSWR('/v1/identities/self')
@@ -80,7 +80,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
           type='button'
           onClick={() => setDeleteModalOpen(true)}
           className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
-        >
+                           >
           Remove
         </button>}
         <DeleteModal
@@ -140,23 +140,23 @@ export default function Users () {
                       })}
                     />
                     {users?.length === 0 && <EmptyTable
-                        title='There are no users'
-                        subtitle='Invite users to Infra and manage their access.'
-                        iconPath='/users.svg'
-                        buttonHref={admin && '/users/add'}
-                        buttonText='Users'
-                      />}
+                      title='There are no users'
+                      subtitle='Invite users to Infra and manage their access.'
+                      iconPath='/users.svg'
+                      buttonHref={admin && '/users/add'}
+                      buttonText='Users'
+                                            />}
                   </div>
                   )}
             </main>
-              {selectedUser &&
-                <Sidebar
-                  handleClose={() => setSelectedUser(null)}
-                  title={selectedUser.name}
-                  profileIcon={selectedUser.name[0]}
-                >
-                  <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
-                </Sidebar>}
+            {selectedUser &&
+              <Sidebar
+                handleClose={() => setSelectedUser(null)}
+                title={selectedUser.name}
+                profileIcon={selectedUser.name[0]}
+              >
+                <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
+              </Sidebar>}
           </div>
           )}
     </>

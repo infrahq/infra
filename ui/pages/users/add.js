@@ -26,7 +26,8 @@ function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, 
             value={email}
             onChange={handleOnChange}
             onKeyDown={handleKeyDown}
-            className={`w-full bg-transparent border-b border-gray-950 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500' : 'border-gray-800'}`} />
+            className={`w-full bg-transparent border-b border-gray-950 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500' : 'border-gray-800'}`}
+          />
         </div>
         {error && <ErrorMessage message={error} />}
       </div>
@@ -49,7 +50,7 @@ function AddUser ({ email, handleOnChange, handleKeyDown, handleAddUserOnClick, 
   )
 }
 
-function UserOneTimePassword ({password, handleAddUserOnClick}) {
+function UserOneTimePassword ({ password, handleAddUserOnClick }) {
   return (
     <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
       <div className='flex flex-row space-x-2 items-center px-4'>
@@ -64,7 +65,8 @@ function UserOneTimePassword ({password, handleAddUserOnClick}) {
         <input
           readOnly
           value={password}
-          className='w-full bg-transparent text-3xs px-px py-3 focus:outline-none font-mono' />
+          className='w-full bg-transparent text-3xs px-px py-3 focus:outline-none font-mono'
+        />
       </div>
       <div className='flex flex-row justify-between m-6 items-center'>
         <button onClick={handleAddUserOnClick} className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Add Another</button>
@@ -88,7 +90,7 @@ export default function () {
   const [errors, setErrors] = useState({})
 
   const handleGetOneTimePassword = async () => {
-    if(validateEmail(email)) {
+    if (validateEmail(email)) {
       setErrors({})
       try {
         const res = await fetch('/v1/identities', {
@@ -113,11 +115,11 @@ export default function () {
         } else {
           setError(e.message)
         }
-        
-        return false 
+
+        return false
       }
     } else {
-      setErrors({name: 'Invalid email'})
+      setErrors({ name: 'Invalid email' })
     }
   }
 
@@ -144,8 +146,8 @@ export default function () {
         <title>Add User</title>
       </Head>
       <div className='w-full max-w-sm'>
-        {state === 'add' && <AddUser email={email} handleOnChange={e => handleInputChang(e.target.value)} handleKeyDown={e=> handleKeyDownEvent(e.key)} handleAddUserOnClick={() => handleGetOneTimePassword()} error={errors.name} />}
-        {state === 'password' && <UserOneTimePassword password={password} handleAddUserOnClick={() => handleAddUser()} /> }
+        {state === 'add' && <AddUser email={email} handleOnChange={e => handleInputChang(e.target.value)} handleKeyDown={e => handleKeyDownEvent(e.key)} handleAddUserOnClick={() => handleGetOneTimePassword()} error={errors.name} />}
+        {state === 'password' && <UserOneTimePassword password={password} handleAddUserOnClick={() => handleAddUser()} />}
         {error && <ErrorMessage message={error} />}
       </div>
     </Fullscreen>

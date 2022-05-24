@@ -1,13 +1,13 @@
-import { useState } from "react";
-import useSWR, { mutate } from "swr";
-import { PlusIcon } from "@heroicons/react/outline";
+import { useState } from 'react'
+import useSWR, { mutate } from 'swr'
+import { PlusIcon } from '@heroicons/react/outline'
 
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
-  const { data: destinations } = useSWR(`/v1/destinations`)
+  const { data: destinations } = useSWR('/v1/destinations')
 
   const [infrastructure, setInfrastructure] = useState('')
   const [error, setError] = useState('')
@@ -27,7 +27,7 @@ export default function ({ id }) {
   }
 
   const handleShareGrant = async () => {
-    if (destinations.find((d => d.name === infrastructure))) {
+    if (destinations.find(d => d.name === infrastructure)) {
       grant(id)
     } else {
       setError('TODO: the infrastructure does not exist')
@@ -61,7 +61,7 @@ export default function ({ id }) {
     }
 
     mutate(`/v1/identities/${user}/grants`, async userGrantsList => {
-      await fetch(`/v1/grants/${grantId}`, { method: 'DELETE'})
+      await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
 
       return userGrantsList?.filter(item => item?.id !== grantId)
     }, { optimisticData: grants?.filter(item => item?.id !== grantId) })
