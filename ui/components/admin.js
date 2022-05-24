@@ -1,81 +1,64 @@
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { useTable } from 'react-table'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import { validateEmail } from '../lib/email'
 
 import InputDropdown from './input'
-import Table from './table'
 import DeleteModal from './modals/delete'
 import ErrorMessage from './error-message'
-import ProfileIcon from './profile-icon'
 
-const columns = [{
-  id: 'name',
-  accessor: a => a,
-  Cell: ({ value: admin }) => (
-    <AdminName id={admin.subject} />
-  )
-}, {
-  id: 'delete',
-  accessor: a => a,
-  Cell: ({ value: admin, rows }) => {
-    const { data: user } = useSWR(`/v1/identities/${admin.subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-    const { data: auth } = useSWR('/v1/identities/self')
-    
-    const { mutate } = useSWRConfig()
+function Grant ({ id, subject, grants }) {
+  if (!id || !subject) {
+    return null
+  }
 
-    const [open, setOpen] = useState(false)
+  const { data: user } = useSWR(`/v1/identities/${subject.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
+  const { data: auth } = useSWR('/v1/identities/self')
+  const { mutate } = useSWRConfig()
+  const [open, setOpen] = useState(false)
 
-    const isSelf = admin.subject.replace('i:', '') === auth.id
+  const isSelf = subject.replace('i:', '') === auth.id
 
-    return (
+  return (
+    <div className='flex group'>
+      <div className='flex flex-1 items-center space-x-4 py-1'>
+        <div className='border border-violet-300/20 flex-none flex items-center justify-center w-8 h-8 rounded-lg'>
+          <div className='border border-violet-300/40 flex-none text-gray-500 flex justify-center items-center text-sm w-6 h-6 rounded-[4px]'>
+            {user?.name?.[0]}
+          </div>
+        </div>
+        <div className='flex flex-col leading-tight'>
+          <div className='text-2xs leading-none'>{user.name}</div>
+        </div>
+      </div>
+
       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        {!isSelf && <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer text-gray-500 hover:text-white'>Revoke</button>}
+        {!isSelf && <button onClick={() => setOpen(true)} className='flex-none p-2 -mr-2 cursor-pointer text-2xs text-gray-500 hover:text-violet-100'>Revoke</button>}
         <DeleteModal
           open={open}
           setOpen={setOpen}
           onCancel={() => setOpen(false)}
           onSubmit={() => {
-            mutate('/v1/grants?resource=infra&privilege=admin', async admins => {
-              await fetch(`/v1/grants/${admin.id}`, { method: 'DELETE' })
+            mutate('/v1/grants?resource=infra&privilege=admin', async grants => {
+              await fetch(`/v1/grants/${id}`, { method: 'DELETE' })
 
-              return admins?.filter(a => a?.id !== admin.id)
-            }, { optimisticData: rows.map(r => r.original).filter(a => a?.id !== admin.id) })
+              return grants?.filter(g => g?.id !== id)
+            }, { optimisticData: grants.filter(g => g?.id !== id) })
 
             setOpen(false)
           }}
-          title='Delete Admin'
-          message={(<>Are you sure you want to delete <span className='font-bold text-white'>{user.name}</span>? This action cannot be undone.</>)}
+          title='Revoke Admin'
+          message={(<>Are you sure you want to revoke admin access for <span className='font-bold text-white'>{user.name}</span>?<br /><br /> This action cannot be undone.</>)}
         />
-      </div>
-    )
-  }
-}]
-
-const AdminName = ({ id }) => {
-  if (!id) {
-    return null
-  }
-
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '', kind: '' } })
-
-  return (
-    <div className='flex items-center space-x-4'>
-      <ProfileIcon name={user.name[0]} />
-      <div className='flex flex-col leading-tight'>
-        <div className='text-subtitle'>{user.name}</div>
       </div>
     </div>
   )
 }
 
 export default function () {
-  const { data: adminList } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { data: grants } = useSWR(() => '/v1/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
-
-  const table = useTable({ columns, data: adminList || [] })
 
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
@@ -91,7 +74,7 @@ export default function () {
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
-  const handleInputChang = (value) => {
+  const handleInputChange = (value) => {
     setAdminEmail(value)
     setError('')
   }
@@ -128,7 +111,7 @@ export default function () {
 
   return (
     <div className='sm:w-80 lg:w-[500px]'>
-      <div className='text-subtitle uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
+      <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
       <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
         <div className='sm:flex-1'>
           <InputDropdown
@@ -136,7 +119,7 @@ export default function () {
             value={adminEmail}
             placeholder='Email address'
             hasDropdownSelection={false}
-            handleInputChange={e => handleInputChang(e.target.value)}
+            handleInputChange={e => handleInputChange(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
             error={error}
           />
@@ -145,26 +128,20 @@ export default function () {
           onClick={() => handleAddAdmin()}
           disabled={adminEmail.length === 0}
           type='button'
-          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
+          className='flex items-center cursor-pointer border border-violet-300 px-5 mt-4 text-2xs sm:ml-4 sm:mt-0 rounded-md disabled:pointer-events-none disabled:opacity-30'
         >
-          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-6 py-3'>
-            <PlusIcon className='w-3 h-3 mr-1.5' />
-            <div className='text-pink-100'>
-              Add
-            </div>
-          </div>
+          <PlusIcon className='w-3 h-3 mr-1.5' />
+          Add Admin
         </button>
       </div>
-      {
-        error &&
-          <div className='mb-10'>
-            <ErrorMessage message={error} />
-          </div>
-      }
-
-      <h4 className='text-gray-400 my-3 text-paragraph'>These users have full administration privileges</h4>
-      {adminList?.length > 0 &&
-        <Table {...table} showHeader={false} />}
+      {error &&
+        <div className='mb-10'>
+          <ErrorMessage message={error} />
+        </div>}
+      <h4 className='text-gray-400 my-3 text-2xs'>These users have full administration privileges</h4>
+      {grants.map(g => (
+        <Grant key={g.id} id={g.id} subject={g.subject} grants={grants} />
+      ))}
     </div>
   )
 }

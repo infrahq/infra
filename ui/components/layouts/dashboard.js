@@ -77,7 +77,6 @@ export default function ({ children }) {
             <div className='flex flex-1 justify-center items-center border border-violet-300/70 text-3xs rounded-[4px] leading-none font-normal m-0.5 select-none'>
               <span className='inline-block -mt-0.5'>{auth?.name?.[0]}</span>
             </div>
-            <div className='text-gray-400 hover:text-white text-title leading-none truncate pb-px'>{auth?.name}</div>
           </div>
           <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
             <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-2xs pb-px'>{auth?.name}</div>

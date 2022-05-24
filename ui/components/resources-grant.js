@@ -7,7 +7,7 @@ import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
-  const { data: destinations } = useSWR(`v1/destinations`)
+  const { data: destinations } = useSWR(`/v1/destinations`)
 
   const [infrastructure, setInfrastructure] = useState('')
   const [error, setError] = useState('')
@@ -88,13 +88,11 @@ export default function ({ id }) {
           onClick={() => handleShareGrant()}
           disabled={infrastructure.length === 0}
           type='button'
-          className='bg-gradient-to-tr disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 p-0.5 mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md'
+          className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md text-2xs px-3 py-3'
         >
-          <div className='bg-black flex items-center text-xs rounded-md hover:text-pink-50 px-3 py-3'>
-            <PlusIcon className='w-3 h-3 mr-1.5' />
-            <div className='text-pink-100'>
-              Share
-            </div>
+          <PlusIcon className='w-3 h-3 mr-1.5' />
+          <div className='text-violet-100'>
+            Share
           </div>
         </button>
       </div>
@@ -103,12 +101,12 @@ export default function ({ id }) {
         <div className='py-2 max-h-40 overflow-y-auto'>
           {grants?.filter((grant) => grant.resource !== 'infra').map((item) => (
             <div className='flex justify-between items-center' key={item.id}>
-              <p className='text-paragraph'>{item.resource}</p>
+              <p className='text-2xs'>{item.resource}</p>
               <div>
                 <select
                   id='role'
                   name='role'
-                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-paragraph text-gray-400 bg-transparent'
+                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-2xs text-gray-400 bg-transparent'
                   defaultValue={item.privilege}
                   onChange={e => handleUpdateGrant(e.target.value, item.resource, item.id, item.user)}
                 >
@@ -120,7 +118,7 @@ export default function ({ id }) {
             </div>
           ))}
         </div>}
-      {grants?.filter((grant) => grant.resource !== 'infra').length === 0 && <div className='text-paragraph text-gray-400 italic w-2/3'>
+      {grants?.filter((grant) => grant.resource !== 'infra').length === 0 && <div className='text-2xs text-gray-400 italic w-2/3'>
         *TODO - this user doesn't have any access
       </div>}
     </>
