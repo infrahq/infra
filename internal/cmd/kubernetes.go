@@ -240,6 +240,10 @@ func clearKubeconfig() error {
 		delete(kubeConfig.AuthInfos, c)
 	}
 
+	if strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {
+		kubeConfig.CurrentContext = ""
+	}
+
 	kubeConfigFilename := defaultConfig.ConfigAccess().GetDefaultFilename()
 	if err := clientcmd.WriteToFile(kubeConfig, kubeConfigFilename); err != nil {
 		return err
