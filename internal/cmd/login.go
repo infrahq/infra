@@ -522,7 +522,7 @@ func promptServer(options loginCmdOptions) (string, error) {
 		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
 
-	config, err := readOrCreateClientConfig()
+	config, err := readConfig()
 	if err != nil {
 		return "", err
 	}

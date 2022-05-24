@@ -55,22 +55,6 @@ func mustBeLoggedIn() error {
 	return nil
 }
 
-func infraHomeDir() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	infraDir := filepath.Join(homeDir, ".infra")
-
-	err = os.MkdirAll(infraDir, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
-
-	return infraDir, nil
-}
-
 func printTable(data interface{}, out io.Writer) {
 	table := tableprinter.New(out)
 
@@ -90,7 +74,7 @@ func printTable(data interface{}, out io.Writer) {
 
 // Creates a new API Client from the current config
 func defaultAPIClient() (*api.Client, error) {
-	config, err := readHostConfig()
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}

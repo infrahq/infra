@@ -32,17 +32,21 @@ type Client struct {
 //
 // 3xx codes are considered an error because redirects should have already
 // been followed before calling checkError.
-func checkError(resp *http.Response, body []byte) error {
+func checkError(req *http.Request, resp *http.Response, body []byte) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
 
-	var apiError Error
+	apiError := Error{
+		Method: req.Method,
+		Path:   req.URL.Path,
+		Code:   int32(resp.StatusCode),
+	}
+
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
 		// Use the full body as the message if we fail to decode a response.
 		apiError.Message = string(body)
-		apiError.Code = int32(resp.StatusCode)
 	}
 
 	return apiError
@@ -78,9 +82,8 @@ func get[Res any](client Client, path string) (*Res, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("GET %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -113,9 +116,8 @@ func list[Res any](client Client, path string, query map[string][]string) (*Res,
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("GET %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -161,9 +163,8 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("%s %v failed: %w", method, path, err)
+	if err := checkError(httpReq, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -210,9 +211,8 @@ func delete(client Client, path string) error {
 		return fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return fmt.Errorf("DELETE %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return err
 	}
 
 	return nil
