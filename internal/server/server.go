@@ -1,5 +1,3 @@
-//go:generate ./generate-ui.sh
-
 package server
 
 import (
@@ -12,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -80,6 +79,8 @@ type ListenerOptions struct {
 type UIOptions struct {
 	Enabled  bool
 	ProxyURL types.URL `mapstructure:"proxyURL"`
+	// FS is the filesystem which contains the static files for the UI.
+	FS fs.FS `mapstructure:"-"`
 }
 
 type Server struct {
@@ -101,6 +102,7 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
+	options.UI.FS = uiFS
 	return &Server{
 		options: options,
 		secrets: map[string]secrets.SecretStorage{},
@@ -282,7 +284,7 @@ func (s *Server) loadCertificates() (err error) {
 }
 
 //go:embed all:ui/*
-var assetFS embed.FS
+var uiFS embed.FS
 
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 	if !opts.Enabled {
@@ -306,7 +308,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		return
 	}
 
-	staticFS := &StaticFileSystem{base: http.FS(assetFS)}
+	staticFS := &StaticFileSystem{base: http.FS(opts.FS)}
 	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
 }
 

@@ -12,6 +12,6 @@ Makefile
 Dockerfile
 build
 dist
-ui
+ui/node_modules
 infra
 helm

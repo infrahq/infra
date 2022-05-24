@@ -40,6 +40,11 @@ jobs:
         with:
           path: /root/.cache/
           key: ${{ runner.os }}-go-build
+      - uses: actions/setup-node@v3
+        working-directory: ui
+        with:
+          node-version: 18
+        run: npm run export -- --out ../internal/server/ui/static
       # TODO: use goreleaser github action: https://github.com/goreleaser/goreleaser-action
       - run: |
           go install github.com/goreleaser/goreleaser@v1.7.0
