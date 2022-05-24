@@ -36,10 +36,10 @@ type Grant struct {
 
 type User struct {
 	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
-	AccessKey string `mapstructure:"accessKey" validate:"excluded_with=Password"`
-	Password  string `mapstructure:"password" validate:"excluded_with=AccessKey"`
+	AccessKey string `mapstructure:"accessKey"`
+	Password  string `mapstructure:"password"`
 
-	Email string `mapstructure:"email" validate:"excluded_with=Name"`
+	Email string `mapstructure:"email" validate:"excluded_with=Name"` // deprecated
 }
 
 type Config struct {
