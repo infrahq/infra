@@ -102,7 +102,6 @@ export default function () {
         if (!res.ok) {
           throw user
         }
-        console.log(user)
         setState('password')
         setPassword(user.oneTimePassword)
       } catch (e) {

@@ -47,8 +47,6 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
   const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
   const { data: auth } = useSWR('/v1/identities/self')
 
-  console.log(auth)
-
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   return (
