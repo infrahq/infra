@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -225,8 +224,8 @@ func updateUser(cli *CLI, name string) error {
 		req.ID = user.ID
 	}
 
-	fmt.Fprintf(os.Stderr, "  Enter a new password (min. length 8):\n")
-	req.Password, err = promptSetPassword("")
+	fmt.Fprintf(cli.Stderr, "  Enter a new password (min. length 8):\n")
+	req.Password, err = promptSetPassword(cli, "")
 	if err != nil {
 		return err
 	}
@@ -261,7 +260,7 @@ func getUserByName(client *api.Client, name string) (*api.User, error) {
 	return &users.Items[0], nil
 }
 
-func promptSetPassword(oldPassword string) (string, error) {
+func promptSetPassword(cli *CLI, oldPassword string) (string, error) {
 	var passwordConfirm struct {
 		Password string
 		Confirm  string
@@ -281,12 +280,12 @@ PROMPT:
 		},
 	}
 
-	if err := survey.Ask(prompts, &passwordConfirm, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.Ask(prompts, &passwordConfirm, cli.surveyIO); err != nil {
 		return "", err
 	}
 
 	if passwordConfirm.Password != passwordConfirm.Confirm {
-		fmt.Println("  Passwords do not match. Please try again.")
+		cli.Output("  Passwords do not match. Please try again.")
 		goto PROMPT
 	}
 

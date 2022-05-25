@@ -44,7 +44,7 @@ const (
 
 const cliLoginRedirectURL = "http://localhost:8301"
 
-func newLoginCmd(_ *CLI) *cobra.Command {
+func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{
@@ -68,7 +68,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 				options.Server = args[0]
 			}
 
-			return login(options)
+			return login(cli, options)
 		},
 	}
 
@@ -79,17 +79,17 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 	return cmd
 }
 
-func login(options loginCmdOptions) error {
+func login(cli *CLI, options loginCmdOptions) error {
 	var err error
 
 	if options.Server == "" {
-		options.Server, err = promptServer(options)
+		options.Server, err = promptServer(cli, options)
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(options)
+	client, err := newAPIClient(cli, options)
 	if err != nil {
 		return err
 	}
@@ -104,12 +104,12 @@ func login(options loginCmdOptions) error {
 	}
 
 	if signupEnabled.Enabled {
-		loginReq.PasswordCredentials, err = runSignupForLogin(client)
+		loginReq.PasswordCredentials, err = runSignupForLogin(cli, client)
 		if err != nil {
 			return err
 		}
 
-		return loginToInfra(client, loginReq)
+		return loginToInfra(cli, client, loginReq)
 	}
 
 	switch {
@@ -124,19 +124,19 @@ func login(options loginCmdOptions) error {
 		if options.NonInteractive {
 			return fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
 		}
-		loginMethod, provider, err := promptLoginOptions(client)
+		loginMethod, provider, err := promptLoginOptions(cli, client)
 		if err != nil {
 			return err
 		}
 
 		switch loginMethod {
 		case accessKeyLogin:
-			loginReq.AccessKey, err = promptAccessKeyLogin()
+			loginReq.AccessKey, err = promptAccessKeyLogin(cli)
 			if err != nil {
 				return err
 			}
 		case localLogin:
-			loginReq.PasswordCredentials, err = promptLocalLogin()
+			loginReq.PasswordCredentials, err = promptLocalLogin(cli)
 			if err != nil {
 				return err
 			}
@@ -148,10 +148,10 @@ func login(options loginCmdOptions) error {
 		}
 	}
 
-	return loginToInfra(client, loginReq)
+	return loginToInfra(cli, client, loginReq)
 }
 
-func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
+func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
@@ -169,9 +169,9 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	}
 
 	if loginRes.PasswordUpdateRequired {
-		fmt.Fprintf(os.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
+		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
 
-		password, err := promptSetPassword(loginReq.PasswordCredentials.Password)
+		password, err := promptSetPassword(cli, loginReq.PasswordCredentials.Password)
 		if err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
 	backgroundAgentRunning, err := configAgentRunning()
 	if err != nil {
@@ -337,15 +337,20 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	}, nil
 }
 
-func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
-	fmt.Fprintln(os.Stderr, "  Welcome to Infra. Set up your admin user:")
+func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
+	fmt.Fprintln(cli.Stderr, "  Welcome to Infra. Set up your admin user:")
 
-	username := ""
-	if err := survey.AskOne(&survey.Input{Message: "Username:"}, &username, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
+	var username string
+	if err := survey.AskOne(
+		&survey.Input{Message: "Username:"},
+		&username,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	); err != nil {
 		return nil, err
 	}
 
-	password, err := promptSetPassword("")
+	password, err := promptSetPassword(cli, "")
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +367,7 @@ func runSignupForLogin(client *api.Client) (*api.LoginRequestPasswordCredentials
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
-func newAPIClient(options loginCmdOptions) (*api.Client, error) {
+func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
 		if err := verifyTLS(options.Server); err != nil {
@@ -382,7 +387,7 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 				return nil, fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
 			}
 
-			if err = promptSkipTLSVerify(); err != nil {
+			if err = promptSkipTLSVerify(cli); err != nil {
 				return nil, err
 			}
 			options.SkipTLSVerify = true
@@ -429,7 +434,7 @@ func verifyTLS(host string) error {
 	return nil
 }
 
-func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
+func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 	var credentials struct {
 		Username string
 		Password string
@@ -448,7 +453,7 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 		},
 	}
 
-	if err := survey.Ask(questionPrompt, &credentials, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.Ask(questionPrompt, &credentials, cli.surveyIO); err != nil {
 		return &api.LoginRequestPasswordCredentials{}, err
 	}
 
@@ -458,12 +463,15 @@ func promptLocalLogin() (*api.LoginRequestPasswordCredentials, error) {
 	}, nil
 }
 
-func promptAccessKeyLogin() (string, error) {
+func promptAccessKeyLogin(cli *CLI) (string, error) {
 	var accessKey string
-	if err := survey.AskOne(&survey.Password{Message: "Access Key:"}, &accessKey, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required)); err != nil {
-		return "", err
-	}
-	return accessKey, nil
+	err := survey.AskOne(
+		&survey.Password{Message: "Access Key:"},
+		&accessKey,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	)
+	return accessKey, err
 }
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
@@ -479,7 +487,7 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 	return providers.Items, nil
 }
 
-func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
+func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
 	providers, err := listProviders(client)
 	if err != nil {
 		return 0, nil, err
@@ -498,7 +506,7 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 		Message: "Select a login method:",
 		Options: options,
 	}
-	err = survey.AskOne(selectPrompt, &i, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr))
+	err = survey.AskOne(selectPrompt, &i, cli.surveyIO)
 	if errors.Is(err, terminal.InterruptErr) {
 		return 0, nil, err
 	}
@@ -514,14 +522,14 @@ func promptLoginOptions(client *api.Client) (loginMethod loginMethod, provider *
 }
 
 // Error out if it fails TLS verification and user does not want to connect.
-func promptSkipTLSVerify() error {
+func promptSkipTLSVerify(cli *CLI) error {
 	// Although the same error, format is a little different for interactive/non-interactive.
 	fmt.Fprintf(os.Stderr, "  %s\n", ErrTLSNotVerified.Error())
 	confirmPrompt := &survey.Confirm{
 		Message: "Are you sure you want to continue?",
 	}
 	proceed := false
-	if err := survey.AskOne(confirmPrompt, &proceed, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.AskOne(confirmPrompt, &proceed, cli.surveyIO); err != nil {
 		return err
 	}
 	if !proceed {
@@ -531,7 +539,7 @@ func promptSkipTLSVerify() error {
 }
 
 // Returns the host address of the Infra server that user would like to log into
-func promptServer(options loginCmdOptions) (string, error) {
+func promptServer(cli *CLI, options loginCmdOptions) (string, error) {
 	if options.NonInteractive {
 		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
@@ -544,23 +552,24 @@ func promptServer(options loginCmdOptions) (string, error) {
 	servers := config.Hosts
 
 	if len(servers) == 0 {
-		return promptNewServer()
+		return promptNewServer(cli)
 	}
 
-	return promptServerList(servers)
+	return promptServerList(cli, servers)
 }
 
-func promptNewServer() (string, error) {
+func promptNewServer(cli *CLI) (string, error) {
 	var server string
-	err := survey.AskOne(&survey.Input{Message: "Server:"}, &server, survey.WithStdio(os.Stdin, os.Stderr, os.Stderr), survey.WithValidator(survey.Required))
-	if err != nil {
-		return "", err
-	}
-
-	return server, nil
+	err := survey.AskOne(
+		&survey.Input{Message: "Server:"},
+		&server,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	)
+	return server, err
 }
 
-func promptServerList(servers []ClientHostConfig) (string, error) {
+func promptServerList(cli *CLI, servers []ClientHostConfig) (string, error) {
 	var promptOptions []string
 	for _, server := range servers {
 		promptOptions = append(promptOptions, server.Host)
@@ -579,12 +588,12 @@ func promptServerList(servers []ClientHostConfig) (string, error) {
 	}
 
 	var i int
-	if err := survey.AskOne(prompt, &i, survey.WithFilter(filter), survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)); err != nil {
+	if err := survey.AskOne(prompt, &i, survey.WithFilter(filter), cli.surveyIO); err != nil {
 		return "", err
 	}
 
 	if promptOptions[i] == defaultOption {
-		return promptNewServer()
+		return promptNewServer(cli)
 	}
 
 	return servers[i].Host, nil
