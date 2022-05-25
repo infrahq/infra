@@ -7,7 +7,6 @@ Infra has built-in roles for promoting users to manage Infra.
 
 * **admin**: Full admin access to Infra
 * **view**: Read-only access to Infra
-* **user**: List and access infrastructure
 
 ## Promoting a user to an Infra admin
 
@@ -27,12 +26,4 @@ infra grants add --group engineering infra --role admin
 
 ```
 infra grants remove admin@example.com infra --role admin
-```
-
-## Giving a user limited access to Infra
-
-This Grant will provide `dev@example.com` *some* access to the Infra API, including logging in and using a destination they have been granted access to, listing destinations, and updating their own user. It does *not* include access to creating additional grants, managing identity providers, managing destinations, or managing other users.
-
-```
-infra grants add dev@example.com infra --role user
 ```

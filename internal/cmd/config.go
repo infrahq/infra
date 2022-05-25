@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -36,75 +34,47 @@ func (c *ClientHostConfig) isLoggedIn() bool {
 	return c.AccessKey != "" && c.Name != "" && c.PolymorphicID != ""
 }
 
-// checks if user is logged in to the current session
-func isLoggedInCurrent() bool {
-	return getLoggedInIdentityName() != ""
-}
-
-// Retrieves current logged in user, empty if logged out
-func getLoggedInIdentityName() string {
-	hostConfig, err := currentHostConfig()
-	if err != nil {
-		logging.S.Debug(err)
-		return ""
-	}
-	if hostConfig == nil {
-		logging.S.Debug("No saved sessions found.")
-		return ""
-	}
-	if !hostConfig.isLoggedIn() {
-		logging.S.Debug("User is not logged in.")
-		return ""
-	}
-	return hostConfig.Name
-}
-
 func (c *ClientHostConfig) isExpired() bool {
 	return time.Now().After(time.Time(c.Expires))
 }
 
-// Retrieves client config if it exists, else instances a new one.
-func readOrCreateClientConfig() (*ClientConfig, error) {
-	config, err := readConfig()
-	if err != nil && !errors.Is(err, ErrConfigNotFound) {
-		return nil, err
+func infraHomeDir() (string, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
 	}
 
-	if config == nil {
-		return NewClientConfig(), nil
+	infraDir := filepath.Join(homeDir, ".infra")
+
+	if err := os.MkdirAll(infraDir, os.ModePerm); err != nil {
+		return "", err
 	}
 
-	return config, nil
-}
-
-func NewClientConfig() *ClientConfig {
-	return &ClientConfig{
-		Version: "0.3",
-	}
+	return infraDir, nil
 }
 
 func readConfig() (*ClientConfig, error) {
-	config := &ClientConfig{}
-
 	infraDir, err := infraHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
 	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "config"))
-	if os.IsNotExist(err) {
-		return nil, ErrConfigNotFound
-	}
-
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
+	if len(contents) == 0 {
+		return &ClientConfig{Version: "0.3"}, nil
+	}
+
+	config := &ClientConfig{}
 	if err = json.Unmarshal(contents, &config); err != nil {
 		return nil, err
 	}
 
-	if config.Version == "" {
+	switch config.Version {
+	case "":
 		// if version is missing, it needs to be updated to the latest
 		configv0dot1 := ClientConfigV0dot1{}
 		if err = json.Unmarshal(contents, &configv0dot1); err != nil {
@@ -112,7 +82,8 @@ func readConfig() (*ClientConfig, error) {
 		}
 
 		return configv0dot1.ToV0dot2().ToV0dot3(), nil
-	} else if config.Version == "0.2" {
+
+	case "0.2":
 		configv0dot2 := ClientConfigV0dot2{}
 		if err = json.Unmarshal(contents, &configv0dot2); err != nil {
 			return nil, err
@@ -142,13 +113,9 @@ func writeConfig(config *ClientConfig) error {
 	return nil
 }
 
-func currentHostConfig() (*ClientHostConfig, error) {
-	return readHostConfig("")
-}
-
 // Save (create or update) the current hostconfig
 func saveHostConfig(hostConfig ClientHostConfig) error {
-	config, err := readOrCreateClientConfig()
+	config, err := readConfig()
 	if err != nil {
 		return err
 	}
@@ -174,18 +141,14 @@ func saveHostConfig(hostConfig ClientHostConfig) error {
 	return nil
 }
 
-func readHostConfig(host string) (*ClientHostConfig, error) {
+func currentHostConfig() (*ClientHostConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
 
 	for i, c := range cfg.Hosts {
-		if len(host) == 0 && c.Current {
-			return &cfg.Hosts[i], nil
-		}
-
-		if c.Host == host {
+		if c.Current {
 			return &cfg.Hosts[i], nil
 		}
 	}

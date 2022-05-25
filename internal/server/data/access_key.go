@@ -21,12 +21,7 @@ func secretChecksum(secret string) []byte {
 
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
 	if accessKey.KeyID == "" {
-		key, err := generate.CryptoRandom(models.AccessKeyKeyLength)
-		if err != nil {
-			return "", err
-		}
-
-		accessKey.KeyID = key
+		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength)
 	}
 
 	if len(accessKey.KeyID) != models.AccessKeyKeyLength {
@@ -53,11 +48,17 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 	}
 
 	if accessKey.Name == "" {
+		// set a default name for look-up and CLI usage
 		if accessKey.ID == 0 {
 			accessKey.ID = uid.New()
 		}
 
-		accessKey.Name = accessKey.ID.String()
+		identityIssuedFor, err := GetIdentity(db, ByID(accessKey.IssuedFor))
+		if err != nil {
+			return "", fmt.Errorf("key name from identity: %w", err)
+		}
+
+		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
 	if err := add(db, accessKey); err != nil {

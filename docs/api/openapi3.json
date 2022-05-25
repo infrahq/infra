@@ -113,6 +113,18 @@
           "name": {
             "type": "string"
           },
+          "resources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "uniqueID": {
             "example": "94c2c570a20311180ec325fd56",
             "type": "string"
@@ -150,6 +162,12 @@
             "type": "array"
           },
           "message": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "path": {
             "type": "string"
           }
         }
@@ -228,7 +246,7 @@
           }
         }
       },
-      "ListResponse[AccessKey]": {
+      "ListResponse_AccessKey": {
         "properties": {
           "count": {
             "format": "int",
@@ -286,7 +304,7 @@
           }
         }
       },
-      "ListResponse[Destination]": {
+      "ListResponse_Destination": {
         "properties": {
           "count": {
             "format": "int",
@@ -326,6 +344,18 @@
                 "name": {
                   "type": "string"
                 },
+                "resources": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "roles": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "uniqueID": {
                   "example": "94c2c570a20311180ec325fd56",
                   "type": "string"
@@ -343,7 +373,7 @@
           }
         }
       },
-      "ListResponse[Grant]": {
+      "ListResponse_Grant": {
         "properties": {
           "count": {
             "format": "int",
@@ -404,7 +434,7 @@
           }
         }
       },
-      "ListResponse[Group]": {
+      "ListResponse_Group": {
         "properties": {
           "count": {
             "format": "int",
@@ -441,7 +471,7 @@
           }
         }
       },
-      "ListResponse[Provider]": {
+      "ListResponse_Provider": {
         "properties": {
           "count": {
             "format": "int",
@@ -491,7 +521,7 @@
           }
         }
       },
-      "ListResponse[User]": {
+      "ListResponse_User": {
         "properties": {
           "count": {
             "format": "int",
@@ -548,17 +578,17 @@
             "format": "date-time",
             "type": "string"
           },
-          "id": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
           "name": {
             "type": "string"
           },
           "passwordUpdateRequired": {
             "type": "boolean"
+          },
+          "userID": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
           }
         }
       },
@@ -657,10 +687,10 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "0.12.2"
+    "version": "0.13.1+dev"
   },
   "paths": {
-    "/v1/access-keys": {
+    "/api/access-keys": {
       "get": {
         "description": "ListAccessKeys",
         "operationId": "ListAccessKeys",
@@ -739,7 +769,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[AccessKey]"
+                  "$ref": "#/components/schemas/ListResponse_AccessKey"
                 }
               }
             },
@@ -859,7 +889,7 @@
         ]
       }
     },
-    "/v1/access-keys/{id}": {
+    "/api/access-keys/{id}": {
       "delete": {
         "description": "DeleteAccessKey",
         "operationId": "DeleteAccessKey",
@@ -932,7 +962,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             },
@@ -945,7 +975,7 @@
         ]
       }
     },
-    "/v1/destinations": {
+    "/api/destinations": {
       "get": {
         "description": "ListDestinations",
         "operationId": "ListDestinations",
@@ -1020,7 +1050,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Destination]"
+                  "$ref": "#/components/schemas/ListResponse_Destination"
                 }
               }
             },
@@ -1058,6 +1088,18 @@
                   },
                   "name": {
                     "type": "string"
+                  },
+                  "resources": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "roles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
                   },
                   "uniqueID": {
                     "type": "string"
@@ -1139,7 +1181,7 @@
         ]
       }
     },
-    "/v1/destinations/{id}": {
+    "/api/destinations/{id}": {
       "delete": {
         "description": "DeleteDestination",
         "operationId": "DeleteDestination",
@@ -1212,7 +1254,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             },
@@ -1349,6 +1391,18 @@
                   "name": {
                     "type": "string"
                   },
+                  "resources": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "roles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "uniqueID": {
                     "type": "string"
                   }
@@ -1429,7 +1483,7 @@
         ]
       }
     },
-    "/v1/grants": {
+    "/api/grants": {
       "get": {
         "description": "ListGrants",
         "operationId": "ListGrants",
@@ -1530,7 +1584,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
+                  "$ref": "#/components/schemas/ListResponse_Grant"
                 }
               }
             },
@@ -1650,7 +1704,7 @@
         ]
       }
     },
-    "/v1/grants/{id}": {
+    "/api/grants/{id}": {
       "delete": {
         "description": "DeleteGrant",
         "operationId": "DeleteGrant",
@@ -1723,7 +1777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             },
@@ -1820,7 +1874,7 @@
         ]
       }
     },
-    "/v1/groups": {
+    "/api/groups": {
       "get": {
         "description": "ListGroups",
         "operationId": "ListGroups",
@@ -1888,7 +1942,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Group]"
+                  "$ref": "#/components/schemas/ListResponse_Group"
                 }
               }
             },
@@ -1988,7 +2042,7 @@
         ]
       }
     },
-    "/v1/groups/{id}": {
+    "/api/groups/{id}": {
       "get": {
         "description": "GetGroup",
         "operationId": "GetGroup",
@@ -2074,94 +2128,7 @@
         ]
       }
     },
-    "/v1/groups/{id}/grants": {
-      "get": {
-        "description": "ListGroupGrants",
-        "operationId": "ListGroupGrants",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListGroupGrants",
-        "tags": [
-          "Grants",
-          "Groups"
-        ]
-      }
-    },
-    "/v1/login": {
+    "/api/login": {
       "post": {
         "description": "Login",
         "operationId": "Login",
@@ -2286,7 +2253,7 @@
         ]
       }
     },
-    "/v1/logout": {
+    "/api/logout": {
       "post": {
         "description": "Logout",
         "operationId": "Logout",
@@ -2358,7 +2325,7 @@
         ]
       }
     },
-    "/v1/providers": {
+    "/api/providers": {
       "get": {
         "description": "ListProviders",
         "operationId": "ListProviders",
@@ -2428,7 +2395,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Provider]"
+                  "$ref": "#/components/schemas/ListResponse_Provider"
                 }
               }
             },
@@ -2544,7 +2511,7 @@
         ]
       }
     },
-    "/v1/providers/{id}": {
+    "/api/providers/{id}": {
       "delete": {
         "description": "DeleteProvider",
         "operationId": "DeleteProvider",
@@ -2617,7 +2584,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             },
@@ -2831,7 +2798,7 @@
         ]
       }
     },
-    "/v1/signup": {
+    "/api/signup": {
       "get": {
         "description": "SignupEnabled",
         "operationId": "SignupEnabled",
@@ -2996,7 +2963,7 @@
         ]
       }
     },
-    "/v1/tokens": {
+    "/api/tokens": {
       "post": {
         "description": "CreateToken",
         "operationId": "CreateToken",
@@ -3068,7 +3035,7 @@
         ]
       }
     },
-    "/v1/users": {
+    "/api/users": {
       "get": {
         "description": "ListUsers",
         "operationId": "ListUsers",
@@ -3149,7 +3116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[User]"
+                  "$ref": "#/components/schemas/ListResponse_User"
                 }
               }
             },
@@ -3158,7 +3125,7 @@
         },
         "summary": "ListUsers",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "post": {
@@ -3248,11 +3215,11 @@
         },
         "summary": "CreateUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       }
     },
-    "/v1/users/{id}": {
+    "/api/users/{id}": {
       "delete": {
         "description": "DeleteUser",
         "operationId": "DeleteUser",
@@ -3325,7 +3292,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/EmptyResponse"
                 }
               }
             },
@@ -3334,7 +3301,7 @@
         },
         "summary": "DeleteUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "get": {
@@ -3418,7 +3385,7 @@
         },
         "summary": "GetUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       },
       "put": {
@@ -3520,97 +3487,11 @@
         },
         "summary": "UpdateUser",
         "tags": [
-          "Misc"
+          "Users"
         ]
       }
     },
-    "/v1/users/{id}/grants": {
-      "get": {
-        "description": "ListUserGrants",
-        "operationId": "ListUserGrants",
-        "parameters": [
-          {
-            "example": "4yJ3n3D8E2",
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Grant]"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "ListUserGrants",
-        "tags": [
-          "Grants"
-        ]
-      }
-    },
-    "/v1/users/{id}/groups": {
+    "/api/users/{id}/groups": {
       "get": {
         "description": "ListUserGroups",
         "operationId": "ListUserGroups",
@@ -3683,7 +3564,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse[Group]"
+                  "$ref": "#/components/schemas/ListResponse_Group"
                 }
               }
             },
@@ -3692,11 +3573,12 @@
         },
         "summary": "ListUserGroups",
         "tags": [
-          "Groups"
+          "Groups",
+          "Users"
         ]
       }
     },
-    "/v1/version": {
+    "/api/version": {
       "get": {
         "description": "Version",
         "operationId": "Version",

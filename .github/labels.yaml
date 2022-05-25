@@ -88,3 +88,7 @@
 - name: "status/never-stale"
   color: "dddddd"
   description: Indicates to actions/stale that the issue or PR should never be marked stale.
+
+- name: "action/fuzz"
+  color: "dddddd"
+  description: Run fuzzing on this pull request.

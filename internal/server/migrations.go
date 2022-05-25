@@ -35,32 +35,48 @@ func (a *API) addRequestRewrites() {
 			ExtensionDeadline: old.ExtensionDeadline,
 		}
 	})
-	type deprecatedListGrantsRequest struct {
-		Identity  uid.ID `form:"identity" validate:"excluded_with=Group"`
-		Group     uid.ID `form:"group" validate:"excluded_with=Identity"`
-		Resource  string `form:"resource"`
-		Privilege string `form:"privilege"`
+	type listGrantsRequestV0_12_2 struct {
+		Subject   uid.PolymorphicID `form:"subject"`
+		Resource  string            `form:"resource"`
+		Privilege string            `form:"privilege"`
 	}
-	addRequestRewrite(a, http.MethodGet, "/v1/grants", "0.12.2", func(old deprecatedListGrantsRequest) api.ListGrantsRequest {
+	addRequestRewrite(a, http.MethodGet, "/v1/grants", "0.12.2", func(oldRequest listGrantsRequestV0_12_2) api.ListGrantsRequest {
+		var user, group uid.ID
+
+		switch {
+		case oldRequest.Subject.IsIdentity():
+			user, _ = oldRequest.Subject.ID()
+		case oldRequest.Subject.IsGroup():
+			group, _ = oldRequest.Subject.ID()
+		}
+
 		return api.ListGrantsRequest{
-			User:      old.Identity,
-			Group:     old.Group,
-			Privilege: old.Privilege,
-			Resource:  old.Resource,
+			User:      user,
+			Group:     group,
+			Resource:  oldRequest.Resource,
+			Privilege: oldRequest.Privilege,
 		}
 	})
-	type deprecatedCreateGrantRequest struct {
-		Identity  uid.ID `json:"identity" validate:"required_without=Group"`
-		Group     uid.ID `json:"group" validate:"required_without=Identity"`
-		Privilege string `json:"privilege" validate:"required"`
-		Resource  string `json:"resource" validate:"required"`
+	type createGrantRequestV0_12_2 struct {
+		Subject   uid.PolymorphicID `json:"subject"`
+		Resource  string            `json:"resource"`
+		Privilege string            `json:"privilege"`
 	}
-	addRequestRewrite(a, http.MethodPost, "/v1/grants", "0.12.2", func(old deprecatedCreateGrantRequest) api.CreateGrantRequest {
+	addRequestRewrite(a, http.MethodPost, "/v1/grants", "0.12.2", func(oldRequest createGrantRequestV0_12_2) api.CreateGrantRequest {
+		var user, group uid.ID
+
+		switch {
+		case oldRequest.Subject.IsIdentity():
+			user, _ = oldRequest.Subject.ID()
+		case oldRequest.Subject.IsGroup():
+			group, _ = oldRequest.Subject.ID()
+		}
+
 		return api.CreateGrantRequest{
-			User:      old.Identity,
-			Group:     old.Group,
-			Privilege: old.Privilege,
-			Resource:  old.Resource,
+			User:      user,
+			Group:     group,
+			Resource:  oldRequest.Resource,
+			Privilege: oldRequest.Privilege,
 		}
 	})
 	// next migration ...
@@ -94,20 +110,24 @@ func (a *API) addResponseRewrites() {
 	addResponseRewrite(a, "get", "/v1/destinations", "0.12.2", func(newResponse *api.ListResponse[api.Destination]) []api.Destination {
 		return newResponse.Items
 	})
+	addResponseRewrite(a, http.MethodGet, "/v1/grants/:id", "0.12.2", migrateUserGrantToIdentity)
 	addResponseRewrite(a, http.MethodGet, "/v1/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []identityGrant {
-		resp := []identityGrant{}
-
-		for _, item := range newResponse.Items {
-			resp = append(resp, migrateUserGrantToIdentity(item))
-		}
-
-		return resp
+		return api.NewListResponse(newResponse.Items, migrateUserGrantToIdentity).Items
 	})
 	addResponseRewrite(a, http.MethodPost, "/v1/grants", "0.12.2", func(newResponse *api.Grant) identityGrant {
 		return migrateUserGrantToIdentity(*newResponse)
 	})
 	addResponseRewrite(a, http.MethodGet, "/v1/grants/:id", "0.12.2", func(newResponse *api.Grant) identityGrant {
 		return migrateUserGrantToIdentity(*newResponse)
+	})
+	addResponseRewrite(a, http.MethodPost, "/v1/login", "0.12.2", func(newResponse *api.LoginResponse) loginResponseV0_12_2 {
+		return loginResponseV0_12_2{
+			PolymorphicID:          uid.NewIdentityPolymorphicID(newResponse.UserID),
+			Name:                   newResponse.Name,
+			AccessKey:              newResponse.AccessKey,
+			PasswordUpdateRequired: newResponse.PasswordUpdateRequired,
+			Expires:                newResponse.Expires,
+		}
 	})
 	// next migration...
 }
@@ -127,6 +147,49 @@ func (a *API) addRedirects() {
 
 	addRedirect(a, http.MethodGet, "/v1/identities/:id/groups", "/v1/users/:id/groups", "0.12.2")
 	addRedirect(a, http.MethodGet, "/v1/identities/:id/grants", "/v1/users/:id/grants", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/users", "/api/users", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/users", "/api/users", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/users/:id", "/api/users/:id", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/users/:id/groups", "/api/users/:id/groups", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/access-keys", "/api/access-keys", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/access-keys", "/api/access-keys", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/access-keys/:id", "/api/access-keys/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/groups", "/api/groups", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/groups", "/api/groups", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/groups/:id", "/api/groups/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/grants", "/api/grants", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/grants/:id", "/api/grants/:id", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/grants", "/api/grants", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/grants/:id", "/api/grants/:id", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/providers", "/api/providers", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/destinations", "/api/destinations", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/destinations", "/api/destinations", "0.12.2")
+	addRedirect(a, http.MethodPut, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+	addRedirect(a, http.MethodDelete, "/v1/destinations/:id", "/api/destinations/:id", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/tokens", "/api/tokens", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/logout", "/api/logout", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/signup", "/api/signup", "0.12.2")
+	addRedirect(a, http.MethodPost, "/v1/signup", "/api/signup", "0.12.2")
+
+	addRedirect(a, http.MethodPost, "/v1/login", "/api/login", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/providers", "/api/providers", "0.12.2")
+	addRedirect(a, http.MethodGet, "/v1/providers/:id", "/api/providers/:id", "0.12.2")
+
+	addRedirect(a, http.MethodGet, "/v1/version", "/api/version", "0.12.2")
 }
 
 type identityGrant struct {
@@ -159,4 +222,12 @@ func migrateUserGrantToIdentity(grant api.Grant) identityGrant {
 		Privilege: grant.Privilege,
 		Resource:  grant.Resource,
 	}
+}
+
+type loginResponseV0_12_2 struct {
+	PolymorphicID          uid.PolymorphicID `json:"polymorphicID"`
+	Name                   string            `json:"name"`
+	AccessKey              string            `json:"accessKey"`
+	PasswordUpdateRequired bool              `json:"passwordUpdateRequired,omitempty"`
+	Expires                api.Time          `json:"expires"`
 }

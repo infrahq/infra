@@ -1,15 +1,14 @@
 package models_test
 
 import (
-	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -19,24 +18,12 @@ type StructForTesting struct {
 }
 
 func TestEncryptedAtRest(t *testing.T) {
-	var err error
-	// secret provider setup
-	sp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
+	patch.ModelsSymmetricKey(t)
 
-	rootKey := "db_at_rest"
-	symmetricKeyProvider := secrets.NewNativeKeyProvider(sp)
-	symmetricKey, err := symmetricKeyProvider.GenerateDataKey(rootKey)
-	assert.NilError(t, err)
-
-	models.SymmetricKey = symmetricKey
-
-	// test
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := data.NewDB(driver)
+	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	err = db.AutoMigrate(&StructForTesting{})

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -145,7 +146,6 @@ func login(options loginCmdOptions) error {
 				return err
 			}
 		}
-
 	}
 
 	return loginToInfra(client, loginReq)
@@ -153,21 +153,36 @@ func login(options loginCmdOptions) error {
 
 func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 	loginRes, err := client.Login(loginReq)
-	if api.ErrorStatusCode(err) == http.StatusUnauthorized {
-		switch {
-		case loginReq.AccessKey != "":
-			return &FailedLoginError{getLoggedInIdentityName(), accessKeyLogin}
-		case loginReq.PasswordCredentials != nil:
-			return &FailedLoginError{getLoggedInIdentityName(), localLogin}
-		case loginReq.OIDC != nil:
-			return &FailedLoginError{getLoggedInIdentityName(), oidcLogin}
-		}
-	}
 	if err != nil {
+		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
+			switch {
+			case loginReq.AccessKey != "":
+				return &LoginError{Message: "your access key may be invalid"}
+			case loginReq.PasswordCredentials != nil:
+				return &LoginError{Message: "your username or password may be invalid"}
+			case loginReq.OIDC != nil:
+				return &LoginError{Message: "please contact an administrator and check identity provider configurations"}
+			}
+		}
+
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
+	if loginRes.PasswordUpdateRequired {
+		fmt.Fprintf(os.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
+
+		password, err := promptSetPassword(loginReq.PasswordCredentials.Password)
+		if err != nil {
+			return err
+		}
+
+		client.AccessKey = loginRes.AccessKey
+		if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+			return err
+		}
+
+		fmt.Fprintf(os.Stderr, "  Updated password.\n")
+	}
 
 	if err := updateInfraConfig(client, loginReq, loginRes); err != nil {
 		return err
@@ -179,15 +194,11 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 		return err
 	}
 
-	if err := updateKubeconfig(client, loginRes.ID); err != nil {
+	if err := updateKubeconfig(client, loginRes.UserID); err != nil {
 		return err
 	}
 
-	if loginRes.PasswordUpdateRequired {
-		if err := updateUserPassword(client, loginRes.ID, loginReq.PasswordCredentials.Password); err != nil {
-			return err
-		}
-	}
+	fmt.Fprintf(os.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 
 	return nil
 }
@@ -196,7 +207,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:       true,
-		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.ID),
+		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.UserID),
 		Name:          loginRes.Name,
 		AccessKey:     loginRes.AccessKey,
 		Expires:       loginRes.Expires,
@@ -287,25 +298,6 @@ func oidcflow(host string, clientId string) (string, error) {
 	return code, nil
 }
 
-// Prompt user to change their preset password when loggin in for the first time
-func updateUserPassword(client *api.Client, id uid.ID, oldPassword string) error {
-	// Todo otp: update term to temporary password (https://github.com/infrahq/infra/issues/1441)
-	fmt.Println("\n  One time password was used. Enter a new password (min length 8):")
-
-	newPassword, err := promptSetPassword(oldPassword)
-	if err != nil {
-		return err
-	}
-
-	if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: id, Password: newPassword}); err != nil {
-		return fmt.Errorf("update user login: %w", err)
-	}
-
-	fmt.Println("  Password updated.")
-
-	return nil
-}
-
 // Given the provider name, directs user to its OIDC login page, then saves the auth code (to later login to infra)
 func loginToProviderN(client *api.Client, providerName string) (*api.LoginRequestOIDC, error) {
 	provider, err := GetProviderByName(client, providerName)
@@ -360,6 +352,13 @@ func newAPIClient(options loginCmdOptions) (*api.Client, error) {
 	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
 		if err := verifyTLS(options.Server); err != nil {
+			urlErr := &url.Error{}
+			if errors.As(err, &urlErr) {
+				if urlErr.Timeout() {
+					return nil, fmt.Errorf("%w: %s", api.ErrTimeout, err)
+				}
+			}
+
 			if !errors.Is(err, ErrTLSNotVerified) {
 				return nil, err
 			}
@@ -523,7 +522,7 @@ func promptServer(options loginCmdOptions) (string, error) {
 		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
 	}
 
-	config, err := readOrCreateClientConfig()
+	config, err := readConfig()
 	if err != nil {
 		return "", err
 	}

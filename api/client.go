@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,9 +12,12 @@ import (
 
 	"github.com/ssoroka/slice"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
+
+var clientVersion = "0.13.0"
+
+var ErrTimeout = errors.New("client timed out waiting for response from server")
 
 type Client struct {
 	URL       string
@@ -28,17 +32,21 @@ type Client struct {
 //
 // 3xx codes are considered an error because redirects should have already
 // been followed before calling checkError.
-func checkError(resp *http.Response, body []byte) error {
+func checkError(req *http.Request, resp *http.Response, body []byte) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
 
-	var apiError Error
+	apiError := Error{
+		Method: req.Method,
+		Path:   req.URL.Path,
+		Code:   int32(resp.StatusCode),
+	}
+
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
 		// Use the full body as the message if we fail to decode a response.
 		apiError.Message = string(body)
-		apiError.Code = int32(resp.StatusCode)
 	}
 
 	return apiError
@@ -74,9 +82,8 @@ func get[Res any](client Client, path string) (*Res, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("GET %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -109,9 +116,8 @@ func list[Res any](client Client, path string, query map[string][]string) (*Res,
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("GET %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -139,18 +145,26 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 
 	resp, err := client.HTTP.Do(httpReq)
 	if err != nil {
+		urlErr := &url.Error{}
+		if errors.As(err, &urlErr) {
+			if urlErr.Timeout() {
+				return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
+			}
+		}
 		return nil, fmt.Errorf("%s %q: %w", method, path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
+		}
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return nil, fmt.Errorf("%s %v failed: %w", method, path, err)
+	if err := checkError(httpReq, resp, body); err != nil {
+		return nil, err
 	}
 
 	var res Res
@@ -179,25 +193,33 @@ func delete(client Client, path string) error {
 
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
+		urlErr := &url.Error{}
+		if errors.As(err, &urlErr) {
+			if urlErr.Timeout() {
+				return fmt.Errorf("%w: %s", ErrTimeout, err)
+			}
+		}
 		return fmt.Errorf("DELETE %q: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", ErrTimeout, err)
+		}
 		return fmt.Errorf("reading response: %w", err)
 	}
 
-	err = checkError(resp, body)
-	if err != nil {
-		return fmt.Errorf("DELETE %v failed: %w", path, err)
+	if err := checkError(req, resp, body); err != nil {
+		return err
 	}
 
 	return nil
 }
 
 func addHeaders(req *http.Request, headers http.Header) {
-	req.Header.Set("Infra-Version", internal.FullVersion())
+	req.Header.Set("Infra-Version", clientVersion)
 	for key, values := range headers {
 		req.Header[key] = values
 	}
@@ -207,73 +229,73 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return list[ListResponse[User]](c, "/v1/users", map[string][]string{"name": {req.Name}, "ids": ids})
+	return list[ListResponse[User]](c, "/api/users", map[string][]string{"name": {req.Name}, "ids": ids})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
-	return get[User](c, fmt.Sprintf("/v1/users/%s", id))
+	return get[User](c, fmt.Sprintf("/api/users/%s", id))
 }
 
 func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
-	return post[CreateUserRequest, CreateUserResponse](c, "/v1/users", req)
+	return post[CreateUserRequest, CreateUserResponse](c, "/api/users", req)
 }
 
 func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
-	return put[UpdateUserRequest, User](c, fmt.Sprintf("/v1/users/%s", req.ID.String()), req)
+	return put[UpdateUserRequest, User](c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
 }
 
 func (c Client) DeleteUser(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/users/%s", id))
+	return delete(c, fmt.Sprintf("/api/users/%s", id))
 }
 
 // Deprecated: use ListGrants
 func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/users/%s/grants", id), nil)
+	return list[ListResponse[Grant]](c, fmt.Sprintf("/api/users/%s/grants", id), nil)
 }
 
 func (c Client) ListUserGroups(id uid.ID) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, fmt.Sprintf("/v1/users/%s/groups", id), nil)
+	return list[ListResponse[Group]](c, fmt.Sprintf("/api/users/%s/groups", id), nil)
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, "/v1/groups", map[string][]string{"name": {req.Name}})
+	return list[ListResponse[Group]](c, "/api/groups", map[string][]string{"name": {req.Name}})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {
-	return get[Group](c, fmt.Sprintf("/v1/groups/%s", id))
+	return get[Group](c, fmt.Sprintf("/api/groups/%s", id))
 }
 
 func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
-	return post[CreateGroupRequest, Group](c, "/v1/groups", req)
+	return post[CreateGroupRequest, Group](c, "/api/groups", req)
 }
 
 // Deprecated: use ListGrants
 func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, fmt.Sprintf("/v1/groups/%s/grants", id), nil)
+	return list[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), nil)
 }
 
 func (c Client) ListProviders(name string) (*ListResponse[Provider], error) {
-	return list[ListResponse[Provider]](c, "/v1/providers", map[string][]string{"name": {name}})
+	return list[ListResponse[Provider]](c, "/api/providers", map[string][]string{"name": {name}})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
-	return get[Provider](c, fmt.Sprintf("/v1/providers/%s", id))
+	return get[Provider](c, fmt.Sprintf("/api/providers/%s", id))
 }
 
 func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
-	return post[CreateProviderRequest, Provider](c, "/v1/providers", req)
+	return post[CreateProviderRequest, Provider](c, "/api/providers", req)
 }
 
 func (c Client) UpdateProvider(req UpdateProviderRequest) (*Provider, error) {
-	return put[UpdateProviderRequest, Provider](c, fmt.Sprintf("/v1/providers/%s", req.ID.String()), &req)
+	return put[UpdateProviderRequest, Provider](c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
 }
 
 func (c Client) DeleteProvider(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/providers/%s", id))
+	return delete(c, fmt.Sprintf("/api/providers/%s", id))
 }
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, "/v1/grants", map[string][]string{
+	return list[ListResponse[Grant]](c, "/api/grants", map[string][]string{
 		"user":      {req.User.String()},
 		"group":     {req.Group.String()},
 		"resource":  {req.Resource},
@@ -282,70 +304,70 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 }
 
 func (c Client) CreateGrant(req *CreateGrantRequest) (*Grant, error) {
-	return post[CreateGrantRequest, Grant](c, "/v1/grants", req)
+	return post[CreateGrantRequest, Grant](c, "/api/grants", req)
 }
 
 func (c Client) DeleteGrant(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/grants/%s", id))
+	return delete(c, fmt.Sprintf("/api/grants/%s", id))
 }
 
 func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
-	return list[ListResponse[Destination]](c, "/v1/destinations", map[string][]string{
+	return list[ListResponse[Destination]](c, "/api/destinations", map[string][]string{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
 	})
 }
 
 func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, error) {
-	return post[CreateDestinationRequest, Destination](c, "/v1/destinations", req)
+	return post[CreateDestinationRequest, Destination](c, "/api/destinations", req)
 }
 
 func (c Client) UpdateDestination(req UpdateDestinationRequest) (*Destination, error) {
-	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/v1/destinations/%s", req.ID.String()), &req)
+	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/api/destinations/%s", req.ID.String()), &req)
 }
 
 func (c Client) DeleteDestination(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/destinations/%s", id))
+	return delete(c, fmt.Sprintf("/api/destinations/%s", id))
 }
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
-	return list[ListResponse[AccessKey]](c, "/v1/access-keys", map[string][]string{
+	return list[ListResponse[AccessKey]](c, "/api/access-keys", map[string][]string{
 		"user_id": {req.UserID.String()},
 		"name":    {req.Name},
 	})
 }
 
 func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyResponse, error) {
-	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/v1/access-keys", req)
+	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/api/access-keys", req)
 }
 
 func (c Client) DeleteAccessKey(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/v1/access-keys/%s", id))
+	return delete(c, fmt.Sprintf("/api/access-keys/%s", id))
 }
 
 func (c Client) CreateToken() (*CreateTokenResponse, error) {
-	return post[EmptyRequest, CreateTokenResponse](c, "/v1/tokens", &EmptyRequest{})
+	return post[EmptyRequest, CreateTokenResponse](c, "/api/tokens", &EmptyRequest{})
 }
 
 func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {
-	return post[LoginRequest, LoginResponse](c, "/v1/login", req)
+	return post[LoginRequest, LoginResponse](c, "/api/login", req)
 }
 
 func (c Client) Logout() error {
-	_, err := post[EmptyRequest, EmptyResponse](c, "/v1/logout", &EmptyRequest{})
+	_, err := post[EmptyRequest, EmptyResponse](c, "/api/logout", &EmptyRequest{})
 	return err
 }
 
 func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
-	return get[SignupEnabledResponse](c, "/v1/signup")
+	return get[SignupEnabledResponse](c, "/api/signup")
 }
 
 func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
-	return post[SignupRequest, CreateAccessKeyResponse](c, "/v1/signup", req)
+	return post[SignupRequest, CreateAccessKeyResponse](c, "/api/signup", req)
 }
 
-func (c Client) GetVersion() (*Version, error) {
-	return get[Version](c, "/v1/version")
+func (c Client) GetServerVersion() (*Version, error) {
+	return get[Version](c, "/api/version")
 }
 
 func partialText(body []byte, limit int) string {

@@ -4,9 +4,7 @@
 
 {{- if include "server.enabled" . | eq "true" }}
 
-  Login to this cluster with infra-cli:
-
-    https://github.com/infrahq/infra#1-install-infra-cli
+  To get started, login via the Infra CLI
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}

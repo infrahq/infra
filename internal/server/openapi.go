@@ -20,12 +20,10 @@ import (
 )
 
 var (
-	openAPISchema             = openapi3.T{}
 	pathIDReplacer            = regexp.MustCompile(`:\w+`)
 	funcPartialNameToTagNames = map[string]string{
 		"Grant":       "Grants",
-		"Identities":  "Identities",
-		"Identity":    "Identities",
+		"User":        "Users",
 		"Group":       "Groups",
 		"AccessKey":   "Authentication",
 		"Provider":    "Providers",
@@ -36,47 +34,36 @@ var (
 	}
 )
 
-func register[Req, Res any](a *API, method, path string, handler ReqResHandlerFunc[Req, Res]) {
-	if a.disableOpenAPIGeneration {
-		return
-	}
-	funcName := getFuncName(handler)
-
+// openAPIRouteDefinition converts the route into a format that can be used
+// by API.register. This is necessary because currently methods can not have
+// generic parameters.
+func openAPIRouteDefinition[Req, Res any](route route[Req, Res]) (
+	method string,
+	path string,
+	funcName string,
+	requestType reflect.Type,
+	resultType reflect.Type,
+) {
 	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	//nolint:gocritic
-	rst := reflect.TypeOf(*new(Res))
-
-	reg(method, path, funcName, rqt, rst)
+	reqT, resultT := reflect.TypeOf(*new(Req)), reflect.TypeOf(*new(Res))
+	return route.method, route.path, getFuncName(route.handler), reqT, resultT
 }
 
-func registerReq[Req any](a *API, method, path string, handler ReqHandlerFunc[Req]) {
-	if a.disableOpenAPIGeneration {
-		return
-	}
-	funcName := getFuncName(handler)
-
-	//nolint:gocritic
-	rqt := reflect.TypeOf(*new(Req))
-	rst := reflect.TypeOf(nil)
-
-	reg(method, path, funcName, rqt, rst)
-}
-
-func reg(method, path, funcName string, rqt, rst reflect.Type) {
+// register adds the route to the API.OpenAPIDocument.
+func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 	path = pathIDReplacer.ReplaceAllStringFunc(path, func(s string) string {
 		return "{" + strings.TrimLeft(s, ":") + "}"
 	})
 
-	if openAPISchema.Components.Schemas == nil {
-		openAPISchema.Components.Schemas = openapi3.Schemas{}
+	if a.openAPIDoc.Components.Schemas == nil {
+		a.openAPIDoc.Components.Schemas = openapi3.Schemas{}
 	}
 
-	if openAPISchema.Paths == nil {
-		openAPISchema.Paths = openapi3.Paths{}
+	if a.openAPIDoc.Paths == nil {
+		a.openAPIDoc.Paths = openapi3.Paths{}
 	}
 
-	p, ok := openAPISchema.Paths[path]
+	p, ok := a.openAPIDoc.Paths[path]
 	if !ok {
 		p = &openapi3.PathItem{}
 	}
@@ -90,7 +77,7 @@ func reg(method, path, funcName string, rqt, rst reflect.Type) {
 		buildRequest(rqt, op)
 	}
 
-	op.Responses = buildResponse(rst)
+	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
 tagLoop:
 	for _, partialName := range orderedTagNames() {
@@ -125,7 +112,7 @@ tagLoop:
 		panic("unexpected http method " + method)
 	}
 
-	openAPISchema.Paths[path] = p
+	a.openAPIDoc.Paths[path] = p
 }
 
 func getFuncName(i interface{}) string {
@@ -146,17 +133,15 @@ func orderedTagNames() []string {
 	return tagNames
 }
 
-func createComponent(rst reflect.Type) *openapi3.SchemaRef {
-	if openAPISchema.Components.Schemas == nil {
-		openAPISchema.Components.Schemas = openapi3.Schemas{}
-	}
-
+// createComponent creates and returns the SchemaRef for a type. If the type is
+// a struct, the definition of the struct is added  to the schemas map.
+func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
 	//nolint:exhaustive
 	switch rst.Kind() {
 	case reflect.Pointer:
-		return createComponent(rst.Elem())
+		return createComponent(schemas, rst.Elem())
 	case reflect.Slice:
-		schema := createComponent(rst.Elem())
+		schema := createComponent(schemas, rst.Elem())
 
 		return &openapi3.SchemaRef{
 			Value: &openapi3.Schema{
@@ -170,24 +155,21 @@ func createComponent(rst reflect.Type) *openapi3.SchemaRef {
 		}
 
 		name := strings.ReplaceAll(rst.Name(), rst.PkgPath()+".", "")
+		name = strings.ReplaceAll(name, "[", "_")
+		name = strings.ReplaceAll(name, "]", "")
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
-		if _, ok := openAPISchema.Components.Schemas[name]; ok {
+		if _, ok := schemas[name]; ok {
 			return &openapi3.SchemaRef{
 				Ref: "#/components/schemas/" + name,
 			}
 		}
 
-		schemaRef := &openapi3.SchemaRef{
-			Value: schema,
-		}
-
-		openAPISchema.Components.Schemas[name] = schemaRef
-
+		schemas[name] = &openapi3.SchemaRef{Value: schema}
 		return &openapi3.SchemaRef{
 			Ref: "#/components/schemas/" + name,
 		}
@@ -227,7 +209,7 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	spec.OpenAPI = "3.0.0"
 	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     internal.Version,
+		Version:     internal.FullVersion(),
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
 	}
@@ -243,13 +225,13 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	return nil
 }
 
-func WriteOpenAPISpecToFile(filename string) error {
+func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, filename string) error {
 	fh, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer fh.Close()
-	if err := writeOpenAPISpec(openAPISchema, fh); err != nil {
+	if err := writeOpenAPISpec(openAPIDoc, fh); err != nil {
 		return err
 	}
 	return nil
@@ -363,13 +345,13 @@ func pstr(s string) *string {
 	return &s
 }
 
-func buildResponse(rst reflect.Type) openapi3.Responses {
+func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Responses {
 	schema := &openapi3.SchemaRef{
 		Value: &openapi3.Schema{Type: "object"},
 	}
 
 	if rst != nil {
-		schema = createComponent(rst)
+		schema = createComponent(schemas, rst)
 	}
 
 	resp := openapi3.NewResponses()
@@ -386,7 +368,7 @@ func buildResponse(rst reflect.Type) openapi3.Responses {
 
 	errStruct := &api.Error{}
 	t := reflect.TypeOf(errStruct)
-	errComp := createComponent(t)
+	errComp := createComponent(schemas, t)
 
 	content := openapi3.Content{"application/json": &openapi3.MediaType{
 		Schema: errComp,

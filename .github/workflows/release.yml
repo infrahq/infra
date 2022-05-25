@@ -40,9 +40,18 @@ jobs:
         with:
           path: /root/.cache/
           key: ${{ runner.os }}-go-build
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - working-directory: ui
+        run: |
+          npm install
+          npm run build
+          npm run export -- -o ../internal/server/ui/static
+      # TODO: use goreleaser github action: https://github.com/goreleaser/goreleaser-action
       - run: |
           go install github.com/goreleaser/goreleaser@v1.7.0
-          make release tag=${{ needs.release-please.outputs.release_name }}
+          make release
         env:
           GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
           GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
@@ -58,7 +67,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: make release/docker tag=${{ needs.release-please.outputs.release_name }}
+      - run: make release/docker v=${{ needs.release-please.outputs.release_name }}
         env:
           TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
 
@@ -75,7 +84,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       - run: |
-          make helm tag=${{ needs.release-please.outputs.release_name }}
+          make helm v=${{ needs.release-please.outputs.release_name }}
           aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
 
   readme:

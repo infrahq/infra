@@ -481,31 +481,48 @@ func Run(ctx context.Context, options Options) error {
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.S.Debugf("connector serving on %s", endpoint)
 
-		if destination.ID == 0 {
-			destination.Connection.CA = string(caCertPEM)
-			destination.Connection.URL = endpoint
+		namespaces, err := k8s.Namespaces()
+		if err != nil {
+			logging.S.Errorf("could not get kubernetes namespaces: %w", err)
+			return
+		}
 
+		clusterRoles, err := k8s.ClusterRoles()
+		if err != nil {
+			logging.S.Errorf("could not get kubernetes cluster-roles: %w", err)
+			return
+		}
+
+		switch {
+		case destination.ID == 0:
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not check destination service type: %v", err)
+				logging.S.Debugf("could not determine service type: %v", err)
 			}
 
 			if isClusterIP {
-				logging.S.Warn("registering with cluster IP, it may not be externally accessible without an ingress or load balancer")
+				logging.S.Warn("registering Kubernetes connector with ClusterIP. it may not be externally accessible. if you are experiencing connectivity issues, consider switching to LoadBalancer or Ingress")
 			}
 
-			err = createDestination(client, destination)
-			if err != nil {
-				logging.S.Errorf("initializing destination: %v", err)
-				return
-			}
-		} else if destination.Connection.URL != endpoint || destination.Connection.CA != string(caCertPEM) {
+			fallthrough
+
+		case !slicesEqual(destination.Resources, namespaces):
+			destination.Resources = namespaces
+			fallthrough
+
+		case !slicesEqual(destination.Roles, clusterRoles):
+			destination.Roles = clusterRoles
+			fallthrough
+
+		case destination.Connection.CA != string(caCertPEM):
 			destination.Connection.CA = string(caCertPEM)
+			fallthrough
+
+		case destination.Connection.URL != endpoint:
 			destination.Connection.URL = endpoint
 
-			err = updateDestination(client, destination)
-			if err != nil {
-				logging.S.Errorf("refreshing destination: %v", err)
+			if err := createOrUpdateDestination(client, destination); err != nil {
+				logging.S.Errorf("initializing destination: %v", err)
 				return
 			}
 		}
@@ -513,12 +530,6 @@ func Run(ctx context.Context, options Options) error {
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
 		if err != nil {
 			logging.S.Errorf("error listing grants: %v", err)
-			return
-		}
-
-		namespaces, err := k8s.Namespaces()
-		if err != nil {
-			logging.S.Errorf("error listing namespaces: %v", err)
 			return
 		}
 
@@ -610,8 +621,12 @@ func Run(ctx context.Context, options Options) error {
 	return tlsServer.ListenAndServeTLS("", "")
 }
 
-// createDestination creates a destination in the infra server if it does not exist
-func createDestination(client *api.Client, local *api.Destination) error {
+// createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
+func createOrUpdateDestination(client *api.Client, local *api.Destination) error {
+	if local.ID != 0 {
+		return updateDestination(client, local)
+	}
+
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{UniqueID: local.UniqueID})
 	if err != nil {
 		return fmt.Errorf("error listing destinations: %w", err)
@@ -626,6 +641,8 @@ func createDestination(client *api.Client, local *api.Destination) error {
 		Name:       local.Name,
 		UniqueID:   local.UniqueID,
 		Connection: local.Connection,
+		Resources:  local.Resources,
+		Roles:      local.Roles,
 	}
 
 	destination, err := client.CreateDestination(request)
@@ -637,6 +654,7 @@ func createDestination(client *api.Client, local *api.Destination) error {
 	return nil
 }
 
+// updateDestination updates a destination in the infra server
 func updateDestination(client *api.Client, local *api.Destination) error {
 	logging.S.Debug("updating information at server")
 
@@ -645,6 +663,8 @@ func updateDestination(client *api.Client, local *api.Destination) error {
 		Name:       local.Name,
 		UniqueID:   local.UniqueID,
 		Connection: local.Connection,
+		Resources:  local.Resources,
+		Roles:      local.Roles,
 	}
 
 	if _, err := client.UpdateDestination(request); err != nil {
@@ -652,4 +672,19 @@ func updateDestination(client *api.Client, local *api.Destination) error {
 	}
 
 	return nil
+}
+
+// slicesEqual checks if two sorted slices of strings are equal
+func slicesEqual(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+
+	return true
 }

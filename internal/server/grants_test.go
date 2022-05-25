@@ -30,7 +30,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/users", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -55,7 +55,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/v1/grants", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/grants", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
@@ -122,7 +122,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/v1/grants?subject=i:" + idOther.String(),
+			urlPath: "/api/grants?subject=i:" + idOther.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
@@ -131,25 +131,25 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"not authorized, wrong identity": {
-			urlPath: "/v1/grants?subject=i:" + idOther.String(),
+			urlPath: "/api/grants?subject=i:" + idOther.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"not authorized, wrong group": {
-			urlPath: "/v1/grants?subject=g:abcde",
+			urlPath: "/api/grants?subject=g:abcde",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"not authorized, no subject in query": {
-			urlPath: "/v1/grants?resource=res1",
+			urlPath: "/api/grants?resource=res1",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
 		"authorized by grant": {
-			urlPath: "/v1/grants?resource=none",
+			urlPath: "/api/grants?resource=none",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -162,7 +162,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"authorized by identity matching subject": {
-			urlPath: "/v1/grants?user=" + idInGroup.String(),
+			urlPath: "/api/grants?user=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
@@ -179,7 +179,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"authorized by group matching subject": {
-			urlPath: "/v1/grants?group=" + groupID.String(),
+			urlPath: "/api/grants?group=" + groupID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
@@ -190,7 +190,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"no filters": {
-			urlPath: "/v1/grants",
+			urlPath: "/api/grants",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -229,7 +229,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"filter by resource": {
-			urlPath: "/v1/grants?resource=res1",
+			urlPath: "/api/grants?resource=res1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 				req.Header.Add("Infra-Version", "0.12.3")
@@ -256,7 +256,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"filter by resource and privilege": {
-			urlPath: "/v1/grants?resource=res1&privilege=custom1",
+			urlPath: "/api/grants?resource=res1&privilege=custom1",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -277,7 +277,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"full JSON response": {
-			urlPath: "/v1/grants?user=" + idInGroup.String(),
+			urlPath: "/api/grants?user=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 

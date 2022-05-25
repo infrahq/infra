@@ -14,6 +14,7 @@
     ".": {
       "release-type": "go",
       "extra-files": [
+        "Dockerfile",
         "helm/charts/infra/Chart.yaml",
         "internal/version.go",
         "docs/install/upgrading.md",

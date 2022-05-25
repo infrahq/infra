@@ -2,4 +2,7 @@ version: "3.9"
 
 services:
   server:
-    build: .
+    build:
+      context: .
+      args:
+        BUILDVERSION_METADATA: dev

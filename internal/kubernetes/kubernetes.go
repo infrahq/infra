@@ -589,3 +589,26 @@ func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
 
 	return service.Spec.Type == corev1.ServiceTypeClusterIP, nil
 }
+
+func (k *Kubernetes) ClusterRoles() ([]string, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{LabelSelector: "kubernetes.io/bootstrapping=rbac-defaults"})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]string, 0, len(clusterRoles.Items))
+	for _, n := range clusterRoles.Items {
+		if strings.HasPrefix(n.Name, "system:") {
+			continue
+		}
+
+		results = append(results, n.Name)
+	}
+
+	return results, nil
+}

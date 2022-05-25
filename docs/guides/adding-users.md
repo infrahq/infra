@@ -5,7 +5,7 @@
 To add a user to Infra, use `infra id add`:
 
 ```
-infra id add example@acme.com
+infra users add example@acme.com
 ```
 
 You'll be provided a one time password to share with the user (via slack, eamil or similar) they should use when running `infra login`.
@@ -13,7 +13,7 @@ You'll be provided a one time password to share with the user (via slack, eamil 
 ## Removing users
 
 ```
-infra id remove example@acme.com
+infra users remove example@acme.com
 ```
 
 ## Listing users
@@ -21,15 +21,15 @@ infra id remove example@acme.com
 To see all users being managed by Infra, use `infra id list`:
 
 ```
-infra id list
+infra users list
 ```
 
 You'll see the resulting list of users:
 
 ```
-NAME
-fisher@infrahq.com
-jeff@infrahq.com
-matt.williams@infrahq.com
-michael@infrahq.com
+NAME                         LAST SEEN
+fisher@infrahq.com           just now
+jeff@infrahq.com             5 mintues ago
+matt.williams@infrahq.com    3 days ago
+michael@infrahq.com          3 days ago
 ```

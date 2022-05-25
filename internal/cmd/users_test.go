@@ -41,7 +41,7 @@ func TestUsersCmd(t *testing.T) {
 		modifiedUsers := []models.Identity{}
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if strings.Contains(req.URL.Path, "/v1/providers") {
+			if strings.Contains(req.URL.Path, "/api/providers") {
 				resp.WriteHeader(http.StatusOK)
 
 				providers := []*api.Provider{
@@ -56,7 +56,7 @@ func TestUsersCmd(t *testing.T) {
 				return
 			}
 
-			if strings.Contains(req.URL.Path, "/v1/users") {
+			if strings.Contains(req.URL.Path, "/api/users") {
 				switch req.Method {
 				case http.MethodPost:
 					createUserReq := api.CreateUserRequest{}
@@ -97,7 +97,7 @@ func TestUsersCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodDelete:
-					id := req.URL.Path[len("/v1/users/"):]
+					id := req.URL.Path[len("/api/users/"):]
 
 					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
@@ -146,14 +146,6 @@ func TestUsersCmd(t *testing.T) {
 		setup(t)
 		err := Run(context.Background(), "users", "edit", "new-user@example.com")
 		assert.ErrorContains(t, err, "Please specify a field to update. For options, run 'infra users edit --help'")
-	})
-
-	t.Run("edit user interactive with password", func(t *testing.T) {
-		setup(t)
-		t.Setenv("INFRA_PASSWORD", "true")
-		t.Setenv("INFRA_NON_INTERACTIVE", "true")
-		err := Run(context.Background(), "users", "edit", "new-user@example.com")
-		assert.ErrorContains(t, err, "Non-interactive mode is not supported to edit sensitive fields.")
 	})
 
 	t.Run("edit without required argument", func(t *testing.T) {

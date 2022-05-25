@@ -24,7 +24,7 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newDestinationsListCmd(cli))
-	cmd.AddCommand(newDestinationsRemoveCmd())
+	cmd.AddCommand(newDestinationsRemoveCmd(cli))
 
 	return cmd
 }
@@ -72,7 +72,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 	}
 }
 
-func newDestinationsRemoveCmd() *cobra.Command {
+func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 	var force bool
 
 	cmd := &cobra.Command{
@@ -109,6 +109,8 @@ func newDestinationsRemoveCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
+
+				cli.Output("Removed destination %q", d.Name)
 			}
 
 			return nil

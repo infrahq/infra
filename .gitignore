@@ -1,14 +1,7 @@
 .DS_Store
-dist
-infra.db
-release
 .env
 .test
 .vscode
 
-# configuration file used during development
-docker-desktop.yaml
-
 # infra binary
-dist/*/infra
-
+dist

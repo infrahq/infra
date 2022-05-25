@@ -1,10 +1,15 @@
 package server
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"errors"
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -385,6 +390,90 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
 }
 
+func TestLoadConfigWithUsers(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Users: []User{
+			{
+				Name: "bob",
+			},
+			{
+				Name:     "alice",
+				Password: "password",
+			},
+			{
+				Name:      "sue",
+				AccessKey: "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb",
+			},
+			{
+				Name:      "jim",
+				Password:  "password",
+				AccessKey: "bbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbb",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	user, _, _, err := getTestUserDetails(s.db, "bob")
+	assert.NilError(t, err)
+	assert.Equal(t, "bob", user.Name)
+
+	user, creds, _, err := getTestUserDetails(s.db, "alice")
+	assert.NilError(t, err)
+	assert.Equal(t, "alice", user.Name)
+	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
+	assert.NilError(t, err)
+
+	user, _, key, err := getTestUserDetails(s.db, "sue")
+	assert.NilError(t, err)
+	assert.Equal(t, "sue", user.Name)
+	assert.Equal(t, key.KeyID, "aaaaaaaaaa")
+	chksm := sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
+	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
+
+	user, creds, key, err = getTestUserDetails(s.db, "jim")
+	assert.NilError(t, err)
+	assert.Equal(t, "jim", user.Name)
+	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
+	assert.NilError(t, err)
+	assert.Equal(t, key.KeyID, "bbbbbbbbbb")
+	chksm = sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
+	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
+}
+
+func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
+	s := setupServer(t)
+
+	config := Config{
+		Grants: []Grant{
+			{
+				User:     "test@example.com",
+				Resource: "test-cluster",
+			},
+		},
+	}
+
+	err := s.loadConfig(config)
+	assert.NilError(t, err)
+
+	var provider models.Provider
+	err = s.db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
+	assert.NilError(t, err)
+
+	var user models.Identity
+	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	assert.NilError(t, err)
+
+	var grant models.Grant
+	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "connect", grant.Privilege)
+	assert.Equal(t, "test-cluster", grant.Resource)
+}
+
 func TestLoadConfigWithUserGrants(t *testing.T) {
 	s := setupServer(t)
 
@@ -442,6 +531,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	assert.Equal(t, "admin", grant.Privilege)
 	assert.Equal(t, "test-cluster", grant.Resource)
 }
+
 func TestLoadConfigPruneConfig(t *testing.T) {
 	s := setupServer(t)
 
@@ -683,4 +773,28 @@ func TestLoadConfigUpdate(t *testing.T) {
 	var group models.Group
 	err = s.db.Where("name = ?", "Everyone").First(&group).Error
 	assert.NilError(t, err)
+}
+
+// getTestUserDetails gets the attributes of a user created from a config file
+func getTestUserDetails(db *gorm.DB, name string) (*models.Identity, *models.Credential, *models.AccessKey, error) {
+	var user models.Identity
+	var credential models.Credential
+	var accessKey models.AccessKey
+
+	err := db.Where("name = ?", name).First(&user).Error
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = db.Where("identity_id = ?", user.ID).First(&credential).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, nil, err
+	}
+
+	err = db.Where("issued_for = ?", user.ID).First(&accessKey).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, nil, err
+	}
+
+	return &user, &credential, &accessKey, nil
 }
