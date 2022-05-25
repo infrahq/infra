@@ -85,7 +85,7 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVarP(&editPassword, "password", "p", false, "Set a new one time password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new one time password")
 
 	return cmd
 }
@@ -133,6 +133,8 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 }
 
 func newUsersRemoveCmd(cli *CLI) *cobra.Command {
+	var force bool
+
 	cmd := &cobra.Command{
 		Use:     "remove USER",
 		Aliases: []string{"rm"},
@@ -153,6 +155,10 @@ $ infra users remove janedoe@example.com`,
 				return err
 			}
 
+			if users.Count == 0 && !force {
+				return fmt.Errorf("unknown user %q", name)
+			}
+
 			for _, user := range users.Items {
 				if err := client.DeleteUser(user.ID); err != nil {
 					return err
@@ -164,6 +170,8 @@ $ infra users remove janedoe@example.com`,
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Remove user even if it does not exist")
 
 	return cmd
 }
