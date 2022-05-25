@@ -31,7 +31,7 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
         </div>
         {error && <ErrorMessage message={error} />}
       </div>
-      <div className='flex flex-row justify-between mt-8 items-center'>
+      <div className='flex flex-row mt-6 justify-end items-center'>
         <Link href='/users'>
           <a className='uppercase border-0 px-4 py-2 -ml-4 hover:text-white text-gray-400 text-4xs'>Cancel</a>
         </Link>

@@ -35,7 +35,7 @@ export default function ({ id }) {
   }
 
   function grant (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) {
-    mutate(`/api/grants?user=${id}`, async ({ items: grantsList = [] }) => {
+    mutate(`/api/grants?user=${id}`, async ({ items: grantsList } = { items: [] }) => {
       const res = await fetch('/api/grants', {
         method: 'POST',
         body: JSON.stringify({ user, resource, privilege })
@@ -59,7 +59,7 @@ export default function ({ id }) {
       return grant(user, privilege, resource, true, grantId)
     }
 
-    mutate(`/api/grants?user=${user}`, async ({ items: userGrantsList = [] }) => {
+    mutate(`/api/grants?user=${user}`, async ({ items: userGrantsList } = { items: [] }) => {
       await fetch(`/api/grants/${grantId}`, { method: 'DELETE' })
       return { items: userGrantsList?.filter(item => item?.id !== grantId) }
     }, { optimisticData: { items: grants?.filter(g => g?.id !== grantId) } })
