@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,12 +17,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 )
-
-// AgentConfig stores details about the agent in config separate from the CLI config file
-// this config file must be separate to avoid concurrent writes with the CLI config
-type AgentConfig struct {
-	ProccessID int `json:"pid"` // used to manage the agent lifecycle
-}
 
 func newAgentCmd() *cobra.Command {
 	return &cobra.Command{
@@ -50,9 +44,9 @@ func newAgentCmd() *cobra.Command {
 
 // configAgentRunning checks if the agent process stored in config is still running
 func configAgentRunning() (bool, error) {
-	config, err := readAgentConfig()
+	pid, err := readStoredAgentProcessID()
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			// this is the first time the agent is running, suppress the error and continue
 			logging.S.Debug(err)
 			return false, nil
@@ -60,7 +54,7 @@ func configAgentRunning() (bool, error) {
 		return false, err
 	}
 
-	return processRunning(int32(config.ProccessID))
+	return processRunning(int32(pid))
 }
 
 func processRunning(pid int32) (bool, error) {
@@ -83,42 +77,46 @@ func execAgent() error {
 		return err
 	}
 
-	return writeAgentConfig(AgentConfig{ProccessID: cmd.Process.Pid})
+	return writeAgentConfig(cmd.Process.Pid)
 }
 
-func readAgentConfig() (*AgentConfig, error) {
-	config := &AgentConfig{}
-
+func readStoredAgentProcessID() (int, error) {
 	infraDir, err := infraHomeDir()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	contents, err := ioutil.ReadFile(filepath.Join(infraDir, "agent"))
+	agentConfig, err := os.Open(filepath.Join(infraDir, "agent.pid"))
 	if err != nil {
-		return nil, err
+		return 0, err
+	}
+	defer agentConfig.Close()
+
+	var pid int
+
+	_, err = fmt.Fscanf(agentConfig, "%d\n", &pid)
+	if err != nil {
+		return 0, err
 	}
 
-	if err = json.Unmarshal(contents, &config); err != nil {
-		return nil, err
-	}
-
-	return config, nil
+	return pid, nil
 }
 
 // writeAgentProcessConfig saves details about the agent to config
-func writeAgentConfig(config AgentConfig) error {
+func writeAgentConfig(pid int) error {
 	infraDir, err := infraHomeDir()
 	if err != nil {
 		return err
 	}
 
-	contents, err := json.Marshal(config)
+	agentConfig, err := os.Create(filepath.Join(infraDir, "agent.pid"))
 	if err != nil {
 		return err
 	}
+	defer agentConfig.Close()
 
-	if err = ioutil.WriteFile(filepath.Join(infraDir, "agent"), []byte(contents), 0o600); err != nil {
+	_, err = agentConfig.WriteString(fmt.Sprintf("%d\n", pid))
+	if err != nil {
 		return err
 	}
 
