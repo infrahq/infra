@@ -32,6 +32,8 @@ jobs:
           POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
 
       - name: Check that tests leave a clean git checkout
+        # Skip on the release branch, it is allowed to modify files like the openapi doc
+        if: ${{ ! startsWith(github.head_ref, 'release-please-') }}
         run: |
           # show and check changes to committed files
           git diff --exit-code
