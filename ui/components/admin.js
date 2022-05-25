@@ -38,7 +38,6 @@ function Grant ({ id, userID, grants }) {
         <DeleteModal
           open={open}
           setOpen={setOpen}
-          onCancel={() => setOpen(false)}
           onSubmit={() => {
             mutate('/api/grants?resource=infra&privilege=admin', async grants => {
               await fetch(`/api/grants/${id}`, { method: 'DELETE' })
