@@ -167,13 +167,8 @@ $ infra users remove janedoe@example.com`,
 
 			logging.S.Debug("deleting %d users named [%s]...", users.Count, name)
 			for _, user := range users.Items {
-<<<<<<< HEAD
 				logging.S.Debug("...call server: delete user [%s]", user.ID)
-				err := client.DeleteUser(user.ID)
-				if err != nil {
-=======
 				if err := client.DeleteUser(user.ID); err != nil {
->>>>>>> main
 					return err
 				}
 
