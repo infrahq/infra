@@ -15,8 +15,8 @@ export default function DestinationsAdd () {
   async function checkConnection () {
     if (accessKey && name.length > 0) {
       const res = await fetch(`/api/destinations?name=${name}`)
-      const destinations = await res.json()
-      if (destinations.length > 0) {
+      const { items: destinations } = await res.json()
+      if (destinations?.length > 0) {
         setConnected(true)
       }
     }

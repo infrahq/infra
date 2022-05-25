@@ -73,7 +73,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
                 method: 'DELETE'
               })
 
-              return { items : destinations.filter(d => d?.id !== destination.id) }
+              return { items: destinations.filter(d => d?.id !== destination.id) }
             })
 
             setDeleteModalOpen(false)
