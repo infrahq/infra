@@ -7,12 +7,12 @@ import { validateEmail } from '../lib/email'
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
-function Grant ({ id }) {
+function User ({ id }) {
   if (!id) {
     return null
   }
 
-  const { data: user } = useSWR(`/v1/identities/${id.replace('i:', '')}`, { fallbackData: { name: '' } })
+  const { data: user } = useSWR(`/api/users/${id}`, { fallbackData: { name: '' } })
 
   return (
     <p className='text-2xs'>{user.name}</p>
@@ -20,8 +20,8 @@ function Grant ({ id }) {
 }
 
 export default function ({ id }) {
-  const { data: destination } = useSWR(`/v1/destinations/${id}`)
-  const { data: list } = useSWR(() => `/v1/grants?resource=${destination.name}`)
+  const { data: destination } = useSWR(`/api/destinations/${id}`)
+  const { data: { items: list } = { items: [] } } = useSWR(() => `/api/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
 
   const [email, setEmail] = useState('')
@@ -31,22 +31,22 @@ export default function ({ id }) {
 
   const options = ['view', 'edit', 'admin', 'remove']
 
-  const grantPrivilege = async (id, privilege = role, exist = false, deleteGrantId) => {
-    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
-      const res = await fetch('/v1/grants', {
+  const grantPrivilege = async (user, privilege = role, exist = false, deleteGrantId) => {
+    mutate(`/api/grants?resource=${destination.name}`, async ({ items: grants = [] } = {}) => {
+      const res = await fetch('/api/grants', {
         method: 'POST',
-        body: JSON.stringify({ subject: id, resource: destination.name, privilege })
+        body: JSON.stringify({ user, resource: destination.name, privilege })
       })
 
       const data = await res.json()
 
       if (exist) {
-        await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
+        await fetch(`/api/grants/${deleteGrantId}`, { method: 'DELETE' })
       }
 
       setEmail('')
 
-      return [...(grants || []).filter(grant => grant?.subject !== id), data]
+      return [...grants.filter(grant => grant?.user !== user), data]
     })
   }
 
@@ -65,25 +65,25 @@ export default function ({ id }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        let res = await fetch(`/v1/identities?name=${email}`)
+        let res = await fetch(`/api/users?name=${email}`)
         const data = await res.json()
 
         if (!res.ok) {
           throw data
         }
 
-        if (data.length === 0) {
-          res = await fetch('/v1/identities', {
+        if (data?.items?.length === 0) {
+          res = await fetch('/api/users', {
             method: 'POST',
             body: JSON.stringify({ name: email })
           })
           const user = await res.json()
 
-          await grantPrivilege('i:' + user.id)
+          await grantPrivilege(user.id)
           setEmail('')
           setRole('view')
         } else {
-          grantPrivilege('i:' + data[0].id)
+          grantPrivilege(data?.items?.[0]?.id)
         }
       } catch (e) {
         setGrantError(e.message || 'something went wrong, please try again later.')
@@ -98,8 +98,8 @@ export default function ({ id }) {
       return grantPrivilege(userId, privilege, true, grantId)
     }
 
-    mutate(`/v1/grants?resource=${destination.name}`, async grants => {
-      await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
+    mutate(`/api/grants?resource=${destination.name}`, async grants => {
+      await fetch(`/api/grants/${grantId}`, { method: 'DELETE' })
 
       return grants?.filter(item => item?.id !== grantId)
     }, { optimisticData: list?.filter(item => item?.id !== grantId) })
@@ -137,16 +137,16 @@ export default function ({ id }) {
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
+          {list?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
             <div className='flex justify-between items-center' key={item.id}>
-              <Grant id={item.subject} />
+              <User id={item.user} />
               <div>
                 <select
                   id='role'
                   name='role'
                   className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-2xs text-gray-400 bg-transparent'
                   defaultValue={item.privilege}
-                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.subject)}
+                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.user)}
                 >
                   {options.map((option) => (
                     <option key={option} value={option}>{option}</option>

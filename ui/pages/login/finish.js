@@ -12,9 +12,9 @@ export default function Finish () {
   const { mutate } = useSWRConfig()
 
   const { query } = router
-  const { id } = query
+  const { user } = query
 
-  if (!id) {
+  if (!user) {
     router.replace('/login')
   }
 
@@ -22,8 +22,8 @@ export default function Finish () {
     e.preventDefault()
 
     try {
-      await fetch(`/v1/identities/${id}`, { method: 'PUT', body: JSON.stringify({ password }) })
-      await mutate('/v1/identities/self')
+      await fetch(`/api/users/${user}`, { method: 'PUT', body: JSON.stringify({ password }) })
+      await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
       setError(e.message || 'invalid password')

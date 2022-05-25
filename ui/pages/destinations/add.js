@@ -14,7 +14,7 @@ export default function DestinationsAdd () {
 
   async function checkConnection () {
     if (accessKey && name.length > 0) {
-      const res = await fetch(`/v1/destinations?name=${name}`)
+      const res = await fetch(`/api/destinations?name=${name}`)
       const destinations = await res.json()
       if (destinations.length > 0) {
         setConnected(true)
@@ -31,11 +31,11 @@ export default function DestinationsAdd () {
 
   async function handleNext () {
     setConnected(false)
-    let res = await fetch('/v1/identities?name=connector')
+    let res = await fetch('/api/users?name=connector')
     const connectors = await res.json()
     const { id } = connectors[0]
     const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
-    res = await fetch('/v1/access-keys', {
+    res = await fetch('/api/access-keys', {
       method: 'POST',
       body: JSON.stringify({ userID: id, name: keyName, ttl: '87600h', extensionDeadline: '720h' })
     })

@@ -22,7 +22,7 @@ export default function Signup () {
 
     try {
       // signup
-      let res = await fetch('/v1/signup', {
+      let res = await fetch('/api/signup', {
         method: 'POST',
         body: JSON.stringify({
           email,
@@ -35,7 +35,7 @@ export default function Signup () {
       }
 
       // login
-      res = await fetch('/v1/login', {
+      res = await fetch('/api/login', {
         method: 'POST',
         body: JSON.stringify({
           passwordCredentials: {
@@ -49,8 +49,8 @@ export default function Signup () {
         throw await res.json()
       }
 
-      mutate('/v1/identities/self', { optimisticData: { name: email } })
-      mutate('/v1/signup', { optimisticData: { enabled: false } })
+      mutate('/api/users/self', { optimisticData: { name: email } })
+      mutate('/api/signup', { optimisticData: { enabled: false } })
       router.replace('/')
     } catch (e) {
       if (e.fieldErrors) {

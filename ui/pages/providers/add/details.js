@@ -36,8 +36,8 @@ export default function ProvidersAddDetails () {
     setError('')
 
     try {
-      await mutate('/v1/providers', async providers => {
-        const res = await fetch('/v1/providers', {
+      await mutate('/api/providers', async providers => {
+        const res = await fetch('/api/providers', {
           method: 'POST',
           body: JSON.stringify({
             name,

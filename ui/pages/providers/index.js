@@ -50,8 +50,8 @@ const columns = [{
           setOpen={setOpen}
           onCancel={() => setOpen(false)}
           onSubmit={() => {
-            mutate('/v1/providers', async providers => {
-              await fetch(`/v1/providers/${provider.id}`, {
+            mutate('/api/providers', async providers => {
+              await fetch(`/api/providers/${provider.id}`, {
                 method: 'DELETE'
               })
 
@@ -69,11 +69,11 @@ const columns = [{
 }]
 
 export default function Providers () {
-  const { data, error } = useSWR('/v1/providers')
+  const { data: { items: providers } = { items: [] }, error } = useSWR('/api/providers')
 
-  const table = useTable({ columns, data: data || [] })
+  const table = useTable({ columns, data: providers || [] })
 
-  const loading = !data && !error
+  const loading = !providers && !error
 
   return (
     <>
@@ -90,7 +90,7 @@ export default function Providers () {
               : (
                 <>
                   <Table highlight={false} {...table} />
-                  {data?.length === 0 &&
+                  {providers?.length === 0 &&
                     <EmptyTable
                       title='There are no providers'
                       subtitle={<>Identity providers allow you to connect your existing users &amp; groups to Infra.</>}

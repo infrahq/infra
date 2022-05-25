@@ -26,10 +26,10 @@ function Providers ({ providers }) {
             <div className='flex flex-col items-center justify-center px-4 py-2'>
               {kind(p.url)
                 ? (
-                  <button className='flex flex-col items-center text-center py-0.5'>
+                  <div className='flex flex-col items-center text-center py-0.5'>
                     <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
                     {providers?.length > 1 && <div className='text-2xs text-gray-300'>{p.url}</div>}
-                  </button>
+                  </div>
                   )
                 : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
             </div>
@@ -49,7 +49,7 @@ function Providers ({ providers }) {
 }
 
 export default function Login () {
-  const { data: providers } = useSWR('/v1/providers', { fallbackData: [] })
+  const { data: { items: providers } = { items: [] } } = useSWR('/api/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
@@ -61,7 +61,7 @@ export default function Login () {
     e.preventDefault()
 
     try {
-      const res = await fetch('/v1/login', {
+      const res = await fetch('/api/login', {
         method: 'post',
         body: JSON.stringify({
           passwordCredentials: {
@@ -80,12 +80,12 @@ export default function Login () {
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { id: data.polymorphicID.replace('i:', '') }
+          query: { user: data.userID }
         })
         return
       }
 
-      mutate('/v1/identities/self', { optimisticData: { name } })
+      mutate('/api/users/self', { optimisticData: { name } })
 
       router.replace('/')
     } catch (e) {
@@ -99,7 +99,7 @@ export default function Login () {
   return (
     <>
       <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
+      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers?.length > 0 && 'or via your identity provider.'}</h2>
       {providers?.length > 0 && <Providers providers={providers} />}
 
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>

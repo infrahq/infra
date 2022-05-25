@@ -6,8 +6,8 @@ import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
-  const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
-  const { data: destinations } = useSWR('/v1/destinations')
+  const { data: { items: grants } = { items: [] } } = useSWR(`/api/grants?user=${id}`)
+  const { data: { items: destinations } = { items: [] } } = useSWR('/api/destinations')
 
   const [infrastructure, setInfrastructure] = useState('')
   const [error, setError] = useState('')
@@ -26,7 +26,7 @@ export default function ({ id }) {
     }
   }
 
-  async function handleShareGrant() {
+  async function handleShareGrant () {
     if (destinations.find(d => d.name === infrastructure)) {
       grant(id)
     } else {
@@ -35,10 +35,10 @@ export default function ({ id }) {
   }
 
   function grant (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) {
-    mutate(`/v1/identities/${id}/grants`, async grantsList => {
-      const res = await fetch('/v1/grants', {
+    mutate(`/api/grants?user=${id}`, async ({ items: grantsList = [] }) => {
+      const res = await fetch('/api/grants', {
         method: 'POST',
-        body: JSON.stringify({ subject: 'i:' + user, resource, privilege })
+        body: JSON.stringify({ user, resource, privilege })
       })
 
       const data = await res.json()
@@ -46,12 +46,11 @@ export default function ({ id }) {
       setInfrastructure('')
 
       if (exist) {
-        await fetch(`/v1/grants/${deleteGrantId}`, { method: 'DELETE' })
-
-        return [...(grantsList || []).filter(grant => grant?.subject !== 'i:' + user), data]
+        await fetch(`/api/grants/${deleteGrantId}`, { method: 'DELETE' })
+        return { items: [...grantsList.filter(grant => grant?.user !== user), data] }
       }
 
-      return [...(grantsList || []), data]
+      return { items: [...grantsList, data] }
     })
   }
 
@@ -60,11 +59,10 @@ export default function ({ id }) {
       return grant(user, privilege, resource, true, grantId)
     }
 
-    mutate(`/v1/identities/${user}/grants`, async userGrantsList => {
-      await fetch(`/v1/grants/${grantId}`, { method: 'DELETE' })
-
-      return userGrantsList?.filter(item => item?.id !== grantId)
-    }, { optimisticData: grants?.filter(item => item?.id !== grantId) })
+    mutate(`/api/grants?user=${user}`, async ({ items: userGrantsList = [] }) => {
+      await fetch(`/api/grants/${grantId}`, { method: 'DELETE' })
+      return { items: userGrantsList?.filter(item => item?.id !== grantId) }
+    }, { optimisticData: { items: grants?.filter(g => g?.id !== grantId) } })
   }
 
   return (
@@ -99,7 +97,7 @@ export default function ({ id }) {
       {error && <ErrorMessage message={error} />}
       {grants?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {grants?.filter((grant) => grant.resource !== 'infra').map((item) => (
+          {grants?.filter(grant => grant.resource !== 'infra').map(item => (
             <div className='flex justify-between items-center' key={item.id}>
               <p className='text-2xs'>{item.resource}</p>
               <div>
@@ -118,9 +116,10 @@ export default function ({ id }) {
             </div>
           ))}
         </div>}
-      {grants?.filter((grant) => grant.resource !== 'infra').length === 0 && <div className='text-2xs text-gray-400 italic w-2/3'>
-        No access
-      </div>}
+      {grants?.filter(grant => grant.resource !== 'infra').length === 0 &&
+        <div className='text-2xs text-gray-400 italic w-2/3'>
+          No access
+        </div>}
     </>
   )
 }

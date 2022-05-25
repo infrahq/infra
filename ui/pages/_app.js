@@ -30,8 +30,8 @@ const swrOptions = {
 }
 
 function App ({ Component, pageProps }) {
-  const { data: auth, error: authError } = useSWRImmutable('/v1/identities/self', fetcher, swrOptions)
-  const { data: signup, error: signupError } = useSWRImmutable('/v1/signup', fetcher, swrOptions)
+  const { data: auth, error: authError } = useSWRImmutable('/api/users/self', fetcher, swrOptions)
+  const { data: signup, error: signupError } = useSWRImmutable('/api/signup', fetcher, swrOptions)
 
   const router = useRouter()
 
@@ -49,7 +49,7 @@ function App ({ Component, pageProps }) {
   }
 
   // redirect to login if required
-  if (!signup?.enabled && !auth && !router.pathname.startsWith('/login')) {
+  if (!signup?.enabled && !auth && (router.pathname !== '/login' || router.pathname === '/login/callback')) {
     router.replace('/login')
     return null
   }
