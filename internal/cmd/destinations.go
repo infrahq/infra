@@ -47,7 +47,6 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.S.Debug("format and print destinations")
 			type row struct {
 				Name string `header:"NAME"`
 				URL  string `header:"URL"`
