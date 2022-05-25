@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "standard": "standard --fix",
-    "export": "rm -rf .next out && npm install --silent --no-progress && next build && next export"
+    "export": "next export"
   },
   "dependencies": {
     "@headlessui/react": "^1.6.1",

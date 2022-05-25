@@ -137,9 +137,9 @@ export default function ({ id }) {
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {list?.filter(g => g.user)?.sort((a, b) => (a.user).localeCompare(b.user)).map((item) => (
+          {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
             <div className='flex justify-between items-center' key={item.id}>
-              <User id={item.user.replace('i:', '')} />
+              <Grant id={item.subject} />
               <div>
                 <select
                   id='role'

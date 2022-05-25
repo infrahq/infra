@@ -48,7 +48,7 @@ export default function ({ children }) {
             <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
           </Link>
         </div>
-        <div className='flex-1 px-5 select-none'>
+        <div className='flex-1 space-y-1 px-5 select-none'>
           {navigation.map(n =>
             <Link key={n.name} href={n.href}>
               <a

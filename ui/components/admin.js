@@ -42,7 +42,6 @@ function Grant ({ id, userID, grants }) {
           onSubmit={() => {
             mutate('/api/grants?resource=infra&privilege=admin', async grants => {
               await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-
               return grants?.filter(g => g?.id !== id)
             }, { optimisticData: grants.filter(g => g?.id !== id) })
 
@@ -63,7 +62,7 @@ export default function () {
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
 
-  function grantAdminAccess (id) {
+  const grantAdminAccess = (id) => {
     fetch('/api/grants', {
       method: 'POST',
       body: JSON.stringify({ user: id, resource: 'infra', privilege: 'admin' })
@@ -74,18 +73,18 @@ export default function () {
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
-  function handleInputChange (value) {
+  const handleInputChange = (value) => {
     setAdminEmail(value)
     setError('')
   }
 
-  function handleKeyDownEvent (key) {
+  const handleKeyDownEvent = (key) => {
     if (key === 'Enter' && adminEmail.length > 0) {
       handleAddAdmin()
     }
   }
 
-  function handleAddAdmin () {
+  const handleAddAdmin = () => {
     if (validateEmail(adminEmail)) {
       setError('')
 

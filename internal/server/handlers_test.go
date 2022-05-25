@@ -233,7 +233,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -249,7 +249,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("old version upgrades", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.2")
@@ -655,7 +655,7 @@ func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
 		}`)
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
+	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.2")
@@ -690,7 +690,7 @@ func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
 
 	runStep(t, "grant exists", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
+		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.2")
@@ -710,7 +710,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/api/grants?privilege=admin", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.2")

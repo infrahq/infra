@@ -9,6 +9,10 @@ import (
 // Error is used as the response body for failed HTTP requests. It is also
 // the error returned by api.Client methods when the request fails.
 type Error struct {
+	// Method is the HTTP request method.
+	Method string `json:"method"`
+	// Path is the HTTP request path.
+	Path string `json:"path"`
 	// Code is the HTTP status of the response.
 	Code int32 `json:"code"`
 	// Message contains the full text of the failure as a single string. The

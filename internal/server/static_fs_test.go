@@ -1,68 +1,77 @@
 package server
 
 import (
+	"net/http"
 	"testing"
+	"testing/fstest"
 
-	"github.com/spf13/afero"
 	"gotest.tools/v3/assert"
 )
 
 func TestStaticFileSystemOpensFile(t *testing.T) {
-	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("ui/dashboard.html")
-	assert.NilError(t, err)
-
-	sfs := &StaticFileSystem{
-		base: fs,
+	fs := fstest.MapFS{
+		"ui/static/foo.html": {
+			Data: []byte("<html></html>"),
+		},
 	}
 
-	f, err := sfs.Open("dashboard.html")
+	sfs := &StaticFileSystem{
+		base: http.FS(fs),
+	}
+
+	f, err := sfs.Open("foo.html")
 	assert.NilError(t, err)
 
 	stat, err := f.Stat()
 	assert.NilError(t, err)
-	assert.Equal(t, stat.Name(), "dashboard.html")
+	assert.Equal(t, stat.Name(), "foo.html")
 }
 
 func TestStaticFileSystemAppendDotHtml(t *testing.T) {
-	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("ui/dashboard.html")
-	assert.NilError(t, err)
-
-	sfs := &StaticFileSystem{
-		base: fs,
+	fs := fstest.MapFS{
+		"ui/static/foo.html": {
+			Data: []byte("<html></html>"),
+		},
 	}
 
-	f, err := sfs.Open("dashboard")
+	sfs := &StaticFileSystem{
+		base: http.FS(fs),
+	}
+
+	f, err := sfs.Open("foo")
 	assert.NilError(t, err)
 
 	stat, err := f.Stat()
 	assert.NilError(t, err)
-	assert.Equal(t, stat.Name(), "dashboard.html")
+	assert.Equal(t, stat.Name(), "foo.html")
 }
 
 func TestStaticFileSystemExists(t *testing.T) {
-	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("ui/dashboard/foo")
-	assert.NilError(t, err)
-
-	sfs := &StaticFileSystem{
-		base: fs,
+	fs := fstest.MapFS{
+		"ui/static/foo.html": {
+			Data: []byte("<html></html>"),
+		},
 	}
 
-	exists := sfs.Exists("/", "/dashboard")
+	sfs := &StaticFileSystem{
+		base: http.FS(fs),
+	}
+
+	exists := sfs.Exists("/", "/foo")
 	assert.Equal(t, exists, true)
 }
 
 func TestStaticFileSystemExistsAppendDotHtml(t *testing.T) {
-	fs := afero.NewHttpFs(afero.NewMemMapFs())
-	_, err := fs.Create("ui/dashboard/foo.html")
-	assert.NilError(t, err)
-
-	sfs := &StaticFileSystem{
-		base: fs,
+	fs := fstest.MapFS{
+		"ui/static/foo.html": {
+			Data: []byte("<html></html>"),
+		},
 	}
 
-	exists := sfs.Exists("/", "/dashboard/foo")
+	sfs := &StaticFileSystem{
+		base: http.FS(fs),
+	}
+
+	exists := sfs.Exists("/", "/foo")
 	assert.Equal(t, exists, true)
 }

@@ -122,8 +122,8 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 	return identity.ToAPI(), nil
 }
 
-func (a *API) DeleteUser(c *gin.Context, r *api.Resource) error {
-	return access.DeleteIdentity(c, r.ID)
+func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteIdentity(c, r.ID)
 }
 
 func (a *API) ListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
@@ -253,8 +253,8 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	return provider.ToAPI(), nil
 }
 
-func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) error {
-	return access.DeleteProvider(c, r.ID)
+func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteProvider(c, r.ID)
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
@@ -317,8 +317,8 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 	return destination.ToAPI(), nil
 }
 
-func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) error {
-	return access.DeleteDestination(c, r.ID)
+func (a *API) DeleteDestination(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteDestination(c, r.ID)
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
@@ -361,8 +361,8 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 	return result, nil
 }
 
-func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) error {
-	return access.DeleteAccessKey(c, r.ID)
+func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteAccessKey(c, r.ID)
 }
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
@@ -456,24 +456,24 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	return grant.ToAPI(), nil
 }
 
-func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) error {
+func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
 	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
 		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if len(infraAdminGrants) == 1 {
-			return fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrForbidden)
+			return nil, fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrForbidden)
 		}
 	}
 
-	return access.DeleteGrant(c, r.ID)
+	return nil, access.DeleteGrant(c, r.ID)
 }
 
 func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
