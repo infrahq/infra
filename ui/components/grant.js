@@ -47,7 +47,7 @@ export default function ({ id }) {
 
       setEmail('')
 
-      return { items: [...grants.filter(grant => grant?.user !== user), data]}
+      return { items: [...grants.filter(grant => grant?.user !== user), data] }
     })
   }
 
