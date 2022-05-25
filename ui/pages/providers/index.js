@@ -48,13 +48,13 @@ const columns = [{
           open={open}
           setOpen={setOpen}
           onSubmit={() => {
-            mutate('/api/providers', async providers => {
+            mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
               await fetch(`/api/providers/${provider.id}`, {
                 method: 'DELETE'
               })
 
-              return providers?.filter(p => p?.id !== provider.id)
-            }, { optimisticData: rows.map(r => r.original).filter(p => p?.id !== provider.id) })
+              return { items: providers.filter(p => p?.id !== provider.id) }
+            }, { optimisticData: { items: rows.map(r => r.original).filter(p => p?.id !== provider.id) } })
 
             setOpen(false)
           }}
