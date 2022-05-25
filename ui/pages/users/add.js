@@ -39,11 +39,9 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
           type='button'
           onClick={onAddUser}
           disabled={!email}
-          className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'
+          className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-2xs px-4 py-2 disabled:opacity-10'
         >
-          <div className='bg-black rounded-md tracking-tight text-2xs px-6 py-3 text-pink-200'>
-            Add User
-          </div>
+          Add User
         </button>
       </div>
     </div>
@@ -71,10 +69,8 @@ function UserOneTimePassword ({ password, onAddUser }) {
       <div className='flex flex-row justify-between m-6 items-center'>
         <button onClick={onAddUser} className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Add Another</button>
         <Link href='/users'>
-          <a className='bg-gradient-to-tr from-indigo-300 to-pink-100 hover:from-indigo-200 hover:to-pink-50 rounded-md p-0.5 text-center disabled:opacity-30'>
-            <div className='bg-black rounded-md tracking-tight text-2xs px-6 py-3 text-pink-200'>
-              Done
-            </div>
+          <a className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-2xs px-4 py-2 disabled:opacity-10'>
+            Done
           </a>
         </Link>
       </div>
@@ -102,6 +98,7 @@ export default function () {
         if (!res.ok) {
           throw user
         }
+        
         setState('password')
         setPassword(user.oneTimePassword)
       } catch (e) {

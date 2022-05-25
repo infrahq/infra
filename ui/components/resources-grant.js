@@ -30,7 +30,7 @@ export default function ({ id }) {
     if (destinations.find(d => d.name === infrastructure)) {
       grant(id)
     } else {
-      setError('TODO: the infrastructure does not exist')
+      setError('Infrastructure does not exist')
     }
   }
 
@@ -119,7 +119,7 @@ export default function ({ id }) {
           ))}
         </div>}
       {grants?.filter((grant) => grant.resource !== 'infra').length === 0 && <div className='text-2xs text-gray-400 italic w-2/3'>
-        *TODO - this user doesn't have any access
+        No access
       </div>}
     </>
   )
