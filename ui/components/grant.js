@@ -21,8 +21,9 @@ function User ({ id }) {
 
 export default function ({ id }) {
   const { data: destination } = useSWR(`/api/destinations/${id}`)
-  const { data: { items: list } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
+  const { data: { items } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
+  const list = items?.filter(item => item.user !== undefined)
 
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
@@ -32,7 +33,7 @@ export default function ({ id }) {
   const options = ['view', 'edit', 'admin', 'remove']
 
   const grantPrivilege = async (user, privilege = role, exist = false, deleteGrantId) => {
-    mutate(`/api/grants?resource=${destination.name}`, async ({ items: grants = [] } = {}) => {
+    mutate(`/api/grants?resource=${destination.name}`, async ({ items: grants } = { items: [] }) => {
       const res = await fetch('/api/grants', {
         method: 'POST',
         body: JSON.stringify({ user, resource: destination.name, privilege })
@@ -46,7 +47,7 @@ export default function ({ id }) {
 
       setEmail('')
 
-      return [...grants.filter(grant => grant?.user !== user), data]
+      return { items: [...grants.filter(grant => grant?.user !== user), data]}
     })
   }
 
@@ -98,11 +99,10 @@ export default function ({ id }) {
       return grantPrivilege(userId, privilege, true, grantId)
     }
 
-    mutate(`/api/grants?resource=${destination.name}`, async grants => {
+    mutate(`/api/grants?resource=${destination.name}`, async ({ items: grants } = { items: [] }) => {
       await fetch(`/api/grants/${grantId}`, { method: 'DELETE' })
-
-      return grants?.filter(item => item?.id !== grantId)
-    }, { optimisticData: list?.filter(item => item?.id !== grantId) })
+      return { items: grants?.filter(item => item?.id !== grantId) }
+    }, { optimisticData: { items: list?.filter(item => item?.id !== grantId) } })
   }
 
   return (

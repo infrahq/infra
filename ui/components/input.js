@@ -20,7 +20,7 @@ export default function ({
           spellCheck='false'
           type={type}
           value={value}
-          className={`block ${hasDropdownSelection ? '' : 'w-full'} sm:text-2xs bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-2xs`}
+          className={`block ${hasDropdownSelection ? 'w-5/6' : 'w-full'} sm:text-2xs bg-transparent focus:outline-none placeholder:italic placeholder:text-gray-400 placeholder:text-2xs`}
           placeholder={placeholder}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}

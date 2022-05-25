@@ -105,8 +105,9 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
 }
 
 export default function Users () {
-  const { data: { items: users } = {}, error } = useSWR('/api/users')
+  const { data: { items } = {}, error } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
+  const users = items?.filter((u => u.name !== 'connector'))
   const table = useTable({ columns, data: users || [] })
   const [selectedUser, setSelectedUser] = useState(null)
 
