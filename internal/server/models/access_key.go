@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	AccessKeyKeyLength    = 10
-	AccessKeySecretLength = 24
+	AccessKeyKeyLength    = 10 // the length of the ID used to look-up the access key
+	AccessKeySecretLength = 24 // the length of the secret used to validate an access key
 )
 
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
 	Model
 	Name              string    `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"excludes= "`
-	IssuedFor         uid.ID    `validate:"required"`
+	IssuedFor         uid.ID    `validate:"required"` // the ID of the identity that this access key was created for
 	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor"`
 	ProviderID        uid.ID    `validate:"required"`
 

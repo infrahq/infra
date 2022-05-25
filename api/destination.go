@@ -11,6 +11,9 @@ type Destination struct {
 	Created    Time                  `json:"created"`
 	Updated    Time                  `json:"updated"`
 	Connection DestinationConnection `json:"connection"`
+
+	Resources []string `json:"resources"`
+	Roles     []string `json:"roles"`
 }
 
 type DestinationConnection struct {
@@ -27,6 +30,9 @@ type CreateDestinationRequest struct {
 	UniqueID   string                `json:"uniqueID"`
 	Name       string                `json:"name" validate:"required"`
 	Connection DestinationConnection `json:"connection"`
+
+	Resources []string `json:"resources"`
+	Roles     []string `json:"roles"`
 }
 
 type UpdateDestinationRequest struct {
@@ -34,4 +40,7 @@ type UpdateDestinationRequest struct {
 	Name       string                `json:"name" validate:"required"`
 	UniqueID   string                `json:"uniqueID"`
 	Connection DestinationConnection `json:"connection"`
+
+	Resources []string `json:"resources"`
+	Roles     []string `json:"roles"`
 }

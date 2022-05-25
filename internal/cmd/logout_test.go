@@ -28,10 +28,10 @@ func TestLogout(t *testing.T) {
 	kubeConfigPath := filepath.Join(homeDir, "kube.config")
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
-	setup := func(t *testing.T) testFields {
+	setup := func(t *testing.T, currentContext string) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if req.URL.Path != "/v1/logout" {
+			if req.URL.Path != "/api/logout" {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -69,6 +69,7 @@ func TestLogout(t *testing.T) {
 		assert.NilError(t, err)
 
 		kubeCfg := clientcmdapi.Config{
+			CurrentContext: currentContext,
 			Clusters: map[string]*clientcmdapi.Cluster{
 				"keep:not-infra": {Server: "https://keep:8080"},
 				"infra:prod":     {Server: "https://infraprod:8080"},
@@ -91,10 +92,10 @@ func TestLogout(t *testing.T) {
 		}
 	}
 
-	setupError := func(t *testing.T) testFields {
+	setupError := func(t *testing.T, currentContext string) testFields {
 		var count int32
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if req.URL.Path != "/v1/logout" {
+			if req.URL.Path != "/api/logout" {
 				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -123,6 +124,7 @@ func TestLogout(t *testing.T) {
 		assert.NilError(t, err)
 
 		kubeCfg := clientcmdapi.Config{
+			CurrentContext: currentContext,
 			Clusters: map[string]*clientcmdapi.Cluster{
 				"keep:not-infra": {Server: "https://keep:8080"},
 				"infra:prod":     {Server: "https://infraprod:8080"},
@@ -158,7 +160,7 @@ func TestLogout(t *testing.T) {
 	}
 
 	t.Run("default", func(t *testing.T) {
-		testFields := setup(t)
+		testFields := setup(t, "infra:prod")
 		err := Run(context.Background(), "logout")
 		assert.NilError(t, err)
 
@@ -178,8 +180,53 @@ func TestLogout(t *testing.T) {
 		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 
+	t.Run("current infra", func(t *testing.T) {
+		testFields := setup(t, "infra:prod")
+		err := Run(context.Background(), "logout")
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := testFields.config
+		expected.Hosts[0].AccessKey = ""
+		expected.Hosts[0].Name = ""
+		expected.Hosts[0].PolymorphicID = ""
+		assert.DeepEqual(t, &expected, updatedCfg)
+
+		updatedKubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+	})
+
+	t.Run("current non-infra", func(t *testing.T) {
+		testFields := setup(t, "keep:non-infra")
+		err := Run(context.Background(), "logout")
+		assert.NilError(t, err)
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
+
+		updatedCfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := testFields.config
+		expected.Hosts[0].AccessKey = ""
+		expected.Hosts[0].Name = ""
+		expected.Hosts[0].PolymorphicID = ""
+		assert.DeepEqual(t, &expected, updatedCfg)
+
+		kubeconfig := expectedKubeCfg
+		kubeconfig.CurrentContext = "keep:non-infra"
+
+		updatedKubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+		assert.DeepEqual(t, kubeconfig, updatedKubeCfg, cmpopts.EquateEmpty())
+	})
+
 	t.Run("with clear", func(t *testing.T) {
-		testFields := setup(t)
+		testFields := setup(t, "infra:prod")
 		err := Run(context.Background(), "logout", "--clear")
 		assert.NilError(t, err)
 
@@ -197,7 +244,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with all", func(t *testing.T) {
-		testFields := setup(t)
+		testFields := setup(t, "infra:prod")
 		err := Run(context.Background(), "logout", "--all")
 		assert.NilError(t, err)
 
@@ -221,7 +268,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with clear all", func(t *testing.T) {
-		testFields := setup(t)
+		testFields := setup(t, "infra:prod")
 		err := Run(context.Background(), "logout", "--clear", "--all")
 		assert.NilError(t, err)
 
@@ -239,7 +286,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("with one and all", func(t *testing.T) {
-		testFields := setup(t)
+		testFields := setup(t, "infra:prod")
 		err := Run(context.Background(), "logout", testFields.serverURLs[0], "--all")
 		assert.Error(t, err, "Argument [SERVER] and flag [--all] cannot be both specified.")
 
@@ -251,7 +298,7 @@ func TestLogout(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		testFields := setupError(t)
+		testFields := setupError(t, "infra:prod")
 		err := Run(context.Background(), "logout", testFields.serverURLs[0])
 		assert.NilError(t, err)
 

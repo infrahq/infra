@@ -15,7 +15,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func Migrate(db *gorm.DB) error {
+func migrate(db *gorm.DB) error {
 	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		// rename grants.identity -> grants.subject
 		{
@@ -466,19 +466,22 @@ func Migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	m.InitSchema(PreMigrate)
+	// TODO: why? isn't this already called by NewDB?
+	m.InitSchema(preMigrate)
 
 	if err := m.Migrate(); err != nil {
 		return err
 	}
 
-	// initializeSchema again, so that for simple things like adding db fields we don't necessarily need to do a migration
+	// initializeSchema so that for simple things like adding db fields
+	// we don't necessarily need to do a migration.
+	// TODO: why not do this before migrate in all cases?
 	return initializeSchema(db)
 }
 
-func PreMigrate(db *gorm.DB) error {
+func preMigrate(db *gorm.DB) error {
 	if db.Migrator().HasTable("providers") {
-		// don't pre-auto-migrate if tables already exist.
+		// don't initialize the schema if tables already exist.
 		return nil
 	}
 

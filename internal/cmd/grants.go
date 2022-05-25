@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -12,10 +12,11 @@ import (
 )
 
 type grantsCmdOptions struct {
-	Identity    string
+	Name        string
 	Destination string
 	IsGroup     bool
 	Role        string
+	Force       bool
 }
 
 func newGrantsCmd(cli *CLI) *cobra.Command {
@@ -145,7 +146,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 `,
 		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Identity = args[0]
+			options.Name = args[0]
 			options.Destination = args[1]
 			return removeGrant(cli, options)
 		},
@@ -162,7 +163,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	user, group, err := userOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	user, group, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
 		return err
 	}
@@ -182,9 +183,9 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 			return err
 		}
-	}
 
-	cli.Output("Access revoked!")
+		cli.Output("Revoked access to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+	}
 
 	return nil
 }
@@ -209,7 +210,7 @@ $ infra grants add johndoe@example.com infra --role admin
 `,
 		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Identity = args[0]
+			options.Name = args[0]
 			options.Destination = args[1]
 			return addGrant(cli, options)
 		},
@@ -217,6 +218,7 @@ $ infra grants add johndoe@example.com infra --role admin
 
 	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Required if identity is of type 'group'")
 	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that identity will be given")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested resources are missing")
 	return cmd
 }
 
@@ -226,29 +228,41 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	user, group, err := userOrGroupByName(client, cmdOptions.Identity, cmdOptions.IsGroup)
+	userID, groupID, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
-		if !errors.Is(err, ErrUserNotFound) {
+		if !cmdOptions.Force {
+			return err
+		}
+	}
+
+	if userID == 0 && !cmdOptions.IsGroup {
+		user, err := createUser(client, cmdOptions.Name, false)
+		if err != nil {
 			return err
 		}
 
-		if cmdOptions.IsGroup {
-			group, err = addGrantGroup(client, cmdOptions.Identity)
-			if err != nil {
-				return err
-			}
+		cli.Output("Created user %q", cmdOptions.Name)
+		userID = user.ID
 
-		} else {
-			user, err = addGrantUser(client, cmdOptions.Identity)
-			if err != nil {
-				return err
-			}
+	} else if groupID == 0 && cmdOptions.IsGroup {
+		group, err := createGroup(client, cmdOptions.Name)
+		if err != nil {
+			return err
+		}
+
+		cli.Output("Created group %q", cmdOptions.Name)
+		groupID = group.ID
+	}
+
+	if err := checkResourcesPrivileges(client, cmdOptions.Destination, cmdOptions.Role); err != nil {
+		if !cmdOptions.Force {
+			return err
 		}
 	}
 
 	_, err = client.CreateGrant(&api.CreateGrantRequest{
-		User:      user,
-		Group:     group,
+		User:      userID,
+		Group:     groupID,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	})
@@ -256,15 +270,16 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	cli.Output("Access granted!")
+	cli.Output("Created grant to %q for %q", cmdOptions.Destination, cmdOptions.Name)
 
 	return nil
 }
 
-// userOrGroupByName gets the ID of the identity or group to be associated with the grant
-func userOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID, uid.ID, error) {
+// checkUserGroup returns the ID of the requested user or group if they exist. Otherwise it
+// returns an error
+func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID uid.ID, groupID uid.ID, err error) {
 	if isGroup {
-		group, err := GetGroupByName(client, subject)
+		group, err := getGroupByName(client, subject)
 		if err != nil {
 			return 0, 0, err
 		}
@@ -272,7 +287,7 @@ func userOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID
 		return 0, group.ID, nil
 	}
 
-	user, err := GetUserByName(client, subject)
+	user, err := getUserByName(client, subject)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -280,41 +295,53 @@ func userOrGroupByName(client *api.Client, subject string, isGroup bool) (uid.ID
 	return user.ID, 0, nil
 }
 
-func GetGroupByName(client *api.Client, name string) (*api.Group, error) {
-	groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
-	if err != nil {
-		return nil, err
+// checkResourcesPrivileges checks if the requested destination (e.g. cluster), optional
+// resource (e.g. namespace), and role exist. destination "infra" and role "connect" are
+// reserved values and will always pass checks
+func checkResourcesPrivileges(client *api.Client, resource, privilege string) error {
+	parts := strings.SplitN(resource, ".", 2)
+	destination := parts[0]
+	subresource := ""
+
+	if len(parts) > 1 {
+		subresource = parts[1]
 	}
 
-	if groups.Count == 0 {
-		return nil, ErrUserNotFound
+	supportedResources := make(map[string]struct{})
+	supportedRoles := make(map[string]struct{})
+
+	if destination != "infra" {
+		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: destination})
+		if err != nil {
+			return err
+		}
+
+		if destinations.Count == 0 {
+			return fmt.Errorf("unknown destination %q", destination)
+		}
+
+		for _, d := range destinations.Items {
+			for _, r := range d.Resources {
+				supportedResources[r] = struct{}{}
+			}
+
+			for _, r := range d.Roles {
+				supportedRoles[r] = struct{}{}
+			}
+		}
+
+		if subresource != "" {
+			if _, ok := supportedResources[subresource]; !ok {
+				return fmt.Errorf("unknown resource %q for %q", subresource, destination)
+			}
+		}
+
+		if privilege != "connect" {
+			if _, ok := supportedRoles[privilege]; !ok {
+				return fmt.Errorf("unknown role %q for %q", privilege, destination)
+			}
+		}
 	}
 
-	if groups.Count != 1 {
-		return nil, fmt.Errorf("invalid groups response, there should only be one group that matches a name, but multiple were found")
-	}
-
-	return &groups.Items[0], nil
-}
-
-func addGrantUser(client *api.Client, name string) (uid.ID, error) {
-	identity, err := CreateUser(&api.CreateUserRequest{Name: name})
-	if err != nil {
-		return 0, err
-	}
-
-	fmt.Printf("New unlinked user %q added to Infra\n", name)
-
-	return identity.ID, nil
-}
-
-func addGrantGroup(client *api.Client, name string) (uid.ID, error) {
-	group, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
-	if err != nil {
-		return 0, err
-	}
-
-	fmt.Printf("New group %q added to Infra\n", name)
-
-	return group.ID, nil
+	return nil
 }

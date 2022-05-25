@@ -1,3 +1,11 @@
+FROM --platform=$BUILDPLATFORM node:18 AS ui-builder
+WORKDIR /ui
+COPY ui/package.json .
+RUN npm install
+COPY ui .
+RUN npm run build
+RUN npm run export
+
 FROM --platform=$BUILDPLATFORM golang:1.18 AS builder
 RUN apt-get update && \
     apt-get install -y gcc-aarch64-linux-gnu gcc-x86-64-linux-gnu && \
@@ -8,7 +16,11 @@ RUN apt-get update && \
 RUN CGO_ENABLED=0 GOOS=linux go install -v -installsuffix cgo -a std
 
 ARG TARGETARCH
-ARG BUILDVERSION=0.0.0-development
+# {x-release-please-start-version}
+ARG BUILDVERSION=0.13.0
+# {x-release-please-end}
+ARG BUILDVERSION_PRERELEASE
+ARG BUILDVERSION_METADATA
 ARG TELEMETRY_WRITE_KEY
 WORKDIR /go/src/github.com/infrahq/infra
 
@@ -21,12 +33,15 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
 
 COPY . .
 
+# copy static ui files
+COPY --from=ui-builder /ui/out /go/src/github.com/infrahq/infra/internal/server/ui/static
+
 RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
     CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH \
     CC=$TARGETARCH-linux-gnu-gcc \
     go build \
-    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -linkmode external -extldflags "-static"' \
+    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.Prerelease='"$BUILDVERSION_PRERELEASE"' -X github.com/infrahq/infra/internal.Metadata='"$BUILDVERSION_METADATA"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -linkmode external -extldflags "-static"' \
     .
 
 FROM alpine

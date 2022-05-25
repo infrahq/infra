@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/goware/urlx"
 	"github.com/lensesio/tableprinter"
@@ -54,22 +55,6 @@ func mustBeLoggedIn() error {
 	return nil
 }
 
-func infraHomeDir() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	infraDir := filepath.Join(homeDir, ".infra")
-
-	err = os.MkdirAll(infraDir, os.ModePerm)
-	if err != nil {
-		return "", err
-	}
-
-	return infraDir, nil
-}
-
 func printTable(data interface{}, out io.Writer) {
 	table := tableprinter.New(out)
 
@@ -89,7 +74,7 @@ func printTable(data interface{}, out io.Writer) {
 
 // Creates a new API Client from the current config
 func defaultAPIClient() (*api.Client, error) {
-	config, err := readHostConfig("")
+	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +98,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
 		HTTP: http.Client{
+			Timeout: 60 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					//nolint:gosec // We may purposely set insecureskipverify via a flag

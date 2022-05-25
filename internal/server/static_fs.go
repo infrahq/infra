@@ -31,7 +31,7 @@ func (sfs StaticFileSystem) Open(name string) (http.File, error) {
 	return f, nil
 }
 
-const uiFilePathPrefix = "ui"
+const uiFilePathPrefix = "ui/static"
 
 func (sfs StaticFileSystem) Exists(prefix string, filepath string) bool {
 	if p := strings.TrimPrefix(filepath, prefix); len(p) < len(filepath) {

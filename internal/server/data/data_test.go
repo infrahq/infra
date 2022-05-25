@@ -5,38 +5,28 @@ import (
 	"os"
 	"testing"
 
-	"github.com/infrahq/secrets"
 	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
-func setup(t *testing.T) *gorm.DB {
-	driver, err := NewSQLiteDriver("file::memory:")
+func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
+	t.Helper()
+	patch.ModelsSymmetricKey(t)
+
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
-
-	db, err := NewDB(driver)
-	assert.NilError(t, err)
-
-	fp := secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{
-		Path: os.TempDir(),
-	})
-
-	kp := secrets.NewNativeKeyProvider(fp)
-
-	key, err := kp.GenerateDataKey("")
-	assert.NilError(t, err)
-
-	models.SymmetricKey = key
 
 	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
 	assert.NilError(t, err)
 
 	setupLogging(t)
+	t.Cleanup(InvalidateCache)
 
 	return db
 }
@@ -51,31 +41,76 @@ func setupLogging(t *testing.T) {
 	})
 }
 
+// dbDrivers returns the list of database drivers to test.
+// Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
+// against postgresql.
+func dbDrivers(t *testing.T) []gorm.Dialector {
+	t.Helper()
+	var drivers []gorm.Dialector
+
+	sqlite, err := NewSQLiteDriver("file::memory:")
+	assert.NilError(t, err, "sqlite driver")
+	drivers = append(drivers, sqlite)
+
+	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
+	switch {
+	case ok:
+		pgsql, err := NewPostgresDriver(pgConn)
+		assert.NilError(t, err, "postgresql driver")
+
+		db, err := gorm.Open(pgsql)
+		assert.NilError(t, err, "connect to postgresql")
+		t.Cleanup(func() {
+			assert.NilError(t, db.Exec("DROP SCHEMA testing CASCADE").Error)
+		})
+		assert.NilError(t, db.Exec("CREATE SCHEMA testing").Error)
+
+		pgsql, err = NewPostgresDriver(pgConn + " search_path=testing")
+		assert.NilError(t, err, "postgresql driver")
+
+		drivers = append(drivers, pgsql)
+	case os.Getenv("CI") != "":
+		t.Fatalf("CI must test all drivers, set POSTGRESQL_CONNECTION")
+	}
+
+	return drivers
+}
+
+// runDBTests against all supported databases. Defaults to only sqlite locally,
+// and all supported DBs in CI. See dbDrivers to test other databases locally.
+func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			run(t, setupDB(t, driver))
+		})
+	}
+}
+
 func TestSnowflakeIDSerialization(t *testing.T) {
-	db := setup(t)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		id := uid.New()
+		g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
+		err := db.Create(g).Error
+		assert.NilError(t, err)
 
-	id := uid.New()
-	g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
-	err := db.Create(g).Error
-	assert.NilError(t, err)
+		var group models.Group
+		err = db.First(&group, &models.Group{Name: "Foo"}).Error
+		assert.NilError(t, err)
+		assert.Assert(t, 0 != group.ID)
 
-	var group models.Group
-	err = db.First(&group, &models.Group{Name: "Foo"}).Error
-	assert.NilError(t, err)
-	assert.Assert(t, 0 != group.ID)
+		var intID int64
+		err = db.Select("id").Table("groups").Scan(&intID).Error
+		assert.NilError(t, err)
 
-	var intID int64
-	err = db.Select("id").Table("groups").Scan(&intID).Error
-	assert.NilError(t, err)
-
-	assert.Equal(t, int64(id), intID)
+		assert.Equal(t, int64(id), intID)
+	})
 }
 
 func TestDatabaseSelectors(t *testing.T) {
 	driver, err := NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
 
-	db, err := NewRawDB(driver)
+	db, err := newRawDB(driver)
 	assert.NilError(t, err)
 	t.Logf("DB pointer: %p", db)
 

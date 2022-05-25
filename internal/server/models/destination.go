@@ -12,6 +12,9 @@ type Destination struct {
 
 	ConnectionURL string
 	ConnectionCA  string
+
+	Resources CommaSeparatedStrings
+	Roles     CommaSeparatedStrings
 }
 
 func (d *Destination) ToAPI() *api.Destination {
@@ -25,5 +28,7 @@ func (d *Destination) ToAPI() *api.Destination {
 			URL: d.ConnectionURL,
 			CA:  d.ConnectionCA,
 		},
+		Resources: d.Resources,
+		Roles:     d.Roles,
 	}
 }

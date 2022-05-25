@@ -23,7 +23,7 @@ func run(args []string) error {
 	filename := args[0]
 
 	s := server.Server{}
-	s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	return server.WriteOpenAPISpecToFile(filename)
+	return server.WriteOpenAPIDocToFile(routes.OpenAPIDocument, filename)
 }

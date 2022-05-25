@@ -30,19 +30,10 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string) ([]models.Ac
 	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name))
 }
 
-func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey, identityID uid.ID) (body string, err error) {
+func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", err
-	}
-
-	identity, err := data.GetIdentity(db, data.ByID(identityID))
-	if err != nil {
-		return "", fmt.Errorf("get access key identity: %w", err)
-	}
-
-	if accessKey.Name == "" {
-		accessKey.Name = fmt.Sprintf("%s-%s", identity.Name, time.Now().UTC().Format("2006-01-02T15:04:05.000000"))
 	}
 
 	body, err = data.CreateAccessKey(db, accessKey)

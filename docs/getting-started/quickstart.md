@@ -56,7 +56,7 @@ In this quickstart we'll set up Infra to manage single sign-on to Kubernetes:
 
 ### 2. Deploy Infra
 
-Deploy an Infra to your Kubernetes cluster via `helm`:
+Deploy Infra to your Kubernetes cluster via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com/
@@ -64,7 +64,7 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Next, find the hostname for Infra server you just deployed:
+Next, find the hostname for the Infra server you just deployed:
 
 ```
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
@@ -81,7 +81,7 @@ infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 
 ### 3. Connect your first Kubernetes cluster
 
-Generate an access key named `key` to connect Kubernetes clusters:
+Generate an access key:
 
 ```
 infra keys add connector
@@ -112,7 +112,7 @@ helm upgrade --install infra-connector infrahq/infra \
 Next, add a user:
 
 ```
-infra id add user@example.com
+infra users add user@example.com
 ```
 
 | Note: Infra will provide you a one-time password. Please note this password for step 5.

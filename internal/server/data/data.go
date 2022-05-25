@@ -22,22 +22,33 @@ import (
 )
 
 // NewDB creates a new database connection and runs any required database migrations
-// before returning the connection.
-func NewDB(connection gorm.Dialector) (*gorm.DB, error) {
-	db, err := NewRawDB(connection)
+// before returning the connection. The loadDBKey function is called after
+// initializing the schema, but before any migrations.
+func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.DB, error) {
+	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err = Migrate(db); err != nil {
+	if err := preMigrate(db); err != nil {
+		return nil, err
+	}
+
+	if loadDBKey != nil {
+		if err := loadDBKey(db); err != nil {
+			return nil, fmt.Errorf("load DB key failed: %w", err)
+		}
+	}
+
+	if err = migrate(db); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
 	return db, nil
 }
 
-// NewRawDB creates a new database connection without running migrations
-func NewRawDB(connection gorm.Dialector) (*gorm.DB, error) {
+// newRawDB creates a new database connection without running migrations.
+func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logging.ToGormLogger(logging.S),
 	})
@@ -192,7 +203,9 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, e
 
 var infraProviderCache *models.Provider
 
-// InfraProvider is a lazy-loaded cached reference to the infra provider, since it's used in a lot of places
+// InfraProvider is a lazy-loaded cached reference to the infra provider. The
+// cache lasts for the entire lifetime of the process, so any test or test
+// helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
 	if infraProviderCache == nil {
 		infra, err := get[models.Provider](db, ByName(models.InternalInfraProviderName))
@@ -209,7 +222,9 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 
 var infraConnectorCache *models.Identity
 
-// InfraConnectorIdentity is a lazy-loaded reference to the connector identity
+// InfraConnectorIdentity is a lazy-loaded reference to the connector identity.
+// The cache lasts for the entire lifetime of the process, so any test or test
+// helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
