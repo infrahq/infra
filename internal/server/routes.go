@@ -66,7 +66,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, authn, "/api/users/:id", a.GetUser)
 	put(a, authn, "/api/users/:id", a.UpdateUser)
 	delete(a, authn, "/api/users/:id", a.DeleteUser)
-	get(a, authn, "/api/users/:id/groups", a.ListUserGroups)
 
 	get(a, authn, "/api/access-keys", a.ListAccessKeys)
 	post(a, authn, "/api/access-keys", a.CreateAccessKey)
@@ -113,13 +112,20 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
 		method:       http.MethodGet,
 		path:         "/v1/users/:id/grants",
-		handler:      a.ListUserGrants,
+		handler:      a.deprecatedListUserGrants,
 		omitFromDocs: true,
 	})
 	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
 		method:       http.MethodGet,
 		path:         "/v1/groups/:id/grants",
-		handler:      a.ListGroupGrants,
+		handler:      a.deprecatedListGroupGrants,
+		omitFromDocs: true,
+	})
+	// Deprecated in 0.13.1
+	add(a, authn, route[api.Resource, *api.ListResponse[api.Group]]{
+		method:       http.MethodGet,
+		path:         "/api/users/:id/groups",
+		handler:      a.deprecatedListUserGroups,
 		omitFromDocs: true,
 	})
 

@@ -1,8 +1,11 @@
 package access
 
 import (
+	"errors"
+
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -13,30 +16,39 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	user := AuthenticatedIdentity(c)
 
 	if user != nil {
-		lookupDB := getDB(c)
-
-		groups, err := data.ListIdentityGroups(lookupDB, user.ID)
-		if err != nil {
-			return false, err
-		}
-
-		for _, g := range groups {
-			if g.ID == requestedResourceID {
-				return true, nil
-			}
-		}
+		return userInGroup(getDB(c), user.ID, requestedResourceID), nil
 	}
 
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string) ([]models.Group, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
-	if err != nil {
-		return nil, err
+func ListGroups(c *gin.Context, name string, userID uid.ID) ([]models.Group, error) {
+	var selectors []data.SelectorFunc
+	if name != "" {
+		selectors = append(selectors, data.ByName(name))
+	}
+	if userID != 0 {
+		selectors = append(selectors, data.ByGroupMember(userID))
 	}
 
-	return data.ListGroups(db, data.ByOptionalName(name))
+	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	if err == nil {
+		return data.ListGroups(db, selectors...)
+	}
+
+	if errors.Is(err, internal.ErrForbidden) {
+		// Allow an authenticated identity to view their own groups
+		db := getDB(c)
+		identity := AuthenticatedIdentity(c)
+		switch {
+		case identity == nil:
+			return nil, err
+		case userID == identity.ID:
+			return data.ListGroups(db, selectors...)
+		}
+	}
+
+	return nil, err
 }
 
 func CreateGroup(c *gin.Context, group *models.Group) error {
@@ -55,13 +67,4 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 	}
 
 	return data.GetGroup(db, data.ByID(id))
-}
-
-func ListIdentityGroups(c *gin.Context, userID uid.ID) ([]models.Group, error) {
-	db, err := hasAuthorization(c, userID, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole)
-	if err != nil {
-		return nil, err
-	}
-
-	return data.ListIdentityGroups(db, userID)
 }

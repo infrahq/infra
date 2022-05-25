@@ -57,7 +57,7 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	}
 
 	// check if they belong to a group that is authorized
-	groups, err := data.ListIdentityGroups(db, identity.ID)
+	groups, err := data.ListGroups(db, data.ByGroupMember(identity.ID))
 	if err != nil {
 		return nil, fmt.Errorf("auth user groups: %w", err)
 	}

@@ -73,7 +73,7 @@ func updateKubeconfig(client *api.Client, id uid.ID) error {
 		return err
 	}
 
-	groups, err := client.ListUserGroups(id)
+	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: id})
 	if err != nil {
 		return err
 	}

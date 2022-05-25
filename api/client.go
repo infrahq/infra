@@ -253,10 +253,6 @@ func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
 	return list[ListResponse[Grant]](c, fmt.Sprintf("/api/users/%s/grants", id), nil)
 }
 
-func (c Client) ListUserGroups(id uid.ID) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, fmt.Sprintf("/api/users/%s/groups", id), nil)
-}
-
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
 	return list[ListResponse[Group]](c, "/api/groups", map[string][]string{"name": {req.Name}})
 }

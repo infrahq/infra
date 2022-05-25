@@ -60,7 +60,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	groups, err := client.ListUserGroups(identityID)
+	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
 	if err != nil {
 		return err
 	}

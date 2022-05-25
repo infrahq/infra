@@ -148,7 +148,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == fmt.Sprintf("/api/users/%s/groups", userID):
+			case req.URL.Path == "/api/groups":
 				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
