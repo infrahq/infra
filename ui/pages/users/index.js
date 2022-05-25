@@ -8,7 +8,6 @@ import { useAdmin } from '../../lib/admin'
 
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
-import Loader from '../../components/loader'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
@@ -44,7 +43,7 @@ const columns = [{
 function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
   const { id, name } = selectedUser
   const { data: user } = useSWR(`/api/users/${id}`)
-  const { data: { items: grants } = { items: [] } } = useSWR(`/api/grants?user=${id}`)
+  const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -107,9 +106,9 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
 }
 
 export default function Users () {
-  const { data: { items: users } = { items: [] }, error } = useSWR('/api/users')
+  const { data: { items: users } = {}, error } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({ columns, data: users })
+  const table = useTable({ columns, data: users || [] })
   const [selectedUser, setSelectedUser] = useState(null)
 
   const loading = adminLoading || (!users && !error)
@@ -119,45 +118,43 @@ export default function Users () {
       <Head>
         <title>Users - Infra</title>
       </Head>
-      {loading
-        ? <Loader />
-        : (
-          <div className='flex-1 flex h-full'>
-            <main className='flex-1 flex flex-col space-y-4'>
-              <PageHeader header='Users' buttonHref={admin && '/users/add'} buttonLabel='User' />
-              {error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : (
-                  <div>
-                    <Table
-                      {...table}
-                      getRowProps={row => ({
-                        onClick: () => setSelectedUser(row.original),
-                        style: {
-                          cursor: 'pointer'
-                        }
-                      })}
-                    />
-                    {users?.length === 0 && <EmptyTable
-                      title='There are no users'
-                      subtitle='Invite users to Infra and manage their access.'
-                      iconPath='/users.svg'
-                      buttonHref={admin && '/users/add'}
-                      buttonText='Users'
-                                            />}
-                  </div>
-                  )}
-            </main>
-            {selectedUser &&
-              <Sidebar
-                handleClose={() => setSelectedUser(null)}
-                title={selectedUser.name}
-                profileIcon={selectedUser.name[0]}
-              >
-                <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
-              </Sidebar>}
-          </div>
-          )}
+      {!loading && (
+        <div className='flex-1 flex h-full'>
+          <main className='flex-1 flex flex-col space-y-4'>
+            <PageHeader header='Users' buttonHref={admin && '/users/add'} buttonLabel='User' />
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : (
+                <div>
+                  <Table
+                    {...table}
+                    getRowProps={row => ({
+                      onClick: () => setSelectedUser(row.original),
+                      style: {
+                        cursor: 'pointer'
+                      }
+                    })}
+                  />
+                  {users?.length === 0 && <EmptyTable
+                    title='There are no users'
+                    subtitle='Invite users to Infra and manage their access.'
+                    iconPath='/users.svg'
+                    buttonHref={admin && '/users/add'}
+                    buttonText='Users'
+                                          />}
+                </div>
+                )}
+          </main>
+          {selectedUser &&
+            <Sidebar
+              handleClose={() => setSelectedUser(null)}
+              title={selectedUser.name}
+              profileIcon={selectedUser.name[0]}
+            >
+              <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
+            </Sidebar>}
+        </div>
+      )}
     </>
   )
 }

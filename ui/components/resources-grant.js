@@ -6,8 +6,8 @@ import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
-  const { data: { items: grants } = { items: [] } } = useSWR(`/api/grants?user=${id}`)
-  const { data: { items: destinations } = { items: [] } } = useSWR('/api/destinations')
+  const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
+  const { data: { items: destinations } = {} } = useSWR('/api/destinations')
 
   const [infrastructure, setInfrastructure] = useState('')
   const [error, setError] = useState('')
@@ -27,7 +27,7 @@ export default function ({ id }) {
   }
 
   async function handleShareGrant () {
-    if (destinations.find(d => d.name === infrastructure)) {
+    if (destinations?.find(d => d.name === infrastructure)) {
       grant(id)
     } else {
       setError('Infrastructure does not exist')

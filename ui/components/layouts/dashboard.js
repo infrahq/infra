@@ -35,7 +35,7 @@ export default function ({ children }) {
 
   // redirect non-admin routes if user isn't admin
   for (const n of [...navigation, ...subNavigation]) {
-    if (router.asPath.startsWith(n.href) && n.admin && !admin) {
+    if (router.pathname.startsWith(n.href) && n.admin && !admin) {
       router.replace('/')
       return null
     }

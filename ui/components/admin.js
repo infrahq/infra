@@ -56,7 +56,7 @@ function Grant ({ id, userID, grants }) {
 }
 
 export default function () {
-  const { data: { items: grants } = { items: [] } } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { data: { items: grants } = {} } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
 
   const [adminEmail, setAdminEmail] = useState('')
