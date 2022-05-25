@@ -36,7 +36,7 @@ const columns = [{
   Header: 'Added',
   accessor: u => u,
   Cell: ({ value: user }) => (
-    <div className='text-name text-gray-400'>{dayjs(user.created).fromNow()}</div>
+    <div className='text-name text-gray-400'>{user?.created ? dayjs(user.created).fromNow() : '-'}</div>
   )
 }]
 
@@ -68,7 +68,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Created</div>
-            <div className='text-2xs'>{dayjs(user?.created).fromNow()}</div>
+            <div className='text-2xs'>{user?.created ? dayjs(user.created).fromNow() : '-'}</div>
           </div>
         </div>
       </section>
