@@ -23,7 +23,7 @@ export default function ({ id }) {
   const { data: destination } = useSWR(`/api/destinations/${id}`)
   const { data: { items } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
-  const list = items?.filter(item => item.user !== undefined)
+  const list = items?.filter(item => !!item.user)
 
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
