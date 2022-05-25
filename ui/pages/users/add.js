@@ -8,16 +8,16 @@ import { validateEmail } from '../../lib/email'
 
 function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
   return (
-    <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
-      <div className='flex flex-row space-x-2 items-center px-4'>
+    <div className='flex flex-col'>
+      <div className='flex flex-row space-x-2 items-center'>
         <img src='/users.svg' className='w-6 h-6' />
         <div>
           <h1 className='text-2xs'>Add User</h1>
         </div>
       </div>
-      <div className='flex flex-col mt-6 mx-4 space-y-1'>
+      <div className='flex flex-col mt-6 space-y-1'>
         <div className='mt-4'>
-          <label className='text-3xs text-gray-300 uppercase'>User Email</label>
+          <label className='text-3xs text-gray-400 uppercase'>User Email</label>
           <input
             autoFocus
             spellCheck='false'
@@ -31,9 +31,9 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
         </div>
         {error && <ErrorMessage message={error} />}
       </div>
-      <div className='flex flex-row justify-between m-6 items-center'>
+      <div className='flex flex-row justify-between mt-8 items-center'>
         <Link href='/users'>
-          <a className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Cancel</a>
+          <a className='uppercase border-0 px-4 py-2 -ml-4 hover:text-white text-gray-400 text-4xs'>Cancel</a>
         </Link>
         <button
           type='button'
@@ -50,26 +50,26 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
 
 function UserOneTimePassword ({ password, onAddUser }) {
   return (
-    <div className='flex flex-col pt-8 px-1 border rounded-lg border-gray-950'>
-      <div className='flex flex-row space-x-2 items-center px-4'>
+    <div className='flex flex-col'>
+      <div className='flex flex-row space-x-2 items-center'>
         <img src='/users.svg' className='w-6 h-6' />
         <div>
           <h1 className='text-2xs'>Add User</h1>
         </div>
       </div>
-      <h2 className='text-2xs pt-5 px-4'>User added. Send the user this one time password for their initial login. This password will not be shown again.</h2>
-      <div className='flex flex-col mt-6 mx-4 space-y-1'>
-        <label className='text-3xs text-gray-300 uppercase'>One Time Password</label>
+      <h2 className='text-2xs mt-5'>User added. Send the user this one time password for their initial login. This password will not be shown again.</h2>
+      <div className='flex flex-col mt-6 space-y-1'>
+        <label className='text-3xs text-gray-400 uppercase'>One Time Password</label>
         <input
           readOnly
           value={password}
-          className='w-full bg-transparent text-3xs px-px py-3 focus:outline-none font-mono'
+          className='w-full bg-transparent text-3xs my-0 py-2 focus:outline-none font-mono'
         />
       </div>
-      <div className='flex flex-row justify-between m-6 items-center'>
-        <button onClick={onAddUser} className='uppercase border-0 hover:text-white text-gray-300 text-4xs'>Add Another</button>
+      <div className='flex flex-row mt-6 justify-end items-center'>
+        <button onClick={onAddUser} className='uppercase border-0 hover:text-white text-gray-400 px-4 py-2 text-4xs'>Add Another</button>
         <Link href='/users'>
-          <a className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-2xs px-4 py-2 disabled:opacity-10'>
+          <a className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-2xs px-8 py-2 disabled:opacity-10'>
             Done
           </a>
         </Link>
@@ -78,7 +78,7 @@ function UserOneTimePassword ({ password, onAddUser }) {
   )
 }
 
-export default function () {
+export default function UsersAdd () {
   const [email, setEmail] = useState('')
   const [state, setState] = useState('add')
   const [password, setPassword] = useState('')
@@ -119,7 +119,7 @@ export default function () {
     }
   }
 
-  const handleInputChang = value => {
+  const handleInputChange = value => {
     setEmail(value)
     setError('')
   }
@@ -137,15 +137,15 @@ export default function () {
   }
 
   return (
-    <Fullscreen closeHref='/users'>
+    <>
       <Head>
         <title>Add User</title>
       </Head>
-      <div className='w-full max-w-sm'>
+      <div className='pt-5 pb-4 px-4 space-y-4'>
         {state === 'add' &&
           <AddUser
             email={email}
-            onChange={e => handleInputChang(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onKeyDown={e => handleKeyDownEvent(e.key)}
             onAddUser={() => handleGetOneTimePassword()}
             error={errors.name}
@@ -153,6 +153,11 @@ export default function () {
         {state === 'password' && <UserOneTimePassword password={password} onAddUser={() => handleAddUser()} />}
         {error && <ErrorMessage message={error} />}
       </div>
-    </Fullscreen>
+    </>
   )
 }
+
+UsersAdd.layout = page =>
+  <Fullscreen closeHref='/users'>
+    {page}
+  </Fullscreen>
