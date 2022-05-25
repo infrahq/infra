@@ -48,11 +48,11 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Added</div>
-            <div className='text-2xs'>{dayjs(destination?.created).fromNow()}</div>
+            <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Last Seen</div>
-            <div className='text-2xs'>{dayjs(destination?.lastSeen).fromNow()}</div>
+            <div className='text-2xs'>{destination?.lastSeen ? dayjs(destination.lastSeen).fromNow() : '-'}</div>
           </div>
         </div>
       </section>
