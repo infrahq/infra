@@ -49,7 +49,7 @@ function App ({ Component, pageProps }) {
   }
 
   // redirect to login if required
-  if (!signup?.enabled && !auth && (router.pathname !== '/login' || router.pathname === '/login/callback')) {
+  if (!signup?.enabled && !auth && router.pathname !== '/login' && router.pathname !== '/login/callback') {
     router.replace('/login')
     return null
   }

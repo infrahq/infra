@@ -85,7 +85,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
           open={deleteModalOpen}
           setOpen={setDeleteModalOpen}
           onSubmit={async () => {
-            mutate('/api/users', async ({ items: users = [] }) => {
+            mutate('/api/users', async ({ items: users } = { items: [] }) => {
               await fetch(`/api/users/${id}`, {
                 method: 'DELETE'
               })

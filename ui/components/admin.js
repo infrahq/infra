@@ -39,10 +39,10 @@ function Grant ({ id, userID, grants }) {
           open={open}
           setOpen={setOpen}
           onSubmit={() => {
-            mutate('/api/grants?resource=infra&privilege=admin', async grants => {
+            mutate('/api/grants?resource=infra&privilege=admin', async ({ items: grants } = { items: [] }) => {
               await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-              return grants?.filter(g => g?.id !== id)
-            }, { optimisticData: grants.filter(g => g?.id !== id) })
+              return { items: grants?.filter(g => g?.id !== id) }
+            }, { optimisticData: { items: grants.filter(g => g?.id !== id) } })
 
             setOpen(false)
           }}

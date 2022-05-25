@@ -68,12 +68,12 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           open={deleteModalOpen}
           setOpen={setDeleteModalOpen}
           onSubmit={async () => {
-            mutate('/api/destinations', async destinations => {
+            mutate('/api/destinations', async ({ items: destinations } = { items: [] }) => {
               await fetch(`/api/destinations/${destination.id}`, {
                 method: 'DELETE'
               })
 
-              return destinations?.filter(d => d?.id !== destination.id)
+              return { items : destinations.filter(d => d?.id !== destination.id) }
             })
 
             setDeleteModalOpen(false)

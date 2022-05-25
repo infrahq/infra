@@ -32,7 +32,9 @@ export default function DestinationsAdd () {
   async function handleNext () {
     setConnected(false)
     let res = await fetch('/api/users?name=connector')
-    const connectors = await res.json()
+    const { items: connectors } = await res.json()
+
+    // TODO (https://github.com/infrahq/infra/issues/2056): handle the case where connector does not exist
     const { id } = connectors[0]
     const keyName = name + '-' + [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
     res = await fetch('/api/access-keys', {

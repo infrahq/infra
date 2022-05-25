@@ -36,7 +36,7 @@ export default function ProvidersAddDetails () {
     setError('')
 
     try {
-      await mutate('/api/providers', async providers => {
+      await mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
         const res = await fetch('/api/providers', {
           method: 'POST',
           body: JSON.stringify({
@@ -53,7 +53,7 @@ export default function ProvidersAddDetails () {
           throw data
         }
 
-        return [...(providers || []), data]
+        return { items: [...providers, data] }
       })
     } catch (e) {
       if (e.fieldErrors) {
