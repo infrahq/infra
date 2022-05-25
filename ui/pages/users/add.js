@@ -89,7 +89,7 @@ export default function () {
     if (validateEmail(email)) {
       setErrors({})
       try {
-        const res = await fetch('/v1/identities', {
+        const res = await fetch('/api/users', {
           method: 'POST',
           body: JSON.stringify({ name: email, setOneTimePassword: true })
         })
@@ -98,7 +98,7 @@ export default function () {
         if (!res.ok) {
           throw user
         }
-        
+
         setState('password')
         setPassword(user.oneTimePassword)
       } catch (e) {
@@ -142,15 +142,14 @@ export default function () {
         <title>Add User</title>
       </Head>
       <div className='w-full max-w-sm'>
-        {state === 'add' && 
-          <AddUser 
-            email={email} 
-            onChange={e => handleInputChang(e.target.value)} 
-            onKeyDown={e => handleKeyDownEvent(e.key)} 
-            onAddUser={() => handleGetOneTimePassword()} 
-            error={errors.name} 
-          />
-        }
+        {state === 'add' &&
+          <AddUser
+            email={email}
+            onChange={e => handleInputChang(e.target.value)}
+            onKeyDown={e => handleKeyDownEvent(e.key)}
+            onAddUser={() => handleGetOneTimePassword()}
+            error={errors.name}
+          />}
         {state === 'password' && <UserOneTimePassword password={password} onAddUser={() => handleAddUser()} />}
         {error && <ErrorMessage message={error} />}
       </div>

@@ -21,7 +21,7 @@ function User ({ id }) {
 
 export default function ({ id }) {
   const { data: destination } = useSWR(`/api/destinations/${id}`)
-  const { data: { items: list } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
+  const { data: { items: list } = { items: [] } } = useSWR(() => `/api/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
 
   const [email, setEmail] = useState('')
@@ -137,9 +137,9 @@ export default function ({ id }) {
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {list?.sort((a, b) => (a.subject).localeCompare(b.subject)).map((item) => (
+          {list?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
             <div className='flex justify-between items-center' key={item.id}>
-              <Grant id={item.subject} />
+              <User id={item.user} />
               <div>
                 <select
                   id='role'

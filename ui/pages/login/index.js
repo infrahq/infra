@@ -49,7 +49,7 @@ function Providers ({ providers }) {
 }
 
 export default function Login () {
-  const { data: { items: providers } = {} } = useSWR('/api/providers', { fallbackData: [] })
+  const { data: { items: providers } = { items: [] } } = useSWR('/api/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
@@ -80,7 +80,7 @@ export default function Login () {
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { id: data.polymorphicID.replace('i:', '') }
+          query: { user: data.userID }
         })
         return
       }
@@ -99,7 +99,7 @@ export default function Login () {
   return (
     <>
       <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers.length > 0 && 'or via your identity provider.'}</h2>
+      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers?.length > 0 && 'or via your identity provider.'}</h2>
       {providers?.length > 0 && <Providers providers={providers} />}
 
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>

@@ -69,7 +69,7 @@ const columns = [{
 }]
 
 export default function Providers () {
-  const { data: { items: providers } = {}, error } = useSWR('/api/providers')
+  const { data: { items: providers } = { items: [] }, error } = useSWR('/api/providers')
 
   const table = useTable({ columns, data: providers || [] })
 

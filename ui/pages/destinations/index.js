@@ -17,7 +17,7 @@ import Sidebar from '../../components/sidebar'
 
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/api/users/self')
-  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
+  const { data: { items: grants } = { items: [] } } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -128,7 +128,7 @@ const columns = [{
 }]
 
 export default function Destinations () {
-  const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
+  const { data: { items: destinations } = { items: [] }, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
   const table = useTable({ columns, data: destinations || [] })

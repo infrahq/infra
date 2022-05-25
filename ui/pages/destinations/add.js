@@ -55,7 +55,7 @@ export default function DestinationsAdd () {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <header className='flex flex-row px-4 pt-4 pb-6 items-center'>
+      <header className='flex flex-row px-4 pt-5 pb-6 items-center'>
         <img src='/destinations.svg' className='w-6 h-6 mr-2 mt-0.5' />
         <h1 className='text-2xs capitalize'>Connect infrastructure</h1>
       </header>

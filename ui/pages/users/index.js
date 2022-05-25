@@ -43,9 +43,9 @@ const columns = [{
 
 function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
   const { id, name } = selectedUser
-  const { data: user } = useSWR(`/v1/identities/${id}`)
-  const { data: grants } = useSWR(`/v1/identities/${id}/grants`)
-  const { data: auth } = useSWR('/v1/identities/self')
+  const { data: user } = useSWR(`/api/users/${id}`)
+  const { data: { items: grants } = { items: [] } } = useSWR(`/api/grants?user=${id}`)
+  const { data: auth } = useSWR('/api/users/self')
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
@@ -74,24 +74,25 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
         </div>
       </section>
       <section className='flex-1 flex flex-col items-end justify-end py-6'>
-        {auth.id !== id && <button
-          type='button'
-          onClick={() => setDeleteModalOpen(true)}
-          className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
-                           >
-          Remove
-        </button>}
+        {auth.id !== id &&
+          <button
+            type='button'
+            onClick={() => setDeleteModalOpen(true)}
+            className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
+          >
+            Remove
+          </button>}
         <DeleteModal
           open={deleteModalOpen}
           setOpen={setDeleteModalOpen}
           onCancel={() => setDeleteModalOpen(false)}
           onSubmit={async () => {
-            mutate('/v1/identities', async users => {
-              await fetch(`/v1/identities/${id}`, {
+            mutate('/api/users', async ({ items: users = [] }) => {
+              await fetch(`/api/users/${id}`, {
                 method: 'DELETE'
               })
 
-              return users?.filter(u => u?.id !== id)
+              return { items: users?.filter(u => u?.id !== id) }
             })
 
             setDeleteModalOpen(false)
@@ -106,9 +107,9 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
 }
 
 export default function Users () {
-  const { data: users, error } = useSWR('/v1/identities')
+  const { data: { items: users } = { items: [] }, error } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({ columns, data: users || [] })
+  const table = useTable({ columns, data: users })
   const [selectedUser, setSelectedUser] = useState(null)
 
   const loading = adminLoading || (!users && !error)

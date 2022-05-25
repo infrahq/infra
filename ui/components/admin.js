@@ -56,13 +56,13 @@ function Grant ({ id, userID, grants }) {
 }
 
 export default function () {
-  const { data: { items: grants } = {} } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { data: { items: grants } = { items: [] } } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
   const { mutate } = useSWRConfig()
 
   const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
 
-  const grantAdminAccess = (id) => {
+  const grantAdminAccess = id => {
     fetch('/api/grants', {
       method: 'POST',
       body: JSON.stringify({ user: id, resource: 'infra', privilege: 'admin' })
@@ -90,8 +90,8 @@ export default function () {
 
       fetch(`/api/users?name=${adminEmail}`)
         .then((response) => response.json())
-        .then((data) => {
-          if (data.length === 0) {
+        .then(({ items = [] }) => {
+          if (items.length === 0) {
             fetch('/api/users', {
               method: 'POST',
               body: JSON.stringify({ name: adminEmail })
@@ -100,7 +100,7 @@ export default function () {
               .then((user) => grantAdminAccess(user.id))
               .catch((error) => console.error(error))
           } else {
-            grantAdminAccess(data[0].id)
+            grantAdminAccess(items[0].id)
           }
         })
     } else {

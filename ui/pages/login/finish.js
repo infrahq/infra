@@ -12,9 +12,9 @@ export default function Finish () {
   const { mutate } = useSWRConfig()
 
   const { query } = router
-  const { id } = query
+  const { user } = query
 
-  if (!id) {
+  if (!user) {
     router.replace('/login')
   }
 
@@ -22,7 +22,7 @@ export default function Finish () {
     e.preventDefault()
 
     try {
-      await fetch(`/api/users/${id}`, { method: 'PUT', body: JSON.stringify({ password }) })
+      await fetch(`/api/users/${user}`, { method: 'PUT', body: JSON.stringify({ password }) })
       await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
