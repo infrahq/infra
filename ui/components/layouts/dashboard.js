@@ -25,7 +25,8 @@ export default function ({ children }) {
 
   const navigation = [
     { name: 'Infrastructure', href: '/destinations', icon: '/destinations.svg' },
-    { name: 'Providers', href: '/providers', icon: '/providers.svg', admin: true }
+    { name: 'Providers', href: '/providers', icon: '/providers.svg', admin: true },
+    { name: 'Users', href: '/users', icon: '/users.svg', admin: true }
   ]
 
   const subNavigation = [
