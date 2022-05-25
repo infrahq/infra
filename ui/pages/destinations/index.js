@@ -67,7 +67,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
         </button>
         <DeleteModal
           open={deleteModalOpen}
-          onCancel={() => setDeleteModalOpen(false)}
+          setOpen={setDeleteModalOpen}
           onSubmit={async () => {
             mutate('/api/destinations', async destinations => {
               await fetch(`/api/destinations/${destination.id}`, {
