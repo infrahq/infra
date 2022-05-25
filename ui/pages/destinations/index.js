@@ -7,7 +7,6 @@ import dayjs from 'dayjs'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
-import Loader from '../../components/loader'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
@@ -17,7 +16,7 @@ import Sidebar from '../../components/sidebar'
 
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/api/users/self')
-  const { data: { items: grants } = { items: [] } } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
+  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -128,7 +127,7 @@ const columns = [{
 }]
 
 export default function Destinations () {
-  const { data: { items: destinations } = { items: [] }, error } = useSWR('/api/destinations')
+  const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
   const table = useTable({ columns, data: destinations || [] })
@@ -140,46 +139,44 @@ export default function Destinations () {
       <Head>
         <title>Destinations - Infra</title>
       </Head>
-      {loading
-        ? (<Loader />)
-        : (
-          <div className='flex-1 flex h-full'>
-            <main className='flex-1 flex flex-col space-y-4'>
-              <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
-              {error?.status
-                ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-                : (
-                  <div>
-                    <Table
-                      {...table}
-                      getRowProps={row => ({
-                        onClick: () => setSelectedDestination(row.original),
-                        style: {
-                          cursor: 'pointer'
-                        }
-                      })}
-                    />
-                    {destinations?.length === 0 &&
-                      <EmptyTable
-                        title='There is no infrastructure'
-                        subtitle='There is currently no infrastructure connected to Infra'
-                        iconPath='/destinations.svg'
-                        buttonHref={admin && '/destinations/add'}
-                        buttonText='Infrastructure'
-                      />}
-                  </div>
-                  )}
-            </main>
-            {selectedDestination &&
-              <Sidebar
-                handleClose={() => setSelectedDestination(null)}
-                title={selectedDestination.name}
-                iconPath='/destinations.svg'
-              >
-                <SidebarContent destination={selectedDestination} admin={admin} setSelectedDestination={setSelectedDestination} />
-              </Sidebar>}
-          </div>
-          )}
+      {!loading && (
+        <div className='flex-1 flex h-full'>
+          <main className='flex-1 flex flex-col space-y-4'>
+            <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
+            {error?.status
+              ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
+              : (
+                <div>
+                  <Table
+                    {...table}
+                    getRowProps={row => ({
+                      onClick: () => setSelectedDestination(row.original),
+                      style: {
+                        cursor: 'pointer'
+                      }
+                    })}
+                  />
+                  {destinations?.length === 0 &&
+                    <EmptyTable
+                      title='There is no infrastructure'
+                      subtitle='There is currently no infrastructure connected to Infra'
+                      iconPath='/destinations.svg'
+                      buttonHref={admin && '/destinations/add'}
+                      buttonText='Infrastructure'
+                    />}
+                </div>
+                )}
+          </main>
+          {selectedDestination &&
+            <Sidebar
+              handleClose={() => setSelectedDestination(null)}
+              title={selectedDestination.name}
+              iconPath='/destinations.svg'
+            >
+              <SidebarContent destination={selectedDestination} admin={admin} setSelectedDestination={setSelectedDestination} />
+            </Sidebar>}
+        </div>
+      )}
     </>
   )
 }

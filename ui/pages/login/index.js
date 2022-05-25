@@ -49,7 +49,7 @@ function Providers ({ providers }) {
 }
 
 export default function Login () {
-  const { data: { items: providers } = { items: [] } } = useSWR('/api/providers', { fallbackData: [] })
+  const { data: { items: providers } = {} } = useSWR('/api/providers', { fallbackData: [] })
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
@@ -100,8 +100,7 @@ export default function Login () {
     <>
       <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
       <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers?.length > 0 && 'or via your identity provider.'}</h2>
-      {providers?.length > 0 && <Providers providers={providers} />}
-
+      {providers?.length > 0 && <Providers providers={providers || []} />}
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
         <div className='w-full my-2'>
           <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username</label>

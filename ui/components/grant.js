@@ -21,7 +21,7 @@ function User ({ id }) {
 
 export default function ({ id }) {
   const { data: destination } = useSWR(`/api/destinations/${id}`)
-  const { data: { items: list } = { items: [] } } = useSWR(() => `/api/grants?resource=${destination.name}`)
+  const { data: { items: list } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
   const { mutate } = useSWRConfig()
 
   const [email, setEmail] = useState('')
