@@ -47,6 +47,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debug("format and print destinations")
 			type row struct {
 				Name string `header:"NAME"`
 				URL  string `header:"URL"`
@@ -60,7 +61,6 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				})
 			}
 
-			logging.S.Debug("print destinations")
 			if len(rows) > 0 {
 				printTable(rows, cli.Stdout)
 			} else {
