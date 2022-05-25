@@ -56,6 +56,10 @@ jobs:
         run: |
            npm run build
            npm run export
+      - name: Check ui linting
+        working-directory: ui
+        run: |
+           npm run standard
 
   go-lint:
     runs-on: ubuntu-latest

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "standard": "standard --fix",
+    "standard": "standard",
     "export": "next export"
   },
   "dependencies": {
