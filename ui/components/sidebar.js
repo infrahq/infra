@@ -8,9 +8,11 @@ export default ({ children, handleClose, title, iconPath, profileIcon }) => {
         <div className='flex items-center space-x-3'>
           {profileIcon
             ? <ProfileIcon name={profileIcon} />
-            : <div className='border border-violet-300/20 rounded-md flex items-center tracking-tight text-sm px-2 py-2'>
-              <img src={iconPath} className='w-5 h-5 opacity-50' />
-            </div>}
+            : (
+              <div className='border border-violet-300/20 rounded-md flex items-center tracking-tight text-sm px-2 py-2'>
+                <img src={iconPath} className='w-5 h-5 opacity-50' />
+              </div>
+              )}
           <h1 className='flex flex-row items-center space-x-4 text-2xs'>{title}</h1>
         </div>
         <button
