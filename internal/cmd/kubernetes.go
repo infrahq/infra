@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -207,10 +208,21 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		}
 	}
 
-	kubeConfigFilename := defaultConfig.ConfigAccess().GetDefaultFilename()
+	// write the new config to a temporary file then move it in an atomic operation
+	// this ensures we don't wipe the kube config in the case of an interrupt
+	tmpFile, err := ioutil.TempFile("", "infra-kube-config-")
+	if err != nil {
+		return fmt.Errorf("cannot create temporary config file: %w", err)
+	}
 
-	if err := clientcmd.WriteToFile(kubeConfig, kubeConfigFilename); err != nil {
+	if err := clientcmd.WriteToFile(kubeConfig, tmpFile.Name()); err != nil {
 		return err
+	}
+
+	// move the temp file to overwrite the kube config
+	err = os.Rename(tmpFile.Name(), defaultConfig.ConfigAccess().GetDefaultFilename())
+	if err != nil {
+		return fmt.Errorf("could not overwrite kube config: %w", err)
 	}
 
 	return nil
