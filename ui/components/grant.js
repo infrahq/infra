@@ -1,11 +1,11 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
+import { PlusIcon } from '@heroicons/react/outline'
 
 import { validateEmail } from '../lib/email'
 
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
-import { PlusIcon } from '@heroicons/react/outline'
 
 function Grant ({ id }) {
   if (!id) {

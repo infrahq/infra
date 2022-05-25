@@ -60,7 +60,7 @@ const columns = [{
 
             setOpen(false)
           }}
-          title='Delete Identity Provider'
+          title='Remove Identity Provider'
           message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider.name}</span>? This action cannot be undone.</>)}
         />
       </div>

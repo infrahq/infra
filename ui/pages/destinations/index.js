@@ -63,7 +63,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           onClick={() => setDeleteModalOpen(true)}
           className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
         >
-          Delete
+          Remove
         </button>
         <DeleteModal
           open={deleteModalOpen}
@@ -80,7 +80,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
             setDeleteModalOpen(false)
             setSelectedDestination(null)
           }}
-          title='Delete Cluster'
+          title='Remove Cluster'
           message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
         />
       </section>
