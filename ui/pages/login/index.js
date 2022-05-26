@@ -77,6 +77,9 @@ export default function Login () {
 
       const data = await res.json()
 
+      // update local auth cache
+      await mutate('/api/users/self')
+
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
@@ -84,8 +87,6 @@ export default function Login () {
         })
         return
       }
-
-      mutate('/api/users/self', { optimisticData: { name } })
 
       router.replace('/')
     } catch (e) {
