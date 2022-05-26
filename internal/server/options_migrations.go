@@ -19,7 +19,7 @@ func (o OptionsDiffV0dot1) applyToV0dot2(base *Options) {
 	base.Config.Users = o.Identities
 }
 
-// applyOptions loads and migrates specified server options from a file
+// ApplyOptions loads and migrates specified server options from a file
 func ApplyOptions(baseOpts *Options, configFilename string, flags *pflag.FlagSet) error {
 	err := cliopts.Load(baseOpts, cliopts.Options{
 		Filename:  configFilename,
