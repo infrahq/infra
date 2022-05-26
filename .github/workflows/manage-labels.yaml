@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Apply github labels from config
-        uses: crazy-max/ghaction-github-labeler@v3
+        uses: crazy-max/ghaction-github-labeler@v4
         with:
           yaml-file: .github/labels.yaml
           skip-delete: true
