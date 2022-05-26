@@ -859,6 +859,10 @@ func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, key string
 		return nil
 	}
 
+	if accessKey.IssuedFor != identity.ID {
+		return fmt.Errorf("access key assigned to %q is already assigned to another user, a user's access key must have a unique ID", identity.Name)
+	}
+
 	accessKey.Secret = secret
 
 	if err := data.SaveAccessKey(db, accessKey); err != nil {

@@ -775,6 +775,35 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.NilError(t, err)
 }
 
+func TestLoadAccessKey(t *testing.T) {
+	s := setupServer(t)
+
+	// access key that we will attempt to assign to multiple users
+	testAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
+
+	// create a user and assign them an access key
+	bob := &models.Identity{Name: "bob"}
+	err := data.CreateIdentity(s.db, bob)
+	assert.NilError(t, err)
+
+	err = s.loadAccessKey(s.db, bob, testAccessKey)
+	assert.NilError(t, err)
+
+	t.Run("access key can be reloaded for the same identity it was issued for", func(t *testing.T) {
+		err = s.loadAccessKey(s.db, bob, testAccessKey)
+		assert.NilError(t, err)
+	})
+
+	t.Run("duplicate access key ID is rejected", func(t *testing.T) {
+		alice := &models.Identity{Name: "alice"}
+		err = data.CreateIdentity(s.db, alice)
+		assert.NilError(t, err)
+
+		err = s.loadAccessKey(s.db, alice, testAccessKey)
+		assert.Error(t, err, "access key assigned to \"alice\" is already assigned to another user, a user's access key must have a unique ID")
+	})
+}
+
 // getTestUserDetails gets the attributes of a user created from a config file
 func getTestUserDetails(db *gorm.DB, name string) (*models.Identity, *models.Credential, *models.AccessKey, error) {
 	var user models.Identity
