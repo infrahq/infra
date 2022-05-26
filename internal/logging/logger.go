@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"golang.org/x/term"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -81,6 +82,23 @@ func newServerLogger(level zapcore.LevelEnabler, stdout, stderr zapcore.WriteSyn
 		),
 		zap.AddCaller(),
 	)
+}
+
+func NewFileErrorLog(outputFilePath string) *zap.Logger {
+	w := zapcore.AddSync(&lumberjack.Logger{
+		Filename:   outputFilePath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 0,
+		MaxAge:     28, // days
+	})
+
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		w,
+		zap.ErrorLevel,
+	)
+
+	return zap.New(core)
 }
 
 func StandardErrorLog() *log.Logger {
