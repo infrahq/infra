@@ -61,6 +61,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
 
 require (

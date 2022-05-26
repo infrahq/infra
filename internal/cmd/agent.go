@@ -13,10 +13,22 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 )
+
+var fileLogger *zap.Logger
+
+func init() {
+	infraDir, err := infraHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	fileLogger = logging.NewFileErrorLog(filepath.Join(infraDir, "agent.log"))
+}
 
 func newAgentCmd() *cobra.Command {
 	return &cobra.Command{
@@ -135,11 +147,11 @@ func writeAgentConfig(pid int) error {
 func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
 	user, destinations, grants, err := getUserDestinationGrants()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "agent failed to get user destination grants: %v\n", err)
+		fileLogger.Sugar().Errorf("agent failed to get user destination grants: %v\n", err)
 		cancel()
 	}
 	if err := writeKubeconfig(user, destinations.Items, grants.Items); err != nil {
-		fmt.Fprintf(os.Stderr, "agent failed to update kube config: %v\n", err)
+		fileLogger.Sugar().Errorf("agent failed to update kube config: %v\n", err)
 		cancel()
 	}
 }
