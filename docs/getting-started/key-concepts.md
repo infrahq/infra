@@ -39,19 +39,19 @@ Infra works by connecting users to specific destinations via _connectors_. Users
 
 ### Users
 
-`infra users` – `/v1/users`
+`infra users` – `/api/users`
 
 Users that can log in via infra to access infrastructure.
 
 ### Groups
 
-`/v1/groups`
+`/api/groups`
 
 Groups are sets of users (usually representing a team or organization) that can share access.
 
 ### Destinations
 
-`infra destinations` – `/v1/destinations`
+`infra destinations` – `/api/destinations`
 
 Destinations are infrastructure resources that can be accessed via Infra. Examples of destinations include:
 
@@ -60,7 +60,7 @@ Destinations are infrastructure resources that can be accessed via Infra. Exampl
 
 ### Grants
 
-`infra grants` – `/v1/grants`
+`infra grants` – `/api/grants`
 
 Grants are based on the simple relationships between users/groups (i.e. _subjects_), roles/permissions (i.e. _privileges_), and Kubernetes clusters or namespaces (referred to as _resources_)
 
@@ -70,6 +70,6 @@ Grants tie users (or groups) to destinations with a specific role. In other word
 
 ### Providers
 
-`infra providers` – `/v1/providers`
+`infra providers` – `/api/providers`
 
 Providers are short for **identity providers**. They are external sources of users and groups such as Okta, Google and Azure.
