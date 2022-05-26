@@ -73,7 +73,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key", "", "Database encryption key")
 	cmd.Flags().String("db-encryption-key-provider", "", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
-	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", false, "Enable Infra server UI")
+	cmd.Flags().BoolVar(&options.UI.Enabled, "enable-ui", true, "Enable Infra server UI")
 	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", 0, "User session duration")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
