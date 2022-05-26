@@ -46,11 +46,15 @@ export default function DestinationsAdd () {
   }
 
   const server = window.location.host
-  const command = `helm install infra-connector infrahq/infra \\
+  let command = `helm install infra-connector infrahq/infra \\
     --set connector.config.accessKey=${accessKey} \\
     --set connector.config.server=${server} \\
-    --set connector.config.name=${name} \\
+    --set connector.config.name=${name}`
+
+  if (window.location.protocol !== 'https:') {
+    command += ` \\
     --set connector.config.skipTLSVerify=true`
+  }
 
   return (
     <div>
