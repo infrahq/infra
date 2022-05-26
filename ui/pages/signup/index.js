@@ -49,8 +49,9 @@ export default function Signup () {
         throw await res.json()
       }
 
-      mutate('/api/users/self', { optimisticData: { name: email } })
-      mutate('/api/signup', { optimisticData: { enabled: false } })
+      await mutate('/api/signup')
+      await mutate('/api/users/self')
+
       router.replace('/')
     } catch (e) {
       if (e.fieldErrors) {

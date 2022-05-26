@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { XIcon, ChevronLeftIcon } from '@heroicons/react/outline'
 
-export default function ({ children, backHref, closeHref }) {
+import AuthRequired from '../auth-required'
+
+function Fullscreen ({ children, backHref, closeHref }) {
   return (
     <div className='flex flex-col w-full h-full'>
       <div className={`flex flex-none text-right justify-end ${backHref ? 'justify-between' : 'justify-end'}`}>
@@ -24,5 +26,15 @@ export default function ({ children, backHref, closeHref }) {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ({ children }) {
+  return (
+    <AuthRequired>
+      <Fullscreen>
+        {children}
+      </Fullscreen>
+    </AuthRequired>
   )
 }
