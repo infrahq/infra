@@ -6,12 +6,12 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"github.com/mattn/go-sqlite3"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -144,15 +144,12 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 }
 
 type UniqueConstraintError struct {
-	Field string
+	Table  string
+	Column string
 }
 
-func (d UniqueConstraintError) Error() string {
-	return fmt.Sprintf("value for field already exists: %v", d.Field)
-}
-
-func (d UniqueConstraintError) Is(target error) bool {
-	return d == target || target == internal.ErrDuplicate
+func (e UniqueConstraintError) Error() string {
+	return fmt.Sprintf("value for %v already exist in %v", e.Column, e.Table)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it
@@ -167,21 +164,34 @@ func handleError(err error) error {
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation:
-			// TODO: test with postgresql
-			return UniqueConstraintError{Field: pgErr.ColumnName}
+			// https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/access/nbtree/nbtinsert.c;h=f6f4af8bfe3f0876e860944e2233328f8cc3303a;hb=HEAD#l668
+			// ereport(ERROR,
+			//         (errcode(ERRCODE_UNIQUE_VIOLATION),
+			//          errmsg("duplicate key value violates unique constraint \"%s\"",
+			//                 RelationGetRelationName(rel)),
+			//                 key_desc ? errdetail("Key %s already exists.",
+			//                            key_desc) : 0,
+			//                 errtableconstraint(heapRel,
+			//                                    RelationGetRelationName(rel))));
+			re := regexp.MustCompile(`Key \((?P<columnName>[[:print:]]+)\)=\([[:print:]]+\) already exists.`)
+			matches := re.FindStringSubmatch(pgErr.Detail)
+			if matches != nil {
+				columnNameIndex := re.SubexpIndex("columnName")
+				return UniqueConstraintError{Table: pgErr.TableName, Column: matches[columnNameIndex]}
+			}
 		}
 	}
 
-	fmt.Println("here")
-
-	var liteErr sqlite3.Error
-	if errors.As(err, &liteErr) {
-		fmt.Printf("sqlite3 error: %v\n", liteErr.Error())
-		switch liteErr.ExtendedCode {
-		case sqlite3.ErrConstraintUnique:
-			// TODO: set field
-			return UniqueConstraintError{}
-		}
+	// https://sqlite.org/src/file?name=ext/rtree/rtree.c:
+	// pRtree->base.zErrMsg = sqlite3_mprintf(
+	//     "UNIQUE constraint failed: %s.%s", pRtree->zName, zCol
+	// );
+	re := regexp.MustCompile(`UNIQUE constraint failed: (?P<tableName>[[:print:]]+)\.(?P<columnName>[[:print:]]+)`)
+	matches := re.FindStringSubmatch(err.Error())
+	if matches != nil {
+		tableNameIndex := re.SubexpIndex("tableName")
+		columnNameIndex := re.SubexpIndex("columnName")
+		return UniqueConstraintError{Table: matches[tableNameIndex], Column: matches[columnNameIndex]}
 	}
 
 	return err
