@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
@@ -13,9 +14,16 @@ import (
 
 func main() {
 	if err := cmd.Run(context.Background(), os.Args[1:]...); err != nil {
-		if !errors.Is(err, terminal.InterruptErr) {
-			logging.S.Error(err.Error())
+		var userErr cmd.Error
+		switch {
+		case errors.Is(err, terminal.InterruptErr):
+			logging.S.Debug("user interrupted the process", err)
+		case errors.As(err, &userErr):
+			fmt.Fprintln(os.Stderr, userErr.Error())
+		default:
+			fmt.Fprintf(os.Stderr, "Internal error:\n%v\n", err)
 		}
+
 		os.Exit(1)
 	}
 }
