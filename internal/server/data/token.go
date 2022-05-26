@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -51,6 +52,7 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 	custom := claims.Custom{
 		Name:   identity.Name,
 		Groups: groups,
+		Nonce:  generate.MathRandom(10),
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()
