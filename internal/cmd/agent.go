@@ -72,7 +72,15 @@ func processRunning(pid int32) (bool, error) {
 
 // execAgent executes the agent in the background and stores its process ID in configuration
 func execAgent() error {
-	cmd := exec.Command("infra", "agent")
+	// find the location of the infra executable running
+	// this ensures we run the agent for the correct version
+	infraExe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	// use the current infra executable to start the agent
+	cmd := exec.Command(infraExe, "agent")
 	if err := cmd.Start(); err != nil {
 		return err
 	}

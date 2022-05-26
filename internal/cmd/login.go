@@ -210,8 +210,7 @@ func loginToInfra(client *api.Client, loginReq *api.LoginRequest) error {
 		// the agent is started in a separate command so that it continues after the login command has finished
 		if err := execAgent(); err != nil {
 			// user still has a valid session, so do not fail
-			logging.S.Errorf("exec login agent: %w", err)
-			fmt.Fprintf(os.Stderr, "  Unable to start agent, destinations will not be updated automatically")
+			logging.S.Errorf("Unable to start agent, destinations will not be updated automatically: %w", err)
 		}
 	}
 
