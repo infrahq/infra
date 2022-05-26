@@ -51,8 +51,8 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
             <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
           </div>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>Last Seen</div>
-            <div className='text-2xs'>{destination?.lastSeen ? dayjs(destination.lastSeen).fromNow() : '-'}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
+            <div className='text-2xs'>{destination.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
           </div>
         </div>
       </section>
@@ -99,31 +99,8 @@ const columns = [{
     </div>
   )
 }, {
-  id: 'connected',
-  Header: () => (
-    <div className='text-right'>Connection</div>
-  ),
-  accessor: 'updated',
-  Cell: ({ value: updated }) => {
-    const connected = (new Date() - new Date(updated)) < 24 * 60 * 60 * 1000
-    return (
-      <div className='flex items-center text-gray-400 justify-end'>
-        {connected
-          ? (
-            <>
-              <div className='w-[7px] h-[7px] bg-green-400 rounded-full mr-1.5' />
-              Connected
-            </>
-            )
-          : (
-            <div className='flex items-center'>
-              <div className='w-[7px] h-[7px] bg-gray-600 rounded-full mr-1.5' />
-              Disconnected
-            </div>
-            )}
-      </div>
-    )
-  }
+  Header: 'Kind',
+  Cell: () => <span className='text-gray-400'>Cluster</span>
 }]
 
 export default function Destinations () {
