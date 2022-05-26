@@ -288,11 +288,21 @@ We use a standard format for returning an error:
 
 ### Modifying Endpoints
 
-An API is a form of contract between you and the users and clients that are using your API. If you change the
-API, you are effectively breaking the contract, and can cause clients to no longer work. It's important that you
-think about how your API will evolve over time, and to plan for future changes which won't break existing clients.
+Unlike most other APIs, Infra has a mechanism which allows modifications to
+both method calls and resource objects which will not break backwards
+compatibility with clients. When a client calls the API, it should include the
+`Infra-Version` header with the specific version of the API that it can
+understand. This version follows the semantic version of the product, so may be
+determined using the `infra version` command.
 
-There are different types of changes which can have different impacts on the API.
+Even though we can accept breaking changes to the API, you must still think
+about how your changes can impact clients and the maintainability of our code
+base. For clients, upgrading to newer versions can be daunting because it may
+require a large amount of rework. For our own code base, we will have to
+maintain any changes going forward potentially for many years. This impacts the
+readability of our own code, and can cause breakage if something goes wrong.
+
+Changes to the API fall into three categories:
 
 #### Generally OK
   * Adding a new method to an endpoint
@@ -301,19 +311,17 @@ There are different types of changes which can have different impacts on the API
 #### Sometimes OK
   * Adding a new field to a resource
 
-#### Almost always bad
+#### Potentially bad
   * Removing methods
   * Removing a field from a resource
   * Modifying the behaviour of a method
   * Modifying the order of array elements
 
+When making changes, think about:
+  * How the path has changed and whether old versions need to be redirected
+  * How requests and responses should be rewritten
+  * The last version which understands an old request or response
 
-## Versioning
+Changes should be included in [migrations.go](https://github.com/infrahq/infra/blob/main/internal/server/migrations.go).
 
-If you do have to change your API, there are several things you can do to make it less painful for
-developers and clients:
- * Use a <version> component in the path e.g. /v1-beta/users
- * Use "alpha" and "beta" before releasing new APIs
- * Try not to mix and match versions. This makes it difficult for consumers to know which version of the API they're supposed to use
- * The API version is not tied to the semantic version of the product. Don't try to make them the same
 
