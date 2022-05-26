@@ -13,7 +13,7 @@ test/update:
 
 .PHONY: helm
 helm:
-	helm package -d helm helm/charts/* --app-version $(version)
+	helm package -d helm helm/charts/* --app-version $(IMAGEVERSION)
 	helm repo index helm
 
 helm/lint:
