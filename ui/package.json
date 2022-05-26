@@ -2,7 +2,7 @@
   "scripts": {
     "dev": "concurrently 'npm run dev:ui' 'npm run dev:server'",
     "dev:ui": "next dev",
-    "dev:server": "go run .. server --enable-ui --ui-proxy-url http://localhost:3000",
+    "dev:server": "go run .. server --ui-proxy-url http://localhost:3000",
     "test": "jest --ci --passWithNoTests",
     "build": "next build",
     "start": "next start",

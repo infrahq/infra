@@ -413,9 +413,10 @@ server:
   ## Enable service telemetry
   #   enableTelemetry: true
 
-  ## Enable Server UI
+  ## Server UI configurations
   #   ui:
-  #     enabled: false
+  ## Enable UI
+  #     enabled: true
 
   ## Duration of a user session
   #   sessionDuration: 12h0m0s
