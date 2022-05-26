@@ -41,11 +41,6 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 		return "", err
 	}
 
-	nonce, err := generate.CryptoRandom(10)
-	if err != nil {
-		return "", err
-	}
-
 	now := time.Now().UTC()
 
 	claim := jwt.Claims{
@@ -57,7 +52,7 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 	custom := claims.Custom{
 		Name:   identity.Name,
 		Groups: groups,
-		Nonce:  nonce,
+		Nonce:  generate.MathRandom(10),
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()
