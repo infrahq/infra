@@ -4,9 +4,8 @@ import { useState } from 'react'
 import ErrorMessage from '../../components/error-message'
 
 import Fullscreen from '../../components/layouts/fullscreen'
-import { validateEmail } from '../../lib/email'
 
-function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
+function AddUser ({ name, onChange, onKeyDown, onAddUser, error }) {
   return (
     <div className='flex flex-col'>
       <div className='flex flex-row space-x-2 items-center'>
@@ -17,13 +16,12 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
       </div>
       <div className='flex flex-col mt-6 space-y-1'>
         <div className='mt-4'>
-          <label className='text-3xs text-gray-400 uppercase'>User Email</label>
+          <label className='text-3xs text-gray-400 uppercase'>Username</label>
           <input
             autoFocus
             spellCheck='false'
-            type='email'
-            placeholder='enter the user email here'
-            value={email}
+            placeholder='enter the username or email here'
+            value={name}
             onChange={onChange}
             onKeyDown={onKeyDown}
             className={`w-full bg-transparent border-b border-gray-950 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500' : 'border-gray-800'}`}
@@ -38,7 +36,7 @@ function AddUser ({ email, onChange, onKeyDown, onAddUser, error }) {
         <button
           type='button'
           onClick={onAddUser}
-          disabled={!email}
+          disabled={!name}
           className='flex-none border border-violet-300 rounded-md text-violet-100 self-end text-2xs px-4 py-2 disabled:opacity-10'
         >
           Add User
@@ -79,59 +77,55 @@ function UserOneTimePassword ({ password, onAddUser }) {
 }
 
 export default function UsersAdd () {
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [state, setState] = useState('add')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
 
   const handleGetOneTimePassword = async () => {
-    if (validateEmail(email)) {
-      setErrors({})
-      try {
-        const res = await fetch('/api/users', {
-          method: 'POST',
-          body: JSON.stringify({ name: email, setOneTimePassword: true })
-        })
-        const user = await res.json()
+    setErrors({})
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({ name, setOneTimePassword: true })
+      })
+      const user = await res.json()
 
-        if (!res.ok) {
-          throw user
-        }
-
-        setState('password')
-        setPassword(user.oneTimePassword)
-      } catch (e) {
-        if (e.fieldErrors) {
-          const errors = {}
-          for (const error of e.fieldErrors) {
-            errors[error.fieldName.toLowerCase()] = error.errors[0] || 'invalid value'
-          }
-          setErrors(errors)
-        } else {
-          setError(e.message)
-        }
-
-        return false
+      if (!res.ok) {
+        throw user
       }
-    } else {
-      setErrors({ name: 'Invalid email' })
+
+      setState('password')
+      setPassword(user.oneTimePassword)
+    } catch (e) {
+      if (e.fieldErrors) {
+        const errors = {}
+        for (const error of e.fieldErrors) {
+          errors[error.fieldName.toLowerCase()] = error.errors[0] || 'invalid value'
+        }
+        setErrors(errors)
+      } else {
+        setError(e.message)
+      }
+
+      return false
     }
   }
 
   const handleInputChange = value => {
-    setEmail(value)
+    setName(value)
     setError('')
   }
 
   const handleAddUser = () => {
     setState('add')
-    setEmail('')
+    setName('')
     setPassword('')
   }
 
   const handleKeyDownEvent = key => {
-    if (key === 'Enter' && email.length > 0) {
+    if (key === 'Enter' && name.length > 0) {
       handleGetOneTimePassword()
     }
   }
@@ -144,7 +138,7 @@ export default function UsersAdd () {
       <div className='pt-5 pb-4 px-4 space-y-4'>
         {state === 'add' &&
           <AddUser
-            email={email}
+            name={name}
             onChange={e => handleInputChange(e.target.value)}
             onKeyDown={e => handleKeyDownEvent(e.key)}
             onAddUser={() => handleGetOneTimePassword()}
