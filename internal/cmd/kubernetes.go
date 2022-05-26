@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/goware/urlx"
@@ -208,9 +209,11 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		}
 	}
 
+	configPath := defaultConfig.ConfigAccess().GetDefaultFilename()
+
 	// write the new config to a temporary file then move it in an atomic operation
 	// this ensures we don't wipe the kube config in the case of an interrupt
-	tmpFile, err := ioutil.TempFile("", "infra-kube-config-")
+	tmpFile, err := ioutil.TempFile(filepath.Dir(configPath), "infra-kube-config-")
 	if err != nil {
 		return fmt.Errorf("cannot create temporary config file: %w", err)
 	}
@@ -220,7 +223,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 	}
 
 	// move the temp file to overwrite the kube config
-	err = os.Rename(tmpFile.Name(), defaultConfig.ConfigAccess().GetDefaultFilename())
+	err = os.Rename(tmpFile.Name(), configPath)
 	if err != nil {
 		return fmt.Errorf("could not overwrite kube config: %w", err)
 	}
