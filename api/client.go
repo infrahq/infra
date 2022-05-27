@@ -254,7 +254,10 @@ func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, "/api/groups", map[string][]string{"name": {req.Name}})
+	return list[ListResponse[Group]](c, "/api/groups", map[string][]string{
+		"name":   {req.Name},
+		"userID": {req.UserID.String()},
+	})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {
