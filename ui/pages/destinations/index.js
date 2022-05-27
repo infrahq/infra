@@ -40,7 +40,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           <Grant id={destination.id} />
         </section>}
       <section>
-        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Meta</h3>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>ID</div>
@@ -119,7 +119,7 @@ export default function Destinations () {
       {!loading && (
         <div className='flex-1 flex h-full'>
           <main className='flex-1 flex flex-col space-y-4'>
-            <PageHeader header='Infrastructure' buttonHref={admin && '/destinations/add'} buttonLabel='Infrastructure' />
+            <PageHeader header='Cluster' buttonHref={admin && '/destinations/add'} buttonLabel='Cluster' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
@@ -135,11 +135,11 @@ export default function Destinations () {
                   />
                   {destinations?.length === 0 &&
                     <EmptyTable
-                      title='There is no infrastructure'
-                      subtitle='There is currently no infrastructure connected to Infra'
+                      title='There is no cluster'
+                      subtitle='There is currently no cluster connected to Infra'
                       iconPath='/destinations.svg'
                       buttonHref={admin && '/destinations/add'}
-                      buttonText='Infrastructure'
+                      buttonText='Cluster'
                     />}
                 </div>
                 )}

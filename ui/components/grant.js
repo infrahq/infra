@@ -44,6 +44,7 @@ export default function ({ id }) {
       }
 
       setName('')
+      setRole('view')
 
       return { items: [...grants.filter(grant => grant?.user !== user), data] }
     })
@@ -71,15 +72,7 @@ export default function ({ id }) {
       }
 
       if (data?.items?.length === 0) {
-        res = await fetch('/api/users', {
-          method: 'POST',
-          body: JSON.stringify({ name })
-        })
-        const user = await res.json()
-
-        await grantPrivilege(user.id)
-        setName('')
-        setRole('view')
+        setError('User does not exist')
       } else {
         grantPrivilege(data?.items?.[0]?.id)
       }
@@ -151,7 +144,7 @@ export default function ({ id }) {
         </div>}
       {list?.length === 0 && (
         <div className='text-2xs text-gray-400 italic w-2/3'>
-          *Share access to this cluster by inviting your team and assigning their roles.
+          Share access to this cluster by inviting your team and assigning their roles.
         </div>
       )}
       {grantError && <ErrorMessage message={grantError} />}

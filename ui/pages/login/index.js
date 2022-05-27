@@ -28,7 +28,7 @@ function Providers ({ providers }) {
                 ? (
                   <div className='flex flex-col items-center text-center py-0.5'>
                     <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
-                    {providers?.length > 1 && <div className='text-2xs text-gray-300'>{p.url}</div>}
+                    {providers?.length > 1 && <div className='text-2xs text-gray-300'>{p.name} - ({p.url})</div>}
                   </div>
                   )
                 : <p className='font-bold h-4 m-1'>Single Sign-On</p>}

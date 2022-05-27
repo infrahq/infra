@@ -56,7 +56,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
           <ResourcesGrant id={id} />
         </section>}
       <section>
-        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Meta</h3>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>User</div>
