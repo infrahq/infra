@@ -9,7 +9,7 @@ import (
 var (
 	Branch = "main"
 	// {x-release-please-start-version}
-	Version = "0.13.0"
+	Version = "0.13.1"
 	// {x-release-please-end}
 	Prerelease = ""
 	Metadata   = "dev"
