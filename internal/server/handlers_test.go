@@ -710,7 +710,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
+	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=%20admin", nil)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.12.2")

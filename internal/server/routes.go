@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -170,6 +171,8 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 			return
 		}
 
+		trimWhitespace(&req)
+
 		resp, err := route.handler(c, req)
 		if err != nil {
 			sendAPIError(c, err)
@@ -184,6 +187,21 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 	}
 
 	bindRoute(a, r, route.method, route.path, wrappedHandler)
+}
+
+func trimWhitespace(req interface{}) {
+	v := reflect.ValueOf(req)
+	for v.Type().Kind() == reflect.Pointer && !v.IsNil() {
+		v = v.Elem()
+	}
+	if v.Kind() == reflect.Struct {
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Field(i)
+			if f.Kind() == reflect.String {
+				f.SetString(strings.TrimSpace(f.String()))
+			}
+		}
+	}
 }
 
 func defaultResponseCodeForMethod(method string) int {
