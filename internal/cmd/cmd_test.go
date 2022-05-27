@@ -104,6 +104,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 	setup := func(t *testing.T) *ClientConfig {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
+			query := req.URL.Query()
 			switch {
 			case req.URL.Path == "/api/destinations":
 				destinations := api.ListResponse[api.Destination]{
@@ -148,7 +149,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == "/api/groups":
+			case req.URL.Path == "/api/groups" && query.Get("userID") == userID.String():
 				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
