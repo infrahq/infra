@@ -141,9 +141,15 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
+	timeout := time.Second
+	if os.Getenv("CI") != "" {
+		// CI takes much longer than local dev, use a much longer timeout
+		timeout = 20 * time.Second
+	}
+
 	term := vt10x.New(vt10x.WithWriter(tty))
 	console, err := expect.NewConsole(
-		expect.WithDefaultTimeout(2*time.Second),
+		expect.WithDefaultTimeout(timeout),
 		expect.WithStdout(os.Stdout),
 		expect.WithStdin(pseudoTY),
 		expect.WithStdout(term),
