@@ -865,7 +865,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user_id",
             "schema": {
@@ -1111,7 +1110,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -1454,7 +1452,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -1549,7 +1546,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -1644,7 +1640,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -1789,7 +1784,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user",
             "schema": {
@@ -1800,7 +1794,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "group",
             "schema": {
@@ -2059,7 +2052,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -2154,7 +2146,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -2258,7 +2249,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "userID",
             "schema": {
@@ -2470,7 +2460,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -2565,7 +2554,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -2662,7 +2650,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -3248,7 +3235,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -3343,7 +3329,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -3438,7 +3423,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -3863,7 +3847,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "group",
             "schema": {
@@ -4089,7 +4072,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,
@@ -4279,7 +4261,6 @@
             }
           },
           {
-            "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
             "required": true,

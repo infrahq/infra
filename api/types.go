@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/infrahq/infra/uid"
 )
 
@@ -29,6 +31,14 @@ func (i *IDOrSelf) UnmarshalText(b []byte) error {
 	var err error
 	i.ID, err = uid.Parse(b)
 	return err
+}
+
+func (i IDOrSelf) DescribeSchema(schema *openapi3.Schema) {
+	schema.Type = "string"
+	schema.Format = "uid|self"
+	schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}|self`
+	schema.Example = "4yJ3n3D8E2"
+	schema.Description = "a uid or the literal self"
 }
 
 type Time time.Time
@@ -91,6 +101,24 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 
 func (d Duration) String() string {
 	return time.Duration(d).String()
+}
+
+func (t Time) DescribeSchema(schema *openapi3.Schema) {
+	schema.Type = "string"
+	schema.Format = "date-time" // date-time is rfc3339
+	schema.Example = time.Date(2022, 3, 14, 9, 48, 0, 0, time.UTC).Format(time.RFC3339)
+	if len(schema.Description) == 0 {
+		schema.Description = "formatted as an RFC3339 date-time"
+	}
+}
+
+func (d Duration) DescribeSchema(schema *openapi3.Schema) {
+	schema.Type = "string"
+	schema.Format = "duration"
+	schema.Example = "72h3m6.5s"
+	if len(schema.Description) == 0 {
+		schema.Description = "a duration of time supporting (h)ours, (m)inutes, and (s)econds"
+	}
 }
 
 type ListResponse[T any] struct {
