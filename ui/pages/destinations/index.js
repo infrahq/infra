@@ -114,7 +114,7 @@ export default function Destinations () {
   return (
     <>
       <Head>
-        <title>Destinations - Infra</title>
+        <title>Infrastructure - Infra</title>
       </Head>
       {!loading && (
         <div className='flex-1 flex h-full'>
