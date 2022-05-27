@@ -18,14 +18,14 @@ type Error struct {
 func (e Error) Error() string {
 	if e.OriginalError != nil {
 		if len(e.Message) == 0 {
-			return fmt.Sprintf("Internal error:\n%v", e.OriginalError)
+			return fmt.Sprintf("Internal error: %v", e.OriginalError)
 		}
 
 		// Strip '.' at the end when message includes the original error
 		if string(e.Message[len(e.Message)-1]) == "." {
 			e.Message = e.Message[:len(e.Message)-1]
 		}
-		return fmt.Sprintf("%v:\n%v", e.Message, e.OriginalError)
+		return fmt.Sprintf("%v: %v", e.Message, e.OriginalError)
 	}
 
 	return e.Message

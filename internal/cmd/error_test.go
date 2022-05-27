@@ -15,7 +15,7 @@ func TestCLIError(t *testing.T) {
 			OriginalError: fmt.Errorf("failed, original error"),
 		}
 
-		assert.Error(t, err, "Internal error:\nfailed, original error")
+		assert.Error(t, err, "Internal error: failed, original error")
 	})
 
 	t.Run("only message", func(t *testing.T) {
@@ -32,7 +32,7 @@ func TestCLIError(t *testing.T) {
 			Message:       "failed, message",
 		}
 
-		assert.Error(t, err, "failed, message:\nfailed, original error")
+		assert.Error(t, err, "failed, message: failed, original error")
 	})
 
 	t.Run("message and error, message needs formatting", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestCLIError(t *testing.T) {
 			Message:       "failed, message.",
 		}
 
-		assert.Error(t, err, "failed, message:\nfailed, original error")
+		assert.Error(t, err, "failed, message: failed, original error")
 	})
 
 	t.Run("message and error, message needs formatting", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestCLIError(t *testing.T) {
 			Message:       "failed, message.",
 		}
 
-		assert.Error(t, err, "failed, message:\nfailed, original error")
+		assert.Error(t, err, "failed, message: failed, original error")
 	})
 
 	t.Run("unwrap", func(t *testing.T) {
