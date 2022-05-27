@@ -1,5 +1,59 @@
 # Changelog
 
+### [0.13.1](https://github.com/infrahq/infra/compare/v0.13.0...v0.13.1) (2022-05-27)
+
+
+### Features
+
+* add force flag to grants add ([67fd367](https://github.com/infrahq/infra/commit/67fd36790fa6456f2448e65cfaa1e6d9e0c3a373))
+* agent to keep kube config up to date ([#2013](https://github.com/infrahq/infra/issues/2013)) ([defcf4e](https://github.com/infrahq/infra/commit/defcf4e448b885a8f01c0fef5313b7136057a41a))
+* enable server UI by default ([c5ec0fb](https://github.com/infrahq/infra/commit/c5ec0fb787a47f40e6fb5144bd325a29597ed4b5))
+* error on removal if resource does not exist ([0af2f52](https://github.com/infrahq/infra/commit/0af2f521e45583a58fd5b9b4bfb762ccb74077af))
+* update docs ([ae47563](https://github.com/infrahq/infra/commit/ae475639aadff52bbc309606df1199bd2ab0a8ba))
+
+
+### Bug Fixes
+
+* a few bugs on grants and deletion ([#2061](https://github.com/infrahq/infra/issues/2061)) ([0537f93](https://github.com/infrahq/infra/commit/0537f939ebddf64792ce8eb55e4afce1d5b0f4eb))
+* add singular alias for users ([#1951](https://github.com/infrahq/infra/issues/1951)) ([afc482a](https://github.com/infrahq/infra/commit/afc482a95a7e7549995016ea2cf17eeb71b6afbf))
+* allow non email usernames ([#2069](https://github.com/infrahq/infra/issues/2069)) ([f5508ee](https://github.com/infrahq/infra/commit/f5508ee9b160f4e99e6782d375aa120e9d7d40bc))
+* allow password and accesskey on config user ([#2037](https://github.com/infrahq/infra/issues/2037)) ([5c04561](https://github.com/infrahq/infra/commit/5c0456163e60256b105bde60f0d1333a0fb3be05))
+* client requests should time out ([#1966](https://github.com/infrahq/infra/issues/1966)) ([98aa32f](https://github.com/infrahq/infra/commit/98aa32ffb0966cc4438b5b7392bf8e72f9a4ca1c))
+* dashboard loading and redirect states ([#2049](https://github.com/infrahq/infra/issues/2049)) ([815d317](https://github.com/infrahq/infra/commit/815d3173ab197d787f734203bc1e339d8dd192ea))
+* do not show --skipTLSVerify in helm command if using https ([#2070](https://github.com/infrahq/infra/issues/2070)) ([c2ac1e6](https://github.com/infrahq/infra/commit/c2ac1e60dbd578861d3359d073f9f805c27de91e))
+* docker image build sets correct version string ([2fbef36](https://github.com/infrahq/infra/commit/2fbef3628d5189a0637e68f350a0ab6174b3da8e))
+* documentation fixes ([#1960](https://github.com/infrahq/infra/issues/1960)) ([10cb28f](https://github.com/infrahq/infra/commit/10cb28f2043d3da29a8bead8c0a1343e6b6f1949))
+* fail fast on duplicate config access key ([#2046](https://github.com/infrahq/infra/issues/2046)) ([42d938f](https://github.com/infrahq/infra/commit/42d938f64ea943cc14cbb091b13bfd1a0702f003))
+* fix make helm target ([#2092](https://github.com/infrahq/infra/issues/2092)) ([c76e1b3](https://github.com/infrahq/infra/commit/c76e1b3daad15772b5350a000eb73777be4f0394))
+* fix prerelease docker build ([#2035](https://github.com/infrahq/infra/issues/2035)) ([db3adda](https://github.com/infrahq/infra/commit/db3addab66d3ae94f1621b18a7a32b229bd6ba86))
+* fix ui build in release action ([#2044](https://github.com/infrahq/infra/issues/2044)) ([febe197](https://github.com/infrahq/infra/commit/febe19702121acc823daeceeebda926124a1743c))
+* keep jwt nonce for version compatibility ([#2086](https://github.com/infrahq/infra/issues/2086)) ([172641d](https://github.com/infrahq/infra/commit/172641d0ae5483e0071454b1794e06e6b143ed4e))
+* missing delete modal setOpen hooks ([#2052](https://github.com/infrahq/infra/issues/2052)) ([09d06da](https://github.com/infrahq/infra/commit/09d06dae62e498bc856185fa9bd688b7babe146c))
+* no http path, method in errors ([2e8d94c](https://github.com/infrahq/infra/commit/2e8d94c989d488e64b6663e44cc20d0eaa69c2e3))
+* openapi gen should not set -dev version in release branches ([0463e28](https://github.com/infrahq/infra/commit/0463e2836226a14953bb98ff7930e3411b8d61bf))
+* optional grant role ([b8f281d](https://github.com/infrahq/infra/commit/b8f281d5dabe0bdb4dabeb925a2af2aa415c45a8))
+* pass the userID arg to the request ([#2097](https://github.com/infrahq/infra/issues/2097)) ([de675ce](https://github.com/infrahq/infra/commit/de675ce856b4e2072bb30b5554834d45b160d532))
+* prevent invalid cross-device link error ([f24011d](https://github.com/infrahq/infra/commit/f24011dd5d8e934e02c385498354378f5c01699f))
+* properly account for .items in destination connectivity check ([#2059](https://github.com/infrahq/infra/issues/2059)) ([b7a466e](https://github.com/infrahq/infra/commit/b7a466eaf922b3b0cb7c0a23626a8c455430fa31))
+* readme-compatible openapi spec ([#1954](https://github.com/infrahq/infra/issues/1954)) ([034b110](https://github.com/infrahq/infra/commit/034b11082edbd59067c954f03d731a85291c881f))
+* remove BUILDVERSION from makefile ([aba1048](https://github.com/infrahq/infra/commit/aba10484da46358a347c61bef3316ea6099a4115))
+* remove deprecated routes from openapi doc ([20f38d4](https://github.com/infrahq/infra/commit/20f38d4c76a32c2ce73e52984721839c3bff9891))
+* remove incorrect connection field until we update the api to support this ([#2062](https://github.com/infrahq/infra/issues/2062)) ([a38cdf8](https://github.com/infrahq/infra/commit/a38cdf82a323eeae48fc11d919e3524b098e1a39))
+* remove infra user role from docs ([#1961](https://github.com/infrahq/infra/issues/1961)) ([3033a3b](https://github.com/infrahq/infra/commit/3033a3b61730b93a4739a18f8093153f02bef08d))
+* remove redirect to /login when logging in with otp ([#2071](https://github.com/infrahq/infra/issues/2071)) ([cf5140e](https://github.com/infrahq/infra/commit/cf5140e0582b68cfcc9fbdb6e941cfb84894cc03))
+* remove unneeded jwt nonce ([#2015](https://github.com/infrahq/infra/issues/2015)) ([157e558](https://github.com/infrahq/infra/commit/157e55802423ed25cc5a0f2c907c2b30125c18a4))
+* rename /v1/ to /api/ in docs concepts ([#2093](https://github.com/infrahq/infra/issues/2093)) ([5bca519](https://github.com/infrahq/infra/commit/5bca519410e37e9b5ce3c1d6e2c0328e78afa1f8))
+* revert "improve: support cli error struct  ([#1936](https://github.com/infrahq/infra/issues/1936))" ([27d724e](https://github.com/infrahq/infra/commit/27d724eb79a6627e1edfc614e1a3c8b5db5725f4))
+* run standard and include it in ui tests ([#2055](https://github.com/infrahq/infra/issues/2055)) ([5b1e90e](https://github.com/infrahq/infra/commit/5b1e90e41b502398d6340d1529d46e30d123039b))
+* set default key name from identity and key id ([#1985](https://github.com/infrahq/infra/issues/1985)) ([402b6c7](https://github.com/infrahq/infra/commit/402b6c7f68bd00eaf0018c9f2e6ecdbd8b03477b))
+* ui api item caching and login flow ([#2057](https://github.com/infrahq/infra/issues/2057)) ([ce069bc](https://github.com/infrahq/infra/commit/ce069bc58f854c17ef0e66ed4d143ebf4f56b67e))
+* ui infrastructure page title ([#2094](https://github.com/infrahq/infra/issues/2094)) ([a0ad5cb](https://github.com/infrahq/infra/commit/a0ad5cbd63c45b55c7fdafda0082e945b1e79bc9))
+* ui showing NaN in relative time fields ([#2058](https://github.com/infrahq/infra/issues/2058)) ([55e0143](https://github.com/infrahq/infra/commit/55e01436428eb42ba741333e4c7d3d30f7799318))
+* ui users add fullscreen layout fixes ([#2050](https://github.com/infrahq/infra/issues/2050)) ([da2e576](https://github.com/infrahq/infra/commit/da2e5761367124b6c12dd0bb8a6f3ac356434cc8))
+* unset CurrentContext on infra logout ([963e5d6](https://github.com/infrahq/infra/commit/963e5d6274d94899e4654af849d0403d889ea6a1))
+* use GITHUB_HEAD_REF instead of GITHUB_REF_NAME ([c39cbc0](https://github.com/infrahq/infra/commit/c39cbc08d4278760387de5bf2e425320d2d653a0))
+* users icon frame size ([#2048](https://github.com/infrahq/infra/issues/2048)) ([4600ab4](https://github.com/infrahq/infra/commit/4600ab436efe5314302bc7836deff2d322343d3e))
+
 ## [0.13.0](https://github.com/infrahq/infra/compare/v0.12.2...v0.13.0) (2022-05-12)
 
 

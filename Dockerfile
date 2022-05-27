@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go install -v -installsuffix cgo -a std
 
 ARG TARGETARCH
 # {x-release-please-start-version}
-ARG BUILDVERSION=0.13.0
+ARG BUILDVERSION=0.13.1
 # {x-release-please-end}
 ARG BUILDVERSION_PRERELEASE
 ARG BUILDVERSION_METADATA
