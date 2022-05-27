@@ -18,7 +18,7 @@ type Error struct {
 func (e Error) Error() string {
 	if e.OriginalError != nil {
 		if len(e.Message) == 0 {
-			return fmt.Sprintf("Internal error: %v", e.OriginalError)
+			return fmt.Sprintf("Error: %v", e.OriginalError)
 		}
 
 		// Strip '.' at the end when message includes the original error
