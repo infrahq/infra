@@ -4,16 +4,19 @@ env:
   # TODO (https://github.com/infrahq/infra/issues/65)
   - CGO_ENABLED=0
   - GO111MODULE=on
+  - BUILDVERSION_PRERELEASE={{ if index .Env "BUILDVERSION_PRERELEASE" }}{{ .Env.BUILDVERSION_PRERELEASE }}{{ end }}
+  - BUILDVERSION_METADATA={{ if index .Env "BUILDVERSION_METADATA" }}{{ .Env.BUILDVERSION_METADATA }}{{ end }}
 project_name: infra
 builds:
   - id: infra
     ldflags:
       - -s -w
         -X github.com/infrahq/infra/internal.Branch={{ .Branch }}
-        -X github.com/infrahq/infra/internal.Version={{ .Version }}
+        -X github.com/infrahq/infra/internal.Version={{ .RawVersion }}
         -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
         -X github.com/infrahq/infra/internal.Date={{ .Date }}
-        -X github.com/infrahq/infra/internal.PrereleaseTag=
+        -X github.com/infrahq/infra/internal.Prerelease={{ .Env.BUILDVERSION_PRERELEASE }}
+        -X github.com/infrahq/infra/internal.Metadata={{ .Env.BUILDVERSION_METADATA }}
     binary: infra
     main: ./main.go
     goos:
