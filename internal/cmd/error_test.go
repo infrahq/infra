@@ -15,7 +15,7 @@ func TestCLIError(t *testing.T) {
 			OriginalError: fmt.Errorf("failed, original error"),
 		}
 
-		assert.Error(t, err, "Internal error: failed, original error")
+		assert.Error(t, err, "Error: failed, original error")
 	})
 
 	t.Run("only message", func(t *testing.T) {
