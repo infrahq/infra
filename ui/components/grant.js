@@ -64,7 +64,7 @@ export default function ({ id }) {
   const handleShareGrant = async () => {
     setError('')
     try {
-      let res = await fetch(`/api/users?name=${name}`)
+      const res = await fetch(`/api/users?name=${name}`)
       const data = await res.json()
 
       if (!res.ok) {
