@@ -18,7 +18,7 @@ etc.) which define the _verbs_.
 Any good API requires a lot of thought and consideration. Good APIs stick
 around for years and are difficult to change once released. When designing your
 feature, think about what resources you will need and what types of actions
-will be performed on those resources. 
+will be performed on those resources.
 
 Key things to think about:
   * What types of resources will we expose?
@@ -131,7 +131,7 @@ set with the MIME type _application/json_.
 ### Creating a resource
 
 To ***Create*** a new resource, use the HTTP ***POST*** method along with a JSON request body which includes each of the
-necessary fields. 
+necessary fields.
 
 The new resource which was created should be returned as a new JSON document as part of the response body with MIME type
 _application/json_. Any fields which were optional in the request should be added by the server, and any timestamp fields
@@ -166,7 +166,7 @@ delete a large number of resources, consider using a _custom method_ using the H
 ### Custom methods
 
 The vast majority of methods for your API should use the standard CRUD methods if possible. This makes it easier for
-developers to more easily understand how your API works, and also makes it easier to implement a client which 
+developers to more easily understand how your API works, and also makes it easier to implement a client which
 works with your API.
 
 There are a few custom methods which tend to crop up from time to time, including:
@@ -178,7 +178,7 @@ There are a few custom methods which tend to crop up from time to time, includin
 We don't currently have any long running (batch), bulk operations, or search methods as part of our API, but may add them
 in the future. This document will be updated with additional requirements and guidelines.
 
-Custom methods should use the HTTP ***POST*** method call. 
+Custom methods should use the HTTP ***POST*** method call.
 
 ## Return Payloads
 
@@ -255,7 +255,7 @@ We currently use the following status codes when the API returns:
 
 | Status | Type                  |
 | :----- | :---                  |
-| 200    | Success               | 
+| 200    | Success               |
 | 201    | Created               |
 | 204    | No content            |
 | 400    | Bad request           |
@@ -267,7 +267,7 @@ We currently use the following status codes when the API returns:
 | 502    | Bad gateway           |
 
 We use a standard format for returning an error:
- 
+
 ```
 {
  "code": <Status code>,
