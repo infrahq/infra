@@ -21,7 +21,7 @@ func main() {
 		case errors.As(err, &userErr):
 			fmt.Fprintln(os.Stderr, userErr.Error())
 		default:
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Internal error:\n%v\n", err)
 		}
 
 		os.Exit(1)
