@@ -41,8 +41,7 @@ func TestLoginCmd(t *testing.T) {
 
 	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
 	go func() {
-		err := srv.Run(ctx)
-		assert.Check(t, err)
+		assert.Check(t, srv.Run(ctx))
 	}()
 
 	runStep(t, "first login prompts for setup", func(t *testing.T) {
