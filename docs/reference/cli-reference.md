@@ -188,7 +188,7 @@ $ infra destinations remove docker-desktop
 ### Options
 
 ```
-      --force   Remove destination even if it does not exist
+      --force   Exit successfully even if destination does not exist
 ```
 
 ### Options inherited from parent commands
@@ -247,7 +247,7 @@ $ infra grants add johndoe@example.com infra --role admin
 ### Options
 
 ```
-      --force         Create grant even if requested resources are missing
+      --force         Create grant even if requested user, destination, or role are unknown
   -g, --group         Required if identity is of type 'group'
       --role string   Type of access that identity will be given (default "connect")
 ```
@@ -287,7 +287,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 ### Options
 
 ```
-      --force         Remove grant even if it does not exist
+      --force         Exit successfully even if grant does not exist
   -g, --group         Group to revoke access from
       --role string   Role to revoke
 ```
@@ -388,7 +388,7 @@ $ infra users remove janedoe@example.com
 ### Options
 
 ```
-      --force   Remove user even if it does not exist
+      --force   Exit successfully even if user does not exist
 ```
 
 ### Options inherited from parent commands
@@ -466,7 +466,7 @@ infra keys remove KEY [flags]
 ### Options
 
 ```
-      --force   Remove access key even if it does not exist
+      --force   Exit successfully even if access key does not exist
 ```
 
 ### Options inherited from parent commands
@@ -543,7 +543,7 @@ $ infra providers remove okta
 ### Options
 
 ```
-      --force   Remove provider even if it does not exist
+      --force   Exit successfully even if provider does not exist
 ```
 
 ### Options inherited from parent commands
