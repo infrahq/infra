@@ -154,7 +154,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Group to revoke access from")
 	cmd.Flags().StringVar(&options.Role, "role", "", "Role to revoke")
-	cmd.Flags().BoolVar(&options.Force, "force", false, "Remove grant even if it does not exist")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Exit successfully even if grant does not exist")
 
 	return cmd
 }
@@ -224,7 +224,7 @@ $ infra grants add johndoe@example.com infra --role admin
 
 	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Required if identity is of type 'group'")
 	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that identity will be given")
-	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested resources are missing")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
 	return cmd
 }
 

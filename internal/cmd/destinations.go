@@ -106,7 +106,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Remove destination even if it does not exist")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if destination does not exist")
 
 	return cmd
 }

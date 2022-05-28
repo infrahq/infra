@@ -174,7 +174,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Remove provider even if it does not exist")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if provider does not exist")
 
 	return cmd
 }

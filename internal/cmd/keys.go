@@ -134,7 +134,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Remove access key even if it does not exist")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if access key does not exist")
 
 	return cmd
 }
