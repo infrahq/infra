@@ -45,8 +45,10 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
   const { data: user } = useSWR(`/api/users/${id}`)
   const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
-
+  
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  
+  const infraRole = grants?.filter(g => g.resource === 'infra')?.[0]?.privilege
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
@@ -64,7 +66,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Infra Role</div>
-            <div className='text-2xs'>{grants?.filter(g => g.resource === 'infra').find(g => g.privilege === 'admin') ? 'Admin' : 'View'}</div>
+            <div className='text-2xs'>{infraRole ? infraRole : '-'}</div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Created</div>
