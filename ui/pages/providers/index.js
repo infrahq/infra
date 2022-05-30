@@ -31,40 +31,42 @@ const columns = [{
   Cell: ({ value: provider }) => (
     <div className='text-3xs text-gray-400 font-mono'>{provider.url}</div>
   )
-}, {
-  id: 'delete',
-  accessor: p => p,
-  Cell: ({ value: provider, rows }) => {
-    const { mutate } = useSWRConfig()
+}
+// , {
+//   id: 'delete',
+//   accessor: p => p,
+//   Cell: ({ value: provider, rows }) => {
+//     const { mutate } = useSWRConfig()
 
-    const [open, setOpen] = useState(false)
+//     const [open, setOpen] = useState(false)
 
-    return (
-      <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-        <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
-          <XIcon className='w-4 h-4 text-gray-500 hover:text-white' />
-        </button>
-        <DeleteModal
-          open={open}
-          setOpen={setOpen}
-          onSubmit={() => {
-            mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
-              await fetch(`/api/providers/${provider.id}`, {
-                method: 'DELETE'
-              })
+//     return (
+//       <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
+//         <button onClick={() => setOpen(true)} className='p-2 -mr-2 cursor-pointer'>
+//           <XIcon className='w-4 h-4 text-gray-500 hover:text-white' />
+//         </button>
+//         <DeleteModal
+//           open={open}
+//           setOpen={setOpen}
+//           onSubmit={() => {
+//             mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
+//               await fetch(`/api/providers/${provider.id}`, {
+//                 method: 'DELETE'
+//               })
 
-              return { items: providers.filter(p => p?.id !== provider.id) }
-            }, { optimisticData: { items: rows.map(r => r.original).filter(p => p?.id !== provider.id) } })
+//               return { items: providers.filter(p => p?.id !== provider.id) }
+//             }, { optimisticData: { items: rows.map(r => r.original).filter(p => p?.id !== provider.id) } })
 
-            setOpen(false)
-          }}
-          title='Remove Identity Provider'
-          message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider.name}</span>? This action cannot be undone.</>)}
-        />
-      </div>
-    )
-  }
-}]
+//             setOpen(false)
+//           }}
+//           title='Remove Identity Provider'
+//           message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider.name}</span>? This action cannot be undone.</>)}
+//         />
+//       </div>
+//     )
+//   }
+// }
+]
 
 export default function Providers () {
   const { data: { items: providers } = {}, error } = useSWR('/api/providers')
