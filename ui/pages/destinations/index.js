@@ -135,7 +135,7 @@ export default function Destinations () {
                   />
                   {destinations?.length === 0 &&
                     <EmptyTable
-                      title='There is no cluster'
+                      title='There are no clusters'
                       subtitle='There is currently no cluster connected to Infra'
                       iconPath='/destinations.svg'
                       buttonHref={admin && '/destinations/add'}

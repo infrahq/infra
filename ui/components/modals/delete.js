@@ -1,7 +1,7 @@
 import { Dialog } from '@headlessui/react'
 import { ExclamationIcon } from '@heroicons/react/outline'
 
-export default function ({ open, setOpen, onSubmit, title, message, actionBtnTitle = 'Remove' }) {
+export default function ({ open, setOpen, onSubmit, title, message, primaryButtonText = 'Remove' }) {
   return (
     <Dialog as='div' className='fixed z-10 inset-0 overflow-y-auto flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center' open={open} onClose={() => setOpen && setOpen(false)}>
       <Dialog.Overlay className='fixed inset-0 bg-black bg-opacity-80 transition-opacity' />
@@ -21,7 +21,7 @@ export default function ({ open, setOpen, onSubmit, title, message, actionBtnTit
             className='border border-violet-300 text-violet-100 focus:outline-violet-100 focus:text-white outline-offset-0 leading-none rounded-md text-2xs px-8'
             onClick={() => onSubmit()}
           >
-            {actionBtnTitle}
+            {primaryButtonText}
           </button>
           <button
             type='button'

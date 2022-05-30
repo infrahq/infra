@@ -36,7 +36,7 @@ function Grant ({ id, userID, grants }) {
         <DeleteModal
           open={open}
           setOpen={setOpen}
-          actionBtnTitle='Revoke'
+          primaryButtonText='Revoke'
           onSubmit={() => {
             mutate('/api/grants?resource=infra&privilege=admin', async ({ items: grants } = { items: [] }) => {
               await fetch(`/api/grants/${id}`, { method: 'DELETE' })
