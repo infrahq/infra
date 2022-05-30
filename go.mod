@@ -27,7 +27,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.7
 	gorm.io/driver/sqlite v1.3.2
-	gorm.io/gorm v1.23.4
+	gorm.io/gorm v1.23.5
 	k8s.io/api v0.23.6
 	k8s.io/apimachinery v0.23.6
 	k8s.io/client-go v0.23.6
@@ -40,7 +40,7 @@ require (
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
-	github.com/go-gormigrate/gormigrate/v2 v2.0.1
+	github.com/go-gormigrate/gormigrate/v2 v2.0.2
 	github.com/google/go-cmp v0.5.8
 	github.com/iancoleman/strcase v0.2.0
 	github.com/infrahq/secrets v0.0.0-20220419190655-ce9f012a8941
