@@ -23,7 +23,7 @@ function Grant ({ id, userID, grants }) {
       <div className='flex flex-1 items-center space-x-4 py-1'>
         <div className='border border-violet-300/20 flex-none flex items-center justify-center w-8 h-8 rounded-lg'>
           <div className='relative text-center border border-violet-300/40 flex-none text-gray-500 flex justify-center items-center text-sm w-6 h-6 rounded-[4px]'>
-          <span className='absolute inset-x-0 -mt-0.5'>{user?.name?.[0]}</span>
+            <span className='absolute inset-x-0 -mt-0.5'>{user?.name?.[0]}</span>
           </div>
         </div>
         <div className='flex flex-col leading-tight'>
