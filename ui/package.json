@@ -11,7 +11,7 @@
     "export": "next export"
   },
   "dependencies": {
-    "@headlessui/react": "^1.6.1",
+    "@headlessui/react": "^1.6.4",
     "@heroicons/react": "^1.0.6",
     "copy-to-clipboard": "^3.3.1",
     "dayjs": "^1.11.2",
