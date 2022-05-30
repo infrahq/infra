@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 func TestSendAPIError(t *testing.T) {
@@ -47,23 +48,19 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusForbidden, Message: "forbidden"},
 		},
 		{
-			err:    internal.ErrDuplicate,
-			result: api.Error{Code: http.StatusConflict, Message: "duplicate record"},
-		},
-		{
-			err: fmt.Errorf("%w: nope too many", internal.ErrDuplicate),
-			result: api.Error{
-				Code:    http.StatusConflict,
-				Message: "duplicate record: nope too many",
-			},
-		},
-		{
 			err:    internal.ErrNotFound,
 			result: api.Error{Code: http.StatusNotFound, Message: "record not found"},
 		},
 		{
 			err:    internal.ErrNotImplemented,
 			result: api.Error{Code: http.StatusNotImplemented, Message: "not implemented"},
+		},
+		{
+			err: data.UniqueConstraintError{Table: "user", Column: "name"},
+			result: api.Error{
+				Code:    http.StatusConflict,
+				Message: "value for name already exists in user",
+			},
 		},
 		{
 			err: validate.Struct(struct {

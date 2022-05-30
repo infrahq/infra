@@ -50,7 +50,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 		b := bond
 		b.ID = 0
 		err := CreateIdentity(db, &b)
-		assert.ErrorContains(t, err, "duplicate record")
+		assert.ErrorContains(t, err, "value for name already exists in identities")
 	})
 }
 
@@ -228,7 +228,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				err = SaveIdentity(db, identity)
 				assert.NilError(t, err)
 
-				// setup provuderUser record
+				// setup providerUser record
 				provider := InfraProvider(db)
 				pu, err := CreateProviderUser(db, provider, identity)
 				assert.NilError(t, err)

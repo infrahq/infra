@@ -149,7 +149,7 @@ type UniqueConstraintError struct {
 }
 
 func (e UniqueConstraintError) Error() string {
-	return fmt.Sprintf("value for %v already exist in %v", e.Column, e.Table)
+	return fmt.Sprintf("value for %v already exists in %v", e.Column, e.Table)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it

@@ -70,10 +70,17 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 			groupID = group.ID
 		}
 
-		// add user to group
-		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
-		if err != nil {
-			return fmt.Errorf("insert: %w", handleError(err))
+		var ids []uid.ID
+		if err := db.Raw("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID).Scan(&ids).Error; err != nil {
+			return fmt.Errorf("select: %w", handleError(err))
+		}
+
+		if len(ids) == 0 {
+			// add user to group
+			err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
+			if err != nil {
+				return fmt.Errorf("insert: %w", handleError(err))
+			}
 		}
 
 		user.Groups = append(user.Groups, models.Group{Model: models.Model{ID: groupID}, Name: name})
