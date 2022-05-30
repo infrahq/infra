@@ -56,7 +56,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           </div>
         </div>
       </section>
-      <section className='flex-1 flex flex-col items-end justify-end py-6'>
+      {admin &&<section className='flex-1 flex flex-col items-end justify-end py-6'>
         <button
           type='button'
           onClick={() => setDeleteModalOpen(true)}
@@ -82,7 +82,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           title='Remove Cluster'
           message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
         />
-      </section>
+      </section>}
     </div>
   )
 }

@@ -20,7 +20,7 @@ const columns = [{
   accessor: u => u,
   Cell: ({ value: user }) => (
     <div className='flex items-center py-1.5'>
-      <ProfileIcon name={user.name[0]} />
+      <ProfileIcon name={user.name[0]} size='28px' />
       <div className='flex flex-col leading-tight ml-3'>
         <div className='text-subtitle'>{user.name}</div>
       </div>
