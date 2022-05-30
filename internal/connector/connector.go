@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -514,8 +515,8 @@ func Run(ctx context.Context, options Options) error {
 			destination.Roles = clusterRoles
 			fallthrough
 
-		case destination.Connection.CA != string(caCertPEM):
-			destination.Connection.CA = string(caCertPEM)
+		case !bytes.Equal(destination.Connection.CA, caCertPEM):
+			destination.Connection.CA = caCertPEM
 			fallthrough
 
 		case destination.Connection.URL != endpoint:
