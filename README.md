@@ -25,7 +25,11 @@ If you don't have an identity provider, Infra supports local users for you to ge
 
 * [Quickstart](https://infrahq.com/docs/getting-started/quickstart)
 
-## Learn More 
+## Documentation
 * [Why Infra](https://infrahq.com/docs/getting-started/introduction)
 * [Key concepts](https://infrahq.com/docs/getting-started/key-concepts)
 * [Security](https://infrahq.com/docs/reference/security)
+
+## Community
+* [Community Forum](https://github.com/infrahq/infra/discussions) Best for: help with building, discussion about infrastructure access best practices.
+* [GitHub Issues](https://github.com/infrahq/infra/issues) Best for: bugs and errors you encounter using Infra.
