@@ -56,33 +56,34 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           </div>
         </div>
       </section>
-      <section className='flex-1 flex flex-col items-end justify-end py-6'>
-        <button
-          type='button'
-          onClick={() => setDeleteModalOpen(true)}
-          className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
-        >
-          Remove
-        </button>
-        <DeleteModal
-          open={deleteModalOpen}
-          setOpen={setDeleteModalOpen}
-          onSubmit={async () => {
-            mutate('/api/destinations', async ({ items: destinations } = { items: [] }) => {
-              await fetch(`/api/destinations/${destination.id}`, {
-                method: 'DELETE'
+      {admin &&
+        <section className='flex-1 flex flex-col items-end justify-end py-6'>
+          <button
+            type='button'
+            onClick={() => setDeleteModalOpen(true)}
+            className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
+          >
+            Remove
+          </button>
+          <DeleteModal
+            open={deleteModalOpen}
+            setOpen={setDeleteModalOpen}
+            onSubmit={async () => {
+              mutate('/api/destinations', async ({ items: destinations } = { items: [] }) => {
+                await fetch(`/api/destinations/${destination.id}`, {
+                  method: 'DELETE'
+                })
+
+                return { items: destinations.filter(d => d?.id !== destination.id) }
               })
 
-              return { items: destinations.filter(d => d?.id !== destination.id) }
-            })
-
-            setDeleteModalOpen(false)
-            setSelectedDestination(null)
-          }}
-          title='Remove Cluster'
-          message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
-        />
-      </section>
+              setDeleteModalOpen(false)
+              setSelectedDestination(null)
+            }}
+            title='Remove Cluster'
+            message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
+          />
+        </section>}
     </div>
   )
 }
