@@ -118,8 +118,9 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		}
 
 		var (
-			url, ca string
-			exists  bool
+			url    string
+			ca     []byte
+			exists bool
 		)
 
 		for _, d := range destinations {
@@ -148,7 +149,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		logging.S.Debugf("creating kubeconfig for %s", context)
 
 		// get TLS server name from the certificate
-		block, _ := pem.Decode([]byte(ca))
+		block, _ := pem.Decode(ca)
 		if block == nil {
 			return fmt.Errorf("unknown certificate format")
 		}
@@ -164,7 +165,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
 			Server:                   u.String(),
-			CertificateAuthorityData: []byte(ca),
+			CertificateAuthorityData: ca,
 		}
 
 		kubeConfig.Contexts[context] = &clientcmdapi.Context{

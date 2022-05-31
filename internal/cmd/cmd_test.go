@@ -80,7 +80,7 @@ func TestUse(t *testing.T) {
 
 	userID := uid.New()
 	destinationID := uid.New()
-	ca := `-----BEGIN CERTIFICATE-----
+	ca := []byte(`-----BEGIN CERTIFICATE-----
 MIIDazCCAlOgAwIBAgIUETRDuZAQHGhiH11GNsXn16n9t48wDQYJKoZIhvcNAQEL
 BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
 GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMjA0MTIyMTAzMDhaFw0yNDA0
@@ -100,7 +100,7 @@ DGA8pCAllFTiz6ibf8IuVnCype4lLbJ19am648IllV97Dwo/gnlF08ozWai2mx6l
 swYRJSf2bpBsW0Hiqx6WlLUETieVJF9gld0FZSG5Vix0y0IdPEZD5ACbM5G2X4QB
 XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 7Crix1N6DuA9FeukBz2M
------END CERTIFICATE-----`
+-----END CERTIFICATE-----`)
 
 	setup := func(t *testing.T) *ClientConfig {
 		handler := func(resp http.ResponseWriter, req *http.Request) {

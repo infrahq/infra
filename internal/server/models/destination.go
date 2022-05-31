@@ -26,7 +26,7 @@ func (d *Destination) ToAPI() *api.Destination {
 		UniqueID: d.UniqueID,
 		Connection: api.DestinationConnection{
 			URL: d.ConnectionURL,
-			CA:  d.ConnectionCA,
+			CA:  []byte(d.ConnectionCA),
 		},
 		Resources: d.Resources,
 		Roles:     d.Roles,

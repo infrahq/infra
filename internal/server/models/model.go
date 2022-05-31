@@ -8,7 +8,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// Modelable is an interface that determines if a struct is a model. It's simply models that compose models.Model
+// Modelable is an interface that determines if a struct is a model. It's simply models that compose models.Model.
+// This exists for generics to be able to constrain _any_ down to our set of models.
 type Modelable interface {
 	IsAModel() // there's nothing specific about this function except that all Model structs will have it.
 }

@@ -743,6 +743,46 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 }
 
+func TestAPI_TrimRequestStrings(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	userID := uid.New()
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
+		User:      userID,
+		Group:     uid.New(),
+		Privilege: "admin   ",
+		Resource:  " kubernetes.production.*",
+	}))
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.13.1")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusCreated)
+
+	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.13.1")
+
+	resp = httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	rb := &api.ListResponse[api.Grant]{}
+	err = json.Unmarshal(resp.Body.Bytes(), rb)
+	assert.NilError(t, err)
+
+	i := 0
+	for rb.Items[i].Resource == "infra" {
+		i++
+	}
+	assert.Equal(t, "admin", rb.Items[i].Privilege)
+	assert.Equal(t, "kubernetes.production.*", rb.Items[i].Resource)
+}
+
 // cmpApproximateTime is a gocmp.Option that compares a time formatted as an
 // RFC3339 string. The times may be up to 2 seconds different from each other,
 // to account for the runtime of a test.
