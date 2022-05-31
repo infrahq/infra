@@ -170,7 +170,7 @@ $ infra users remove janedoe@example.com`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Remove user even if it does not exist")
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if user does not exist")
 
 	return cmd
 }
