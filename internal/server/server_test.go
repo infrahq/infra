@@ -239,6 +239,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 	type testCase struct {
 		name     string
 		path     string
+		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
@@ -252,6 +253,11 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
 		resp := httptest.NewRecorder()
 		router.ServeHTTP(resp, req)
 
@@ -263,8 +269,11 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "/api path prefix",
+			name: "Using application/json",
 			path: "/api/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Accept", "application/json; charset=utf-8")
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				contentType := resp.Header().Get("Content-Type")
 				expected := "application/json; charset=utf-8"
@@ -272,11 +281,51 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			},
 		},
 		{
-			name: "ui path",
+			name: "text/html",
 			path: "/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Accept", "text/html")
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				// response should have an html body
 				assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
+
+			},
+		},
+		{
+			name: "browser text/html",
+			path: "/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				browserAccept := []string{"text/html", "application/xhtml+xml",
+					"application/xml;q=0.9", "image/webp", "image/apng", "*/*;q=0.8"}
+				// this order is used in Safari/Chrome
+				for _, ah := range browserAccept {
+					req.Header.Add("Accept", ah)
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should have an html body
+				assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
+
+			},
+		},
+		{
+			name: "Other type",
+			path: "/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Accept", "*/*")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should be plaintext
+				assert.Equal(t, "404 not found", resp.Body.String())
+			},
+		},
+		{
+			name: "No header",
+			path: "/not/found/again",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should be plaintext
+				assert.Equal(t, "404 not found", resp.Body.String())
 			},
 		},
 	}
