@@ -1,6 +1,9 @@
 package cmd
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // CLI Errors are user facing errors that are formatted.
 // Should be used for communication, rather than a stacktrace.
@@ -18,14 +21,11 @@ type Error struct {
 func (e Error) Error() string {
 	if e.OriginalError != nil {
 		if len(e.Message) == 0 {
-			return fmt.Sprintf("Internal error:\n%v", e.OriginalError)
+			return fmt.Sprintf("Error: %v", e.OriginalError)
 		}
 
 		// Strip '.' at the end when message includes the original error
-		if string(e.Message[len(e.Message)-1]) == "." {
-			e.Message = e.Message[:len(e.Message)-1]
-		}
-		return fmt.Sprintf("%v:\n%v", e.Message, e.OriginalError)
+		return fmt.Sprintf("%s: %v", strings.TrimSuffix(e.Message, "."), e.OriginalError)
 	}
 
 	return e.Message
