@@ -55,10 +55,13 @@ function Grant ({ id, userID, grants }) {
 
 export default function () {
   const { data: { items: grants } = {} } = useSWR(() => '/api/grants?resource=infra&privilege=admin', { fallbackData: [] })
+  const { data: auth } = useSWR('/api/users/self')
   const { mutate } = useSWRConfig()
 
   const [name, setName] = useState('')
   const [error, setError] = useState('')
+
+  const sortedGrants = grants && [...grants?.filter((g) => g.user === auth.id), ...grants?.filter((g) => g.user !== auth.id).sort((a, b) => (a.user).localeCompare(b.user))]
 
   const grantAdminAccess = id => {
     fetch('/api/grants', {
@@ -131,8 +134,8 @@ export default function () {
           <ErrorMessage message={error} />
         </div>}
       <h4 className='text-gray-400 my-3 text-2xs'>These users have full administration privileges</h4>
-      {grants?.map(g => (
-        <Grant key={g.id} id={g.id} userID={g.user} grants={grants} />
+      {sortedGrants?.map(g => (
+        <Grant key={g.id} id={g.id} userID={g.user} grants={sortedGrants} />
       ))}
     </div>
   )

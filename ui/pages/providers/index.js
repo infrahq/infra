@@ -69,7 +69,7 @@ const columns = [{
 export default function Providers () {
   const { data: { items: providers } = {}, error } = useSWR('/api/providers')
 
-  const table = useTable({ columns, data: providers || [] })
+  const table = useTable({ columns, data: providers?.sort((a, b) => (b.created).localeCompare(a.created)) || [] })
 
   const loading = !providers && !error
 
