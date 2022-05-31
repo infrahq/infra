@@ -4,8 +4,9 @@ import useSWR, { useSWRConfig } from 'swr'
 
 import { useAdmin } from '../../lib/admin'
 import ProfileIcon from '../profile-icon'
+import AuthRequired from '../auth-required'
 
-export default function ({ children }) {
+function Dashboard ({ children }) {
   const router = useRouter()
   const { data: auth } = useSWR('/api/users/self')
   const { data: version } = useSWR('/api/version')
@@ -101,5 +102,15 @@ export default function ({ children }) {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function ({ children }) {
+  return (
+    <AuthRequired>
+      <Dashboard>
+        {children}
+      </Dashboard>
+    </AuthRequired>
   )
 }

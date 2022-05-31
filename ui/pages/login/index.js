@@ -77,17 +77,16 @@ export default function Login () {
 
       const data = await res.json()
 
-      // update local auth cache
-      await mutate('/api/users/self')
-
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
           query: { user: data.userID }
         })
-        return
+
+        return false
       }
 
+      await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
       console.error(e)
