@@ -36,6 +36,7 @@ function Grant ({ id, userID, grants }) {
         <DeleteModal
           open={open}
           setOpen={setOpen}
+          primaryButtonText='Revoke'
           onSubmit={() => {
             mutate('/api/grants?resource=infra&privilege=admin', async ({ items: grants } = { items: [] }) => {
               await fetch(`/api/grants/${id}`, { method: 'DELETE' })
@@ -45,7 +46,7 @@ function Grant ({ id, userID, grants }) {
             setOpen(false)
           }}
           title='Revoke Admin'
-          message={(<>Are you sure you want to revoke admin access for <span className='font-bold text-white'>{user.name}</span>?<br /><br /> This action cannot be undone.</>)}
+          message={(<>Are you sure you want to revoke admin access for <span className='font-bold text-white'>{user.name}</span>?</>)}
         />
       </div>
     </div>
