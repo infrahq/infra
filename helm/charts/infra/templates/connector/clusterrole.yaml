@@ -36,4 +36,121 @@ rules:
       - watch
       - bind
       - escalate
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "logs") }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logs
+  labels:
+{{- include "connector.clusterRoleLabels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    verbs:
+      - get
+      - watch
+{{- end }}
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "exec") }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: exec
+  labels:
+{{- include "connector.clusterRoleLabels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs:
+      - get
+      - create
+{{- end }}
+{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "port-forward") }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: port-forward
+  labels:
+{{- include "connector.clusterRoleLabels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - services
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+  - apiGroups: [""]
+    resources:
+      - pods/portforward
+    verbs:
+      - get
+      - create
+{{- end }}
 {{- end }}

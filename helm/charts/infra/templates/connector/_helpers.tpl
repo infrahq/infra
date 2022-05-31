@@ -177,3 +177,11 @@ Infer whether Infra connector should be deployed based on connector.enabled, con
 {{- define "connector.enabled" -}}
 {{- or .Values.connector.enabled (not (empty .Values.connector.config.server)) (not (empty .Values.connector.config.accessKey)) }}
 {{- end }}
+
+{{/*
+ClusterRole labels
+*/}}
+{{- define "connector.clusterRoleLabels" }}
+{{- include "connector.labels" . }}
+app.infrahq.com/include-role: "true"
+{{- end }}
