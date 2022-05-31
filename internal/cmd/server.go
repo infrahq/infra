@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 )
 
 func newServerCmd() *cobra.Command {
-	options := defaultServerOptions()
 	var configFilename string
 
 	cmd := &cobra.Command{
@@ -27,6 +28,12 @@ func newServerCmd() *cobra.Command {
 			if configFilename == "" {
 				configFilename = os.Getenv("INFRA_SERVER_CONFIG_FILE")
 			}
+
+			infraDir, err := infraHomeDir()
+			if err != nil {
+				return err
+			}
+			options := defaultServerOptions(infraDir)
 
 			if err := server.ApplyOptions(&options, configFilename, cmd.Flags()); err != nil {
 				return err
@@ -74,18 +81,19 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key-provider", "", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
 	cmd.Flags().Bool("ui-enabled", false, "Enable Infra server UI")
-	cmd.Flags().Var(&options.UI.ProxyURL, "ui-proxy-url", "Proxy upstream UI requests to this url")
+	cmd.Flags().Var(&types.URL{}, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", 0, "User session duration")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
 
 	return cmd
 }
 
-func defaultServerOptions() server.Options {
+func defaultServerOptions(infraDir string) server.Options {
 	return server.Options{
-		TLSCache:                "$HOME/.infra/cache",
-		DBFile:                  "$HOME/.infra/sqlite3.db",
-		DBEncryptionKey:         "$HOME/.infra/sqlite3.db.key",
+		Version:                 0.2, // update this as the config version changes
+		TLSCache:                filepath.Join(infraDir, "cache"),
+		DBFile:                  filepath.Join(infraDir, "sqlite3.db"),
+		DBEncryptionKey:         filepath.Join(infraDir, "sqlite3.db.key"),
 		DBEncryptionKeyProvider: "native",
 		EnableTelemetry:         true,
 		SessionDuration:         12 * time.Hour,

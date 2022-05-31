@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/terminal"
 )
 
 // CLI exposes common dependencies to commands.
 type CLI struct {
-	Stdin  io.Reader
-	Stdout io.Writer
+	Stdin  terminal.FileReader
+	Stdout terminal.FileWriter
 	Stderr io.Writer
 }
 
@@ -19,6 +22,13 @@ type CLI struct {
 // To write output without a trailing newline use CLI.Stdout directly.
 func (c *CLI) Output(format string, args ...interface{}) {
 	fmt.Fprintf(c.Stdout, format+"\n", args...)
+}
+
+func (c *CLI) surveyIO(options *survey.AskOptions) error {
+	options.Stdio.In = c.Stdin
+	options.Stdio.Out = c.Stdout
+	options.Stdio.Err = c.Stderr
+	return nil
 }
 
 // key is a type to ensure no other package can access the CLI value in context.

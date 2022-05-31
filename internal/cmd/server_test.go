@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -16,6 +17,10 @@ import (
 )
 
 func TestServerCmd_LoadOptions(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir) // Windows
+
 	type testCase struct {
 		name        string
 		setup       func(t *testing.T, cmd *cobra.Command)
@@ -27,8 +32,6 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 		patchRunServer(t, noServerRun)
 		var actual server.Options
 		patchNewServer(t, &actual)
-		t.Setenv("HOME", "/home/user")
-		t.Setenv("USERPROFILE", "/home/user") // Windows
 
 		cmd := newServerCmd()
 		if tc.setup != nil {
@@ -62,7 +65,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.Secrets = []server.SecretProvider{
 					{
 						Kind:   "env",
@@ -86,7 +89,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				t.Setenv("INFRA_SERVER_CONFIG_FILE", dir.Join("cfg.yaml"))
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.Addr.HTTP = "127.0.0.1:1455"
 				return expected
 			},
@@ -97,7 +100,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				t.Setenv("INFRA_SERVER_ADDR_HTTP", "127.0.0.1:1455")
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.Addr.HTTP = "127.0.0.1:1455"
 				return expected
 			},
@@ -108,7 +111,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				cmd.SetArgs([]string{"--ui-proxy-url", "https://127.0.1.2:34567"})
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.UI.ProxyURL = types.URL{
 					Scheme: "https",
 					Host:   "127.0.1.2:34567",
@@ -129,7 +132,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.UI.ProxyURL = types.URL{
 					Scheme: "https",
 					Host:   "127.0.1.2:34567",
@@ -143,7 +146,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				cmd.SetArgs([]string{
 					"--db-name", "database-name",
-					"--db-file", "$HOME/database-filename",
+					"--db-file", "/home/user/database-filename",
 					"--db-port", "12345",
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
@@ -152,7 +155,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				})
 			},
 			expected: func(t *testing.T) server.Options {
-				expected := serverOptionsWithDefaults()
+				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.DBName = "database-name"
 				expected.DBFile = "/home/user/database-filename"
 				expected.DBHost = "thehostname"
@@ -170,19 +173,6 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			run(t, tc)
 		})
 	}
-}
-
-// serverOptionsWithDefaults returns all the default values. Some default values
-// include placeholders for environment variables that will be resolved by the
-// command.
-// TODO: resolve the path in defaultServerOptions instead, and remove this function
-func serverOptionsWithDefaults() server.Options {
-	o := defaultServerOptions()
-	o.TLSCache = "/home/user/.infra/cache"
-	o.DBFile = "/home/user/.infra/sqlite3.db"
-	o.DBEncryptionKey = "/home/user/.infra/sqlite3.db.key"
-	o.Version = 0.2 // update this as the config version changes
-	return o
 }
 
 func TestServerCmd_WithSecretsConfig(t *testing.T) {
