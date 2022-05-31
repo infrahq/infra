@@ -17,7 +17,7 @@ func main() {
 		var userErr cmd.Error
 		switch {
 		case errors.Is(err, terminal.InterruptErr):
-			logging.S.Debug("user interrupted the process", err)
+			logging.S.Debug("user interrupted the process")
 		case errors.As(err, &userErr):
 			fmt.Fprintln(os.Stderr, userErr.Error())
 		default:

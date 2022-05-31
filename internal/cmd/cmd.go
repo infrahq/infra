@@ -39,17 +39,17 @@ func mustBeLoggedIn() error {
 	config, err := currentHostConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
-			return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+			return Error{Message: "Not logged in; run 'infra login' before running this command"}
 		}
 		return fmt.Errorf("getting host config: %w", err)
 	}
 
 	if !config.isLoggedIn() {
-		return fmt.Errorf("Not logged in. Run 'infra login' before running this command.")
+		return Error{Message: "Not logged in; run 'infra login' before running this command"}
 	}
 
 	if config.isExpired() {
-		return fmt.Errorf("Session expired. Run 'infra login' to start a new session.")
+		return Error{Message: "Session expired; run 'infra login' to start a new session"}
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func newDestinationsCmd(cli *CLI) *cobra.Command {
@@ -40,6 +41,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debug("call server: list destinations")
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 			if err != nil {
 				return err
@@ -61,7 +63,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			if len(rows) > 0 {
 				printTable(rows, cli.Stdout)
 			} else {
-				cli.Output("No destinations found")
+				cli.Output("No destinations connected")
 			}
 
 			return nil
@@ -79,27 +81,31 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 		Example: "$ infra destinations remove docker-desktop",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			name := args[0]
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
 			}
 
-			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: args[0]})
+			logging.S.Debugf("call server: list destinations named %q", name)
+			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: name})
 			if err != nil {
 				return err
 			}
 
 			if destinations.Count == 0 && !force {
-				return fmt.Errorf("unknown destination %q", args[0])
+				return Error{Message: fmt.Sprintf("Destination %q not connected", name)}
 			}
 
+			logging.S.Debugf("deleting %s destinations named %q...", destinations.Count, name)
 			for _, d := range destinations.Items {
+				logging.S.Debugf("...call server: delete destination %s", d.ID)
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					return err
 				}
 
-				cli.Output("Removed destination %q", d.Name)
+				cli.Output("Disconnected destination %q from infra", d.Name)
 			}
 
 			return nil

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -63,26 +64,35 @@ func TestUsersCmd(t *testing.T) {
 					err := json.NewDecoder(req.Body).Decode(&createUserReq)
 					assert.NilError(t, err)
 
-					respBody := api.CreateUserResponse{
-						ID:   uid.New(),
+					newUser := models.Identity{
 						Name: createUserReq.Name,
 					}
+					newUser.ID = uid.New()
 
-					modifiedUsers = append(modifiedUsers, models.Identity{Name: createUserReq.Name})
+					respBody := api.CreateUserResponse{
+						ID:   newUser.ID,
+						Name: newUser.Name,
+					}
+					modifiedUsers = append(modifiedUsers, newUser)
 
 					b, err := json.Marshal(&respBody)
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					if req.URL.Query().Get("name") == "to-delete-user@example.com" {
-						b, err := json.Marshal(api.ListResponse[api.User]{Count: 1, Items: []api.User{{Name: "to-delete-user@example.com"}}})
-						assert.NilError(t, err)
-						_, _ = resp.Write(b)
-						return
-					}
+					name, err := url.PathUnescape(req.URL.RawQuery[5:])
+					assert.NilError(t, err)
 
-					b, err := json.Marshal(api.ListResponse[api.User]{})
+					var apiUsers []api.User
+					for _, mu := range modifiedUsers {
+						if mu.Name == name {
+							apiUsers = append(apiUsers, *mu.ToAPI())
+						}
+					}
+					b, err := json.Marshal(api.ListResponse[api.User]{
+						Items: apiUsers,
+						Count: len(apiUsers),
+					})
 					assert.NilError(t, err)
 					_, _ = resp.Write(b)
 					return
@@ -92,8 +102,14 @@ func TestUsersCmd(t *testing.T) {
 					uid, err := uid.Parse([]byte(id))
 					assert.NilError(t, err)
 
-					modifiedUsers = append(modifiedUsers, models.Identity{Model: models.Model{ID: uid}})
-
+					var found int
+					for i := range modifiedUsers {
+						if modifiedUsers[i].ID == uid {
+							found = i
+						}
+					}
+					modifiedUsers[found] = modifiedUsers[len(modifiedUsers)-1]
+					modifiedUsers = modifiedUsers[:len(modifiedUsers)-1]
 					resp.WriteHeader(http.StatusNoContent)
 					return
 				}
@@ -139,19 +155,26 @@ func TestUsersCmd(t *testing.T) {
 	})
 
 	t.Run("removes only the specified user", func(t *testing.T) {
-		modifiedUsers := setup(t)
+		users := setup(t)
 		ctx := context.Background()
-		err := Run(ctx, "users", "remove", "to-delete-user@example.com")
+		err := Run(ctx, "users", "add", "to-delete-user@example.com")
 		assert.NilError(t, err)
+		assert.Equal(t, len(*users), 1)
+		err = Run(ctx, "users", "add", "should-not-be-deleted-user@example.com")
+		assert.NilError(t, err)
+		assert.Equal(t, len(*users), 2)
 
-		assert.Equal(t, len(*modifiedUsers), 1)
+		err = Run(ctx, "users", "remove", "to-delete-user@example.com")
+		assert.NilError(t, err)
+		assert.Equal(t, len(*users), 1)
+		assert.Equal(t, (*users)[0].Name, "should-not-be-deleted-user@example.com")
 	})
 
 	t.Run("remove unknown user", func(t *testing.T) {
 		setup(t)
 		ctx := context.Background()
 		err := Run(ctx, "users", "remove", "unknown@example.com")
-		assert.ErrorContains(t, err, "unknown user")
+		assert.ErrorContains(t, err, "No user named")
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {
