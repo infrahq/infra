@@ -429,6 +429,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	s := setupServer(t, func(_ *testing.T, opts *Options) {
 		opts.EnableSignup = true
 		opts.SessionDuration = time.Minute
+		opts.SessionExtensionDeadline = time.Minute
 	})
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 

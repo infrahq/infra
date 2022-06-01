@@ -119,16 +119,16 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		return nil, fmt.Errorf("access key invalid secret")
 	}
 
-	if time.Now().After(t.ExpiresAt) {
+	if time.Now().UTC().After(t.ExpiresAt) {
 		return nil, fmt.Errorf("token expired")
 	}
 
 	if !t.ExtensionDeadline.IsZero() {
-		if time.Now().After(t.ExtensionDeadline) {
+		if time.Now().UTC().After(t.ExtensionDeadline) {
 			return nil, fmt.Errorf("token extension deadline exceeded")
 		}
 
-		t.ExtensionDeadline = time.Now().Add(t.Extension).UTC()
+		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
 		if err := SaveAccessKey(db, t); err != nil {
 			return nil, err
 		}

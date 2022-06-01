@@ -9,9 +9,13 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 const oidcProviderRequestTimeout = time.Second * 10
@@ -20,6 +24,22 @@ const oidcProviderRequestTimeout = time.Second * 10
 type InfoClaims struct {
 	Email  string   `json:"email"`
 	Groups []string `json:"groups"`
+}
+
+type oidcAuthn struct {
+	ProviderID         uid.ID
+	RedirectURL        string
+	Code               string
+	OIDCProviderClient OIDC
+}
+
+func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient OIDC) LoginMethod {
+	return &oidcAuthn{
+		ProviderID:         providerID,
+		RedirectURL:        redirectURL,
+		Code:               code,
+		OIDCProviderClient: oidcProviderClient,
+	}
 }
 
 type OIDC interface {
@@ -43,6 +63,75 @@ func NewOIDC(domain, clientID, clientSecret, redirectURL string) OIDC {
 		ClientSecret: clientSecret,
 		RedirectURL:  redirectURL,
 	}
+}
+
+func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
+	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
+	accessToken, refreshToken, expiry, email, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(a.Code)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
+		return nil, nil, fmt.Errorf("exhange code for tokens: %w", err)
+	}
+
+	identity, err := data.GetIdentity(db.Preload("Groups"), data.ByName(email))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return nil, nil, fmt.Errorf("get user: %w", err)
+		}
+
+		identity = &models.Identity{Name: email}
+
+		if err := data.CreateIdentity(db, identity); err != nil {
+			return nil, nil, fmt.Errorf("create user: %w", err)
+		}
+	}
+
+	providerUser, err := data.CreateProviderUser(db, provider, identity)
+	if err != nil {
+		return nil, nil, fmt.Errorf("add user for provider login: %w", err)
+	}
+
+	providerUser.RedirectURL = a.RedirectURL
+	providerUser.AccessToken = models.EncryptedAtRest(accessToken)
+	providerUser.RefreshToken = models.EncryptedAtRest(refreshToken)
+	providerUser.ExpiresAt = expiry
+	err = data.UpdateProviderUser(db, providerUser)
+	if err != nil {
+		return nil, nil, fmt.Errorf("UpdateProviderUser: %w", err)
+	}
+
+	// get current identity provider groups
+	info, err := a.OIDCProviderClient.GetUserInfo(providerUser)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
+		return nil, nil, fmt.Errorf("login user info: %w", err)
+	}
+
+	err = UpdateUserInfoFromProvider(db, info, identity, provider)
+	if err != nil {
+		return nil, nil, fmt.Errorf("update info on login: %w", err)
+	}
+
+	return identity, provider, nil
+}
+
+func (a *oidcAuthn) Name() string {
+	return "oidc"
+}
+
+func (a *oidcAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
+	return false, nil // not applicable to oidc
 }
 
 // Validate tests if an identity provider has valid attributes to support user login
@@ -201,4 +290,23 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*In
 	}
 
 	return claims, nil
+}
+
+// UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
+func UpdateUserInfoFromProvider(db *gorm.DB, info *InfoClaims, user *models.Identity, provider *models.Provider) error {
+	// add user to groups they are currently in
+	var groups []string
+
+	for i := range info.Groups {
+		name := info.Groups[i]
+		groups = append(groups, name)
+	}
+
+	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)
+
+	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
+		return fmt.Errorf("assign identity to groups: %w", err)
+	}
+
+	return nil
 }

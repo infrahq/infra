@@ -271,6 +271,7 @@ users:
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
 					"--session-duration", "3m",
+					"--session-extension-deadline", "1m",
 					"--enable-signup=false",
 				})
 			},
@@ -282,6 +283,7 @@ users:
 				expected.DBPort = 12345
 				expected.EnableTelemetry = false
 				expected.SessionDuration = 3 * time.Minute
+				expected.SessionExtensionDeadline = 1 * time.Minute
 				expected.EnableSignup = false
 				return expected
 			},
