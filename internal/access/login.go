@@ -22,7 +22,7 @@ func Login(c *gin.Context, loginMethod authn.LoginMethod, keyExpiresAt time.Time
 	// This can be removed when #1441 is resolved
 	requiresUpdate, err := loginMethod.RequiresUpdate(db)
 	if err != nil {
-		return nil, bearer, false, err
+		return nil, "", false, err
 	}
 
 	return key, bearer, requiresUpdate, nil
