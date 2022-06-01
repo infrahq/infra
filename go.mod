@@ -38,7 +38,7 @@ require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/andanhm/go-prettytime v1.1.0
 	github.com/coreos/go-oidc/v3 v3.2.0
-	github.com/creack/pty v1.1.17
+	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
