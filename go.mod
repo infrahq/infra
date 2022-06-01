@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.4
-	github.com/aws/aws-sdk-go v1.44.24
+	github.com/aws/aws-sdk-go v1.44.25
 	github.com/cli/browser v1.1.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.11.0
@@ -38,7 +38,7 @@ require (
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/andanhm/go-prettytime v1.1.0
 	github.com/coreos/go-oidc/v3 v3.2.0
-	github.com/creack/pty v1.1.17
+	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.94.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
