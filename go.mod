@@ -39,7 +39,7 @@ require (
 	github.com/andanhm/go-prettytime v1.1.0
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/creack/pty v1.1.18
-	github.com/getkin/kin-openapi v0.94.0
+	github.com/getkin/kin-openapi v0.96.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.2
@@ -56,6 +56,8 @@ require (
 	golang.org/x/text v0.3.7
 	gotest.tools/v3 v3.2.0
 )
+
+require github.com/invopop/yaml v0.1.0 // indirect
 
 require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -82,7 +84,6 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/gdamore/tcell v1.1.4 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -163,7 +164,7 @@ require (
 	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.30.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20211115234752-e816edb12b65 // indirect
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
