@@ -80,30 +80,10 @@ func TestUse(t *testing.T) {
 
 	userID := uid.New()
 	destinationID := uid.New()
-	ca := []byte(`-----BEGIN CERTIFICATE-----
-MIIDazCCAlOgAwIBAgIUETRDuZAQHGhiH11GNsXn16n9t48wDQYJKoZIhvcNAQEL
-BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
-GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMjA0MTIyMTAzMDhaFw0yNDA0
-MTEyMTAzMDhaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw
-HwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggEiMA0GCSqGSIb3DQEB
-AQUAA4IBDwAwggEKAoIBAQC6GBhadDfSLlgXsL7sWOExlOboQYAQh2pjfjUjMjgW
-ZNQhguRnA4iDCXeBVJnrlTxJvBUJpZ5Wd3h6Tp3Yf9o8teJCvRqX99uuD1P/4P2O
-gcEpiXxEmnAgsNeZfUVCQJhhHM9BGUEn+3FRL6yuSVi+6F6Xu+FmQ0xERu3M7Gv8
-dtXdn1y8rSxNPME8+VFAon47phGAa4aACZOo5dqbfkKNSJlLK2B7B6MYuVtI14kk
-GuVtLy/sEJlH1ZROPE7zeyh7ZXsGXr8O/sCmXTZNAe98mTUxZX0IxT6drgcwzFdK
-6BJNAxvgBsJltpAGrVo+m+pm8HWmnAS0NTXYPUofYD0NAgMBAAGjUzBRMB0GA1Ud
-DgQWBBT/khk5FFePHZ7v5tT/3QeHggVHETAfBgNVHSMEGDAWgBT/khk5FFePHZ7v
-5tT/3QeHggVHETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCx
-XQyY89xU9XA29JSn96oOQQRNVDl1PmhNiIrJI7FCn5vK1+do00i5teO8mAb49IMt
-DGA8pCAllFTiz6ibf8IuVnCype4lLbJ19am648IllV97Dwo/gnlF08ozWai2mx6l
-5rOqg0YSpEWB88xbulVPWpjwAzYsXh8Y7kem7TXd9MICsIkl1+BXjgG7LSaIwa60
-swYRJSf2bpBsW0Hiqx6WlLUETieVJF9gld0FZSG5Vix0y0IdPEZD5ACbM5G2X4QB
-XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
-7Crix1N6DuA9FeukBz2M
------END CERTIFICATE-----`)
 
 	setup := func(t *testing.T) *ClientConfig {
 		handler := func(resp http.ResponseWriter, req *http.Request) {
+			query := req.URL.Query()
 			switch {
 			case req.URL.Path == "/api/destinations":
 				destinations := api.ListResponse[api.Destination]{
@@ -114,7 +94,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 							Name:     "cluster",
 							Connection: api.DestinationConnection{
 								URL: "kubernetes.docker.local",
-								CA:  ca,
+								CA:  destinationCA,
 							},
 						},
 					},
@@ -148,7 +128,7 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 
 				_, err = resp.Write(bytes)
 				assert.NilError(t, err)
-			case req.URL.Path == "/api/groups":
+			case req.URL.Path == "/api/groups" && query.Get("userID") == userID.String():
 				groups := api.ListResponse[api.Group]{}
 				bytes, err := json.Marshal(groups)
 				assert.NilError(t, err)
@@ -229,6 +209,30 @@ XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
 		assert.ErrorContains(t, err, `Usage:  infra use`)
 	})
 }
+
+// destinationCA is a well formed certificate that can be used to create
+// a destination in tests.
+var destinationCA = []byte(`-----BEGIN CERTIFICATE-----
+MIIDazCCAlOgAwIBAgIUETRDuZAQHGhiH11GNsXn16n9t48wDQYJKoZIhvcNAQEL
+BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
+GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMjA0MTIyMTAzMDhaFw0yNDA0
+MTEyMTAzMDhaMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEw
+HwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQwggEiMA0GCSqGSIb3DQEB
+AQUAA4IBDwAwggEKAoIBAQC6GBhadDfSLlgXsL7sWOExlOboQYAQh2pjfjUjMjgW
+ZNQhguRnA4iDCXeBVJnrlTxJvBUJpZ5Wd3h6Tp3Yf9o8teJCvRqX99uuD1P/4P2O
+gcEpiXxEmnAgsNeZfUVCQJhhHM9BGUEn+3FRL6yuSVi+6F6Xu+FmQ0xERu3M7Gv8
+dtXdn1y8rSxNPME8+VFAon47phGAa4aACZOo5dqbfkKNSJlLK2B7B6MYuVtI14kk
+GuVtLy/sEJlH1ZROPE7zeyh7ZXsGXr8O/sCmXTZNAe98mTUxZX0IxT6drgcwzFdK
+6BJNAxvgBsJltpAGrVo+m+pm8HWmnAS0NTXYPUofYD0NAgMBAAGjUzBRMB0GA1Ud
+DgQWBBT/khk5FFePHZ7v5tT/3QeHggVHETAfBgNVHSMEGDAWgBT/khk5FFePHZ7v
+5tT/3QeHggVHETAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCx
+XQyY89xU9XA29JSn96oOQQRNVDl1PmhNiIrJI7FCn5vK1+do00i5teO8mAb49IMt
+DGA8pCAllFTiz6ibf8IuVnCype4lLbJ19am648IllV97Dwo/gnlF08ozWai2mx6l
+5rOqg0YSpEWB88xbulVPWpjwAzYsXh8Y7kem7TXd9MICsIkl1+BXjgG7LSaIwa60
+swYRJSf2bpBsW0Hiqx6WlLUETieVJF9gld0FZSG5Vix0y0IdPEZD5ACbM5G2X4QB
+XlW7KilKI5YkcszGoPB4RePiHsH+7trf7l8IQq5r5kRq7SKsZ41BI6s1E1PQVW93
+7Crix1N6DuA9FeukBz2M
+-----END CERTIFICATE-----`)
 
 // newTestClientConfig returns a ClientConfig that can be used to test CLI
 // commands. Most CLI commands require a login first, which saves a ClientConfig
