@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -376,27 +377,27 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
-		if err := verifyTLS(options.Server); err != nil {
-			urlErr := &url.Error{}
-			if errors.As(err, &urlErr) {
-				if urlErr.Timeout() {
-					return nil, fmt.Errorf("%w: %s", api.ErrTimeout, err)
-				}
-			}
-
-			if !errors.Is(err, ErrTLSNotVerified) {
+		if err := attemptTLSRequest(options.Server); err != nil {
+			var uaErr x509.UnknownAuthorityError
+			if !errors.As(err, &uaErr) {
 				return nil, err
 			}
 
 			if options.NonInteractive {
-				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
-				return nil, Error{Message: "Non-interactive login does not allow insecure connection by default,\n      to allow, run with '--skip-tls-verify'"}
+				// TODO: add the --tls-ca flag
+				// TODO: give a different error if the flag was set
+				return nil, Error{
+					Message: "The authenticity of the server could not be verified. " +
+						"Use the --tls-ca flag to specify a trusted CA, or run " +
+						"in interactive mode.",
+				}
 			}
 
-			if err = promptSkipTLSVerify(cli); err != nil {
+			if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
 				return nil, err
 			}
-			options.SkipTLSVerify = true
+			// TODO: save cert for future requests
+
 		}
 	}
 
@@ -404,37 +405,33 @@ func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 	return client, nil
 }
 
-func verifyTLS(host string) error {
-	url, err := urlx.Parse(host)
+func attemptTLSRequest(host string) error {
+	// TODO: use apiClient here so that we set the right user agent, and can re-use
+	// error handling from the client. Use the /api/version endpoint.
+	reqURL, err := urlx.Parse(host)
 	if err != nil {
-		logging.S.Debug("Cannot parse host", host, err)
-		logging.S.Error("Could not login. Please check the server hostname")
-		return err
+		return fmt.Errorf("failed to parse the server hostname: %w", err)
 	}
-	url.Scheme = "https"
-	urlString := url.String()
+	reqURL.Scheme = "https"
 
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, urlString, nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL.String(), nil)
 	if err != nil {
-		logging.S.Debugf("Cannot create request: %v", err)
-		return err
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	logging.S.Debugf("call server: test tls for %q", host)
+	urlErr := &url.Error{}
 	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
-			logging.S.Debugf("Cannot validate TLS due to an unexpected error: %v", err)
-			return err
+	switch {
+	case err == nil:
+		res.Body.Close()
+		return nil
+	case errors.As(err, &urlErr):
+		if urlErr.Timeout() {
+			return fmt.Errorf("%w: %s", api.ErrTimeout, err)
 		}
-
-		logging.S.Debug(err)
-
-		return ErrTLSNotVerified
 	}
-
-	defer res.Body.Close()
-	return nil
+	return err
 }
 
 func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
@@ -525,21 +522,60 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 }
 
-// Error out if it fails TLS verification and user does not want to connect.
-func promptSkipTLSVerify(cli *CLI) error {
-	// Although the same error, format is a little different for interactive/non-interactive.
-	fmt.Fprintf(os.Stderr, "  %s\n", ErrTLSNotVerified.Error())
-	confirmPrompt := &survey.Confirm{
-		Message: "Are you sure you want to continue?",
+func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
+	// TODO: improve this message.
+	fmt.Fprintf(cli.Stderr, `The certificate presented by the server could not be automatically verified.
+
+Subject: %[1]s
+Issuer: %[2]s
+
+Validity
+  Not Before: %[3]v
+  Not After: %[4]v
+
+Subject Alternative Names:
+  DNS Names: %[5]s
+  IP Addresses: %[6]v
+
+SHA-256 Fingerprint
+  %[7]s
+
+Compare the SHA-256 fingerprint against the one provided by your administrator
+to manually verify the certificate can be trusted.
+`,
+		cert.Subject,
+		cert.Issuer,
+		cert.NotBefore.Format(time.RFC1123),
+		cert.NotAfter.Format(time.RFC1123),
+		strings.Join(cert.DNSNames, ", "),
+		cert.IPAddresses, // TODO: format
+		fingerprint(cert),
+	)
+	confirmPrompt := &survey.Select{
+		Message: "Options:",
+		Options: []string{
+			"I do not trust this certificate",
+			"Trust and save the certificate",
+		},
 	}
-	proceed := false
-	if err := survey.AskOne(confirmPrompt, &proceed, cli.surveyIO); err != nil {
+	var selection string
+	if err := survey.AskOne(confirmPrompt, &selection, cli.surveyIO); err != nil {
 		return err
 	}
-	if !proceed {
+	switch {
+	case selection == confirmPrompt.Options[0]:
 		return terminal.InterruptErr
+	case selection == confirmPrompt.Options[1]:
+		return nil
 	}
-	return nil
+	// TODO: can this happen?
+	panic("unexpected")
+}
+
+// TODO: move this to a shared place.
+func fingerprint(cert *x509.Certificate) string {
+	raw := sha256.Sum256(cert.Raw)
+	return strings.Replace(fmt.Sprintf("% x", raw), " ", ":", -1)
 }
 
 // Returns the host address of the Infra server that user would like to log into
