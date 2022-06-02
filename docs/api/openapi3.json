@@ -3059,6 +3059,17 @@
             }
           },
           {
+            "example": "4yJ3n3D8E2",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "ids",
             "schema": {
