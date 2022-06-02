@@ -17,7 +17,8 @@ import Sidebar from '../../components/sidebar'
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/api/users/self')
   const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
-
+//   const { data: { items: test } = {} } = useSWR(() => `/api/destinations&name=${destination.resources[0]}`)
+// console.log(test)
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
@@ -91,17 +92,18 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
 const columns = [{
   Header: 'Name',
   accessor: 'name',
-  Cell: ({ value }) => (
-    <div className='flex py-1.5 items-center'>
-      <div className='border border-gray-800 flex-none flex items-center justify-center w-7 h-7 mr-3 rounded-md'>
-        <img className='opacity-25' src='/row-infrastructure.svg' />
-      </div>
+  id: 'expander',
+  Cell: ({ row, value }) => {
+    return <div className='flex py-1.5 items-center'>
+      <span className='mr-3' {...row.getToggleRowExpandedProps()}>
+        {row.isExpanded ? '👇' : '👉'}
+      </span>
       {value}
     </div>
-  )
+  }
 }, {
   Header: 'Kind',
-  Cell: () => <span className='text-gray-400'>Cluster</span>
+  Cell: () => <span className='text-gray-400'>cluster</span>
 }]
 
 export default function Destinations () {
@@ -112,6 +114,46 @@ export default function Destinations () {
   const table = useTable({ columns, data: destinations?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
 
   const loading = adminLoading || (!destinations && !error)
+
+
+  function renderRowSubComponent (row) {
+    const { resources } = row.original
+    const rowSubData = resources.map((resource => {
+      return {
+        name: resource,
+        kind: 'namespace'
+      }
+    }))
+    
+    const subColumns = [{
+      Header: 'Namespaces',
+      accessor: 'name',
+      Cell: ({ value }) => {
+        return <div className='flex py-1.5 items-center'>
+          {value}
+        </div>
+      }
+    }, {
+      Header: 'Kind',
+      accessor: 'kind',
+      Cell: ({ value }) => <span className='text-gray-400'>{value}</span>
+    }]
+  
+    return (
+      <div className='ml-10 mt-8'>
+        <Table 
+          columns={subColumns} 
+          data={rowSubData}
+          getRowProps={row => ({
+            onClick: () => console.log(row),
+            style: {
+              cursor: 'pointer'
+            }
+          })}
+        />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -128,6 +170,7 @@ export default function Destinations () {
                 <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
                   <Table
                     {...table}
+                    renderRowSubComponent={renderRowSubComponent}
                     getRowProps={row => ({
                       onClick: () => setSelectedDestination(row.original),
                       style: {

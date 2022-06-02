@@ -1,10 +1,11 @@
-import { useTable } from 'react-table'
+import { Fragment } from 'react'
+import { useTable, useExpanded } from 'react-table'
 
-export default function ({ columns, data, getRowProps = () => ({}) }) {
+export default function ({ columns, data, renderRowSubComponent, getRowProps = () => ({}) }) {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data
-  })
+  }, useExpanded)
 
   return (
     <table className='w-full sticky top-0' {...getTableProps()}>
@@ -23,15 +24,24 @@ export default function ({ columns, data, getRowProps = () => ({}) }) {
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className='group border-b border-gray-800 text-2xs hover:bg-gray-900/60' key={row.id} {...row.getRowProps(getRowProps(row))}>
-              {row.cells.map(cell => {
-                return (
-                  <td key={cell.id} {...cell.getCellProps()}>
-                    {cell.render('Cell')}
+            <Fragment key={row.getRowProps().key}>
+              <tr className='group border-b border-gray-800 text-2xs' key={row.id} {...row.getRowProps(getRowProps(row))}>
+                 {row.cells.map(cell => {
+                  return (
+                    <td key={cell.id} {...cell.getCellProps()}>
+                      {cell.render('Cell')}
+                    </td>
+                  )
+                })}
+              </tr>
+              {row.isExpanded && (
+                <tr>
+                  <td>
+                    {renderRowSubComponent(row)}
                   </td>
-                )
-              })}
-            </tr>
+                </tr>
+              )}
+            </Fragment>
           )
         })}
       </tbody>
