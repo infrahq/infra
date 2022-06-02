@@ -44,7 +44,7 @@ func info(cli *CLI) error {
 
 	id := config.PolymorphicID
 	if id == "" {
-		return fmt.Errorf("no active identity")
+		return fmt.Errorf("no active user")
 	}
 
 	identityID, err := id.ID()
@@ -52,12 +52,12 @@ func info(cli *CLI) error {
 		return err
 	}
 
-	identity, err := client.GetUser(identityID)
+	user, err := client.GetUser(identityID)
 	if err != nil {
 		return err
 	}
 
-	fmt.Fprintf(w, "User:\t %s (%s)\n", identity.Name, identity.ID)
+	fmt.Fprintf(w, "User:\t %s (%s)\n", user.Name, user.ID)
 
 	if config.ProviderID != 0 {
 		provider, err := client.GetProvider(config.ProviderID)
@@ -68,17 +68,17 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	identityGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
+	userGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
 	if err != nil {
 		return err
 	}
 
 	groups := "(none)"
 
-	if identityGroups.Count > 0 {
-		g := make([]string, 0, identityGroups.Count)
-		for _, identityGroup := range identityGroups.Items {
-			g = append(g, identityGroup.Name)
+	if userGroups.Count > 0 {
+		g := make([]string, 0, userGroups.Count)
+		for _, userGroup := range userGroups.Items {
+			g = append(g, userGroup.Name)
 		}
 
 		groups = strings.Join(g, ", ")
