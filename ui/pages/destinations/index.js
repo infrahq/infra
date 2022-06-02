@@ -14,6 +14,15 @@ import Grant from '../../components/grant'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 
+function SidebarNamespaceContent ({ namespace }) {
+  console.log(namespace)
+  return (
+    <div className='flex-1 flex flex-col space-y-6'>
+      test
+    </div>
+  )
+}
+
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/api/users/self')
   const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
@@ -94,7 +103,7 @@ const columns = [{
   accessor: 'name',
   id: 'expander',
   Cell: ({ row, value }) => {
-    return <div className='flex py-1.5 items-center'>
+    return <div className='flex py-3 items-center'>
       <span className='mr-3' {...row.getToggleRowExpandedProps()}>
         {row.isExpanded ? '👇' : '👉'}
       </span>
@@ -110,18 +119,36 @@ export default function Destinations () {
   const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
+  const [selectedNamespace, setSelectedNamespace] = useState(null)
 
   const table = useTable({ columns, data: destinations?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
 
   const loading = adminLoading || (!destinations && !error)
 
+  const selectDestination = (row) => {
+    setSelectedDestination(row)
+    setSelectedNamespace(null)
+  }
+
+  const selectNamespace = (row) => {
+    setSelectedNamespace(row)
+    setSelectedDestination(null)
+  }
+
+  const handleClose = () => {
+    setSelectedDestination(null)
+    setSelectedNamespace(null)
+  }
+
 
   function renderRowSubComponent (row) {
-    const { resources } = row.original
+    const { name: destination, id: destinationId, resources } = row.original
+    console.log(row.original)
     const rowSubData = resources.map((resource => {
       return {
+        destination,
+        destinationId, 
         name: resource,
-        kind: 'namespace'
       }
     }))
     
@@ -129,24 +156,23 @@ export default function Destinations () {
       Header: 'Namespaces',
       accessor: 'name',
       Cell: ({ value }) => {
-        return <div className='flex py-1.5 items-center'>
+        return <div className='flex py-3 items-center'>
           {value}
         </div>
       }
     }, {
       Header: 'Kind',
-      accessor: 'kind',
-      Cell: ({ value }) => <span className='text-gray-400'>{value}</span>
+      Cell: ({ value }) => <span className='text-gray-400'>namespace</span>
     }]
   
     return (
-      <div className='ml-10 mt-8'>
+      <div className='ml-16 mt-8'>
         <Table 
           subTable
           columns={subColumns} 
           data={rowSubData}
           getRowProps={row => ({
-            onClick: () => console.log(row),
+            onClick: () => selectNamespace(row.original),
             style: {
               cursor: 'pointer'
             }
@@ -173,7 +199,7 @@ export default function Destinations () {
                     {...table}
                     renderRowSubComponent={renderRowSubComponent}
                     getRowProps={row => ({
-                      onClick: () => setSelectedDestination(row.original),
+                      onClick: () => selectDestination(row.original),
                       style: {
                         cursor: 'pointer',
                         background: row.original.id === selectedDestination?.id ? '#151A1E' : ''
@@ -193,11 +219,19 @@ export default function Destinations () {
           </div>
           {selectedDestination &&
             <Sidebar
-              handleClose={() => setSelectedDestination(null)}
+              handleClose={() => handleClose()}
               title={selectedDestination.name}
               iconPath='/destinations.svg'
             >
               <SidebarContent destination={selectedDestination} admin={admin} setSelectedDestination={setSelectedDestination} />
+            </Sidebar>}
+          {selectedNamespace &&
+            <Sidebar
+              handleClose={() => handleClose()}
+              title={`.../${selectedNamespace.name}`}
+              iconPath='/destinations.svg'
+            >
+              <SidebarNamespaceContent namespace={selectedNamespace} />
             </Sidebar>}
         </div>
       )}
