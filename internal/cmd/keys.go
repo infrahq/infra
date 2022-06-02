@@ -43,7 +43,7 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add USER|CONNECTOR",
+		Use:   "add USER|connector",
 		Short: "Create an access key",
 		Long:  `Create an access key for a user or a connector.`,
 		Example: `

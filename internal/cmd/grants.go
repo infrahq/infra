@@ -221,7 +221,7 @@ $ infra grants add johndoe@example.com infra --role admin
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Required if adding a grant for a group")
+	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
 	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that the user or group will be given")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
 	return cmd

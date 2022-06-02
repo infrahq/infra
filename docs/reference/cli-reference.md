@@ -221,16 +221,16 @@ infra grants list [flags]
 
 ## `infra grants add`
 
-Grant an identity access to a destination
+Grant a user or group access to a destination
 
 ```
-infra grants add IDENTITY DESTINATION [flags]
+infra grants add USER|GROUP DESTINATION [flags]
 ```
 
 ### Examples
 
 ```
-# Grant an identity access to a destination
+# Grant a user access to a destination
 $ infra grants add johndoe@example.com docker-desktop
 
 # Grant a group access to a destination
@@ -248,8 +248,8 @@ $ infra grants add johndoe@example.com infra --role admin
 
 ```
       --force         Create grant even if requested user, destination, or role are unknown
-  -g, --group         Required if identity is of type 'group'
-      --role string   Type of access that identity will be given (default "connect")
+  -g, --group         Required if adding a grant for a group
+      --role string   Type of access that the user or group will be given (default "connect")
 ```
 
 ### Options inherited from parent commands
@@ -261,16 +261,16 @@ $ infra grants add johndoe@example.com infra --role admin
 
 ## `infra grants remove`
 
-Revoke an identity's access from a destination
+Revoke a user or group's access to a destination
 
 ```
-infra grants remove IDENTITY DESTINATION [flags]
+infra grants remove USER|GROUP DESTINATION [flags]
 ```
 
 ### Examples
 
 ```
-# Remove all grants of an identity in a destination
+# Remove all grants of a user in a destination
 $ infra grants remove janedoe@example.com docker-desktop
 
 # Remove all grants of a group in a destination
@@ -425,18 +425,21 @@ Create an access key
 
 ### Synopsis
 
-Create an access key for a user.
+Create an access key for a user or a connector.
 
 ```
-infra keys add USER [flags]
+infra keys add USER|CONNECTOR [flags]
 ```
 
 ### Examples
 
 ```
 
-# Create an access key named 'example-key' that expires in 12 hours
-$ infra keys add example-key identity@example.com --ttl=12h
+# Create an access key named 'example-key' for a user that expires in 12 hours
+$ infra keys add example-key user@example.com --ttl=12h
+
+# Create an access key to add a Kubernetes connection to Infra
+$ infra keys add connector
 
 ```
 
