@@ -120,7 +120,7 @@ export default function Destinations () {
       {!loading && (
         <div className='flex-1 flex h-full'>
           <main className='flex-1 flex flex-col space-y-4'>
-            <PageHeader header='Cluster' buttonHref={admin && '/destinations/add'} buttonLabel='Cluster' />
+            <PageHeader header='Clusters' buttonHref={admin && '/destinations/add'} buttonLabel='Cluster' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
