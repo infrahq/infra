@@ -30,12 +30,13 @@ import (
 )
 
 type loginCmdOptions struct {
-	Server         string
-	AccessKey      string
-	Provider       string
-	SkipTLSVerify  bool
-	NoAgent        bool
+	Server        string
+	AccessKey     string
+	Provider      string
+	SkipTLSVerify bool
+	// TODO: add option to pass a trusted certificate
 	NonInteractive bool
+	NoAgent        bool
 }
 
 type loginMethod int8
@@ -95,7 +96,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
-	client, err := newAPIClient(cli, options)
+	lc, err := newLoginClient(cli, options)
 	if err != nil {
 		return err
 	}
@@ -105,18 +106,18 @@ func login(cli *CLI, options loginCmdOptions) error {
 	// if signup is required, use it to create an admin account
 	// and use those credentials for subsequent requests
 	logging.S.Debug("call server: check signup enabled")
-	signupEnabled, err := client.SignupEnabled()
+	signupEnabled, err := lc.APIClient.SignupEnabled()
 	if err != nil {
 		return err
 	}
 
 	if signupEnabled.Enabled {
-		loginReq.PasswordCredentials, err = runSignupForLogin(cli, client)
+		loginReq.PasswordCredentials, err = runSignupForLogin(cli, lc.APIClient)
 		if err != nil {
 			return err
 		}
 
-		return loginToInfra(cli, client, loginReq, options.NoAgent)
+		return loginToInfra(cli, lc, loginReq, options.NoAgent)
 	}
 
 	switch {
@@ -126,7 +127,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
-		loginReq.OIDC, err = loginToProviderN(client, options.Provider)
+		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
 		if err != nil {
 			return err
 		}
@@ -134,7 +135,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
-		loginMethod, provider, err := promptLoginOptions(cli, client)
+		loginMethod, provider, err := promptLoginOptions(cli, lc.APIClient)
 		if err != nil {
 			return err
 		}
@@ -158,12 +159,12 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
-	return loginToInfra(cli, client, loginReq, options.NoAgent)
+	return loginToInfra(cli, lc, loginReq, options.NoAgent)
 }
 
-func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAgent bool) error {
+func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
 	logging.S.Debug("call server: login")
-	loginRes, err := client.Login(loginReq)
+	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
@@ -187,27 +188,20 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 			return err
 		}
 
-		client.AccessKey = loginRes.AccessKey
-
 		logging.S.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		lc.APIClient.AccessKey = loginRes.AccessKey
+		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			return err
 		}
 
 		fmt.Fprintf(os.Stderr, "  Updated password.\n")
 	}
 
-	if err := updateInfraConfig(client, loginReq, loginRes); err != nil {
+	if err := updateInfraConfig(lc, loginReq, loginRes); err != nil {
 		return err
 	}
 
-	// Client needs to be refreshed from here onwards, based on the newly saved infra configuration.
-	client, err = defaultAPIClient()
-	if err != nil {
-		return err
-	}
-
-	if err := updateKubeconfig(client, loginRes.UserID); err != nil {
+	if err := updateKubeconfig(lc.APIClient, loginRes.UserID); err != nil {
 		return err
 	}
 
@@ -230,7 +224,7 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 }
 
 // Updates all configs with the current logged in session
-func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
+func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:       true,
 		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.UserID),
@@ -239,17 +233,19 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 		Expires:       loginRes.Expires,
 	}
 
-	t, ok := client.HTTP.Transport.(*http.Transport)
+	t, ok := lc.APIClient.HTTP.Transport.(*http.Transport)
 	if !ok {
 		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
+	// TODO: save this in PEM format
+	clientHostConfig.TrustedCertificate = lc.TrustedCertificate
 
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
 	}
 
-	u, err := urlx.Parse(client.URL)
+	u, err := urlx.Parse(lc.APIClient.URL)
 	if err != nil {
 		return err
 	}
@@ -374,20 +370,26 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 	}, nil
 }
 
+type loginClient struct {
+	APIClient          *api.Client
+	TrustedCertificate []byte
+}
+
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
-func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
+func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
+	c := loginClient{}
 	if !options.SkipTLSVerify {
 		// Prompt user only if server fails the TLS verification
 		if err := attemptTLSRequest(options.Server); err != nil {
 			var uaErr x509.UnknownAuthorityError
 			if !errors.As(err, &uaErr) {
-				return nil, err
+				return c, err
 			}
 
 			if options.NonInteractive {
 				// TODO: add the --tls-ca flag
 				// TODO: give a different error if the flag was set
-				return nil, Error{
+				return c, Error{
 					Message: "The authenticity of the server could not be verified. " +
 						"Use the --tls-ca flag to specify a trusted CA, or run " +
 						"in interactive mode.",
@@ -395,24 +397,33 @@ func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 			}
 
 			if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
-				return nil, err
+				return c, err
 			}
-			// TODO: save cert for future requests
 			// TODO: cleanup
 			pool, err := x509.SystemCertPool()
 			if err != nil {
-				return nil, err
+				return c, err
 			}
 			pool.AddCert(uaErr.Cert)
 			transport := &http.Transport{
 				TLSClientConfig: &tls.Config{RootCAs: pool},
 			}
-			return apiClient(options.Server, "", transport), nil
+			c.APIClient = apiClient(options.Server, "", transport)
+			c.TrustedCertificate = uaErr.Cert.Raw
+			return c, nil
 		}
 	}
 
-	client := apiClient(options.Server, "", defaultHTTPTransport(options.SkipTLSVerify))
-	return client, nil
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			//nolint:gosec // We may purposely set insecureskipverify via a flag
+			InsecureSkipVerify: options.SkipTLSVerify,
+			// TODO: read options.TrustedCertificate
+			//RootCAs:            pool,
+		},
+	}
+	c.APIClient = apiClient(options.Server, "", transport)
+	return c, nil
 }
 
 func attemptTLSRequest(host string) error {
@@ -533,7 +544,8 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 }
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
-	// TODO: improve this message.
+	// TODO: improve this message
+	// TODO: use color/bold to highlight important parts
 	fmt.Fprintf(cli.Stderr, `The certificate presented by the server could not be automatically verified.
 
 Subject: %[1]s
@@ -552,13 +564,14 @@ SHA-256 Fingerprint
 
 Compare the SHA-256 fingerprint against the one provided by your administrator
 to manually verify the certificate can be trusted.
+
 `,
 		cert.Subject,
 		cert.Issuer,
-		cert.NotBefore.Format(time.RFC1123),
-		cert.NotAfter.Format(time.RFC1123),
-		strings.Join(cert.DNSNames, ", "),
-		cert.IPAddresses, // TODO: format
+		cert.NotBefore.Format(time.RFC1123), // TODO: include relative time
+		cert.NotAfter.Format(time.RFC1123),  // TODO: include relative time
+		strings.Join(cert.DNSNames, ", "),   // TODO: exclude when empty
+		cert.IPAddresses,                    // TODO: format the list, exclude when empty
 		fingerprint(cert),
 	)
 	confirmPrompt := &survey.Select{

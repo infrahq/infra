@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -77,7 +78,7 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, defaultHTTPTransport(config.SkipTLSVerify)), nil
+	return apiClient(config.Host, config.AccessKey, httpTransportForHostConfig(config)), nil
 }
 
 func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
@@ -93,11 +94,25 @@ func apiClient(host string, accessKey string, transport *http.Transport) *api.Cl
 	}
 }
 
-func defaultHTTPTransport(skipTLSVerify bool) *http.Transport {
+func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		// TODO: print warning about this case
+		pool = x509.NewCertPool()
+	}
+
+	if len(config.TrustedCertificate) > 0 {
+		// TODO: log or return the error
+		// TODO: read this in PEM format
+		cert, _ := x509.ParseCertificate(config.TrustedCertificate)
+		pool.AddCert(cert)
+	}
+
 	return &http.Transport{
 		TLSClientConfig: &tls.Config{
 			//nolint:gosec // We may purposely set insecureskipverify via a flag
-			InsecureSkipVerify: skipTLSVerify,
+			InsecureSkipVerify: config.SkipTLSVerify,
+			RootCAs:            pool,
 		},
 	}
 }

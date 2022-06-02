@@ -27,6 +27,8 @@ type ClientHostConfig struct {
 	ProviderID    uid.ID            `json:"provider-id,omitempty"`
 	Expires       api.Time          `json:"expires"`
 	Current       bool              `json:"current"`
+	// TODO: should we store this in a separate file?
+	TrustedCertificate []byte `json:"trusted-certificate"`
 }
 
 // checks if user is logged in to the given session (ClientHostConfig)
