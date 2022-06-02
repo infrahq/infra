@@ -3,11 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"embed"
-	"encoding/base64"
-	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -35,7 +31,6 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
-	"github.com/infrahq/infra/pki"
 )
 
 type Options struct {
@@ -60,12 +55,6 @@ type Options struct {
 
 	Config `mapstructure:",squash"`
 
-	NetworkEncryption           string `mapstructure:"networkEncryption"` // mtls (default), e2ee, none.
-	TrustInitialClientPublicKey string `mapstructure:"trustInitialClientPublicKey"`
-	InitialRootCACert           string `mapstructure:"initialRootCACert"`
-	InitialRootCAPublicKey      string `mapstructure:"initialRootCAPublicKey"`
-	FullKeyRotationInDays       int    `mapstructure:"fullKeyRotationInDays"` // 365 default
-
 	Addr ListenerOptions
 	UI   UIOptions
 }
@@ -84,14 +73,13 @@ type UIOptions struct {
 }
 
 type Server struct {
-	options             Options
-	db                  *gorm.DB
-	tel                 *Telemetry
-	secrets             map[string]secrets.SecretStorage
-	keys                map[string]secrets.SymmetricKeyProvider
-	certificateProvider pki.CertificateProvider
-	Addrs               Addrs
-	routines            []func() error
+	options  Options
+	db       *gorm.DB
+	tel      *Telemetry
+	secrets  map[string]secrets.SecretStorage
+	keys     map[string]secrets.SymmetricKeyProvider
+	Addrs    Addrs
+	routines []func() error
 }
 
 type Addrs struct {
@@ -134,10 +122,6 @@ func New(options Options) (*Server, error) {
 	server.db, err = data.NewDB(driver, server.loadDBKey)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
-	}
-
-	if err = server.loadCertificates(); err != nil {
-		return nil, fmt.Errorf("loading certificate provider: %w", err)
 	}
 
 	_, err = data.InitializeSettings(server.db)
@@ -188,97 +172,6 @@ func configureTelemetry(server *Server) error {
 		return err
 	}
 	server.tel = tel
-
-	return nil
-}
-
-func (s *Server) loadCertificates() (err error) {
-	if s.options.FullKeyRotationInDays == 0 {
-		s.options.FullKeyRotationInDays = 365
-	}
-
-	fullRotationInDays := s.options.FullKeyRotationInDays
-
-	// TODO: check certificate provider from config
-	s.certificateProvider, err = pki.NewNativeCertificateProvider(s.db, pki.NativeCertificateProviderConfig{
-		FullKeyRotationDurationInDays: fullRotationInDays,
-		InitialRootCAPublicKey:        []byte(s.options.InitialRootCAPublicKey),
-		InitialRootCACert:             []byte(s.options.InitialRootCACert),
-	})
-	if err != nil {
-		return err
-	}
-
-	// if there's no active CAs, try loading them from options.
-	cert := s.options.InitialRootCACert
-	key := s.options.InitialRootCAPublicKey
-
-	if len(s.certificateProvider.ActiveCAs()) == 0 && len(cert) > 0 && len(key) > 0 {
-		jsonBytes := fmt.Sprintf(`{"ServerKey":{"CertPEM":"%s", "PublicKey":"%s"}}`, cert, key)
-
-		kp := &pki.KeyPair{}
-		if err := json.Unmarshal([]byte(jsonBytes), kp); err != nil {
-			return fmt.Errorf("reading initialRootCACert and initialRootCAPublicKey: %w", err)
-		}
-
-		err = s.certificateProvider.Preload(kp.CertPEM, kp.PublicKey)
-		if err != nil && err.Error() != internal.ErrNotImplemented.Error() {
-			return fmt.Errorf("preloading initialRootCACert and initialRootCAPublicKey: %w", err)
-		}
-	}
-
-	// if still no active CAs, create them
-	if len(s.certificateProvider.ActiveCAs()) == 0 {
-		logging.S.Info("Creating Root CA certificate")
-
-		if err := s.certificateProvider.CreateCA(); err != nil {
-			return fmt.Errorf("creating CA certificates: %w", err)
-		}
-	}
-
-	// automatically rotate CAs as the oldest one expires
-	if len(s.certificateProvider.ActiveCAs()) == 1 {
-		logging.S.Info("Rotating Root CA certificate")
-
-		if err := s.certificateProvider.RotateCA(); err != nil {
-			return fmt.Errorf("rotating CA: %w", err)
-		}
-	}
-
-	// if the current cert is going to expire in less than FullKeyRotationDurationInDays/2 days, rotate.
-	rotationWindow := time.Now().AddDate(0, 0, fullRotationInDays/2)
-
-	activeCAs := s.certificateProvider.ActiveCAs()
-	if len(activeCAs) < 2 || activeCAs[1].NotAfter.Before(rotationWindow) {
-		logging.S.Info("Half-Rotating Root CA certificate")
-
-		if err := s.certificateProvider.RotateCA(); err != nil {
-			return fmt.Errorf("rotating CA: %w", err)
-		}
-	}
-
-	if len(s.options.TrustInitialClientPublicKey) > 0 {
-		key := s.options.TrustInitialClientPublicKey
-
-		rawKey, err := base64.StdEncoding.DecodeString(key)
-		if err != nil {
-			return fmt.Errorf("reading trustInitialClientPublicKey: %w", err)
-		}
-
-		tc := &models.TrustedCertificate{
-			KeyAlgorithm:     x509.PureEd25519.String(),
-			SigningAlgorithm: x509.Ed25519.String(),
-			PublicKey:        models.Base64(rawKey),
-			// CertPEM:          raw,
-			// ExpiresAt:        cert.NotAfter,
-			// Identity:         ident,
-		}
-
-		err = data.TrustPublicKey(s.db, tc)
-		if err != nil {
-			return fmt.Errorf("saving trusted public key: %w", err)
-		}
-	}
 
 	return nil
 }
@@ -339,7 +232,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := s.serverTLSConfig()
+	tlsConfig, err := tLSConfigWithCacheDir(s.options.TLSCache)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -378,65 +271,19 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 	return l.Addr(), nil
 }
 
-func (s *Server) serverTLSConfig() (*tls.Config, error) {
-	switch s.options.NetworkEncryption {
-	case "mtls":
-		serverTLSCerts, err := s.certificateProvider.TLSCertificates()
-		if err != nil {
-			return nil, fmt.Errorf("getting tls certs: %w", err)
-		}
-
-		caPool := x509.NewCertPool()
-
-		for _, cert := range s.certificateProvider.ActiveCAs() {
-			cert := cert
-			caPool.AddCert(&cert)
-		}
-
-		tcerts, err := data.ListTrustedClientCertificates(s.db)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, tcert := range tcerts {
-			p, _ := pem.Decode(tcert.CertPEM)
-
-			cert, err := x509.ParseCertificate(p.Bytes)
-			if err != nil {
-				return nil, err
-			}
-
-			if cert.NotAfter.After(time.Now()) {
-				logging.S.Debugf("Trusting user certificate %q\n", cert.Subject.CommonName)
-				caPool.AddCert(cert)
-			}
-		}
-
-		return &tls.Config{
-			Certificates: serverTLSCerts,
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			ClientCAs:    caPool,
-			MinVersion:   tls.VersionTLS12,
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			},
-		}, nil
-	default: // "none" or blank
-		if err := os.MkdirAll(s.options.TLSCache, 0o700); err != nil {
-			return nil, fmt.Errorf("create tls cache: %w", err)
-		}
-
-		manager := &autocert.Manager{
-			Prompt: autocert.AcceptTOS,
-			Cache:  autocert.DirCache(s.options.TLSCache),
-		}
-		tlsConfig := manager.TLSConfig()
-		tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, "")
-
-		return tlsConfig, nil
+func tLSConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
+	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
+		return nil, fmt.Errorf("create tls cache: %w", err)
 	}
+
+	manager := &autocert.Manager{
+		Prompt: autocert.AcceptTOS,
+		Cache:  autocert.DirCache(tlsCacheDir),
+	}
+	tlsConfig := manager.TLSConfig()
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, "")
+
+	return tlsConfig, nil
 }
 
 func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
