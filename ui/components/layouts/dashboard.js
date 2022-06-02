@@ -3,7 +3,6 @@ import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 
 import { useAdmin } from '../../lib/admin'
-import ProfileIcon from '../profile-icon'
 import AuthRequired from '../auth-required'
 
 function Dashboard ({ children }) {
@@ -26,7 +25,7 @@ function Dashboard ({ children }) {
   }
 
   const navigation = [
-    { name: 'Infrastructure', href: '/destinations', icon: '/destinations.svg' },
+    { name: 'Clusters', href: '/destinations', icon: '/destinations.svg' },
     { name: 'Providers', href: '/providers', icon: '/providers.svg', admin: true },
     { name: 'Users', href: '/users', icon: '/users.svg', admin: true }
   ]
@@ -75,7 +74,11 @@ function Dashboard ({ children }) {
           )}
         </div>
         <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 overflow-hidden'>
-          <ProfileIcon name={auth?.name?.[0]} size='23px' />
+          <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
+            <div className='relative text-center flex flex-1 justify-center items-center border border-violet-300/70 text-3xs rounded-[4px] leading-none font-normal m-0.5 select-none'>
+              <span className='absolute inset-x-0 -mt-[1px]'>{auth?.name?.[0]}</span>
+            </div>
+          </div>
           <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
             <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-2xs pb-px'>{auth?.name}</div>
             <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
