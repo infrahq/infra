@@ -58,8 +58,8 @@ func TestLoginCmd(t *testing.T) {
 		})
 
 		exp := expector{console: console}
-		exp.ExpectString(t, "Username:")
-		exp.Send(t, "admin\n")
+		exp.ExpectString(t, "Email:")
+		exp.Send(t, "admin@example.com\n")
 		exp.ExpectString(t, "Password")
 		exp.Send(t, "password\n")
 		exp.ExpectString(t, "Confirm")
@@ -75,7 +75,7 @@ func TestLoginCmd(t *testing.T) {
 
 		expected := []ClientHostConfig{
 			{
-				Name:          "admin",
+				Name:          "admin@example.com",
 				AccessKey:     "any-access-key",
 				PolymorphicID: "any-id",
 				Host:          srv.Addrs.HTTPS.String(),
