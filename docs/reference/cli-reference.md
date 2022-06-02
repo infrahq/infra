@@ -248,7 +248,7 @@ $ infra grants add johndoe@example.com infra --role admin
 
 ```
       --force         Create grant even if requested user, destination, or role are unknown
-  -g, --group         Required if adding a grant for a group
+  -g, --group         When set, creates a grant for a group instead of a user
       --role string   Type of access that the user or group will be given (default "connect")
 ```
 
@@ -428,7 +428,7 @@ Create an access key
 Create an access key for a user or a connector.
 
 ```
-infra keys add USER|CONNECTOR [flags]
+infra keys add USER|connector [flags]
 ```
 
 ### Examples
