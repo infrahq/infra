@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/pem"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/Netflix/go-expect"
 	"github.com/creack/pty"
 	"github.com/google/go-cmp/cmp"
@@ -39,6 +41,30 @@ func TestLoginCmdSignup(t *testing.T) {
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
+
+	runStep(t, "reject server certificate", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			// TODO: why isn't this working without --non-interactive=false? the other test works
+			return Run(ctx, "login", "--non-interactive=false", srv.Addrs.HTTPS.String())
+		})
+		exp := expector{console: console}
+		exp.ExpectString(t, "verify the certificate can be trusted")
+		exp.Send(t, "I do not trust this certificate\n")
+
+		assert.ErrorIs(t, g.Wait(), terminal.InterruptErr)
+
+		// Check we haven't persisted any certificates
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		assert.Equal(t, len(cfg.Hosts), 0)
+	})
 
 	runStep(t, "first login prompts for setup", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -137,6 +163,67 @@ func TestLoginCmd(t *testing.T) {
 		expected := clientcmdapi.Config{}
 		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
 	})
+
+	runStep(t, "trust server certificate", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		// Create an access key for login
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		assert.Equal(t, len(cfg.Hosts), 1)
+		userID, _ := cfg.Hosts[0].PolymorphicID.ID()
+		client, err := defaultAPIClient()
+		assert.NilError(t, err)
+
+		resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+			UserID:            userID,
+			TTL:               api.Duration(opts.SessionDuration + time.Minute),
+			ExtensionDeadline: api.Duration(time.Minute),
+		})
+		assert.NilError(t, err)
+		accessKey := resp.AccessKey
+
+		// Erase local data for previous login session
+		assert.NilError(t, writeConfig(&ClientConfig{}))
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			// TODO: why isn't this working without --non-interactive=false? the other test works
+			return Run(ctx, "login", "--non-interactive=false", "--key", accessKey, srv.Addrs.HTTPS.String())
+		})
+		exp := expector{console: console}
+		exp.ExpectString(t, "verify the certificate can be trusted")
+		exp.Send(t, "Trust and save the certificate\n")
+
+		assert.NilError(t, g.Wait())
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		// TODO: remove once stored as PEM encoded
+		block, _ := pem.Decode(cert)
+
+		// Check the client config
+		cfg, err = readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin",
+				AccessKey:          "any-access-key",
+				PolymorphicID:      "any-id",
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: block.Bytes,
+			},
+		}
+		// TODO: where is the extra entry coming from?
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
 }
 
 var cmpClientHostConfig = cmp.Options{
@@ -182,7 +269,7 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
-	timeout := time.Second
+	timeout := time.Hour // TODO: time.Second
 	if os.Getenv("CI") != "" {
 		// CI takes much longer than local dev, use a much longer timeout
 		timeout = 20 * time.Second
@@ -190,6 +277,7 @@ func newConsole(t *testing.T) *expect.Console {
 
 	term := vt10x.New(vt10x.WithWriter(tty))
 	console, err := expect.NewConsole(
+		// expect.WithLogger(log.New(os.Stderr, "", 0)),
 		expect.WithDefaultTimeout(timeout),
 		expect.WithStdout(os.Stdout),
 		expect.WithStdin(pseudoTY),

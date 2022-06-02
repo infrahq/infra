@@ -546,6 +546,7 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	// TODO: improve this message
 	// TODO: use color/bold to highlight important parts
+	// TODO: test format with golden
 	fmt.Fprintf(cli.Stderr, `The certificate presented by the server could not be automatically verified.
 
 Subject: %[1]s
