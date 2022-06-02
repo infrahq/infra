@@ -44,8 +44,8 @@ export default function ({ children }) {
 
   return (
     <AuthRequired>
-      <div className='flex h-full relative'>
-        <nav className='flex-none flex flex-col w-56 inset-y-0 overflow-hidden'>
+      <div className='flex h-full'>
+        <nav className='flex-none flex flex-col w-56'>
           <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-5 select-none'>
             <Link href='/'>
               <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
@@ -57,17 +57,17 @@ export default function ({ children }) {
                 <a
                   href={n.href}
                   className={`
-                  ${router.asPath.startsWith(n.href) ? 'text-white' : 'text-gray-400'}
-                  rounded-lg py-2 flex items-center text-xs leading-none transition-colors duration-100
-                  ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
-                `}
+                    ${router.asPath.startsWith(n.href) ? 'text-white' : 'text-gray-400'}
+                    rounded-lg py-2 flex items-center text-xs leading-none transition-colors duration-100
+                    ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
+                  `}
                 >
                   <img
                     src={n.icon}
                     className={`
-                    ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
-                    mr-3 flex-shrink-0 h-[18px] w-[18px]
-                  `}
+                      ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
+                      mr-3 flex-shrink-0 h-[18px] w-[18px]
+                    `}
                   />
                   {n.name}
                 </a>
@@ -100,10 +100,8 @@ export default function ({ children }) {
             </div>
           </div>
         </nav>
-        <main className='w-full overflow-x-hidden overflow-y-scroll'>
-          <div className='mx-6 h-full'>
-            {children}
-          </div>
+        <main className='flex-1 h-full min-w-0 overflow-x-hidden'>
+          {children}
         </main>
       </div>
     </AuthRequired>

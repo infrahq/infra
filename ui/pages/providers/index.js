@@ -79,12 +79,12 @@ export default function Providers () {
         <title>Identity Providers - Infra</title>
       </Head>
       {!loading && (
-        <div className='flex-1 flex flex-col space-y-4'>
+        <div className='flex-1 h-full flex flex-col space-y-4'>
           <PageHeader header='Providers' buttonHref='/providers/add' buttonLabel='Provider' />
           {error?.status
             ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
             : (
-              <>
+              <div className='flex-1 min-h-0 px-6 overflow-y-scroll'>
                 <Table highlight={false} {...table} />
                 {providers?.length === 0 &&
                   <EmptyTable
@@ -94,7 +94,7 @@ export default function Providers () {
                     buttonHref='/providers/add'
                     buttonText='Provider'
                   />}
-              </>
+              </div>
               )}
         </div>
       )}

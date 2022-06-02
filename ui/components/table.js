@@ -7,12 +7,12 @@ export default function ({ columns, data, getRowProps = () => ({}), highlight = 
   })
 
   return (
-    <table className='w-full table-auto' {...getTableProps()}>
+    <table className='flex-1 w-full' {...getTableProps()}>
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th key={column.id} className='text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
+              <th key={column.id} className='sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
                 {column.render('Header')}
               </th>
             ))}
