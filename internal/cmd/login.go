@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -397,11 +398,20 @@ func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 				return nil, err
 			}
 			// TODO: save cert for future requests
-
+			// TODO: cleanup
+			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return nil, err
+			}
+			pool.AddCert(uaErr.Cert)
+			transport := &http.Transport{
+				TLSClientConfig: &tls.Config{RootCAs: pool},
+			}
+			return apiClient(options.Server, "", transport), nil
 		}
 	}
 
-	client := apiClient(options.Server, "", options.SkipTLSVerify)
+	client := apiClient(options.Server, "", defaultHTTPTransport(options.SkipTLSVerify))
 	return client, nil
 }
 

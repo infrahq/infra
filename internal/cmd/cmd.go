@@ -77,23 +77,27 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify), nil
+	return apiClient(config.Host, config.AccessKey, defaultHTTPTransport(config.SkipTLSVerify)), nil
 }
 
-func apiClient(host string, accessKey string, skipTLSVerify bool) *api.Client {
+func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
 	return &api.Client{
 		Name:      "cli",
 		Version:   internal.Version,
 		URL:       "https://" + host,
 		AccessKey: accessKey,
 		HTTP: http.Client{
-			Timeout: 60 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // We may purposely set insecureskipverify via a flag
-					InsecureSkipVerify: skipTLSVerify,
-				},
-			},
+			Timeout:   60 * time.Second,
+			Transport: transport,
+		},
+	}
+}
+
+func defaultHTTPTransport(skipTLSVerify bool) *http.Transport {
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			//nolint:gosec // We may purposely set insecureskipverify via a flag
+			InsecureSkipVerify: skipTLSVerify,
 		},
 	}
 }
