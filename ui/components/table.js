@@ -1,8 +1,8 @@
 import { Fragment } from 'react'
 import { useTable, useExpanded } from 'react-table'
 
-export default function ({ columns, data, renderRowSubComponent, getRowProps = () => ({}) }) {
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
+export default function ({ columns, data, renderRowSubComponent, getRowProps = () => ({}), subTable = false }) {
+  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow, visibleColumns } = useTable({
     columns,
     data
   }, useExpanded)
@@ -13,7 +13,7 @@ export default function ({ columns, data, renderRowSubComponent, getRowProps = (
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th key={column.id} className='sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
+              <th key={column.id} className={`sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800 ${subTable ? 'pb-5' : ''}`} {...column.getHeaderProps()}>
                 {column.render('Header')}
               </th>
             ))}
@@ -36,7 +36,7 @@ export default function ({ columns, data, renderRowSubComponent, getRowProps = (
               </tr>
               {row.isExpanded && (
                 <tr>
-                  <td>
+                  <td colSpan={visibleColumns.length}>
                     {renderRowSubComponent(row)}
                   </td>
                 </tr>

@@ -142,6 +142,7 @@ export default function Destinations () {
     return (
       <div className='ml-10 mt-8'>
         <Table 
+          subTable
           columns={subColumns} 
           data={rowSubData}
           getRowProps={row => ({
