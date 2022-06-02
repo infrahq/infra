@@ -74,7 +74,7 @@ function Dashboard ({ children }) {
           )}
         </div>
         <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 overflow-hidden'>
-          <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-6 h-6'>
+          <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
             <div className='relative text-center flex flex-1 justify-center items-center border border-violet-300/70 text-3xs rounded-[4px] leading-none font-normal m-0.5 select-none'>
               <span className='absolute inset-x-0 -mt-[1px]'>{auth?.name?.[0]}</span>
             </div>
