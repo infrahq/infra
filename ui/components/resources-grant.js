@@ -97,7 +97,7 @@ export default function ({ id }) {
       {error && <ErrorMessage message={error} />}
       {grants?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {grants?.sort((a, b) => (b.created).localeCompare(a.created)).filter(grant => grant.resource !== 'infra').map(item => (
+          {grants?.filter(grant => grant.resource !== 'infra').sort((a, b) => b.id.localeCompare(a.id)).map(item => (
             <div className='flex justify-between items-center' key={item.id}>
               <p className='text-2xs'>{item.resource}</p>
               <div>
