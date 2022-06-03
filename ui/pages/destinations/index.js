@@ -3,6 +3,8 @@ import Head from 'next/head'
 import { useState } from 'react'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
+import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
+
 
 import { useAdmin } from '../../lib/admin'
 
@@ -15,10 +17,13 @@ import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 
 function SidebarNamespaceContent ({ namespace }) {
-  console.log(namespace)
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      test
+      <section>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>  
+        <div>{namespace.name}</div>
+        <div>{namespace.destination}</div>
+      </section>
     </div>
   )
 }
@@ -103,12 +108,16 @@ const columns = [{
   accessor: 'name',
   id: 'expander',
   Cell: ({ row, value }) => {
-    return <div className='flex py-3 items-center'>
-      <span className='mr-3' {...row.getToggleRowExpandedProps()}>
-        {row.isExpanded ? '👇' : '👉'}
-      </span>
-      {value}
-    </div>
+    return (
+      <div className='flex py-3 items-center'>
+        <span className='mr-3' {...row.getToggleRowExpandedProps()}>
+          <div className='border border-gray-900 bg-gray-900 rounded-md flex items-center tracking-tight text-sm w-6 h-6'>
+            {row.isExpanded ? <MinusSmIcon className='w-4 h-4 m-auto' /> : <PlusSmIcon className='w-4 h-4 m-auto' />}
+          </div>
+        </span>
+        {value}
+      </div>
+    )
   }
 }, {
   Header: 'Kind',
@@ -126,11 +135,13 @@ export default function Destinations () {
   const loading = adminLoading || (!destinations && !error)
 
   const selectDestination = (row) => {
+    console.log(row);
     setSelectedDestination(row)
     setSelectedNamespace(null)
   }
 
   const selectNamespace = (row) => {
+    console.log(row)
     setSelectedNamespace(row)
     setSelectedDestination(null)
   }
@@ -143,7 +154,6 @@ export default function Destinations () {
 
   function renderRowSubComponent (row) {
     const { name: destination, id: destinationId, resources } = row.original
-    console.log(row.original)
     const rowSubData = resources.map((resource => {
       return {
         destination,
@@ -162,11 +172,11 @@ export default function Destinations () {
       }
     }, {
       Header: 'Kind',
-      Cell: ({ value }) => <span className='text-gray-400'>namespace</span>
+      Cell: () => <span className='text-gray-400'>namespace</span>
     }]
   
     return (
-      <div className='ml-16 mt-8'>
+      <div className='ml-16 mt-6 mb-6'>
         <Table 
           subTable
           columns={subColumns} 
@@ -174,7 +184,8 @@ export default function Destinations () {
           getRowProps={row => ({
             onClick: () => selectNamespace(row.original),
             style: {
-              cursor: 'pointer'
+              cursor: 'pointer',
+              background: row.original.name === selectedNamespace?.name ? '#151A1E' : ''
             }
           })}
         />
