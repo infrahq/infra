@@ -35,5 +35,7 @@ When you are ready to commit your change, follow [Conventional Commits](https://
 for your commit message. The type must be one of `fix`, `feat`, `improve`, or `maintain`. These types are
 documented in the [commitlint config file](.github/commitlint.config.js).
 
+## Contributor License Agreement
 
+All contributors also need to fill out the Infra's Contributor License Agreement (CLA) before changes can be merged. Infra's CLA assistant bot will automatically prompt for signatures from contributors on pull requests that require it.
 
