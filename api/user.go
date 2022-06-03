@@ -22,7 +22,7 @@ type ListUsersRequest struct {
 }
 
 type CreateUserRequest struct {
-	Name               string `json:"name" validate:"required"`
+	Name               string `json:"name" validate:"email,required"`
 	SetOneTimePassword bool   `json:"setOneTimePassword"`
 }
 

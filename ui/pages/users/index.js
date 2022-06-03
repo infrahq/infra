@@ -16,7 +16,7 @@ import DeleteModal from '../../components/modals/delete'
 import ResourcesGrant from '../../components/resources-grant'
 
 const columns = [{
-  Header: 'Name',
+  Header: 'Email',
   accessor: u => u,
   Cell: ({ value: user }) => (
     <div className='flex items-center py-1.5'>
