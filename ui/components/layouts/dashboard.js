@@ -5,7 +5,7 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useAdmin } from '../../lib/admin'
 import AuthRequired from '../auth-required'
 
-export default function ({ children }) {
+function Dashboard ({ children }) {
   const router = useRouter()
   const { data: auth } = useSWR('/api/users/self')
   const { data: version } = useSWR('/api/version')
@@ -106,6 +106,14 @@ export default function ({ children }) {
           </div>
         </main>
       </div>
+    </AuthRequired>
+  )
+}
+
+export default function (props) {
+  return (
+    <AuthRequired>
+      <Dashboard {...props} />
     </AuthRequired>
   )
 }
