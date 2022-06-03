@@ -62,7 +62,7 @@ export default function () {
   const [error, setError] = useState('')
 
   const userGrants = grants?.filter(g => g.user)
-  const sortedGrants = [...userGrants?.filter(g => g.user === auth.id) || [], ...userGrants?.filter(g => g.user !== auth.id).sort((a, b) => a.user.localeCompare(b.user))]
+  const sortedGrants = userGrants && [...userGrants?.filter(g => g.user === auth.id) || [], ...userGrants?.filter(g => g.user !== auth.id).sort((a, b) => a.user.localeCompare(b.user))]
 
   const grantAdminAccess = id => {
     fetch('/api/grants', {
