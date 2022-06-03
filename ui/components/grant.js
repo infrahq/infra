@@ -67,7 +67,7 @@ export default function ({ id }) {
     if (validateEmail(email)) {
       setError('')
       try {
-        const res = await fetch(`/api/users?name=${name}`)
+        const res = await fetch(`/api/users?name=${email}`)
         const data = await res.json()
 
         if (!res.ok) {
