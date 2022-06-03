@@ -457,99 +457,7 @@ func Run(ctx context.Context, options Options) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	repeat.Start(ctx, 5*time.Second, func(context.Context) {
-		host, port, err := k8s.Endpoint()
-		if err != nil {
-			logging.S.Errorf("failed to lookup endpoint: %v", err)
-			return
-		}
-
-		if ipv4 := net.ParseIP(host); ipv4 == nil {
-			// wait for DNS resolution if endpoint is not an IPv4 address
-			if _, err := net.LookupIP(host); err != nil {
-				logging.L.Error("host could not be resolved")
-				return
-			}
-		}
-
-		// update certificates if the host changed
-		err = certCache.AddHost(host)
-		if err != nil {
-			logging.L.Error("could not update self-signed certificates")
-			return
-		}
-
-		endpoint := fmt.Sprintf("%s:%d", host, port)
-		logging.S.Debugf("connector serving on %s", endpoint)
-
-		namespaces, err := k8s.Namespaces()
-		if err != nil {
-			logging.S.Errorf("could not get kubernetes namespaces: %w", err)
-			return
-		}
-
-		clusterRoles, err := k8s.ClusterRoles()
-		if err != nil {
-			logging.S.Errorf("could not get kubernetes cluster-roles: %w", err)
-			return
-		}
-
-		switch {
-		case destination.ID == 0:
-			isClusterIP, err := k8s.IsServiceTypeClusterIP()
-			if err != nil {
-				logging.S.Debugf("could not determine service type: %v", err)
-			}
-
-			if isClusterIP {
-				logging.S.Warn("registering Kubernetes connector with ClusterIP. it may not be externally accessible. if you are experiencing connectivity issues, consider switching to LoadBalancer or Ingress")
-			}
-
-			fallthrough
-
-		case !slicesEqual(destination.Resources, namespaces):
-			destination.Resources = namespaces
-			fallthrough
-
-		case !slicesEqual(destination.Roles, clusterRoles):
-			destination.Roles = clusterRoles
-			fallthrough
-
-		case !bytes.Equal(destination.Connection.CA, caCertPEM):
-			destination.Connection.CA = caCertPEM
-			fallthrough
-
-		case destination.Connection.URL != endpoint:
-			destination.Connection.URL = endpoint
-
-			if err := createOrUpdateDestination(client, destination); err != nil {
-				logging.S.Errorf("initializing destination: %v", err)
-				return
-			}
-		}
-
-		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Name})
-		if err != nil {
-			logging.S.Errorf("error listing grants: %v", err)
-			return
-		}
-
-		for _, n := range namespaces {
-			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", options.Name, n)})
-			if err != nil {
-				logging.S.Errorf("error listing grants: %v", err)
-				return
-			}
-
-			grants.Items = append(grants.Items, g.Items...)
-		}
-
-		err = updateRoles(client, k8s, grants.Items)
-		if err != nil {
-			logging.S.Errorf("error updating grants: %v", err)
-			return
-		}
-	})
+	repeat.Start(ctx, 5*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
 
 	ginutil.SetMode()
 	router := gin.New()
@@ -620,6 +528,103 @@ func Run(ctx context.Context, options Options) error {
 	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
+}
+
+func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination *api.Destination, certCache *CertCache, caCertPEM []byte) func(context.Context) {
+
+	return func(context.Context) {
+		host, port, err := k8s.Endpoint()
+		if err != nil {
+			logging.S.Errorf("failed to lookup endpoint: %v", err)
+			return
+		}
+
+		if ipv4 := net.ParseIP(host); ipv4 == nil {
+			// wait for DNS resolution if endpoint is not an IPv4 address
+			if _, err := net.LookupIP(host); err != nil {
+				logging.L.Error("host could not be resolved")
+				return
+			}
+		}
+
+		// update certificates if the host changed
+		err = certCache.AddHost(host)
+		if err != nil {
+			logging.L.Error("could not update self-signed certificates")
+			return
+		}
+
+		endpoint := fmt.Sprintf("%s:%d", host, port)
+		logging.S.Debugf("connector serving on %s", endpoint)
+
+		namespaces, err := k8s.Namespaces()
+		if err != nil {
+			logging.S.Errorf("could not get kubernetes namespaces: %w", err)
+			return
+		}
+
+		clusterRoles, err := k8s.ClusterRoles()
+		if err != nil {
+			logging.S.Errorf("could not get kubernetes cluster-roles: %w", err)
+			return
+		}
+
+		switch {
+		case destination.ID == 0:
+			isClusterIP, err := k8s.IsServiceTypeClusterIP()
+			if err != nil {
+				logging.S.Debugf("could not determine service type: %v", err)
+			}
+
+			if isClusterIP {
+				logging.S.Warn("registering Kubernetes connector with ClusterIP. it may not be externally accessible. if you are experiencing connectivity issues, consider switching to LoadBalancer or Ingress")
+			}
+
+			fallthrough
+
+		case !slicesEqual(destination.Resources, namespaces):
+			destination.Resources = namespaces
+			fallthrough
+
+		case !slicesEqual(destination.Roles, clusterRoles):
+			destination.Roles = clusterRoles
+			fallthrough
+
+		case !bytes.Equal(destination.Connection.CA, caCertPEM):
+			destination.Connection.CA = caCertPEM
+			fallthrough
+
+		case destination.Connection.URL != endpoint:
+			destination.Connection.URL = endpoint
+
+			if err := createOrUpdateDestination(client, destination); err != nil {
+				logging.S.Errorf("initializing destination: %v", err)
+				return
+			}
+		}
+
+		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: destination.Name})
+		if err != nil {
+			logging.S.Errorf("error listing grants: %v", err)
+			return
+		}
+
+		for _, n := range namespaces {
+			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", destination.Name, n)})
+			if err != nil {
+				logging.S.Errorf("error listing grants: %v", err)
+				return
+			}
+
+			grants.Items = append(grants.Items, g.Items...)
+		}
+
+		err = updateRoles(client, k8s, grants.Items)
+		if err != nil {
+			logging.S.Errorf("error updating grants: %v", err)
+			return
+		}
+	}
 }
 
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
