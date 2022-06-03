@@ -126,8 +126,6 @@ func ByPagination(pg *models.Pagination) SelectorFunc {
 	}
 
 	return func(db *gorm.DB) *gorm.DB {
-		// var count int64
-		// db.Count(&count)
 
 		pg.MaxPage = -999999 //TODO: get maxpage working
 		// I don't think this is the right place to do this necessarily
