@@ -1,8 +1,6 @@
 package data
 
 import (
-	"math"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -122,14 +120,17 @@ func ByUserID(userID uid.ID) SelectorFunc {
 }
 
 func ByPagination(pg *models.Pagination) SelectorFunc {
+	if pg == nil {
+		defaultpg := models.RequestToPagination(nil)
+		pg = &defaultpg
+	}
 
 	return func(db *gorm.DB) *gorm.DB {
-		var count int64
-		db.Count(&count)
+		// var count int64
+		// db.Count(&count)
 
-		pg.MaxPage = int(math.Ceil(float64(count) / float64(pg.Limit))) //TODO: get maxpage working
-		// I don't think this is the right place to do this,
-		// but it's currently the only place where both the unpaginated data count + Pagination struct are present
+		pg.MaxPage = -999999 //TODO: get maxpage working
+		// I don't think this is the right place to do this necessarily
 		return db.Offset(pg.Limit * (pg.Page - 1)).Limit(pg.Limit).Order(pg.Sort)
 	}
 }
