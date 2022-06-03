@@ -61,7 +61,7 @@ func GenerateCertificate(hosts []string, caCert *x509.Certificate, caKey crypto.
 	}
 
 	keyBytes := pemEncodePrivateKey(x509.MarshalPKCS1PrivateKey(key))
-	return pemEncodeCertificate(certBytes), keyBytes, nil
+	return PEMEncodeCertificate(certBytes), keyBytes, nil
 }
 
 func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -110,7 +110,7 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 			}
 
 			logging.L.Info("new server certificate",
-				zap.String("SHA256 fingerprint", Fingerprint(pemDecode(certBytes))))
+				zap.String("SHA256 fingerprint", Fingerprint(PEMDecode(certBytes))))
 		}
 
 		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
@@ -131,14 +131,14 @@ func Fingerprint(raw []byte) string {
 	return strings.ToUpper(s)
 }
 
-func pemDecode(raw []byte) []byte {
+func PEMDecode(raw []byte) []byte {
 	block, _ := pem.Decode(raw)
 	return block.Bytes
 }
 
-// pemEncodeCertificate accepts the bytes of a x509 certificate in ASN.1 DER form
+// PEMEncodeCertificate accepts the bytes of a x509 certificate in ASN.1 DER form
 // and returns a PEM encoded representation of that certificate.
-func pemEncodeCertificate(raw []byte) []byte {
+func PEMEncodeCertificate(raw []byte) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: raw})
 }
 

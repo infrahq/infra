@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/pem"
 	"os"
 	"path/filepath"
 	"testing"
@@ -204,21 +203,18 @@ func TestLoginCmd(t *testing.T) {
 		cert, err := os.ReadFile("testdata/pki/localhost.crt")
 		assert.NilError(t, err)
 
-		// TODO: remove once stored as PEM encoded
-		block, _ := pem.Decode(cert)
-
 		// Check the client config
 		cfg, err = readConfig()
 		assert.NilError(t, err)
 		expected := []ClientHostConfig{
 			{
-				Name:               "admin",
+				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
 				PolymorphicID:      "any-id",
 				Host:               srv.Addrs.HTTPS.String(),
 				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
 				Current:            true,
-				TrustedCertificate: block.Bytes,
+				TrustedCertificate: cert,
 			},
 		}
 		// TODO: where is the extra entry coming from?
@@ -269,7 +265,7 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
-	timeout := time.Hour // TODO: time.Second
+	timeout := time.Second
 	if os.Getenv("CI") != "" {
 		// CI takes much longer than local dev, use a much longer timeout
 		timeout = 20 * time.Second

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -24,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
@@ -238,8 +238,9 @@ func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api
 		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
-	// TODO: save this in PEM format
-	clientHostConfig.TrustedCertificate = lc.TrustedCertificate
+	if len(lc.TrustedCertificate) > 0 {
+		clientHostConfig.TrustedCertificate = certs.PEMEncodeCertificate(lc.TrustedCertificate)
+	}
 
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
@@ -406,7 +407,11 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 			}
 			pool.AddCert(uaErr.Cert)
 			transport := &http.Transport{
-				TLSClientConfig: &tls.Config{RootCAs: pool},
+				TLSClientConfig: &tls.Config{
+					// set min version to the same as default to make gosec linter happy
+					MinVersion: tls.VersionTLS12,
+					RootCAs:    pool,
+				},
 			}
 			c.APIClient = apiClient(options.Server, "", transport)
 			c.TrustedCertificate = uaErr.Cert.Raw
@@ -547,7 +552,11 @@ func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	// TODO: improve this message
 	// TODO: use color/bold to highlight important parts
 	// TODO: test format with golden
-	fmt.Fprintf(cli.Stderr, `The certificate presented by the server could not be automatically verified.
+	fmt.Fprintf(cli.Stderr, `
+The certificate presented by the server is not trusted by your operating system. It
+could not be automatically verified.
+
+Certificate
 
 Subject: %[1]s
 Issuer: %[2]s
@@ -573,7 +582,7 @@ to manually verify the certificate can be trusted.
 		cert.NotAfter.Format(time.RFC1123),  // TODO: include relative time
 		strings.Join(cert.DNSNames, ", "),   // TODO: exclude when empty
 		cert.IPAddresses,                    // TODO: format the list, exclude when empty
-		fingerprint(cert),
+		certs.Fingerprint(cert.Raw),
 	)
 	confirmPrompt := &survey.Select{
 		Message: "Options:",
@@ -594,12 +603,6 @@ to manually verify the certificate can be trusted.
 	}
 	// TODO: can this happen?
 	panic("unexpected")
-}
-
-// TODO: move this to a shared place.
-func fingerprint(cert *x509.Certificate) string {
-	raw := sha256.Sum256(cert.Raw)
-	return strings.Replace(fmt.Sprintf("% x", raw), " ", ":", -1)
 }
 
 // Returns the host address of the Infra server that user would like to log into

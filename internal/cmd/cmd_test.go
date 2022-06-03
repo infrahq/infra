@@ -273,6 +273,7 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 				PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),
 				Name:          user.Name,
 				Host:          srv.Listener.Addr().String(),
+				// TODO: change to using TrustedCertificate
 				SkipTLSVerify: true,
 				AccessKey:     "the-access-key",
 				Expires:       api.Time(time.Now().Add(time.Hour)),
