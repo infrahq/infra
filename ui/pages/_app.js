@@ -1,6 +1,7 @@
 import dynamic from 'next/dynamic'
 import Head from 'next/head'
-import { SWRConfig } from 'swr'
+import useSWR, { SWRConfig } from 'swr'
+import { useRouter } from 'next/router'
 
 import '../lib/fetch'
 import '../lib/dayjs'
@@ -17,16 +18,29 @@ async function fetcher (resource, init) {
   return data
 }
 
+const swrConfig = {
+  fetcher,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false
+}
+
 function App ({ Component, pageProps }) {
+  const { data: signup } = useSWR('/api/signup', swrConfig)
+  const router = useRouter()
+
+  if (!signup) {
+    return null
+  }
+
+  if (signup.enabled && router.pathname !== '/signup') {
+    router.replace('/signup')
+    return null
+  }
+
   const layout = Component.layout || (page => page)
 
   return (
-    <SWRConfig value={{
-      fetcher: (resource, init) => fetcher(resource, init),
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false
-    }}
-    >
+    <SWRConfig value={swrConfig}>
       <Head>
         <link rel='icon' type='image/png' sizes='32x32' href='/favicon-32x32.png' />
         <link rel='icon' type='image/png' sizes='16x16' href='/favicon-16x16.png' />

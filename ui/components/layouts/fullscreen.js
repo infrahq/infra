@@ -3,7 +3,7 @@ import { XIcon, ChevronLeftIcon } from '@heroicons/react/outline'
 
 import AuthRequired from '../auth-required'
 
-export default function ({ children, backHref, closeHref }) {
+function Fullscreen ({ children, backHref, closeHref }) {
   return (
     <AuthRequired>
       <div className='flex flex-col w-full h-full'>
@@ -27,6 +27,14 @@ export default function ({ children, backHref, closeHref }) {
           </div>
         </div>
       </div>
+    </AuthRequired>
+  )
+}
+
+export default function (props) {
+  return (
+    <AuthRequired>
+      <Fullscreen {...props} />
     </AuthRequired>
   )
 }
