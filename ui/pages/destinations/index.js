@@ -108,7 +108,8 @@ export default function Destinations () {
   const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
-  const table = useTable({ columns, data: destinations || [] })
+
+  const table = useTable({ columns, data: destinations?.sort((a, b) => b.created.localeCompare(a.created)) || [] })
 
   const loading = adminLoading || (!destinations && !error)
 
@@ -120,7 +121,7 @@ export default function Destinations () {
       {!loading && (
         <div className='flex-1 flex h-full'>
           <main className='flex-1 flex flex-col space-y-4'>
-            <PageHeader header='Cluster' buttonHref={admin && '/destinations/add'} buttonLabel='Cluster' />
+            <PageHeader header='Clusters' buttonHref={admin && '/destinations/add'} buttonLabel='Cluster' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (

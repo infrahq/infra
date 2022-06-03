@@ -276,7 +276,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		Name:          r.Name,
 		UniqueID:      r.UniqueID,
 		ConnectionURL: r.Connection.URL,
-		ConnectionCA:  r.Connection.CA,
+		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
 	}
@@ -297,7 +297,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		Name:          r.Name,
 		UniqueID:      r.UniqueID,
 		ConnectionURL: r.Connection.URL,
-		ConnectionCA:  r.Connection.CA,
+		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
 	}
