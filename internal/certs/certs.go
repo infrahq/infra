@@ -1,19 +1,22 @@
 package certs
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"net"
+	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -57,17 +60,8 @@ func GenerateCertificate(hosts []string, caCert *x509.Certificate, caKey crypto.
 		return nil, nil, err
 	}
 
-	certPEMBuf := new(bytes.Buffer)
-	if err := pem.Encode(certPEMBuf, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes}); err != nil {
-		return nil, nil, err
-	}
-
-	keyPEMBuf := new(bytes.Buffer)
-	if err := pem.Encode(keyPEMBuf, &pem.Block{Type: "PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}); err != nil {
-		return nil, nil, err
-	}
-
-	return certPEMBuf.Bytes(), keyPEMBuf.Bytes(), nil
+	keyBytes := pemEncodePrivateKey(x509.MarshalPKCS1PrivateKey(key))
+	return pemEncodeCertificate(certBytes), keyBytes, nil
 }
 
 func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -114,6 +108,9 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 			if err := manager.Cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
 				return nil, err
 			}
+
+			logging.L.Info("new server certificate",
+				zap.String("SHA256 fingerprint", Fingerprint(pemDecode(certBytes))))
 		}
 
 		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
@@ -123,6 +120,32 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager, serverName string) f
 
 		return &keypair, nil
 	}
+}
+
+// Fingerprint returns a sha256 checksum of the certificate formatted as
+// hex pairs separated by colons. This is a common format used by browsers.
+// The bytes must be the ASN.1 DER form of the x509.Certificate.
+func Fingerprint(raw []byte) string {
+	checksum := sha256.Sum256(raw)
+	s := strings.ReplaceAll(fmt.Sprintf("% x", checksum), " ", ":")
+	return strings.ToUpper(s)
+}
+
+func pemDecode(raw []byte) []byte {
+	block, _ := pem.Decode(raw)
+	return block.Bytes
+}
+
+// pemEncodeCertificate accepts the bytes of a x509 certificate in ASN.1 DER form
+// and returns a PEM encoded representation of that certificate.
+func pemEncodeCertificate(raw []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: raw})
+}
+
+// pemEncodePrivateKey accepts the ASN.1 DER form of a private key and returns the
+// PEM encoded representation of that private key.
+func pemEncodePrivateKey(raw []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: raw})
 }
 
 func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
