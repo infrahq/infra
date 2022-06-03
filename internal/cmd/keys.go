@@ -43,12 +43,15 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add USER",
+		Use:   "add USER|connector",
 		Short: "Create an access key",
-		Long:  `Create an access key for a user.`,
+		Long:  `Create an access key for a user or a connector.`,
 		Example: `
-# Create an access key named 'example-key' that expires in 12 hours
-$ infra keys add example-key identity@example.com --ttl=12h
+# Create an access key named 'example-key' for a user that expires in 12 hours
+$ infra keys add example-key user@example.com --ttl=12h
+
+# Create an access key to add a Kubernetes connection to Infra
+$ infra keys add connector
 `,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

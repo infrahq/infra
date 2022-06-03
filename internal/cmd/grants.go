@@ -73,15 +73,14 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			var userRows []userRow
 			var groupRows []groupRow
 			for _, g := range grants.Items {
-
 				switch {
 				case g.User != 0:
-					identity, err := client.GetUser(g.User)
+					user, err := client.GetUser(g.User)
 					if err != nil {
 						return err
 					}
 					userRows = append(userRows, userRow{
-						User:     identity.Name,
+						User:     user.Name,
 						Access:   g.Privilege,
 						Resource: g.Resource,
 					})
@@ -129,10 +128,10 @@ func newGrantRemoveCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
-		Use:     "remove IDENTITY DESTINATION",
+		Use:     "remove USER|GROUP DESTINATION",
 		Aliases: []string{"rm"},
-		Short:   "Revoke an identity's access from a destination",
-		Example: `# Remove all grants of an identity in a destination
+		Short:   "Revoke a user or group's access to a destination",
+		Example: `# Remove all grants of a user in a destination
 $ infra grants remove janedoe@example.com docker-desktop
 
 # Remove all grants of a group in a destination
@@ -200,9 +199,9 @@ func newGrantAddCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
 
 	cmd := &cobra.Command{
-		Use:   "add IDENTITY DESTINATION",
-		Short: "Grant an identity access to a destination",
-		Example: `# Grant an identity access to a destination
+		Use:   "add USER|GROUP DESTINATION",
+		Short: "Grant a user or group access to a destination",
+		Example: `# Grant a user access to a destination
 $ infra grants add johndoe@example.com docker-desktop
 
 # Grant a group access to a destination
@@ -222,8 +221,8 @@ $ infra grants add johndoe@example.com infra --role admin
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Required if identity is of type 'group'")
-	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that identity will be given")
+	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
+	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that the user or group will be given")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
 	return cmd
 }
