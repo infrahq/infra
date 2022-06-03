@@ -20,87 +20,87 @@ import (
 )
 
 type Provider struct {
-	Name         string `mapstructure:"name" validate:"required"`
-	URL          string `mapstructure:"url" validate:"required"`
-	ClientID     string `mapstructure:"clientID" validate:"required"`
-	ClientSecret string `mapstructure:"clientSecret" validate:"required"`
+	Name         string `validate:"required"`
+	URL          string `validate:"required"`
+	ClientID     string `validate:"required"`
+	ClientSecret string `validate:"required"`
 }
 
 type Grant struct {
-	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
-	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
-	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"` // deprecated
-	Resource string `mapstructure:"resource" validate:"required"`
-	Role     string `mapstructure:"role"`
+	User     string `validate:"excluded_with=Group,excluded_with=Machine"`
+	Group    string `validate:"excluded_with=User,excluded_with=Machine"`
+	Machine  string `validate:"excluded_with=User,excluded_with=Group"` // deprecated
+	Resource string `validate:"required"`
+	Role     string
 }
 
 type User struct {
-	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
-	AccessKey string `mapstructure:"accessKey"`
-	Password  string `mapstructure:"password"`
+	Name      string `validate:"excluded_with=Email"`
+	AccessKey string
+	Password  string
 
-	Email string `mapstructure:"email" validate:"excluded_with=Name"` // deprecated
+	Email string `validate:"excluded_with=Name"` // deprecated
 }
 
 type Config struct {
-	Providers []Provider `mapstructure:"providers" validate:"dive"`
-	Grants    []Grant    `mapstructure:"grants" validate:"dive"`
-	Users     []User     `mapstructure:"users" validate:"dive"`
+	Providers []Provider `validate:"dive"`
+	Grants    []Grant    `validate:"dive"`
+	Users     []User     `validate:"dive"`
 }
 
 type KeyProvider struct {
-	Kind   string      `mapstructure:"kind" validate:"required"`
+	Kind   string      `validate:"required"`
 	Config interface{} // contains secret-provider-specific config
 }
 
 type nativeKeyProviderConfig struct {
-	SecretProvider string `mapstructure:"secretProvider"`
+	SecretProvider string
 }
 
 type AWSConfig struct {
-	Endpoint        string `mapstructure:"endpoint" validate:"required"`
-	Region          string `mapstructure:"region" validate:"required"`
-	AccessKeyID     string `mapstructure:"accessKeyID" validate:"required"`
-	SecretAccessKey string `mapstructure:"secretAccessKey" validate:"required"`
+	Endpoint        string `validate:"required"`
+	Region          string `validate:"required"`
+	AccessKeyID     string `validate:"required"`
+	SecretAccessKey string `validate:"required"`
 }
 
 type AWSKMSConfig struct {
-	AWSConfig `mapstructure:",squash"`
+	AWSConfig
 
-	EncryptionAlgorithm string `mapstructure:"encryptionAlgorithm"`
+	EncryptionAlgorithm string
 	// aws tags?
 }
 
 type AWSSecretsManagerConfig struct {
-	AWSConfig `mapstructure:",squash"`
+	AWSConfig
 }
 
 type AWSSSMConfig struct {
-	AWSConfig `mapstructure:",squash"`
-	KeyID     string `mapstructure:"keyID" validate:"required"` // KMS key to use for decryption
+	AWSConfig
+	KeyID string `validate:"required"` // KMS key to use for decryption
 }
 
 type GenericConfig struct {
-	Base64           bool `mapstructure:"base64"`
-	Base64URLEncoded bool `mapstructure:"base64UrlEncoded"`
-	Base64Raw        bool `mapstructure:"base64Raw"`
+	Base64           bool
+	Base64URLEncoded bool
+	Base64Raw        bool
 }
 
 type FileConfig struct {
-	GenericConfig `mapstructure:",squash"`
-	Path          string `mapstructure:"path" validate:"required"`
+	GenericConfig
+	Path string `validate:"required"`
 }
 
 type KubernetesConfig struct {
-	Namespace string `mapstructure:"namespace"`
+	Namespace string
 }
 
 type VaultConfig struct {
-	TransitMount string `mapstructure:"transitMount"`              // mounting point. defaults to /transit
-	SecretMount  string `mapstructure:"secretMount"`               // mounting point. defaults to /secret
-	Token        string `mapstructure:"token" validate:"required"` // vault token
-	Namespace    string `mapstructure:"namespace"`
-	Address      string `mapstructure:"address" validate:"required"`
+	TransitMount string // mounting point. defaults to /transit
+	SecretMount  string // mounting point. defaults to /secret
+	Token        string `validate:"required"`
+	Namespace    string
+	Address      string `validate:"required"`
 }
 
 func importKeyProviders(

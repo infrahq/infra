@@ -83,7 +83,7 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost port=5432", url)
 
-	r.options.DBUser = "user"
+	r.options.DBUsername = "user"
 
 	url, err = r.getPostgresConnectionString()
 	assert.NilError(t, err)

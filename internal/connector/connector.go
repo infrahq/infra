@@ -38,12 +38,12 @@ import (
 )
 
 type Options struct {
-	Server        string `mapstructure:"server"`
-	Name          string `mapstructure:"name"`
-	AccessKey     string `mapstructure:"accessKey"`
-	CACert        string `mapstructure:"caCert"`
-	CAKey         string `mapstructure:"caKey"`
-	SkipTLSVerify bool   `mapstructure:"skipTLSVerify"`
+	Server        string
+	Name          string
+	AccessKey     string
+	CACert        string
+	CAKey         string
+	SkipTLSVerify bool
 }
 
 type jwkCache struct {

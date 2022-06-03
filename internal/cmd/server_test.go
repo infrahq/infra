@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"net/url"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -50,32 +51,6 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 	}
 
 	testCases := []testCase{
-		{
-			name: "secret providers",
-			setup: func(t *testing.T, cmd *cobra.Command) {
-				content := `
-                    secrets:
-                      - kind: env
-                        name: base64env
-                        config:
-                          base64: true`
-
-				dir := fs.NewDir(t, t.Name(),
-					fs.WithFile("cfg.yaml", content))
-				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
-			},
-			expected: func(t *testing.T) server.Options {
-				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
-				expected.Secrets = []server.SecretProvider{
-					{
-						Kind:   "env",
-						Name:   "base64env",
-						Config: server.GenericConfig{Base64: true},
-					},
-				}
-				return expected
-			},
-		},
 		{
 			name: "config filename specified as env var",
 			setup: func(t *testing.T, cmd *cobra.Command) {
@@ -139,6 +114,151 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 				}
 				expected.UI.Enabled = true
 				return expected
+			},
+		},
+		{
+			name: "all options from config",
+			setup: func(t *testing.T, cmd *cobra.Command) {
+				content := `
+version: 0.2
+tlsCache: /cache/dir
+enableTelemetry: false # default is true
+enableSignup: false    # default is true
+sessionDuration: 3m
+
+dbFile: /db/file
+dbEncryptionKey: /this-is-the-path
+dbEncryptionKeyProvider: the-provider
+dbHost: the-host
+dbPort: 5432
+dbName: infradbname
+dbUsername: infra
+dbPassword: env:POSTGRES_DB_PASSWORD
+dbParameters: sslmode=require
+
+keys:
+  - kind: vault
+    config:
+      token: the-token
+      address: 10.1.1.1:1234
+
+secrets:
+  - kind: env
+    name: base64env
+    config:
+      base64: true
+
+addr:
+  http: "1.2.3.4:23"
+  https: "1.2.3.5:433"
+  metrics: "1.2.3.6:8888"
+
+ui:
+  enabled: false # default is true
+  proxyURL: "1.2.3.4:5151"
+
+providers:
+  - name: okta
+    url: https://dev-okta.com/
+    clientID: client-id
+    clientSecret: the-secret
+
+grants:
+  - user: user1
+    resource: infra
+    role: admin
+  - group: group1
+    resource: production
+    role: special
+
+users:
+  - name: username
+    accessKey: access-key
+    password: the-password
+
+`
+
+				dir := fs.NewDir(t, t.Name(),
+					fs.WithFile("cfg.yaml", content))
+				cmd.SetArgs([]string{"--config-file", dir.Join("cfg.yaml")})
+			},
+			expected: func(t *testing.T) server.Options {
+				return server.Options{
+					Version:         0.2,
+					TLSCache:        "/cache/dir",
+					SessionDuration: 3 * time.Minute,
+
+					DBEncryptionKey:         "/this-is-the-path",
+					DBEncryptionKeyProvider: "the-provider",
+					DBFile:                  "/db/file",
+					DBHost:                  "the-host",
+					DBPort:                  5432,
+					DBParameters:            "sslmode=require",
+					DBPassword:              "env:POSTGRES_DB_PASSWORD",
+					DBUsername:              "infra",
+					DBName:                  "infradbname",
+
+					Addr: server.ListenerOptions{
+						HTTP:    "1.2.3.4:23",
+						HTTPS:   "1.2.3.5:433",
+						Metrics: "1.2.3.6:8888",
+					},
+
+					UI: server.UIOptions{
+						ProxyURL: types.URL(url.URL{
+							Scheme: "http",
+							Host:   "1.2.3.4:5151",
+						}),
+					},
+
+					Keys: []server.KeyProvider{
+						{
+							Kind: "vault",
+							Config: server.VaultConfig{
+								Token:   "the-token",
+								Address: "10.1.1.1:1234",
+							},
+						},
+					},
+
+					Secrets: []server.SecretProvider{
+						{
+							Kind:   "env",
+							Name:   "base64env",
+							Config: server.GenericConfig{Base64: true},
+						},
+					},
+
+					Config: server.Config{
+						Providers: []server.Provider{
+							{
+								Name:         "okta",
+								URL:          "https://dev-okta.com/",
+								ClientID:     "client-id",
+								ClientSecret: "the-secret",
+							},
+						},
+						Grants: []server.Grant{
+							{
+								User:     "user1",
+								Resource: "infra",
+								Role:     "admin",
+							},
+							{
+								Group:    "group1",
+								Resource: "production",
+								Role:     "special",
+							},
+						},
+						Users: []server.User{
+							{
+								Name:      "username",
+								AccessKey: "access-key",
+								Password:  "the-password",
+							},
+						},
+					},
+				}
 			},
 		},
 		{
