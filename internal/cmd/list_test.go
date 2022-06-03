@@ -78,7 +78,7 @@ func TestListCmd(t *testing.T) {
 	t.Run("with no grants", func(t *testing.T) {
 		user := userMap["nogrants@example.com"]
 		err := writeConfig(&ClientConfig{
-			Version: "0.3",
+			Version: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),
@@ -104,7 +104,7 @@ func TestListCmd(t *testing.T) {
 	t.Run("with many grants", func(t *testing.T) {
 		user := userMap["manygrants@example.com"]
 		err := writeConfig(&ClientConfig{
-			Version: "0.3",
+			Version: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),

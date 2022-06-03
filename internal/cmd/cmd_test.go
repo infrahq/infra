@@ -267,7 +267,7 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 		user.ID = uid.New()
 	}
 	return ClientConfig{
-		Version: "0.3",
+		Version: clientConfigVersion,
 		Hosts: []ClientHostConfig{
 			{
 				PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),

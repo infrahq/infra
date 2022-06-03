@@ -184,7 +184,7 @@ func TestLoginCmd(t *testing.T) {
 		accessKey := resp.AccessKey
 
 		// Erase local data for previous login session
-		assert.NilError(t, writeConfig(&ClientConfig{}))
+		assert.NilError(t, writeConfig(&ClientConfig{Version: clientConfigVersion}))
 
 		console := newConsole(t)
 		ctx = PatchCLIWithPTY(ctx, console.Tty())
@@ -217,7 +217,6 @@ func TestLoginCmd(t *testing.T) {
 				TrustedCertificate: cert,
 			},
 		}
-		// TODO: where is the extra entry coming from?
 		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
 	})
 }
