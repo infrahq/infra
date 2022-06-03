@@ -17,6 +17,7 @@ type User struct {
 }
 
 type ListUsersRequest struct {
+	PaginationRequest
 	Name string   `form:"name"`
 	IDs  []uid.ID `form:"ids"`
 }

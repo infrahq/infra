@@ -34,6 +34,23 @@ func TestBindsQuery(t *testing.T) {
 	assert.Equal(t, "beta", r.Alpha)
 }
 
+func TestBindsComposedStructQuery(t *testing.T) {
+	c, _ := gin.CreateTestContext(nil)
+
+	uri, err := url.Parse("/foo?page=10")
+	assert.NilError(t, err)
+
+	c.Request = &http.Request{URL: uri, Method: "GET"}
+	r := &struct {
+		api.PaginationRequest
+		Alpha string `form:"alpha"`
+	}{}
+	err = bind(c, r)
+	assert.NilError(t, err)
+
+	assert.Equal(t, 10, r.PaginationRequest.Page)
+}
+
 func TestBindsJSON(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 

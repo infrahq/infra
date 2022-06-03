@@ -16,6 +16,7 @@ type AccessKey struct {
 }
 
 type ListAccessKeysRequest struct {
+	PaginationRequest
 	UserID uid.ID `form:"user_id"`
 	Name   string `form:"name"`
 }

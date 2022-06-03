@@ -29,14 +29,14 @@ type API struct {
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	users, err := access.ListIdentities(c, r.Name, r.IDs)
+	pg := models.RequestToPagination(&r.PaginationRequest)
+	users, err := access.ListIdentities(c, r.Name, r.IDs, &pg)
 	if err != nil {
 		return nil, err
 	}
-
 	result := api.NewListResponse(users, func(identity models.Identity) api.User {
 		return *identity.ToAPI()
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }
@@ -64,7 +64,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 
 	// infra identity creation should be attempted even if an identity is already known
 	if setOTP {
-		identities, err := access.ListIdentities(c, user.Name, nil)
+		identities, err := access.ListIdentities(c, user.Name, nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
 		}
@@ -132,6 +132,7 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 }
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
+	pg := models.RequestToPagination(&r.PaginationRequest)
 	groups, err := access.ListGroups(c, r.Name, r.UserID)
 	if err != nil {
 		return nil, err
@@ -139,7 +140,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListRes
 
 	result := api.NewListResponse(groups, func(group models.Group) api.Group {
 		return *group.ToAPI()
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }
@@ -169,6 +170,7 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}
+	pg := models.RequestToPagination(&r.PaginationRequest)
 	providers, err := access.ListProviders(c, r.Name, exclude)
 	if err != nil {
 		return nil, err
@@ -176,7 +178,7 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 
 	result := api.NewListResponse(providers, func(provider models.Provider) api.Provider {
 		return *provider.ToAPI()
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }
@@ -250,6 +252,7 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
+	pg := models.RequestToPagination(&r.PaginationRequest)
 	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name)
 	if err != nil {
 		return nil, err
@@ -257,7 +260,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 
 	result := api.NewListResponse(destinations, func(destination models.Destination) api.Destination {
 		return *destination.ToAPI()
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }
@@ -332,6 +335,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
+	pg := models.RequestToPagination(&r.PaginationRequest)
 	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name)
 	if err != nil {
 		return nil, err
@@ -348,7 +352,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 			Expires:           api.Time(accessKey.ExpiresAt),
 			ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
 		}
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }
@@ -385,7 +389,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
 	var subject uid.PolymorphicID
-
+	pg := models.RequestToPagination(&r.PaginationRequest)
 	switch {
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
@@ -400,7 +404,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 
 	result := api.NewListResponse(grants, func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
-	})
+	}, pg.PaginationToResponse())
 
 	return result, nil
 }

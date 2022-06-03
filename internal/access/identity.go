@@ -99,13 +99,13 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, ids []uid.ID) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, ids []uid.ID, pg *models.Pagination) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListIdentities(db, data.ByOptionalName(name), data.ByOptionalIDs(ids))
+	return data.ListIdentities(db, data.ByOptionalName(name), data.ByOptionalIDs(ids), data.ByPagination(pg))
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes

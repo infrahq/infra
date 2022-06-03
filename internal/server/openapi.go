@@ -160,6 +160,13 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				for j := 0; j < f.Type.NumField(); j++ {
+					af := f.Type.Field(j)
+					schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
+				}
+				continue
+			}
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
@@ -429,6 +436,15 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		for i := 0; i < r.NumField(); i++ {
 			f := r.Field(i)
 
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				tmpOp := openapi3.NewOperation()
+
+				buildRequest(f.Type, tmpOp)
+				for _, param := range tmpOp.Parameters {
+					op.AddParameter(param.Value)
+				}
+				continue
+			}
 			// check first if it's a json field
 			if name, ok := f.Tag.Lookup("json"); ok {
 				jsonName := strings.Split(name, ",")[0]
@@ -576,13 +592,36 @@ func parseMinLength(tag string) uint64 {
 	return len
 }
 
+func spaceSplitUnlessQuoted(s string, q rune) []string {
+	inQuote := false
+	result := make([]string, 0, strings.Count(s, " "))
+	var sb strings.Builder
+	for _, r := range s {
+		if !inQuote && r == ' ' {
+			result = append(result, sb.String())
+			sb.Reset()
+		} else if r == '\'' {
+			inQuote = !inQuote
+		} else {
+			sb.WriteRune(r)
+		}
+	}
+
+	if inQuote {
+		panic("string cannot be parsed due to unbalanced quotes: " + s)
+	}
+
+	result = append(result, sb.String())
+	return result
+}
+
 func parseOneOf(tag string) []interface{} {
 	oneof := strings.Split(tag, "oneof=")
 	if len(oneof) != 2 {
 		panic("oneof tag does not match expected format")
 	}
 
-	values := strings.Split(oneof[1], " ")
+	values := spaceSplitUnlessQuoted(oneof[1], '\'')
 
 	// convert to a slice of interfaces to assign to the schema
 	enumInterface := make([]interface{}, len(values))
