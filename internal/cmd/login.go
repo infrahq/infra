@@ -98,6 +98,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 	// if signup is required, use it to create an admin account
 	// and use those credentials for subsequent requests
+	logging.S.Debug("call server: check signup enabled")
 	signupEnabled, err := client.SignupEnabled()
 	if err != nil {
 		return err
@@ -116,13 +117,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.Provider != "":
+		if options.NonInteractive {
+			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
+		}
 		loginReq.OIDC, err = loginToProviderN(client, options.Provider)
 		if err != nil {
 			return err
 		}
 	default:
 		if options.NonInteractive {
-			return fmt.Errorf("Non-interactive login requires key, instead run: 'infra login SERVER --non-interactive --key KEY")
+			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
 		loginMethod, provider, err := promptLoginOptions(cli, client)
 		if err != nil {
@@ -152,6 +156,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 }
 
 func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest) error {
+	logging.S.Debug("call server: login")
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
@@ -177,6 +182,8 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest) erro
 		}
 
 		client.AccessKey = loginRes.AccessKey
+
+		logging.S.Debugf("call server: update user %s", loginRes.UserID)
 		if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			return err
 		}
@@ -229,7 +236,7 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 
 	t, ok := client.HTTP.Transport.(*http.Transport)
 	if !ok {
-		return fmt.Errorf("Could not update config due to an internal error")
+		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
 
@@ -306,7 +313,7 @@ func oidcflow(host string, clientId string) (string, error) {
 
 	if state != recvstate {
 		//lint:ignore ST1005, user facing error
-		return "", fmt.Errorf("Login aborted, provider state did not match the expected state")
+		return "", Error{Message: "Login aborted, provider state did not match the expected state"}
 	}
 
 	return code, nil
@@ -355,6 +362,7 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 		return nil, err
 	}
 
+	logging.S.Debugf("call server: signup for user %q", username)
 	_, err = client.Signup(&api.SignupRequest{Name: username, Password: password})
 	if err != nil {
 		return nil, err
@@ -384,7 +392,7 @@ func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 
 			if options.NonInteractive {
 				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
-				return nil, fmt.Errorf("Non-interactive login does not allow insecure connection by default,\n       unless overridden with  '--skip-tls-verify'.")
+				return nil, Error{Message: "Non-interactive login does not allow insecure connection by default,\n      to allow, run with '--skip-tls-verify'"}
 			}
 
 			if err = promptSkipTLSVerify(cli); err != nil {
@@ -418,6 +426,7 @@ func verifyTLS(host string) error {
 		return err
 	}
 
+	logging.S.Debugf("call server: test tls for %q", host)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
@@ -475,6 +484,7 @@ func promptAccessKeyLogin(cli *CLI) (string, error) {
 }
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
+	logging.S.Debug("call server: list providers")
 	providers, err := client.ListProviders("")
 	if err != nil {
 		return nil, err
@@ -541,7 +551,7 @@ func promptSkipTLSVerify(cli *CLI) error {
 // Returns the host address of the Infra server that user would like to log into
 func promptServer(cli *CLI, options loginCmdOptions) (string, error) {
 	if options.NonInteractive {
-		return "", fmt.Errorf("Non-interactive login requires the [SERVER] argument")
+		return "", Error{Message: "Non-interactive login requires the [SERVER] argument"}
 	}
 
 	config, err := readConfig()

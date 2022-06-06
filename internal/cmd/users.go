@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func newUsersCmd(cli *CLI) *cobra.Command {
@@ -108,6 +109,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
+			logging.S.Debug("call server: list users")
 			users, err := client.ListUsers(api.ListUsersRequest{})
 			if err != nil {
 				return err
@@ -149,16 +151,19 @@ $ infra users remove janedoe@example.com`,
 				return err
 			}
 
+			logging.S.Debugf("call server: list users named %q", name)
 			users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 			if err != nil {
 				return err
 			}
 
 			if users.Count == 0 && !force {
-				return fmt.Errorf("unknown user %q", name)
+				return Error{Message: fmt.Sprintf("No user named %q ", name)}
 			}
 
+			logging.S.Debugf("deleting %d users named %q...", users.Count, name)
 			for _, user := range users.Items {
+				logging.S.Debugf("...call server: delete user %s", user.ID)
 				if err := client.DeleteUser(user.ID); err != nil {
 					return err
 				}
@@ -182,6 +187,7 @@ func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 		return nil, err
 	}
 
+	logging.S.Debugf("call server: create users named %q", req.Name)
 	resp, err := client.CreateUser(req)
 	if err != nil {
 		return nil, err
@@ -216,7 +222,7 @@ func updateUser(cli *CLI, name string) error {
 		user, err := getUserByName(client, name)
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
-				return fmt.Errorf("User %s not found in local provider; only local users can be edited", name)
+				return Error{Message: fmt.Sprintf("No user named %q in local provider; only local users can be edited", name)}
 			}
 			return err
 		}
@@ -230,6 +236,7 @@ func updateUser(cli *CLI, name string) error {
 		return err
 	}
 
+	logging.S.Debugf("call server: update user %s", req.ID)
 	if _, err := client.UpdateUser(req); err != nil {
 		return err
 	}
@@ -244,6 +251,7 @@ func updateUser(cli *CLI, name string) error {
 }
 
 func getUserByName(client *api.Client, name string) (*api.User, error) {
+	logging.S.Debugf("call server: list users named %q", name)
 	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 	if err != nil {
 		return nil, err
@@ -323,6 +331,7 @@ func isUserSelf(name string) (bool, error) {
 
 // createUser creates a user with the requested name
 func createUser(client *api.Client, name string, setOTP bool) (*api.CreateUserResponse, error) {
+	logging.S.Debugf("call server: create user named %q", name)
 	user, err := client.CreateUser(&api.CreateUserRequest{Name: name, SetOneTimePassword: setOTP})
 	if err != nil {
 		return nil, err

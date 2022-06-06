@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 const ThirtyDays = 30 * (24 * time.Hour)
@@ -59,7 +60,7 @@ $ infra keys add connector
 
 			if options.Name != "" {
 				if strings.Contains(options.Name, " ") {
-					return fmt.Errorf("key name cannot contain spaces")
+					return Error{Message: "Key name cannot contain spaces"}
 				}
 			}
 
@@ -73,6 +74,7 @@ $ infra keys add connector
 				return err
 			}
 
+			logging.S.Debugf("call server: create access key named %q", options.Name)
 			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
 				UserID:            user.ID,
 				Name:              options.Name,
@@ -110,16 +112,19 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debugf("call server: list access keys named %q", args[0])
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
 				return err
 			}
 
 			if keys.Count == 0 && !force {
-				return fmt.Errorf("unknown access key %q", args[0])
+				return Error{Message: fmt.Sprintf("No access keys named %q", args[0])}
 			}
 
+			logging.S.Debugf("deleting %s access keys named %q...", keys.Count, args[0])
 			for _, key := range keys.Items {
+				logging.S.Debugf("...call server: delete access key %s", key.ID)
 				err = client.DeleteAccessKey(key.ID)
 				if err != nil {
 					return err
@@ -167,11 +172,13 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					return err
 				}
 
+				logging.S.Debugf("call server: list access keys for user %s", user.ID)
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID})
 				if err != nil {
 					return err
 				}
 			} else {
+				logging.S.Debug("call server: list access keys")
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{})
 				if err != nil {
 					return err

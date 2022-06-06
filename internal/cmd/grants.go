@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -54,6 +55,11 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			if options.Destination == "" {
+				logging.S.Debug("call server: list all grants")
+			} else {
+				logging.S.Debugf("call server: list grants for destination %q", options.Destination)
+			}
 			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				return err
@@ -75,6 +81,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			for _, g := range grants.Items {
 				switch {
 				case g.User != 0:
+					logging.S.Debugf("call server: get user %s", g.User)
 					user, err := client.GetUser(g.User)
 					if err != nil {
 						return err
@@ -85,6 +92,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 						Resource: g.Resource,
 					})
 				case g.Group != 0:
+					logging.S.Debugf("call server: get group %s", g.Group)
 					group, err := client.GetGroup(g.Group)
 					if err != nil {
 						return err
@@ -169,27 +177,31 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{
+	listGrantsReq := api.ListGrantsRequest{
 		User:      user,
 		Group:     group,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
-	})
+	}
+
+	logging.S.Debugf("call server: list grants %#v", listGrantsReq)
+	grants, err := client.ListGrants(listGrantsReq)
 	if err != nil {
 		return err
 	}
 
 	if grants.Count == 0 && !cmdOptions.Force {
-		return fmt.Errorf("unknown grant")
+		return Error{Message: "Grant not found"}
 	}
 
 	for _, g := range grants.Items {
+		logging.S.Debugf("call server: delete grant %s", g.ID)
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
 			return err
 		}
 
-		cli.Output("Revoked access to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+		cli.Output("Revoked access from user %q for destination %q", cmdOptions.Name, cmdOptions.Destination)
 	}
 
 	return nil
@@ -265,12 +277,14 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 	}
 
-	_, err = client.CreateGrant(&api.CreateGrantRequest{
+	createGrantReq := &api.CreateGrantRequest{
 		User:      userID,
 		Group:     groupID,
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
-	})
+	}
+	logging.S.Debugf("call server: create grant %#v", createGrantReq)
+	_, err = client.CreateGrant(createGrantReq)
 	if err != nil {
 		return err
 	}
@@ -316,13 +330,14 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 	supportedRoles := make(map[string]struct{})
 
 	if destination != "infra" {
+		logging.S.Debugf("call server: list destinations named %q", destination)
 		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: destination})
 		if err != nil {
 			return err
 		}
 
 		if destinations.Count == 0 {
-			return fmt.Errorf("unknown destination %q", destination)
+			return Error{Message: fmt.Sprintf("Destination %q not connected; to ignore, run with '--force'", destination)}
 		}
 
 		for _, d := range destinations.Items {
@@ -337,13 +352,13 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 
 		if subresource != "" {
 			if _, ok := supportedResources[subresource]; !ok {
-				return fmt.Errorf("unknown resource %q for %q", subresource, destination)
+				return Error{Message: fmt.Sprintf("Namespace %q not detected in destination %q; to ignore, run with '--force'", subresource, destination)}
 			}
 		}
 
 		if privilege != "connect" {
 			if _, ok := supportedRoles[privilege]; !ok {
-				return fmt.Errorf("unknown role %q for %q", privilege, destination)
+				return Error{Message: fmt.Sprintf("Role %q is not a known role for destination %q; to ignore, run with '--force'", privilege, destination)}
 			}
 		}
 	}

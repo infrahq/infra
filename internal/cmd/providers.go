@@ -8,6 +8,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/logging"
 )
 
 func newProvidersCmd(cli *CLI) *cobra.Command {
@@ -43,6 +44,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debug("call server: list providers")
 			providers, err := client.ListProviders("")
 			if err != nil {
 				return err
@@ -117,6 +119,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				return err
 			}
 
+			logging.S.Debugf("call server: create provider named %q", args[0])
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
 				URL:          opts.URL,
@@ -153,21 +156,24 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			logging.S.Debugf("call server: list providers named %q", args[0])
 			providers, err := client.ListProviders(args[0])
 			if err != nil {
 				return err
 			}
 
 			if providers.Count == 0 && !force {
-				return fmt.Errorf("unknown provider %q", args[0])
+				return Error{Message: fmt.Sprintf("No identity providers connected with the name %q", args[0])}
 			}
 
+			logging.S.Debugf("deleting %s providers named %q...", providers.Count, args[0])
 			for _, provider := range providers.Items {
+				logging.S.Debugf("...call server: delete provider %s", provider.ID)
 				if err := client.DeleteProvider(provider.ID); err != nil {
 					return err
 				}
 
-				cli.Output("Removed provider %q (%s)", provider.Name, provider.URL)
+				cli.Output("Disconnected provider %q (%s)", provider.Name, provider.URL)
 			}
 
 			return nil
@@ -180,13 +186,14 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 }
 
 func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
+	logging.S.Debugf("call server: list providers named %q", name)
 	providers, err := client.ListProviders(name)
 	if err != nil {
 		return nil, err
 	}
 
 	if providers.Count == 0 {
-		return nil, fmt.Errorf("no identity providers connected with the name %s", name)
+		return nil, Error{Message: fmt.Sprintf("No identity providers connected with the name %q", name)}
 	}
 
 	return &providers.Items[0], nil

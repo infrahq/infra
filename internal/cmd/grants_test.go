@@ -194,21 +194,21 @@ func TestGrantsAddCmd(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
 		err := Run(ctx, "grants", "add", "existing@example.com", "nonexistent")
-		assert.ErrorContains(t, err, "unknown destination")
+		assert.ErrorContains(t, err, "not connected")
 	})
 
 	t.Run("add role to non-existent namespace", func(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
 		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination.nonexistent")
-		assert.ErrorContains(t, err, "unknown resource")
+		assert.ErrorContains(t, err, "not detected in destination")
 	})
 
 	t.Run("add role to non-existent destination", func(t *testing.T) {
 		_ = setup(t)
 		ctx := context.Background()
 		err := Run(ctx, "grants", "add", "existing@example.com", "the-destination", "--role", "nonexistent")
-		assert.ErrorContains(t, err, "unknown role")
+		assert.ErrorContains(t, err, "not a known role")
 	})
 
 	t.Run("force add grant for nonexistent destination", func(t *testing.T) {
