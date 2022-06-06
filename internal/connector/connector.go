@@ -296,16 +296,17 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 type CertCache struct {
-	mu     sync.Mutex
-	caCert []byte
-	caKey  []byte
-	hosts  []string
-	cert   *tls.Certificate
+	readMu  sync.Mutex
+	writeMu sync.Mutex
+	caCert  []byte
+	caKey   []byte
+	hosts   []string
+	cert    *tls.Certificate
 }
 
 func (c *CertCache) AddHost(host string) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
 
 	for _, h := range c.hosts {
 		if h == host {
@@ -343,6 +344,9 @@ func (c *CertCache) AddHost(host string) error {
 }
 
 func (c *CertCache) Certificate() (*tls.Certificate, error) {
+	c.readMu.Lock()
+	defer c.readMu.Unlock()
+
 	if c.cert == nil {
 		// the host is not available externally, or this would have been set
 		// set to an empty host for the liveness check to resolve from the same host
