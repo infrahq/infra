@@ -79,6 +79,47 @@ func (a *API) addRequestRewrites() {
 			Privilege: oldRequest.Privilege,
 		}
 	})
+	type createDestinationRequestV0_13_1 struct {
+		UniqueID   string                       `json:"uniqueID"`
+		Name       string                       `json:"name" validate:"required"`
+		Connection destinationConnectionV0_13_1 `json:"connection"`
+
+		Resources []string `json:"resources"`
+		Roles     []string `json:"roles"`
+	}
+	type updateDestinationRequestV0_13_1 struct {
+		ID         uid.ID                       `uri:"id" json:"-" validate:"required"`
+		Name       string                       `json:"name" validate:"required"`
+		UniqueID   string                       `json:"uniqueID"`
+		Connection destinationConnectionV0_13_1 `json:"connection"`
+
+		Resources []string `json:"resources"`
+		Roles     []string `json:"roles"`
+	}
+	addRequestRewrite(a, http.MethodPost, "/api/destinations", "0.13.1", func(oldRequest createDestinationRequestV0_13_1) api.CreateDestinationRequest {
+		return api.CreateDestinationRequest{
+			UniqueID: oldRequest.UniqueID,
+			Name:     oldRequest.Name,
+			Connection: api.DestinationConnection{
+				URL: oldRequest.Connection.URL,
+				CA:  []byte(oldRequest.Connection.CA),
+			},
+			Resources: oldRequest.Resources,
+			Roles:     oldRequest.Roles,
+		}
+	})
+	addRequestRewrite(a, http.MethodPut, "/api/destinations", "0.13.1", func(oldRequest updateDestinationRequestV0_13_1) api.UpdateDestinationRequest {
+		return api.UpdateDestinationRequest{
+			UniqueID: oldRequest.UniqueID,
+			Name:     oldRequest.Name,
+			Connection: api.DestinationConnection{
+				URL: oldRequest.Connection.URL,
+				CA:  []byte(oldRequest.Connection.CA),
+			},
+			Resources: oldRequest.Resources,
+			Roles:     oldRequest.Roles,
+		}
+	})
 	// next migration ...
 }
 
@@ -128,6 +169,28 @@ func (a *API) addResponseRewrites() {
 			PasswordUpdateRequired: newResponse.PasswordUpdateRequired,
 			Expires:                newResponse.Expires,
 		}
+	})
+	addResponseRewrite(a, http.MethodGet, "/v1/destinations", "0.13.1", func(newResponse *api.ListResponse[api.Destination]) api.ListResponse[destinationV0_13_1] {
+		var resp api.ListResponse[destinationV0_13_1]
+		var items []destinationV0_13_1
+
+		for _, d := range newResponse.Items {
+			items = append(items, translateDestinationCertBytesToString(d))
+		}
+
+		resp.Items = items
+		resp.Count = newResponse.Count
+
+		return resp
+	})
+	addResponseRewrite(a, http.MethodPost, "/v1/destinations/", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+		return translateDestinationCertBytesToString(*newResponse)
+	})
+	addResponseRewrite(a, http.MethodGet, "/v1/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+		return translateDestinationCertBytesToString(*newResponse)
+	})
+	addResponseRewrite(a, http.MethodPut, "/v1/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+		return translateDestinationCertBytesToString(*newResponse)
 	})
 	// next migration...
 }
@@ -221,6 +284,39 @@ func migrateUserGrantToIdentity(grant api.Grant) identityGrant {
 		Subject:   sub,
 		Privilege: grant.Privilege,
 		Resource:  grant.Resource,
+	}
+}
+
+type destinationConnectionV0_13_1 struct {
+	URL string `json:"url" validate:"required"`
+	CA  string `json:"ca"`
+}
+
+type destinationV0_13_1 struct {
+	ID         uid.ID                       `json:"id"`
+	UniqueID   string                       `json:"uniqueID" form:"uniqueID"`
+	Name       string                       `json:"name" form:"name"`
+	Created    api.Time                     `json:"created"`
+	Updated    api.Time                     `json:"updated"`
+	Connection destinationConnectionV0_13_1 `json:"connection"`
+
+	Resources []string `json:"resources"`
+	Roles     []string `json:"roles"`
+}
+
+func translateDestinationCertBytesToString(dest api.Destination) destinationV0_13_1 {
+	return destinationV0_13_1{
+		ID:       dest.ID,
+		UniqueID: dest.UniqueID,
+		Name:     dest.Name,
+		Created:  dest.Created,
+		Updated:  dest.Updated,
+		Connection: destinationConnectionV0_13_1{
+			URL: dest.Connection.URL,
+			CA:  string(dest.Connection.CA),
+		},
+		Resources: dest.Resources,
+		Roles:     dest.Roles,
 	}
 }
 
