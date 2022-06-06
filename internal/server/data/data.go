@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
@@ -173,11 +173,14 @@ func handleError(err error) error {
 			//                            key_desc) : 0,
 			//                 errtableconstraint(heapRel,
 			//                                    RelationGetRelationName(rel))));
-			re := regexp.MustCompile(`Key \((?P<columnName>[[:print:]]+)\)=\([[:print:]]+\) already exists.`)
-			matches := re.FindStringSubmatch(pgErr.Detail)
-			if matches != nil {
-				columnNameIndex := re.SubexpIndex("columnName")
-				return UniqueConstraintError{Table: pgErr.TableName, Column: matches[columnNameIndex]}
+
+			fields := strings.FieldsFunc(pgErr.Detail, func(r rune) bool {
+				return unicode.IsSpace(r) || r == '(' || r == ')'
+			})
+
+			// fields = [Key, <column>, =, <value>, already, exists.]
+			if len(fields) == 6 {
+				return UniqueConstraintError{Table: pgErr.TableName, Column: fields[1]}
 			}
 		}
 	}
@@ -186,12 +189,15 @@ func handleError(err error) error {
 	// pRtree->base.zErrMsg = sqlite3_mprintf(
 	//     "UNIQUE constraint failed: %s.%s", pRtree->zName, zCol
 	// );
-	re := regexp.MustCompile(`UNIQUE constraint failed: (?P<tableName>[[:print:]]+)\.(?P<columnName>[[:print:]]+)`)
-	matches := re.FindStringSubmatch(err.Error())
-	if matches != nil {
-		tableNameIndex := re.SubexpIndex("tableName")
-		columnNameIndex := re.SubexpIndex("columnName")
-		return UniqueConstraintError{Table: matches[tableNameIndex], Column: matches[columnNameIndex]}
+	if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
+		fields := strings.FieldsFunc(err.Error(), func(r rune) bool {
+			return unicode.IsSpace(r) || r == '.'
+		})
+
+		// fields = [UNIQUE, constraint, failed:, <table>, column>]
+		if len(fields) == 5 {
+			return UniqueConstraintError{Table: fields[3], Column: fields[4]}
+		}
 	}
 
 	return err
