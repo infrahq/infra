@@ -4,11 +4,13 @@ import (
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -181,4 +183,39 @@ func TestJWTMiddlewareValidJWT(t *testing.T) {
 	groups, groupsExists := c.Get("groups")
 	assert.Assert(t, groupsExists)
 	assert.DeepEqual(t, []string{"developers"}, groups)
+}
+
+func TestCertificate(t *testing.T) {
+	testCACertPEM, err := os.ReadFile("./_testdata/test-ca-cert.pem")
+	assert.NilError(t, err)
+
+	testCAKeyPEM, err := os.ReadFile("./_testdata/test-ca-key.pem")
+	assert.NilError(t, err)
+
+	t.Run("no cached certificate adds empty certificate", func(t *testing.T) {
+		certCache := NewCertCache(testCACertPEM, testCAKeyPEM)
+
+		cert, err := certCache.Certificate()
+
+		assert.NilError(t, err)
+		assert.Equal(t, len(certCache.hosts), 1)
+		assert.Equal(t, certCache.hosts[0], "")
+		assert.Assert(t, cert != nil)
+	})
+
+	t.Run("cached certificate is returned when the host is set", func(t *testing.T) {
+		certCache := NewCertCache(testCACertPEM, testCAKeyPEM)
+		certCache.AddHost("test-host")
+
+		cert, err := certCache.Certificate()
+
+		assert.NilError(t, err)
+		assert.Equal(t, len(certCache.hosts), 1)
+		assert.Equal(t, certCache.hosts[0], "test-host")
+
+		parsedCert, err := x509.ParseCertificate(cert.Certificate[0])
+		assert.NilError(t, err)
+		assert.Equal(t, len(parsedCert.DNSNames), 1)
+		assert.Equal(t, parsedCert.DNSNames[0], "test-host")
+	})
 }

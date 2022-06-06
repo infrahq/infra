@@ -343,10 +343,9 @@ func (c *CertCache) AddHost(host string) error {
 }
 
 func (c *CertCache) Certificate() (*tls.Certificate, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.cert == nil {
+		// the host is not available externally, or this would have been set
+		// set to an empty host for the liveness check to resolve from the same host
 		if err := c.AddHost(""); err != nil {
 			return nil, err
 		}
