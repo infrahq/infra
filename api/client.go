@@ -221,6 +221,10 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 	return post[CreateGroupRequest, Group](c, "/api/groups", req)
 }
 
+func (c Client) DeleteGroup(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/api/groups/%s", id))
+}
+
 // Deprecated: use ListGrants
 func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), Query{})

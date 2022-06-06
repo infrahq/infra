@@ -165,6 +165,10 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 	return group.ToAPI(), nil
 }
 
+func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteGroup(c, r.ID)
+}
+
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}

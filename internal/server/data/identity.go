@@ -62,7 +62,10 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 			}
 		}
 		if !found {
-			group := &models.Group{Name: name}
+			group := &models.Group{
+				Name:              name,
+				CreatedByProvider: true,
+			}
 
 			if err = CreateGroup(db, group); err != nil {
 				return fmt.Errorf("create group: %w", err)

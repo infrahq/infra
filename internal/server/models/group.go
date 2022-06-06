@@ -8,8 +8,9 @@ import (
 type Group struct {
 	Model
 
-	Name      string `gorm:"uniqueIndex:idx_groups_name,where:deleted_at is NULL"`
-	CreatedBy uid.ID
+	Name              string `gorm:"uniqueIndex:idx_groups_name,where:deleted_at is NULL"`
+	CreatedBy         uid.ID
+	CreatedByProvider bool
 
 	Identities []Identity `gorm:"many2many:identities_groups"`
 }
