@@ -596,13 +596,22 @@ func (k *Kubernetes) ClusterRoles() ([]string, error) {
 		return nil, err
 	}
 
-	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{LabelSelector: "kubernetes.io/bootstrapping=rbac-defaults"})
+	rbacDefaults, err := clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{
+		LabelSelector: "kubernetes.io/bootstrapping=rbac-defaults",
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]string, 0, len(clusterRoles.Items))
-	for _, n := range clusterRoles.Items {
+	infraRoles, err := clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app.infrahq.com/include-role=true",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]string, 0, len(rbacDefaults.Items)+len(infraRoles.Items))
+	for _, n := range append(rbacDefaults.Items, infraRoles.Items...) {
 		if strings.HasPrefix(n.Name, "system:") {
 			continue
 		}
