@@ -124,7 +124,7 @@ export default function Destinations () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
-                <div className='px-6 flex-1 min-h-0 overflow-y-scroll px-6'>
+                <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
                   <Table
                     {...table}
                     getRowProps={row => ({

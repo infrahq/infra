@@ -7,7 +7,7 @@ export default function ({ columns, data, getRowProps = () => ({}), highlight = 
   })
 
   return (
-    <table className='flex-1 w-full' {...getTableProps()}>
+    <table className='w-full sticky top-0' {...getTableProps()}>
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>

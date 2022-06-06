@@ -126,29 +126,27 @@ export default function Users () {
             <PageHeader header='Users' buttonHref={admin && '/users/add'} buttonLabel='User' />
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
-              : users.length === 0
-                ? (
-                  <EmptyTable
-                    title='There are no users'
-                    subtitle='Invite users to Infra and manage their access.'
-                    iconPath='/users.svg'
-                    buttonHref={admin && '/users/add'}
-                    buttonText='Users'
+              : (
+                <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
+                  <Table
+                    {...table}
+                    getRowProps={row => ({
+                      onClick: () => setSelectedUser(row.original),
+                      style: {
+                        cursor: 'pointer'
+                      }
+                    })}
                   />
-                  )
-                : (
-                  <div className='flex-1 min-h-0 overflow-y-scroll px-6'>
-                    <Table
-                      {...table}
-                      getRowProps={row => ({
-                        onClick: () => setSelectedUser(row.original),
-                        style: {
-                          cursor: 'pointer'
-                        }
-                      })}
-                    />
-                  </div>
-                  )}
+                  {users?.length === 0 &&
+                    <EmptyTable
+                      title='There are no users'
+                      subtitle='Invite users to Infra and manage their access.'
+                      iconPath='/users.svg'
+                      buttonHref={admin && '/users/add'}
+                      buttonText='Users'
+                    />}
+                </div>
+                )}
           </div>
           {selectedUser &&
             <Sidebar
