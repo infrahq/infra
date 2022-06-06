@@ -60,7 +60,7 @@ $ infra keys add connector
 
 			if options.Name != "" {
 				if strings.Contains(options.Name, " ") {
-					return Error{Message: "key name cannot contain spaces"}
+					return Error{Message: "Key name cannot contain spaces"}
 				}
 			}
 
