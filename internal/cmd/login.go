@@ -236,7 +236,7 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 
 	t, ok := client.HTTP.Transport.(*http.Transport)
 	if !ok {
-		return fmt.Errorf("could not update config")
+		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
 
