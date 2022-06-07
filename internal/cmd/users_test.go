@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -80,8 +79,7 @@ func TestUsersCmd(t *testing.T) {
 					_, _ = resp.Write(b)
 					return
 				case http.MethodGet:
-					name, err := url.PathUnescape(req.URL.RawQuery[5:])
-					assert.NilError(t, err)
+					name := req.URL.Query().Get("name")
 
 					var apiUsers []api.User
 					for _, mu := range modifiedUsers {
