@@ -164,6 +164,12 @@ List connected destinations
 infra destinations list [flags]
 ```
 
+### Options
+
+```
+      --format string   output format [text, json] (default "text")
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -363,6 +369,12 @@ List users
 infra users list [flags]
 ```
 
+### Options
+
+```
+      --format string   output format [text, json] (default "text")
+```
+
 ### Options inherited from parent commands
 
 ```
@@ -485,6 +497,12 @@ List connected identity providers
 
 ```
 infra providers list [flags]
+```
+
+### Options
+
+```
+      --format string   output format [text, json] (default "text")
 ```
 
 ### Options inherited from parent commands
