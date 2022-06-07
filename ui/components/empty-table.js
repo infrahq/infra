@@ -3,7 +3,7 @@ import { PlusIcon } from '@heroicons/react/outline'
 
 export default function ({ title, subtitle, iconPath, buttonText, buttonHref }) {
   return (
-    <div className='flex flex-col text-center py-32 mx-auto'>
+    <div className='flex flex-col flex-1 mb-20 text-center justify-center mx-auto'>
       <img src={iconPath} className='mx-auto my-4 w-7 h-7' alt={title} />
       <h1 className='text-base font-bold mb-2'>{title}</h1>
       <h2 className='text-gray-300 mb-4 text-2xs max-w-xs mx-auto'>{subtitle}</h2>

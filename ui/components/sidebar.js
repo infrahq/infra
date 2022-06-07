@@ -1,10 +1,15 @@
+import { useEffect, useRef } from 'react'
 import { XIcon } from '@heroicons/react/outline'
 import ProfileIcon from './profile-icon'
 
 export default ({ children, handleClose, title, iconPath, profileIcon }) => {
+  const ref = useRef()
+
+  useEffect(() => ref.current.scrollTo(0, 0), [children])
+
   return (
-    <aside className='flex w-full h-full max-w-xs lg:max-w-md ml-20 my-0 flex-col'>
-      <header className='flex flex-start justify-between items-center my-3'>
+    <aside ref={ref} className='flex w-full h-full max-w-xs lg:max-w-sm xl:max-w-md ml-20 pr-6 my-0 flex-col overflow-y-scroll'>
+      <header className='flex flex-start justify-between items-center z-10 py-3 sticky top-0 bg-black'>
         <div className='flex items-center space-x-3'>
           {profileIcon
             ? <ProfileIcon name={profileIcon} />
