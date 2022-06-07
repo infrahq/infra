@@ -34,6 +34,7 @@ keys:
       endpoint: /endpoint
       region: the-region
       accessKeyID: the-key-id
+      secretAccessKey: the-secret
   - kind: native
     config:
       secretProvider: the-storage
@@ -62,9 +63,10 @@ keys:
 				Kind: "awskms",
 				Config: AWSKMSConfig{
 					AWSConfig: AWSConfig{
-						Endpoint:    "/endpoint",
-						Region:      "the-region",
-						AccessKeyID: "the-key-id",
+						Endpoint:        "/endpoint",
+						Region:          "the-region",
+						AccessKeyID:     "the-key-id",
+						SecretAccessKey: "the-secret",
 					},
 					EncryptionAlgorithm: "aes_512",
 				},
@@ -87,6 +89,7 @@ secrets:
   - name: the-vault
     kind: vault
     config:
+      transitMount: /some-mount
       token: the-token
       namespace: the-namespace
       secretMount: secret-mount
@@ -146,7 +149,7 @@ secrets:
 				Kind: "vault",
 				Name: "the-vault",
 				Config: VaultConfig{
-					TransitMount: "",
+					TransitMount: "/some-mount",
 					SecretMount:  "secret-mount",
 					Token:        "the-token",
 					Namespace:    "the-namespace",
