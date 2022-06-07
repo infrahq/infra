@@ -97,6 +97,23 @@ func ListIdentities(db *gorm.DB, selectors ...SelectorFunc) ([]models.Identity, 
 	return list[models.Identity](db, selectors...)
 }
 
+func ListIdentitiesByGroup(db *gorm.DB, groupID uid.ID, selectors ...SelectorFunc) ([]models.Identity, error) {
+	group, err := GetGroup(db.Preload("Identities", func(db *gorm.DB) *gorm.DB {
+		for _, selector := range selectors {
+			db = selector(db)
+		}
+		return db.Order("identities.name ASC")
+	}), ByID(groupID))
+	if err != nil {
+		return nil, err
+	}
+
+	var identities []models.Identity
+	identities = append(identities, group.Identities...)
+
+	return identities, nil
+}
+
 func DeleteIdentity(db *gorm.DB, id uid.ID) error {
 	return delete[models.Identity](db, id)
 }

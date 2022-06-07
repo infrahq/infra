@@ -29,7 +29,7 @@ type API struct {
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	users, err := access.ListIdentities(c, r.Name, r.IDs)
+	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 
 	// infra identity creation should be attempted even if an identity is already known
 	if setOTP {
-		identities, err := access.ListIdentities(c, user.Name, nil)
+		identities, err := access.ListIdentities(c, user.Name, 0, nil)
 		if err != nil {
 			return nil, fmt.Errorf("list identities: %w", err)
 		}

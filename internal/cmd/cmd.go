@@ -247,6 +247,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newDestinationsCmd(cli))
 	rootCmd.AddCommand(newGrantsCmd(cli))
 	rootCmd.AddCommand(newUsersCmd(cli))
+	rootCmd.AddCommand(newGroupsCmd(cli))
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
 

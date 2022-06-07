@@ -73,11 +73,26 @@ func TestGetIdentity(t *testing.T) {
 func TestListIdentities(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com"}
-			bourne = models.Identity{Name: "jbourne@infrahq.com"}
-			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+			everyone  = models.Group{Name: "Everyone"}
+			engineers = models.Group{Name: "Engineering"}
+			product   = models.Group{Name: "Product"}
 		)
+		createGroups(t, db, &everyone, &engineers, &product)
 
+		var (
+			bond = models.Identity{
+				Name:   "jbond@infrahq.com",
+				Groups: []models.Group{everyone, engineers},
+			}
+			bourne = models.Identity{
+				Name:   "jbourne@infrahq.com",
+				Groups: []models.Group{everyone, product},
+			}
+			bauer = models.Identity{
+				Name:   "jbauer@infrahq.com",
+				Groups: []models.Group{everyone},
+			}
+		)
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
 		t.Run("list all", func(t *testing.T) {
@@ -92,6 +107,27 @@ func TestListIdentities(t *testing.T) {
 			assert.NilError(t, err)
 			expected := []models.Identity{bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter identities by group", func(t *testing.T) {
+			actual, err := ListIdentitiesByGroup(db, everyone.ID)
+			assert.NilError(t, err)
+			expected := []models.Identity{bauer, bond, bourne}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter identities by different group", func(t *testing.T) {
+			actual, err := ListIdentitiesByGroup(db, engineers.ID)
+			assert.NilError(t, err)
+			expected := []models.Identity{bond}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter identities by group and name", func(t *testing.T) {
+			actual, err := ListIdentitiesByGroup(db, everyone.ID, ByName(bauer.Name))
+			assert.NilError(t, err)
+			expected := []models.Identity{bauer}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 	})
 }
