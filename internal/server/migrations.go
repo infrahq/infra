@@ -170,7 +170,7 @@ func (a *API) addResponseRewrites() {
 			Expires:                newResponse.Expires,
 		}
 	})
-	addResponseRewrite(a, http.MethodGet, "/v1/destinations", "0.13.1", func(newResponse *api.ListResponse[api.Destination]) api.ListResponse[destinationV0_13_1] {
+	addResponseRewrite(a, http.MethodGet, "/api/destinations", "0.13.1", func(newResponse *api.ListResponse[api.Destination]) api.ListResponse[destinationV0_13_1] {
 		var resp api.ListResponse[destinationV0_13_1]
 		var items []destinationV0_13_1
 
@@ -183,13 +183,13 @@ func (a *API) addResponseRewrites() {
 
 		return resp
 	})
-	addResponseRewrite(a, http.MethodPost, "/v1/destinations/", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+	addResponseRewrite(a, http.MethodPost, "/api/destinations/", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
 		return translateDestinationCertBytesToString(*newResponse)
 	})
-	addResponseRewrite(a, http.MethodGet, "/v1/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+	addResponseRewrite(a, http.MethodGet, "/api/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
 		return translateDestinationCertBytesToString(*newResponse)
 	})
-	addResponseRewrite(a, http.MethodPut, "/v1/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
+	addResponseRewrite(a, http.MethodPut, "/api/destinations/:id", "0.13.1", func(newResponse *api.Destination) destinationV0_13_1 {
 		return translateDestinationCertBytesToString(*newResponse)
 	})
 	// next migration...
