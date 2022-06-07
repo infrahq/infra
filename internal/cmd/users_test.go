@@ -182,4 +182,15 @@ func TestUsersCmd(t *testing.T) {
 		assert.ErrorContains(t, err, `"infra users remove" requires exactly 1 argument`)
 		assert.ErrorContains(t, err, `Usage:  infra users remove USER`)
 	})
+
+	t.Run("remove connector fails", func(t *testing.T) {
+		users := setup(t)
+		ctx := context.Background()
+		err := Run(ctx, "users", "add", "connector")
+		assert.NilError(t, err)
+		assert.Equal(t, len(*users), 1)
+
+		err = Run(context.Background(), "users", "remove", "connector")
+		assert.ErrorContains(t, err, "The \"connector\" user cannot be deleted, as it is not modifiable.")
+	})
 }
