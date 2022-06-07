@@ -3,6 +3,8 @@ package models
 import (
 	"time"
 
+	"github.com/ssoroka/slice"
+
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
@@ -19,7 +21,9 @@ type Identity struct {
 	LastSeenAt time.Time // updated on when an identity uses a session token
 	CreatedBy  uid.ID
 
-	Groups []Group `gorm:"many2many:identities_groups"`
+	// for eager loading, don't use these for saving.
+	Groups    []Group    `gorm:"many2many:identities_groups"`
+	Providers []Provider `gorm:"many2many:provider_users;"`
 }
 
 func (i *Identity) ToAPI() *api.User {
@@ -29,6 +33,9 @@ func (i *Identity) ToAPI() *api.User {
 		Updated:    api.Time(i.UpdatedAt),
 		LastSeenAt: api.Time(i.LastSeenAt),
 		Name:       i.Name,
+		ProviderNames: slice.Map[Provider, string](i.Providers, func(p Provider) string {
+			return p.Name
+		}),
 	}
 }
 
