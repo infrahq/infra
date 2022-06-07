@@ -1,6 +1,6 @@
 import { useTable } from 'react-table'
 
-export default function ({ columns, data, getRowProps = () => ({}), highlight = true }) {
+export default function ({ columns, data, getRowProps = () => ({}) }) {
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data
@@ -23,7 +23,7 @@ export default function ({ columns, data, getRowProps = () => ({}), highlight = 
         {rows.map(row => {
           prepareRow(row)
           return (
-            <tr className={`group border-b border-gray-800 text-2xs ${highlight ? 'hover:bg-gray-900/60' : ''}`} key={row.id} {...row.getRowProps(getRowProps(row))}>
+            <tr className='group border-b border-gray-800 text-2xs hover:bg-gray-900/60' key={row.id} {...row.getRowProps(getRowProps(row))}>
               {row.cells.map(cell => {
                 return (
                   <td key={cell.id} {...cell.getCellProps()}>
