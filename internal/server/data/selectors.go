@@ -3,6 +3,7 @@ package data
 import (
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -115,6 +116,17 @@ func ByIdentityID(identityID uid.ID) SelectorFunc {
 func ByUserID(userID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("user_id = ?", userID)
+	}
+}
+
+func ByPagination(pg models.Pagination) SelectorFunc {
+
+	if pg.Page == 0 {
+		pg.Page = 1
+	}
+
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Offset(pg.Limit * (pg.Page - 1)).Limit(pg.Limit).Order(pg.Sort)
 	}
 }
 
