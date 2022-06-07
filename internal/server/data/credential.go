@@ -25,8 +25,8 @@ func DeleteCredential(db *gorm.DB, id uid.ID) error {
 	return delete[models.Credential](db, id)
 }
 
-// IdentityCredentialMustBeUpdated checks if the associated identity has a one time password and that password has been used
-func IdentityCredentialMustBeUpdated(db *gorm.DB, user *models.Identity) (bool, error) {
+// HasUsedOneTimePassword checks if the associated identity has a one time password and that password has been used
+func HasUsedOneTimePassword(db *gorm.DB, user *models.Identity) (bool, error) {
 	userCredential, err := GetCredential(db, ByIdentityID(user.ID))
 	if err != nil {
 		return false, fmt.Errorf("check identity one time password used: %w", err)

@@ -16,9 +16,14 @@ type LoginMethod interface {
 	RequiresUpdate(db *gorm.DB) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
 }
 
-func Login[T LoginMethod](db *gorm.DB, loginMethod T, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
+func Login(db *gorm.DB, loginMethod interface{}, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
+	challenge, ok := loginMethod.(LoginMethod)
+	if !ok {
+		return nil, "", fmt.Errorf("invalid login method selected")
+	}
+
 	// challenge the user to authenticate
-	identity, provider, err := loginMethod.Authenticate(db)
+	identity, provider, err := challenge.Authenticate(db)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to login: %w", err)
 	}

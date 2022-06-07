@@ -294,17 +294,9 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*In
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
 func UpdateUserInfoFromProvider(db *gorm.DB, info *InfoClaims, user *models.Identity, provider *models.Provider) error {
-	// add user to groups they are currently in
-	var groups []string
+	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, info.Groups)
 
-	for i := range info.Groups {
-		name := info.Groups[i]
-		groups = append(groups, name)
-	}
-
-	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)
-
-	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
+	if err := data.AssignIdentityToGroups(db, user, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 

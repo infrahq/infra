@@ -68,5 +68,5 @@ func (a *passwordCredentialAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("could not get identity for username: %w", err)
 	}
-	return data.IdentityCredentialMustBeUpdated(db, identity)
+	return data.HasUsedOneTimePassword(db, identity)
 }
