@@ -212,9 +212,14 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 
 	configPath := defaultConfig.ConfigAccess().GetDefaultFilename()
 
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
+		return err
+	}
+
 	// write the new config to a temporary file then move it in an atomic operation
 	// this ensures we don't wipe the kube config in the case of an interrupt
-	tmpFile, err := ioutil.TempFile(filepath.Dir(configPath), "infra-kube-config-")
+	tmpFile, err := ioutil.TempFile(configDir, "infra-kube-config-")
 	if err != nil {
 		return fmt.Errorf("cannot create temporary config file: %w", err)
 	}

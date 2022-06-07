@@ -232,7 +232,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := tLSConfigWithCacheDir(s.options.TLSCache)
+	tlsConfig, err := tlsConfigWithCacheDir(s.options.TLSCache)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -271,7 +271,7 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 	return l.Addr(), nil
 }
 
-func tLSConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
+func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
 	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
 		return nil, fmt.Errorf("create tls cache: %w", err)
 	}
