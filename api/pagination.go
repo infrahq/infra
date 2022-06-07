@@ -11,7 +11,8 @@ type PaginationResponse struct {
 	Limit int    `json:"limit"`
 	Sort  string `json:"sort"`
 
-	MaxPage int `json:"max_page"`
-	Next    int `json:"next,omitempty"`
-	Prev    int `json:"prev,omitempty"`
+	Pages int `json:"pages"`
+	Total int `json:"total"`
+	Next  int `json:"next,omitempty"`
+	Prev  int `json:"prev,omitempty"`
 }

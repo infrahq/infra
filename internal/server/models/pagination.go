@@ -9,13 +9,13 @@ import (
 
 // Internal Pagination Data
 type Pagination struct {
-	Page    int
-	Limit   int
-	Sort    string
-	Total   int
-	MaxPage int
-	Next    int
-	Prev    int
+	Page  int
+	Limit int
+	Sort  string
+	Total int
+	Pages int
+	Next  int
+	Prev  int
 }
 
 // RequestToPagination takes a PaginationRequest from the api and converts to an internal Pagination model
@@ -58,20 +58,21 @@ func (p *Pagination) PaginationToResponse() api.PaginationResponse {
 	}
 
 	return api.PaginationResponse{
-		Page:    p.Page,
-		Limit:   p.Limit,
-		Sort:    p.Sort,
-		Prev:    p.Prev,
-		Next:    p.Next,
-		MaxPage: p.MaxPage,
+		Page:  p.Page,
+		Limit: p.Limit,
+		Sort:  p.Sort,
+		Prev:  p.Prev,
+		Next:  p.Next,
+		Pages: p.Pages,
+		Total: p.Total,
 	}
 }
 
 func (p *Pagination) SetCount(count int64) {
-	p.MaxPage = int(math.Ceil(float64(count) / float64(p.Limit)))
+	p.Pages = int(math.Ceil(float64(count) / float64(p.Limit)))
 	p.Total = int(count)
 
-	if p.Next > p.MaxPage {
+	if p.Next > p.Pages {
 		p.Next = 0
 	}
 }
