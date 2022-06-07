@@ -34,10 +34,10 @@ func kubernetesSetContext(cluster, namespace string) error {
 	}
 
 	name := strings.TrimPrefix(cluster, "infra:")
-	fmt.Println(name)
+	fmt.Println(cluster, name)
 
 	if namespace != "" {
-		name = fmt.Sprintf("%s:%s", cluster, namespace)
+		name = fmt.Sprintf("%s:%s", name, namespace)
 	}
 
 	// set friendly name based on user input rather than internal format
