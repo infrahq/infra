@@ -119,9 +119,7 @@ func newUseCmd(_ *CLI) *cobra.Command {
 $ infra use development
 
 # Use a Kubernetes namespace context
-$ infra use development.kube-system
-
-# Note: infra:<cluster-name> is equivalent to <cluster-name>`,
+$ infra use development.kube-system`,
 		Args:  ExactArgs(1),
 		Group: "Core commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {

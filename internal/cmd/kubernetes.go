@@ -34,7 +34,6 @@ func kubernetesSetContext(cluster, namespace string) error {
 	}
 
 	name := strings.TrimPrefix(cluster, "infra:")
-	fmt.Println(cluster, name)
 
 	if namespace != "" {
 		name = fmt.Sprintf("%s:%s", name, namespace)

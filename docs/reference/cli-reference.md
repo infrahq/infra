@@ -147,8 +147,6 @@ $ infra use development
 
 # Use a Kubernetes namespace context
 $ infra use development.kube-system
-
-# infra:<cluster-name> is equivalent to <cluster-name>
 ```
 
 ### Options inherited from parent commands
