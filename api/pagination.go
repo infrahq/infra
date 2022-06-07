@@ -5,9 +5,9 @@ import (
 )
 
 type PaginationRequest struct {
-	Page  int    `form:"page"`
-	Limit int    `form:"limit"`
-	Sort  string `form:"sort" validate:"oneof='name ASC' 'name DESC' 'id ASC' 'id DESC' ''"`
+	Page  int    `form:"page" validate:"min=0"`
+	Limit int    `form:"limit" validate:"min=0,max=250"`
+	Sort  string `form:"sort" validate:"oneof='name_ASC' 'name_DESC' 'id_ASC' 'id_DESC' ''"`
 }
 
 type PaginationResponse struct {

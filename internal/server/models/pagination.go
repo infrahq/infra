@@ -1,6 +1,10 @@
 package models
 
-import "github.com/infrahq/infra/api"
+import (
+	"strings"
+
+	"github.com/infrahq/infra/api"
+)
 
 // Internal Pagination Data
 type Pagination struct {
@@ -15,31 +19,24 @@ type Pagination struct {
 // function to convert API --> this object
 // method to convert Pagination to response
 
+// RequestToPagination takes a PaginationRequest from the api and converts to an internal Pagination model
 func RequestToPagination(pr *api.PaginationRequest) Pagination {
 
-	var page, limit int
-	var sort string
+	page, limit, sort := 1, 10, "name ASC"
 
-	if pr == nil || pr.Page == 0 {
-		page = 1
-	} else {
-		page = pr.Page
+	if pr != nil {
+		if pr.Page != 0 {
+			page = pr.Page
+		}
+
+		if pr.Limit != 0 {
+			limit = pr.Limit
+		}
+
+		if pr.Sort != "" {
+			sort = strings.ReplaceAll(pr.Sort, "_", " ")
+		}
 	}
-
-	if pr == nil || pr.Limit == 0 {
-		limit = 10
-	} else if limit > 100 {
-		limit = 100
-	} else {
-		limit = pr.Limit
-	}
-
-	if pr == nil || pr.Sort == "" {
-		sort = "name ASC"
-	} else {
-		sort = pr.Sort
-	}
-
 	return Pagination{
 		Page:  page,
 		Limit: limit,
@@ -49,6 +46,7 @@ func RequestToPagination(pr *api.PaginationRequest) Pagination {
 	}
 }
 
+// PaginationToResponse converts the internal Pagination model to a response sent to the user
 func (pg *Pagination) PaginationToResponse() api.PaginationResponse {
 	if pg.Prev < 0 {
 		pg.Prev = 0

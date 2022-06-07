@@ -133,6 +133,7 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	pg := models.RequestToPagination(&r.PaginationRequest)
+
 	groups, err := access.ListGroups(c, r.Name, r.UserID)
 	if err != nil {
 		return nil, err
