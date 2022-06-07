@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -33,7 +34,8 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 }
 
 func newProvidersListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var format string
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected identity providers",
@@ -50,25 +52,37 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			type row struct {
-				Name string `header:"NAME"`
-				URL  string `header:"URL"`
-			}
+			switch format {
+			case "text":
+				type row struct {
+					Name string `header:"NAME"`
+					URL  string `header:"URL"`
+				}
 
-			var rows []row
-			for _, p := range providers.Items {
-				rows = append(rows, row{Name: p.Name, URL: p.URL})
-			}
+				var rows []row
+				for _, p := range providers.Items {
+					rows = append(rows, row{Name: p.Name, URL: p.URL})
+				}
 
-			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
-			} else {
-				cli.Output("No providers found")
+				if len(rows) > 0 {
+					printTable(rows, cli.Stdout)
+				} else {
+					cli.Output("No providers found")
+				}
+			case "json":
+				jsonOutput, err := json.Marshal(providers)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
 			}
 
 			return nil
 		},
 	}
+
+	addFormatFlag(cmd.Flags(), &format)
+	return cmd
 }
 
 type providerAddOptions struct {
