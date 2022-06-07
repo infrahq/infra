@@ -31,7 +31,7 @@ function Dashboard ({ children }) {
   ]
 
   const subNavigation = [
-    { name: 'Settings', href: '/settings', admin: true }
+    { name: 'Settings', href: '/settings' }
   ]
 
   // redirect non-admin routes if user isn't admin
