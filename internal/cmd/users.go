@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -91,7 +92,9 @@ $ infra users edit janedoe@example.com --password`,
 }
 
 func newUsersListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var format string
+
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List users",
@@ -115,22 +118,34 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			for _, user := range users.Items {
-				rows = append(rows, row{
-					Name:       user.Name,
-					LastSeenAt: user.LastSeenAt.Relative("never"),
-				})
-			}
+			switch format {
+			case "text":
+				for _, user := range users.Items {
+					rows = append(rows, row{
+						Name:       user.Name,
+						LastSeenAt: user.LastSeenAt.Relative("never"),
+					})
+				}
 
-			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
-			} else {
-				cli.Output("No users found")
+				if len(rows) > 0 {
+					printTable(rows, cli.Stdout)
+				} else {
+					cli.Output("No users found")
+				}
+			case "json":
+				jsonOutput, err := json.Marshal(users)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
 			}
 
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&format, "format", "text", "output format [text, json]")
+	return cmd
 }
 
 func newUsersRemoveCmd(cli *CLI) *cobra.Command {

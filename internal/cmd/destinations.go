@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -30,7 +31,8 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 }
 
 func newDestinationsListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var format string
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List connected destinations",
@@ -47,28 +49,39 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			type row struct {
-				Name string `header:"NAME"`
-				URL  string `header:"URL"`
-			}
+			switch format {
+			case "text":
+				type row struct {
+					Name string `header:"NAME"`
+					URL  string `header:"URL"`
+				}
 
-			var rows []row
-			for _, d := range destinations.Items {
-				rows = append(rows, row{
-					Name: d.Name,
-					URL:  d.Connection.URL,
-				})
-			}
-
-			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
-			} else {
-				cli.Output("No destinations connected")
+				var rows []row
+				for _, d := range destinations.Items {
+					rows = append(rows, row{
+						Name: d.Name,
+						URL:  d.Connection.URL,
+					})
+				}
+				if len(rows) > 0 {
+					printTable(rows, cli.Stdout)
+				} else {
+					cli.Output("No destinations connected")
+				}
+			case "json":
+				jsonOutput, err := json.Marshal(destinations)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
 			}
 
 			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&format, "format", "text", "output format [text, json]")
+	return cmd
 }
 
 func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
