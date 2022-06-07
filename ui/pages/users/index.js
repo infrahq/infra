@@ -110,7 +110,7 @@ export default function Users () {
   const { data: { items } = {}, error } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
-  const table = useTable({ columns, data: users?.sort((a, b) => b.created.localeCompare(a.created)) || [] })
+  const table = useTable({ columns, data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
   const [selectedUser, setSelectedUser] = useState(null)
 
   const loading = adminLoading || (!users && !error)
