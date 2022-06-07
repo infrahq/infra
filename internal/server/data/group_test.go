@@ -126,41 +126,6 @@ func TestListGroups(t *testing.T) {
 			}
 			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
 		})
-
-		t.Run("filter identities by group", func(t *testing.T) {
-			group, err := GetGroup(db, ByName("Everyone"))
-			assert.NilError(t, err)
-			actual, err := ListIdentitiesByGroup(db, group.ID)
-			assert.NilError(t, err)
-			expected := []models.Identity{
-				{Name: "firstly"},
-				{Name: "secondarly"},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
-		})
-
-		t.Run("filter identities by different group", func(t *testing.T) {
-			group, err := GetGroup(db, ByName("Engineering"))
-			assert.NilError(t, err)
-			actual, err := ListIdentitiesByGroup(db, group.ID)
-			assert.NilError(t, err)
-			expected := []models.Identity{
-				{Name: "firstly"},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
-		})
-
-		t.Run("filter identities by group and name", func(t *testing.T) {
-			group, err := GetGroup(db, ByName("Everyone"))
-			assert.NilError(t, err)
-			actual, err := ListIdentitiesByGroup(db, group.ID, ByName("firstly"))
-			assert.NilError(t, err)
-			expected := []models.Identity{
-				{Name: "firstly"},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
-		})
-
 	})
 }
 

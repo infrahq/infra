@@ -40,7 +40,7 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Hidden:  true,
 		Use:     "groups",
-		Short:   "Manage group identities",
+		Short:   "Manage groups of identities",
 		Aliases: []string{"group"},
 		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
