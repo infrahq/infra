@@ -40,7 +40,7 @@ func TestWriteKubeconfig(t *testing.T) {
 		Clusters: map[string]*clientcmdapi.Cluster{
 			"infra:cluster": {
 				Server:                   "https://cluster.example.com",
-				CertificateAuthorityData: destinationCA,
+				CertificateAuthorityData: []byte(destinationCA),
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{

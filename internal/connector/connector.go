@@ -590,8 +590,8 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 			destination.Roles = clusterRoles
 			fallthrough
 
-		case !bytes.Equal(destination.Connection.CA, caCertPEM):
-			destination.Connection.CA = caCertPEM
+		case !bytes.Equal([]byte(destination.Connection.CA), caCertPEM):
+			destination.Connection.CA = api.PEM(caCertPEM)
 			fallthrough
 
 		case destination.Connection.URL != endpoint:

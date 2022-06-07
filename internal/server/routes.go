@@ -171,7 +171,7 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 			return
 		}
 
-		trimWhitespace(&req)
+		trimWhitespace(req)
 
 		resp, err := route.handler(c, req)
 		if err != nil {
@@ -189,15 +189,16 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 	bindRoute(a, r, route.method, route.path, wrappedHandler)
 }
 
+var reflectTypeString = reflect.TypeOf("")
+
+// trimWhitespace trims leading and trailing whitespace from any string fields
+// in req. The req argument must be a non-nil pointer to a struct.
 func trimWhitespace(req interface{}) {
-	v := reflect.ValueOf(req)
-	for v.Type().Kind() == reflect.Pointer && !v.IsNil() {
-		v = v.Elem()
-	}
+	v := reflect.Indirect(reflect.ValueOf(req))
 	if v.Kind() == reflect.Struct {
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
-			if f.Kind() == reflect.String {
+			if f.Type() == reflectTypeString {
 				f.SetString(strings.TrimSpace(f.String()))
 			}
 		}

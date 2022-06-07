@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -158,4 +159,45 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Equal(t, orig, string(result))
+}
+
+func TestTrimWhitespace(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	userID := uid.New()
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
+		User:      userID,
+		Group:     uid.New(),
+		Privilege: "admin   ",
+		Resource:  " kubernetes.production.*",
+	}))
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.13.1")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusCreated)
+
+	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.13.1")
+
+	resp = httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	rb := &api.ListResponse[api.Grant]{}
+	err = json.Unmarshal(resp.Body.Bytes(), rb)
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(rb.Items), 2)
+	expected := api.Grant{
+		User:      userID,
+		Privilege: "admin",
+		Resource:  "kubernetes.production.*",
+	}
+	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
 }
