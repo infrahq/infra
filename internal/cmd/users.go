@@ -73,7 +73,7 @@ func newUsersEditCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit USER",
 		Short: "Update a user",
-		Example: `# Set a new one time password for a user
+		Example: `# Set a new password for a user
 $ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -85,7 +85,7 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new one time password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password")
 
 	return cmd
 }
