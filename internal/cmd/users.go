@@ -51,6 +51,11 @@ $ infra users add johndoe@example.com`,
 
 			createResp, err := createUser(client, args[0], true)
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to add new users; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -112,6 +117,11 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			logging.S.Debug("call server: list users")
 			users, err := client.ListUsers(api.ListUsersRequest{})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to view users; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -144,6 +154,7 @@ func newUsersRemoveCmd(cli *CLI) *cobra.Command {
 $ infra users remove janedoe@example.com`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			forbiddenMsg := "You do not have privileges to delete users; contact your admin\n\nRun `infra info` for more information about your session"
 			name := args[0]
 
 			client, err := defaultAPIClient()
@@ -154,6 +165,11 @@ $ infra users remove janedoe@example.com`,
 			logging.S.Debugf("call server: list users named %q", name)
 			users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: forbiddenMsg,
+					}
+				}
 				return err
 			}
 
@@ -165,6 +181,11 @@ $ infra users remove janedoe@example.com`,
 			for _, user := range users.Items {
 				logging.S.Debugf("...call server: delete user %s", user.ID)
 				if err := client.DeleteUser(user.ID); err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: forbiddenMsg,
+						}
+					}
 					return err
 				}
 
@@ -223,6 +244,10 @@ func updateUser(cli *CLI, name string) error {
 		if err != nil {
 			if errors.Is(err, ErrUserNotFound) {
 				return Error{Message: fmt.Sprintf("No user named %q in local provider; only local users can be edited", name)}
+			} else if api.ErrorStatusCode(err) == 403 {
+				return Error{
+					Message: fmt.Sprintf("You do not have privileges to update user %q; contact your admin\n\nRun `infra info` for more information about your session", name),
+				}
 			}
 			return err
 		}

@@ -71,6 +71,11 @@ $ infra keys add connector
 
 			user, err := getUserByName(client, userName)
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to create keys; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -82,6 +87,11 @@ $ infra keys add connector
 				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
 			})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to create keys; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -115,6 +125,11 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			logging.S.Debugf("call server: list access keys named %q", args[0])
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to delete keys; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -127,6 +142,11 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				logging.S.Debugf("...call server: delete access key %s", key.ID)
 				err = client.DeleteAccessKey(key.ID)
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: "You do not have privileges to delete keys; contact your admin\n\nRun `infra info` for more information about your session",
+						}
+					}
 					return err
 				}
 
@@ -160,6 +180,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		Short:   "List access keys",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			forbiddenMsg := "You do not have privileges to view keys; contact your admin\n\nRun `infra info` for more information about your session"
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -169,18 +190,33 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			if options.UserName != "" {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: forbiddenMsg,
+						}
+					}
 					return err
 				}
 
 				logging.S.Debugf("call server: list access keys for user %s", user.ID)
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID})
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: forbiddenMsg,
+						}
+					}
 					return err
 				}
 			} else {
 				logging.S.Debug("call server: list access keys")
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{})
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: forbiddenMsg,
+						}
+					}
 					return err
 				}
 			}

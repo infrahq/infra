@@ -127,10 +127,15 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				ClientSecret: opts.ClientSecret,
 			})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have privileges to connect providers to infra; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
-			cli.Output("Added provider %q (%s)", args[0], opts.URL)
+			cli.Output("Connected provider %q (%s) to infra", args[0], opts.URL)
 			return nil
 		},
 	}
@@ -170,10 +175,15 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			for _, provider := range providers.Items {
 				logging.S.Debugf("...call server: delete provider %s", provider.ID)
 				if err := client.DeleteProvider(provider.ID); err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						return Error{
+							Message: "You do not have privileges to disconnect providers from infra; contact your admin\n\nRun `infra info` for more information about your session",
+						}
+					}
 					return err
 				}
 
-				cli.Output("Disconnected provider %q (%s)", provider.Name, provider.URL)
+				cli.Output("Disconnected provider %q (%s) from infra", provider.Name, provider.URL)
 			}
 
 			return nil

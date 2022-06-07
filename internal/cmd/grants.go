@@ -62,6 +62,11 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			}
 			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					return Error{
+						Message: "You do not have enough privileges to view grants; contact your admin\n\nRun `infra info` for more information about your session",
+					}
+				}
 				return err
 			}
 
@@ -167,6 +172,8 @@ $ infra grants remove janedoe@example.com infra --role admin
 }
 
 func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
+	forbiddenMsg := "You do not have enough privileges to revoke grants; contact your admin\n\nRun `infra info` for more information about your session"
+
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -174,6 +181,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	user, group, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			return Error{
+				Message: forbiddenMsg,
+			}
+		}
 		return err
 	}
 
@@ -187,6 +199,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	logging.S.Debugf("call server: list grants %#v", listGrantsReq)
 	grants, err := client.ListGrants(listGrantsReq)
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			return Error{
+				Message: forbiddenMsg,
+			}
+		}
 		return err
 	}
 
@@ -198,6 +215,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		logging.S.Debugf("call server: delete grant %s", g.ID)
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
+			if api.ErrorStatusCode(err) == 403 {
+				return Error{
+					Message: forbiddenMsg,
+				}
+			}
 			return err
 		}
 
@@ -240,6 +262,7 @@ $ infra grants add johndoe@example.com infra --role admin
 }
 
 func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
+	forbiddenMsg := "You do not have enough privileges to create grants; contact your admin\n\nRun `infra info` for more information about your session"
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -247,6 +270,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	userID, groupID, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			return Error{
+				Message: forbiddenMsg,
+			}
+		}
 		if !cmdOptions.Force {
 			return err
 		}
@@ -255,6 +283,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	if userID == 0 && !cmdOptions.IsGroup {
 		user, err := createUser(client, cmdOptions.Name, false)
 		if err != nil {
+			if api.ErrorStatusCode(err) == 403 {
+				return Error{
+					Message: forbiddenMsg,
+				}
+			}
 			return err
 		}
 
@@ -264,6 +297,12 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	} else if groupID == 0 && cmdOptions.IsGroup {
 		group, err := createGroup(client, cmdOptions.Name)
 		if err != nil {
+
+			if api.ErrorStatusCode(err) == 403 {
+				return Error{
+					Message: forbiddenMsg,
+				}
+			}
 			return err
 		}
 
@@ -286,6 +325,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	logging.S.Debugf("call server: create grant %#v", createGrantReq)
 	_, err = client.CreateGrant(createGrantReq)
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			return Error{
+				Message: forbiddenMsg,
+			}
+		}
 		return err
 	}
 
