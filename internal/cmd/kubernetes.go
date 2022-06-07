@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -147,21 +145,6 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		u.Scheme = "https"
 
 		logging.S.Debugf("creating kubeconfig for %s", context)
-
-		// get TLS server name from the certificate
-		block, _ := pem.Decode(ca)
-		if block == nil {
-			return fmt.Errorf("unknown certificate format")
-		}
-
-		certs, err := x509.ParseCertificates(block.Bytes)
-		if err != nil {
-			return err
-		}
-
-		if len(certs) == 0 {
-			return fmt.Errorf("no certficates found")
-		}
 
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
 			Server:                   u.String(),
