@@ -105,7 +105,6 @@ export default function Login () {
         <div className='w-full my-2'>
           <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username or Email</label>
           <input
-            type='search'
             required
             autoFocus
             name='name'
