@@ -1,5 +1,6 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
+import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
@@ -69,15 +70,22 @@ function SidebarContent({ provider }) {
 }
 
 export default function Providers () {
+  const router = useRouter()
+
   const { data: { items: providers } = {}, error } = useSWR('/api/providers')
   const { admin, loading: adminLoading } = useAdmin()
+  const { mutate } = useSWRConfig()
+  const table = useTable({ columns, data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
+  
   const [selectedProvider, setSelectedProvider] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const { mutate } = useSWRConfig()
-
-  const table = useTable({ columns, data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
 
   const loading = adminLoading || (!providers && !error)
+
+  function edit () {
+    router.replace(`/providers/edit/details?id=${selectedProvider.id}`)
+    return null
+  }
 
   return (
     <>
@@ -119,6 +127,7 @@ export default function Providers () {
               iconPath='/providers.svg'
               showActionBtn={admin}
               remove={() => setDeleteModalOpen(true)}
+              edit={() => edit()}
             >
               <SidebarContent provider={selectedProvider} />
             </Sidebar>}

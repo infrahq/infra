@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { XIcon } from '@heroicons/react/outline'
+import { Menu } from '@headlessui/react'
+import { XIcon, DotsHorizontalIcon } from '@heroicons/react/outline'
 import ProfileIcon from './profile-icon'
 
 function ActionBtn ({ remove, edit }) {
