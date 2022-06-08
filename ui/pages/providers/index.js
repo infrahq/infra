@@ -120,7 +120,7 @@ export default function Providers () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
-                <>
+                <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
                   <Table 
                     {...table}
                     getRowProps={row => ({
@@ -138,7 +138,7 @@ export default function Providers () {
                       buttonHref='/providers/add'
                       buttonText='Provider'
                     />}
-                </>
+                </div>
                 )}
           </div>
           {selectedProvider && 
