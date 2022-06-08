@@ -149,7 +149,12 @@ type UniqueConstraintError struct {
 }
 
 func (e UniqueConstraintError) Error() string {
-	return fmt.Sprintf("value for %v already exists in %v", e.Column, e.Table)
+	if e.Table == "" {
+		return "value already exists"
+	} else if e.Column == "" {
+		return fmt.Sprintf("value already exists for %v", e.Table)
+	}
+	return fmt.Sprintf("value for %v already exists for %v", e.Column, e.Table)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it
@@ -164,24 +169,18 @@ func handleError(err error) error {
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation:
-			// https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/access/nbtree/nbtinsert.c;h=f6f4af8bfe3f0876e860944e2233328f8cc3303a;hb=HEAD#l668
-			// ereport(ERROR,
-			//         (errcode(ERRCODE_UNIQUE_VIOLATION),
-			//          errmsg("duplicate key value violates unique constraint \"%s\"",
-			//                 RelationGetRelationName(rel)),
-			//                 key_desc ? errdetail("Key %s already exists.",
-			//                            key_desc) : 0,
-			//                 errtableconstraint(heapRel,
-			//                                    RelationGetRelationName(rel))));
-
-			fields := strings.FieldsFunc(pgErr.Detail, func(r rune) bool {
-				return unicode.IsSpace(r) || r == '(' || r == ')'
-			})
-
-			// fields = [Key, <column>, =, <value>, already, exists.]
-			if len(fields) == 6 {
-				return UniqueConstraintError{Table: pgErr.TableName, Column: fields[1]}
+			constraintFields := map[string]string{
+				"idx_identities_name":         "name",
+				"idx_groups_name":             "name",
+				"idx_providers_name":          "name",
+				"idx_access_keys_name":        "name",
+				"idx_destinations_unique_id":  "unique_id",
+				"idx_access_keys_key_id":      "key_id",
+				"idx_credentials_identity_id": "identity_id",
 			}
+
+			columnName := constraintFields[pgErr.ConstraintName]
+			return UniqueConstraintError{Table: pgErr.TableName, Column: columnName}
 		}
 	}
 
@@ -198,6 +197,8 @@ func handleError(err error) error {
 		if len(fields) == 5 {
 			return UniqueConstraintError{Table: fields[3], Column: fields[4]}
 		}
+
+		return UniqueConstraintError{}
 	}
 
 	return err

@@ -8,7 +8,7 @@ type Destination struct {
 	Model
 
 	Name     string `validate:"required"`
-	UniqueID string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	UniqueID string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
 
 	ConnectionURL string
 	ConnectionCA  string

@@ -10,7 +10,7 @@ const InternalInfraProviderName = "infra"
 type Provider struct {
 	Model
 
-	Name         string `gorm:"uniqueIndex:,where:deleted_at is NULL" validate:"required"`
+	Name         string `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL" validate:"required"`
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
