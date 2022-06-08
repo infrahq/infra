@@ -43,7 +43,7 @@ export default function PasswordReset () {
         throw data
       }
 
-      router.replace('/settings?success')
+      router.replace('/settings?resetPassword=success')
 
     } catch (e) {
       console.log(e)

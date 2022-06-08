@@ -1,13 +1,22 @@
 import Head from 'next/head'
+import { useRouter } from 'next/router'
+import { useState } from 'react'
 
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
 import Admin from '../../components/settings/admin'
 import Account from '../../components/settings/account'
+import Notification from '../../components/notification'
 
 export default function Settings () {
   const { admin, loading } = useAdmin()
+
+  const router = useRouter()
+  const { resetPassword } = router.query
+
+  const [showNotification, setshowNotification] = useState(resetPassword === 'success')
+
 
   return (
     <>
@@ -19,6 +28,7 @@ export default function Settings () {
           <h1 className='text-xs mb-6 font-bold'>Settings</h1>
           <Account />
           {admin && <Admin />}
+          {resetPassword && <Notification show={showNotification} setShow={setshowNotification} text='Password Successfully Reset' />}
         </div>
       )}
     </>
