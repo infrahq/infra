@@ -159,3 +159,54 @@ func TestDatabaseSelectors(t *testing.T) {
 	assert.Equal(t, len(db.Statement.Clauses), 0)
 	assert.Equal(t, len(withCtx.Statement.Clauses), 0)
 }
+
+func TestPaginationSelector(t *testing.T) {
+	letters := make([]string, 0, 26)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		for r := 'a'; r < 'a'+26; r++ {
+			letters = append(letters, string(r))
+			g := &models.Identity{Name: string(r)}
+			err := db.Create(g).Error
+			assert.NilError(t, err)
+		}
+
+		pg := models.Pagination{Page: 1, Limit: 10, Sort: "name asc"}
+
+		actual, err := ListIdentities(db, ByPagination(pg))
+		assert.NilError(t, err)
+
+		for i := 0; i < pg.Limit; i++ {
+			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
+		}
+
+		pg.Page = 2
+		actual, err = ListIdentities(db, ByPagination(pg))
+		assert.NilError(t, err)
+		for i := 0; i < pg.Limit; i++ {
+			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
+		}
+
+		pg.Page = 3
+		actual, err = ListIdentities(db, ByPagination(pg))
+		assert.NilError(t, err)
+		assert.Assert(t, len(actual) == 6)
+
+		for i := 0; i < 6; i++ {
+			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
+		}
+
+		pg.Page, pg.Limit = 1, 26
+		actual, err = ListIdentities(db, ByPagination(pg))
+		assert.NilError(t, err)
+		for i, user := range actual {
+			assert.Equal(t, user.Name, letters[i])
+		}
+
+		pg.Sort = "name des"
+		actual, _ = ListIdentities(db, ByPagination(pg))
+		for i, user := range actual {
+			assert.Equal(t, user.Name, letters[25-i])
+		}
+
+	})
+}
