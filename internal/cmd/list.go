@@ -30,7 +30,12 @@ func newListCmd(cli *CLI) *cobra.Command {
 }
 
 func list(cli *CLI) error {
-	user, destinations, grants, err := getUserDestinationGrants()
+	client, err := defaultAPIClient()
+	if err != nil {
+		return err
+	}
+
+	user, destinations, grants, err := getUserDestinationGrants(client)
 	if err != nil {
 		return err
 	}
@@ -102,12 +107,7 @@ func list(cli *CLI) error {
 	return writeKubeconfig(user, destinations.Items, grants.Items)
 }
 
-func getUserDestinationGrants() (*api.User, *api.ListResponse[api.Destination], *api.ListResponse[api.Grant], error) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
+func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[api.Destination], *api.ListResponse[api.Grant], error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return nil, nil, nil, err

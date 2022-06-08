@@ -454,6 +454,8 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	client := &api.Client{
+		Name:      "connector",
+		Version:   internal.Version,
 		URL:       u.String(),
 		AccessKey: accessKey,
 		HTTP: http.Client{
