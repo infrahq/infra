@@ -39,7 +39,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		return nil, err
 	}
 
-	return data.GetIdentity(db, data.ByID(id))
+	return data.GetIdentity(db.Preload("Providers"), data.ByID(id))
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -111,10 +111,10 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID) (
 	}
 
 	if groupID != 0 {
-		return data.ListIdentitiesByGroup(db.Preload("Providers"), groupID, selectors...)
+		return data.ListIdentitiesByGroup(db, groupID, selectors...)
 	}
 
-	return data.ListIdentities(db.Preload("Providers"), selectors...)
+	return data.ListIdentities(db, selectors...)
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes

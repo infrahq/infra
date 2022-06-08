@@ -14,7 +14,7 @@ type User struct {
 	Updated       Time     `json:"updated"`
 	LastSeenAt    Time     `json:"lastSeenAt"`
 	Name          string   `json:"name" validate:"required"`
-	ProviderNames []string `json:"providerNames"`
+	ProviderNames []string `json:"providerNames,omitempty"`
 }
 
 type ListUsersRequest struct {

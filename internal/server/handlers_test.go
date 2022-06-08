@@ -171,7 +171,7 @@ var cmpAPIUserShallow = gocmp.Comparer(func(x, y api.User) bool {
 	return x.Name == y.Name
 })
 
-func TestAPI_ListUsersProviderNameResponse(t *testing.T) {
+func TestAPI_GetUserProviderNameResponse(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
@@ -184,7 +184,7 @@ func TestAPI_ListUsersProviderNameResponse(t *testing.T) {
 	_, err = data.CreateProviderUser(srv.db, p, user)
 	assert.NilError(t, err)
 
-	req, err := http.NewRequest(http.MethodGet, "/api/users?user_id="+user.ID.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, "/api/users/"+user.ID.String(), nil)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.13.3")
@@ -195,12 +195,11 @@ func TestAPI_ListUsersProviderNameResponse(t *testing.T) {
 	t.Log(resp.Body.String())
 	assert.Equal(t, 200, resp.Code)
 
-	u := &api.ListResponse[api.User]{}
+	u := &api.User{}
 
 	err = json.Unmarshal(resp.Body.Bytes(), u)
 	assert.NilError(t, err)
-	assert.Assert(t, len(u.Items) > 0)
-	assert.DeepEqual(t, []string{"infra"}, u.Items[0].ProviderNames)
+	assert.DeepEqual(t, []string{"infra"}, u.ProviderNames)
 }
 
 func TestListKeys(t *testing.T) {
@@ -1022,8 +1021,7 @@ func TestAPI_GetUser(t *testing.T) {
 						"name": "me@example.com",
 						"lastSeenAt": "%[2]v",
 						"created": "%[2]v",
-						"updated": "%[2]v",
-						"providerNames": null
+						"updated": "%[2]v"
 					}`,
 					idMe.String(),
 					time.Now().UTC().Format(time.RFC3339),
