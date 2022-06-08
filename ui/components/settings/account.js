@@ -3,7 +3,7 @@ import useSWR from 'swr'
 
 export default function () {
   const { data: auth } = useSWR('/api/users/self')
-  
+
   return (
     <div className='sm:w-80 lg:w-[500px] pb-12'>
       <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-3'>Account</div>

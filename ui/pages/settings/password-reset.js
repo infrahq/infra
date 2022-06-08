@@ -19,7 +19,7 @@ export default function PasswordReset () {
   async function onSubmit (e) {
     e.preventDefault()
 
-    if(password !== confirmPassword) {
+    if (password !== confirmPassword) {
       setError('password does not match')
       return false
     }
@@ -37,12 +37,11 @@ export default function PasswordReset () {
 
       const data = await rest.json()
 
-      if(!rest.ok) {
+      if (!rest.ok) {
         throw data
       }
 
       router.replace('/settings?resetPassword=success')
-
     } catch (e) {
       setError(e.message || 'something went wrong, please try again')
     }
@@ -92,9 +91,9 @@ export default function PasswordReset () {
           <Link href='/settings'>
             <a className='uppercase border-0 hover:text-white px-6 py-3 focus:outline-none focus:text-white text-gray-400 text-2xs'>Cancel</a>
           </Link>
-          <button 
+          <button
             type='submit'
-            disabled={!password || !confirmPassword} 
+            disabled={!password || !confirmPassword}
             className='border border-violet-300 text-2xs text-violet-100 rounded-md px-5 py-2.5 text-center disabled:opacity-30'
           >
             Reset
