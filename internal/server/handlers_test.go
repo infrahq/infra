@@ -1018,11 +1018,11 @@ func TestAPI_GetUser(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 					{
-					  "id": "%[1]v",
-					  "name": "me@example.com",
-					  "lastSeenAt": "%[2]v",
-					  "created": "%[2]v",
-					  "updated": "%[2]v",
+						"id": "%[1]v",
+						"name": "me@example.com",
+						"lastSeenAt": "%[2]v",
+						"created": "%[2]v",
+						"updated": "%[2]v",
 						"providerNames": null
 					}`,
 					idMe.String(),
