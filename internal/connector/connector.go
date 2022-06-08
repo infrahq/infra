@@ -303,13 +303,13 @@ type CertCache struct {
 	cert   *tls.Certificate
 }
 
-func (c *CertCache) AddHost(host string) error {
+func (c *CertCache) AddHost(host string) (*tls.Certificate, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for _, h := range c.hosts {
 		if h == host {
-			return nil
+			return c.cert, nil
 		}
 	}
 
@@ -319,40 +319,47 @@ func (c *CertCache) AddHost(host string) error {
 
 	ca, err := tls.X509KeyPair(c.caCert, c.caKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	caCert, err := x509.ParseCertificate(ca.Certificate[0])
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	certPEM, keyPEM, err := certs.GenerateCertificate(c.hosts, caCert, ca.PrivateKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tlsCert, err := tls.X509KeyPair(certPEM, keyPEM)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	c.cert = &tlsCert
 
-	return nil
+	return c.cert, nil
 }
 
-func (c *CertCache) Certificate() (*tls.Certificate, error) {
+// readCertificate is a threadsafe way to read the certificate
+func (c *CertCache) readCertificate() *tls.Certificate {
 	c.mu.Lock()
-	defer c.mu.Unlock()
+	cert := c.cert
+	c.mu.Unlock()
+	return cert
+}
 
-	if c.cert == nil {
-		if err := c.AddHost(""); err != nil {
-			return nil, err
-		}
+// Certificate returns a TLS certificate for the connector, if one does not exist it is generated for the empty host
+func (c *CertCache) Certificate() (*tls.Certificate, error) {
+	cert := c.readCertificate()
+	if cert == nil {
+		// the host is not available externally, or this would have been set
+		// set to an empty host for the liveness check to resolve from the same host
+		return c.AddHost("")
 	}
 
-	return c.cert, nil
+	return cert, nil
 }
 
 func NewCertCache(caCertPEM []byte, caKeyPem []byte) *CertCache {
@@ -548,7 +555,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 		}
 
 		// update certificates if the host changed
-		err = certCache.AddHost(host)
+		_, err = certCache.AddHost(host)
 		if err != nil {
 			logging.L.Error("could not update self-signed certificates")
 			return
