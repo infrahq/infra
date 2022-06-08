@@ -10,17 +10,17 @@ type Pagination struct {
 	Limit int
 	Sort  string
 
-	Total int
-	Pages int
-	Next  int
-	Prev  int
+	TotalCount int
+	TotalPages int
+	Next       int
+	Prev       int
 }
 
 func (p *Pagination) SetCount(count int64) {
-	p.Pages = int(math.Ceil(float64(count) / float64(p.Limit)))
-	p.Total = int(count)
+	p.TotalPages = int(math.Ceil(float64(count) / float64(p.Limit)))
+	p.TotalCount = int(count)
 
-	if p.Next > p.Pages {
+	if p.Next > p.TotalPages {
 		p.Next = 0
 	}
 }

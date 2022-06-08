@@ -127,7 +127,7 @@ func ByPagination(pg models.Pagination) SelectorFunc {
 
 	return func(db *gorm.DB) *gorm.DB {
 		resultsForPage := pg.Limit * (pg.Page - 1)
-		return db.Offset(resultsForPage).Limit(pg.Limit).Order(pg.Sort)
+		return db.Order(pg.Sort).Offset(resultsForPage).Limit(pg.Limit)
 	}
 }
 
