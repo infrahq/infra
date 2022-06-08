@@ -12,7 +12,7 @@ function Dashboard ({ children }) {
   const { admin, loading } = useAdmin()
   const { mutate } = useSWRConfig()
 
-  const accessToSettingsPage = admin || auth?.providerNames.includes('infra')
+  const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
 
   if (loading) {
     return null
@@ -33,12 +33,16 @@ function Dashboard ({ children }) {
   ]
 
   const subNavigation = [
-    { name: 'Settings', href: '/settings',  admin: accessToSettingsPage }
+    { name: 'Settings', href: '/settings', admin: accessToSettingsPage }
   ]
 
   // redirect non-admin routes if user isn't admin
   for (const n of [...navigation, ...subNavigation]) {
-    if (router.pathname.startsWith(n.href) && n.admin && !admin) {
+    if(router.pathname.startsWith('/settings') && !accessToSettingsPage) {    
+      router.replace('/')
+      return null
+    }
+    if (router.pathname.startsWith(n.href) && !router.pathname.startsWith('/settings') && n.admin && !admin) {
       router.replace('/')
       return null
     }
