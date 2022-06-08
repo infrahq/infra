@@ -36,7 +36,7 @@ const columns = [{
 }
 ]
 
-function SidebarContent({ provider, admin, setSelectedProvider }) {
+function SidebarContent ({ provider, admin, setSelectedProvider }) {
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
@@ -80,8 +80,8 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
             open={deleteModalOpen}
             setOpen={setDeleteModalOpen}
             onSubmit={() => {
-                mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
-                  await fetch(`/api/providers/${provider.id}`, {
+              mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
+                await fetch(`/api/providers/${provider.id}`, {
                   method: 'DELETE'
                 })
 
@@ -103,7 +103,7 @@ export default function Providers () {
   const { data: { items: providers } = {}, error } = useSWR('/api/providers')
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({ columns, data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
-  
+
   const [selectedProvider, setSelectedProvider] = useState(null)
 
   const loading = adminLoading || (!providers && !error)
@@ -121,7 +121,7 @@ export default function Providers () {
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
                 <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
-                  <Table 
+                  <Table
                     {...table}
                     getRowProps={row => ({
                       onClick: () => setSelectedProvider(row.original),
@@ -141,7 +141,7 @@ export default function Providers () {
                 </div>
                 )}
           </div>
-          {selectedProvider && 
+          {selectedProvider &&
             <Sidebar
               handleClose={() => setSelectedProvider(null)}
               title={selectedProvider.name}
