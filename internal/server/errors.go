@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 // sendAPIError translates err into the appropriate HTTP status code, builds a
@@ -27,6 +28,7 @@ func sendAPIError(c *gin.Context, err error) {
 	}
 
 	validationErrors := &validator.ValidationErrors{}
+	var uniqueConstraintError data.UniqueConstraintError
 
 	log := logging.L.WithOptions(zap.AddCallerSkip(1)).Debug
 
@@ -35,36 +37,45 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusUnauthorized
 		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
+
 	case errors.Is(err, internal.ErrForbidden):
 		resp.Code = http.StatusForbidden
 		// hide the error text, it may contain sensitive information
 		resp.Message = "forbidden"
-	case errors.Is(err, internal.ErrDuplicate):
+
+	case errors.As(err, &uniqueConstraintError):
 		resp.Code = http.StatusConflict
 		resp.Message = err.Error()
+
 	case errors.Is(err, internal.ErrNotFound):
 		resp.Code = http.StatusNotFound
 		resp.Message = err.Error()
+
 	case errors.As(err, validationErrors):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
-
 		parseFieldErrors(resp, validationErrors)
+
 	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, authn.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
+
 	case errors.Is(err, internal.ErrNotImplemented):
 		resp.Code = http.StatusNotImplemented
 		resp.Message = internal.ErrNotImplemented.Error()
+
 	case errors.Is(err, internal.ErrBadGateway):
 		resp.Code = http.StatusBadGateway
 		resp.Message = err.Error()
+
 	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
+
 	case errors.Is(err, context.DeadlineExceeded):
 		resp.Code = http.StatusGatewayTimeout // not ideal, but StatusRequestTimeout isn't intended for this.
 		resp.Message = "request timed out"
+
 	default:
 		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
 	}

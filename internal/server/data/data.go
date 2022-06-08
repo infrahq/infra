@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"unicode"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
@@ -128,22 +129,8 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
-	if err := db.Save(model).Error; err != nil {
-		if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		var pgerr *pgconn.PgError
-		if errors.As(err, &pgerr) {
-			if pgerr.Code == pgerrcode.UniqueViolation {
-				return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-			}
-		}
-
-		return err
-	}
-
-	return nil
+	err := db.Save(model).Error
+	return handleError(err)
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
@@ -152,28 +139,69 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
-	if err := db.Create(model).Error; err != nil {
-		if isUniqueConstraintViolation(err) {
-			return fmt.Errorf("%w: %s", internal.ErrDuplicate, err)
-		}
-
-		return err
-	}
-
-	return nil
+	err := db.Create(model).Error
+	return handleError(err)
 }
 
-func isUniqueConstraintViolation(err error) bool {
-	var pgerr *pgconn.PgError
-	if errors.As(err, &pgerr) {
-		return pgerr.Code == pgerrcode.UniqueViolation
+type UniqueConstraintError struct {
+	Table  string
+	Column string
+}
+
+func (e UniqueConstraintError) Error() string {
+	if e.Table == "" {
+		return "value already exists"
+	} else if e.Column == "" {
+		return fmt.Sprintf("value already exists for %v", e.Table)
+	}
+	return fmt.Sprintf("value for %v already exists for %v", e.Column, e.Table)
+}
+
+// handleError looks for well known DB errors. If the error is recognized it
+// is translated into a UniqueConstraintError so that calling code can
+// inspect the error.
+func handleError(err error) error {
+	if err == nil {
+		return nil
 	}
 
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.UniqueViolation:
+			constraintFields := map[string]string{
+				"idx_identities_name":         "name",
+				"idx_groups_name":             "name",
+				"idx_providers_name":          "name",
+				"idx_access_keys_name":        "name",
+				"idx_destinations_unique_id":  "unique_id",
+				"idx_access_keys_key_id":      "key_id",
+				"idx_credentials_identity_id": "identity_id",
+			}
+
+			columnName := constraintFields[pgErr.ConstraintName]
+			return UniqueConstraintError{Table: pgErr.TableName, Column: columnName}
+		}
+	}
+
+	// https://sqlite.org/src/file?name=ext/rtree/rtree.c:
+	// pRtree->base.zErrMsg = sqlite3_mprintf(
+	//     "UNIQUE constraint failed: %s.%s", pRtree->zName, zCol
+	// );
 	if strings.HasPrefix(err.Error(), "UNIQUE constraint failed:") {
-		return true
+		fields := strings.FieldsFunc(err.Error(), func(r rune) bool {
+			return unicode.IsSpace(r) || r == '.'
+		})
+
+		// fields = [UNIQUE, constraint, failed:, <table>, column>]
+		if len(fields) == 5 {
+			return UniqueConstraintError{Table: fields[3], Column: fields[4]}
+		}
+
+		return UniqueConstraintError{}
 	}
 
-	return false
+	return err
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {

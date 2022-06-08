@@ -14,7 +14,6 @@ var (
 	// ErrBadGateway means an invalid response was received from an upstream server (probably an OIDC provider)
 	ErrBadGateway = fmt.Errorf("bad gateway")
 
-	ErrDuplicate      = fmt.Errorf("duplicate record")
 	ErrNotFound       = fmt.Errorf("record not found")
 	ErrBadRequest     = fmt.Errorf("bad request")
 	ErrNotImplemented = fmt.Errorf("not implemented")
