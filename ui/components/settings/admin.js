@@ -16,7 +16,7 @@ function Grant ({ id, userID, grants }) {
   const { mutate } = useSWRConfig()
   const [open, setOpen] = useState(false)
 
-  const isSelf = userID === auth.id
+  const isSelf = userID === auth?.id
 
   return (
     <div className='flex group'>

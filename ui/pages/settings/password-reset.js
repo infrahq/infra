@@ -16,8 +16,6 @@ export default function PasswordReset () {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
 
-
-
   async function onSubmit (e) {
     e.preventDefault()
 
@@ -46,7 +44,6 @@ export default function PasswordReset () {
       router.replace('/settings?resetPassword=success')
 
     } catch (e) {
-      console.log(e)
       setError(e.message || 'something went wrong, please try again')
     }
   }
