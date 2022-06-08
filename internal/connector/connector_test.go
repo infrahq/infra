@@ -205,7 +205,7 @@ func TestCertificate(t *testing.T) {
 
 	t.Run("cached certificate is returned when the host is set", func(t *testing.T) {
 		certCache := NewCertCache(testCACertPEM, testCAKeyPEM)
-		err := certCache.AddHost("test-host")
+		_, err := certCache.AddHost("test-host")
 		assert.NilError(t, err)
 
 		cert, err := certCache.Certificate()
