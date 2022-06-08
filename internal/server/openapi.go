@@ -335,6 +335,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	case reflect.Slice:
 		if t.Elem().Kind() == reflect.Uint8 {
 			schema.Type = "string" // []byte
+			schema.Format = "base64"
 			return
 		}
 		schema.Type = "array"

@@ -119,3 +119,8 @@ func NewListResponse[T, M any](items []M, fn func(item M) T) *ListResponse[T] {
 
 	return result
 }
+
+// PEM is a base64 encoded string, commonly used to store certificates and
+// private keys. PEM values will be normalized to remove any leading whitespace
+// and all but a single trailing newline.
+type PEM string

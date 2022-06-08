@@ -743,46 +743,6 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 }
 
-func TestAPI_TrimRequestStrings(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-
-	userID := uid.New()
-	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
-		User:      userID,
-		Group:     uid.New(),
-		Privilege: "admin   ",
-		Resource:  " kubernetes.production.*",
-	}))
-	assert.NilError(t, err)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.13.1")
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-	assert.Equal(t, resp.Code, http.StatusCreated)
-
-	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
-	assert.NilError(t, err)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.13.1")
-
-	resp = httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-	assert.Equal(t, resp.Code, http.StatusOK)
-
-	rb := &api.ListResponse[api.Grant]{}
-	err = json.Unmarshal(resp.Body.Bytes(), rb)
-	assert.NilError(t, err)
-
-	i := 0
-	for rb.Items[i].Resource == "infra" {
-		i++
-	}
-	assert.Equal(t, "admin", rb.Items[i].Privilege)
-	assert.Equal(t, "kubernetes.production.*", rb.Items[i].Resource)
-}
-
 // cmpApproximateTime is a gocmp.Option that compares a time formatted as an
 // RFC3339 string. The times may be up to 2 seconds different from each other,
 // to account for the runtime of a test.
@@ -1143,4 +1103,55 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
 	})
+}
+
+func TestAPI_CreateDestination(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	t.Run("does not trim trailing newline from CA", func(t *testing.T) {
+		createReq := &api.CreateDestinationRequest{
+			Name: "final",
+			Connection: api.DestinationConnection{
+				URL: "cluster.production.example",
+				CA:  "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n",
+			},
+			Resources: []string{"res1", "res2"},
+			Roles:     []string{"role1", "role2"},
+		}
+
+		body := jsonBody(t, createReq)
+		req := httptest.NewRequest(http.MethodPost, "/api/destinations", body)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+{
+    "id": "<any-valid-uid>",
+	"name": "final",
+    "uniqueID": "",
+    "connection": {
+		"url": "cluster.production.example",
+		"ca": "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n"
+	},
+	"resources": ["res1", "res2"],
+	"roles": ["role1", "role2"],
+	"created": "%[1]v",
+	"updated": "%[1]v"
+}
+`,
+			time.Now().UTC().Format(time.RFC3339)))
+
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIDestinationJSON)
+	})
+}
+
+var cmpAPIDestinationJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
