@@ -125,6 +125,7 @@ tlsCache: /cache/dir
 enableTelemetry: false # default is true
 enableSignup: false    # default is true
 sessionDuration: 3m
+sessionExtensionDeadline: 1m
 
 dbFile: /db/file
 dbEncryptionKey: /this-is-the-path
@@ -184,9 +185,10 @@ users:
 			},
 			expected: func(t *testing.T) server.Options {
 				return server.Options{
-					Version:         0.2,
-					TLSCache:        "/cache/dir",
-					SessionDuration: 3 * time.Minute,
+					Version:                  0.2,
+					TLSCache:                 "/cache/dir",
+					SessionDuration:          3 * time.Minute,
+					SessionExtensionDeadline: 1 * time.Minute,
 
 					DBEncryptionKey:         "/this-is-the-path",
 					DBEncryptionKeyProvider: "the-provider",
