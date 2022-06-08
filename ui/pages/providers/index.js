@@ -126,7 +126,8 @@ export default function Providers () {
                     getRowProps={row => ({
                       onClick: () => setSelectedProvider(row.original),
                       style: {
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        background: row.original.id === selectedProvider?.id ? '#151A1E' : ''
                       }
                     })}
                   />
