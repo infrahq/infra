@@ -36,7 +36,7 @@ func newUsersCmd(cli *CLI) *cobra.Command {
 func newUsersAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add USER",
-		Short: "Create a user.",
+		Short: "Create a user",
 		Long: `Create a user.
 
 Note: A new user must change their one time password before further usage.`,
