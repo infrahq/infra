@@ -551,6 +551,12 @@
                 "name": {
                   "type": "string"
                 },
+                "providerNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
@@ -659,6 +665,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "providerNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "updated": {
             "description": "formatted as an RFC3339 date-time",

@@ -39,7 +39,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		return nil, err
 	}
 
-	return data.GetIdentity(db, data.ByID(id))
+	return data.GetIdentity(db.Preload("Providers"), data.ByID(id))
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
