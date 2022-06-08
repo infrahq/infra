@@ -55,7 +55,7 @@ function SidebarContent ({ provider, admin, setSelectedProvider }) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Client ID</div>
-            <div className='text-2xs font-mono'>{provider.clientID}</div>
+            <div className='text-2xs'>{provider.clientID}</div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Added</div>
