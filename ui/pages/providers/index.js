@@ -1,6 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
-import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
@@ -37,7 +36,10 @@ const columns = [{
 }
 ]
 
-function SidebarContent({ provider }) {
+function SidebarContent({ provider, admin, setSelectedProvider }) {
+  const { mutate } = useSWRConfig()
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       <section>
@@ -65,27 +67,46 @@ function SidebarContent({ provider }) {
           </div>
         </div>
       </section>
+      {admin &&
+        <section className='flex-1 flex flex-col items-end justify-end py-6'>
+          <button
+            type='button'
+            onClick={() => setDeleteModalOpen(true)}
+            className='border border-violet-300 rounded-md flex items-center text-2xs px-6 py-3 text-violet-100'
+          >
+            Remove
+          </button>
+          <DeleteModal
+            open={deleteModalOpen}
+            setOpen={setDeleteModalOpen}
+            onSubmit={() => {
+                mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
+                  await fetch(`/api/providers/${provider.id}`, {
+                  method: 'DELETE'
+                })
+
+                return { items: providers.filter(p => p?.id !== provider.id) }
+              })
+
+              setDeleteModalOpen(false)
+              setSelectedProvider(null)
+            }}
+            title='Remove Identity Provider'
+            message={(<>Are you sure you want to delete <span className='font-bold text-white'>{provider?.name}</span>? This action cannot be undone.</>)}
+          />
+        </section>}
     </div>
   )
 }
 
 export default function Providers () {
-  const router = useRouter()
-
   const { data: { items: providers } = {}, error } = useSWR('/api/providers')
   const { admin, loading: adminLoading } = useAdmin()
-  const { mutate } = useSWRConfig()
   const table = useTable({ columns, data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
   
   const [selectedProvider, setSelectedProvider] = useState(null)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const loading = adminLoading || (!providers && !error)
-
-  function edit () {
-    router.replace(`/providers/edit/details?id=${selectedProvider.id}`)
-    return null
-  }
 
   return (
     <>
@@ -125,30 +146,9 @@ export default function Providers () {
               handleClose={() => setSelectedProvider(null)}
               title={selectedProvider.name}
               iconPath='/providers.svg'
-              showActionBtn={admin}
-              remove={() => setDeleteModalOpen(true)}
-              edit={() => edit()}
             >
-              <SidebarContent provider={selectedProvider} />
+              <SidebarContent provider={selectedProvider} admin={admin} setSelectedProvider={setSelectedProvider} />
             </Sidebar>}
-            <DeleteModal
-              open={deleteModalOpen}
-              setOpen={setDeleteModalOpen}
-              onSubmit={() => {
-                  mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
-                    await fetch(`/api/providers/${selectedProvider.id}`, {
-                    method: 'DELETE'
-                  })
-
-                  return { items: providers.filter(p => p?.id !== selectedProvider.id) }
-                })
-
-                setDeleteModalOpen(false)
-                setSelectedProvider(null)
-              }}
-              title='Remove Identity Provider'
-              message={(<>Are you sure you want to delete <span className='font-bold text-white'>{selectedProvider?.name}</span>? This action cannot be undone.</>)}
-            />
         </div>
       )}
     </>
