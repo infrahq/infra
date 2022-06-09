@@ -17,6 +17,9 @@ import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 
 function SidebarNamespaceContent ({ namespace }) {
+  console.log(namespace)
+  const { data: auth } = useSWR('/api/users/self')
+  
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       <section>
