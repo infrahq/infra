@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.3](https://github.com/infrahq/infra/compare/v0.13.2...v0.13.3) (2022-06-09)
+
+
+### Features
+
+* add provider sidebar ([#2229](https://github.com/infrahq/infra/issues/2229)) ([15312d1](https://github.com/infrahq/infra/commit/15312d18b280591449778baaebec1cea7782f4c3))
+
+
+### Bug Fixes
+
+* allow non email logins and user mgmt ([#2256](https://github.com/infrahq/infra/issues/2256)) ([5ef42cf](https://github.com/infrahq/infra/commit/5ef42cf93a228c68c44e8f670eb6a64df281d89c))
+* remove period from users cmd help ([#2234](https://github.com/infrahq/infra/issues/2234)) ([678aa44](https://github.com/infrahq/infra/commit/678aa449a676d76ac5dba8ed5dec8eee5f68624f))
+* Revert "improve!: require Infra-Version header ([#2041](https://github.com/infrahq/infra/issues/2041))" ([#2254](https://github.com/infrahq/infra/issues/2254)) ([64ccfa7](https://github.com/infrahq/infra/commit/64ccfa791545a5bbd4bfc637f8aab6b0d9c418e6))
+* set the auth cookie to the bearer value ([#2253](https://github.com/infrahq/infra/issues/2253)) ([547493d](https://github.com/infrahq/infra/commit/547493dd3f19db37ef8a97b0364c9b0487fd9b04))
+* specify email fields in the API doc ([#2246](https://github.com/infrahq/infra/issues/2246)) ([cdc8f48](https://github.com/infrahq/infra/commit/cdc8f4812c7e84bc4dbe4e3773014fc2c91fdd78))
+
+
 ## [0.13.2](https://github.com/infrahq/infra/compare/v0.13.1...v0.13.2) (2022-06-09)
 
 
