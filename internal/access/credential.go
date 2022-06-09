@@ -2,12 +2,10 @@ package access
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -74,32 +72,4 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	}
 
 	return nil
-}
-
-func LoginWithPasswordCredential(c *gin.Context, name, password string, expiry time.Time) (string, *models.Identity, bool, error) {
-	db := getDB(c)
-
-	identity, err := data.GetIdentity(db, data.ByName(name))
-	if err != nil {
-		return "", nil, false, fmt.Errorf("%w: credentials name: %v", internal.ErrUnauthorized, err)
-	}
-
-	requiresUpdate, err := data.ValidateCredential(db, identity, password)
-	if err != nil {
-		return "", nil, false, fmt.Errorf("%w: validate password: %v", internal.ErrUnauthorized, err)
-	}
-
-	// the password is valid
-	issuedAccessKey := &models.AccessKey{
-		IssuedFor:  identity.ID,
-		ProviderID: InfraProvider(c).ID,
-		ExpiresAt:  expiry,
-	}
-
-	secret, err := data.CreateAccessKey(db, issuedAccessKey)
-	if err != nil {
-		return "", nil, false, fmt.Errorf("create token for creds: %w", err)
-	}
-
-	return secret, identity, requiresUpdate, nil
 }

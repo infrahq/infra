@@ -34,11 +34,12 @@ import (
 )
 
 type Options struct {
-	Version         float64
-	TLSCache        string
-	EnableTelemetry bool
-	EnableSignup    bool
-	SessionDuration time.Duration
+	Version                  float64
+	TLSCache                 string
+	EnableTelemetry          bool
+	EnableSignup             bool
+	SessionDuration          time.Duration
+	SessionExtensionDeadline time.Duration
 
 	DBFile                  string
 	DBEncryptionKey         string

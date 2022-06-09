@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -362,9 +361,9 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		IssuedFor:         r.UserID,
 		Name:              r.Name,
 		ProviderID:        access.InfraProvider(c).ID,
-		ExpiresAt:         time.Now().Add(time.Duration(r.TTL)).UTC(),
+		ExpiresAt:         time.Now().UTC().Add(time.Duration(r.TTL)),
 		Extension:         time.Duration(r.ExtensionDeadline),
-		ExtensionDeadline: time.Now().Add(time.Duration(r.ExtensionDeadline)).UTC(),
+		ExtensionDeadline: time.Now().UTC().Add(time.Duration(r.ExtensionDeadline)),
 	}
 
 	raw, err := access.CreateAccessKey(c, accessKey)
@@ -514,59 +513,54 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	expires := time.Now().Add(a.server.options.SessionDuration)
+	var loginMethod authn.LoginMethod
+
+	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
 
 	switch {
 	case r.AccessKey != "":
-		key, identity, err := access.ExchangeAccessKey(c, r.AccessKey, expires)
-		if err != nil {
-			return nil, err
-		}
-
-		setAuthCookie(c, key, expires)
-
-		a.t.Event("login", identity.ID.String(), Properties{"method": "exchange"})
-
-		return &api.LoginResponse{UserID: identity.ID, Name: identity.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey, expires)
 	case r.PasswordCredentials != nil:
 		if r.PasswordCredentials.Name == "" {
 			// #1825: remove, this is for migration
 			r.PasswordCredentials.Name = r.PasswordCredentials.Email
 		}
-		key, user, requiresUpdate, err := access.LoginWithPasswordCredential(c, r.PasswordCredentials.Name, r.PasswordCredentials.Password, expires)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", internal.ErrUnauthorized, err.Error())
-		}
-
-		setAuthCookie(c, key, expires)
-
-		a.t.Event("login", user.ID.String(), Properties{"method": "credentials"})
-
-		return &api.LoginResponse{UserID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
+		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid identity provider: %w", err)
 		}
 
-		oidc, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
+		providerClient, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("update provider client: %w", err)
 		}
 
-		user, key, err := access.ExchangeAuthCodeForAccessKey(c, r.OIDC.Code, provider, oidc, expires, r.OIDC.RedirectURL)
-		if err != nil {
-			return nil, err
-		}
-
-		setAuthCookie(c, key, expires)
-
-		a.t.Event("login", user.ID.String(), Properties{"method": "oidc"})
-
-		return &api.LoginResponse{UserID: user.ID, Name: user.Name, AccessKey: key, Expires: api.Time(expires)}, nil
+		loginMethod = authn.NewOIDCAuthentication(r.OIDC.ProviderID, r.OIDC.RedirectURL, r.OIDC.Code, providerClient)
+	default:
+		// make sure to always fail by default
+		return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)
 	}
 
-	return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)
+	// do the actual login now that we know the method selected
+	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	if err != nil {
+		if errors.Is(err, internal.ErrBadGateway) {
+			// the user should be shown this explicitly
+			// this means an external request failed, probably to an IDP
+			return nil, err
+		}
+		logging.S.Debug(err)
+		// all other failures from login should result in an unauthorized response
+		return nil, internal.ErrUnauthorized
+	}
+
+	setAuthCookie(c, key.Secret, expires)
+
+	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
+
+	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
@@ -586,64 +580,21 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	user := access.AuthenticatedIdentity(c)
-	if user == nil {
-		return nil
-	}
-
-	providerUser, err := access.RetrieveUserProviderTokens(c)
+	provider, redirectURL, err := access.GetContextProviderIdentity(c)
 	if err != nil {
 		return err
-	}
-
-	provider, err := access.GetProvider(c, providerUser.ProviderID)
-	if err != nil {
-		return fmt.Errorf("user info provider: %w", err)
 	}
 
 	if provider.Name == models.InternalInfraProviderName {
 		return nil
 	}
 
-	oidc, err := a.providerClient(c, provider, providerUser.RedirectURL)
+	oidc, err := a.providerClient(c, provider, redirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
 
-	// check if the access token needs to be refreshed
-	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(providerUser)
-	if err != nil {
-		return fmt.Errorf("refresh provider access: %w", err)
-	}
-
-	if newAccessToken != string(providerUser.AccessToken) {
-		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
-
-		providerUser.AccessToken = models.EncryptedAtRest(newAccessToken)
-		providerUser.ExpiresAt = *newExpiry
-
-		if err := access.UpdateProviderUser(c, providerUser); err != nil {
-			return fmt.Errorf("update access token before JWT: %w", err)
-		}
-	}
-
-	// get current identity provider groups
-	info, err := oidc.GetUserInfo(providerUser)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
-		}
-
-		if nestedErr := access.DeleteAllIdentityAccessKeys(c); nestedErr != nil {
-			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
-		}
-
-		deleteAuthCookie(c)
-
-		return fmt.Errorf("get user info: %w", err)
-	}
-
-	return access.UpdateUserInfoFromProvider(c, info, user, provider)
+	return access.UpdateIdentityInfoFromProvider(c, oidc)
 }
 
 // validateProvider checks that a provider being modified is valid

@@ -12,7 +12,6 @@ import (
 
 func TestProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-
 		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
 		err := db.Create(&providerDevelop).Error

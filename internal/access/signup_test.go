@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -96,11 +97,16 @@ func TestSignupEnabled(t *testing.T) {
 	pass := "password"
 
 	t.Run("SignupUser", func(t *testing.T) {
-		c, _ := setup(t)
+		c, db := setup(t)
 
 		enabled, err := SignupEnabled(c)
 		assert.NilError(t, err)
 		assert.Equal(t, enabled, true)
+
+		provider := models.Provider{Name: models.InternalInfraProviderName}
+
+		err = data.CreateProvider(db, &provider)
+		assert.NilError(t, err)
 
 		identity, err := Signup(c, user, pass)
 		assert.NilError(t, err)
@@ -111,12 +117,13 @@ func TestSignupEnabled(t *testing.T) {
 		assert.Equal(t, enabled, false)
 
 		// check "admin" user can login
-		_, identity2, requireUpdate, err := LoginWithPasswordCredential(c, user, pass, time.Now().Add(time.Hour))
+		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)
+		key, _, requiresUpdate, err := Login(c, userPassLogin, time.Now().Add(time.Hour), time.Hour)
 		assert.NilError(t, err)
-		assert.DeepEqual(t, identity, identity2)
-		assert.Equal(t, requireUpdate, false)
+		assert.Equal(t, identity.ID, key.IssuedFor)
+		assert.Equal(t, requiresUpdate, false)
 
-		c.Set("identity", identity2)
+		c.Set("identity", identity)
 
 		// check "admin" can create token
 		_, err = CreateToken(c)

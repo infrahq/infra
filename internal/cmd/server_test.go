@@ -125,6 +125,7 @@ tlsCache: /cache/dir
 enableTelemetry: false # default is true
 enableSignup: false    # default is true
 sessionDuration: 3m
+sessionExtensionDeadline: 1m
 
 dbFile: /db/file
 dbEncryptionKey: /this-is-the-path
@@ -184,9 +185,10 @@ users:
 			},
 			expected: func(t *testing.T) server.Options {
 				return server.Options{
-					Version:         0.2,
-					TLSCache:        "/cache/dir",
-					SessionDuration: 3 * time.Minute,
+					Version:                  0.2,
+					TLSCache:                 "/cache/dir",
+					SessionDuration:          3 * time.Minute,
+					SessionExtensionDeadline: 1 * time.Minute,
 
 					DBEncryptionKey:         "/this-is-the-path",
 					DBEncryptionKeyProvider: "the-provider",
@@ -271,6 +273,7 @@ users:
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
 					"--session-duration", "3m",
+					"--session-extension-deadline", "1m",
 					"--enable-signup=false",
 				})
 			},
@@ -282,6 +285,7 @@ users:
 				expected.DBPort = 12345
 				expected.EnableTelemetry = false
 				expected.SessionDuration = 3 * time.Minute
+				expected.SessionExtensionDeadline = 1 * time.Minute
 				expected.EnableSignup = false
 				return expected
 			},

@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -117,24 +118,88 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID) (
 	return data.ListIdentities(db, selectors...)
 }
 
-// UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
-func UpdateUserInfoFromProvider(c *gin.Context, info *authn.InfoClaims, user *models.Identity, provider *models.Provider) error {
-	// no auth, this is not publically exposed
+func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error) {
+	// added by the authentication middleware
+	identity := AuthenticatedIdentity(c)
+	if identity == nil {
+		return nil, "", errors.New("user does not have session with an identity provider")
+	}
+
+	// does not need authorization check, this action is limited to the calling user
 	db := getDB(c)
 
-	// add user to groups they are currently in
-	var groups []string
+	accessKey := currentAccessKey(c)
 
-	for i := range info.Groups {
-		name := info.Groups[i]
-		groups = append(groups, name)
+	providerUser, err := data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
+	if err != nil {
+		return nil, "", err
 	}
 
-	logging.S.Debugf("%s user authenticated with %q groups", provider.Name, groups)
-
-	if err := data.AssignIdentityToGroups(db, user, provider, groups); err != nil {
-		return fmt.Errorf("assign identity to groups: %w", err)
+	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	if err != nil {
+		return nil, "", fmt.Errorf("user info provider: %w", err)
 	}
 
-	return nil
+	return provider, providerUser.RedirectURL, nil
+}
+
+// UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
+func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
+	// added by the authentication middleware
+	identity := AuthenticatedIdentity(c)
+	if identity == nil {
+		return errors.New("user does not have session with an identity provider")
+	}
+
+	// does not need authorization check, this action is limited to the calling user
+	db := getDB(c)
+
+	accessKey := currentAccessKey(c)
+
+	providerUser, err := data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
+	if err != nil {
+		return err
+	}
+
+	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	if err != nil {
+		return fmt.Errorf("user info provider: %w", err)
+	}
+
+	if provider.Name == models.InternalInfraProviderName {
+		return nil
+	}
+
+	// check if the access token needs to be refreshed
+	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(providerUser)
+	if err != nil {
+		return fmt.Errorf("refresh provider access: %w", err)
+	}
+
+	if newAccessToken != string(providerUser.AccessToken) {
+		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
+
+		providerUser.AccessToken = models.EncryptedAtRest(newAccessToken)
+		providerUser.ExpiresAt = *newExpiry
+
+		if err := UpdateProviderUser(c, providerUser); err != nil {
+			return fmt.Errorf("update access token before JWT: %w", err)
+		}
+	}
+
+	// get current identity provider groups
+	info, err := oidc.GetUserInfo(providerUser)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		}
+
+		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
+			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
+		}
+
+		return fmt.Errorf("get user info: %w", err)
+	}
+
+	return authn.UpdateUserInfoFromProvider(db, info, identity, provider)
 }
