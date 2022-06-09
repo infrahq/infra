@@ -556,7 +556,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, internal.ErrUnauthorized
 	}
 
-	setAuthCookie(c, key.Secret, expires)
+	setAuthCookie(c, bearer, expires)
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
