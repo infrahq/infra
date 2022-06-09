@@ -2,9 +2,9 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import InputDropdown from './input'
-import DeleteModal from './modals/delete'
-import ErrorMessage from './error-message'
+import InputDropdown from '../input'
+import DeleteModal from '../modals/delete'
+import ErrorMessage from '../error-message'
 
 function Grant ({ id, userID, grants }) {
   if (!id || !userID) {
@@ -16,7 +16,7 @@ function Grant ({ id, userID, grants }) {
   const { mutate } = useSWRConfig()
   const [open, setOpen] = useState(false)
 
-  const isSelf = userID === auth?.id
+  const isSelf = userID === auth.id
 
   return (
     <div className='flex group'>
@@ -62,7 +62,7 @@ export default function () {
   const [error, setError] = useState('')
 
   const userGrants = grants?.filter(g => g.user)
-  const sortedGrants = userGrants && [...userGrants?.filter(g => g.user === auth?.id) || [], ...userGrants?.filter(g => g.user !== auth?.id).sort((a, b) => a.user.localeCompare(b.user))]
+  const sortedGrants = userGrants && [...userGrants?.filter(g => g.user === auth.id) || [], ...userGrants?.filter(g => g.user !== auth.id).sort((a, b) => a.user.localeCompare(b.user))]
 
   const grantAdminAccess = id => {
     fetch('/api/grants', {
@@ -104,8 +104,8 @@ export default function () {
 
   return (
     <div className='sm:w-80 lg:w-[500px]'>
-      <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-3'>Admins</div>
-      <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-6'}`}>
+      <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
+      <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
         <div className='sm:flex-1'>
           <InputDropdown
             name='name'
