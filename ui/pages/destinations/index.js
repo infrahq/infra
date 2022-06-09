@@ -5,7 +5,6 @@ import { useTable } from 'react-table'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
-
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
@@ -15,17 +14,14 @@ import DeleteModal from '../../components/modals/delete'
 import Grant from '../../components/grant'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
+import NamespaceGrant from '../../components/namespace-grant'
 
 function SidebarNamespaceContent ({ namespace }) {
-  console.log(namespace)
-  const { data: auth } = useSWR('/api/users/self')
-  
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>  
-        <div>{namespace.name}</div>
-        <div>{namespace.destination}</div>
+        <NamespaceGrant destinationId={namespace.destinationId} namespaceName={namespace.name} />
       </section>
     </div>
   )
@@ -34,8 +30,7 @@ function SidebarNamespaceContent ({ namespace }) {
 function SidebarContent ({ destination, admin, setSelectedDestination }) {
   const { data: auth } = useSWR('/api/users/self')
   const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
-//   const { data: { items: test } = {} } = useSWR(() => `/api/destinations&name=${destination.resources[0]}`)
-// console.log(test)
+
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
