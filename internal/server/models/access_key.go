@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -26,4 +27,22 @@ type AccessKey struct {
 	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
+}
+
+func (ak *AccessKey) ToAPI() *api.AccessKey {
+	issuedForName := ""
+	if ak.IssuedForIdentity != nil {
+		issuedForName = ak.IssuedForIdentity.Name
+	}
+
+	return &api.AccessKey{
+		ID:                ak.ID,
+		Name:              ak.Name,
+		Created:           api.Time(ak.CreatedAt),
+		IssuedFor:         ak.IssuedFor,
+		IssuedForName:     issuedForName,
+		ProviderID:        ak.ProviderID,
+		Expires:           api.Time(ak.ExpiresAt),
+		ExtensionDeadline: api.Time(ak.ExtensionDeadline),
+	}
 }

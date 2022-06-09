@@ -337,16 +337,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 	}
 
 	result := api.NewListResponse(accessKeys, func(accessKey models.AccessKey) api.AccessKey {
-		return api.AccessKey{
-			ID:                accessKey.ID,
-			Name:              accessKey.Name,
-			Created:           api.Time(accessKey.CreatedAt),
-			IssuedFor:         accessKey.IssuedFor,
-			IssuedForName:     accessKey.IssuedForIdentity.Name,
-			ProviderID:        accessKey.ProviderID,
-			Expires:           api.Time(accessKey.ExpiresAt),
-			ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
-		}
+		return *accessKey.ToAPI()
 	})
 
 	return result, nil

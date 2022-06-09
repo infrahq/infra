@@ -1056,6 +1056,53 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 	})
 }
 
+func TestAPI_ListAccessKey(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	run := func() api.ListResponse[api.AccessKey] {
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(srv)))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+		var respBody api.ListResponse[api.AccessKey]
+		err := json.Unmarshal(resp.Body.Bytes(), &respBody)
+		assert.NilError(t, err)
+		return respBody
+	}
+
+	t.Run("OK", func(t *testing.T) {
+		accessKeys := run()
+		// non-zero since there's an access key for the admin user
+		assert.Assert(t, accessKeys.Count != 0)
+		assert.Assert(t, accessKeys.Items != nil)
+	})
+
+	t.Run("MissingIssuedFor", func(t *testing.T) {
+		err := srv.db.Create(&models.AccessKey{Name: "testing"}).Error
+		assert.NilError(t, err)
+
+		accessKeys := run()
+		assert.Assert(t, accessKeys.Count != 0)
+		assert.Assert(t, accessKeys.Items != nil)
+
+		var accessKey *api.AccessKey
+		for i := range accessKeys.Items {
+			if accessKeys.Items[i].Name == "testing" {
+				accessKey = &accessKeys.Items[i]
+			}
+		}
+
+		assert.Assert(t, accessKey.Name == "testing")
+		assert.Assert(t, accessKey.IssuedFor == 0)
+		assert.Assert(t, accessKey.IssuedForName == "")
+	})
+}
+
 func TestAPI_DeleteGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
