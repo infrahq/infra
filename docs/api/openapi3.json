@@ -2901,9 +2901,11 @@
               "schema": {
                 "properties": {
                   "email": {
+                    "format": "email",
                     "type": "string"
                   },
                   "name": {
+                    "format": "email",
                     "type": "string"
                   },
                   "password": {
@@ -3171,6 +3173,7 @@
               "schema": {
                 "properties": {
                   "name": {
+                    "format": "email",
                     "type": "string"
                   },
                   "setOneTimePassword": {
