@@ -65,7 +65,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
-            <div className='text-2xs'>{destination.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
+            <div className='text-2xs'>{destination?.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
           </div>
         </div>
       </section>
@@ -133,13 +133,11 @@ export default function Destinations () {
   const loading = adminLoading || (!destinations && !error)
 
   const selectDestination = (row) => {
-    console.log(row);
     setSelectedDestination(row)
     setSelectedNamespace(null)
   }
 
   const selectNamespace = (row) => {
-    console.log(row)
     setSelectedNamespace(row)
     setSelectedDestination(null)
   }
@@ -149,14 +147,14 @@ export default function Destinations () {
     setSelectedNamespace(null)
   }
 
-
   function renderRowSubComponent (row) {
-    const { name: destination, id: destinationId, resources } = row.original
+    const { name: destination, id: destinationId, resources, roles } = row.original
     const rowSubData = resources.map((resource => {
       return {
         destination,
         destinationId, 
         name: resource,
+        roles: roles.filter(role => role !== 'cluster-admin')
       }
     }))
     
