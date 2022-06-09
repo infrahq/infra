@@ -269,14 +269,13 @@ func TestListKeys(t *testing.T) {
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
 		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusBadRequest)
+		assert.Equal(t, resp.Code, http.StatusOK)
 
-		errMsg := api.Error{}
-		err = json.Unmarshal(resp.Body.Bytes(), &errMsg)
+		resp1 := []api.AccessKey{}
+		err = json.Unmarshal(resp.Body.Bytes(), &resp1)
 		assert.NilError(t, err)
 
-		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header required"))
-		assert.Equal(t, errMsg.Code, int32(400))
+		assert.Assert(t, len(resp1) > 0)
 	})
 
 	t.Run("old version upgrades", func(t *testing.T) {
