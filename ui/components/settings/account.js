@@ -17,7 +17,7 @@ export default function () {
         <div className='flex group'>
           <div className='flex flex-1 items-center'>
             <div className='text-gray-400 text-2xs w-[30%]'>Password</div>
-            <div className='text-2xs'>*****</div>
+            <div className='text-2xs'>********</div>
           </div>
           <div className='flex justify-end'>
             <Link href='/settings/password-reset'>

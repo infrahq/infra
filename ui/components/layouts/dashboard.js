@@ -37,12 +37,13 @@ function Dashboard ({ children }) {
   ]
 
   // redirect non-admin routes if user isn't admin
-  for (const n of [...navigation, ...subNavigation]) {
-    if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
-      router.replace('/')
-      return null
-    }
-    if (router.pathname.startsWith(n.href) && !router.pathname.startsWith('/settings') && n.admin && !admin) {
+  if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
+    router.replace('/')
+    return null
+  }
+
+  for (const n of [...navigation]) {
+    if (router.pathname.startsWith(n.href) && n.admin && !admin) {
       router.replace('/')
       return null
     }
