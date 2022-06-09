@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.13.2](https://github.com/infrahq/infra/compare/v0.13.1...v0.13.2) (2022-06-09)
+
+
+### Features
+
+* add list users in group api + groups list cli ([#2193](https://github.com/infrahq/infra/issues/2193)) ([9fcfa94](https://github.com/infrahq/infra/commit/9fcfa9422b006dd2cb84b66205f072489d0515ba))
+* add more default cluster roles ([7771c50](https://github.com/infrahq/infra/commit/7771c50f20a5146684224e3b1e44288c56f84262))
+* detect unique constraint violation ([be062c9](https://github.com/infrahq/infra/commit/be062c9b941b7fccfd1d9b348909cab89e8aa6b2))
+* get user api should return names of providers user belongs to ([#2219](https://github.com/infrahq/infra/issues/2219)) ([17adab4](https://github.com/infrahq/infra/commit/17adab46f48b0de73464fbb233f6da19f742a2ab))
+
+
+### Bug Fixes
+
+* allow infra prefix for `infra use` ([#2206](https://github.com/infrahq/infra/issues/2206)) ([a20b998](https://github.com/infrahq/infra/commit/a20b9981fab07261b4d71e9b06c89921d70d490b))
+* auth and signup redirects ([#2183](https://github.com/infrahq/infra/issues/2183)) ([e4ed20c](https://github.com/infrahq/infra/commit/e4ed20c056f8ead94a1cf1bdf3637defdf796bf6))
+* create kubeconfig dir ([c0cb835](https://github.com/infrahq/infra/commit/c0cb83529e86da2d633114cf5244ee6134ee29e2))
+* deadlock before ingress ready ([#2202](https://github.com/infrahq/infra/issues/2202)) ([b273104](https://github.com/infrahq/infra/commit/b27310414840a5a3cc663bc70fa40a5bff36ab4a))
+* destination CA field encoding ([#2217](https://github.com/infrahq/infra/issues/2217)) ([bbc97d5](https://github.com/infrahq/infra/commit/bbc97d5d58da232cb014f70be8de63651b431ad4))
+* do not warn about the connector identity ([#2245](https://github.com/infrahq/infra/issues/2245)) ([b80ef64](https://github.com/infrahq/infra/commit/b80ef64c5d0ce2c1aee471a4b20e095a5bb6cace))
+* fix auth ui redirects for new otp users ([#2091](https://github.com/infrahq/infra/issues/2091)) ([e8744ad](https://github.com/infrahq/infra/commit/e8744ad82840780e8c1720a456c11fcf88f64df8))
+* fix replica count variable name ([#2190](https://github.com/infrahq/infra/issues/2190)) ([d2c06e6](https://github.com/infrahq/infra/commit/d2c06e60469aeb7128f7419a1d5a4023e5277103))
+* handle undefined when first load the grants ([#2187](https://github.com/infrahq/infra/issues/2187)) ([c86e1fe](https://github.com/infrahq/infra/commit/c86e1fe6a219a06ff4c7e01a33bd71bccbfc14f3))
+* infra default role is no role ([#2148](https://github.com/infrahq/infra/issues/2148)) ([e40a202](https://github.com/infrahq/infra/commit/e40a20298815988da316128c9b89573ec8faffe4))
+* loading dbUsername ([b81a4ab](https://github.com/infrahq/infra/commit/b81a4abd1b79a9b4ee80b9b4b30c0ed5e00f5d62))
+* make testuserscmd more resilient ([#2215](https://github.com/infrahq/infra/issues/2215)) ([2cf85f8](https://github.com/infrahq/infra/commit/2cf85f82b0e5a294c032ae299ad2c3793cab3ff6))
+* modify set-password help text ([#2212](https://github.com/infrahq/infra/issues/2212)) ([ac0b7ec](https://github.com/infrahq/infra/commit/ac0b7ec992c982bbca42aff3f4ea82acff3868d0))
+* profile-icon component refactor ([#2150](https://github.com/infrahq/infra/issues/2150)) ([b84dcd7](https://github.com/infrahq/infra/commit/b84dcd7fe00f2b5ff7a227358884085da6fbeda1))
+* release build should not contain dev ([f26db74](https://github.com/infrahq/infra/commit/f26db74ea62fb61f5742a00fa8ed26ca22f8eb91))
+* remove identity from CLI help ([#2172](https://github.com/infrahq/infra/issues/2172)) ([3350a80](https://github.com/infrahq/infra/commit/3350a807757714564e0c4b2c610d0e99f154bbc7))
+* require user to have an email ([#2181](https://github.com/infrahq/infra/issues/2181)) ([3231437](https://github.com/infrahq/infra/commit/3231437ff576a994eec93353f811c988976fd281))
+* ui bugs ([#2120](https://github.com/infrahq/infra/issues/2120)) ([128bd01](https://github.com/infrahq/infra/commit/128bd017afd54b104ff8c85646f2e43901a4ba84))
+* ui bugs ([#2142](https://github.com/infrahq/infra/issues/2142)) ([66ef1b9](https://github.com/infrahq/infra/commit/66ef1b964ddbf92f1f861ffeabb151fd4b95c9ae))
+* ui crash on null created date ([#2216](https://github.com/infrahq/infra/issues/2216)) ([c8c8db5](https://github.com/infrahq/infra/commit/c8c8db538b44f8a5b2dc333f9628a4655b125ba1))
+* ui props being passed when using authrequired ([#2169](https://github.com/infrahq/infra/issues/2169)) ([65a36eb](https://github.com/infrahq/infra/commit/65a36ebf527f1a28217d7016551cad7fbc338cb3))
+* ui scrolling ([#2184](https://github.com/infrahq/infra/issues/2184)) ([ac4af12](https://github.com/infrahq/infra/commit/ac4af128dc474b32bdd7fd83ffc9403c477a39c1))
+
 ### [0.13.1](https://github.com/infrahq/infra/compare/v0.13.0...v0.13.1) (2022-05-27)
 
 
