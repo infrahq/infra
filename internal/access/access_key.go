@@ -19,13 +19,18 @@ func currentAccessKey(c *gin.Context) *models.AccessKey {
 	return accessKey
 }
 
-func ListAccessKeys(c *gin.Context, identityID uid.ID, name string) ([]models.AccessKey, error) {
+func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool) ([]models.AccessKey, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name))
+	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name)}
+	if !showExpired {
+		s = append(s, data.ByNotExpired())
+	}
+
+	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), s...)
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {

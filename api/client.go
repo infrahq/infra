@@ -332,8 +332,9 @@ func (c Client) DeleteDestination(id uid.ID) error {
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
 	return list[ListResponse[AccessKey]](c, "/api/access-keys", map[string][]string{
-		"user_id": {req.UserID.String()},
-		"name":    {req.Name},
+		"user_id":      {req.UserID.String()},
+		"name":         {req.Name},
+		"show_expired": {fmt.Sprint(req.ShowExpired)},
 	})
 }
 
