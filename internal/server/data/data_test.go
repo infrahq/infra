@@ -170,11 +170,11 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, err)
 		}
 
-		pg := models.Pagination{Page: 1, Limit: 10, Sort: "name asc"}
+		pg := models.Pagination{Page: 1, Limit: 10}
 
 		actual, err := ListIdentities(db, ByPagination(pg))
 		assert.NilError(t, err)
-
+		assert.Equal(t, len(actual), 10)
 		for i := 0; i < pg.Limit; i++ {
 			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
 		}
@@ -182,6 +182,7 @@ func TestPaginationSelector(t *testing.T) {
 		pg.Page = 2
 		actual, err = ListIdentities(db, ByPagination(pg))
 		assert.NilError(t, err)
+		assert.Equal(t, len(actual), 10)
 		for i := 0; i < pg.Limit; i++ {
 			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
 		}
@@ -189,7 +190,7 @@ func TestPaginationSelector(t *testing.T) {
 		pg.Page = 3
 		actual, err = ListIdentities(db, ByPagination(pg))
 		assert.NilError(t, err)
-		assert.Assert(t, len(actual) == 6)
+		assert.Equal(t, len(actual), 6)
 
 		for i := 0; i < 6; i++ {
 			assert.Equal(t, letters[i+(pg.Page-1)*pg.Limit], actual[i].Name)
@@ -200,12 +201,6 @@ func TestPaginationSelector(t *testing.T) {
 		assert.NilError(t, err)
 		for i, user := range actual {
 			assert.Equal(t, user.Name, letters[i])
-		}
-
-		pg.Sort = "name des"
-		actual, _ = ListIdentities(db, ByPagination(pg))
-		for i, user := range actual {
-			assert.Equal(t, user.Name, letters[25-i])
 		}
 
 	})
