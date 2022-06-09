@@ -2,8 +2,6 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useState } from 'react'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import { validateEmail } from '../lib/email'
-
 import InputDropdown from '../components/input'
 import ErrorMessage from '../components/error-message'
 
@@ -25,7 +23,7 @@ export default function ({ id }) {
   const { mutate } = useSWRConfig()
   const list = items?.filter(item => !!item.user)
 
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [grantError, setGrantError] = useState('')
   const [role, setRole] = useState('view')
@@ -45,7 +43,7 @@ export default function ({ id }) {
         await fetch(`/api/grants/${deleteGrantId}`, { method: 'DELETE' })
       }
 
-      setEmail('')
+      setName('')
       setRole('view')
 
       return { items: [...grants.filter(grant => grant?.user !== user), data] }
@@ -53,37 +51,33 @@ export default function ({ id }) {
   }
 
   const handleInputChange = value => {
-    setEmail(value)
+    setName(value)
     setError('')
   }
 
   const handleKeyDownEvent = key => {
-    if (key === 'Enter' && email.length > 0) {
+    if (key === 'Enter' && name.length > 0) {
       handleShareGrant()
     }
   }
 
   const handleShareGrant = async () => {
-    if (validateEmail(email)) {
-      setError('')
-      try {
-        const res = await fetch(`/api/users?name=${email}`)
-        const data = await res.json()
+    setError('')
+    try {
+      const res = await fetch(`/api/users?name=${name}`)
+      const data = await res.json()
 
-        if (!res.ok) {
-          throw data
-        }
-
-        if (data?.items?.length === 0) {
-          setError('User does not exist')
-        } else {
-          grantPrivilege(data?.items?.[0]?.id)
-        }
-      } catch (e) {
-        setGrantError(e.message || 'something went wrong, please try again later.')
+      if (!res.ok) {
+        throw data
       }
-    } else {
-      setError('Invalid email')
+
+      if (data?.items?.length === 0) {
+        setError('User does not exist')
+      } else {
+        grantPrivilege(data?.items?.[0]?.id)
+      }
+    } catch (e) {
+      setGrantError(e.message || 'something went wrong, please try again later.')
     }
   }
 
@@ -103,9 +97,9 @@ export default function ({ id }) {
       <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-4'}`}>
         <div className='flex-1'>
           <InputDropdown
-            type='email'
-            value={email}
-            placeholder='Email'
+            name='name'
+            value={name}
+            placeholder='Username or Email'
             error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}
@@ -117,7 +111,7 @@ export default function ({ id }) {
         </div>
         <button
           onClick={() => handleShareGrant()}
-          disabled={email.length === 0}
+          disabled={name.length === 0}
           type='button'
           className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md text-2xs px-3 py-3'
         >
