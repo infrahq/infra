@@ -90,6 +90,7 @@ export default function ProvidersAddDetails () {
             required
             autoFocus
             placeholder='choose a name for your identity provider'
+            value={name}
             onChange={e => setName(e.target.value)}
             className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-500/60' : ''}`}
           />

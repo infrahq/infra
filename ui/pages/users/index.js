@@ -133,7 +133,8 @@ export default function Users () {
                     getRowProps={row => ({
                       onClick: () => setSelectedUser(row.original),
                       style: {
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        background: row.original.id === selectedUser?.id ? '#151A1E' : ''
                       }
                     })}
                   />

@@ -131,7 +131,8 @@ export default function Destinations () {
                     getRowProps={row => ({
                       onClick: () => setSelectedDestination(row.original),
                       style: {
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        background: row.original.id === selectedDestination?.id ? '#151A1E' : ''
                       }
                     })}
                   />
