@@ -1,38 +1,13 @@
 import { useState } from 'react'
 import useSWR, { mutate } from 'swr'
-import { PlusIcon } from '@heroicons/react/outline'
-
-import InputDropdown from '../components/input'
-import ErrorMessage from '../components/error-message'
 
 export default function ({ id }) {
   const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
-  const { data: { items: destinations } = {} } = useSWR('/api/destinations')
 
   const [infrastructure, setInfrastructure] = useState('')
-  const [error, setError] = useState('')
   const [role, setRole] = useState('view')
 
   const options = ['view', 'edit', 'admin', 'remove']
-
-  function handleInputChang (value) {
-    setInfrastructure(value)
-    setError('')
-  }
-
-  function handleKeyDownEvent (key) {
-    if (key === 'Enter' && infrastructure.length > 0) {
-      handleShareGrant()
-    }
-  }
-
-  async function handleShareGrant () {
-    if (destinations?.find(d => d.name === infrastructure)) {
-      grant(id)
-    } else {
-      setError('Infrastructure does not exist')
-    }
-  }
 
   function grant (user, privilege = role, resource = infrastructure, exist = false, deleteGrantId) {
     mutate(`/api/grants?user=${id}`, async ({ items: grantsList } = { items: [] }) => {
@@ -55,6 +30,7 @@ export default function ({ id }) {
   }
 
   function handleUpdateGrant (privilege, resource, grantId, user) {
+    setRole(privilege)
     if (privilege !== 'remove') {
       return grant(user, privilege, resource, true, grantId)
     }
@@ -67,33 +43,6 @@ export default function ({ id }) {
 
   return (
     <>
-      <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-4'}`}>
-        <div className='flex-1'>
-          <InputDropdown
-            value={infrastructure}
-            placeholder='Infrastructure, cluster'
-            error={error}
-            optionType='role'
-            options={options.filter((item) => item !== 'remove')}
-            handleInputChange={e => handleInputChang(e.target.value)}
-            handleSelectOption={e => setRole(e.target.value)}
-            handleKeyDown={(e) => handleKeyDownEvent(e.key)}
-            selectedItem={role}
-          />
-        </div>
-        <button
-          onClick={() => handleShareGrant()}
-          disabled={infrastructure.length === 0}
-          type='button'
-          className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default mt-4 mr-auto sm:ml-4 sm:mt-0 rounded-md text-2xs px-3 py-3'
-        >
-          <PlusIcon className='w-3 h-3 mr-1.5' />
-          <div className='text-violet-100'>
-            Share
-          </div>
-        </button>
-      </div>
-      {error && <ErrorMessage message={error} />}
       {grants?.length > 0 &&
         <div className='py-2'>
           {grants?.filter(grant => grant.resource !== 'infra').sort((a, b) => b.id.localeCompare(a.id)).map(item => (
@@ -116,7 +65,7 @@ export default function ({ id }) {
           ))}
         </div>}
       {grants?.filter(grant => grant.resource !== 'infra').length === 0 &&
-        <div className='text-2xs text-gray-400 italic w-2/3'>
+        <div className='text-2xs text-gray-400 italic w-2/3 py-2'>
           No access
         </div>}
     </>

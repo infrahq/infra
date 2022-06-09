@@ -20,7 +20,7 @@ function SidebarNamespaceContent ({ namespace }) {
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       <section>
-        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>  
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
         <NamespaceGrant destinationId={namespace.destinationId} namespaceName={namespace.name} />
       </section>
     </div>
@@ -149,33 +149,35 @@ export default function Destinations () {
 
   function renderRowSubComponent (row) {
     const { name: destination, id: destinationId, resources, roles } = row.original
-    const rowSubData = resources.map((resource => {
+    const rowSubData = resources.map(resource => {
       return {
         destination,
-        destinationId, 
+        destinationId,
         name: resource,
         roles: roles.filter(role => role !== 'cluster-admin')
       }
-    }))
-    
+    })
+
     const subColumns = [{
       Header: 'Namespaces',
       accessor: 'name',
       Cell: ({ value }) => {
-        return <div className='flex py-3 items-center'>
-          {value}
-        </div>
+        return (
+          <div className='flex py-3 items-center'>
+            {value}
+          </div>
+        )
       }
     }, {
       Header: 'Kind',
       Cell: () => <span className='text-gray-400'>namespace</span>
     }]
-  
+
     return (
       <div className='ml-16 mt-6 mb-6'>
-        <Table 
+        <Table
           subTable
-          columns={subColumns} 
+          columns={subColumns}
           data={rowSubData}
           getRowProps={row => ({
             onClick: () => selectNamespace(row.original),

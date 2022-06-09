@@ -20,9 +20,9 @@ function User ({ id }) {
 export default function ({ destinationId, namespaceName }) {
   const { data: destination } = useSWR(`/api/destinations/${destinationId}`)
   const { data: { items } = {} } = useSWR(() => `/api/grants?resource=${destination.name}`)
-  const { data: { items: namespaceGrants } = {}} = useSWR(() => `/api/grants?resource=${destination.name}.${namespaceName}`)
+  const { data: { items: namespaceGrants } = {} } = useSWR(() => `/api/grants?resource=${destination.name}.${namespaceName}`)
   const { mutate } = useSWRConfig()
-  
+
   const InherittedAccessList = items?.filter(item => !!item.user)
 
   const [name, setName] = useState('')
@@ -91,7 +91,7 @@ export default function ({ destinationId, namespaceName }) {
     mutate(`/api/grants?resource=${destination.name}.${namespaceName}`, async ({ items: grants } = { items: [] }) => {
       await fetch(`/api/grants/${grantId}`, { method: 'DELETE' })
       return { items: grants?.filter(item => item?.id !== grantId) }
-    }, { optimisticData: { items: list?.filter(item => item?.id !== grantId) } })
+    }, { optimisticData: { items: InherittedAccessList?.filter(item => item?.id !== grantId) } })
   }
 
   return (
@@ -126,38 +126,38 @@ export default function ({ destinationId, namespaceName }) {
       <div className='py-2 overflow-y-auto max-h-screen'>
 
         {namespaceGrants?.length > 0 &&
-        <>
-          {namespaceGrants?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
-            <div className='flex justify-between items-center' key={item.id}>
-              <User id={item.user} />
-              <div>
-                <select
-                  id='role'
-                  name='role'
-                  className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-2xs text-gray-400 bg-transparent'
-                  defaultValue={item.privilege}
-                  onChange={e => handleUpdateGrant(e.target.value, item.id, item.user)}
-                >
-                  {options.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
+          <>
+            {namespaceGrants?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
+              <div className='flex justify-between items-center' key={item.id}>
+                <User id={item.user} />
+                <div>
+                  <select
+                    id='role'
+                    name='role'
+                    className='w-full pl-3 pr-1 py-2 border-gray-300 focus:outline-none text-2xs text-gray-400 bg-transparent'
+                    defaultValue={item.privilege}
+                    onChange={e => handleUpdateGrant(e.target.value, item.id, item.user)}
+                  >
+                    {options.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-          ))}
-        </>}
-        {InherittedAccessList?.length > 0 && 
+            ))}
+          </>}
+        {InherittedAccessList?.length > 0 &&
           <>
             {InherittedAccessList?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
               <div className='grid grid-cols-7' key={item.id}>
-              <div className='col-span-4 py-2'><User id={item.user} /></div>
-              <div className='col-span-2 my-2 text-2xs text-gray-400 border rounded-sm px-2 mx-auto bg-gray-800 border-gray-800'>
-                cluster access
+                <div className='col-span-4 py-2'><User id={item.user} /></div>
+                <div className='col-span-2 my-2 text-2xs text-gray-400 border rounded-sm px-2 mx-auto bg-gray-800 border-gray-800'>
+                  cluster access
+                </div>
+                <div className='py-2 text-2xs text-gray-400'>
+                  {item.privilege}
+                </div>
               </div>
-              <div className='py-2 text-2xs text-gray-400'>
-                {item.privilege}
-              </div>
-            </div>
             ))}
           </>}
       </div>
