@@ -32,6 +32,7 @@ func TestAPI_ListGroups(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/v1/identities", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.0")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

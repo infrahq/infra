@@ -424,6 +424,20 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 func buildRequest(r reflect.Type, op *openapi3.Operation) {
 	op.Parameters = openapi3.NewParameters()
 
+	op.AddParameter(&openapi3.Parameter{
+		Name:     "Infra-Version",
+		In:       "header",
+		Required: true,
+		Schema: &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Example:     internal.FullVersion(),
+				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
+				Type:        "string",
+				Description: "Version of the API being requested",
+			},
+		},
+	})
+
 	schema := &openapi3.Schema{
 		Type:       "object",
 		Properties: openapi3.Schemas{},
