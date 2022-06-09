@@ -301,7 +301,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 ## `infra users add`
 
-Create a user.
+Create a user
 
 ### Synopsis
 
