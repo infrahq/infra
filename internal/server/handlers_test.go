@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -1186,4 +1187,61 @@ func TestAPI_CreateDestination(t *testing.T) {
 var cmpAPIDestinationJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+func TestAPI_LoginResponse(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	// setup user to login as
+	user := &models.Identity{Name: "steve"}
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	p := data.InfraProvider(srv.db)
+
+	_, err = data.CreateProviderUser(srv.db, p, user)
+	assert.NilError(t, err)
+
+	hash, err := bcrypt.GenerateFromPassword([]byte("hunter2"), bcrypt.MinCost)
+	assert.NilError(t, err)
+
+	userCredential := &models.Credential{
+		IdentityID:   user.ID,
+		PasswordHash: hash,
+	}
+
+	err = data.CreateCredential(srv.db, userCredential)
+	assert.NilError(t, err)
+
+	// do the login request
+	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Name: "steve", Password: "hunter2"}}
+	body := jsonBody(t, loginReq)
+	req := httptest.NewRequest(http.MethodPost, "/api/login", body)
+	req.Header.Add("Infra-Version", "0.13.3")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	t.Log(resp.Body.String())
+	assert.Equal(t, 201, resp.Code)
+
+	loginResp := &api.LoginResponse{}
+
+	err = json.Unmarshal(resp.Body.Bytes(), loginResp)
+	assert.NilError(t, err)
+
+	assert.Assert(t, loginResp.AccessKey != "")
+	assert.Equal(t, len(resp.Result().Cookies()), 2)
+
+	cookies := make(map[string]string)
+	for _, c := range resp.Result().Cookies() {
+		cookies[c.Name] = c.Value
+	}
+
+	assert.Equal(t, cookies["login"], "1")
+	assert.Equal(t, cookies["auth"], loginResp.AccessKey) // make sure the cookie matches the response
+	assert.Equal(t, loginResp.UserID, user.ID)
+	assert.Equal(t, loginResp.Name, "steve")
+	assert.Equal(t, loginResp.PasswordUpdateRequired, false)
 }
