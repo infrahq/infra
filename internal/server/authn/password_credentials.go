@@ -35,16 +35,16 @@ func (a *passwordCredentialAuthn) Authenticate(db *gorm.DB) (*models.Identity, *
 		return nil, nil, fmt.Errorf("validate creds get user: %w", err)
 	}
 
-	// check if this is a single use password that was already used
-	if userCredential.OneTimePassword && userCredential.OneTimePasswordUsed {
-		return nil, nil, fmt.Errorf("one time password cannot be used more than once")
-	}
-
 	// compare the stored hash of the user's password and the hash of the presented password
 	err = bcrypt.CompareHashAndPassword(userCredential.PasswordHash, []byte(a.Password))
 	if err != nil {
 		// this probably means the password was wrong
 		return nil, nil, fmt.Errorf("could not verify password: %w", err)
+	}
+
+	// check if this is a single use password that was already used
+	if userCredential.OneTimePassword && userCredential.OneTimePasswordUsed {
+		return nil, nil, fmt.Errorf("one time password cannot be used more than once")
 	}
 
 	if userCredential.OneTimePassword {
