@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	InternalInfraAdminIdentityName     = "admin"
 	InternalInfraConnectorIdentityName = "connector"
 )
 
