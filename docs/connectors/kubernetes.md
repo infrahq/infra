@@ -41,12 +41,17 @@ infra grants add -g engineering example --role view
 
 ### Roles
 
+Roles supported by a connector are defined only in the context of the connected cluster. Infra supports the following roles by default.
+
 | Role | Access level |
 | --- | --- |
 | cluster-admin | Grants access to any resource |
 | admin | Grants access to most resources, including roles and role bindings, but does not grant access to cluster-level resources such as cluster roles or cluster role bindings |
 | edit | Grants access to most resources in the namespace but does not grant access to roles or role bindings
 | view | Grants access to read most resources in the namespace but does not grant write access nor does it grant read access to secrets |
+| logs | Grants access to pod logs |
+| exec | Grants access to `kubectl exec` |
+| port-forward | Grants access to `kubectl port-forward` |
 
 ### Example: Grant user `dev@example.com` the `view` role to a cluster
 
@@ -70,6 +75,16 @@ This command will remove the `admin` role, granted in the previous example, from
 
 ```bash
 infra grants remove ops@example.com cluster.namespace --role cluster-admin
+```
+
+### Custom Kubernetes Roles
+
+If the provided roles are not sufficient, additional roles can be configured to integrate with Infra. To add a new role, create a ClusterRole in a connected cluster with label `app.infrahq.com/include-role=true`.
+
+```bash
+infra use kubernetes-cluster
+kubectl create clusterrole example --verb=get --resource=pods
+kubectl label clusterrole/example app.infrahq.com/include-role=true
 ```
 
 ## Additional Information
