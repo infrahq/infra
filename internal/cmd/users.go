@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -44,6 +45,13 @@ Note: A new user must change their one time password before further usage.`,
 		Example: `# Create a user
 $ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			email := args[0]
+
+			_, err := mail.ParseAddress(email)
+			if err != nil {
+				return fmt.Errorf("username must be a valid email")
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err

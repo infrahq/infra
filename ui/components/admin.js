@@ -2,6 +2,8 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { PlusIcon } from '@heroicons/react/outline'
 
+import { validateEmail } from '../lib/email'
+
 import InputDropdown from './input'
 import DeleteModal from './modals/delete'
 import ErrorMessage from './error-message'
@@ -58,7 +60,7 @@ export default function () {
   const { data: auth } = useSWR('/api/users/self')
   const { mutate } = useSWRConfig()
 
-  const [name, setName] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
   const [error, setError] = useState('')
 
   const userGrants = grants?.filter(g => g.user)
@@ -71,39 +73,43 @@ export default function () {
     })
       .then(() => {
         mutate('/api/grants?resource=infra&privilege=admin')
-        setName('')
+        setAdminEmail('')
       }).catch((e) => setError(e.message || 'something went wrong, please try again later.'))
   }
 
   const handleInputChange = (value) => {
-    setName(value)
+    setAdminEmail(value)
     setError('')
   }
 
   const handleKeyDownEvent = (key) => {
-    if (key === 'Enter' && name.length > 0) {
+    if (key === 'Enter' && adminEmail.length > 0) {
       handleAddAdmin()
     }
   }
 
   const handleAddAdmin = () => {
-    setError('')
+    if (validateEmail(adminEmail)) {
+      setError('')
 
-    fetch(`/api/users?name=${name}`)
-      .then((response) => response.json())
-      .then(({ items = [] }) => {
-        if (items.length === 0) {
-          fetch('/api/users', {
-            method: 'POST',
-            body: JSON.stringify({ name })
-          })
-            .then((response) => response.json())
-            .then((user) => grantAdminAccess(user.id))
-            .catch((error) => console.error(error))
-        } else {
-          grantAdminAccess(items[0].id)
-        }
-      })
+      fetch(`/api/users?name=${adminEmail}`)
+        .then((response) => response.json())
+        .then(({ items = [] }) => {
+          if (items.length === 0) {
+            fetch('/api/users', {
+              method: 'POST',
+              body: JSON.stringify({ name: adminEmail })
+            })
+              .then((response) => response.json())
+              .then((user) => grantAdminAccess(user.id))
+              .catch((error) => console.error(error))
+          } else {
+            grantAdminAccess(items[0].id)
+          }
+        })
+    } else {
+      setError('Invalid email')
+    }
   }
 
   return (
@@ -112,8 +118,9 @@ export default function () {
       <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
         <div className='sm:flex-1'>
           <InputDropdown
-            value={name}
-            placeholder='Username'
+            type='email'
+            value={adminEmail}
+            placeholder='Email address'
             hasDropdownSelection={false}
             handleInputChange={e => handleInputChange(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}
@@ -122,7 +129,7 @@ export default function () {
         </div>
         <button
           onClick={() => handleAddAdmin()}
-          disabled={name.length === 0}
+          disabled={adminEmail.length === 0}
           type='button'
           className='flex items-center cursor-pointer border border-violet-300 px-5 mt-4 text-2xs sm:ml-4 sm:mt-0 rounded-md disabled:pointer-events-none disabled:opacity-30'
         >

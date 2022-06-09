@@ -5,7 +5,7 @@ type SignupEnabledResponse struct {
 }
 
 type SignupRequest struct {
-	Name     string `json:"name" validate:"required_without=Email"`
-	Email    string `json:"email" validate:"required_without=Name"` // #1825: remove, this is for migration
+	Name     string `json:"name" validate:"omitempty,email,required_without=Email"`
+	Email    string `json:"email" validate:"omitempty,email,required_without=Name"` // #1825: remove, this is for migration
 	Password string `json:"password" validate:"required"`
 }

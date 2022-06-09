@@ -3,6 +3,7 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
 import { kind } from '../../lib/providers'
+import { validateEmail } from '../../lib/email'
 import LoginLayout from '../../components/layouts/login'
 
 function oidcLogin ({ id, url, clientID }) {
@@ -53,44 +54,48 @@ export default function Login () {
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
   async function onSubmit (e) {
     e.preventDefault()
 
-    try {
-      const res = await fetch('/api/login', {
-        method: 'post',
-        body: JSON.stringify({
-          passwordCredentials: {
-            name,
-            password
-          }
-        })
-      })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      const data = await res.json()
-
-      if (data.passwordUpdateRequired) {
-        router.replace({
-          pathname: '/login/finish',
-          query: { user: data.userID }
+    if (validateEmail(email)) {
+      try {
+        const res = await fetch('/api/login', {
+          method: 'post',
+          body: JSON.stringify({
+            passwordCredentials: {
+              name: email,
+              password
+            }
+          })
         })
 
-        return false
-      }
+        if (!res.ok) {
+          throw await res.json()
+        }
 
-      await mutate('/api/users/self')
-      router.replace('/')
-    } catch (e) {
-      console.error(e)
-      setError('Invalid credentials')
+        const data = await res.json()
+
+        if (data.passwordUpdateRequired) {
+          router.replace({
+            pathname: '/login/finish',
+            query: { user: data.userID }
+          })
+
+          return false
+        }
+
+        await mutate('/api/users/self')
+        router.replace('/')
+      } catch (e) {
+        console.error(e)
+        setError('Invalid credentials')
+      }
+    } else {
+      setError('Invalid email')
     }
 
     return false
@@ -103,14 +108,14 @@ export default function Login () {
       {providers?.length > 0 && <Providers providers={providers || []} />}
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
         <div className='w-full my-2'>
-          <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username</label>
+          <label htmlFor='email' className='text-3xs text-gray-500 uppercase'>Email</label>
           <input
             required
             autoFocus
-            name='name'
-            placeholder='enter your username or email'
+            name='email'
+            placeholder='enter your email'
             onChange={e => {
-              setName(e.target.value)
+              setEmail(e.target.value)
               setError('')
             }}
             className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
@@ -130,7 +135,7 @@ export default function Login () {
             className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
           />
         </div>
-        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-2xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+        <button disabled={!email || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-2xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
           Login
         </button>
         {error && <p className='absolute -bottom-3.5 w-full mx-auto text-2xs text-pink-400 text-center'>{error}</p>}

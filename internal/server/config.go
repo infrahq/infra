@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 	"time"
@@ -750,6 +751,11 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
+		}
+
+		_, err := mail.ParseAddress(name)
+		if err != nil {
+			logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
 		}
 
 		identity = &models.Identity{

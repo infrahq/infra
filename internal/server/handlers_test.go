@@ -23,7 +23,7 @@ import (
 
 func adminAccessKey(s *Server) string {
 	for _, id := range s.options.Users {
-		if id.Name == "admin" {
+		if id.Name == "admin@example.com" {
 			return id.AccessKey
 		}
 	}
@@ -57,8 +57,8 @@ func TestAPI_ListUsers(t *testing.T) {
 	}
 	id1 := createID(t, "me@example.com")
 	id2 := createID(t, "other@example.com")
-	id3 := createID(t, "HAL")
-	_ = createID(t, "other-HAL")
+	id3 := createID(t, "HAL@example.com")
+	_ = createID(t, "other-HAL@example.com")
 
 	type testCase struct {
 		urlPath  string
@@ -118,7 +118,7 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 3,
 					Items: []api.User{
-						{Name: "HAL"},
+						{Name: "HAL@example.com"},
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
@@ -137,11 +137,11 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 6,
 					Items: []api.User{
-						{Name: "HAL"},
-						{Name: "admin"},
+						{Name: "HAL@example.com"},
+						{Name: "admin@example.com"},
 						{Name: "connector"},
 						{Name: "me@example.com"},
-						{Name: "other-HAL"},
+						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
 				}
@@ -408,11 +408,11 @@ func TestAPI_DeleteProvider(t *testing.T) {
 // with an admin identity and access key
 func withAdminUser(_ *testing.T, opts *Options) {
 	opts.Users = append(opts.Users, User{
-		Name:      "admin",
+		Name:      "admin@example.com",
 		AccessKey: "BlgpvURSGF.NdcemBdzxLTGIcjPXwPoZNrb",
 	})
 	opts.Grants = append(opts.Grants, Grant{
-		User:     "admin",
+		User:     "admin@example.com",
 		Role:     "admin",
 		Resource: "infra",
 	})
@@ -477,7 +477,7 @@ func TestCreateIdentity(t *testing.T) {
 				var apiError api.Error
 				err := json.NewDecoder(resp.Body).Decode(&apiError)
 				assert.NilError(t, err)
-				assert.Equal(t, apiError.Message, "Name: is required")
+				assert.Equal(t, apiError.Message, "Name: failed the \"email\" check")
 			},
 		},
 		"create new unlinked user": {
@@ -749,7 +749,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	admin, err := data.ListIdentities(srv.db, data.ByName("admin"))
+	admin, err := data.ListIdentities(srv.db, data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
 	expected := jsonUnmarshal(t, fmt.Sprintf(`
@@ -870,7 +870,7 @@ func TestAPI_GetUser(t *testing.T) {
 		return respObj.ID
 	}
 	idMe := createID(t, "me@example.com")
-	idHal := createID(t, "HAL")
+	idHal := createID(t, "HAL@example.com")
 
 	token := &models.AccessKey{
 		IssuedFor:  idMe,
