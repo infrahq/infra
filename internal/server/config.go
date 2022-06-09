@@ -753,9 +753,11 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 			return nil, err
 		}
 
-		_, err := mail.ParseAddress(name)
-		if err != nil {
-			logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+		if name != models.InternalInfraConnectorIdentityName {
+			_, err := mail.ParseAddress(name)
+			if err != nil {
+				logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+			}
 		}
 
 		identity = &models.Identity{
