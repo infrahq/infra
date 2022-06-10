@@ -167,7 +167,7 @@ infra destinations list [flags]
 ### Options
 
 ```
-      --format string   Output format [text, json] (default "text")
+      --format string   Output format [default, json] (default "default")
 ```
 
 ### Options inherited from parent commands
@@ -372,7 +372,7 @@ infra users list [flags]
 ### Options
 
 ```
-      --format string   Output format [text, json] (default "text")
+      --format string   Output format [default, json] (default "default")
 ```
 
 ### Options inherited from parent commands
@@ -502,7 +502,7 @@ infra providers list [flags]
 ### Options
 
 ```
-      --format string   Output format [text, json] (default "text")
+      --format string   Output format [default, json] (default "default")
 ```
 
 ### Options inherited from parent commands
