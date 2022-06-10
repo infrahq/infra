@@ -12,6 +12,8 @@ function Dashboard ({ children }) {
   const { admin, loading } = useAdmin()
   const { mutate } = useSWRConfig()
 
+  const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
+
   if (loading) {
     return null
   }
@@ -31,11 +33,16 @@ function Dashboard ({ children }) {
   ]
 
   const subNavigation = [
-    { name: 'Settings', href: '/settings', admin: true }
+    { name: 'Settings', href: '/settings', admin: accessToSettingsPage }
   ]
 
   // redirect non-admin routes if user isn't admin
-  for (const n of [...navigation, ...subNavigation]) {
+  if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
+    router.replace('/')
+    return null
+  }
+
+  for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
       router.replace('/')
       return null
@@ -85,7 +92,7 @@ function Dashboard ({ children }) {
               <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
                 {subNavigation.map(s => (
                   <Link key={s.name} href={s.href}>
-                    <a className={`w-full flex py-1.5 text-xs text-gray-400 hover:text-white ${s.admin && !admin ? 'pointer-events-none opacity-20' : ''}`}>
+                    <a className={`w-full flex py-1.5 text-xs text-gray-400 hover:text-white ${s.admin ? '' : 'pointer-events-none opacity-20'}`}>
                       {s.name}
                     </a>
                   </Link>

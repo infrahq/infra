@@ -2,9 +2,9 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import InputDropdown from './input'
-import DeleteModal from './modals/delete'
-import ErrorMessage from './error-message'
+import InputDropdown from '../input'
+import DeleteModal from '../modals/delete'
+import ErrorMessage from '../error-message'
 
 function Grant ({ id, userID, grants }) {
   if (!id || !userID) {
