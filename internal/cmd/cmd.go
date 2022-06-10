@@ -289,6 +289,10 @@ func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
 	flags.BoolVar(bind, "non-interactive", isNonInteractiveMode, "Disable all prompts for input")
 }
 
+func addFormatFlag(flags *pflag.FlagSet, bind *string) {
+	flags.StringVar(bind, "format", "default", "Output format [default, json]")
+}
+
 func usageTemplate() string {
 	return `Usage:{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
