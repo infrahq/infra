@@ -50,7 +50,13 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			switch format {
-			case "default":
+			case "json":
+				jsonOutput, err := json.Marshal(destinations)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
+			default:
 				type row struct {
 					Name string `header:"NAME"`
 					URL  string `header:"URL"`
@@ -68,12 +74,6 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				} else {
 					cli.Output("No destinations connected")
 				}
-			case "json":
-				jsonOutput, err := json.Marshal(destinations)
-				if err != nil {
-					return err
-				}
-				cli.Output(string(jsonOutput))
 			}
 
 			return nil
