@@ -30,7 +30,7 @@ export default function PasswordReset () {
       const rest = await fetch(`/api/users/${auth?.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          id: auth?.id,
+          ...auth,
           password: confirmPassword
         })
       })
