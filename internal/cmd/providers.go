@@ -53,7 +53,13 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			switch format {
-			case "default":
+			case "json":
+				jsonOutput, err := json.Marshal(providers)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
+			default:
 				type row struct {
 					Name string `header:"NAME"`
 					URL  string `header:"URL"`
@@ -69,14 +75,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				} else {
 					cli.Output("No providers found")
 				}
-			case "json":
-				jsonOutput, err := json.Marshal(providers)
-				if err != nil {
-					return err
-				}
-				cli.Output(string(jsonOutput))
 			}
-
 			return nil
 		},
 	}

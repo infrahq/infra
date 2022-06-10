@@ -127,7 +127,13 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			switch format {
-			case "default":
+			case "json":
+				jsonOutput, err := json.Marshal(users)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
+			default:
 				for _, user := range users.Items {
 					rows = append(rows, row{
 						Name:       user.Name,
@@ -140,12 +146,6 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				} else {
 					cli.Output("No users found")
 				}
-			case "json":
-				jsonOutput, err := json.Marshal(users)
-				if err != nil {
-					return err
-				}
-				cli.Output(string(jsonOutput))
 			}
 
 			return nil
