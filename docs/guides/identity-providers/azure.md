@@ -5,7 +5,7 @@ To connect Azure, run the following command:
 
 ```bash
 infra providers add azure \
-  --url <login.microsoftonline.com/${TENANT_ID}/v2.0> \
+  --url login.microsoftonline.com/${TENANT_ID}/v2.0 \
   --client-id <your azure client id> \
   --client-secret <your azure client secret>
 ```

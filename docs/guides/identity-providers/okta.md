@@ -36,7 +36,7 @@ infra providers add okta \
 <details>
   <summary><strong>(Optional) Configure Okta for Infra Dashboard Login</strong></summary>
 
-Add an additional redirect URI: `<your infra host>/login/callback`.
+Add a redirect URI: `<your infra host>/login/callback`.
 
 Examples:
   - `https://infra.company.internal/login/callback` (If infra is hosted at `infra.company.internal`)
