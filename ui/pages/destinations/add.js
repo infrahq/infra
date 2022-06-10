@@ -77,6 +77,7 @@ export default function DestinationsAdd () {
         <div className='flex-1'>
           <label className='text-3xs text-gray-400 uppercase'>Cluster Name</label>
           <input
+            type='search'
             autoFocus
             required
             placeholder='provide a cluster name'

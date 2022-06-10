@@ -230,7 +230,7 @@ func TestUse(t *testing.T) {
 
 // destinationCA is a well formed certificate that can be used to create
 // a destination in tests.
-var destinationCA = []byte(`-----BEGIN CERTIFICATE-----
+var destinationCA = api.PEM(`-----BEGIN CERTIFICATE-----
 MIIDazCCAlOgAwIBAgIUETRDuZAQHGhiH11GNsXn16n9t48wDQYJKoZIhvcNAQEL
 BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
 GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMjA0MTIyMTAzMDhaFw0yNDA0

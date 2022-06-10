@@ -83,7 +83,7 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost port=5432", url)
 
-	r.options.DBUser = "user"
+	r.options.DBUsername = "user"
 
 	url, err = r.getPostgresConnectionString()
 	assert.NilError(t, err)
@@ -429,6 +429,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	s := setupServer(t, func(_ *testing.T, opts *Options) {
 		opts.EnableSignup = true
 		opts.SessionDuration = time.Minute
+		opts.SessionExtensionDeadline = time.Minute
 	})
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 

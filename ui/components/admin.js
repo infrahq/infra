@@ -93,16 +93,12 @@ export default function () {
       .then((response) => response.json())
       .then(({ items = [] }) => {
         if (items.length === 0) {
-          fetch('/api/users', {
-            method: 'POST',
-            body: JSON.stringify({ name })
-          })
-            .then((response) => response.json())
-            .then((user) => grantAdminAccess(user.id))
-            .catch((error) => console.error(error))
+          setError('User does not exist')
         } else {
           grantAdminAccess(items[0].id)
         }
+      }).catch(e => {
+        setError(e)
       })
   }
 
@@ -112,8 +108,9 @@ export default function () {
       <div className={`flex flex-col sm:flex-row ${error ? 'mt-6 mb-2' : 'mt-6 mb-14'}`}>
         <div className='sm:flex-1'>
           <InputDropdown
+            name='name'
             value={name}
-            placeholder='Username'
+            placeholder='Username or email'
             hasDropdownSelection={false}
             handleInputChange={e => handleInputChange(e.target.value)}
             handleKeyDown={(e) => handleKeyDownEvent(e.key)}

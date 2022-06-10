@@ -96,7 +96,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	accessKey, err := data.CreateAccessKey(srv.db, token)
 	assert.NilError(t, err)
 
-	admin, err := data.GetIdentity(srv.db, data.ByName("admin"))
+	admin, err := data.GetIdentity(srv.db, data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
 	type testCase struct {

@@ -256,6 +256,10 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
 
+			if val == "email" {
+				schema.Format = "email"
+			}
+
 			if strings.HasPrefix(val, "min=") {
 				schema.MinLength = parseMinLength(val)
 			}
@@ -335,6 +339,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	case reflect.Slice:
 		if t.Elem().Kind() == reflect.Uint8 {
 			schema.Type = "string" // []byte
+			schema.Format = "base64"
 			return
 		}
 		schema.Type = "array"
@@ -486,6 +491,10 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 				for _, val := range strings.Split(validate, ",") {
 					if val == "required" {
 						p.Required = true
+					}
+
+					if val == "email" {
+						schema.Format = "email"
 					}
 
 					if strings.HasPrefix(val, "min=") {

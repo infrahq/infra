@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/mail"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ func newUsersCmd(cli *CLI) *cobra.Command {
 func newUsersAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add USER",
-		Short: "Create a user.",
+		Short: "Create a user",
 		Long: `Create a user.
 
 Note: A new user must change their one time password before further usage.`,
@@ -45,6 +46,13 @@ Note: A new user must change their one time password before further usage.`,
 		Example: `# Create a user
 $ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			email := args[0]
+
+			_, err := mail.ParseAddress(email)
+			if err != nil {
+				return fmt.Errorf("username must be a valid email")
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -74,7 +82,7 @@ func newUsersEditCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit USER",
 		Short: "Update a user",
-		Example: `# Set a new one time password for a user
+		Example: `# Set a new password for a user
 $ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -86,7 +94,7 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new one time password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password")
 
 	return cmd
 }

@@ -307,7 +307,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 ## `infra users add`
 
-Create a user.
+Create a user
 
 ### Synopsis
 
@@ -344,14 +344,14 @@ infra users edit USER [flags]
 ### Examples
 
 ```
-# Set a new one time password for a user
+# Set a new password for a user
 $ infra users edit janedoe@example.com --password
 ```
 
 ### Options
 
 ```
-      --password   Set a new one time password
+      --password   Set a new password
 ```
 
 ### Options inherited from parent commands

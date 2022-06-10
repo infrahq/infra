@@ -463,6 +463,14 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
+		// drop old Groups constraint; new constraint will be created automatically
+		{
+			ID: "202206081027",
+			Migrate: func(tx *gorm.DB) error {
+				_ = tx.Migrator().DropConstraint(&models.Group{}, "idx_groups_name_provider_id")
+				return nil
+			},
+		},
 		// next one here
 	})
 

@@ -230,7 +230,7 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return list[ListResponse[User]](c, "/api/users", map[string][]string{"name": {req.Name}, "ids": ids})
+	return list[ListResponse[User]](c, "/api/users", map[string][]string{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {

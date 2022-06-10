@@ -20,13 +20,15 @@ export default ({ children, handleClose, title, iconPath, profileIcon }) => {
               )}
           <h1 className='flex flex-row items-center space-x-4 text-2xs'>{title}</h1>
         </div>
-        <button
-          type='button'
-          className='rounded-md bg-transparents text-gray-400 p-2 -mr-2 hover:text-white focus:outline-none cursor-pointer'
-          onClick={handleClose}
-        >
-          <XIcon className='h-6 w-6 stroke-1' aria-hidden='true' />
-        </button>
+        <div className='flex space-x-1'>
+          <button
+            type='button'
+            className='rounded-md bg-transparents text-gray-400 p-2 -mr-2 hover:text-white focus:outline-none cursor-pointer'
+            onClick={handleClose}
+          >
+            <XIcon className='h-6 w-6 stroke-1' aria-hidden='true' />
+          </button>
+        </div>
       </header>
       {children}
     </aside>

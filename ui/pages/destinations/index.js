@@ -109,7 +109,7 @@ export default function Destinations () {
   const { admin, loading: adminLoading } = useAdmin()
   const [selectedDestination, setSelectedDestination] = useState(null)
 
-  const table = useTable({ columns, data: destinations?.sort((a, b) => b.created.localeCompare(a.created)) || [] })
+  const table = useTable({ columns, data: destinations?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
 
   const loading = adminLoading || (!destinations && !error)
 
@@ -131,7 +131,8 @@ export default function Destinations () {
                     getRowProps={row => ({
                       onClick: () => setSelectedDestination(row.original),
                       style: {
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        background: row.original.id === selectedDestination?.id ? '#151A1E' : ''
                       }
                     })}
                   />

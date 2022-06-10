@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -128,7 +126,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 			// eg dest name: "foo"
 			if strings.HasPrefix(g.Resource, d.Name) {
 				url = d.Connection.URL
-				ca = d.Connection.CA
+				ca = []byte(d.Connection.CA)
 				exists = true
 
 				break
@@ -147,21 +145,6 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		u.Scheme = "https"
 
 		logging.S.Debugf("creating kubeconfig for %s", context)
-
-		// get TLS server name from the certificate
-		block, _ := pem.Decode(ca)
-		if block == nil {
-			return fmt.Errorf("unknown certificate format")
-		}
-
-		certs, err := x509.ParseCertificates(block.Bytes)
-		if err != nil {
-			return err
-		}
-
-		if len(certs) == 0 {
-			return fmt.Errorf("no certficates found")
-		}
 
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
 			Server:                   u.String(),
@@ -212,9 +195,14 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 
 	configPath := defaultConfig.ConfigAccess().GetDefaultFilename()
 
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
+		return err
+	}
+
 	// write the new config to a temporary file then move it in an atomic operation
 	// this ensures we don't wipe the kube config in the case of an interrupt
-	tmpFile, err := ioutil.TempFile(filepath.Dir(configPath), "infra-kube-config-")
+	tmpFile, err := ioutil.TempFile(configDir, "infra-kube-config-")
 	if err != nil {
 		return fmt.Errorf("cannot create temporary config file: %w", err)
 	}

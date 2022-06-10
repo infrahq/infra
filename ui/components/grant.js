@@ -97,8 +97,9 @@ export default function ({ id }) {
       <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-4'}`}>
         <div className='flex-1'>
           <InputDropdown
+            name='name'
             value={name}
-            placeholder='Username'
+            placeholder='Username or Email'
             error={error}
             optionType='role'
             options={options.filter((item) => item !== 'remove')}

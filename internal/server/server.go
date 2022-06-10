@@ -34,26 +34,27 @@ import (
 )
 
 type Options struct {
-	Version         float64       `mapstructure:"version"`
-	TLSCache        string        `mapstructure:"tlsCache"`
-	EnableTelemetry bool          `mapstructure:"enableTelemetry"`
-	EnableSignup    bool          `mapstructure:"enableSignup"`
-	SessionDuration time.Duration `mapstructure:"sessionDuration"`
+	Version                  float64
+	TLSCache                 string
+	EnableTelemetry          bool
+	EnableSignup             bool
+	SessionDuration          time.Duration
+	SessionExtensionDeadline time.Duration
 
-	DBFile                  string `mapstructure:"dbFile"`
-	DBEncryptionKey         string `mapstructure:"dbEncryptionKey"`
-	DBEncryptionKeyProvider string `mapstructure:"dbEncryptionKeyProvider"`
-	DBHost                  string `mapstructure:"dbHost" `
-	DBPort                  int    `mapstructure:"dbPort"`
-	DBName                  string `mapstructure:"dbName"`
-	DBUser                  string `mapstructure:"dbUsername"`
-	DBPassword              string `mapstructure:"dbPassword"`
-	DBParameters            string `mapstructure:"dbParameters"`
+	DBFile                  string
+	DBEncryptionKey         string
+	DBEncryptionKeyProvider string
+	DBHost                  string
+	DBPort                  int
+	DBName                  string
+	DBUsername              string
+	DBPassword              string
+	DBParameters            string
 
-	Keys    []KeyProvider    `mapstructure:"keys"`
-	Secrets []SecretProvider `mapstructure:"secrets"`
+	Keys    []KeyProvider
+	Secrets []SecretProvider
 
-	Config `mapstructure:",squash"`
+	Config
 
 	Addr ListenerOptions
 	UI   UIOptions
@@ -67,9 +68,9 @@ type ListenerOptions struct {
 
 type UIOptions struct {
 	Enabled  bool
-	ProxyURL types.URL `mapstructure:"proxyURL"`
+	ProxyURL types.URL
 	// FS is the filesystem which contains the static files for the UI.
-	FS fs.FS `mapstructure:"-"`
+	FS fs.FS `config:"-"`
 }
 
 type Server struct {
@@ -232,7 +233,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := tLSConfigWithCacheDir(s.options.TLSCache)
+	tlsConfig, err := tlsConfigWithCacheDir(s.options.TLSCache)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -271,7 +272,7 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 	return l.Addr(), nil
 }
 
-func tLSConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
+func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
 	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
 		return nil, fmt.Errorf("create tls cache: %w", err)
 	}
@@ -307,8 +308,8 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 		// config has separate postgres parameters set, combine them into a connection DSN now
 		fmt.Fprintf(&pgConn, "host=%s ", s.options.DBHost)
 
-		if s.options.DBUser != "" {
-			fmt.Fprintf(&pgConn, "user=%s ", s.options.DBUser)
+		if s.options.DBUsername != "" {
+			fmt.Fprintf(&pgConn, "user=%s ", s.options.DBUsername)
 
 			if s.options.DBPassword != "" {
 				pass, err := secrets.GetSecret(s.options.DBPassword, s.secrets)

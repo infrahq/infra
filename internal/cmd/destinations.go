@@ -75,7 +75,6 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 					cli.Output("No destinations connected")
 				}
 			}
-
 			return nil
 		},
 	}
