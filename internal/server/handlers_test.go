@@ -286,7 +286,7 @@ func TestListKeys(t *testing.T) {
 		Name:       "expired",
 		IssuedFor:  user.ID,
 		ProviderID: provider.ID,
-		ExpiresAt:  time.Now().Add(-5 * time.Minute),
+		ExpiresAt:  time.Now().UTC().Add(-5 * time.Minute),
 	})
 	assert.NilError(t, err)
 
@@ -296,16 +296,6 @@ func TestListKeys(t *testing.T) {
 	assert.Assert(t, len(resp.Items) > 0)
 	assert.Equal(t, resp.Count, len(resp.Items))
 	assert.Equal(t, resp.Items[0].IssuedForName, user.Name)
-
-	for _, item := range resp.Items {
-		assert.Assert(t, time.Time(item.Expires).UTC().After(time.Now().UTC()))
-	}
-
-	notExpiredLength := len(resp.Items)
-	resp, err = handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{ShowExpired: true})
-	assert.NilError(t, err)
-
-	assert.Equal(t, notExpiredLength, len(resp.Items)-1) // test showExpired in request
 
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())

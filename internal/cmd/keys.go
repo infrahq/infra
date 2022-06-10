@@ -221,6 +221,6 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
-	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
+	cmd.Flags().BoolVar(&options.ShowExpired, "expired", false, "Show expired access keys")
 	return cmd
 }
