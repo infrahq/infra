@@ -9,8 +9,9 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
 )
+
+const InternalInfraConnectorName = "connector"
 
 func newUsersCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
@@ -162,7 +163,7 @@ $ infra users remove janedoe@example.com`,
 				return Error{Message: fmt.Sprintf("No user named %q ", name)}
 			}
 
-			if name == models.InternalInfraConnectorIdentityName {
+			if name == internalInfraConnectorName {
 				return Error{
 					Message: "The \"connector\" user cannot be deleted, as it is not modifiable.",
 				}
