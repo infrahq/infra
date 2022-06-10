@@ -53,7 +53,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			switch format {
-			case "text":
+			case "default":
 				type row struct {
 					Name string `header:"NAME"`
 					URL  string `header:"URL"`

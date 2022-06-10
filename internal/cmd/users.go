@@ -119,7 +119,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			switch format {
-			case "text":
+			case "default":
 				for _, user := range users.Items {
 					rows = append(rows, row{
 						Name:       user.Name,
