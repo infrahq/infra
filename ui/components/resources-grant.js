@@ -70,7 +70,6 @@ export default function ({ id }) {
       <div className={`flex gap-1 mt-3 ${error ? 'mb-2' : 'mb-4'}`}>
         <div className='flex-1'>
           <InputDropdown
-            type='text'
             value={infrastructure}
             placeholder='Infrastructure, cluster'
             error={error}
