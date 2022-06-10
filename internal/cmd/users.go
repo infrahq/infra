@@ -163,7 +163,7 @@ $ infra users remove janedoe@example.com`,
 				return Error{Message: fmt.Sprintf("No user named %q ", name)}
 			}
 
-			if name == internalInfraConnectorName {
+			if name == InternalInfraConnectorName {
 				return Error{
 					Message: "The \"connector\" user cannot be deleted, as it is not modifiable.",
 				}
