@@ -22,8 +22,9 @@ const oidcProviderRequestTimeout = time.Second * 10
 
 // InfoClaims captures the claims fields from a user-info response that we care about
 type InfoClaims struct {
-	Email  string   `json:"email"`
+	Email  string   `json:"email"` // returned by default for Okta user info
 	Groups []string `json:"groups"`
+	Name   string   `json:"name"` // returned by default for Azure user info
 }
 
 type oidcAuthn struct {
@@ -238,11 +239,11 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 	}
 
 	var claims struct {
-		Email string `json:"email"`
+		Email string `json:"email" validate:"required"`
 	}
 
 	if err := idToken.Claims(&claims); err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("id claims: %w", err)
+		return "", "", time.Time{}, "", fmt.Errorf("id token claims: %w", err)
 	}
 
 	return rawAccessToken, rawRefreshToken, exchanged.Expiry, claims.Email, nil
@@ -289,7 +290,23 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*In
 		return nil, fmt.Errorf("user info claims: %w", err)
 	}
 
+	// in the case of azure a deleted user's info will still resolve
+	// guard against this by validating the info in the response is what we expect
+	if err := claims.validate(); err != nil {
+		return nil, err
+	}
+
 	return claims, nil
+}
+
+// validate checks if the user info response claims have the information we expect
+func (ic *InfoClaims) validate() error {
+	// if these fields aren't present, this user may have been deleted in the up-stream provider
+	if ic.Email == "" && ic.Name == "" {
+		return fmt.Errorf("required user info not received, name or email are required, the user may have been deleted")
+	}
+
+	return nil
 }
 
 // UpdateUserInfoFromProvider calls the user info endpoint of an external identity provider to see a user's current attributes
