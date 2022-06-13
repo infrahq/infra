@@ -12,11 +12,11 @@ type Group struct {
 }
 
 type ListGroupsRequest struct {
-	PaginationRequest
 	// Name filters the results to only the group matching this name.
 	Name string `form:"name"`
 	// UserID filters the results to only groups where this user is a member.
 	UserID uid.ID `form:"userID"`
+	PaginationRequest
 }
 
 type CreateGroupRequest struct {

@@ -29,6 +29,6 @@ type UpdateProviderRequest struct {
 }
 
 type ListProvidersRequest struct {
-	PaginationRequest
 	Name string `form:"name" example:"okta"`
+	PaginationRequest
 }

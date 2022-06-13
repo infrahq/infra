@@ -132,8 +132,8 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 }
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
-	groups, err := access.ListGroups(c, r.Name, r.UserID)
 	pg := models.RequestToPagination(r.PaginationRequest)
+	groups, err := access.ListGroups(c, r.Name, r.UserID, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}
 	pg := models.RequestToPagination(r.PaginationRequest)
-	providers, err := access.ListProviders(c, r.Name, exclude)
+	providers, err := access.ListProviders(c, r.Name, exclude, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
 	pg := models.RequestToPagination(r.PaginationRequest)
-	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name)
+	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +388,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -450,7 +450,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege)
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, models.Pagination{})
 		if err != nil {
 			return nil, err
 		}

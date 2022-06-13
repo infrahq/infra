@@ -18,10 +18,10 @@ type User struct {
 }
 
 type ListUsersRequest struct {
-	PaginationRequest
 	Name  string   `form:"name"`
 	Group uid.ID   `form:"group"`
 	IDs   []uid.ID `form:"ids"`
+	PaginationRequest
 }
 
 type CreateUserRequest struct {

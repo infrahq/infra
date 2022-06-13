@@ -18,11 +18,11 @@ type Grant struct {
 }
 
 type ListGrantsRequest struct {
-	PaginationRequest
 	User      uid.ID `form:"user" validate:"excluded_with=Group"`
 	Group     uid.ID `form:"group" validate:"excluded_with=User"`
 	Resource  string `form:"resource" example:"production"`
 	Privilege string `form:"privilege" example:"view"`
+	PaginationRequest
 }
 
 type CreateGrantRequest struct {

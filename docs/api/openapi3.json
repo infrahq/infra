@@ -1095,6 +1095,20 @@
         "parameters": [
           {
             "in": "query",
+            "name": "name",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "unique_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "format": "int",
@@ -1107,20 +1121,6 @@
             "schema": {
               "format": "int",
               "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "name",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "unique_id",
-            "schema": {
-              "type": "string"
             }
           }
         ],
@@ -1618,22 +1618,6 @@
         "operationId": "ListGrants",
         "parameters": [
           {
-            "in": "query",
-            "name": "page",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
             "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user",
@@ -1671,6 +1655,22 @@
             "schema": {
               "example": "view",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -2026,22 +2026,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "page",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "name",
             "schema": {
               "type": "string"
@@ -2056,6 +2040,22 @@
               "format": "uid",
               "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -2503,6 +2503,15 @@
         "operationId": "ListProviders",
         "parameters": [
           {
+            "example": "okta",
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "example": "okta",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "page",
             "schema": {
@@ -2516,15 +2525,6 @@
             "schema": {
               "format": "int",
               "type": "integer"
-            }
-          },
-          {
-            "example": "okta",
-            "in": "query",
-            "name": "name",
-            "schema": {
-              "example": "okta",
-              "type": "string"
             }
           }
         ],
@@ -3232,22 +3232,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "page",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {
-              "format": "int",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
             "name": "name",
             "schema": {
               "type": "string"
@@ -3275,6 +3259,22 @@
                 "type": "string"
               },
               "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
