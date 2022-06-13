@@ -31,7 +31,15 @@ spec:
 {{- toYaml .Values.server.securityContext | nindent 12 }}
           image: "{{ include "server.image.repository" . }}:{{ include "server.image.tag" . }}"
           imagePullPolicy: {{ include "server.image.pullPolicy" . }}
-          args: ["server", "-f", "/etc/infrahq/infra.yaml"]
+          args:
+            - server
+            - -f
+            - /etc/infrahq/infra.yaml
+# set log level through command line parameters since its not possible to set using configuration file values
+{{- with .Values.server.config.logLevel }}
+            - --log-level
+            - {{ . }}
+{{- end }}
           env:
 {{- include "server.env" . | nindent 12 }}
           envFrom:
