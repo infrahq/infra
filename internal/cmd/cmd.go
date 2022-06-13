@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goware/urlx"
 	"github.com/lensesio/tableprinter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -78,21 +77,14 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify)
+	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify), nil
 }
 
-func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, error) {
-	u, err := urlx.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Scheme = "https"
-
+func apiClient(host string, accessKey string, skipTLSVerify bool) *api.Client {
 	return &api.Client{
 		Name:      "cli",
 		Version:   internal.Version,
-		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		URL:       "https://" + host,
 		AccessKey: accessKey,
 		HTTP: http.Client{
 			Timeout: 60 * time.Second,
@@ -103,7 +95,7 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 func newUseCmd(_ *CLI) *cobra.Command {
