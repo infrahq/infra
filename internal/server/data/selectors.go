@@ -124,7 +124,7 @@ func ByUserID(userID uid.ID) SelectorFunc {
 func ByNotExpired() SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("expires_at is null or expires_at > ?", time.Now().UTC()).Or("expires_at is ?", time.Time{})
-  }
+	}
 }
 
 func ByPagination(pg models.Pagination) SelectorFunc {

@@ -151,11 +151,25 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 			CertificateAuthorityData: ca,
 		}
 
-		kubeConfig.Contexts[context] = &clientcmdapi.Context{
-			Cluster:   context,
-			AuthInfo:  user.Name,
-			Namespace: namespace,
+		// use existing kubeContext if possible which may contain
+		// user-defined overrides. preserve them if possible
+		kubeContext, ok := kubeConfig.Contexts[context]
+		if !ok {
+			kubeContext = &clientcmdapi.Context{
+				Cluster:   context,
+				AuthInfo:  user.Name,
+				Namespace: namespace,
+			}
 		}
+
+		if namespace != "" {
+			// force the namespace if defined by Infra
+			if kubeContext.Namespace != namespace {
+				kubeContext.Namespace = namespace
+			}
+		}
+
+		kubeConfig.Contexts[context] = kubeContext
 
 		executable, err := os.Executable()
 		if err != nil {

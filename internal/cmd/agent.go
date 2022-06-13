@@ -145,7 +145,15 @@ func writeAgentConfig(pid int) error {
 
 // syncKubeConfig updates the local kubernetes configuration from Infra grants
 func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
-	user, destinations, grants, err := getUserDestinationGrants()
+	client, err := defaultAPIClient()
+	if err != nil {
+		fileLogger.Sugar().Errorf("api client: %v\n", err)
+		cancel()
+	}
+
+	client.Name = "agent"
+
+	user, destinations, grants, err := getUserDestinationGrants(client)
 	if err != nil {
 		fileLogger.Sugar().Errorf("agent failed to get user destination grants: %v\n", err)
 		cancel()

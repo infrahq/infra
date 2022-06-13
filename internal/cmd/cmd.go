@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -90,11 +89,9 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 
 	u.Scheme = "https"
 
-	headers := http.Header{}
-	ua := fmt.Sprintf("Infra CLI/%v (%v/%v)", internal.Version, runtime.GOOS, runtime.GOARCH)
-	headers.Add("User-Agent", ua)
-
 	return &api.Client{
+		Name:      "cli",
+		Version:   internal.Version,
 		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
 		AccessKey: accessKey,
 		HTTP: http.Client{
@@ -106,7 +103,6 @@ func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, 
 				},
 			},
 		},
-		Headers: headers,
 	}, nil
 }
 

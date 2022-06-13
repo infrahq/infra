@@ -10,6 +10,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type Query map[string][]string
+
 type Resource struct {
 	ID uid.ID `uri:"id" validate:"required"`
 }
