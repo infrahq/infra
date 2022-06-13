@@ -421,8 +421,8 @@ infra keys list [flags]
 ### Options
 
 ```
-      --expired       Show expired access keys
-      --user string   The name of a user to list access keys for
+      --show-expired   Show expired access keys
+      --user string    The name of a user to list access keys for
 ```
 
 ### Options inherited from parent commands

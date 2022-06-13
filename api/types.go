@@ -71,10 +71,6 @@ func (t Time) Equal(other Time) bool {
 	return time.Time(t).Equal(time.Time(other))
 }
 
-func (t Time) Expired(expiry Time) bool {
-	return time.Time(t).UTC().Before(time.Time(expiry).UTC())
-}
-
 func (t Time) Relative(zeroName ...string) string {
 	time := time.Time(t)
 

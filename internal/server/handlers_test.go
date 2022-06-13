@@ -255,7 +255,7 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("expired", func(t *testing.T) {
 		for _, item := range resp.Items {
-			assert.Assert(t, !item.Expires.Expired(api.Time(time.Now().UTC())))
+			assert.Assert(t, time.Time(item.Expires).UTC().After(time.Now().UTC()))
 		}
 
 		notExpiredLength := len(resp.Items)
