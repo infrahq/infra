@@ -32,6 +32,8 @@ func adminAccessKey(s *Server) string {
 	return ""
 }
 
+var defaultPagination api.PaginationResponse
+
 func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
@@ -88,7 +90,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"items":[],"count":0}`)
+				assert.Equal(t, resp.Body.String(), `{"pagination_info":{},"items":[],"count":0}`)
 			},
 		},
 		"name match": {
@@ -104,6 +106,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: "me@example.com"},
 					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -123,6 +126,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -145,6 +149,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -156,6 +161,28 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"Pagination": {
+			urlPath: "/api/users?limit=2&page=2",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				expected := api.ListResponse[api.User]{
+					Count: 2,
+					Items: []api.User{
+						{Name: "connector"},
+						{Name: "me@example.com"},
+					},
+					PaginationInfo: api.PaginationResponse{
+						Page:  2,
+						Limit: 2,
+					},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
 		},
 		// TODO: assert full JSON response

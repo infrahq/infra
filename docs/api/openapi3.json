@@ -301,6 +301,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -370,6 +383,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -431,6 +457,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -468,6 +507,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -518,6 +570,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -570,6 +635,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -730,6 +808,22 @@
             "name": "show_expired",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -999,6 +1093,22 @@
         "description": "ListDestinations",
         "operationId": "ListDestinations",
         "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
           {
             "in": "query",
             "name": "name",
@@ -1508,6 +1618,22 @@
         "operationId": "ListGrants",
         "parameters": [
           {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user",
@@ -1898,6 +2024,22 @@
         "description": "ListGroups",
         "operationId": "ListGroups",
         "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
           {
             "in": "query",
             "name": "name",
@@ -2360,6 +2502,22 @@
         "description": "ListProviders",
         "operationId": "ListProviders",
         "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
           {
             "example": "okta",
             "in": "query",
@@ -3072,6 +3230,22 @@
         "description": "ListUsers",
         "operationId": "ListUsers",
         "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
           {
             "in": "query",
             "name": "name",

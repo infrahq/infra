@@ -112,7 +112,7 @@ func (a *API) addResponseRewrites() {
 	})
 	addResponseRewrite(a, http.MethodGet, "/v1/grants/:id", "0.12.2", migrateUserGrantToIdentity)
 	addResponseRewrite(a, http.MethodGet, "/v1/grants", "0.12.2", func(newResponse *api.ListResponse[api.Grant]) []identityGrant {
-		return api.NewListResponse(newResponse.Items, migrateUserGrantToIdentity).Items
+		return api.NewListResponse(newResponse.Items, api.PaginationResponse{}, migrateUserGrantToIdentity).Items
 	})
 	addResponseRewrite(a, http.MethodPost, "/v1/grants", "0.12.2", func(newResponse *api.Grant) identityGrant {
 		return migrateUserGrantToIdentity(*newResponse)

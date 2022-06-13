@@ -229,6 +229,33 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
+		"no filter, page 2": {
+			urlPath: "/api/grants?page=2&limit=2",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{
+						User:      idInGroup,
+						Privilege: "custom1",
+						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "custom2",
+						Resource:  "res1",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2})
+			},
+		},
 		"filter by resource": {
 			urlPath: "/api/grants?resource=res1",
 			setup: func(t *testing.T, req *http.Request) {
@@ -284,6 +311,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
+	"pagination_info":{},
 	"count": 1,
 	"items": [{
 		"id": "<any-valid-uid>",
