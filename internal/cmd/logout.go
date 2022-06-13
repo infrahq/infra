@@ -68,17 +68,13 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 		return false
 	}
 
-	client, err := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
-	if err != nil {
-		logging.S.Debugf("err: %s", err)
-		return false
-	}
+	client := apiClient(hostConfig.Host, hostConfig.AccessKey, hostConfig.SkipTLSVerify)
 
 	hostConfig.AccessKey = ""
 	hostConfig.PolymorphicID = ""
 	hostConfig.Name = ""
 
-	err = client.Logout()
+	err := client.Logout()
 	switch {
 	case api.ErrorStatusCode(err) == http.StatusUnauthorized:
 		logging.S.Debugf("err: %s", err)

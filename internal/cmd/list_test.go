@@ -47,8 +47,7 @@ func TestListCmd(t *testing.T) {
 		assert.Check(t, srv.Run(ctx))
 	}()
 
-	c, err := apiClient(srv.Addrs.HTTPS.String(), "0000000001.adminadminadminadmin1234", true)
-	assert.NilError(t, err)
+	c := apiClient(srv.Addrs.HTTPS.String(), "0000000001.adminadminadminadmin1234", true)
 
 	_, err = c.CreateDestination(&api.CreateDestinationRequest{
 		UniqueID: "space",

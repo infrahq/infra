@@ -398,11 +398,7 @@ func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
 		}
 	}
 
-	client, err := apiClient(options.Server, "", options.SkipTLSVerify)
-	if err != nil {
-		return nil, err
-	}
-
+	client := apiClient(options.Server, "", options.SkipTLSVerify)
 	return client, nil
 }
 
