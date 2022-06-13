@@ -35,7 +35,7 @@ type loginCmdOptions struct {
 	Provider      string
 	SkipTLSVerify bool
 	// TODO: add flag for trusted certificate
-	TrustedCertificate []byte
+	TrustedCertificate string
 	NonInteractive     bool
 	NoAgent            bool
 }
@@ -399,8 +399,10 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 }
 
 type loginClient struct {
-	APIClient          *api.Client
-	TrustedCertificate []byte
+	APIClient *api.Client
+	// TrustedCertificate is a PEM encoded certificate that has been trusted by
+	// the user for TLS communication with the server.
+	TrustedCertificate string
 }
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
@@ -451,7 +453,7 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 			},
 		}
 		c.APIClient = apiClient(options.Server, "", transport)
-		c.TrustedCertificate = uaErr.Cert.Raw
+		c.TrustedCertificate = string(certs.PEMEncodeCertificate(uaErr.Cert.Raw))
 	}
 	return c, nil
 }
@@ -604,22 +606,28 @@ to manually verify the certificate can be trusted.
 	confirmPrompt := &survey.Select{
 		Message: "Options:",
 		Options: []string{
-			"I do not trust this certificate",
-			"Trust and save the certificate",
+			"NO",
+			"TRUST",
+		},
+		Description: func(value string, index int) string {
+			switch value {
+			case "NO":
+				return "I do not trust this certificate"
+			case "TRUST":
+				return "Trust and save the certificate"
+			default:
+				return ""
+			}
 		},
 	}
 	var selection string
 	if err := survey.AskOne(confirmPrompt, &selection, cli.surveyIO); err != nil {
 		return err
 	}
-	switch {
-	case selection == confirmPrompt.Options[0]:
-		return terminal.InterruptErr
-	case selection == confirmPrompt.Options[1]:
+	if selection == "TRUST" {
 		return nil
 	}
-	// TODO: can this happen?
-	panic("unexpected")
+	return terminal.InterruptErr
 }
 
 // Returns the host address of the Infra server that user would like to log into

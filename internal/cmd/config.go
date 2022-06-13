@@ -32,7 +32,7 @@ type ClientHostConfig struct {
 	Current       bool              `json:"current"`
 	// TrustedCertificate is the PEM encoded TLS certificate used by the server
 	// that was verified and trusted by the user as part of login.
-	TrustedCertificate []byte `json:"trusted-certificate"`
+	TrustedCertificate string `json:"trusted-certificate"`
 }
 
 // checks if user is logged in to the given session (ClientHostConfig)

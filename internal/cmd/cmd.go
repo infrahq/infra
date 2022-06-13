@@ -20,7 +20,6 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
@@ -102,12 +101,10 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 		pool = x509.NewCertPool()
 	}
 
-	if len(config.TrustedCertificate) > 0 {
-		cert, err := x509.ParseCertificate(certs.PEMDecode(config.TrustedCertificate))
-		if err != nil {
+	if config.TrustedCertificate != "" {
+		ok := pool.AppendCertsFromPEM([]byte(config.TrustedCertificate))
+		if !ok {
 			logging.S.Warnf("Failed to read trusted certificates for server: %v", err)
-		} else {
-			pool.AddCert(cert)
 		}
 	}
 
