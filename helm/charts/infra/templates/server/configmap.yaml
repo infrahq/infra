@@ -46,14 +46,6 @@ data:
 {{- $identities := .Values.server.config.identities | default list }}
 {{- $users := .Values.server.config.users | default list | concat .Values.server.additionalUsers .Values.server.additionalIdentities $identities}}
 
-{{- if .Values.server.config.adminAccessKey }}
-{{- $adminAccessKey := .Values.server.config.adminAccessKey -}}
-{{- if and (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
-{{- $adminAccessKey = "env:ADMIN_ACCESS_KEY" }}
-{{- end }}
-{{- $users = append $users (dict "name" "admin" "accessKey" $adminAccessKey) }}
-{{- end }}
-
 {{- if include "connector.enabled" . | eq "true" }}
 {{- $accessKey := default "" .Values.connector.config.accessKey -}}
 {{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
