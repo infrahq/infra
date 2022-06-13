@@ -3,8 +3,8 @@ module github.com/infrahq/infra
 go 1.18
 
 require (
-	github.com/AlecAivazis/survey/v2 v2.3.4
-	github.com/aws/aws-sdk-go v1.44.27
+	github.com/AlecAivazis/survey/v2 v2.3.5
+	github.com/aws/aws-sdk-go v1.44.32
 	github.com/cli/browser v1.1.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.11.0
@@ -26,7 +26,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.7
-	gorm.io/driver/sqlite v1.3.2
+	gorm.io/driver/sqlite v1.3.4
 	gorm.io/gorm v1.23.5
 	k8s.io/api v0.23.6
 	k8s.io/apimachinery v0.23.6
@@ -39,7 +39,7 @@ require (
 	github.com/andanhm/go-prettytime v1.1.0
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/creack/pty v1.1.18
-	github.com/getkin/kin-openapi v0.96.0
+	github.com/getkin/kin-openapi v0.97.0
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.2

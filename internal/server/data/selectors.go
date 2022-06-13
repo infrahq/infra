@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -123,6 +124,17 @@ func ByUserID(userID uid.ID) SelectorFunc {
 func ByNotExpired() SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("expires_at is null or expires_at > ?", time.Now().UTC()).Or("expires_at is ?", time.Time{})
+  }
+}
+
+func ByPagination(pg models.Pagination) SelectorFunc {
+	if pg.Page == 0 {
+		pg.Page = 1
+	}
+
+	return func(db *gorm.DB) *gorm.DB {
+		resultsForPage := pg.Limit * (pg.Page - 1)
+		return db.Offset(resultsForPage).Limit(pg.Limit)
 	}
 }
 
