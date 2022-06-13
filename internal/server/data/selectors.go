@@ -1,6 +1,8 @@
 package data
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/uid"
@@ -118,9 +120,27 @@ func ByUserID(userID uid.ID) SelectorFunc {
 	}
 }
 
+func ByNotExpired() SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("expires_at is null or expires_at > ?", time.Now().UTC()).Or("expires_at is ?", time.Time{})
+	}
+}
+
 func CreatedBy(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("created_by = ?", id)
+	}
+}
+
+func OrderBy(order string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Order(order)
+	}
+}
+
+func Limit(limit int) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Limit(limit)
 	}
 }
 
