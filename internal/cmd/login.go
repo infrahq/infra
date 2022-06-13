@@ -34,9 +34,10 @@ type loginCmdOptions struct {
 	AccessKey     string
 	Provider      string
 	SkipTLSVerify bool
-	// TODO: add option to pass a trusted certificate
-	NonInteractive bool
-	NoAgent        bool
+	// TODO: add flag for trusted certificate
+	TrustedCertificate []byte
+	NonInteractive     bool
+	NoAgent            bool
 }
 
 type loginMethod int8
@@ -87,12 +88,28 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 }
 
 func login(cli *CLI, options loginCmdOptions) error {
-	var err error
+	config, err := readConfig()
+	if err != nil {
+		return err
+	}
 
 	if options.Server == "" {
-		options.Server, err = promptServer(cli, options)
+		if options.NonInteractive {
+			return Error{Message: "Non-interactive login requires the [SERVER] argument"}
+		}
+
+		options.Server, err = promptServer(cli, config)
 		if err != nil {
 			return err
+		}
+	}
+
+	if len(options.TrustedCertificate) == 0 {
+		// Attempt to find a previously trusted certificate
+		for _, hc := range config.Hosts {
+			if equalHosts(hc.Host, options.Server) {
+				options.TrustedCertificate = hc.TrustedCertificate
+			}
 		}
 	}
 
@@ -160,6 +177,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 	}
 
 	return loginToInfra(cli, lc, loginReq, options.NoAgent)
+}
+
+func equalHosts(x, y string) bool {
+	if x == y {
+		return true
+	}
+	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
+		return true
+	}
+	return false
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
@@ -238,8 +265,8 @@ func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api
 		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
-	if len(lc.TrustedCertificate) > 0 {
-		clientHostConfig.TrustedCertificate = certs.PEMEncodeCertificate(lc.TrustedCertificate)
+	if lc.TrustedCertificate != "" {
+		clientHostConfig.TrustedCertificate = lc.TrustedCertificate
 	}
 
 	if loginReq.OIDC != nil {
@@ -378,76 +405,66 @@ type loginClient struct {
 
 // Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
 func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
-	c := loginClient{}
-	if !options.SkipTLSVerify {
-		// Prompt user only if server fails the TLS verification
-		if err := attemptTLSRequest(options.Server); err != nil {
-			var uaErr x509.UnknownAuthorityError
-			if !errors.As(err, &uaErr) {
-				return c, err
-			}
+	cfg := &ClientHostConfig{
+		TrustedCertificate: options.TrustedCertificate,
+		SkipTLSVerify:      options.SkipTLSVerify,
+	}
+	c := loginClient{
+		APIClient:          apiClient(options.Server, "", httpTransportForHostConfig(cfg)),
+		TrustedCertificate: options.TrustedCertificate,
+	}
+	if options.SkipTLSVerify {
+		return c, nil
+	}
 
-			if options.NonInteractive {
-				// TODO: add the --tls-ca flag
-				// TODO: give a different error if the flag was set
-				return c, Error{
-					Message: "The authenticity of the server could not be verified. " +
-						"Use the --tls-ca flag to specify a trusted CA, or run " +
-						"in interactive mode.",
-				}
-			}
-
-			if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
-				return c, err
-			}
-			// TODO: cleanup
-			pool, err := x509.SystemCertPool()
-			if err != nil {
-				return c, err
-			}
-			pool.AddCert(uaErr.Cert)
-			transport := &http.Transport{
-				TLSClientConfig: &tls.Config{
-					// set min version to the same as default to make gosec linter happy
-					MinVersion: tls.VersionTLS12,
-					RootCAs:    pool,
-				},
-			}
-			c.APIClient = apiClient(options.Server, "", transport)
-			c.TrustedCertificate = uaErr.Cert.Raw
-			return c, nil
+	// Prompt user only if server fails the TLS verification
+	if err := attemptTLSRequest(c.APIClient); err != nil {
+		var uaErr x509.UnknownAuthorityError
+		if !errors.As(err, &uaErr) {
+			return c, err
 		}
-	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			//nolint:gosec // We may purposely set insecureskipverify via a flag
-			InsecureSkipVerify: options.SkipTLSVerify,
-			// TODO: read options.TrustedCertificate
-			//RootCAs:            pool,
-		},
+		if options.NonInteractive {
+			// TODO: add the --tls-ca flag
+			// TODO: give a different error if the flag was set
+			return c, Error{
+				Message: "The authenticity of the server could not be verified. " +
+					"Use the --tls-ca flag to specify a trusted CA, or run " +
+					"in interactive mode.",
+			}
+		}
+
+		if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
+			return c, err
+		}
+
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			return c, err
+		}
+		pool.AddCert(uaErr.Cert)
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				// set min version to the same as default to make gosec linter happy
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    pool,
+			},
+		}
+		c.APIClient = apiClient(options.Server, "", transport)
+		c.TrustedCertificate = uaErr.Cert.Raw
 	}
-	c.APIClient = apiClient(options.Server, "", transport)
 	return c, nil
 }
 
-func attemptTLSRequest(host string) error {
-	// TODO: use apiClient here so that we set the right user agent, and can re-use
-	// error handling from the client. Use the /api/version endpoint.
-	reqURL, err := urlx.Parse(host)
-	if err != nil {
-		return fmt.Errorf("failed to parse the server hostname: %w", err)
-	}
-	reqURL.Scheme = "https"
-
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL.String(), nil)
+func attemptTLSRequest(client *api.Client) error {
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, client.URL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	logging.S.Debugf("call server: test tls for %q", host)
+	logging.S.Debugf("call server: test tls for %q", client.URL)
 	urlErr := &url.Error{}
-	res, err := http.DefaultClient.Do(req)
+	res, err := client.HTTP.Do(req)
 	switch {
 	case err == nil:
 		res.Body.Close()
@@ -606,16 +623,7 @@ to manually verify the certificate can be trusted.
 }
 
 // Returns the host address of the Infra server that user would like to log into
-func promptServer(cli *CLI, options loginCmdOptions) (string, error) {
-	if options.NonInteractive {
-		return "", Error{Message: "Non-interactive login requires the [SERVER] argument"}
-	}
-
-	config, err := readConfig()
-	if err != nil {
-		return "", err
-	}
-
+func promptServer(cli *CLI, config *ClientConfig) (string, error) {
 	servers := config.Hosts
 
 	if len(servers) == 0 {
