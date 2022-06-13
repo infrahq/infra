@@ -30,6 +30,10 @@
 
 Login to Infra
 
+### Synopsis
+
+Login to Infra and start a background agent to keep local configuration up-to-date
+
 ```
 infra login [SERVER] [flags]
 ```
@@ -54,6 +58,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 
 ```
       --key string        Login with an access key
+      --no-agent          Skip starting the Infra agent in the background
       --non-interactive   Disable all prompts for input
       --provider string   Login with an identity provider
       --skip-tls-verify   Skip verifying server TLS certificates
