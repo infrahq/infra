@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -78,55 +79,47 @@ func TestGet(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 
 	c := Client{
+		Name:      "testing",
+		Version:   "version",
 		URL:       srv.URL,
 		AccessKey: "the-access-key",
-		Headers:   http.Header{},
 	}
-	c.Headers.Add("User-Agent", "testing")
-	c.Headers.Add("X-Custom", "custom")
 
 	type stubResponse struct{}
 
 	expectedHeaders := http.Header{
-		"User-Agent":      []string{"testing"},
-		"X-Custom":        []string{"custom"},
 		"Accept-Encoding": []string{"gzip"},
 		"Authorization":   []string{"Bearer the-access-key"},
+		"Content-Type":    []string{"application/json"},
+		"Accept":          []string{"application/json"},
+		"Infra-Version":   []string{apiVersion},
+		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
 	}
 
 	t.Run("success request", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/good")
+		_, err := get[stubResponse](c, "/good", Query{})
 		assert.NilError(t, err)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/good")
-		ver := req.Header.Get("Infra-Version")
-		assert.Assert(t, len(ver) > 0)
-		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 
 	t.Run("bad request", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/bad")
+		_, err := get[stubResponse](c, "/bad", Query{})
 		assert.Error(t, err, `bad request: it failed because`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/bad")
-		ver := req.Header.Get("Infra-Version")
-		assert.Assert(t, len(ver) > 0)
-		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 
 	t.Run("server error", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/invalid")
+		_, err := get[stubResponse](c, "/invalid", Query{})
 		assert.Error(t, err, `500 internal server error`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
 		assert.Equal(t, req.URL.Path, "/invalid")
-		ver := req.Header.Get("Infra-Version")
-		assert.Assert(t, len(ver) > 0)
-		req.Header.Del("Infra-Version")
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 }

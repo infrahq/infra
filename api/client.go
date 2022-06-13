@@ -9,17 +9,20 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"runtime"
 
 	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/uid"
 )
 
-var clientVersion = "0.13.0"
+var apiVersion = "0.13.0"
 
 var ErrTimeout = errors.New("client timed out waiting for response from server")
 
 type Client struct {
+	Name      string
+	Version   string
 	URL       string
 	AccessKey string
 	HTTP      http.Client
@@ -62,89 +65,41 @@ func ErrorStatusCode(err error) int32 {
 	return 0
 }
 
-func get[Res any](client Client, path string) (*Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.URL, path), nil)
+func request[Req, Res any](client Client, method string, path string, query Query, reqBody *Req) (*Res, error) {
+	var body []byte
+
+	if reqBody != nil {
+		b, err := json.Marshal(reqBody)
+		if err != nil {
+			return nil, fmt.Errorf("marshal json: %w", err)
+		}
+
+		body = b
+	}
+
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.URL, path), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
-
-	addHeaders(req, client.Headers)
-	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
-
-	resp, err := client.HTTP.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("GET %q: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response: %w", err)
-	}
-
-	if err := checkError(req, resp, body); err != nil {
-		return nil, err
-	}
-
-	var res Res
-	if err := json.Unmarshal(body, &res); err != nil {
-		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
-	}
-
-	return &res, nil
-}
-
-func list[Res any](client Client, path string, query map[string][]string) (*Res, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s%s", client.URL, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	addHeaders(req, client.Headers)
-	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
 
 	req.URL.RawQuery = url.Values(query).Encode()
 
+	clientName, clientVersion := "client", "unknown"
+	if client.Name != "" {
+		clientName = client.Name
+	}
+
+	if client.Version != "" {
+		clientVersion = client.Version
+	}
+
+	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Infra-Version", apiVersion)
+	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", apiVersion, clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
+
 	resp, err := client.HTTP.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("GET %q: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response: %w", err)
-	}
-
-	if err := checkError(req, resp, body); err != nil {
-		return nil, err
-	}
-
-	var res Res
-	if err := json.Unmarshal(body, &res); err != nil {
-		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
-	}
-
-	return &res, nil
-}
-
-func request[Req, Res any](client Client, method string, path string, req *Req) (*Res, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("marshal json: %w", err)
-	}
-
-	httpReq, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.URL, path), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-
-	addHeaders(httpReq, client.Headers)
-	httpReq.Header.Add("Authorization", "Bearer "+client.AccessKey)
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Accept", "application/json")
-
-	resp, err := client.HTTP.Do(httpReq)
 	if err != nil {
 		urlErr := &url.Error{}
 		if errors.As(err, &urlErr) {
@@ -164,24 +119,28 @@ func request[Req, Res any](client Client, method string, path string, req *Req) 
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	if err := checkError(httpReq, resp, body); err != nil {
+	if err := checkError(req, resp, body); err != nil {
 		return nil, err
 	}
 
-	var res Res
-	if err := json.Unmarshal(body, &res); err != nil {
+	var resBody Res
+	if err := json.Unmarshal(body, &resBody); err != nil {
 		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
 	}
 
-	return &res, nil
+	return &resBody, nil
+}
+
+func get[Res any](client Client, path string, query Query) (*Res, error) {
+	return request[EmptyRequest, Res](client, http.MethodGet, path, query, nil)
 }
 
 func post[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
-	return request[Req, Res](client, http.MethodPost, path, req)
+	return request[Req, Res](client, http.MethodPost, path, Query{}, req)
 }
 
 func put[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
-	return request[Req, Res](client, http.MethodPut, path, req)
+	return request[Req, Res](client, http.MethodPut, path, Query{}, req)
 }
 
 func delete(client Client, path string) error {
@@ -219,22 +178,15 @@ func delete(client Client, path string) error {
 	return nil
 }
 
-func addHeaders(req *http.Request, headers http.Header) {
-	req.Header.Set("Infra-Version", clientVersion)
-	for key, values := range headers {
-		req.Header[key] = values
-	}
-}
-
 func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return list[ListResponse[User]](c, "/api/users", map[string][]string{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids})
+	return get[ListResponse[User]](c, "/api/users", Query{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
-	return get[User](c, fmt.Sprintf("/api/users/%s", id))
+	return get[User](c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
 func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
@@ -251,18 +203,18 @@ func (c Client) DeleteUser(id uid.ID) error {
 
 // Deprecated: use ListGrants
 func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, fmt.Sprintf("/api/users/%s/grants", id), nil)
+	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/users/%s/grants", id), Query{})
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
-	return list[ListResponse[Group]](c, "/api/groups", map[string][]string{
+	return get[ListResponse[Group]](c, "/api/groups", Query{
 		"name":   {req.Name},
 		"userID": {req.UserID.String()},
 	})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {
-	return get[Group](c, fmt.Sprintf("/api/groups/%s", id))
+	return get[Group](c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
 func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
@@ -271,15 +223,15 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 
 // Deprecated: use ListGrants
 func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), nil)
+	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), Query{})
 }
 
 func (c Client) ListProviders(name string) (*ListResponse[Provider], error) {
-	return list[ListResponse[Provider]](c, "/api/providers", map[string][]string{"name": {name}})
+	return get[ListResponse[Provider]](c, "/api/providers", Query{"name": {name}})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
-	return get[Provider](c, fmt.Sprintf("/api/providers/%s", id))
+	return get[Provider](c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
 func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
@@ -295,7 +247,7 @@ func (c Client) DeleteProvider(id uid.ID) error {
 }
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
-	return list[ListResponse[Grant]](c, "/api/grants", map[string][]string{
+	return get[ListResponse[Grant]](c, "/api/grants", Query{
 		"user":      {req.User.String()},
 		"group":     {req.Group.String()},
 		"resource":  {req.Resource},
@@ -312,7 +264,7 @@ func (c Client) DeleteGrant(id uid.ID) error {
 }
 
 func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
-	return list[ListResponse[Destination]](c, "/api/destinations", map[string][]string{
+	return get[ListResponse[Destination]](c, "/api/destinations", Query{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
 	})
@@ -331,7 +283,7 @@ func (c Client) DeleteDestination(id uid.ID) error {
 }
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
-	return list[ListResponse[AccessKey]](c, "/api/access-keys", map[string][]string{
+	return get[ListResponse[AccessKey]](c, "/api/access-keys", Query{
 		"user_id": {req.UserID.String()},
 		"name":    {req.Name},
 	})
@@ -359,7 +311,7 @@ func (c Client) Logout() error {
 }
 
 func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
-	return get[SignupEnabledResponse](c, "/api/signup")
+	return get[SignupEnabledResponse](c, "/api/signup", Query{})
 }
 
 func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
@@ -367,7 +319,7 @@ func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
 }
 
 func (c Client) GetServerVersion() (*Version, error) {
-	return get[Version](c, "/api/version")
+	return get[Version](c, "/api/version", Query{})
 }
 
 func partialText(body []byte, limit int) string {
