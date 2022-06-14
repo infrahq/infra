@@ -97,6 +97,8 @@ func execAgent() error {
 		return err
 	}
 
+	logging.S.Debugf("agent started, pid: %d", cmd.Process.Pid)
+
 	return writeAgentConfig(cmd.Process.Pid)
 }
 
