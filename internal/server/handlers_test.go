@@ -14,9 +14,11 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -451,13 +453,11 @@ func TestCreateIdentity(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&id)
 				assert.NilError(t, err)
 				assert.Equal(t, "test-create-identity@example.com", id.Name)
-				assert.Assert(t, id.OneTimePassword == "")
 			},
 		},
 		"new infra user gets one time password": {
 			body: api.CreateUserRequest{
-				Name:               "test-infra-identity@example.com",
-				SetOneTimePassword: true,
+				Name: "test-infra-identity@example.com",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
@@ -471,8 +471,7 @@ func TestCreateIdentity(t *testing.T) {
 		},
 		"existing unlinked user gets password": {
 			body: api.CreateUserRequest{
-				Name:               "existing@example.com",
-				SetOneTimePassword: true,
+				Name: "existing@example.com",
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
@@ -491,6 +490,150 @@ func TestCreateIdentity(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+// Note this test is the result of a long conversation, don't change lightly.
+func TestCreateUserAndUpdatePassword(t *testing.T) {
+	db := setupDB(t)
+	a := &API{server: &Server{db: db}}
+	admin := createAdmin(t, db)
+
+	t.Run("with an IDP user existing", func(t *testing.T) {
+		idp := &models.Provider{Name: "Super Provider"}
+		err := data.CreateProvider(db, idp)
+		assert.NilError(t, err)
+
+		user := &models.Identity{Name: "user@example.com"}
+
+		err = data.CreateIdentity(db, user)
+		assert.NilError(t, err)
+
+		_, err = data.CreateProviderUser(db, idp, user)
+		assert.NilError(t, err)
+
+		t.Run("as an admin", func(t *testing.T) {
+			ctx := loginAs(db, admin)
+			t.Run("I can set passwords for IDP users ", func(t *testing.T) {
+				// (which creates the infra user)
+				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
+					ID:       user.ID,
+					Password: "1234567890987654321a!",
+				})
+				assert.NilError(t, err)
+				_, err = data.GetProviderUser(db, data.InfraProvider(db).ID, user.ID)
+				assert.NilError(t, err)
+				cred, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+				assert.NilError(t, err)
+				assert.Equal(t, true, cred.OneTimePassword)
+			})
+		})
+		t.Run("as a user", func(t *testing.T) {
+			ctx := loginAs(db, user)
+			t.Run("with no existing infra user", func(t *testing.T) {
+				err = data.DeleteProviderUsers(db, data.ByIdentityID(user.ID), data.ByProviderID(data.InfraProvider(db).ID))
+				assert.NilError(t, err)
+
+				cred, _ := data.GetCredential(db, data.ByIdentityID(user.ID))
+				if cred != nil {
+					_ = data.DeleteCredential(db, cred.ID)
+				}
+
+				t.Run("I cannot set a password", func(t *testing.T) {
+					_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
+						ID:       user.ID,
+						Password: "1234567890987654321a!",
+					})
+					assert.Error(t, err, "existing credential: record not found")
+				})
+			})
+			t.Run("with an existing infra user", func(t *testing.T) {
+				_, _ = data.CreateProviderUser(db, data.InfraProvider(db), user)
+
+				_ = data.CreateCredential(db, &models.Credential{
+					IdentityID:   user.ID,
+					PasswordHash: []byte("random password"),
+				})
+
+				t.Run("I can change my password", func(t *testing.T) {
+					_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
+						ID:       user.ID,
+						Password: "1234567890987654321a!",
+					})
+					assert.NilError(t, err)
+				})
+			})
+		})
+	})
+	t.Run("without an IDP user existing", func(t *testing.T) {
+		t.Run("as an admin", func(t *testing.T) {
+			ctx := loginAs(db, admin)
+			var tmpUserID uid.ID
+
+			t.Run("I can create a user", func(t *testing.T) {
+				resp, err := a.CreateUser(ctx, &api.CreateUserRequest{
+					Name: "joe+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
+				})
+				tmpUserID = resp.ID
+				assert.NilError(t, err)
+			})
+
+			t.Run("I can change a password for a user", func(t *testing.T) {
+				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
+					ID:       tmpUserID,
+					Password: "123454676twefdhsds",
+				})
+				assert.NilError(t, err)
+			})
+		})
+		t.Run("as a user", func(t *testing.T) {
+			user := &models.Identity{Name: "user2@example.com"}
+
+			err := data.CreateIdentity(db, user)
+			assert.NilError(t, err)
+
+			_, err = data.CreateProviderUser(db, data.InfraProvider(db), user)
+			assert.NilError(t, err)
+
+			err = data.CreateCredential(db, &models.Credential{
+				IdentityID:   user.ID,
+				PasswordHash: []byte("random password"),
+			})
+			assert.NilError(t, err)
+
+			ctx := loginAs(db, user)
+			t.Run("I can change my password", func(t *testing.T) {
+				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
+					ID:       user.ID,
+					Password: "123454676twefdhsds",
+				})
+				assert.NilError(t, err)
+			})
+		})
+	})
+}
+
+func createAdmin(t *testing.T, db *gorm.DB) *models.Identity {
+	user := &models.Identity{
+		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
+	}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(user.ID),
+		Resource:  models.InternalInfraProviderName,
+		Privilege: models.InfraAdminRole,
+	})
+	assert.NilError(t, err)
+
+	return user
+}
+
+func loginAs(db *gorm.DB, user *models.Identity) *gin.Context {
+	ctx, _ := gin.CreateTestContext(nil)
+	ctx.Set("db", db)
+	ctx.Set("identity", user)
+	return ctx
 }
 
 func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {
@@ -752,7 +895,7 @@ var cmpApproximateTime = gocmp.Comparer(func(x, y interface{}) bool {
 	if xd.After(yd) {
 		xd, yd = yd, xd
 	}
-	return yd.Sub(xd) < 2*time.Second
+	return yd.Sub(xd) < 30*time.Second
 })
 
 // cmpAnyValidUID is a gocmp.Option that allows a field to match any valid uid.ID,
@@ -943,6 +1086,7 @@ func TestAPI_GetUser(t *testing.T) {
 						"name": "me@example.com",
 						"lastSeenAt": "%[2]v",
 						"created": "%[2]v",
+						"providerNames": ["infra"],
 						"updated": "%[2]v"
 					}`,
 					idMe.String(),

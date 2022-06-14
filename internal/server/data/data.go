@@ -194,11 +194,23 @@ func handleError(err error) error {
 		})
 
 		// fields = [UNIQUE, constraint, failed:, <table>, column>]
-		if len(fields) == 5 {
-			return UniqueConstraintError{Table: fields[3], Column: fields[4]}
-		}
+		switch len(fields) {
+		case 5, 7, 9, 11:
+			col := fields[4]
+			i := 6
+			for i < len(fields) {
+				col += fields[i]
+				i += 2
+			}
+			return UniqueConstraintError{
+				Table:  fields[3],
+				Column: col,
+			}
+		default:
+			logging.S.Warnf("unhandled unique constraint error format: %q", err.Error())
 
-		return UniqueConstraintError{}
+			return UniqueConstraintError{}
+		}
 	}
 
 	return err

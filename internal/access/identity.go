@@ -16,9 +16,9 @@ import (
 )
 
 // isIdentitySelf is used by authorization checks to see if the calling identity is requesting their own attributes
-func isIdentitySelf(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
+func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
 	identity := AuthenticatedIdentity(c)
-	return identity != nil && identity.ID == requestedResourceID, nil
+	return identity != nil && identity.ID == userID, nil
 }
 
 // AuthenticatedIdentity returns the identity that is associated with the access key

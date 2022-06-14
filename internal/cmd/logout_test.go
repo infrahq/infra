@@ -46,13 +46,13 @@ func TestLogout(t *testing.T) {
 		t.Cleanup(srv2.Close)
 
 		cfg := ClientConfig{
-			Version: clientConfigVersion,
+			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
 			Hosts: []ClientHostConfig{
 				{
 					Name:          "user1",
 					Host:          srv.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
-					PolymorphicID: "pid1",
+					UserID:        1,
 					SkipTLSVerify: true,
 					Current:       true,
 				},
@@ -60,7 +60,7 @@ func TestLogout(t *testing.T) {
 					Name:          "user2",
 					Host:          srv2.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
-					PolymorphicID: "pid2",
+					UserID:        2,
 					SkipTLSVerify: true,
 				},
 			},
@@ -108,13 +108,13 @@ func TestLogout(t *testing.T) {
 		t.Cleanup(srv.Close)
 
 		cfg := ClientConfig{
-			Version: clientConfigVersion,
+			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
 			Hosts: []ClientHostConfig{
 				{
 					Name:          "user1",
 					Host:          srv.Listener.Addr().String(),
 					AccessKey:     "the-access-key",
-					PolymorphicID: "pid1",
+					UserID:        1,
 					SkipTLSVerify: true,
 					Current:       true,
 				},
@@ -172,7 +172,7 @@ func TestLogout(t *testing.T) {
 		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
-		expected.Hosts[0].PolymorphicID = ""
+		expected.Hosts[0].UserID = 0
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -193,7 +193,7 @@ func TestLogout(t *testing.T) {
 		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
-		expected.Hosts[0].PolymorphicID = ""
+		expected.Hosts[0].UserID = 0
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -214,7 +214,7 @@ func TestLogout(t *testing.T) {
 		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
-		expected.Hosts[0].PolymorphicID = ""
+		expected.Hosts[0].UserID = 0
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		kubeconfig := expectedKubeCfg
@@ -256,10 +256,10 @@ func TestLogout(t *testing.T) {
 		expected := testFields.config
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
-		expected.Hosts[0].PolymorphicID = ""
+		expected.Hosts[0].UserID = 0
 		expected.Hosts[1].AccessKey = ""
 		expected.Hosts[1].Name = ""
-		expected.Hosts[1].PolymorphicID = ""
+		expected.Hosts[1].UserID = 0
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -277,7 +277,7 @@ func TestLogout(t *testing.T) {
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := ClientConfig{Version: clientConfigVersion}
+		expected := ClientConfig{ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion}}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()

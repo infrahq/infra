@@ -20,6 +20,12 @@ var apiVersion = "0.13.0"
 
 var ErrTimeout = errors.New("client timed out waiting for response from server")
 
+const (
+	InfraAdminRole     = "admin"
+	InfraViewRole      = "view"
+	InfraConnectorRole = "connector"
+)
+
 type Client struct {
 	Name      string
 	Version   string

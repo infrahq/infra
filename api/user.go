@@ -24,9 +24,9 @@ type ListUsersRequest struct {
 	PaginationRequest
 }
 
+// CreateUserRequest is only for creating users with the Infra provider
 type CreateUserRequest struct {
-	Name               string `json:"name" validate:"email,required"`
-	SetOneTimePassword bool   `json:"setOneTimePassword"`
+	Name string `json:"name" validate:"email,required"`
 }
 
 type CreateUserResponse struct {

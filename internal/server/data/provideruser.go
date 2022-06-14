@@ -42,8 +42,8 @@ func ListProviderUsers(db *gorm.DB, selectors ...SelectorFunc) ([]models.Provide
 	return list[models.ProviderUser](db, selectors...)
 }
 
-func DeleteProviderUsers(db *gorm.DB, selector SelectorFunc) error {
-	return deleteAll[models.ProviderUser](db, selector)
+func DeleteProviderUsers(db *gorm.DB, selectors ...SelectorFunc) error {
+	return deleteAll[models.ProviderUser](db, selectors...)
 }
 
 func GetProviderUser(db *gorm.DB, providerID, userID uid.ID) (*models.ProviderUser, error) {

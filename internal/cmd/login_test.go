@@ -25,6 +25,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+var anyUID = uid.ID(-1)
+
 func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
 
@@ -73,7 +75,7 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 			{
 				Name:          "admin@example.com",
 				AccessKey:     "any-access-key",
-				PolymorphicID: "any-id",
+				UserID:        anyUID,
 				Host:          srv.Addrs.HTTPS.String(),
 				SkipTLSVerify: true,
 				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
@@ -100,7 +102,7 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 			{
 				Name:          "admin@example.com",
 				AccessKey:     "any-access-key",
-				PolymorphicID: "any-id",
+				UserID:        anyUID,
 				Host:          srv.Addrs.HTTPS.String(),
 				SkipTLSVerify: true,
 				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
@@ -158,12 +160,11 @@ func TestLoginCmd_Options(t *testing.T) {
 	runStep(t, "login updated infra config", func(t *testing.T) {
 		cfg, err := readConfig()
 		assert.NilError(t, err)
-
 		expected := []ClientHostConfig{
 			{
 				Name:          "admin@example.com",
 				AccessKey:     adminAccessKey,
-				PolymorphicID: "any-id",
+				UserID:        anyUID,
 				Host:          srv.Addrs.HTTPS.String(),
 				SkipTLSVerify: true,
 				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
@@ -188,8 +189,8 @@ var cmpClientHostConfig = cmp.Options{
 		opt.PathField(ClientHostConfig{}, "AccessKey"),
 		cmpStringNotZero),
 	cmp.FilterPath(
-		opt.PathField(ClientHostConfig{}, "PolymorphicID"),
-		cmpPolymorphicIDNotZero),
+		opt.PathField(ClientHostConfig{}, "UserID"),
+		cmpUserIDNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "Expires"),
 		cmpApiTimeWithThreshold(20*time.Second)),
@@ -210,8 +211,8 @@ var cmpStringNotZero = cmp.Comparer(func(x, y string) bool {
 	return x != "" && y != ""
 })
 
-var cmpPolymorphicIDNotZero = cmp.Comparer(func(x, y uid.PolymorphicID) bool {
-	return x != "" && y != ""
+var cmpUserIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
+	return x != 0 && y != 0
 })
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
@@ -374,7 +375,7 @@ func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
 			{
 				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
-				PolymorphicID:      "any-id",
+				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
 				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
 				Current:            true,
@@ -404,7 +405,7 @@ func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
 			{
 				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
-				PolymorphicID:      "any-id",
+				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
 				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
 				Current:            true,

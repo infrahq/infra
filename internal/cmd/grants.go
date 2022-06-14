@@ -315,7 +315,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	if userID == 0 && !cmdOptions.IsGroup {
-		user, err := createUser(client, cmdOptions.Name, false)
+		user, err := createUser(client, cmdOptions.Name)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.S.Debug(err)

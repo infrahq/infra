@@ -26,7 +26,6 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/uid"
 )
 
 type loginCmdOptions struct {
@@ -254,11 +253,11 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 // Updates all configs with the current logged in session
 func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
-		Current:       true,
-		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.UserID),
-		Name:          loginRes.Name,
-		AccessKey:     loginRes.AccessKey,
-		Expires:       loginRes.Expires,
+		Current:   true,
+		UserID:    loginRes.UserID,
+		Name:      loginRes.Name,
+		AccessKey: loginRes.AccessKey,
+		Expires:   loginRes.Expires,
 	}
 
 	t, ok := lc.APIClient.HTTP.Transport.(*http.Transport)
@@ -318,7 +317,7 @@ func oidcflow(host string, clientId string) (string, error) {
 	}
 
 	// the state makes sure we are getting the correct response for our request
-	state, err := generate.CryptoRandom(12)
+	state, err := generate.CryptoRandom(12, generate.CharsetAlphaNumeric)
 	if err != nil {
 		return "", err
 	}

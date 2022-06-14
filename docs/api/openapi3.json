@@ -3468,9 +3468,6 @@
                   "name": {
                     "format": "email",
                     "type": "string"
-                  },
-                  "setOneTimePassword": {
-                    "type": "boolean"
                   }
                 },
                 "required": [

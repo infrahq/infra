@@ -268,10 +268,12 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 		user.ID = uid.New()
 	}
 	return ClientConfig{
-		Version: clientConfigVersion,
+		ClientConfigVersion: ClientConfigVersion{
+			Version: clientConfigVersion,
+		},
 		Hosts: []ClientHostConfig{
 			{
-				PolymorphicID:      uid.NewIdentityPolymorphicID(user.ID),
+				UserID:             user.ID,
 				Name:               user.Name,
 				Host:               srv.Listener.Addr().String(),
 				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),

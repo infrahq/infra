@@ -109,7 +109,7 @@ func TestCheckAccessKeySecret(t *testing.T) {
 		_, err := ValidateAccessKey(db, body)
 		assert.NilError(t, err)
 
-		random := generate.MathRandom(models.AccessKeySecretLength)
+		random := generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric)
 		authorization := fmt.Sprintf("%s.%s", strings.Split(body, ".")[0], random)
 
 		_, err = ValidateAccessKey(db, authorization)
