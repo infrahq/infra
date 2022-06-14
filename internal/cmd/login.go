@@ -28,12 +28,12 @@ import (
 )
 
 type loginCmdOptions struct {
-	Server            string
-	AccessKey         string
-	Provider          string
-	SkipTLSVerify     bool
-	NoBackgroundAgent bool
-	NonInteractive    bool
+	Server         string
+	AccessKey      string
+	Provider       string
+	SkipTLSVerify  bool
+	NoAgent        bool
+	NonInteractive bool
 }
 
 type loginMethod int8
@@ -78,7 +78,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 	cmd.Flags().StringVar(&options.AccessKey, "key", "", "Login with an access key")
 	cmd.Flags().StringVar(&options.Provider, "provider", "", "Login with an identity provider")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
-	cmd.Flags().BoolVar(&options.NoBackgroundAgent, "no-agent", false, "Skip starting the Infra agent in the background")
+	cmd.Flags().BoolVar(&options.NoAgent, "no-agent", false, "Skip starting the Infra agent in the background")
 	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
 }
@@ -114,7 +114,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 			return err
 		}
 
-		return loginToInfra(cli, client, loginReq, options.NoBackgroundAgent)
+		return loginToInfra(cli, client, loginReq, options.NoAgent)
 	}
 
 	switch {
@@ -156,10 +156,10 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
-	return loginToInfra(cli, client, loginReq, options.NoBackgroundAgent)
+	return loginToInfra(cli, client, loginReq, options.NoAgent)
 }
 
-func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, skipAgent bool) error {
+func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAgent bool) error {
 	logging.S.Debug("call server: login")
 	loginRes, err := client.Login(loginReq)
 	if err != nil {
@@ -215,13 +215,13 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, skip
 		logging.S.Errorf("unable to check background agent: %v", err)
 	}
 
-	if !backgroundAgentRunning && !skipAgent {
+	if !backgroundAgentRunning && !noAgent {
 		// the agent is started in a separate command so that it continues after the login command has finished
 		if err := execAgent(); err != nil {
 			// user still has a valid session, so do not fail
 			logging.S.Errorf("Unable to start agent, destinations will not be updated automatically: %w", err)
 		}
-		fmt.Fprintf(cli.Stderr, "  Infra is now running in the background\n")
+		fmt.Fprintf(cli.Stderr, "  Infra Agent is now running in the background\n")
 	}
 
 	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
