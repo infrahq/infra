@@ -3,7 +3,6 @@ package data
 import (
 	"encoding/base64"
 	"errors"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -47,23 +46,5 @@ func ByPublicKey(key []byte) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		k := base64.StdEncoding.EncodeToString(key)
 		return db.Where("public_key = ?", k)
-	}
-}
-
-func OrderBy(order string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Order(order)
-	}
-}
-
-func Limit(limit int) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Limit(limit)
-	}
-}
-
-func ByNotExpired() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("expires_at is null or expires_at > ?", time.Now().UTC())
 	}
 }

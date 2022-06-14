@@ -331,7 +331,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name)
+	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired)
 	if err != nil {
 		return nil, err
 	}

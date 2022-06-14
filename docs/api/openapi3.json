@@ -724,6 +724,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "show_expired",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
