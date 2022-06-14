@@ -383,10 +383,6 @@ server:
 
   ## Primary server configuration
   config: {}
-
-  ## (DEPRECATED) Infra server admin access key. Use server.config.additionalUsers instead.
-  #   adminAccessKey: ""
-
   ## Database name
   #   dbName: ""
 

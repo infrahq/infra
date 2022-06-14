@@ -48,17 +48,7 @@
 {{- end }}
 
 {{- if .Values.server.config.adminAccessKey }}
-
-################################# WARNING ######################################
-
-  server.config.adminAccessKey is deprecated and will be removed in a
-  future update. Please migrate to server.additionalUsers:
-
-  server:
-    additionalUsers:
-      - name: admin
-        accessKey: {{ .Values.server.config.adminAccessKey }}
-
+{{- fail "`server.config.adminAccessKey` is no longer supported. Please migrate to `server.additionalUsers`" }}
 {{- end }}
 
 {{- else if include "connector.enabled" . | eq "true" }}

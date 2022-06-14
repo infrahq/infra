@@ -146,13 +146,6 @@ Server 'env' values. Merges global and local values.
 {{- define "server.env" -}}
 {{- $env := concat .Values.server.env .Values.global.env }}
 
-{{- if .Values.server.config.adminAccessKey -}}
-{{- $adminAccessKey := .Values.server.config.adminAccessKey -}}
-{{- if and (not (hasPrefix "file:" $adminAccessKey)) (not (hasPrefix "env:" $adminAccessKey)) }}
-{{- $env = append $env (dict "name" "ADMIN_ACCESS_KEY" "valueFrom" (dict "secretKeyRef" (dict "name" (printf "%s-admin-access-key" .Release.Name) "key" "access-key"))) }}
-{{- end }}
-{{- end }}
-
 {{- if include "connector.enabled" . | eq "true" -}}
 {{- $accessKey := default "" .Values.connector.config.accessKey -}}
 {{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
