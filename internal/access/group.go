@@ -83,3 +83,40 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 
 	return data.DeleteGroups(db, selectors...)
 }
+
+func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uidsToRemove []uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return err
+	}
+
+	_, err = data.GetGroup(db, data.ByID(groupID))
+	if err != nil {
+		return err
+	}
+
+	var toAdd []models.Identity
+	var toRemove []models.Identity
+
+	for _, userID := range uidsToAdd {
+		identity, err := data.GetIdentity(db, data.ByID(userID))
+		if err != nil {
+			return err
+		}
+		toAdd = append(toAdd, *identity)
+	}
+
+	for _, userID := range uidsToRemove {
+		identity, err := data.GetIdentity(db, data.ByID(userID))
+		if err != nil {
+			return err
+		}
+		toRemove = append(toRemove, *identity)
+	}
+
+	err = data.AddUsersToGroup(db, groupID, toAdd)
+	if err != nil {
+		return err
+	}
+	return data.RemoveUsersFromGroup(db, groupID, toRemove)
+}

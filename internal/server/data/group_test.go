@@ -179,3 +179,41 @@ func TestRecreateGroupSameName(t *testing.T) {
 		assert.NilError(t, err)
 	})
 }
+
+func TestAddUsersToGroup(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var everyone = models.Group{Name: "Everyone"}
+		createGroups(t, db, &everyone)
+
+		var (
+			bond   = models.Identity{
+				Name: "jbond@infrahq.com",
+				Groups: []models.Group{everyone},
+			}
+			bourne = models.Identity{
+				Name: "jbourne@infrahq.com",
+				Groups: []models.Group{},
+			}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com",
+				Groups: []models.Group{},
+			}
+		)
+
+		createIdentities(t, db, &bond, &bourne, &bauer)
+
+		t.Run("add identities to group", func(t *testing.T) {
+			actual, err := ListIdentitiesByGroup(db, everyone.ID)
+			assert.NilError(t, err)
+			expected := []models.Identity{bond}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+			err = AddUsersToGroup(db, everyone.ID, []models.Identity{bourne, bauer})
+			assert.NilError(t, err)
+
+			actual, err = ListIdentitiesByGroup(db, everyone.ID)
+			assert.NilError(t, err)
+			expected = []models.Identity{bauer, bond, bourne}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+		})
+	})
+}

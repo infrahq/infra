@@ -42,7 +42,37 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 		if err != nil {
 			return err
 		}
+
+		identities, err := ListIdentitiesByGroup(db, g.ID, []SelectorFunc{}...)
+		if err != nil {
+			return err
+		}
+
+		err = RemoveUsersFromGroup(db, g.ID, identities)
+		if err != nil {
+			return err
+		}
 	}
 
 	return deleteAll[models.Group](db, ByIDs(ids))
+}
+
+func AddUsersToGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
+	for _, id := range identities {
+		err := db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", id.ID, groupID).Error
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
+	for _, id := range identities {
+		err := db.Exec("delete from identities_groups where identity_id = ? and group_id = ?", id.ID, groupID).Error
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

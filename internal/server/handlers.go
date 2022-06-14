@@ -174,6 +174,22 @@ func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	return nil, access.DeleteGroup(c, r.ID)
 }
 
+func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
+	var usersToAdd []uid.ID
+	var usersToRemove []uid.ID
+
+	for _, req := range r.Requests {
+		switch req.Method {
+		case "add":
+			usersToAdd = append(usersToAdd, req.UserID)
+		case "remove":
+			usersToRemove = append(usersToRemove, req.UserID)
+		}
+	}
+
+	return nil, access.UpdateUsersInGroup(c, r.ID, usersToAdd, usersToRemove)
+}
+
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}
