@@ -25,6 +25,7 @@ type Provider struct {
 	URL          string `validate:"required"`
 	ClientID     string `validate:"required"`
 	ClientSecret string `validate:"required"`
+	Kind         string
 }
 
 type Grant struct {
@@ -533,6 +534,7 @@ func (s Server) loadConfig(config Config) error {
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
 			Name: models.InternalInfraProviderName,
+			Kind: models.InfraKind.String(),
 		})
 
 		config.Users = append(config.Users, User{
@@ -593,6 +595,12 @@ func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
 }
 
 func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+	// provider kind is an optional field
+	kind, err := models.ParseProviderKind(input.Kind)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse provider in config load: %w", err)
+	}
+
 	provider, err := data.GetProvider(db, data.ByName(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -604,6 +612,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
 		}
 
@@ -618,6 +627,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.Kind = kind
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err

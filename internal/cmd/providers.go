@@ -63,11 +63,12 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				type row struct {
 					Name string `header:"NAME"`
 					URL  string `header:"URL"`
+					Kind string `header:"KIND"`
 				}
 
 				var rows []row
 				for _, p := range providers.Items {
-					rows = append(rows, row{Name: p.Name, URL: p.URL})
+					rows = append(rows, row{Name: p.Name, URL: p.URL, Kind: p.Kind})
 				}
 
 				if len(rows) > 0 {
@@ -88,6 +89,7 @@ type providerAddOptions struct {
 	URL          string
 	ClientID     string
 	ClientSecret string
+	Kind         string
 }
 
 func (o providerAddOptions) Validate() error {
@@ -138,6 +140,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				URL:          opts.URL,
 				ClientID:     opts.ClientID,
 				ClientSecret: opts.ClientSecret,
+				Kind:         opts.Kind,
 			})
 			if err != nil {
 				return err
@@ -151,6 +154,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 	cmd.Flags().StringVar(&opts.URL, "url", "", "Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)")
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
+	cmd.Flags().StringVar(&opts.Kind, "kind", "", "The identity provider kind. One of 'oidc, okta, azure, or google'")
 	return cmd
 }
 

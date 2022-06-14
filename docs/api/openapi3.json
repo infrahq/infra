@@ -548,6 +548,10 @@
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
+                "kind": {
+                  "example": "oidc",
+                  "type": "string"
+                },
                 "name": {
                   "example": "okta",
                   "type": "string"
@@ -692,6 +696,10 @@
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "kind": {
+            "example": "oidc",
             "type": "string"
           },
           "name": {
@@ -2695,6 +2703,16 @@
                     "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                     "type": "string"
                   },
+                  "kind": {
+                    "enum": [
+                      "oidc",
+                      "okta",
+                      "azure",
+                      "google"
+                    ],
+                    "example": "oidc",
+                    "type": "string"
+                  },
                   "name": {
                     "example": "okta",
                     "type": "string"
@@ -2980,6 +2998,16 @@
                   },
                   "clientSecret": {
                     "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "oidc",
+                      "okta",
+                      "azure",
+                      "google"
+                    ],
+                    "example": "oidc",
                     "type": "string"
                   },
                   "name": {

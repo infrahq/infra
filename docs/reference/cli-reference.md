@@ -508,6 +508,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 ```
       --client-id string       OIDC client ID
       --client-secret string   OIDC client secret
+      --kind string            The identity provider kind. One of 'oidc, okta, azure, or google'
       --url string             Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
 ```
 

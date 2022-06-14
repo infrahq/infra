@@ -471,6 +471,24 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
+		// add kind to providers
+		{
+			ID: "202206151027",
+			Migrate: func(tx *gorm.DB) error {
+				if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
+					logging.S.Debug("migrating provider table kind")
+					if err := tx.Migrator().AddColumn(&models.Provider{}, "kind"); err != nil {
+						return err
+					}
+				}
+
+				db := tx.Begin()
+
+				db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
+
+				return db.Commit().Error
+			},
+		},
 		// next one here
 	})
 

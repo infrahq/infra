@@ -13,7 +13,8 @@ To connect an OIDC identity provider, run the following command:
 infra providers add <your oidc provider name> \
   --url <your oidc provider url (or domain)> \
   --client-id <your oidc client id> \
-  --client-secret <your oidc client secret>
+  --client-secret <your oidc client secret> \
+  --kind oidc
 ```
 
 
