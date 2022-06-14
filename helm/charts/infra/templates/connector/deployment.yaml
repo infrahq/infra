@@ -31,7 +31,15 @@ spec:
 {{- toYaml .Values.connector.securityContext | nindent 12 }}
           image: "{{ include "connector.image.repository" . }}:{{ include "connector.image.tag" . }}"
           imagePullPolicy: {{ include "connector.image.pullPolicy" . }}
-          args: ["connector", "-f", "/etc/infrahq/infra.yaml"]
+          args:
+            - connector
+            - -f
+            - /etc/infrahq/infra.yaml
+# set log level through command line parameters since its not possible to set using configuration file values
+{{- with .Values.server.config.logLevel }}
+            - --log-level
+            - {{ . }}
+{{- end }}
           env:
 {{- include "connector.env" . | nindent 12 }}
           envFrom:
