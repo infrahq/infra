@@ -301,8 +301,6 @@ func FuzzID_Parse_RoundTrip_FromString(f *testing.F) {
 	testCases := []string{
 		"self",
 		"abcdefghi",
-		"123456789",
-		"1",
 		"gbtNrmnJkvA",
 		"dbtNrmnJkvA",
 		"btNrmnJkvA",
@@ -331,10 +329,31 @@ func FuzzID_Parse_RoundTrip_FromString(f *testing.F) {
 	})
 }
 
+func TestNormalizesLeadingZeroValue(t *testing.T) {
+	testCases := []string{
+		"123456789",
+		"1",
+		"111111111111111114",
+		"",
+	}
+	for _, tc := range testCases {
+		t.Run(tc, func(t *testing.T) {
+			id, err := Parse([]byte(tc))
+			assert.NilError(t, err)
+
+			// normalization is stable.
+			id2, err := Parse(id.Bytes())
+			assert.NilError(t, err)
+
+			assert.Equal(t, id2, id)
+			assert.Equal(t, id2.String(), id.String())
+		})
+	}
+
+}
+
 func shouldError(input string) bool {
 	switch {
-	case strings.HasPrefix(input, "1"):
-		return true
 	case len(input) > 11:
 		return true
 	}
