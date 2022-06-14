@@ -206,6 +206,8 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 
 		return err
 	}
+	// Update the API client with the new access key from login
+	lc.APIClient.AccessKey = loginRes.AccessKey
 
 	if loginRes.PasswordUpdateRequired {
 		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
@@ -216,7 +218,6 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		}
 
 		logging.S.Debugf("call server: update user %s", loginRes.UserID)
-		lc.APIClient.AccessKey = loginRes.AccessKey
 		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			return err
 		}
@@ -228,7 +229,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		return err
 	}
 
-	if err := updateKubeconfig(lc.APIClient, loginRes.UserID); err != nil {
+	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
 		return err
 	}
 

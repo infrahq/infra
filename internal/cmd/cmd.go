@@ -153,7 +153,7 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			err = updateKubeconfig(client, id)
+			err = updateKubeConfig(client, id)
 			if err != nil {
 				return err
 			}
