@@ -36,7 +36,7 @@ spec:
             - -f
             - /etc/infrahq/infra.yaml
 # set log level through command line parameters since its not possible to set using configuration file values
-{{- with .Values.server.config.logLevel }}
+{{- with .Values.connector.config.logLevel }}
             - --log-level
             - {{ . }}
 {{- end }}
