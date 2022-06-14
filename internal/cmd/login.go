@@ -24,16 +24,16 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 )
 
 type loginCmdOptions struct {
-	Server        string
-	AccessKey     string
-	Provider      string
-	SkipTLSVerify bool
-	// TODO: add flag for trusted certificate
+	Server             string
+	AccessKey          string
+	Provider           string
+	SkipTLSVerify      bool
 	TrustedCertificate string
 	NonInteractive     bool
 	NoAgent            bool
@@ -81,6 +81,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 	cmd.Flags().StringVar(&options.AccessKey, "key", "", "Login with an access key")
 	cmd.Flags().StringVar(&options.Provider, "provider", "", "Login with an identity provider")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
+	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
 	cmd.Flags().BoolVar(&options.NoAgent, "no-agent", false, "Skip starting the Infra agent in the background")
 	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
@@ -427,11 +428,12 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 		}
 
 		if options.NonInteractive {
-			// TODO: add the --tls-ca flag
-			// TODO: give a different error if the flag was set
+			if options.TrustedCertificate != "" {
+				return c, err
+			}
 			return c, Error{
 				Message: "The authenticity of the server could not be verified. " +
-					"Use the --tls-ca flag to specify a trusted CA, or run " +
+					"Use the --tls-trusted-cert flag to specify a trusted CA, or run " +
 					"in interactive mode.",
 			}
 		}

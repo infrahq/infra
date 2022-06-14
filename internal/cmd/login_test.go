@@ -414,4 +414,37 @@ func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
 		}
 		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
 	})
+
+	runStep(t, "login with trusted cert", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		err := Run(ctx, "logout", "--clear")
+		assert.NilError(t, err)
+
+		err = Run(ctx, "login",
+			"--tls-trusted-cert", "testdata/pki/localhost.crt",
+			"--key", accessKey,
+			srv.Addrs.HTTPS.String())
+		assert.NilError(t, err)
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		// Check the client config
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin@example.com",
+				AccessKey:          "any-access-key",
+				PolymorphicID:      "any-id",
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: string(cert),
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
 }
