@@ -421,7 +421,7 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 	}
 
 	// Prompt user only if server fails the TLS verification
-	if err := attemptTLSRequest(c.APIClient); err != nil {
+	if err := attemptTLSRequest(options); err != nil {
 		var uaErr x509.UnknownAuthorityError
 		if !errors.As(err, &uaErr) {
 			return c, err
@@ -459,15 +459,43 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 	return c, nil
 }
 
-func attemptTLSRequest(client *api.Client) error {
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, client.URL, nil)
+func attemptTLSRequest(options loginCmdOptions) error {
+	reqURL := "https://" + options.Server
+	// First attempt with the system cert pool
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	logging.S.Debugf("call server: test tls for %q", client.URL)
+	logging.S.Debugf("call server: test tls for %q", reqURL)
+	httpClient := http.Client{Timeout: 60 * time.Second}
+	res, err := httpClient.Do(req)
+	if err == nil {
+		res.Body.Close()
+		return nil
+	}
+
+	// Second attempt with an empty cert pool. This is necessary because at least
+	// on darwin, the error is the wrong type when using the system cert pool.
+	// See https://github.com/golang/go/issues/53401.
+	req, err = http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	pool := x509.NewCertPool()
+	if options.TrustedCertificate != "" {
+		pool.AppendCertsFromPEM([]byte(options.TrustedCertificate))
+	}
+
+	httpClient = http.Client{
+		Timeout: 60 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+		},
+	}
+	res, err = httpClient.Do(req)
 	urlErr := &url.Error{}
-	res, err := client.HTTP.Do(req)
 	switch {
 	case err == nil:
 		res.Body.Close()

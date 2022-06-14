@@ -104,7 +104,7 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 	if config.TrustedCertificate != "" {
 		ok := pool.AppendCertsFromPEM([]byte(config.TrustedCertificate))
 		if !ok {
-			logging.S.Warnf("Failed to read trusted certificates for server: %v", err)
+			logging.S.Warnf("Failed to read trusted certificates for server")
 		}
 	}
 
