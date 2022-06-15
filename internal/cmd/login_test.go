@@ -197,6 +197,9 @@ func newConsole(t *testing.T) *expect.Console {
 		expect.WithCloser(pseudoTY, tty))
 	assert.NilError(t, err)
 	t.Cleanup(func() {
+		// make sure stdout has newlines to prevent test2json parse failures,
+		// and leaking control sequences to stdout.
+		t.Log("\n")
 		console.Close()
 	})
 	return console
