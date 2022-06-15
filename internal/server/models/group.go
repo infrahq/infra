@@ -10,7 +10,7 @@ type Group struct {
 
 	Name              string `gorm:"uniqueIndex:idx_groups_name,where:deleted_at is NULL"`
 	CreatedBy         uid.ID
-	CreatedByProvider bool
+	CreatedByProvider uid.ID
 
 	Identities []Identity `gorm:"many2many:identities_groups"`
 }

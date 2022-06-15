@@ -157,6 +157,11 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 		Name: r.Name,
 	}
 
+	authIdent := access.AuthenticatedIdentity(c)
+	if authIdent != nil {
+		group.CreatedBy = authIdent.ID
+	}
+
 	err := access.CreateGroup(c, group)
 	if err != nil {
 		return nil, err

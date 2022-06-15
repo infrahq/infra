@@ -116,7 +116,7 @@ func newGroupsAddCmd(cli *CLI) *cobra.Command {
 		Short: "Create a group",
 		Args:  ExactArgs(1),
 		Example: `# Create a group
-$ infra groups add 'Engineering'`,
+$ infra groups add Engineering`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -135,13 +135,15 @@ $ infra groups add 'Engineering'`,
 }
 
 func newGroupsRemoveCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var force bool
+
+	cmd := &cobra.Command{
 		Use:     "remove GROUP",
 		Aliases: []string{"rm"},
 		Short:   "Delete a group",
 		Args:    ExactArgs(1),
 		Example: `# Delete a group
-$ infra groups remove 'Engineering'`,
+$ infra groups remove Engineering`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
@@ -155,7 +157,7 @@ $ infra groups remove 'Engineering'`,
 				return err
 			}
 
-			if groups.Count == 0 {
+			if groups.Count == 0 && !force {
 				return fmt.Errorf("unknown group %q", name)
 			}
 
@@ -169,4 +171,8 @@ $ infra groups remove 'Engineering'`,
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if the group does not exist")
+
+	return cmd
 }
