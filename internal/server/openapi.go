@@ -160,6 +160,13 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				for j := 0; j < f.Type.NumField(); j++ {
+					af := f.Type.Field(j)
+					schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
+				}
+				continue
+			}
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
@@ -437,6 +444,16 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 	case reflect.Struct:
 		for i := 0; i < r.NumField(); i++ {
 			f := r.Field(i)
+
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				tmpOp := openapi3.NewOperation()
+
+				buildRequest(f.Type, tmpOp)
+				for _, param := range tmpOp.Parameters {
+					op.AddParameter(param.Value)
+				}
+				continue
+			}
 
 			// check first if it's a json field
 			if name, ok := f.Tag.Lookup("json"); ok {

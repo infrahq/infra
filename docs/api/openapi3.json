@@ -301,6 +301,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -370,6 +383,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -431,6 +457,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -468,6 +507,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -518,6 +570,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -570,6 +635,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -730,6 +808,22 @@
             "name": "show_expired",
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -1011,6 +1105,22 @@
             "name": "unique_id",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -1546,6 +1656,22 @@
               "example": "view",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -1914,6 +2040,22 @@
               "format": "uid",
               "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -2367,6 +2509,22 @@
             "schema": {
               "example": "okta",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -3101,6 +3259,22 @@
                 "type": "string"
               },
               "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],

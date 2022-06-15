@@ -129,6 +129,21 @@ func TestAPI_ListGroups(t *testing.T) {
 				assert.Equal(t, len(actual.Items), 3)
 			},
 		},
+		"page 2": {
+			urlPath: "/api/groups?page=2&limit=2",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var actual api.ListResponse[api.Group]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				assert.Equal(t, len(actual.Items), 1)
+				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2}, actual.PaginationInfo)
+			},
+		},
 		"authorized by group membership": {
 			urlPath: "/api/groups?userID=" + idInGroup.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -175,6 +190,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
+	"pagination_info": {},
 	"count": 2,
 	"items": [{
 		"id": "%[1]v",
@@ -207,6 +223,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
+	"pagination_info":{},
 	"count": 1,
 	"items": [{
 		"id": "%[1]v",

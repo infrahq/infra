@@ -24,6 +24,7 @@ type DestinationConnection struct {
 type ListDestinationsRequest struct {
 	Name     string `form:"name"`
 	UniqueID string `form:"unique_id"`
+	PaginationRequest
 }
 
 type CreateDestinationRequest struct {

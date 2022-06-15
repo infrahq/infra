@@ -131,11 +131,11 @@ func ByNotExpired() SelectorFunc {
 }
 
 func ByPagination(pg models.Pagination) SelectorFunc {
-	if pg.Page == 0 {
-		pg.Page = 1
-	}
-
 	return func(db *gorm.DB) *gorm.DB {
+
+		if pg.Page == 0 && pg.Limit == 0 {
+			return db
+		}
 		resultsForPage := pg.Limit * (pg.Page - 1)
 		return db.Offset(resultsForPage).Limit(pg.Limit)
 	}
