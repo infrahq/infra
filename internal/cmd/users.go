@@ -137,7 +137,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				for _, user := range users.Items {
 					rows = append(rows, row{
 						Name:       user.Name,
-						LastSeenAt: user.LastSeenAt.Relative("never"),
+						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),
 					})
 				}
 
