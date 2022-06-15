@@ -221,7 +221,6 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 			// user still has a valid session, so do not fail
 			logging.S.Errorf("Unable to start agent, destinations will not be updated automatically: %w", err)
 		}
-		fmt.Fprintf(cli.Stderr, "  Infra Agent is now running in the background\n")
 	}
 
 	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
