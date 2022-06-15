@@ -163,7 +163,7 @@ func TestAPI_ListUsers(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusUnauthorized)
 			},
 		},
-		"Pagination": {
+		"page 2 limit 2": {
 			urlPath: "/api/users?limit=2&page=2",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
@@ -183,6 +183,18 @@ func TestAPI_ListUsers(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+			},
+		},
+		"invalid limit": {
+			urlPath: "/api/users?limit=1001",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"invalid page": {
+			urlPath: "/api/users?page=-1",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
 			},
 		},
 		// TODO: assert full JSON response
