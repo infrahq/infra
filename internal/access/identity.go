@@ -1,7 +1,6 @@
 package access
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -9,9 +8,9 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -146,8 +145,7 @@ func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error
 }
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
-	ctx := c.Request.Context()
+func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDC) error {
 	// added by the authentication middleware
 	identity := AuthenticatedIdentity(c)
 	if identity == nil {
@@ -159,50 +157,24 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
 
 	accessKey := currentAccessKey(c)
 
-	providerUser, err := data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
-	if err != nil {
-		return err
-	}
-
-	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	provider, err := data.GetProvider(db, data.ByID(accessKey.ProviderID))
 	if err != nil {
 		return fmt.Errorf("user info provider: %w", err)
 	}
 
-	if provider.Name == models.InternalInfraProviderName {
-		return nil
-	}
-
-	// check if the access token needs to be refreshed
-	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(ctx, providerUser)
-	if err != nil {
-		return fmt.Errorf("refresh provider access: %w", err)
-	}
-
-	if newAccessToken != string(providerUser.AccessToken) {
-		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
-
-		providerUser.AccessToken = models.EncryptedAtRest(newAccessToken)
-		providerUser.ExpiresAt = *newExpiry
-
-		if err := UpdateProviderUser(c, providerUser); err != nil {
-			return fmt.Errorf("update access token before JWT: %w", err)
-		}
-	}
-
 	// get current identity provider groups
-	info, err := oidc.GetUserInfo(ctx, providerUser)
+	err = oidc.SyncProviderUser(db, identity, provider)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+		if errors.Is(err, internal.ErrBadGateway) {
+			return err
 		}
 
 		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
 			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
 		}
 
-		return fmt.Errorf("get user info: %w", err)
+		return fmt.Errorf("sync user: %w", err)
 	}
 
-	return authn.UpdateUserInfoFromProvider(db, info, identity, provider)
+	return nil
 }

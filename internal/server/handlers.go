@@ -17,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -621,10 +622,10 @@ func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error 
 	return oidc.Validate(c.Request.Context())
 }
 
-func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {
+func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDC, error) {
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
-		oidc, _ := val.(authn.OIDC)
+		oidc, _ := val.(providers.OIDC)
 		return oidc, nil
 	}
 
@@ -634,5 +635,5 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 		return nil, fmt.Errorf("client secret not found")
 	}
 
-	return authn.NewOIDC(provider.URL, provider.ClientID, clientSecret, redirectURL), nil
+	return providers.NewOIDC(*provider, clientSecret, redirectURL), nil
 }

@@ -29,7 +29,7 @@ func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Id
 		}
 	}
 
-	// If there were other attributes to udpate, I guess they should be updated here.
+	// If there were other attributes to update, I guess they should be updated here.
 
 	return pu, nil
 }
