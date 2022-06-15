@@ -81,11 +81,12 @@ infra login <INFRA_SERVER_HOSTNAME> --skip-tls-verify
 
 ### 3. Connect your first Kubernetes cluster
 
-Generate an access key with a 30 day time-to-live:
+Generate an access key:
 
 ```
 infra keys add connector
 ```
+Note: This key is valid for 30 days.
 
 Next, use this access key to connect your first cluster via `helm`. **Note:** this can be the same cluster used to install Infra in step 2.
 
