@@ -27,7 +27,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
           <p className='text-2xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
-          <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal'>
+          <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal overflow-auto'>
             infra login {window.location.host}<br />
             infra use {destination.name}<br />
             kubectl get pods
