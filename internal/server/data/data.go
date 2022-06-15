@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"unicode"
 
@@ -93,6 +94,15 @@ func NewPostgresDriver(connection string) (gorm.Dialector, error) {
 	return postgres.Open(connection), nil
 }
 
+func getDefaultSortFromType(t interface{}) string {
+	ty := reflect.TypeOf(t)
+	if _, ok := ty.FieldByName("Name"); ok {
+		return "name ASC"
+	}
+
+	return "id ASC"
+}
+
 func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
 	for _, selector := range selectors {
 		db = selector(db)
@@ -111,6 +121,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 }
 
 func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
+	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
 	}
