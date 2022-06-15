@@ -60,7 +60,6 @@ func TestLoginCmdSignup(t *testing.T) {
 		exp.Send(t, "password\n")
 		exp.ExpectString(t, "Confirm")
 		exp.Send(t, "password\n")
-		exp.ExpectString(t, "Infra Agent is now running in the background")
 		exp.ExpectString(t, "Logged in as")
 
 		assert.NilError(t, g.Wait())
