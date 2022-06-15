@@ -477,7 +477,7 @@ func attemptTLSRequest(options loginCmdOptions) error {
 
 	// Second attempt with an empty cert pool. This is necessary because at least
 	// on darwin, the error is the wrong type when using the system cert pool.
-	// See https://github.com/golang/go/issues/53401.
+	// See https://github.com/golang/go/issues/52010.
 	req, err = http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -597,12 +597,14 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 }
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
+	formatTime := func(t time.Time) string {
+		return fmt.Sprintf("%v (%v)", HumanTime(t, "none"), t.Format(time.RFC1123))
+	}
+
 	// TODO: improve this message
 	// TODO: use color/bold to highlight important parts
-	// TODO: test format with golden
 	fmt.Fprintf(cli.Stderr, `
-The certificate presented by the server is not trusted by your operating system. It
-could not be automatically verified.
+The certificate presented by the server is not trusted by your operating system.
 
 Certificate
 
@@ -611,25 +613,19 @@ Issuer: %[2]s
 
 Validity
   Not Before: %[3]v
-  Not After: %[4]v
+  Not After:  %[4]v
 
-Subject Alternative Names:
-  DNS Names: %[5]s
-  IP Addresses: %[6]v
+SHA256 Fingerprint
+  %[5]s
 
-SHA-256 Fingerprint
-  %[7]s
-
-Compare the SHA-256 fingerprint against the one provided by your administrator
-to manually verify the certificate can be trusted.
+Compare the SHA256 fingerprint to the one provided by your administrator to
+manually verify the certificate can be trusted.
 
 `,
 		cert.Subject,
 		cert.Issuer,
-		cert.NotBefore.Format(time.RFC1123), // TODO: include relative time
-		cert.NotAfter.Format(time.RFC1123),  // TODO: include relative time
-		strings.Join(cert.DNSNames, ", "),   // TODO: exclude when empty
-		cert.IPAddresses,                    // TODO: format the list, exclude when empty
+		formatTime(cert.NotBefore),
+		formatTime(cert.NotAfter),
 		certs.Fingerprint(cert.Raw),
 	)
 	confirmPrompt := &survey.Select{
