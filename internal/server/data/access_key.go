@@ -12,6 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
+	"github.com/ssoroka/slice"
 )
 
 func secretChecksum(secret string) []byte {
@@ -94,10 +95,9 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 		return err
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, k := range toDelete {
-		ids = append(ids, k.ID)
-	}
+	ids := slice.Map[models.AccessKey, uid.ID](toDelete, func(k models.AccessKey) uid.ID {
+		return k.ID
+	})
 
 	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
