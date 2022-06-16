@@ -34,5 +34,5 @@ func (s *StringOrFile) Set(raw string) error {
 }
 
 func (s *StringOrFile) Type() string {
-	return "file path"
+	return "filepath"
 }

@@ -35,6 +35,7 @@ type loginCmdOptions struct {
 	Provider           string
 	SkipTLSVerify      bool
 	TrustedCertificate string
+	TrustedFingerprint string
 	NonInteractive     bool
 	NoAgent            bool
 }
@@ -82,6 +83,7 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 	cmd.Flags().StringVar(&options.Provider, "provider", "", "Login with an identity provider")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
+	cmd.Flags().StringVar(&options.TrustedFingerprint, "tls-trusted-fingerprint", "", "SHA256 fingerprint of the server TLS certificate")
 	cmd.Flags().BoolVar(&options.NoAgent, "no-agent", false, "Skip starting the Infra agent in the background")
 	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
@@ -427,19 +429,21 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 			return c, err
 		}
 
-		if options.NonInteractive {
-			if options.TrustedCertificate != "" {
+		if !fingerprintMatch(cli, options.TrustedFingerprint, uaErr.Cert) {
+			if options.NonInteractive {
+				if options.TrustedCertificate != "" {
+					return c, err
+				}
+				return c, Error{
+					Message: "The authenticity of the server could not be verified. " +
+						"Use the --tls-trusted-cert flag to specify a trusted CA, or run " +
+						"in interactive mode.",
+				}
+			}
+
+			if err := promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
 				return c, err
 			}
-			return c, Error{
-				Message: "The authenticity of the server could not be verified. " +
-					"Use the --tls-trusted-cert flag to specify a trusted CA, or run " +
-					"in interactive mode.",
-			}
-		}
-
-		if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
-			return c, err
 		}
 
 		pool, err := x509.SystemCertPool()
@@ -458,6 +462,28 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 		c.TrustedCertificate = string(certs.PEMEncodeCertificate(uaErr.Cert.Raw))
 	}
 	return c, nil
+}
+
+func fingerprintMatch(cli *CLI, fingerprint string, cert *x509.Certificate) bool {
+	fingerprint = strings.TrimSpace(fingerprint)
+	if fingerprint == "" {
+		return false
+	}
+
+	if strings.EqualFold(fingerprint, certs.Fingerprint(cert.Raw)) {
+		return true
+	}
+
+	fmt.Fprintf(cli.Stderr, `
+%v TLS fingerprint from server does not match the trusted fingerprint.
+
+Trusted: %v
+Server:  %v
+`,
+		termenv.String("WARNING").Bold().String(),
+		fingerprint,
+		certs.Fingerprint(cert.Raw))
+	return false
 }
 
 func attemptTLSRequest(options loginCmdOptions) error {

@@ -39,12 +39,13 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 #### Options
 
 ```
-      --key string                   Login with an access key
-      --no-agent                     Skip starting the Infra agent in the background
-      --non-interactive              Disable all prompts for input
-      --provider string              Login with an identity provider
-      --skip-tls-verify              Skip verifying server TLS certificates
-      --tls-trusted-cert file path   TLS certificate or CA used by the server
+      --key string                       Login with an access key
+      --no-agent                         Skip starting the Infra agent in the background
+      --non-interactive                  Disable all prompts for input
+      --provider string                  Login with an identity provider
+      --skip-tls-verify                  Skip verifying server TLS certificates
+      --tls-trusted-cert filepath        TLS certificate or CA used by the server
+      --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
 ```
 
 #### Options inherited from parent commands

@@ -15,7 +15,7 @@ import (
 // clientConfigVersion is the current version of the client configuration file.
 // Use this constant when referring to a value in tests or code that should
 // always use latest.
-const clientConfigVersion = "0.4"
+var clientConfigVersion = ClientConfigVersion{Version: "0.4"}
 
 type ClientConfigVersion struct {
 	Version string `json:"version"`
@@ -76,7 +76,7 @@ func readConfig() (*ClientConfig, error) {
 	}
 
 	if len(contents) == 0 {
-		return &ClientConfig{ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion}}, nil
+		return &ClientConfig{ClientConfigVersion: clientConfigVersion}, nil
 	}
 
 	config := &ClientConfigVersion{}

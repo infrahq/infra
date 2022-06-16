@@ -77,7 +77,7 @@ func TestListCmd(t *testing.T) {
 	t.Run("with no grants", func(t *testing.T) {
 		user := userMap["nogrants@example.com"]
 		err := writeConfig(&ClientConfig{
-			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
+			ClientConfigVersion: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					UserID:        user.ID,
@@ -103,7 +103,7 @@ func TestListCmd(t *testing.T) {
 	t.Run("with many grants", func(t *testing.T) {
 		user := userMap["manygrants@example.com"]
 		err := writeConfig(&ClientConfig{
-			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
+			ClientConfigVersion: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					UserID:        user.ID,
