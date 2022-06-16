@@ -506,8 +506,6 @@ func initializeSchema(db *gorm.DB) error {
 		&models.AccessKey{},
 		&models.Settings{},
 		&models.EncryptionKey{},
-		&models.TrustedCertificate{},
-		&models.RootCertificate{},
 		&models.Credential{},
 		&models.ProviderUser{},
 	}
