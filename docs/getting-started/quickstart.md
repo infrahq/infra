@@ -86,6 +86,7 @@ Generate an access key:
 ```
 infra keys add connector
 ```
+Note: This key is valid for 30 days.
 
 Next, use this access key to connect your first cluster via `helm`. **Note:** this can be the same cluster used to install Infra in step 2.
 
