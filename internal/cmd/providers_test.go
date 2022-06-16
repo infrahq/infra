@@ -103,6 +103,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			URL:          "https://okta.com/path",
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
+			Kind:         "oidc",
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
