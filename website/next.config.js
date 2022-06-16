@@ -48,26 +48,13 @@ module.exports = {
       },
       {
         source: '/docs',
-        destination: '/docs/getting-started',
+        destination: '/docs/getting-started/what-is-infra',
         permanent: true
       },
       {
         source: '/docs/getting-started/key-concepts',
         destination: '/docs/reference/how-infra-works',
         permanent: true
-      }
-    ]
-  },
-  async headers () {
-    return [
-      {
-        source: '/_next/image(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=315360000, immutable'
-          }
-        ]
       }
     ]
   }
