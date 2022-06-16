@@ -81,26 +81,39 @@ func Test202206151027(t *testing.T) {
 }
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
-// to create a new file for testing a migration:
+// To create a new file for testing a migration:
 //
-// 1. do whatever you need to get the db in the state you want to test. it might be helpful to capture the db state before writing your migration. Make sure there are some relevant records in the affected tables.
+// 1. Start an infra server and perform operations with the CLI or API to
+//    get the db in the state you want to test. You should capture the db state
+//    before writing your migration. Make sure there are some relevant records
+//    in the affected tables.
 //
-// 2. connect up to the db to dump out the data. if you're running sqlite in kubernetes, this will look like this:
+// 2. Connect up to the db to dump the data. If you're running sqlite in
+//    kubernetes:
+//
 //   kubectl exec -it deployment/infra-server -- apk add sqlite
 //   kubectl exec -it deployment/infra-server -- /usr/bin/sqlite3 /var/lib/infrahq/server/sqlite3.db
-// at the prompt, do:
-//   .dump
-// and copy the results. Copy them to a file with the same name of the migration and a .sql extension in the migrationdata/ folder.
 //
-// 3. write the migration and test that it does what you expect. It can be helpful to put any necessary guards in place to make sure the database is in the state you expect. sometimes failed migrations leave it in a broken state, and might run when you don't expect, so defensive programming is helpful here.
+//   at the prompt, do:
+//     .dump
+//   Copy to output to a file with the same name of the migration and a .sql
+//   extension in the migrationdata/ folder.
 //
-// 4. go back to the sql file:
+//   Or from a local db:
+//
+//   echo -e ".output dump.sql\n.dump" | sqlite3 sqlite3.db
+//
+// 3. Write the migration and test that it does what you expect. It can be helpful
+//    to put any necessary guards in place to make sure the database is in the state
+//    you expect. Sometimes failed migrations leave it in a broken state, and might
+//    run when you don't expect, so defensive programming is helpful here.
+//
+// 4. Go back to the sql file:
 //   - remove any SQL records that aren't relevant to the test
 //   - blank out provider client ids and name
 //   - remove any email addresses and replace with @example.com
 //   - remove any provider_users redirect urls
-// any other sensitive fields are encrypted and the key isn't included in the database.
-// Make sure the test still passes.
+//   - check any other sensitive fields are encrypted and the key isn't included in the database.
 func loadSQL(t *testing.T, db *gorm.DB, filename string) {
 	f, err := os.Open("migrationdata/" + filename + ".sql")
 	assert.NilError(t, err)
