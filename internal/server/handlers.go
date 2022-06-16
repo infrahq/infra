@@ -159,12 +159,21 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 		Name: r.Name,
 	}
 
+	authIdent := access.AuthenticatedIdentity(c)
+	if authIdent != nil {
+		group.CreatedBy = authIdent.ID
+	}
+
 	err := access.CreateGroup(c, group)
 	if err != nil {
 		return nil, err
 	}
 
 	return group.ToAPI(), nil
+}
+
+func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteGroup(c, r.ID)
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info

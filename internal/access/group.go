@@ -68,3 +68,16 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 
 	return data.GetGroup(db, data.ByID(id))
 }
+
+func DeleteGroup(c *gin.Context, id uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return err
+	}
+
+	selectors := []data.SelectorFunc{
+		data.ByID(id),
+	}
+
+	return data.DeleteGroups(db, selectors...)
+}
