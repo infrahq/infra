@@ -80,7 +80,7 @@ type Server struct {
 	secrets  map[string]secrets.SecretStorage
 	keys     map[string]secrets.SymmetricKeyProvider
 	Addrs    Addrs
-	routines []func() error
+	routines []routine
 }
 
 type Addrs struct {
@@ -151,18 +151,23 @@ func (s *Server) Run(ctx context.Context) error {
 	defer logging.L.Sync()
 
 	if s.tel != nil {
-		repeat.Start(context.TODO(), 1*time.Hour, func(context.Context) {
+		repeat.Start(ctx, 1*time.Hour, func(context.Context) {
 			s.tel.EnqueueHeartbeat()
 		})
 	}
 
 	group, _ := errgroup.WithContext(ctx)
 	for i := range s.routines {
-		group.Go(s.routines[i])
+		group.Go(s.routines[i].run)
 	}
 
 	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s",
 		internal.FullVersion(), s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
+
+	<-ctx.Done()
+	for i := range s.routines {
+		s.routines[i].stop()
+	}
 
 	return group.Wait()
 }
@@ -257,19 +262,29 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 		return nil, err
 	}
 
-	s.routines = append(s.routines, func() error {
-		var err error
-		if server.TLSConfig == nil {
-			err = server.Serve(l)
-		} else {
-			err = server.ServeTLS(l, "", "")
-		}
-		if !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
-		return nil
+	s.routines = append(s.routines, routine{
+		run: func() error {
+			var err error
+			if server.TLSConfig == nil {
+				err = server.Serve(l)
+			} else {
+				err = server.ServeTLS(l, "", "")
+			}
+			if !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+			return nil
+		},
+		stop: func() {
+			_ = server.Close()
+		},
 	})
 	return l.Addr(), nil
+}
+
+type routine struct {
+	run  func() error
+	stop func()
 }
 
 func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
