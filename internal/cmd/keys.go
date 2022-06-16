@@ -73,7 +73,7 @@ $ infra keys add connector
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have privileges to create keys; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot create key: missing privileges for getUser",
 					}
 				}
 				return err
@@ -89,7 +89,7 @@ $ infra keys add connector
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have privileges to create keys; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot create key: missing privileges for CreateKey",
 					}
 				}
 				return err
@@ -127,7 +127,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have privileges to delete keys; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot delete key: missing privileges for ListKeys",
 					}
 				}
 				return err
@@ -144,7 +144,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: "You do not have privileges to delete keys; contact your admin\n\nRun `infra info` for more information about your session",
+							Message: "Cannot delete key: missing privileges for DeleteKey",
 						}
 					}
 					return err
@@ -180,7 +180,6 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		Short:   "List access keys",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			forbiddenMsg := "You do not have privileges to view keys; contact your admin\n\nRun `infra info` for more information about your session"
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -192,7 +191,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: forbiddenMsg,
+							Message: "Cannot list keys: missing privileges for GetUser",
 						}
 					}
 					return err
@@ -203,7 +202,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: forbiddenMsg,
+							Message: "Cannot list keys: missing privileges for ListKeys",
 						}
 					}
 					return err
@@ -214,7 +213,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: forbiddenMsg,
+							Message: "Cannot list keys: missing privileges for ListKeys",
 						}
 					}
 					return err

@@ -81,7 +81,6 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 		Example: "$ infra destinations remove docker-desktop",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			forbiddenMsg := "You do not have privileges to disconnect destinations from infra; contact your admin\n\nRun `infra info` for more information about your session"
 			name := args[0]
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -93,7 +92,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: forbiddenMsg,
+						Message: "Cannot disconnect destination: missing privileges for ListDestinations",
 					}
 				}
 				return err
@@ -110,7 +109,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: forbiddenMsg,
+							Message: "Cannot disconnect destination: missing privileges for DeleteDestination",
 						}
 					}
 					return err

@@ -53,7 +53,7 @@ $ infra users add johndoe@example.com`,
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have privileges to add new users; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot add users: missing privileges for CreateUser",
 					}
 				}
 				return err
@@ -119,7 +119,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have privileges to view users; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot list users: missing privileges for ListUsers",
 					}
 				}
 				return err
@@ -154,7 +154,6 @@ func newUsersRemoveCmd(cli *CLI) *cobra.Command {
 $ infra users remove janedoe@example.com`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			forbiddenMsg := "You do not have privileges to delete users; contact your admin\n\nRun `infra info` for more information about your session"
 			name := args[0]
 
 			client, err := defaultAPIClient()
@@ -167,7 +166,7 @@ $ infra users remove janedoe@example.com`,
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: forbiddenMsg,
+						Message: "Cannot delete users: missing privileges for ListUsers",
 					}
 				}
 				return err
@@ -183,7 +182,7 @@ $ infra users remove janedoe@example.com`,
 				if err := client.DeleteUser(user.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						return Error{
-							Message: forbiddenMsg,
+							Message: "Cannot delete users: missing privileges for DeleteUsers",
 						}
 					}
 					return err
@@ -246,7 +245,7 @@ func updateUser(cli *CLI, name string) error {
 				return Error{Message: fmt.Sprintf("No user named %q in local provider; only local users can be edited", name)}
 			} else if api.ErrorStatusCode(err) == 403 {
 				return Error{
-					Message: fmt.Sprintf("You do not have privileges to update user %q; contact your admin\n\nRun `infra info` for more information about your session", name),
+					Message: fmt.Sprintf("Cannot update user %q: missing privileges for GetUser", name),
 				}
 			}
 			return err

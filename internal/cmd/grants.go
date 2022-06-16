@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -64,7 +65,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					return Error{
-						Message: "You do not have enough privileges to view grants; contact your admin\n\nRun `infra info` for more information about your session",
+						Message: "Cannot list grants: missing privileges for ListGrants",
 					}
 				}
 				return err
@@ -172,8 +173,6 @@ $ infra grants remove janedoe@example.com infra --role admin
 }
 
 func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
-	forbiddenMsg := "You do not have enough privileges to revoke grants; contact your admin\n\nRun `infra info` for more information about your session"
-
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -181,9 +180,10 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	user, group, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
-		if api.ErrorStatusCode(err) == 403 {
+		var cliError Error
+		if errors.As(err, &cliError) {
 			return Error{
-				Message: forbiddenMsg,
+				Message: fmt.Sprintf("Cannot revoke grants: %s", cliError.Message),
 			}
 		}
 		return err
@@ -201,7 +201,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			return Error{
-				Message: forbiddenMsg,
+				Message: "Cannot revoke grants: missing privileges for ListGrants",
 			}
 		}
 		return err
@@ -217,7 +217,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				return Error{
-					Message: forbiddenMsg,
+					Message: "Cannot revoke grants: missing privileges for DeleteGrant",
 				}
 			}
 			return err
@@ -262,7 +262,6 @@ $ infra grants add johndoe@example.com infra --role admin
 }
 
 func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
-	forbiddenMsg := "You do not have enough privileges to create grants; contact your admin\n\nRun `infra info` for more information about your session"
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -270,9 +269,10 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	userID, groupID, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
 	if err != nil {
-		if api.ErrorStatusCode(err) == 403 {
+		var cliError Error
+		if errors.As(err, &cliError) {
 			return Error{
-				Message: forbiddenMsg,
+				Message: fmt.Sprintf("Cannot create grants: %s", cliError.Message),
 			}
 		}
 		if !cmdOptions.Force {
@@ -285,7 +285,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				return Error{
-					Message: forbiddenMsg,
+					Message: "Cannot create grants: missing privileges for ListGrants",
 				}
 			}
 			return err
@@ -300,7 +300,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 			if api.ErrorStatusCode(err) == 403 {
 				return Error{
-					Message: forbiddenMsg,
+					Message: "Cannot create grants: missing privileges for CreateGroup",
 				}
 			}
 			return err
@@ -327,7 +327,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			return Error{
-				Message: forbiddenMsg,
+				Message: "Cannot create grant: missing privileges for CreateGrant",
 			}
 		}
 		return err
@@ -344,6 +344,11 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 	if isGroup {
 		group, err := getGroupByName(client, subject)
 		if err != nil {
+			if api.ErrorStatusCode(err) == 403 {
+				return 0, 0, Error{
+					Message: "missing privileges for GetGroup",
+				}
+			}
 			return 0, 0, err
 		}
 
@@ -352,6 +357,11 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 
 	user, err := getUserByName(client, subject)
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			return 0, 0, Error{
+				Message: "missing privileges for GetUser",
+			}
+		}
 		return 0, 0, err
 	}
 
