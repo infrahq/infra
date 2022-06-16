@@ -27,7 +27,7 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 
 	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(pg)}
 	if !showExpired {
-		s = append(s, data.ByNotExpired())
+		s = append(s, data.ByNotExpiredOrExtended())
 	}
 
 	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), s...)
