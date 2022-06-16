@@ -98,7 +98,7 @@ export default function ProvidersAddDetails () {
           {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <label className='text-2xs text-white/90'>
-          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>
+          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/configuration/identity-providers/okta' rel='noreferrer'>learn more</a>
         </label>
         <div className='mt-4'>
           <label className='text-3xs text-gray-400 uppercase'>URL (Domain)</label>

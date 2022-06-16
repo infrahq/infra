@@ -74,7 +74,7 @@
   establish a connection to Infra. If you do not already have an access key,
   generate one using Infra CLI.
 
-  $ infra destinations add kubernetes {{ .Values.connector.config.name | default "my-cluster" }}
+  $ infra keys add connector
 
   Set an access key with `connector.config.accessKey`.
 

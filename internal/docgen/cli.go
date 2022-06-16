@@ -28,7 +28,7 @@ func printOptions(buf *bytes.Buffer, cmd *cobra.Command, name string) error {
 	flags.SetOutput(buf)
 
 	if flags.HasAvailableFlags() {
-		buf.WriteString("### Options\n\n```\n")
+		buf.WriteString("#### Options\n\n```\n")
 		flags.PrintDefaults()
 		buf.WriteString("```\n\n")
 	}
@@ -37,9 +37,9 @@ func printOptions(buf *bytes.Buffer, cmd *cobra.Command, name string) error {
 	parentFlags.SetOutput(buf)
 
 	if parentFlags.HasAvailableFlags() {
-		buf.WriteString("### Options inherited from parent commands\n\n```\n")
+		buf.WriteString("#### Options inherited from parent commands\n\n```\n")
 		parentFlags.PrintDefaults()
-		buf.WriteString("```\n\n")
+		buf.WriteString("```\n")
 	}
 
 	return nil
@@ -53,11 +53,11 @@ func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 	buf := new(bytes.Buffer)
 	name := cmd.CommandPath()
 
-	buf.WriteString("## `" + name + "`\n\n")
+	buf.WriteString("### `" + name + "`\n\n")
 	buf.WriteString(cmd.Short + "\n\n")
 
 	if len(cmd.Long) > 0 {
-		buf.WriteString("### Synopsis\n\n")
+		buf.WriteString("#### Description\n\n")
 		buf.WriteString(cmd.Long + "\n\n")
 	}
 
@@ -66,7 +66,7 @@ func GenMarkdown(cmd *cobra.Command, w io.Writer) error {
 	}
 
 	if len(cmd.Example) > 0 {
-		buf.WriteString("### Examples\n\n")
+		buf.WriteString("#### Examples\n\n")
 		buf.WriteString(fmt.Sprintf("```\n%s\n```\n\n", cmd.Example))
 	}
 
@@ -118,12 +118,15 @@ func GenMarkdownTree(cmd *cobra.Command, f io.Writer) error {
 }
 
 func GenMarkdownFile(cmd *cobra.Command, f io.Writer) error {
-	if _, err := io.WriteString(f, "# CLI Reference\n\n## Commands\n\n"); err != nil {
+	if _, err := io.WriteString(f, `---
+title: CLI Reference
+position: 1
+---
+`); err != nil {
 		return err
 	}
 
-	err := GenMarkdownToc(cmd, f)
-	if err != nil {
+	if _, err := io.WriteString(f, "# CLI Reference\n\n## Commands\n\n"); err != nil {
 		return err
 	}
 
