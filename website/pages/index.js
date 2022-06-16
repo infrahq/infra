@@ -18,11 +18,10 @@ export default function Index () {
             The simplest way to manage infrastructure access
           </h1>
           <ul className='space-y-1 my-16 lg:my-4 mx-auto lg:mx-none lg:mx-0 max-w-md xl:max-w-xl text-lg lg:text-xl tracking-tight leading-tight md:leading-tight lg:leading-tight text-gray-300'>
-            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'> In one command, login to all your clusters</span></li>
-            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'> All your kubernetes’ configuration automatically sync’d</span></li>
-            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'> Nothing else to set up for your team</span></li>
-            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'> Short-lived, auto refreshed tokens under the hood</span></li>
-            <li className='flex items-start pt-3'><img src='/images/kubernetes.svg' className='w-[21px] h-[21px] mr-3' /> <span className='text-white font-bold'>Available for Kubernetes </span><span className='text-sm italic text-fuchsia-400 font-bold ml-1'> BETA</span></li>
+            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'>In one command, login and discover access</span></li>
+            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'>Short-lived, auto-refreshed credentials under the hood</span></li>
+            <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'>Nothing else to set up for your team</span></li>
+            <li className='flex items-start pt-3'><img src='/images/kubernetes.svg' className='w-[21px] h-[21px] mr-3' /> <span className='text-white font-bold'>Available for Kubernetes</span></li>
           </ul>
           <div className='relative z-40 flex flex-col my-16 lg:my-10 mx-auto max-w-sm lg:mx-none lg:max-w-xl lg:mx-0 xl:flex-row flex-1 items-stretch xl:items-start justify-center xl:justify-start space-y-6 xl:space-y-0 xl:space-x-4'>
             <Link href='https://github.com/infrahq/infra'>
