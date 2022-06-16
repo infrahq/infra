@@ -489,6 +489,7 @@ func migrate(db *gorm.DB) error {
 				return db.Commit().Error
 			},
 		},
+		dropCertificateTables(),
 		// next one here
 	})
 
@@ -535,4 +536,14 @@ func initializeSchema(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// #2276: drop unused certificate tables
+func dropCertificateTables() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202206161733",
+		Migrate: func(tx *gorm.DB) error {
+			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
+		},
+	}
 }

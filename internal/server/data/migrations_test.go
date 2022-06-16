@@ -3,6 +3,7 @@ package data
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"gorm.io/gorm"
@@ -13,13 +14,13 @@ import (
 )
 
 // see loadSQL for setting up your own migration test
-func Test202204111503(t *testing.T) {
-	db := setupWithNoMigrations(t, func(db *gorm.DB) {
+func TestMigration_202204111503(t *testing.T) {
+	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
 		loadSQL(t, db, "202204111503")
 	})
 
-	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
-	err := migrate(db)
+	// migration runs as part of NewDB
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	ids, err := ListIdentities(db, ByName("steven@example.com"))
@@ -28,13 +29,13 @@ func Test202204111503(t *testing.T) {
 	assert.Assert(t, len(ids) == 1)
 }
 
-func Test202204211705(t *testing.T) {
-	db := setupWithNoMigrations(t, func(db *gorm.DB) {
+func TestMigration_202204211705(t *testing.T) {
+	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
 		loadSQL(t, db, "202204211705")
 	})
 
-	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
-	err := migrate(db)
+	// migration runs as part of NewDB
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
 	// check it still works
@@ -57,27 +58,27 @@ func Test202204211705(t *testing.T) {
 }
 
 func Test202206151027(t *testing.T) {
-	db := setupWithNoMigrations(t, func(db *gorm.DB) {
+	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
 		loadSQL(t, db, "202206151027")
 	})
 
-	provider := map[string]interface{}{
-		"name":          "test",
-		"url":           "example.com",
-		"client_id":     "a",
-		"client_secret": "b",
-	}
-	err := db.Table("providers").Create(provider).Error
+	//provider := map[string]interface{}{
+	//	"name":          "test",
+	//	"url":           "example.com",
+	//	"client_id":     "a",
+	//	"client_secret": "b",
+	//}
+	//err := db.Table("providers").Create(provider).Error
+	//assert.NilError(t, err)
+
+	// migration runs as part of NewDB
+	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
-	err = migrate(db)
-	assert.NilError(t, err)
-
-	result := map[string]interface{}{}
+	result := models.Provider{}
 	err = db.Table("providers").Take(&result).Error
 	assert.NilError(t, err)
-	assert.Equal(t, models.OktaKind.String(), result["kind"])
+	assert.Equal(t, models.OktaKind.String(), result.Kind)
 }
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
@@ -125,8 +126,9 @@ func loadSQL(t *testing.T, db *gorm.DB, filename string) {
 	assert.NilError(t, err)
 }
 
-func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
-	driver, err := NewSQLiteDriver("file::memory:")
+func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
+	dir := t.TempDir()
+	driver, err := NewSQLiteDriver(filepath.Join(dir, "sqlite3.db"))
 	assert.NilError(t, err)
 
 	db, err := newRawDB(driver)
@@ -137,5 +139,25 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) *gorm.DB {
 	patch.ModelsSymmetricKey(t)
 	setupLogging(t)
 
-	return db
+	return driver
+}
+
+func TestMigration_DropCertificateTables(t *testing.T) {
+	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
+		loadSQL(t, db, "202206161733")
+	})
+
+	db, err := NewDB(driver, nil)
+	assert.NilError(t, err)
+
+	assert.Assert(t, !tableExists(t, db, "trusted_certificates"))
+	assert.Assert(t, !tableExists(t, db, "root_certificates"))
+}
+
+func tableExists(t *testing.T, db *gorm.DB, name string) bool {
+	t.Helper()
+	var count int
+	err := db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", name).Row().Scan(&count)
+	assert.NilError(t, err)
+	return count > 0
 }
