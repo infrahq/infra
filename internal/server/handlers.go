@@ -342,7 +342,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
 			// TODO: why would this fail? seems like this should be a 5xx error
-			return nil, fmt.Errorf("%w: update ident info from provider: %s", internal.ErrForbidden, err)
+			return nil, fmt.Errorf("update ident info from provider: %w", err)
 		}
 
 		token, err := access.CreateToken(c)
