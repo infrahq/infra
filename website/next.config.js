@@ -12,6 +12,11 @@ module.exports = {
         permanent: true
       },
       {
+        source: '/docs/getting-started/introduction',
+        destination: '/docs/getting-started/what-is-infra',
+        permanent: true
+      },
+      {
         source: '/docs/install/configure/custom-domain',
         destination: '/docs/install/custom-domain',
         permanent: true
