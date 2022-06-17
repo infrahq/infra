@@ -33,7 +33,7 @@ export default function ({ docs = false }) {
           <Link href='https://github.com/infrahq/infra'>
             <a>
               <div className='rounded-full overflow-hidden bg-gradient-to-tr from-cyan-100 to-pink-300'>
-                <button className='flex items-center m-px pl-2 pr-3 py-1.5 rounded-full bg-black hover:bg-gray-900 duration-200'><img className='pr-2 h-5' src='/images/github.svg' /> Open in GitHub</button>
+                <button className='flex items-center m-px pl-2 pr-3 py-1.5 rounded-full bg-black hover:bg-gray-200'><img className='pr-2 h-5' src='/images/github.svg' /> Open in GitHub</button>
               </div>
             </a>
           </Link>
@@ -51,7 +51,7 @@ export default function ({ docs = false }) {
         <Link href='https://github.com/infrahq/infra'>
           <a>
             <div className='inline-flex rounded-full overflow-hidden bg-gradient-to-tr from-cyan-100 to-pink-300'>
-              <button className='flex items-center m-px pl-3 pr-4 py-1.5 rounded-full bg-black hover:bg-gray-900 duration-200'><img className='pr-2 h-5' src='/images/github.svg' /> Open in GitHub</button>
+              <button className='flex items-center m-px pl-3 pr-4 py-1.5 rounded-full bg-black hover:bg-gray-900'><img className='pr-2 h-5' src='/images/github.svg' /> Open in GitHub</button>
             </div>
           </a>
         </Link>

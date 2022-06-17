@@ -26,7 +26,7 @@ export default function Index () {
           <div className='relative z-40 flex flex-col my-16 lg:my-10 mx-auto max-w-sm lg:max-w-md xl:max-w-xl xl:mx-none lg:mx-0 xl:flex-row flex-1 items-stretch xl:items-start justify-center xl:justify-start space-y-6 xl:space-y-0 xl:space-x-4'>
             <Link href='https://github.com/infrahq/infra'>
               <div className='flex-none inline-flex rounded-full overflow-hidden bg-gradient-to-tr from-cyan-100 to-pink-300 group'>
-                <button className='w-full justify-center flex m-0.5 pr-5 pl-3 py-2 text-lg rounded-full bg-black text-gray-100 transition-all duration-300 group-hover:bg-gray-900 group-hover:text-white'><img className='pr-3' src='/images/github.svg' /> Open in GitHub</button>
+                <button className='w-full justify-center flex m-0.5 pr-5 pl-3 py-2 text-lg rounded-full bg-black text-gray-100 group-hover:bg-gray-900 group-hover:text-white'><img className='pr-3' src='/images/github.svg' /> Open in GitHub</button>
               </div>
             </Link>
             <div className='flex-1 flex md:mr-0'>
