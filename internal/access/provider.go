@@ -1,6 +1,8 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
@@ -41,7 +43,7 @@ func ListProviders(c *gin.Context, name string, excludeByName []string, pg model
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
 	if InfraProvider(c).ID == provider.ID {
-		return internal.ErrForbidden
+		return fmt.Errorf("%w: the infra provider can not be modified", internal.ErrBadRequest)
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
@@ -54,7 +56,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {
 	if InfraProvider(c).ID == id {
-		return internal.ErrForbidden
+		return fmt.Errorf("%w: the infra provider can not be deleted", internal.ErrBadRequest)
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole)

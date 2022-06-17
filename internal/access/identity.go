@@ -64,11 +64,11 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	}
 
 	if self {
-		return fmt.Errorf("cannot delete self: %w", internal.ErrForbidden)
+		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
 	}
 
 	if InfraConnectorIdentity(c).ID == id {
-		return internal.ErrForbidden
+		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole)

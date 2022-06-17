@@ -341,6 +341,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
+			// TODO: why would this fail? seems like this should be a 5xx error
 			return nil, fmt.Errorf("%w: update ident info from provider: %s", internal.ErrForbidden, err)
 		}
 
@@ -477,7 +478,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 		}
 
 		if len(infraAdminGrants) == 1 {
-			return nil, fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrForbidden)
+			return nil, fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrBadRequest)
 		}
 	}
 
@@ -486,7 +487,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 
 func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
 	if !a.server.options.EnableSignup {
-		return nil, internal.ErrForbidden
+		return &api.SignupEnabledResponse{Enabled: false}, nil
 	}
 
 	signupEnabled, err := access.SignupEnabled(c)
@@ -494,14 +495,12 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 		return nil, err
 	}
 
-	return &api.SignupEnabledResponse{
-		Enabled: signupEnabled,
-	}, nil
+	return &api.SignupEnabledResponse{Enabled: signupEnabled}, nil
 }
 
 func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	if !a.server.options.EnableSignup {
-		return nil, internal.ErrForbidden
+		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
 	signupEnabled, err := access.SignupEnabled(c)
@@ -510,7 +509,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	}
 
 	if !signupEnabled {
-		return nil, internal.ErrForbidden
+		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
 	if r.Name == "" {

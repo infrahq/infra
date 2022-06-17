@@ -366,6 +366,38 @@ func TestListKeys(t *testing.T) {
 	})
 }
 
+func TestListProviders(t *testing.T) {
+	s := setupServer(t, withAdminUser)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
+
+	testProvider := &models.Provider{Name: "mokta"}
+
+	err := data.CreateProvider(s.db, testProvider)
+	assert.NilError(t, err)
+
+	dbProviders, err := data.ListProviders(s.db)
+	assert.NilError(t, err)
+	assert.Equal(t, len(dbProviders), 2)
+
+	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	req.Header.Add("Infra-Version", "0.12.3")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	var apiProviders api.ListResponse[Provider]
+	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(apiProviders.Items), 1)
+	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
+}
+
 // withAdminUser may be used with setupServer to setup the server
 // with an admin identity and access key
 func withAdminUser(_ *testing.T, opts *Options) {
@@ -538,7 +570,7 @@ func TestDeleteUser_NoDeleteInternalIdentities(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestDeleteUser_NoDeleteSelf(t *testing.T) {
@@ -571,7 +603,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestAPI_CreateGrant_Success(t *testing.T) {
@@ -1084,7 +1116,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 	})
 
 	t.Run("not last infra admin is deleted", func(t *testing.T) {
