@@ -96,20 +96,3 @@ jobs:
       - uses: readmeio/rdme@7.2.2
         with:
           rdme: openapi ./docs/api/openapi3.json --key=${{ secrets.README_API_KEY }} --id=624662df6803f800981a5464
-
-  docs:
-    runs-on: ubuntu-latest
-    needs: [release-please]
-    if: needs.release-please.outputs.release_created
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          repository: infrahq/web
-          token: ${{ secrets.DOCS_TOKEN }}
-      - run: |
-          echo $GITHUB_SHA  | tee ./docs-ref
-          git add ./docs-ref
-          git config user.name infrahq-ci
-          git config user.email contact@infrahq.com
-          git commit -m "maintain: update docs ref"
-          git push origin main
