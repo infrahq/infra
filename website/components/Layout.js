@@ -3,7 +3,7 @@ import Footer from './Footer'
 
 export default function ({ children }) {
   return (
-    <div className='h-screen flex flex-col overflow-x-hidden'>
+    <div className='flex flex-col overflow-x-hidden min-h-full'>
       <Nav />
       {children}
       <Footer />
