@@ -192,7 +192,7 @@ Destinations are infrastructure services (e.g. a Kubernetes cluster) that can be
 
 ### Connectors
 
-Connectors are what establish a secure connection to infrastructure [destinations](#destinations) and allow Infra to manage [user](#users) & [group](#group) access to them. Read more on [how connectors work](../reference/architecture.md#infra-connectors).
+Connectors are what establish a secure connection to infrastructure [destinations](#destinations) and allow Infra to manage [user](#users) & [group](#groups) access to them. Read more on [how connectors work](../reference/architecture.md#infra-connectors).
 
 ### Users
 
