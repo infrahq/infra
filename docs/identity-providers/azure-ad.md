@@ -31,12 +31,12 @@ infra providers add azure \
     - In the **Add a client secret** pane select an expiry.
     - **Note** the **client secret value**.
 ![Add a client secret](../images/azure-setup/connect-users-azure-3.png)
-6. Naviate to **Authentication**.
+6. Navigate to **Authentication**.
     - Select **Web** > **Add URI**.
     - Enter `https://<INFRA_SERVER_HOST>/login/callback`
     - Click **Save**.
 ![Add another redirect URI](../images/azure-setup/connect-users-azure-5.png)
-7. Naviate to **Token configuration**.
+7. Navigate to **Token configuration**.
     - Click **Add optional claim**.
     - For **Token type** select **ID**.
     - From the list of claims select the `email` claim.
@@ -53,7 +53,7 @@ infra providers add azure \
         - **GroupMember** > **GroupMember.Read.All**
         - **User** > **User.Read**
     - Click **Add permissions**.
-    - Click **Grant admin constent for Default Directory** and select **Yes** when prompted.
+    - Click **Grant admin consent for Default Directory** and select **Yes** when prompted.
 ![Add API permissions](../images/azure-setup/connect-users-azure-6.png)
 9. From the **Overview** tab copy the **Application (client) ID**, **Directory (tenant) ID**, and **Client Secret** values and provide them into Infra's Dashboard or CLI.
 
