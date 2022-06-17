@@ -1,8 +1,12 @@
 package data
 
 import (
+	"errors"
+	"fmt"
+
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -26,7 +30,7 @@ func SaveProvider(db *gorm.DB, provider *models.Provider) error {
 func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	toDelete, err := ListProviders(db, selectors...)
 	if err != nil {
-		return err
+		return fmt.Errorf("listing providers: %w", err)
 	}
 
 	ids := make([]uid.ID, 0)
@@ -35,7 +39,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 
 		providerUsers, err := ListProviderUsers(db, ByProviderID(p.ID))
 		if err != nil {
-			return err
+			return fmt.Errorf("listing provider users: %w", err)
 		}
 
 		// if a user has no other providers, we need to remove the user.
@@ -43,7 +47,10 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 		for _, providerUser := range providerUsers {
 			user, err := GetIdentity(db.Preload("Providers"), ByID(providerUser.IdentityID))
 			if err != nil {
-				return err
+				if errors.Is(err, internal.ErrNotFound) {
+					continue
+				}
+				return fmt.Errorf("get user: %w", err)
 			}
 
 			if len(user.Providers) == 1 && user.Providers[0].ID == p.ID {
@@ -53,16 +60,16 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 
 		if len(userIDsToDelete) > 0 {
 			if err := DeleteIdentities(db, ByIDs(userIDsToDelete)); err != nil {
-				return err
+				return fmt.Errorf("delete users: %w", err)
 			}
 		}
 
 		if err := DeleteProviderUsers(db, ByProviderID(p.ID)); err != nil {
-			return err
+			return fmt.Errorf("delete provider users: %w", err)
 		}
 
 		if err := DeleteAccessKeys(db, ByProviderID(p.ID)); err != nil {
-			return err
+			return fmt.Errorf("delete access keys: %w", err)
 		}
 	}
 

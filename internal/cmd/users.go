@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"strings"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -116,6 +117,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			type row struct {
 				Name       string `header:"Name"`
 				LastSeenAt string `header:"Last Seen"`
+				Providers  string `header:"Provided By"`
 			}
 
 			var rows []row
@@ -138,6 +140,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 					rows = append(rows, row{
 						Name:       user.Name,
 						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),
+						Providers:  strings.Join(user.ProviderNames, ", "),
 					})
 				}
 
