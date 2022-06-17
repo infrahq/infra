@@ -227,7 +227,7 @@ func TestAPI_ListGrants(t *testing.T) {
 						Resource:  "res1",
 					},
 				}
-				//check sort
+				// check sort
 				assert.Assert(t, sort.SliceIsSorted(expected, func(i, j int) bool {
 					return expected[i].User < expected[j].User
 				}))
