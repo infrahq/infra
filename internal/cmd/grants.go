@@ -64,6 +64,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot list grants: missing privileges for ListGrants",
 					}
@@ -200,6 +201,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	grants, err := client.ListGrants(listGrantsReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
+			logging.S.Debug(err)
 			return Error{
 				Message: "Cannot revoke grants: missing privileges for ListGrants",
 			}
@@ -216,6 +218,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
+				logging.S.Debug(err)
 				return Error{
 					Message: "Cannot revoke grants: missing privileges for DeleteGrant",
 				}
@@ -284,6 +287,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		user, err := createUser(client, cmdOptions.Name, false)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
+				logging.S.Debug(err)
 				return Error{
 					Message: "Cannot create grants: missing privileges for ListGrants",
 				}
@@ -299,6 +303,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 
 			if api.ErrorStatusCode(err) == 403 {
+				logging.S.Debug(err)
 				return Error{
 					Message: "Cannot create grants: missing privileges for CreateGroup",
 				}
@@ -326,6 +331,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	_, err = client.CreateGrant(createGrantReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
+			logging.S.Debug(err)
 			return Error{
 				Message: "Cannot create grant: missing privileges for CreateGrant",
 			}
@@ -345,6 +351,7 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 		group, err := getGroupByName(client, subject)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
+				logging.S.Debug(err)
 				return 0, 0, Error{
 					Message: "missing privileges for GetGroup",
 				}
@@ -358,6 +365,7 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 	user, err := getUserByName(client, subject)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
+			logging.S.Debug(err)
 			return 0, 0, Error{
 				Message: "missing privileges for GetUser",
 			}

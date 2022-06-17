@@ -52,6 +52,7 @@ $ infra users add johndoe@example.com`,
 			createResp, err := createUser(client, args[0], true)
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot add users: missing privileges for CreateUser",
 					}
@@ -118,6 +119,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			users, err := client.ListUsers(api.ListUsersRequest{})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot list users: missing privileges for ListUsers",
 					}
@@ -165,6 +167,7 @@ $ infra users remove janedoe@example.com`,
 			users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot delete users: missing privileges for ListUsers",
 					}
@@ -181,6 +184,7 @@ $ infra users remove janedoe@example.com`,
 				logging.S.Debugf("...call server: delete user %s", user.ID)
 				if err := client.DeleteUser(user.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot delete users: missing privileges for DeleteUsers",
 						}
@@ -244,6 +248,7 @@ func updateUser(cli *CLI, name string) error {
 			if errors.Is(err, ErrUserNotFound) {
 				return Error{Message: fmt.Sprintf("No user named %q in local provider; only local users can be edited", name)}
 			} else if api.ErrorStatusCode(err) == 403 {
+				logging.S.Debug(err)
 				return Error{
 					Message: fmt.Sprintf("Cannot update user %q: missing privileges for GetUser", name),
 				}

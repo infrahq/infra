@@ -91,6 +91,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: name})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot disconnect destination: missing privileges for ListDestinations",
 					}
@@ -108,6 +109,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot disconnect destination: missing privileges for DeleteDestination",
 						}

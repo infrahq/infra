@@ -72,6 +72,7 @@ $ infra keys add connector
 			user, err := getUserByName(client, userName)
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot create key: missing privileges for getUser",
 					}
@@ -88,6 +89,7 @@ $ infra keys add connector
 			})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot create key: missing privileges for CreateKey",
 					}
@@ -126,6 +128,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot delete key: missing privileges for ListKeys",
 					}
@@ -143,6 +146,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				err = client.DeleteAccessKey(key.ID)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot delete key: missing privileges for DeleteKey",
 						}
@@ -190,6 +194,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot list keys: missing privileges for GetUser",
 						}
@@ -201,6 +206,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID})
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot list keys: missing privileges for ListKeys",
 						}
@@ -212,6 +218,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{})
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot list keys: missing privileges for ListKeys",
 						}

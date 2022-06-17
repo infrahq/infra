@@ -128,6 +128,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 			})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
 					return Error{
 						Message: "Cannot connect provider: missing privileges for CreateProvider",
 					}
@@ -176,6 +177,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				logging.S.Debugf("...call server: delete provider %s", provider.ID)
 				if err := client.DeleteProvider(provider.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
 						return Error{
 							Message: "Cannot disconnect provider: missing privileges for DeleteProvider",
 						}
