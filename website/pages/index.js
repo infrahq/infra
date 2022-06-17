@@ -14,7 +14,7 @@ export default function Index () {
       </Head>
       <section className='flex flex-col flex-1 mb-48 lg:mb-12 lg:flex-row items-center relative max-w-screen-2xl px-8 w-full mx-auto'>
         <div className='flex-1 text-center lg:text-left'>
-          <h1 className='my-12 lg:my-4 text-center max-w-lg lg:max-w-none lg:text-left text-6xl xl:text-[72px] 2xl:leading-[0.9] font-light tracking-tighter'>
+          <h1 className='my-12 lg:my-4 text-center max-w-lg lg:max-w-none lg:text-left text-6xl xl:text-[72px] font-light tracking-tighter'>
             The simplest way to manage infrastructure access
           </h1>
           <ul className='space-y-1 my-16 lg:my-4 mx-auto lg:mx-none lg:mx-0 max-w-md xl:max-w-xl text-lg lg:text-xl tracking-tight leading-tight md:leading-tight lg:leading-tight text-gray-300'>
@@ -24,7 +24,7 @@ export default function Index () {
             <li className='flex items-start'><img src='/images/check.svg' className='w-5 h-5 mr-3 mt-1' /><span className='text-left'> Short-lived, auto refreshed tokens under the hood</span></li>
             <li className='flex items-start pt-3'><img src='/images/kubernetes.svg' className='w-[21px] h-[21px] mr-3' /> <span className='text-white font-bold'>Available for Kubernetes </span><span className='text-sm italic text-fuchsia-400 font-bold ml-1'> BETA</span></li>
           </ul>
-          <div className='relative z-40 flex flex-col my-16 lg:my-10 mx-auto max-w-sm lg:mx-none lg:max-w-xl lg:mx-0 xl:flex-row flex-1 items-stretch xl:items-start justify-center xl:justify-start space-y-6 xl:space-y-0 xl:space-x-4'>
+          <div className='relative z-40 flex flex-col my-16 lg:my-10 mx-auto max-w-sm lg:max-w-md xl:max-w-xl xl:mx-none lg:mx-0 xl:flex-row flex-1 items-stretch xl:items-start justify-center xl:justify-start space-y-6 xl:space-y-0 xl:space-x-4'>
             <Link href='https://github.com/infrahq/infra'>
               <div className='flex-none inline-flex rounded-full overflow-hidden bg-gradient-to-tr from-cyan-100 to-pink-300 group'>
                 <button className='w-full justify-center flex m-0.5 pr-5 pl-3 py-2 text-lg rounded-full bg-black text-gray-100 transition-all duration-300 group-hover:bg-gray-900 group-hover:text-white'><img className='pr-3' src='/images/github.svg' /> Open in GitHub</button>
