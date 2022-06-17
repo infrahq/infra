@@ -33,20 +33,20 @@ Login to the Okta dashboard and navigate to **Applications > Applications**
 
 ### Configure your new Okta App:
   - For **App integration name** write **Infra**.
-  - Under **General Settings** > **Grant type** select **Authorization Code** and **Refresh Token**.
+  - Under **General Settings** > **Grant type** select **Authorization Code** and **Refresh Token**
   - For **Sign-in redirect URIs** add:
     1. `http://localhost:8301` (for Infra CLI login)
     2. `https://<INFRA_SERVER_HOST>/login/callback` (for Infra Dashboard login)
-  - For **Assignments** select the groups which will have access through Infra.
+  - For **Assignments** select the groups which will have access through Infra
 
 Click **Save**.
 
 ![General Tab](../images/okta-setup/connect-users-okta-okta4.png)
 
 While still on the screen for the application you just created navigate to the **Sign On** tab.
-    - On the **OpenID Connect ID Token** select **Edit**.
-    - Update the **Groups claim filter** to `groups` `Matches regex` `.*`.
-    - Click **Save**.
+  - On the **OpenID Connect ID Token** select **Edit**
+  - Update the **Groups claim filter** to `groups` `Matches regex` `.*`
+  - Click **Save**
 
 ### Copy important values
 
