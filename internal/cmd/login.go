@@ -483,10 +483,6 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 		return nil, err
 	}
 
-	// sort.Slice(providers.Items, func(i, j int) bool {
-	// 	return providers.Items[i].Name < providers.Items[j].Name
-	// })
-
 	return providers.Items, nil
 }
 

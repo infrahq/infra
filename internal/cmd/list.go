@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -77,7 +78,7 @@ func list(cli *CLI) error {
 		keys = append(keys, k)
 	}
 
-	// sort.Strings(keys)
+	sort.Strings(keys)
 
 	for _, k := range keys {
 		v, ok := gs[k]
