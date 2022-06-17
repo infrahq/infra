@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"testing"
 	"time"
 
@@ -226,6 +227,10 @@ func TestAPI_ListGrants(t *testing.T) {
 						Resource:  "res1",
 					},
 				}
+				//check sort
+				assert.Assert(t, sort.SliceIsSorted(expected, func(i, j int) bool {
+					return expected[i].User < expected[j].User
+				}))
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
