@@ -98,8 +98,6 @@ func getDefaultSortFromType(t interface{}) string {
 	ty := reflect.TypeOf(t).Elem()
 	if _, ok := ty.FieldByName("Name"); ok {
 		return "name ASC"
-	} else if _, ok := ty.FieldByName("User"); ok {
-		return "user ASC"
 	}
 
 	return "id ASC"
