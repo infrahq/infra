@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -28,13 +27,15 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		data.ByPagination(pg),
 	}
 
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
 		selectors = append(selectors, data.ByOptionalSubject(subject))
 		return data.ListGrants(db, selectors...)
 	}
+	err = HandleAuthErr(err, "grants", "list", roles...)
 
-	if errors.Is(err, internal.ErrForbidden) {
+	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
 		db := getDB(c)
 		subjectID, _ := subject.ID()
