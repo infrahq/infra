@@ -13,10 +13,19 @@ export default function () {
     }
 
     try {
-      await fetch('/api/signup', {
+      const res = await fetch('/api/signup', {
         method: 'POST',
-        body: JSON.stringify({ email, code })
+        body: JSON.stringify({ email, code }),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+        }
       })
+
+      if (!res.ok) {
+        throw res
+      }
+
       setSubmitted(true)
     } catch (e) {
       setError(true)
