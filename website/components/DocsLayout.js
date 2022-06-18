@@ -6,58 +6,6 @@ import { ChevronRightIcon, ExternalLinkIcon } from '@heroicons/react/solid'
 import Nav from './Nav'
 import SignupForm from './SignupForm'
 
-const prose = `
-prose-headings:text-white
-prose-headings:tracking-tight
-prose-h1:mt-10
-prose-h1:mb-7
-prose-h1:text-[48px]
-prose-h1:font-normal
-prose-h2:text-[32px]
-prose-h2:mt-10
-prose-h2:mb-5
-prose-h2:font-normal
-prose-h3:text-2xl
-prose-h3:mt-8
-prose-h3:mb-3
-prose-h3:font-normal
-prose-h4:text-xl
-prose-h4:text-lg
-prose-blockquote:not-italic
-prose-pre:border
-prose-pre:bg-white/5
-prose-pre:border-0
-prose-pre:rounded-lg
-prose-pre:my-4
-prose-pre:px-6
-prose-pre:py-4
-prose-p:text-lg
-prose-p:leading-snug
-prose-p:text-gray-300
-prose-p:before:content-none
-prose-p:after:content-none
-prose-ul:mb-4
-prose-li:text-lg
-prose-li:my-0
-prose-code:font-mono
-prose-code:font-normal
-prose-code:text-[0.8em]
-prose-code:tracking-tight
-prose-code:rounded-md
-prose-code:before:content-none
-prose-code:after:content-none
-prose-code:overflow-auto
-prose-code:touch-auto
-prose-code:leading-relaxed
-prose-code:bg-white/10
-prose-code:px-[0.2em]
-prose-blockquote:my-10
-prose-strong:font-bold
-prose-table:table-auto
-prose-table:text-base
-prose-td:min-w-[8em]
-`.split('\n').join(' ')
-
 function Expandable ({ expanded, children }) {
   const ref = useRef()
   const [height, setHeight] = useState('auto')
@@ -213,7 +161,7 @@ export default function DocsLayout ({ children, items = [], headings = [], icon 
         <div className='flex-1 min-w-0 pl-0 md:pl-56 lg:pl-64'>
           <div className='relative flex-1 flex flex-col px-8 md:pl-0 lg:px-0 my-8 min-w-0 lg:max-w-2xl xl:max-w-3xl w-full mx-auto'>
             {icon && (<img className='w-16 h-16' src={icon} />)}
-            <div className={`w-full max-w-none prose prose-md prose-invert ${prose}`}>
+            <div className='w-full max-w-none prose prose-docs prose-md prose-invert'>
               {children}
             </div>
             <hr className='my-12 border-zinc-800' />
