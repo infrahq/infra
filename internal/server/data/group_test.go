@@ -186,15 +186,15 @@ func TestAddUsersToGroup(t *testing.T) {
 		createGroups(t, db, &everyone)
 
 		var (
-			bond   = models.Identity{
-				Name: "jbond@infrahq.com",
+			bond = models.Identity{
+				Name:   "jbond@infrahq.com",
 				Groups: []models.Group{everyone},
 			}
 			bourne = models.Identity{
-				Name: "jbourne@infrahq.com",
+				Name:   "jbourne@infrahq.com",
 				Groups: []models.Group{},
 			}
-			bauer  = models.Identity{Name: "jbauer@infrahq.com",
+			bauer = models.Identity{Name: "jbauer@infrahq.com",
 				Groups: []models.Group{},
 			}
 		)

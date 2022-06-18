@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -243,12 +244,81 @@ func TestAPI_ListGroups(t *testing.T) {
 	}
 }
 
+func TestAPI_CreateGroup(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		body     api.CreateGroupRequest
+	}
+
+	meUser := models.Identity{Name: "me@example.com"}
+	createIdentities(t, srv.db, &meUser)
+
+	token := &models.AccessKey{
+		IssuedFor:  meUser.ID,
+		ProviderID: data.InfraProvider(srv.db).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
+	}
+
+	accessKey, err := data.CreateAccessKey(srv.db, token)
+	assert.NilError(t, err)
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPost, tc.urlPath, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+accessKey)
+		req.Header.Add("Infra-Version", "0.13.0")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: "/api/groups",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"authorized by grant": {
+			urlPath: "/api/groups",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+			},
+			body: api.CreateGroupRequest{
+				Name: "Awesome group",
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestAPI_DeleteGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var humans = models.Group{Name: "humans"}
-
 	createGroups(t, srv.db, &humans)
 
 	var (
@@ -320,3 +390,122 @@ func TestAPI_DeleteGroup(t *testing.T) {
 		})
 	}
 }
+
+func TestAPI_UpdateUsersInGroup(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	var humans = models.Group{Name: "humans"}
+	createGroups(t, srv.db, &humans)
+
+	var (
+		first  = models.Identity{Name: "first@example.com"}
+		second = models.Identity{Name: "second@example.com"}
+	)
+
+	createIdentities(t, srv.db, &first, &second)
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		body     api.UpdateUsersInGroupRequest
+	}
+
+	token := &models.AccessKey{
+		IssuedFor:  first.ID,
+		ProviderID: data.InfraProvider(srv.db).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
+	}
+
+	accessKey, err := data.CreateAccessKey(srv.db, token)
+	assert.NilError(t, err)
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPatch, tc.urlPath, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+accessKey)
+		req.Header.Add("Infra-Version", "0.13.0")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"add users": {
+			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				idents, err := data.ListIdentitiesByGroup(srv.db, humans.ID)
+				assert.NilError(t, err)
+				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
+			},
+			body: api.UpdateUsersInGroupRequest{
+				Requests: []api.AddRemoveUsersInGroupRequest{
+					{
+						Method: "add",
+						UserID: first.ID,
+					},
+					{
+						Method: "add",
+						UserID: second.ID,
+					},
+				},
+			},
+		},
+		"remove users": {
+			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				err := data.AddUsersToGroup(srv.db, humans.ID, []models.Identity{first, second})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				idents, err := data.ListIdentitiesByGroup(srv.db, humans.ID)
+				assert.NilError(t, err)
+				assert.Assert(t, len(idents) == 0)
+			},
+			body: api.UpdateUsersInGroupRequest{
+				Requests: []api.AddRemoveUsersInGroupRequest{
+					{
+						Method: "remove",
+						UserID: first.ID,
+					},
+					{
+						Method: "remove",
+						UserID: second.ID,
+					},
+				},
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
+	return x.Name == y.Name
+})

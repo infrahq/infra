@@ -59,9 +59,17 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 
 func AddUsersToGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
 	for _, id := range identities {
-		err := db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", id.ID, groupID).Error
-		if err != nil {
+		var ids []uid.ID
+
+		if err := db.Raw("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", id.ID, groupID).Scan(&ids).Error; err != nil {
 			return err
+		}
+
+		if len(ids) == 0 {
+			err := db.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", id.ID, groupID).Error
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -69,7 +77,7 @@ func AddUsersToGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) 
 
 func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
 	for _, id := range identities {
-		err := db.Exec("delete from identities_groups where identity_id = ? and group_id = ?", id.ID, groupID).Error
+		err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id.ID, groupID).Error
 		if err != nil {
 			return err
 		}
