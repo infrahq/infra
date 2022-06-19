@@ -12,6 +12,11 @@ module.exports = {
         permanent: true
       },
       {
+        source: '/docs/configuration/identity-providers/:slug*',
+        destination: '/docs/identity-providers/:slug*',
+        permanent: true
+      },
+      {
         source: '/docs/getting-started/introduction',
         destination: '/docs/getting-started/what-is-infra',
         permanent: true
