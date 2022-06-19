@@ -98,14 +98,13 @@ export default function ProvidersAddDetails () {
           {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <label className='text-2xs text-white/90'>
-          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/configuration/identity-providers/okta' rel='noreferrer'>learn more</a>
+          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/identity-providers/okta' rel='noreferrer'>learn more</a>
         </label>
         <div className='mt-4'>
           <label className='text-3xs text-gray-400 uppercase'>URL (Domain)</label>
           <input
             required
             placeholder='domain or URL'
-            type='url'
             value={url}
             onChange={e => setURL(e.target.value)}
             className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-500/60' : ''}`}
