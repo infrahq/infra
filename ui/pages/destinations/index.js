@@ -1,48 +1,35 @@
 import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
 import { useState } from 'react'
-import { useTable } from 'react-table'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
-
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
-import Grant from '../../components/grant'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
-import NamespaceGrant from '../../components/namespace-grant'
+import Grant from '../../components/grant'
 
-function SidebarNamespaceContent ({ namespace }) {
-  return (
-    <div className='flex-1 flex flex-col space-y-6'>
-      <section>
-        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-        <NamespaceGrant destinationId={namespace.destinationId} namespaceName={namespace.name} />
-      </section>
-    </div>
-  )
-}
-
-function SidebarContent ({ destination, admin, setSelectedDestination }) {
+function Details ({ destination, onDelete }) {
   const { data: auth } = useSWR('/api/users/self')
-  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?user=${auth.id}&resource=${destination.name}`)
+  const { admin } = useAdmin()
+  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?resource=${destination.resource}`)
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      {grants?.length > 0 && (
+      {grants?.filter(g => g.user === auth.id)?.length > 0 && (
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
           <p className='text-2xs my-4'>Connect to this cluster via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
           <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal overflow-auto'>
             infra login {window.location.host}<br />
-            infra use {destination.name}<br />
+            infra use {destination.resource}<br />
             kubectl get pods
           </pre>
         </section>
@@ -50,26 +37,28 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
       {admin &&
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <Grant id={destination.id} />
+          <Grant resource={destination.resource} />
         </section>}
-      <section>
-        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
-        <div className='pt-3 flex flex-col space-y-2'>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
-            <div className='text-2xs font-mono'>{destination.id}</div>
+      {destination.id && (
+        <section>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
+          <div className='pt-3 flex flex-col space-y-2'>
+            <div className='flex flex-row items-center'>
+              <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+              <div className='text-2xs font-mono'>{destination.id || '-'}</div>
+            </div>
+            <div className='flex flex-row items-center'>
+              <div className='text-gray-400 text-2xs w-1/3'>Added</div>
+              <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
+            </div>
+            <div className='flex flex-row items-center'>
+              <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
+              <div className='text-2xs'>{destination?.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
+            </div>
           </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>Added</div>
-            <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
-            <div className='text-2xs'>{destination?.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
-          </div>
-        </div>
-      </section>
-      {admin &&
+        </section>
+      )}
+      {admin && destination.id &&
         <section className='flex-1 flex flex-col items-end justify-end py-6'>
           <button
             type='button'
@@ -91,7 +80,7 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
               })
 
               setDeleteModalOpen(false)
-              setSelectedDestination(null)
+              onDelete()
             }}
             title='Remove Cluster'
             message={<>Are you sure you want to disconnect <span className='text-white font-bold'>{destination?.name}?</span><br />Note: you must also uninstall the Infra Connector from this cluster.</>}
@@ -104,97 +93,63 @@ function SidebarContent ({ destination, admin, setSelectedDestination }) {
 const columns = [{
   Header: 'Name',
   accessor: 'name',
-  id: 'expander',
   Cell: ({ row, value }) => {
     return (
       <div className='flex py-3 items-center'>
-        <span className='mr-3' {...row.getToggleRowExpandedProps()}>
-          <div className='border border-gray-900 bg-gray-900 rounded-md flex items-center tracking-tight text-sm w-6 h-6'>
-            {row.isExpanded ? <MinusSmIcon className='w-4 h-4 m-auto' /> : <PlusSmIcon className='w-4 h-4 m-auto' />}
-          </div>
+        {row.canExpand && (
+          <span {...row.getToggleRowExpandedProps({
+            onClick: e => {
+              row.toggleRowExpanded(!row.isExpanded)
+              e.preventDefault()
+              e.stopPropagation()
+            },
+            className: 'mr-3 w-6'
+          })}
+          >
+            <div className={`bg-gray-900 ${row.isExpanded ? 'bg-gray-800' : 'bg-gray-900'} rounded-md flex items-center tracking-tight text-sm w-6 h-6`}>
+              {row.isExpanded
+                ? <MinusSmIcon className='w-4 h-4 m-auto' />
+                : <PlusSmIcon className='w-4 h-4 m-auto' />}
+            </div>
+          </span>
+        )}
+        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 4}rem` } })}>
+          {value}
         </span>
-        {value}
       </div>
     )
   }
 }, {
   Header: 'Kind',
-  Cell: () => <span className='text-gray-400'>cluster</span>
+  accessor: v => v,
+  width: '25%',
+  Cell: ({ value }) => <span className='text-gray-400 px-2 py-0.5 bg-gray-900 rounded'>{value.kind}</span>
 }]
 
 export default function Destinations () {
   const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
-  const [selectedDestination, setSelectedDestination] = useState(null)
-  const [selectedNamespace, setSelectedNamespace] = useState(null)
+  const [selected, setSelected] = useState(null)
 
-  const table = useTable({ columns, data: destinations?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
+  const data = destinations
+    ?.sort((a, b) => b.created?.localeCompare(a.created))
+    ?.map(d => ({
+      ...d,
+      kind: 'cluster',
+      resource: d.name,
+      subRows: d.resources?.map(r => ({
+        name: r,
+        resource: `${d.name}.${r}`,
+        kind: 'namespace'
+      }))
+    })) || []
 
   const loading = adminLoading || (!destinations && !error)
-
-  const selectDestination = (row) => {
-    setSelectedDestination(row)
-    setSelectedNamespace(null)
-  }
-
-  const selectNamespace = (row) => {
-    setSelectedNamespace(row)
-    setSelectedDestination(null)
-  }
-
-  const handleClose = () => {
-    setSelectedDestination(null)
-    setSelectedNamespace(null)
-  }
-
-  function renderRowSubComponent (row) {
-    const { name: destination, id: destinationId, resources, roles } = row.original
-    const rowSubData = resources.map(resource => {
-      return {
-        destination,
-        destinationId,
-        name: resource,
-        roles: roles.filter(role => role !== 'cluster-admin')
-      }
-    })
-
-    const subColumns = [{
-      Header: 'Namespaces',
-      accessor: 'name',
-      Cell: ({ value }) => {
-        return (
-          <div className='flex py-3 items-center'>
-            {value}
-          </div>
-        )
-      }
-    }, {
-      Header: 'Kind',
-      Cell: () => <span className='text-gray-400'>namespace</span>
-    }]
-
-    return (
-      <div className='ml-16 mt-6 mb-6'>
-        <Table
-          subTable
-          columns={subColumns}
-          data={rowSubData}
-          getRowProps={row => ({
-            onClick: () => selectNamespace(row.original),
-            style: {
-              cursor: 'pointer',
-              background: row.original.name === selectedNamespace?.name ? '#151A1E' : ''
-            }
-          })}
-        />
-      </div>
-    )
-  }
 
   return (
     <>
       <Head>
-        <title>Infrastructure - Infra</title>
+        <title>Clusters - Infra</title>
       </Head>
       {!loading && (
         <div className='flex-1 flex h-full'>
@@ -205,14 +160,11 @@ export default function Destinations () {
               : (
                 <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
                   <Table
-                    {...table}
-                    renderRowSubComponent={renderRowSubComponent}
+                    columns={columns}
+                    data={data}
                     getRowProps={row => ({
-                      onClick: () => selectDestination(row.original),
-                      style: {
-                        cursor: 'pointer',
-                        background: row.original.id === selectedDestination?.id ? '#151A1E' : ''
-                      }
+                      onClick: () => setSelected(row.original),
+                      className: selected?.resource === row.original.resource ? 'bg-gray-900/50' : 'cursor-pointer'
                     })}
                   />
                   {destinations?.length === 0 &&
@@ -226,21 +178,13 @@ export default function Destinations () {
                 </div>
                 )}
           </div>
-          {selectedDestination &&
+          {selected &&
             <Sidebar
-              handleClose={() => handleClose()}
-              title={selectedDestination.name}
+              handleClose={() => setSelected(null)}
+              title={selected.resource}
               iconPath='/destinations.svg'
             >
-              <SidebarContent destination={selectedDestination} admin={admin} setSelectedDestination={setSelectedDestination} />
-            </Sidebar>}
-          {selectedNamespace &&
-            <Sidebar
-              handleClose={() => handleClose()}
-              title={`.../${selectedNamespace.name}`}
-              iconPath='/destinations.svg'
-            >
-              <SidebarNamespaceContent namespace={selectedNamespace} />
+              <Details destination={selected} onDelete={() => setSelected(null)} />
             </Sidebar>}
         </div>
       )}

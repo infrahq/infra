@@ -1,19 +1,25 @@
-import { Fragment } from 'react'
 import { useTable, useExpanded } from 'react-table'
 
-export default function ({ columns, data, renderRowSubComponent, getRowProps = () => ({}), subTable = false }) {
-  const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow, visibleColumns } = useTable({
+export default function ({ columns, data, getRowProps = () => {} }) {
+  const {
+    getTableProps,
+    getTableBodyProps,
+    prepareRow,
+    headerGroups,
+    rows
+  } = useTable({
     columns,
-    data
+    data,
+    autoResetExpanded: false
   }, useExpanded)
 
   return (
-    <table className='w-full sticky top-0' {...getTableProps()}>
+    <table className='w-full sticky top-0 table-fixed' {...getTableProps()}>
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th key={column.id} className={`sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800 ${subTable ? 'pb-3' : 'border-b border-gray-800'}`} {...column.getHeaderProps()}>
+              <th width={column.width} key={column.id} className='sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
                 {column.render('Header')}
               </th>
             ))}
@@ -23,26 +29,22 @@ export default function ({ columns, data, renderRowSubComponent, getRowProps = (
       <tbody className='relative' {...getTableBodyProps()}>
         {rows.map(row => {
           prepareRow(row)
+          const props = row.getRowProps(getRowProps(row))
           return (
-            <Fragment key={row.getRowProps().key}>
-              <tr className={`group ${row.isExpanded || (subTable && Number(row.id) === rows.length - 1) ? '' : 'border-b border-gray-800'}  text-2xs`} key={row.id} {...row.getRowProps(getRowProps(row))}>
-                {row.cells.map(cell => {
-                  return (
-                    <td key={cell.id} {...cell.getCellProps()}>
-                      {cell.render('Cell')}
-                    </td>
-                  )
-                })}
-              </tr>
-              {row.isExpanded && (
-                <tr>
-                  <td colSpan={visibleColumns.length}>
-                    {renderRowSubComponent(row)}
+            <tr
+              {...props}
+              key={row.id}
+              className={`${props.className} group text-2xs`}
+            >
+              {row.cells.map(cell => {
+                const props = cell.getCellProps()
+                return (
+                  <td key={cell.id} {...props} className={`${props.className} border-b border-gray-800`}>
+                    {cell.render('Cell')}
                   </td>
-                </tr>
-              )}
-              {row.isExpanded && <tr className='border-b border-gray-800' />}
-            </Fragment>
+                )
+              })}
+            </tr>
           )
         })}
       </tbody>

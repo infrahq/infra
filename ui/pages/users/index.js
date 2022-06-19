@@ -111,7 +111,7 @@ export default function Users () {
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({ columns, data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!users && !error)
 
@@ -131,11 +131,8 @@ export default function Users () {
                   <Table
                     {...table}
                     getRowProps={row => ({
-                      onClick: () => setSelectedUser(row.original),
-                      style: {
-                        cursor: 'pointer',
-                        background: row.original.id === selectedUser?.id ? '#151A1E' : ''
-                      }
+                      onClick: () => setSelected(row.original),
+                      className: selected?.id === row.original.id ? 'bg-gray-900/50' : 'cursor-pointer'
                     })}
                   />
                   {users?.length === 0 &&
@@ -149,13 +146,13 @@ export default function Users () {
                 </div>
                 )}
           </div>
-          {selectedUser &&
+          {selected &&
             <Sidebar
-              handleClose={() => setSelectedUser(null)}
-              title={selectedUser.name}
-              profileIcon={selectedUser.name[0]}
+              handleClose={() => setSelected(null)}
+              title={selected.name}
+              profileIcon={selected.name[0]}
             >
-              <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
+              <SidebarContent selectedUser={selected} admin={admin} setSelectedUser={setSelected} />
             </Sidebar>}
         </div>
       )}

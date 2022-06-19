@@ -104,7 +104,7 @@ export default function Providers () {
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({ columns, data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
 
-  const [selectedProvider, setSelectedProvider] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!providers && !error)
 
@@ -124,11 +124,8 @@ export default function Providers () {
                   <Table
                     {...table}
                     getRowProps={row => ({
-                      onClick: () => setSelectedProvider(row.original),
-                      style: {
-                        cursor: 'pointer',
-                        background: row.original.id === selectedProvider?.id ? '#151A1E' : ''
-                      }
+                      onClick: () => setSelected(row.original),
+                      className: selected?.id === row.original.id ? 'bg-gray-900/50' : 'cursor-pointer'
                     })}
                   />
                   {providers?.length === 0 &&
@@ -142,13 +139,13 @@ export default function Providers () {
                 </div>
                 )}
           </div>
-          {selectedProvider &&
+          {selected &&
             <Sidebar
-              handleClose={() => setSelectedProvider(null)}
-              title={selectedProvider.name}
+              handleClose={() => setSelected(null)}
+              title={selected.name}
               iconPath='/providers.svg'
             >
-              <SidebarContent provider={selectedProvider} admin={admin} setSelectedProvider={setSelectedProvider} />
+              <SidebarContent provider={selected} admin={admin} setSelectedProvider={setSelected} />
             </Sidebar>}
         </div>
       )}
