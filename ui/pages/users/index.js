@@ -40,9 +40,8 @@ const columns = [{
   )
 }]
 
-function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
-  const { id, name } = selectedUser
-  const { data: user } = useSWR(`/api/users/${id}`)
+function SidebarContent ({ user, admin, onDelete }) {
+  const { id, name } = user
   const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
 
@@ -55,7 +54,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
       {admin &&
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <ResourcesGrant id={id} />
+          <ResourcesGrant user={user.id} />
         </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
@@ -96,7 +95,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
             })
 
             setDeleteModalOpen(false)
-            setSelectedUser(null)
+            onDelete()
           }}
           title='Remove User'
           message={<>Are you sure you want to remove <span className='text-white font-bold'>{name}?</span></>}
@@ -152,7 +151,7 @@ export default function Users () {
               title={selected.name}
               profileIcon={selected.name[0]}
             >
-              <SidebarContent selectedUser={selected} admin={admin} setSelectedUser={setSelected} />
+              <SidebarContent user={selected} admin={admin} onDelete={() => setSelected(null)} />
             </Sidebar>}
         </div>
       )}
