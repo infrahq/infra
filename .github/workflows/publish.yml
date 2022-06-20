@@ -20,6 +20,8 @@ on:
         required: true
       GEMFURY_TOKEN:
         required: true
+      RELEASE_PLEASE_TOKEN:
+        required: true
       DOCKERHUB_USERNAME:
         required: true
       DOCKERHUB_PASSWORD:
@@ -50,6 +52,37 @@ jobs:
         with:
           name: helm
       - run: aws s3 sync . s3://${{ secrets.HELM_BUCKET }} --exclude '*' --include 'index.yaml' --include '*.tgz' --acl public-read
+      - run: |
+          git config --global user.name infrahq-ci
+          git config --global user.email contact@infrahq.com
+      - uses: actions/checkout@v3
+        with:
+          repository: infrahq/homebrew-tap
+          path: homebrew-tap
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        if: ${{ inputs.ENVIRONMENT == 'production' }}
+      - run: |
+          sh update-tap.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          RECIPE=$(git status --porcelain | awk '{ print $2 }')
+          git add $RECIPE
+          git commit -m "Brew formula update for ${RECIPE%.*} version $RELEASE_NAME"
+          git push origin @:refs/heads/main
+        working-directory: homebrew-tap
+        if: ${{ inputs.ENVIRONMENT == 'production' }}
+      - uses: actions/checkout@v3
+        with:
+          repository: infrahq/scoop
+          path: scoop
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        if: ${{ inputs.ENVIRONMENT == 'production' }}
+      - run: |
+          sh update-scoop.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          PACKAGE=$(git status --porcelain | awk '{ print $2 }')
+          git add $PACKAGE
+          git commit -m "Scoop update for ${PACKAGE%.*} version $RELEASE_NAME"
+          git push origin @:refs/heads/main
+        working-directory: scoop
+        if: ${{ inputs.ENVIRONMENT == 'production' }}
 
   publish-docker:
     runs-on: ubuntu-latest
