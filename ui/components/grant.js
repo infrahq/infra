@@ -61,6 +61,9 @@ export default function ({ resource = '' }) {
     }, { optimisticData: { items: items?.filter(item => item?.id !== id) } })
   }
 
+  const displayGrants = items?.filter(g => g.user)?.sort((a, b) => (a.user).localeCompare(b.user)) || []
+  const displayInheritedGrants = inherited?.filter(g => g.user)?.sort((a, b) => (a.user).localeCompare(b.user)) || []
+
   return (
     <>
       <form
@@ -113,7 +116,7 @@ export default function ({ resource = '' }) {
       </form>
       {error && <ErrorMessage message={error} />}
       <div className='py-2 overflow-y-auto max-h-screen'>
-        {items?.length > 0 && items?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
+        {displayGrants.length > 0 && displayGrants.map(item => (
           <div key={item.id} className='flex justify-between items-center'>
             <User id={item.user} />
             <select
@@ -136,7 +139,7 @@ export default function ({ resource = '' }) {
             </select>
           </div>
         ))}
-        {inherited?.length > 0 && inherited?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
+        {displayInheritedGrants?.length > 0 && displayInheritedGrants.map(item => (
           <div key={item.id} className='grid grid-cols-7'>
             <div className='col-span-4 py-2'><User id={item.user} /></div>
             <div
@@ -151,7 +154,7 @@ export default function ({ resource = '' }) {
           </div>
         ))}
       </div>
-      {!inherited?.length && !items?.length && (
+      {displayGrants?.length === 0 && displayInheritedGrants?.length === 0 && (
         <div className='text-2xs text-gray-400 italic w-2/3'>
           Share access by inviting your team and assigning their roles.
         </div>
