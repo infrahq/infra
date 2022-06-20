@@ -23,9 +23,9 @@ const oidcProviderRequestTimeout = time.Second * 10
 
 // InfoClaims captures the claims fields from a user-info response that we care about
 type InfoClaims struct {
-	Email  string   `json:"email"` // returned by default for Okta user info
+	Email  string   `json:"email" validate:"required_without=Name"` // returned by default for Okta user info
 	Groups []string `json:"groups"`
-	Name   string   `json:"name"` // returned by default for Azure user info
+	Name   string   `json:"name" validate:"required_without=Email"` // returned by default for Azure user info
 }
 
 type OIDC interface {
@@ -127,7 +127,7 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderUser) (o
 	return conf.TokenSource(ctx, userToken), nil
 }
 
-// ExchangeAuthCodeForProviderTokens exchanges the authorization code a user recieved on login for valid identity provider tokens
+// ExchangeAuthCodeForProviderTokens exchanges the authorization code a user received on login for valid identity provider tokens
 func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
 	defer cancel()
@@ -260,7 +260,7 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*In
 
 	// in the case of azure a deleted user's info will still resolve
 	// guard against this by validating the info in the response is what we expect
-	if err := claims.validate(); err != nil {
+	if err := validator.New().Struct(claims); err != nil {
 		return nil, err
 	}
 

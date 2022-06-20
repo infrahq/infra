@@ -75,12 +75,14 @@ func (a *azure) SyncProviderUser(db *gorm.DB, user *models.Identity, provider *m
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
-		} else if errors.Is(err, ErrUnauthorized) {
-			newGroups = &[]string{} // set the groups empty to clear them
-			logging.S.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
-		} else {
+		}
+
+		if !errors.Is(err, ErrUnauthorized) {
 			return fmt.Errorf("could not check azure user groups: %w", err)
 		}
+
+		newGroups = &[]string{} // set the groups empty to clear them
+		logging.S.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
 	}
 
 	logging.S.Debugf("user synchronized with %q groups from provider %q", *newGroups, provider.Name)
