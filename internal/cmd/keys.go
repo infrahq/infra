@@ -71,6 +71,12 @@ $ infra keys add connector
 
 			user, err := getUserByName(client, userName)
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
+					return Error{
+						Message: "Cannot create key: missing privileges for getUser",
+					}
+				}
 				return err
 			}
 
@@ -82,6 +88,12 @@ $ infra keys add connector
 				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
 			})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
+					return Error{
+						Message: "Cannot create key: missing privileges for CreateKey",
+					}
+				}
 				return err
 			}
 
@@ -115,6 +127,12 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			logging.S.Debugf("call server: list access keys named %q", args[0])
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					logging.S.Debug(err)
+					return Error{
+						Message: "Cannot delete key: missing privileges for ListKeys",
+					}
+				}
 				return err
 			}
 
@@ -127,6 +145,12 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				logging.S.Debugf("...call server: delete access key %s", key.ID)
 				err = client.DeleteAccessKey(key.ID)
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
+						return Error{
+							Message: "Cannot delete key: missing privileges for DeleteKey",
+						}
+					}
 					return err
 				}
 
@@ -171,18 +195,36 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			if options.UserName != "" {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
+						return Error{
+							Message: "Cannot list keys: missing privileges for GetUser",
+						}
+					}
 					return err
 				}
 
 				logging.S.Debugf("call server: list access keys for user %s", user.ID)
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID, ShowExpired: options.ShowExpired})
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
+						return Error{
+							Message: "Cannot list keys: missing privileges for ListKeys",
+						}
+					}
 					return err
 				}
 			} else {
 				logging.S.Debug("call server: list access keys")
 				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{ShowExpired: options.ShowExpired})
 				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.S.Debug(err)
+						return Error{
+							Message: "Cannot list keys: missing privileges for ListKeys",
+						}
+					}
 					return err
 				}
 			}
