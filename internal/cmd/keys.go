@@ -49,7 +49,7 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 		Long:  `Create an access key for a user or a connector.`,
 		Example: `
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add example-key user@example.com --ttl=12h
+$ infra keys add user@example.com --ttl=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
 $ infra keys add connector

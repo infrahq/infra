@@ -10,7 +10,7 @@ position: 1
 First, generate an access key:
 
 ```
-infra keys add KEY_NAME connector
+infra keys add connector
 ```
 
 Next, use this access key to connect your cluster:
