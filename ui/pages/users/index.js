@@ -40,9 +40,8 @@ const columns = [{
   )
 }]
 
-function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
-  const { id, name } = selectedUser
-  const { data: user } = useSWR(`/api/users/${id}`)
+function SidebarContent ({ user, admin, onDelete }) {
+  const { id, name } = user
   const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
 
@@ -55,7 +54,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
       {admin &&
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <ResourcesGrant id={id} />
+          <ResourcesGrant user={user.id} />
         </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
@@ -96,7 +95,7 @@ function SidebarContent ({ selectedUser, admin, setSelectedUser }) {
             })
 
             setDeleteModalOpen(false)
-            setSelectedUser(null)
+            onDelete()
           }}
           title='Remove User'
           message={<>Are you sure you want to remove <span className='text-white font-bold'>{name}?</span></>}
@@ -111,7 +110,7 @@ export default function Users () {
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({ columns, data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!users && !error)
 
@@ -131,11 +130,8 @@ export default function Users () {
                   <Table
                     {...table}
                     getRowProps={row => ({
-                      onClick: () => setSelectedUser(row.original),
-                      style: {
-                        cursor: 'pointer',
-                        background: row.original.id === selectedUser?.id ? '#151A1E' : ''
-                      }
+                      onClick: () => setSelected(row.original),
+                      className: selected?.id === row.original.id ? 'bg-gray-900/50' : 'cursor-pointer'
                     })}
                   />
                   {users?.length === 0 &&
@@ -149,13 +145,13 @@ export default function Users () {
                 </div>
                 )}
           </div>
-          {selectedUser &&
+          {selected &&
             <Sidebar
-              handleClose={() => setSelectedUser(null)}
-              title={selectedUser.name}
-              profileIcon={selectedUser.name[0]}
+              handleClose={() => setSelected(null)}
+              title={selected.name}
+              profileIcon={selected.name[0]}
             >
-              <SidebarContent selectedUser={selectedUser} admin={admin} setSelectedUser={setSelectedUser} />
+              <SidebarContent user={selected} admin={admin} onDelete={() => setSelected(null)} />
             </Sidebar>}
         </div>
       )}
