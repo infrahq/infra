@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -62,24 +64,43 @@ func Test202206151027(t *testing.T) {
 		loadSQL(t, db, "202206151027")
 	})
 
-	//provider := map[string]interface{}{
-	//	"name":          "test",
-	//	"url":           "example.com",
-	//	"client_id":     "a",
-	//	"client_secret": "b",
-	//}
-	//err := db.Table("providers").Create(provider).Error
-	//assert.NilError(t, err)
+	// TODO: share more of Server.loadDBKey
+	loadDBKey := func(db *gorm.DB) error {
+		provider := secrets.NativeKeyProvider{
+			SecretStorage: &secrets.FileSecretProvider{},
+		}
+		keyRec, err := GetEncryptionKey(db, ByName("dbkey"))
+		assert.NilError(t, err)
+
+		sKey, err := provider.DecryptDataKey("migrationdata/202206151027.sql.key", keyRec.Encrypted)
+		assert.NilError(t, err)
+		models.SymmetricKey = sKey
+		return nil
+	}
 
 	// migration runs as part of NewDB
-	db, err := NewDB(driver, nil)
+	db, err := NewDB(driver, loadDBKey)
 	assert.NilError(t, err)
 
-	result := models.Provider{}
-	err = db.Table("providers").Take(&result).Error
+	providers, err := ListProviders(db)
 	assert.NilError(t, err)
-	assert.Equal(t, models.OktaKind.String(), result.Kind)
+	expected := []models.Provider{
+		{
+			Name: "infra",
+			Kind: models.InfraKind,
+		},
+		{
+			Name: "test",
+			Kind: models.OktaKind,
+			URL:  "example.com/provider",
+		},
+	}
+	assert.DeepEqual(t, providers, expected, cmpProviderShallow)
 }
+
+var cmpProviderShallow = gocmp.Comparer(func(x, y models.Provider) bool {
+	return x.Name == y.Name && x.Kind == y.Kind && x.URL == y.URL
+})
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
 // To create a new file for testing a migration:
@@ -87,7 +108,9 @@ func Test202206151027(t *testing.T) {
 // 1. Start an infra server and perform operations with the CLI or API to
 //    get the db in the state you want to test. You should capture the db state
 //    before writing your migration. Make sure there are some relevant records
-//    in the affected tables.
+//    in the affected tables. Do not use a production server! Any sensitive data
+//    should be throw away development credentials because they will be checked
+//    into git.
 //
 // 2. Connect up to the db to dump the data. If you're running sqlite in
 //    kubernetes:
@@ -109,12 +132,6 @@ func Test202206151027(t *testing.T) {
 //    you expect. Sometimes failed migrations leave it in a broken state, and might
 //    run when you don't expect, so defensive programming is helpful here.
 //
-// 4. Go back to the sql file:
-//   - remove any SQL records that aren't relevant to the test
-//   - blank out provider client ids and name
-//   - remove any email addresses and replace with @example.com
-//   - remove any provider_users redirect urls
-//   - check any other sensitive fields are encrypted and the key isn't included in the database.
 func loadSQL(t *testing.T, db *gorm.DB, filename string) {
 	f, err := os.Open("migrationdata/" + filename + ".sql")
 	assert.NilError(t, err)
