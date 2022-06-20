@@ -236,22 +236,6 @@ export async function getStaticProps ({ params }) {
   const item = allitems().find(i => i.href === slug)
   const filepath = item?.items ? path.join(rootDir, `${slug}/README.md`) : path.join(rootDir, `${slug}.md`)
 
-  // redirect to first child if this is a category
-  if (!fs.existsSync(filepath)) {
-    if (item?.items?.length) {
-      return {
-        redirect: {
-          destination: item?.items?.filter(i => !i.link)?.[0]?.href || '/docs',
-          permanent: true
-        }
-      }
-    }
-
-    return {
-      notFound: true
-    }
-  }
-
   const content = fs.readFileSync(filepath, 'utf-8')
   const ast = Markdoc.parse(content, slug)
   const transformed = Markdoc.transform(ast, config)
@@ -275,6 +259,6 @@ export async function getStaticProps ({ params }) {
 export async function getStaticPaths () {
   return {
     paths: allitems().filter(i => !i?.items).filter(i => !i.link).map(i => i.href),
-    fallback: 'blocking'
+    fallback: false
   }
 }
