@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -23,20 +24,20 @@ type mockOIDCImplementation struct {
 	UserGroupsResp []string
 }
 
-func (m *mockOIDCImplementation) Validate() error {
+func (m *mockOIDCImplementation) Validate(context.Context) error {
 	return nil
 }
 
-func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(code string) (acc, ref string, exp time.Time, email string, err error) {
+func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }
 
-func (o *mockOIDCImplementation) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
 	// never update
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*InfoClaims, error) {
+func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*InfoClaims, error) {
 	return &InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
@@ -83,7 +84,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 func TestValidateInvalidURL(t *testing.T) {
 	oidc := NewOIDC("invalid.example.com", "some_client_id", "some_client_secret", "http://localhost:8301")
 
-	err := oidc.Validate()
+	err := oidc.Validate(context.Background())
 	assert.ErrorIs(t, err, ErrInvalidProviderURL)
 }
 

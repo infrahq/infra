@@ -44,10 +44,10 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 }
 
 type OIDC interface {
-	Validate() error
-	ExchangeAuthCodeForProviderTokens(code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
-	RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
-	GetUserInfo(providerUser *models.ProviderUser) (*InfoClaims, error)
+	Validate(context.Context) error
+	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
+	RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
+	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error)
 }
 
 type oidcImplementation struct {
@@ -67,13 +67,14 @@ func NewOIDC(domain, clientID, clientSecret, redirectURL string) OIDC {
 }
 
 func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
+	ctx := context.TODO()
 	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
-	accessToken, refreshToken, expiry, email, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(a.Code)
+	accessToken, refreshToken, expiry, email, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -110,7 +111,7 @@ func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provide
 	}
 
 	// get current identity provider groups
-	info, err := a.OIDCProviderClient.GetUserInfo(providerUser)
+	info, err := a.OIDCProviderClient.GetUserInfo(ctx, providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -136,8 +137,7 @@ func (a *oidcAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
 }
 
 // Validate tests if an identity provider has valid attributes to support user login
-func (o *oidcImplementation) Validate() error {
-	ctx := context.Background()
+func (o *oidcImplementation) Validate(ctx context.Context) error {
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
 		logging.S.Debugf("error validating oidc provider: %s", err)
@@ -184,7 +184,8 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 
 // tokenSource is used to call an identity provider with the specified provider tokens
 func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.TODO(), oidcProviderRequestTimeout)
+	defer cancel()
 
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
@@ -200,8 +201,8 @@ func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderUser) (o
 	return conf.TokenSource(ctx, userToken), nil
 }
 
-func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
+func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
 	conf, provider, err := o.clientConfig(ctx)
@@ -250,7 +251,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(code string) (raw
 }
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
-func (o *oidcImplementation) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
 	tokenSource, err := o.tokenSource(providerUser)
 	if err != nil {
 		return "", nil, fmt.Errorf("ref token source: %w", err)
@@ -266,8 +267,8 @@ func (o *oidcImplementation) RefreshAccessToken(providerUser *models.ProviderUse
 
 // GetUserInfo uses a provider token to get the current information about a user,
 // make sure an access token is valid (not expired) before using this
-func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*InfoClaims, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
+func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error) {
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
 	tokenSource, err := o.tokenSource(providerUser)

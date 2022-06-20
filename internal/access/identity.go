@@ -147,6 +147,7 @@ func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
+	ctx := c.Request.Context()
 	// added by the authentication middleware
 	identity := AuthenticatedIdentity(c)
 	if identity == nil {
@@ -173,7 +174,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
 	}
 
 	// check if the access token needs to be refreshed
-	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(providerUser)
+	newAccessToken, newExpiry, err := oidc.RefreshAccessToken(ctx, providerUser)
 	if err != nil {
 		return fmt.Errorf("refresh provider access: %w", err)
 	}
@@ -190,7 +191,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc authn.OIDC) error {
 	}
 
 	// get current identity provider groups
-	info, err := oidc.GetUserInfo(providerUser)
+	info, err := oidc.GetUserInfo(ctx, providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
