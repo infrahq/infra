@@ -123,7 +123,7 @@ const columns = [{
   Header: 'Kind',
   accessor: v => v,
   width: '25%',
-  Cell: ({ value }) => <span className='text-gray-400 px-2 py-0.5 bg-gray-900 rounded'>{value.kind}</span>
+  Cell: ({ value }) => <span className='text-gray-400 px-2 py-0.5 bg-gray-800 rounded'>{value.kind}</span>
 }]
 
 export default function Destinations () {
