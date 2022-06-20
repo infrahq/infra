@@ -62,7 +62,7 @@ export default function ({ user }) {
           ))}
         </div>}
       {items?.filter(grant => grant.resource !== 'infra').length === 0 &&
-        <div className='text-2xs text-gray-400 italic w-2/3 py-2'>
+        <div className='text-2xs text-gray-400 italic w-2/3 py-4'>
           No access
         </div>}
     </>
