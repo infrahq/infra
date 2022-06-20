@@ -101,6 +101,7 @@ jobs:
           esac
           docker buildx build --push \
             --platform linux/amd64,linux/arm64 \
+            --build-arg BUILDVERSION=${{ inputs.RELEASE_NAME }} \
             --build-arg TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }} \
             --tag infrahq/infra:${{ inputs.RELEASE_NAME }} \
             ${LATEST:+--tag infrahq/infra} \
