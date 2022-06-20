@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"testing"
 
 	"golang.org/x/crypto/bcrypt"
@@ -123,7 +124,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				userPassLogin := NewPasswordCredentialAuthentication(username, password)
 
-				_, _, err = userPassLogin.Authenticate(db)
+				_, _, err = userPassLogin.Authenticate(context.Background(), db)
 				assert.NilError(t, err)
 
 				return userPassLogin
@@ -217,7 +218,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			assert.Assert(t, ok)
 			credentialLogin := setupFunc(t, db)
 
-			identity, provider, err := credentialLogin.Authenticate(db)
+			identity, provider, err := credentialLogin.Authenticate(context.Background(), db)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, *models.Provider, error))
 			assert.Assert(t, ok)

@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,14 +12,14 @@ import (
 )
 
 type LoginMethod interface {
-	Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error)
+	Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error)
 	Name() string                             // Name returns the name of the authentication method used
 	RequiresUpdate(db *gorm.DB) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
 }
 
-func Login(db *gorm.DB, loginMethod LoginMethod, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
+func Login(ctx context.Context, db *gorm.DB, loginMethod LoginMethod, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
 	// challenge the user to authenticate
-	identity, provider, err := loginMethod.Authenticate(db)
+	identity, provider, err := loginMethod.Authenticate(ctx, db)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to login: %w", err)
 	}

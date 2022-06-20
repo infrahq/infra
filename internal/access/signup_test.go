@@ -1,6 +1,8 @@
 package access
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -18,6 +20,7 @@ func TestSignupEnabled(t *testing.T) {
 	setup := func(t *testing.T) (*gin.Context, *gorm.DB) {
 		db := setupDB(t)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
+		c.Request = (&http.Request{}).WithContext(context.Background())
 		c.Set("db", db)
 		_, err := data.InitializeSettings(db)
 		assert.NilError(t, err)

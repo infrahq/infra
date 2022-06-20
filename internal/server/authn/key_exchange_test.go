@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -124,7 +125,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			assert.Assert(t, ok)
 			keyExchangeLogin := setupFunc(t, db)
 
-			identity, provider, err := keyExchangeLogin.Authenticate(db)
+			identity, provider, err := keyExchangeLogin.Authenticate(context.Background(), db)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, *models.Provider, error))
 			assert.Assert(t, ok)

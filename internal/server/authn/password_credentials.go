@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
@@ -23,7 +24,7 @@ func NewPasswordCredentialAuthentication(username, password string) LoginMethod 
 	}
 }
 
-func (a *passwordCredentialAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
+func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error) {
 	identity, err := data.GetIdentity(db, data.ByName(a.Username))
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get identity for username: %w", err)

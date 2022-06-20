@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ func setupDB(t *testing.T) *gorm.DB {
 }
 
 func TestLogin(t *testing.T) {
+	ctx := context.Background()
 	db := setupDB(t)
 	// setup with user/pass login
 	// authentication method should not matter for this test
@@ -52,7 +54,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("failed login does not create access key", func(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication(username, "invalid password")
-		_, bearer, err := Login(db, authn, time.Now().Add(1*time.Minute), time.Minute)
+		_, bearer, err := Login(ctx, db, authn, time.Now().Add(1*time.Minute), time.Minute)
 
 		assert.ErrorContains(t, err, "failed to login")
 		assert.Equal(t, bearer, "")
@@ -62,7 +64,7 @@ func TestLogin(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication("gohan@example.com", password)
 		exp := time.Now().Add(1 * time.Minute)
 		ext := 1 * time.Minute
-		key, bearer, err := Login(db, authn, exp, ext)
+		key, bearer, err := Login(ctx, db, authn, exp, ext)
 
 		assert.NilError(t, err)
 		assert.Assert(t, bearer != "")

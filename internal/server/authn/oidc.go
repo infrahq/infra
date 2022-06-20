@@ -66,8 +66,7 @@ func NewOIDC(domain, clientID, clientSecret, redirectURL string) OIDC {
 	}
 }
 
-func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
-	ctx := context.TODO()
+func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error) {
 	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
 	if err != nil {
 		return nil, nil, err
@@ -183,8 +182,8 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 }
 
 // tokenSource is used to call an identity provider with the specified provider tokens
-func (o *oidcImplementation) tokenSource(providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
-	ctx, cancel := context.WithTimeout(context.TODO(), oidcProviderRequestTimeout)
+func (o *oidcImplementation) tokenSource(ctx context.Context, providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
 	conf, _, err := o.clientConfig(ctx)
@@ -252,7 +251,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
 func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
-	tokenSource, err := o.tokenSource(providerUser)
+	tokenSource, err := o.tokenSource(ctx, providerUser)
 	if err != nil {
 		return "", nil, fmt.Errorf("ref token source: %w", err)
 	}
@@ -271,7 +270,7 @@ func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *mode
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
-	tokenSource, err := o.tokenSource(providerUser)
+	tokenSource, err := o.tokenSource(ctx, providerUser)
 	if err != nil {
 		return nil, fmt.Errorf("info token source: %w", err)
 	}
