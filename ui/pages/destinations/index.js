@@ -113,7 +113,7 @@ const columns = [{
             </div>
           </span>
         )}
-        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 3}rem` } })}>
+        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 36}px` } })}>
           {value}
         </span>
       </div>
@@ -163,7 +163,10 @@ export default function Destinations () {
                     columns={columns}
                     data={data}
                     getRowProps={row => ({
-                      onClick: () => setSelected(row.original),
+                      onClick: () => {
+                        setSelected(row.original)
+                        row.toggleRowExpanded(true)
+                      },
                       className: selected?.resource === row.original.resource ? 'bg-gray-900/50' : 'cursor-pointer'
                     })}
                   />
