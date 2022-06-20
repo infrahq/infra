@@ -6,7 +6,7 @@ export default function Heading ({ id = '', level = 1, children, className = '' 
 
   return (
     <Component className={`${className} group scroll-mt-20 relative`} id={id}>
-      {children}{showAnchor && <a href={`#${id}`} className='opacity-0 group-hover:opacity-100 text-zinc-500 relative px-[0.2em] select-none no-underline hover:underline'>#</a>}
+      {children}{showAnchor && <a href={`#${id}`} className='hidden group-hover:inline text-zinc-500 relative px-[0.2em] no-underline hover:underline'>#</a>}
     </Component>
   )
 }
