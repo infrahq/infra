@@ -11,13 +11,16 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// current: v0.3
+// clientConfigVersion is the current version of the client configuration file.
+// Use this constant when referring to a value in tests or code that should
+// always use latest.
+const clientConfigVersion = "0.3"
+
 type ClientConfig struct {
 	Version string             `json:"version"`
 	Hosts   []ClientHostConfig `json:"hosts"`
 }
 
-// current: v0.3
 type ClientHostConfig struct {
 	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"` // identity pid TODO: name this. what's it an ID of?
 	Name          string            `json:"name"`           // identity name
@@ -27,6 +30,9 @@ type ClientHostConfig struct {
 	ProviderID    uid.ID            `json:"provider-id,omitempty"`
 	Expires       api.Time          `json:"expires"`
 	Current       bool              `json:"current"`
+	// TrustedCertificate is the PEM encoded TLS certificate used by the server
+	// that was verified and trusted by the user as part of login.
+	TrustedCertificate string `json:"trusted-certificate"`
 }
 
 // checks if user is logged in to the given session (ClientHostConfig)
@@ -65,7 +71,7 @@ func readConfig() (*ClientConfig, error) {
 	}
 
 	if len(contents) == 0 {
-		return &ClientConfig{Version: "0.3"}, nil
+		return &ClientConfig{Version: clientConfigVersion}, nil
 	}
 
 	config := &ClientConfig{}
@@ -106,11 +112,7 @@ func writeConfig(config *ClientConfig) error {
 		return err
 	}
 
-	if err = ioutil.WriteFile(filepath.Join(infraDir, "config"), []byte(contents), 0o600); err != nil {
-		return err
-	}
-
-	return nil
+	return ioutil.WriteFile(filepath.Join(infraDir, "config"), contents, 0o600)
 }
 
 // Save (create or update) the current hostconfig

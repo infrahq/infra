@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/Netflix/go-expect"
 	"github.com/creack/pty"
 	"github.com/google/go-cmp/cmp"
@@ -90,9 +91,36 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 		expected := clientcmdapi.Config{}
 		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
 	})
+
+	runStep(t, "login updated infra config", func(t *testing.T) {
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := []ClientHostConfig{
+			{
+				Name:          "admin@example.com",
+				AccessKey:     "any-access-key",
+				PolymorphicID: "any-id",
+				Host:          srv.Addrs.HTTPS.String(),
+				SkipTLSVerify: true,
+				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:       true,
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	runStep(t, "login updated kube config", func(t *testing.T) {
+		kubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+
+		// config is empty because there are no grants yet
+		expected := clientcmdapi.Config{}
+		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
+	})
 }
 
-func TestLoginCmd(t *testing.T) {
+func TestLoginCmd_Options(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
@@ -206,6 +234,7 @@ func newConsole(t *testing.T) *expect.Console {
 
 	term := vt10x.New(vt10x.WithWriter(tty))
 	console, err := expect.NewConsole(
+		// expect.WithLogger(log.New(os.Stderr, "", 0)),
 		expect.WithDefaultTimeout(timeout),
 		expect.WithStdout(os.Stdout),
 		expect.WithStdin(pseudoTY),
@@ -266,4 +295,122 @@ func setupCertManager(t *testing.T, dir string, serverName string) {
 	assert.NilError(t, err)
 	err = cache.Put(ctx, serverName+".crt", cert)
 	assert.NilError(t, err)
+}
+
+func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir) // Windows
+	// k8s.io/tools/clientcmd reads HOME at import time, so this must be patched too
+	kubeConfigPath := filepath.Join(dir, "kube.config")
+	t.Setenv("KUBECONFIG", kubeConfigPath)
+
+	opts := defaultServerOptions(dir)
+	accessKey := "0000000001.adminadminadminadmin1234"
+	opts.Users = []server.User{
+		{Name: "admin@example.com", AccessKey: accessKey},
+	}
+	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	srv, err := server.New(opts)
+	assert.NilError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
+	go func() {
+		assert.Check(t, srv.Run(ctx))
+	}()
+
+	runStep(t, "reject server certificate", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			// TODO: why isn't this working without --non-interactive=false? the other test works
+			return Run(ctx, "login", "--non-interactive=false", srv.Addrs.HTTPS.String())
+		})
+		exp := expector{console: console}
+		exp.ExpectString(t, "verify the certificate can be trusted")
+		exp.Send(t, "NO\n")
+
+		assert.ErrorIs(t, g.Wait(), terminal.InterruptErr)
+
+		// Check we haven't persisted any certificates
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		assert.Equal(t, len(cfg.Hosts), 0)
+	})
+
+	runStep(t, "trust server certificate", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		console := newConsole(t)
+		ctx = PatchCLIWithPTY(ctx, console.Tty())
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			// TODO: why isn't this working without --non-interactive=false? the other test works
+			return Run(ctx, "login", "--non-interactive=false", "--key", accessKey, srv.Addrs.HTTPS.String())
+		})
+		exp := expector{console: console}
+		exp.ExpectString(t, "verify the certificate can be trusted")
+		exp.Send(t, "TRUST\n")
+
+		assert.NilError(t, g.Wait())
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		// Check the client config
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin@example.com",
+				AccessKey:          "any-access-key",
+				PolymorphicID:      "any-id",
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: string(cert),
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	runStep(t, "next login should still trust the server", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		err := Run(ctx, "logout")
+		assert.NilError(t, err)
+
+		err = Run(ctx, "login", "--key", accessKey, srv.Addrs.HTTPS.String())
+		assert.NilError(t, err)
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		// Check the client config
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin@example.com",
+				AccessKey:          "any-access-key",
+				PolymorphicID:      "any-id",
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: string(cert),
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
 }

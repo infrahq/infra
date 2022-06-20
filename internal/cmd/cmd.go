@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -77,23 +78,41 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify), nil
+	return apiClient(config.Host, config.AccessKey, httpTransportForHostConfig(config)), nil
 }
 
-func apiClient(host string, accessKey string, skipTLSVerify bool) *api.Client {
+func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
 	return &api.Client{
 		Name:      "cli",
 		Version:   internal.Version,
 		URL:       "https://" + host,
 		AccessKey: accessKey,
 		HTTP: http.Client{
-			Timeout: 60 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // We may purposely set insecureskipverify via a flag
-					InsecureSkipVerify: skipTLSVerify,
-				},
-			},
+			Timeout:   60 * time.Second,
+			Transport: transport,
+		},
+	}
+}
+
+func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		logging.S.Warnf("Failed to load trusted certificates from system: %v", err)
+		pool = x509.NewCertPool()
+	}
+
+	if config.TrustedCertificate != "" {
+		ok := pool.AppendCertsFromPEM([]byte(config.TrustedCertificate))
+		if !ok {
+			logging.S.Warnf("Failed to read trusted certificates for server")
+		}
+	}
+
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			//nolint:gosec // We may purposely set insecureskipverify via a flag
+			InsecureSkipVerify: config.SkipTLSVerify,
+			RootCAs:            pool,
 		},
 	}
 }
@@ -134,7 +153,7 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			err = updateKubeconfig(client, id)
+			err = updateKubeConfig(client, id)
 			if err != nil {
 				return err
 			}

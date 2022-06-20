@@ -56,10 +56,10 @@ func kubernetesSetContext(cluster, namespace string) error {
 	return nil
 }
 
-func updateKubeconfig(client *api.Client, id uid.ID) error {
+func updateKubeConfig(client *api.Client, id uid.ID) error {
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 	if err != nil {
-		return nil
+		return err
 	}
 
 	user, err := client.GetUser(id)

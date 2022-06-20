@@ -19,6 +19,7 @@ import (
 	"gotest.tools/v3/fs"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/uid"
 )
@@ -267,16 +268,16 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 		user.ID = uid.New()
 	}
 	return ClientConfig{
-		Version: "0.3",
+		Version: clientConfigVersion,
 		Hosts: []ClientHostConfig{
 			{
-				PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),
-				Name:          user.Name,
-				Host:          srv.Listener.Addr().String(),
-				SkipTLSVerify: true,
-				AccessKey:     "the-access-key",
-				Expires:       api.Time(time.Now().Add(time.Hour)),
-				Current:       true,
+				PolymorphicID:      uid.NewIdentityPolymorphicID(user.ID),
+				Name:               user.Name,
+				Host:               srv.Listener.Addr().String(),
+				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
+				AccessKey:          "the-access-key",
+				Expires:            api.Time(time.Now().Add(time.Hour)),
+				Current:            true,
 			},
 		},
 	}

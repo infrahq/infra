@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -22,18 +23,21 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
 type loginCmdOptions struct {
-	Server         string
-	AccessKey      string
-	Provider       string
-	SkipTLSVerify  bool
-	NoAgent        bool
-	NonInteractive bool
+	Server        string
+	AccessKey     string
+	Provider      string
+	SkipTLSVerify bool
+	// TODO: add flag for trusted certificate
+	TrustedCertificate string
+	NonInteractive     bool
+	NoAgent            bool
 }
 
 type loginMethod int8
@@ -84,16 +88,32 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
 }
 
 func login(cli *CLI, options loginCmdOptions) error {
-	var err error
+	config, err := readConfig()
+	if err != nil {
+		return err
+	}
 
 	if options.Server == "" {
-		options.Server, err = promptServer(cli, options)
+		if options.NonInteractive {
+			return Error{Message: "Non-interactive login requires the [SERVER] argument"}
+		}
+
+		options.Server, err = promptServer(cli, config)
 		if err != nil {
 			return err
 		}
 	}
 
-	client, err := newAPIClient(cli, options)
+	if len(options.TrustedCertificate) == 0 {
+		// Attempt to find a previously trusted certificate
+		for _, hc := range config.Hosts {
+			if equalHosts(hc.Host, options.Server) {
+				options.TrustedCertificate = hc.TrustedCertificate
+			}
+		}
+	}
+
+	lc, err := newLoginClient(cli, options)
 	if err != nil {
 		return err
 	}
@@ -103,18 +123,18 @@ func login(cli *CLI, options loginCmdOptions) error {
 	// if signup is required, use it to create an admin account
 	// and use those credentials for subsequent requests
 	logging.S.Debug("call server: check signup enabled")
-	signupEnabled, err := client.SignupEnabled()
+	signupEnabled, err := lc.APIClient.SignupEnabled()
 	if err != nil {
 		return err
 	}
 
 	if signupEnabled.Enabled {
-		loginReq.PasswordCredentials, err = runSignupForLogin(cli, client)
+		loginReq.PasswordCredentials, err = runSignupForLogin(cli, lc.APIClient)
 		if err != nil {
 			return err
 		}
 
-		return loginToInfra(cli, client, loginReq, options.NoAgent)
+		return loginToInfra(cli, lc, loginReq, options.NoAgent)
 	}
 
 	switch {
@@ -124,7 +144,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
-		loginReq.OIDC, err = loginToProviderN(client, options.Provider)
+		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
 		if err != nil {
 			return err
 		}
@@ -132,7 +152,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
-		loginMethod, provider, err := promptLoginOptions(cli, client)
+		loginMethod, provider, err := promptLoginOptions(cli, lc.APIClient)
 		if err != nil {
 			return err
 		}
@@ -156,12 +176,22 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
-	return loginToInfra(cli, client, loginReq, options.NoAgent)
+	return loginToInfra(cli, lc, loginReq, options.NoAgent)
 }
 
-func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAgent bool) error {
+func equalHosts(x, y string) bool {
+	if x == y {
+		return true
+	}
+	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
+		return true
+	}
+	return false
+}
+
+func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
 	logging.S.Debug("call server: login")
-	loginRes, err := client.Login(loginReq)
+	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
@@ -176,6 +206,8 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 
 		return err
 	}
+	// Update the API client with the new access key from login
+	lc.APIClient.AccessKey = loginRes.AccessKey
 
 	if loginRes.PasswordUpdateRequired {
 		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
@@ -185,27 +217,19 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 			return err
 		}
 
-		client.AccessKey = loginRes.AccessKey
-
 		logging.S.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := client.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			return err
 		}
 
 		fmt.Fprintf(os.Stderr, "  Updated password.\n")
 	}
 
-	if err := updateInfraConfig(client, loginReq, loginRes); err != nil {
+	if err := updateInfraConfig(lc, loginReq, loginRes); err != nil {
 		return err
 	}
 
-	// Client needs to be refreshed from here onwards, based on the newly saved infra configuration.
-	client, err = defaultAPIClient()
-	if err != nil {
-		return err
-	}
-
-	if err := updateKubeconfig(client, loginRes.UserID); err != nil {
+	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
 		return err
 	}
 
@@ -228,7 +252,7 @@ func loginToInfra(cli *CLI, client *api.Client, loginReq *api.LoginRequest, noAg
 }
 
 // Updates all configs with the current logged in session
-func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
+func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api.LoginResponse) error {
 	clientHostConfig := ClientHostConfig{
 		Current:       true,
 		PolymorphicID: uid.NewIdentityPolymorphicID(loginRes.UserID),
@@ -237,17 +261,20 @@ func updateInfraConfig(client *api.Client, loginReq *api.LoginRequest, loginRes 
 		Expires:       loginRes.Expires,
 	}
 
-	t, ok := client.HTTP.Transport.(*http.Transport)
+	t, ok := lc.APIClient.HTTP.Transport.(*http.Transport)
 	if !ok {
 		return fmt.Errorf("could not update infra config")
 	}
 	clientHostConfig.SkipTLSVerify = t.TLSClientConfig.InsecureSkipVerify
+	if lc.TrustedCertificate != "" {
+		clientHostConfig.TrustedCertificate = lc.TrustedCertificate
+	}
 
 	if loginReq.OIDC != nil {
 		clientHostConfig.ProviderID = loginReq.OIDC.ProviderID
 	}
 
-	u, err := urlx.Parse(client.URL)
+	u, err := urlx.Parse(lc.APIClient.URL)
 	if err != nil {
 		return err
 	}
@@ -372,69 +399,113 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 	}, nil
 }
 
-// Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
-func newAPIClient(cli *CLI, options loginCmdOptions) (*api.Client, error) {
-	if !options.SkipTLSVerify {
-		// Prompt user only if server fails the TLS verification
-		if err := verifyTLS(options.Server); err != nil {
-			urlErr := &url.Error{}
-			if errors.As(err, &urlErr) {
-				if urlErr.Timeout() {
-					return nil, fmt.Errorf("%w: %s", api.ErrTimeout, err)
-				}
-			}
-
-			if !errors.Is(err, ErrTLSNotVerified) {
-				return nil, err
-			}
-
-			if options.NonInteractive {
-				fmt.Fprintf(os.Stderr, "%s\n", ErrTLSNotVerified.Error())
-				return nil, Error{Message: "Non-interactive login does not allow insecure connection by default,\n      to allow, run with '--skip-tls-verify'"}
-			}
-
-			if err = promptSkipTLSVerify(cli); err != nil {
-				return nil, err
-			}
-			options.SkipTLSVerify = true
-		}
-	}
-
-	client := apiClient(options.Server, "", options.SkipTLSVerify)
-	return client, nil
+type loginClient struct {
+	APIClient *api.Client
+	// TrustedCertificate is a PEM encoded certificate that has been trusted by
+	// the user for TLS communication with the server.
+	TrustedCertificate string
 }
 
-func verifyTLS(host string) error {
-	url, err := urlx.Parse(host)
-	if err != nil {
-		logging.S.Debug("Cannot parse host", host, err)
-		logging.S.Error("Could not login. Please check the server hostname")
-		return err
+// Only used when logging in or switching to a new session, since user has no credentials. Otherwise, use defaultAPIClient().
+func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
+	cfg := &ClientHostConfig{
+		TrustedCertificate: options.TrustedCertificate,
+		SkipTLSVerify:      options.SkipTLSVerify,
 	}
-	url.Scheme = "https"
-	urlString := url.String()
-
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, urlString, nil)
-	if err != nil {
-		logging.S.Debugf("Cannot create request: %v", err)
-		return err
+	c := loginClient{
+		APIClient:          apiClient(options.Server, "", httpTransportForHostConfig(cfg)),
+		TrustedCertificate: options.TrustedCertificate,
+	}
+	if options.SkipTLSVerify {
+		return c, nil
 	}
 
-	logging.S.Debugf("call server: test tls for %q", host)
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		if !errors.As(err, &x509.UnknownAuthorityError{}) && !errors.As(err, &x509.HostnameError{}) && !strings.Contains(err.Error(), "certificate is not trusted") {
-			logging.S.Debugf("Cannot validate TLS due to an unexpected error: %v", err)
-			return err
+	// Prompt user only if server fails the TLS verification
+	if err := attemptTLSRequest(options); err != nil {
+		var uaErr x509.UnknownAuthorityError
+		if !errors.As(err, &uaErr) {
+			return c, err
 		}
 
-		logging.S.Debug(err)
+		if options.NonInteractive {
+			// TODO: add the --tls-ca flag
+			// TODO: give a different error if the flag was set
+			return c, Error{
+				Message: "The authenticity of the server could not be verified. " +
+					"Use the --tls-ca flag to specify a trusted CA, or run " +
+					"in interactive mode.",
+			}
+		}
 
-		return ErrTLSNotVerified
+		if err = promptVerifyTLSCert(cli, uaErr.Cert); err != nil {
+			return c, err
+		}
+
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			return c, err
+		}
+		pool.AddCert(uaErr.Cert)
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				// set min version to the same as default to make gosec linter happy
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    pool,
+			},
+		}
+		c.APIClient = apiClient(options.Server, "", transport)
+		c.TrustedCertificate = string(certs.PEMEncodeCertificate(uaErr.Cert.Raw))
+	}
+	return c, nil
+}
+
+func attemptTLSRequest(options loginCmdOptions) error {
+	reqURL := "https://" + options.Server
+	// First attempt with the system cert pool
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	defer res.Body.Close()
-	return nil
+	logging.S.Debugf("call server: test tls for %q", reqURL)
+	httpClient := http.Client{Timeout: 60 * time.Second}
+	res, err := httpClient.Do(req)
+	if err == nil {
+		res.Body.Close()
+		return nil
+	}
+
+	// Second attempt with an empty cert pool. This is necessary because at least
+	// on darwin, the error is the wrong type when using the system cert pool.
+	// See https://github.com/golang/go/issues/52010.
+	req, err = http.NewRequestWithContext(context.TODO(), http.MethodGet, reqURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	pool := x509.NewCertPool()
+	if options.TrustedCertificate != "" {
+		pool.AppendCertsFromPEM([]byte(options.TrustedCertificate))
+	}
+
+	httpClient = http.Client{
+		Timeout: 60 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+		},
+	}
+	res, err = httpClient.Do(req)
+	urlErr := &url.Error{}
+	switch {
+	case err == nil:
+		res.Body.Close()
+		return nil
+	case errors.As(err, &urlErr):
+		if urlErr.Timeout() {
+			return fmt.Errorf("%w: %s", api.ErrTimeout, err)
+		}
+	}
+	return err
 }
 
 func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
@@ -525,34 +596,67 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 }
 
-// Error out if it fails TLS verification and user does not want to connect.
-func promptSkipTLSVerify(cli *CLI) error {
-	// Although the same error, format is a little different for interactive/non-interactive.
-	fmt.Fprintf(os.Stderr, "  %s\n", ErrTLSNotVerified.Error())
-	confirmPrompt := &survey.Confirm{
-		Message: "Are you sure you want to continue?",
+func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
+	formatTime := func(t time.Time) string {
+		return fmt.Sprintf("%v (%v)", HumanTime(t, "none"), t.Format(time.RFC1123))
 	}
-	proceed := false
-	if err := survey.AskOne(confirmPrompt, &proceed, cli.surveyIO); err != nil {
+
+	// TODO: improve this message
+	// TODO: use color/bold to highlight important parts
+	fmt.Fprintf(cli.Stderr, `
+The certificate presented by the server is not trusted by your operating system.
+
+Certificate
+
+Subject: %[1]s
+Issuer: %[2]s
+
+Validity
+  Not Before: %[3]v
+  Not After:  %[4]v
+
+SHA256 Fingerprint
+  %[5]s
+
+Compare the SHA256 fingerprint to the one provided by your administrator to
+manually verify the certificate can be trusted.
+
+`,
+		cert.Subject,
+		cert.Issuer,
+		formatTime(cert.NotBefore),
+		formatTime(cert.NotAfter),
+		certs.Fingerprint(cert.Raw),
+	)
+	confirmPrompt := &survey.Select{
+		Message: "Options:",
+		Options: []string{
+			"NO",
+			"TRUST",
+		},
+		Description: func(value string, index int) string {
+			switch value {
+			case "NO":
+				return "I do not trust this certificate"
+			case "TRUST":
+				return "Trust and save the certificate"
+			default:
+				return ""
+			}
+		},
+	}
+	var selection string
+	if err := survey.AskOne(confirmPrompt, &selection, cli.surveyIO); err != nil {
 		return err
 	}
-	if !proceed {
-		return terminal.InterruptErr
+	if selection == "TRUST" {
+		return nil
 	}
-	return nil
+	return terminal.InterruptErr
 }
 
 // Returns the host address of the Infra server that user would like to log into
-func promptServer(cli *CLI, options loginCmdOptions) (string, error) {
-	if options.NonInteractive {
-		return "", Error{Message: "Non-interactive login requires the [SERVER] argument"}
-	}
-
-	config, err := readConfig()
-	if err != nil {
-		return "", err
-	}
-
+func promptServer(cli *CLI, config *ClientConfig) (string, error) {
 	servers := config.Hosts
 
 	if len(servers) == 0 {
