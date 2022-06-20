@@ -7,35 +7,34 @@ metadata:
 {{- include "connector.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.connector.config "accessKey" }}
-{{- if kindIs "invalid" $val }}
-    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
-{{- else if kindIs "map" $val }}
-    {{ $key }}:
-{{- $val | toYaml | nindent 6 }}
-{{- else if kindIs "slice" $val }}
-    {{ $key }}:
-{{- $val | toYaml | nindent 6 }}
-{{- else if kindIs "string" $val }}
-    {{ $key }}: {{ tpl $val $ }}
-{{- else }}
-    {{ $key }}: {{ $val }}
-{{- end }}
+
+{{- with .Values.connector.config.name }}
+    name: {{ . }}
 {{- end }}
 
+    server:
 {{- $accessKey := default "" .Values.connector.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
-    accessKey: {{ $accessKey }}
+      accessKey: {{ $accessKey }}
 {{- else }}
-    accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+      accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+{{- end }}
+
+{{- with .Values.connector.config.serverTrustedCertificate }}
+      trustedCertificate: |
+{{ indent 8 . }}
+{{- end }}
+
+{{- with .Values.connector.config.server }}
+      url: {{ . }}
 {{- end }}
 
 {{- if include "server.enabled" . | eq "true" }}
-    server: {{ .Release.Name }}-server.{{ .Release.Namespace }}
+      url: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 
 {{- if (not (hasKey .Values.connector.config "skipTLSVerify")) }}
-    # skip tls verify if we're connecting to an in-cluster server
-    skipTLSVerify: true
+      # skip tls verify if we're connecting to an in-cluster server
+      skipTLSVerify: true
 {{- end }}
 {{- end }}
 

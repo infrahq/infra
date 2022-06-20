@@ -291,12 +291,14 @@ func TestConnectorCmd(t *testing.T) {
 	})
 
 	content := `
-server: the-server
+server:
+  url: the-server
+  accessKey: /var/run/secrets/key
+  skipTLSVerify: true
+  trustedCertificate: ca.pem
 name: the-name
-accessKey: /var/run/secrets/key
 caCert: /path/to/cert
 caKey: /path/to/key
-skipTLSVerify: true
 `
 
 	dir := fs.NewDir(t, t.Name(), fs.WithFile("config.yaml", content))
@@ -306,12 +308,15 @@ skipTLSVerify: true
 	assert.NilError(t, err)
 
 	expected := connector.Options{
-		Name:          "the-name",
-		Server:        "the-server",
-		AccessKey:     "/var/run/secrets/key",
-		CACert:        "/path/to/cert",
-		CAKey:         "/path/to/key",
-		SkipTLSVerify: true,
+		Name: "the-name",
+		Server: connector.ServerOptions{
+			URL:                "the-server",
+			AccessKey:          "/var/run/secrets/key",
+			SkipTLSVerify:      true,
+			TrustedCertificate: "ca.pem",
+		},
+		CACert: "/path/to/cert",
+		CAKey:  "/path/to/key",
 	}
 	assert.DeepEqual(t, actual, expected)
 }

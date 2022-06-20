@@ -42,7 +42,7 @@ func tlsConfigFromOptions(
 
 	roots, err := x509.SystemCertPool()
 	if err != nil {
-		logging.Warnf("failed to load TLS roots from system: %v", err)
+		logging.L.Err(err).Msgf("failed to load TLS roots from system")
 		roots = x509.NewCertPool()
 	}
 

@@ -816,5 +816,5 @@ connector:
   ## Destination name
   #   name: ""
 
-  ## Skip verify server TLS certificate
-  #   skipTLSVerify: true
+  ## PEM encoded CA certificate of the server
+  #   serverTrustedCertificate:

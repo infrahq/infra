@@ -22,6 +22,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
@@ -30,12 +31,17 @@ import (
 )
 
 type Options struct {
-	Server        string
-	Name          string
-	AccessKey     string
-	CACert        string
-	CAKey         string
-	SkipTLSVerify bool
+	Server ServerOptions
+	Name   string
+	CACert string
+	CAKey  string
+}
+
+type ServerOptions struct {
+	URL                string
+	AccessKey          string
+	SkipTLSVerify      bool
+	TrustedCertificate types.StringOrFile
 }
 
 func Run(ctx context.Context, options Options) error {
@@ -84,9 +90,9 @@ func Run(ctx context.Context, options Options) error {
 		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
 	}
 
-	u, err := urlx.Parse(options.Server)
+	u, err := urlx.Parse(options.Server.URL)
 	if err != nil {
-		logging.Errorf("server: %s", err)
+		return fmt.Errorf("invalid server url: %w", err)
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
@@ -114,13 +120,7 @@ func Run(ctx context.Context, options Options) error {
 		return errors.New("unexpected type for http.DefaultTransport")
 	}
 
-	transport := defaultHTTPTransport.Clone()
-	transport.TLSClientConfig = &tls.Config{
-		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
-		InsecureSkipVerify: options.SkipTLSVerify,
-	}
-
-	accessKey, err := secrets.GetSecret(options.AccessKey, basicSecretStorage)
+	accessKey, err := secrets.GetSecret(options.Server.AccessKey, basicSecretStorage)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func Run(ctx context.Context, options Options) error {
 		URL:       u.String(),
 		AccessKey: accessKey,
 		HTTP: http.Client{
-			Transport: transport,
+			Transport: httpTransportFromOptions(options.Server),
 		},
 		Headers: http.Header{
 			"Infra-Destination": {chksm},
@@ -204,6 +204,29 @@ func Run(ctx context.Context, options Options) error {
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
+}
+
+func httpTransportFromOptions(opts ServerOptions) *http.Transport {
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		logging.L.Warn().Err(err).Msgf("failed to load TLS roots from system")
+		roots = x509.NewCertPool()
+	}
+
+	if opts.TrustedCertificate != "" {
+		if !roots.AppendCertsFromPEM([]byte(opts.TrustedCertificate)) {
+			logging.Warnf("failed to load TLS CA, invalid PEM")
+		}
+	}
+
+	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
+		InsecureSkipVerify: opts.SkipTLSVerify,
+		RootCAs:            roots,
+	}
+	return transport
 }
 
 func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination *api.Destination, certCache *CertCache, caCertPEM []byte) func(context.Context) {

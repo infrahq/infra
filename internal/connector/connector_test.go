@@ -41,7 +41,8 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 			tc.setup(t, req)
 		}
 
-		authn := newAuthenticator("https://127.0.0.1:12345", Options{SkipTLSVerify: true})
+		opts := Options{Server: ServerOptions{SkipTLSVerify: true}}
+		authn := newAuthenticator("https://127.0.0.1:12345", opts)
 		authn.client = tc.fakeClient
 
 		actual, err := authn.Authenticate(req)

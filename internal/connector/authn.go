@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,13 +31,7 @@ type httpClient interface {
 }
 
 func newAuthenticator(url string, options Options) *authenticator {
-	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{
-		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
-		InsecureSkipVerify: options.SkipTLSVerify,
-	}
-
+	transport := httpTransportFromOptions(options.Server)
 	return &authenticator{
 		client:  &http.Client{Transport: transport},
 		baseURL: url,
