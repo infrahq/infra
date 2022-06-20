@@ -61,8 +61,8 @@ export default function ({ resource = '' }) {
     }, { optimisticData: { items: items?.filter(item => item?.id !== id) } })
   }
 
-  const displayGrants = items?.filter(g => g.user)?.sort((a, b) => (a.user).localeCompare(b.user)) || []
-  const displayInheritedGrants = inherited?.filter(g => g.user)?.sort((a, b) => (a.user).localeCompare(b.user)) || []
+  const displayGrants = items?.filter(g => g.user)?.sort((a, b) => a.user?.localeCompare(b.user)) || []
+  const displayInheritedGrants = inherited?.filter(g => g.user)?.sort((a, b) => a.user?.localeCompare(b.user)) || []
 
   return (
     <>
@@ -143,10 +143,10 @@ export default function ({ resource = '' }) {
           <div key={item.id} className='grid grid-cols-7'>
             <div className='col-span-4 py-2'><User id={item.user} /></div>
             <div
-              title='This access is inherited by cluster-level access and cannot be edited here'
+              title='This access is inherited and cannot be edited here'
               className='col-span-2 my-2 text-2xs text-gray-400 border rounded px-2 mx-auto bg-gray-800 border-gray-800'
             >
-              cluster access
+              inherited
             </div>
             <div className='py-2 text-2xs text-gray-400'>
               {item.privilege}

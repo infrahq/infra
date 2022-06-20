@@ -35,7 +35,7 @@ export default function ({ user }) {
     <>
       {items?.length > 0 &&
         <div className='py-2 max-h-40 overflow-y-auto'>
-          {items?.filter(grant => grant.resource !== 'infra').sort((a, b) => b.resource.localeCompare(a.resource)).map(item => (
+          {items?.filter(grant => grant.resource !== 'infra').sort((a, b) => b.resource?.localeCompare(a.resource)).map(item => (
             <div className='flex justify-between items-center' key={item.id}>
               <p className='text-2xs'>{item.resource}</p>
               <div>
