@@ -38,6 +38,10 @@ func UpdateProviderUser(db *gorm.DB, providerUser *models.ProviderUser) error {
 	return save(db, providerUser)
 }
 
+func ListProviderUsers(db *gorm.DB, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
+	return list[models.ProviderUser](db, selectors...)
+}
+
 func DeleteProviderUsers(db *gorm.DB, selector SelectorFunc) error {
 	return deleteAll[models.ProviderUser](db, selector)
 }

@@ -56,6 +56,7 @@ func InfraConnectorIdentity(c *gin.Context) *models.Identity {
 	return data.InfraConnectorIdentity(getDB(c))
 }
 
+// TODO (https://github.com/infrahq/infra/issues/2318) remove provider user, not user.
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	self, err := isIdentitySelf(c, id)
 	if err != nil {
@@ -113,10 +114,10 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 	}
 
 	if groupID != 0 {
-		return data.ListIdentitiesByGroup(db, groupID, selectors...)
+		return data.ListIdentitiesByGroup(db.Preload("Providers"), groupID, selectors...)
 	}
 
-	return data.ListIdentities(db, selectors...)
+	return data.ListIdentities(db.Preload("Providers"), selectors...)
 }
 
 func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error) {

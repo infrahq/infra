@@ -238,6 +238,13 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 	if infraProviderCache == nil {
 		infra, err := get[models.Provider](db, ByName(models.InternalInfraProviderName))
 		if err != nil {
+			if errors.Is(err, internal.ErrNotFound) {
+				p := &models.Provider{Name: models.InternalInfraProviderName}
+				if err := add(db, p); err != nil {
+					logging.S.Panic(err)
+				}
+				return p
+			}
 			logging.S.Panic(err)
 			return nil
 		}
