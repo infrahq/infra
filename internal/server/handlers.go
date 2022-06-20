@@ -57,32 +57,27 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 	return identity.ToAPI(), nil
 }
 
+// CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	user := &models.Identity{Name: r.Name}
-
-	setOTP := r.SetOneTimePassword
+	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
-	if setOTP {
-		identities, err := access.ListIdentities(c, user.Name, 0, nil, models.Pagination{Limit: 2})
-		if err != nil {
-			return nil, fmt.Errorf("list identities: %w", err)
-		}
+	identities, err := access.ListIdentities(c, user.Name, 0, nil, models.Pagination{Limit: 2})
+	if err != nil {
+		return nil, fmt.Errorf("list identities: %w", err)
+	}
 
-		switch len(identities) {
-		case 0:
-			if err := access.CreateIdentity(c, user); err != nil {
-				return nil, fmt.Errorf("create identity: %w", err)
-			}
-		case 1:
-			user.ID = identities[0].ID
-		default:
-			return nil, fmt.Errorf("multiple identities match specified name") // should not happen
-		}
-	} else {
+	switch len(identities) {
+	case 0:
 		if err := access.CreateIdentity(c, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
+	case 1:
+		user.ID = identities[0].ID
+	default:
+		logging.S.Errorf("Multiple identites match name %q. DB is missing unique index on user names", r.Name)
+		return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 	}
 
 	resp := &api.CreateUserResponse{
@@ -90,19 +85,18 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		Name: user.Name,
 	}
 
-	if setOTP {
-		_, err := access.CreateProviderUser(c, access.InfraProvider(c), user)
-		if err != nil {
-			return nil, fmt.Errorf("create provider user")
-		}
-
-		oneTimePassword, err := access.CreateCredential(c, *user)
-		if err != nil {
-			return nil, fmt.Errorf("create credential: %w", err)
-		}
-
-		resp.OneTimePassword = oneTimePassword
+	_, err = access.CreateProviderUser(c, infraProvider, user)
+	if err != nil {
+		return nil, fmt.Errorf("creating provider user: %w", err)
 	}
+
+	// Always create a temporary password for infra users.
+	tmpPassword, err := access.CreateCredential(c, *user)
+	if err != nil {
+		return nil, fmt.Errorf("create credential: %w", err)
+	}
+
+	resp.OneTimePassword = tmpPassword
 
 	return resp, nil
 }
@@ -118,6 +112,9 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 	if err != nil {
 		return nil, err
 	}
+
+	// if the user is an admin, we could be required to create the infra user, so create the provider_user if it's missing.
+	_, _ = access.CreateProviderUser(c, access.InfraProvider(c), identity)
 
 	return identity.ToAPI(), nil
 }

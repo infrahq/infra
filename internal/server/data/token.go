@@ -52,7 +52,7 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 	custom := claims.Custom{
 		Name:   identity.Name,
 		Groups: groups,
-		Nonce:  generate.MathRandom(10),
+		Nonce:  generate.MathRandom(10, generate.CharsetAlphaNumeric),
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()

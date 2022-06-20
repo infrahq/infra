@@ -113,27 +113,21 @@ func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[
 		return nil, nil, nil, err
 	}
 
-	id := config.PolymorphicID
-	if id == "" {
+	if config.UserID == 0 {
 		return nil, nil, nil, fmt.Errorf("no active identity")
 	}
 
-	identityID, err := id.ID()
+	user, err := client.GetUser(config.UserID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	user, err := client.GetUser(identityID)
+	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{User: identityID})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
+	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
 	if err != nil {
 		return nil, nil, nil, err
 	}

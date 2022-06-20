@@ -42,17 +42,11 @@ func info(cli *CLI) error {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Server:\t %s\n", config.Host)
 
-	id := config.PolymorphicID
-	if id == "" {
+	if config.UserID == 0 {
 		return fmt.Errorf("no active user")
 	}
 
-	identityID, err := id.ID()
-	if err != nil {
-		return err
-	}
-
-	user, err := client.GetUser(identityID)
+	user, err := client.GetUser(config.UserID)
 	if err != nil {
 		return err
 	}
@@ -68,7 +62,7 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	userGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: identityID})
+	userGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
 	if err != nil {
 		return err
 	}

@@ -54,7 +54,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 
 	// create some resources for this identity
 
-	keyID := generate.MathRandom(models.AccessKeyKeyLength)
+	keyID := generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
 	_, err = data.CreateAccessKey(db, &models.AccessKey{KeyID: keyID, IssuedFor: identity.ID, ProviderID: infraProvider.ID})
 	assert.NilError(t, err)
 

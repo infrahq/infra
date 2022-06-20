@@ -148,12 +148,7 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			id, err := config.PolymorphicID.ID()
-			if err != nil {
-				return err
-			}
-
-			err = updateKubeConfig(client, id)
+			err = updateKubeConfig(client, config.UserID)
 			if err != nil {
 				return err
 			}

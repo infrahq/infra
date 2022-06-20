@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,22 +15,26 @@ import (
 // clientConfigVersion is the current version of the client configuration file.
 // Use this constant when referring to a value in tests or code that should
 // always use latest.
-const clientConfigVersion = "0.3"
+const clientConfigVersion = "0.4"
+
+type ClientConfigVersion struct {
+	Version string `json:"version"`
+}
 
 type ClientConfig struct {
-	Version string             `json:"version"`
-	Hosts   []ClientHostConfig `json:"hosts"`
+	ClientConfigVersion `json:",inline"`
+	Hosts               []ClientHostConfig `json:"hosts"`
 }
 
 type ClientHostConfig struct {
-	PolymorphicID uid.PolymorphicID `json:"polymorphic-id"` // identity pid TODO: name this. what's it an ID of?
-	Name          string            `json:"name"`           // identity name
-	Host          string            `json:"host"`
-	AccessKey     string            `json:"access-key,omitempty"`
-	SkipTLSVerify bool              `json:"skip-tls-verify"` // where is the other cert info stored?
-	ProviderID    uid.ID            `json:"provider-id,omitempty"`
-	Expires       api.Time          `json:"expires"`
-	Current       bool              `json:"current"`
+	UserID        uid.ID   `json:"user-id"`
+	Name          string   `json:"name"` // user name
+	Host          string   `json:"host"`
+	AccessKey     string   `json:"access-key,omitempty"`
+	SkipTLSVerify bool     `json:"skip-tls-verify"` // where is the other cert info stored?
+	ProviderID    uid.ID   `json:"provider-id,omitempty"`
+	Expires       api.Time `json:"expires"`
+	Current       bool     `json:"current"`
 	// TrustedCertificate is the PEM encoded TLS certificate used by the server
 	// that was verified and trusted by the user as part of login.
 	TrustedCertificate string `json:"trusted-certificate"`
@@ -37,7 +42,7 @@ type ClientHostConfig struct {
 
 // checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
-	return c.AccessKey != "" && c.Name != "" && c.PolymorphicID != ""
+	return c.AccessKey != "" && c.Name != "" && c.UserID != 0
 }
 
 func (c *ClientHostConfig) isExpired() bool {
@@ -71,10 +76,10 @@ func readConfig() (*ClientConfig, error) {
 	}
 
 	if len(contents) == 0 {
-		return &ClientConfig{Version: clientConfigVersion}, nil
+		return &ClientConfig{ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion}}, nil
 	}
 
-	config := &ClientConfig{}
+	config := &ClientConfigVersion{}
 	if err = json.Unmarshal(contents, &config); err != nil {
 		return nil, err
 	}
@@ -87,7 +92,7 @@ func readConfig() (*ClientConfig, error) {
 			return nil, err
 		}
 
-		return configv0dot1.ToV0dot2().ToV0dot3(), nil
+		return configv0dot1.ToV0dot2().ToV0dot3().ToV0dot4(), nil
 
 	case "0.2":
 		configv0dot2 := ClientConfigV0dot2{}
@@ -95,10 +100,23 @@ func readConfig() (*ClientConfig, error) {
 			return nil, err
 		}
 
-		return configv0dot2.ToV0dot3(), nil
-	}
+		return configv0dot2.ToV0dot3().ToV0dot4(), nil
+	case "0.3":
+		configv0dot3 := ClientConfigV0dot3{}
+		if err = json.Unmarshal(contents, &configv0dot3); err != nil {
+			return nil, err
+		}
 
-	return config, nil
+		return configv0dot3.ToV0dot4(), nil
+	case "0.4":
+		config := &ClientConfig{}
+		if err = json.Unmarshal(contents, &config); err != nil {
+			return nil, err
+		}
+		return config, nil
+	default:
+		return nil, errors.New("unknown version " + config.Version)
+	}
 }
 
 func writeConfig(config *ClientConfig) error {

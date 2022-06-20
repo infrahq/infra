@@ -15,7 +15,7 @@ var (
 	//lint:ignore ST1005, user facing error
 	ErrConfigNotFound    = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 	ErrProviderNotUnique = errors.New(`more than one provider exists with this name`)
-	ErrUserNotFound      = errors.New(`no user found with this name`)
+	ErrUserNotFound      = errors.New(`user not found`)
 )
 
 type LoginError struct {
