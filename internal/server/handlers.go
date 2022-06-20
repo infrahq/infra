@@ -34,7 +34,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 		return nil, err
 	}
 
-	result := api.NewListResponse(users, models.PaginationToResponse(pg), func(identity models.Identity) api.User {
+	result := api.NewListResponse(users, models.PaginationToResponse(c, pg), func(identity models.Identity) api.User {
 		return *identity.ToAPI()
 	})
 
@@ -138,7 +138,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListRes
 		return nil, err
 	}
 
-	result := api.NewListResponse(groups, models.PaginationToResponse(pg), func(group models.Group) api.Group {
+	result := api.NewListResponse(groups, models.PaginationToResponse(c, pg), func(group models.Group) api.Group {
 		return *group.ToAPI()
 	})
 
@@ -185,7 +185,7 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 		return nil, err
 	}
 
-	result := api.NewListResponse(providers, models.PaginationToResponse(pg), func(provider models.Provider) api.Provider {
+	result := api.NewListResponse(providers, models.PaginationToResponse(c, pg), func(provider models.Provider) api.Provider {
 		return *provider.ToAPI()
 	})
 
@@ -279,7 +279,7 @@ func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (
 		return nil, err
 	}
 
-	result := api.NewListResponse(destinations, models.PaginationToResponse(pg), func(destination models.Destination) api.Destination {
+	result := api.NewListResponse(destinations, models.PaginationToResponse(c, pg), func(destination models.Destination) api.Destination {
 		return *destination.ToAPI()
 	})
 
@@ -362,7 +362,7 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 		return nil, err
 	}
 
-	result := api.NewListResponse(accessKeys, models.PaginationToResponse(pg), func(accessKey models.AccessKey) api.AccessKey {
+	result := api.NewListResponse(accessKeys, models.PaginationToResponse(c, pg), func(accessKey models.AccessKey) api.AccessKey {
 		return *accessKey.ToAPI()
 	})
 
@@ -414,7 +414,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		return nil, err
 	}
 
-	result := api.NewListResponse(grants, models.PaginationToResponse(pg), func(grant models.Grant) api.Grant {
+	result := api.NewListResponse(grants, models.PaginationToResponse(c, pg), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
 	})
 
