@@ -229,7 +229,7 @@ func TestAPI_ListGrants(t *testing.T) {
 				}
 				// check sort
 				assert.Assert(t, sort.SliceIsSorted(expected, func(i, j int) bool {
-					return expected[i].User < expected[j].User
+					return expected[i].ID < expected[j].ID
 				}))
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
