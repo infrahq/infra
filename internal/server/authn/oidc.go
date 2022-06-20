@@ -182,15 +182,7 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 }
 
 // tokenSource is used to call an identity provider with the specified provider tokens
-func (o *oidcImplementation) tokenSource(ctx context.Context, providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
-	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
-	defer cancel()
-
-	conf, _, err := o.clientConfig(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("call idp with tokens: %w", err)
-	}
-
+func (o *oidcImplementation) tokenSource(ctx context.Context, conf *oauth2.Config, providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
 	userToken := &oauth2.Token{
 		AccessToken:  string(providerTokens.AccessToken),
 		RefreshToken: string(providerTokens.RefreshToken),
@@ -251,7 +243,15 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
 func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
-	tokenSource, err := o.tokenSource(ctx, providerUser)
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
+	defer cancel()
+
+	conf, _, err := o.clientConfig(ctx)
+	if err != nil {
+		return "", nil, fmt.Errorf("call idp with tokens: %w", err)
+	}
+
+	tokenSource, err := o.tokenSource(ctx, conf, providerUser)
 	if err != nil {
 		return "", nil, fmt.Errorf("ref token source: %w", err)
 	}
@@ -270,14 +270,14 @@ func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *mode
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
-	tokenSource, err := o.tokenSource(ctx, providerUser)
-	if err != nil {
-		return nil, fmt.Errorf("info token source: %w", err)
-	}
-
-	_, provider, err := o.clientConfig(ctx)
+	conf, provider, err := o.clientConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("user info client: %w", err)
+	}
+
+	tokenSource, err := o.tokenSource(ctx, conf, providerUser)
+	if err != nil {
+		return nil, fmt.Errorf("info token source: %w", err)
 	}
 
 	info, err := provider.UserInfo(ctx, tokenSource)
