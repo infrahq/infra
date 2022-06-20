@@ -151,9 +151,9 @@ export default function ({ resource = '' }) {
           </div>
         ))}
       </div>
-      {inherited?.length === 0 && items?.length === 0 && (
+      {!inherited?.length && !items?.length && (
         <div className='text-2xs text-gray-400 italic w-2/3'>
-          Share access to this cluster by inviting your team and assigning their roles.
+          Share access by inviting your team and assigning their roles.
         </div>
       )}
     </>

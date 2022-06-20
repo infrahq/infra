@@ -95,7 +95,7 @@ const columns = [{
   accessor: 'name',
   Cell: ({ row, value }) => {
     return (
-      <div className='flex py-3 items-center'>
+      <div className='flex py-2 items-center'>
         {row.canExpand && (
           <span {...row.getToggleRowExpandedProps({
             onClick: e => {
@@ -113,7 +113,7 @@ const columns = [{
             </div>
           </span>
         )}
-        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 4}rem` } })}>
+        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 3}rem` } })}>
           {value}
         </span>
       </div>
