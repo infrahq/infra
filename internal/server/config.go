@@ -575,8 +575,7 @@ func (s Server) loadConfig(config Config) error {
 }
 
 func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
-	infraProvider := data.InfraProvider(db)
-	keep := []uid.ID{infraProvider.ID}
+	keep := []uid.ID{}
 
 	for _, p := range providers {
 		provider, err := s.loadProvider(db, p)
