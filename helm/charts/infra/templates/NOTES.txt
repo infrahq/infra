@@ -48,17 +48,7 @@
 {{- end }}
 
 {{- if .Values.server.config.adminAccessKey }}
-
-################################# WARNING ######################################
-
-  server.config.adminAccessKey is deprecated and will be removed in a
-  future update. Please migrate to server.additionalUsers:
-
-  server:
-    additionalUsers:
-      - name: admin
-        accessKey: {{ .Values.server.config.adminAccessKey }}
-
+{{- fail "`server.config.adminAccessKey` is no longer supported. Please migrate to `server.additionalUsers`" }}
 {{- end }}
 
 {{- else if include "connector.enabled" . | eq "true" }}
@@ -84,7 +74,7 @@
   establish a connection to Infra. If you do not already have an access key,
   generate one using Infra CLI.
 
-  $ infra destinations add kubernetes {{ .Values.connector.config.name | default "my-cluster" }}
+  $ infra keys add connector
 
   Set an access key with `connector.config.accessKey`.
 

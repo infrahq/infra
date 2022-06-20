@@ -5,10 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andanhm/go-prettytime"
-
 	"github.com/infrahq/infra/uid"
 )
+
+type Query map[string][]string
 
 type Resource struct {
 	ID uid.ID `uri:"id" validate:"required"`
@@ -69,17 +69,8 @@ func (t Time) Equal(other Time) bool {
 	return time.Time(t).Equal(time.Time(other))
 }
 
-func (t Time) Relative(zeroName ...string) string {
-	time := time.Time(t)
-
-	if time.IsZero() {
-		if len(zeroName) == 0 {
-			return "none"
-		}
-		return zeroName[0]
-	}
-
-	return prettytime.Format(time)
+func (t Time) Time() time.Time {
+	return time.Time(t)
 }
 
 type Duration time.Duration
@@ -103,14 +94,16 @@ func (d Duration) String() string {
 }
 
 type ListResponse[T any] struct {
-	Items []T `json:"items"`
-	Count int `json:"count"`
+	PaginationInfo PaginationResponse `json:"pagination_info"`
+	Items          []T                `json:"items"`
+	Count          int                `json:"count"`
 }
 
-func NewListResponse[T, M any](items []M, fn func(item M) T) *ListResponse[T] {
+func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
 	result := &ListResponse[T]{
-		Items: make([]T, 0, len(items)),
-		Count: len(items),
+		Items:          make([]T, 0, len(items)),
+		Count:          len(items),
+		PaginationInfo: pr,
 	}
 
 	for _, item := range items {
@@ -119,3 +112,8 @@ func NewListResponse[T, M any](items []M, fn func(item M) T) *ListResponse[T] {
 
 	return result
 }
+
+// PEM is a base64 encoded string, commonly used to store certificates and
+// private keys. PEM values will be normalized to remove any leading whitespace
+// and all but a single trailing newline.
+type PEM string

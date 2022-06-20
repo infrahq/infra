@@ -43,7 +43,8 @@ export default function ProvidersAddDetails () {
             name,
             url,
             clientID,
-            clientSecret
+            clientSecret,
+            kind
           })
         })
 
@@ -89,14 +90,16 @@ export default function ProvidersAddDetails () {
           <input
             required
             autoFocus
+            type='search'
             placeholder='choose a name for your identity provider'
+            value={name}
             onChange={e => setName(e.target.value)}
             className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-500/60' : ''}`}
           />
           {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <label className='text-2xs text-white/90'>
-          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/guides/identity-providers/okta' rel='noreferrer'>learn more</a>
+          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/identity-providers/okta' rel='noreferrer'>learn more</a>
         </label>
         <div className='mt-4'>
           <label className='text-3xs text-gray-400 uppercase'>URL (Domain)</label>
@@ -114,6 +117,7 @@ export default function ProvidersAddDetails () {
           <input
             required
             placeholder='client ID'
+            type='search'
             value={clientID}
             onChange={e => setClientID(e.target.value)}
             className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-500/60' : ''}`}

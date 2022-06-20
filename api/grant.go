@@ -22,6 +22,7 @@ type ListGrantsRequest struct {
 	Group     uid.ID `form:"group" validate:"excluded_with=User"`
 	Resource  string `form:"resource" example:"production"`
 	Privilege string `form:"privilege" example:"view"`
+	PaginationRequest
 }
 
 type CreateGrantRequest struct {

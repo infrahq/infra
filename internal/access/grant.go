@@ -21,10 +21,11 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, pg models.Pagination) ([]models.Grant, error) {
 	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
+		data.ByPagination(pg),
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)

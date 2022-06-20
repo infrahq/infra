@@ -463,6 +463,32 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
+		// drop old Groups constraint; new constraint will be created automatically
+		{
+			ID: "202206081027",
+			Migrate: func(tx *gorm.DB) error {
+				_ = tx.Migrator().DropConstraint(&models.Group{}, "idx_groups_name_provider_id")
+				return nil
+			},
+		},
+		// add kind to providers
+		{
+			ID: "202206151027",
+			Migrate: func(tx *gorm.DB) error {
+				if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
+					logging.S.Debug("migrating provider table kind")
+					if err := tx.Migrator().AddColumn(&models.Provider{}, "kind"); err != nil {
+						return err
+					}
+				}
+
+				db := tx.Begin()
+
+				db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
+
+				return db.Commit().Error
+			},
+		},
 		// next one here
 	})
 
@@ -498,8 +524,6 @@ func initializeSchema(db *gorm.DB) error {
 		&models.AccessKey{},
 		&models.Settings{},
 		&models.EncryptionKey{},
-		&models.TrustedCertificate{},
-		&models.RootCertificate{},
 		&models.Credential{},
 		&models.ProviderUser{},
 	}

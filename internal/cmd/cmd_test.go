@@ -19,6 +19,7 @@ import (
 	"gotest.tools/v3/fs"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/uid"
 )
@@ -230,7 +231,7 @@ func TestUse(t *testing.T) {
 
 // destinationCA is a well formed certificate that can be used to create
 // a destination in tests.
-var destinationCA = []byte(`-----BEGIN CERTIFICATE-----
+var destinationCA = api.PEM(`-----BEGIN CERTIFICATE-----
 MIIDazCCAlOgAwIBAgIUETRDuZAQHGhiH11GNsXn16n9t48wDQYJKoZIhvcNAQEL
 BQAwRTELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoM
 GEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDAeFw0yMjA0MTIyMTAzMDhaFw0yNDA0
@@ -267,16 +268,16 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 		user.ID = uid.New()
 	}
 	return ClientConfig{
-		Version: "0.3",
+		Version: clientConfigVersion,
 		Hosts: []ClientHostConfig{
 			{
-				PolymorphicID: uid.NewIdentityPolymorphicID(user.ID),
-				Name:          user.Name,
-				Host:          srv.Listener.Addr().String(),
-				SkipTLSVerify: true,
-				AccessKey:     "the-access-key",
-				Expires:       api.Time(time.Now().Add(time.Hour)),
-				Current:       true,
+				PolymorphicID:      uid.NewIdentityPolymorphicID(user.ID),
+				Name:               user.Name,
+				Host:               srv.Listener.Addr().String(),
+				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
+				AccessKey:          "the-access-key",
+				Expires:            api.Time(time.Now().Add(time.Hour)),
+				Current:            true,
 			},
 		},
 	}

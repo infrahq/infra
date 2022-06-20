@@ -13,6 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/testing/patch"
 )
 
+// nolint:unused
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
 	assert.NilError(t, err)
@@ -25,6 +26,7 @@ func setupDB(t *testing.T) *gorm.DB {
 }
 
 func TestCertificateStorage(t *testing.T) {
+	t.Skip("persistence not implemented")
 	cfg := NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,
 	}
@@ -53,11 +55,13 @@ func TestCertificateStorage(t *testing.T) {
 // cmpX509Certificate compares two x509.Certificate using the Equal method.
 // go-cmp is supposed to use an Equal method automatically, but I guess the
 // pointer receiver and pointer arg to Equal are preventing that.
+// nolint:unused
 var cmpX509Certificate = cmp.Comparer(func(x, y x509.Certificate) bool {
 	return x.Equal(&y)
 })
 
 func TestTLSCertificates(t *testing.T) {
+	t.Skip("persistence not implemented")
 	cfg := NativeCertificateProviderConfig{
 		FullKeyRotationDurationInDays: 2,
 	}

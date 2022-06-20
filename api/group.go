@@ -16,6 +16,7 @@ type ListGroupsRequest struct {
 	Name string `form:"name"`
 	// UserID filters the results to only groups where this user is a member.
 	UserID uid.ID `form:"userID"`
+	PaginationRequest
 }
 
 type CreateGroupRequest struct {

@@ -1,18 +1,18 @@
 package data
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-
 		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
 
 		err := db.Create(&providerDevelop).Error
@@ -42,7 +42,11 @@ func TestCreateProviderDuplicate(t *testing.T) {
 		createProviders(t, db, providerDevelop, providerProduction)
 
 		err := CreateProvider(db, &providerDevelop)
-		assert.ErrorIs(t, err, internal.ErrDuplicate)
+
+		var uniqueConstraintErr UniqueConstraintError
+		assert.Assert(t, errors.As(err, &uniqueConstraintErr), "error is wrong type %T", err)
+		expected := UniqueConstraintError{Column: "name", Table: "providers"}
+		assert.DeepEqual(t, uniqueConstraintErr, expected)
 	})
 }
 
@@ -84,21 +88,65 @@ func TestListProviders(t *testing.T) {
 func TestDeleteProviders(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+			providerDevelop    = models.Provider{}
+			providerProduction = models.Provider{}
+			pu                 = &models.ProviderUser{}
+			user               = &models.Identity{}
+			i                  = 0
 		)
+		setup := func() {
+			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "dev.okta.com"}
+			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com"}
+			i += 2
 
-		createProviders(t, db, providerDevelop, providerProduction)
+			err := CreateProvider(db, &providerDevelop)
+			assert.NilError(t, err)
+			err = CreateProvider(db, &providerProduction)
+			assert.NilError(t, err)
 
-		providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
-		assert.NilError(t, err)
-		assert.Equal(t, 2, len(providers))
+			providers, err := ListProviders(db, NotName(models.InternalInfraProviderName))
+			assert.NilError(t, err)
+			assert.Assert(t, len(providers) >= 2)
 
-		err = DeleteProviders(db, ByOptionalName("okta-development"))
-		assert.NilError(t, err)
+			user = &models.Identity{Name: "joe@example.com"}
+			err = CreateIdentity(db, user)
+			assert.NilError(t, err)
+			pu, err = CreateProviderUser(db, &providerDevelop, user)
+			assert.NilError(t, err)
+		}
 
-		_, err = GetProvider(db, ByOptionalName("okta-development"))
-		assert.Error(t, err, "record not found")
+		t.Run("Deletes work", func(t *testing.T) {
+			setup()
+			err := DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			assert.NilError(t, err)
+
+			_, err = GetProvider(db, ByOptionalName(providerDevelop.Name))
+			assert.Error(t, err, "record not found")
+
+			t.Run("provider users are removed", func(t *testing.T) {
+				_, err = GetProviderUser(db, pu.ProviderID, pu.IdentityID)
+				assert.Error(t, err, "record not found")
+			})
+
+			t.Run("user is removed when last providerUser is removed", func(t *testing.T) {
+				_, err = GetIdentity(db, ByID(pu.IdentityID))
+				assert.Error(t, err, "record not found")
+			})
+		})
+
+		t.Run("user is not removed if there are other providerUsers", func(t *testing.T) {
+			setup()
+
+			pu, err := CreateProviderUser(db, &providerProduction, user)
+			assert.NilError(t, err)
+
+			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			assert.NilError(t, err)
+
+			_, err = GetIdentity(db, ByID(pu.IdentityID))
+			assert.NilError(t, err)
+		})
+
 	})
 }
 

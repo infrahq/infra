@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/mail"
 	"os"
 	"strings"
 	"time"
@@ -20,87 +21,88 @@ import (
 )
 
 type Provider struct {
-	Name         string `mapstructure:"name" validate:"required"`
-	URL          string `mapstructure:"url" validate:"required"`
-	ClientID     string `mapstructure:"clientID" validate:"required"`
-	ClientSecret string `mapstructure:"clientSecret" validate:"required"`
+	Name         string `validate:"required"`
+	URL          string `validate:"required"`
+	ClientID     string `validate:"required"`
+	ClientSecret string `validate:"required"`
+	Kind         string
 }
 
 type Grant struct {
-	User     string `mapstructure:"user" validate:"excluded_with=Group,excluded_with=Machine"`
-	Group    string `mapstructure:"group" validate:"excluded_with=User,excluded_with=Machine"`
-	Machine  string `mapstructure:"machine" validate:"excluded_with=User,excluded_with=Group"` // deprecated
-	Resource string `mapstructure:"resource" validate:"required"`
-	Role     string `mapstructure:"role"`
+	User     string `validate:"excluded_with=Group,excluded_with=Machine"`
+	Group    string `validate:"excluded_with=User,excluded_with=Machine"`
+	Machine  string `validate:"excluded_with=User,excluded_with=Group"` // deprecated
+	Resource string `validate:"required"`
+	Role     string
 }
 
 type User struct {
-	Name      string `mapstructure:"name" validate:"excluded_with=Email"`
-	AccessKey string `mapstructure:"accessKey"`
-	Password  string `mapstructure:"password"`
+	Name      string `validate:"excluded_with=Email"`
+	AccessKey string
+	Password  string
 
-	Email string `mapstructure:"email" validate:"excluded_with=Name"` // deprecated
+	Email string `validate:"excluded_with=Name"` // deprecated
 }
 
 type Config struct {
-	Providers []Provider `mapstructure:"providers" validate:"dive"`
-	Grants    []Grant    `mapstructure:"grants" validate:"dive"`
-	Users     []User     `mapstructure:"users" validate:"dive"`
+	Providers []Provider `validate:"dive"`
+	Grants    []Grant    `validate:"dive"`
+	Users     []User     `validate:"dive"`
 }
 
 type KeyProvider struct {
-	Kind   string      `mapstructure:"kind" validate:"required"`
+	Kind   string      `validate:"required"`
 	Config interface{} // contains secret-provider-specific config
 }
 
 type nativeKeyProviderConfig struct {
-	SecretProvider string `mapstructure:"secretProvider"`
+	SecretProvider string
 }
 
 type AWSConfig struct {
-	Endpoint        string `mapstructure:"endpoint" validate:"required"`
-	Region          string `mapstructure:"region" validate:"required"`
-	AccessKeyID     string `mapstructure:"accessKeyID" validate:"required"`
-	SecretAccessKey string `mapstructure:"secretAccessKey" validate:"required"`
+	Endpoint        string `validate:"required"`
+	Region          string `validate:"required"`
+	AccessKeyID     string `validate:"required"`
+	SecretAccessKey string `validate:"required"`
 }
 
 type AWSKMSConfig struct {
-	AWSConfig `mapstructure:",squash"`
+	AWSConfig
 
-	EncryptionAlgorithm string `mapstructure:"encryptionAlgorithm"`
+	EncryptionAlgorithm string
 	// aws tags?
 }
 
 type AWSSecretsManagerConfig struct {
-	AWSConfig `mapstructure:",squash"`
+	AWSConfig
 }
 
 type AWSSSMConfig struct {
-	AWSConfig `mapstructure:",squash"`
-	KeyID     string `mapstructure:"keyID" validate:"required"` // KMS key to use for decryption
+	AWSConfig
+	KeyID string `validate:"required"` // KMS key to use for decryption
 }
 
 type GenericConfig struct {
-	Base64           bool `mapstructure:"base64"`
-	Base64URLEncoded bool `mapstructure:"base64UrlEncoded"`
-	Base64Raw        bool `mapstructure:"base64Raw"`
+	Base64           bool
+	Base64URLEncoded bool
+	Base64Raw        bool
 }
 
 type FileConfig struct {
-	GenericConfig `mapstructure:",squash"`
-	Path          string `mapstructure:"path" validate:"required"`
+	GenericConfig
+	Path string `validate:"required"`
 }
 
 type KubernetesConfig struct {
-	Namespace string `mapstructure:"namespace"`
+	Namespace string
 }
 
 type VaultConfig struct {
-	TransitMount string `mapstructure:"transitMount"`              // mounting point. defaults to /transit
-	SecretMount  string `mapstructure:"secretMount"`               // mounting point. defaults to /secret
-	Token        string `mapstructure:"token" validate:"required"` // vault token
-	Namespace    string `mapstructure:"namespace"`
-	Address      string `mapstructure:"address" validate:"required"`
+	TransitMount string // mounting point. defaults to /transit
+	SecretMount  string // mounting point. defaults to /secret
+	Token        string `validate:"required"`
+	Namespace    string
+	Address      string `validate:"required"`
 }
 
 func importKeyProviders(
@@ -532,6 +534,7 @@ func (s Server) loadConfig(config Config) error {
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
 			Name: models.InternalInfraProviderName,
+			Kind: models.InfraKind.String(),
 		})
 
 		config.Users = append(config.Users, User{
@@ -572,7 +575,7 @@ func (s Server) loadConfig(config Config) error {
 }
 
 func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
-	keep := make([]uid.ID, 0, len(providers))
+	keep := []uid.ID{}
 
 	for _, p := range providers {
 		provider, err := s.loadProvider(db, p)
@@ -592,6 +595,12 @@ func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
 }
 
 func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+	// provider kind is an optional field
+	kind, err := models.ParseProviderKind(input.Kind)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse provider in config load: %w", err)
+	}
+
 	provider, err := data.GetProvider(db, data.ByName(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -603,6 +612,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
 		}
 
@@ -617,6 +627,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
 	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.Kind = kind
 
 	if err := data.SaveProvider(db, provider); err != nil {
 		return nil, err
@@ -750,6 +761,13 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
+		}
+
+		if name != models.InternalInfraConnectorIdentityName {
+			_, err := mail.ParseAddress(name)
+			if err != nil {
+				logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+			}
 		}
 
 		identity = &models.Identity{

@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"net"
@@ -16,10 +15,6 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-
-	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 const (
@@ -386,82 +381,14 @@ func createCertSignedBy(signer, signee KeyPair, lifetime time.Duration) (*x509.C
 }
 
 func (n *NativeCertificateProvider) loadFromDB() error {
-	certs, err := data.ListRootCertificates(n.db)
-	if err != nil {
-		return err
-	}
-
-	if len(certs) >= 1 {
-		n.activeKeypair, err = certificateToKeyPair(&certs[0])
-		if err != nil {
-			return err
-		}
-
-		if len(certs) >= 2 {
-			n.previousKeypair, err = certificateToKeyPair(&certs[1])
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func certificateToKeyPair(c *models.RootCertificate) (KeyPair, error) {
-	// the certificate doesn't have pem armoring on it.
-	cert, err := x509.ParseCertificate([]byte(c.SignedCert))
-	if err != nil {
-		return KeyPair{}, fmt.Errorf("couldn't read certificate from db: %w", err)
-	}
-
-	return KeyPair{
-		KeyAlgorithm:     c.KeyAlgorithm,
-		SigningAlgorithm: c.SigningAlgorithm,
-		PublicKey:        ed25519.PublicKey(c.PublicKey),
-		PrivateKey:       ed25519.PrivateKey(c.PrivateKey),
-		SignedCertPEM:    []byte(c.SignedCert),
-		SignedCert:       cert,
-	}, nil
-}
-
-func keyPairToCertificate(k KeyPair) *models.RootCertificate {
-	// don't store the certificate with pem encoding; it's padding that only assists a known-plaintext attack
-	b, _ := pem.Decode(k.SignedCertPEM)
-
-	return &models.RootCertificate{
-		KeyAlgorithm:     k.KeyAlgorithm,
-		SigningAlgorithm: k.SigningAlgorithm,
-		PublicKey:        models.Base64(k.PublicKey),
-		PrivateKey:       models.EncryptedAtRest(k.PrivateKey),
-		SignedCert:       models.EncryptedAtRest(b.Bytes),
-		ExpiresAt:        k.SignedCert.NotAfter,
-	}
+	// TODO:
+	return fmt.Errorf("persistence not implemented")
 }
 
 // saveToDB stores new certs to the database. Used when rotating keys.
 func (n *NativeCertificateProvider) saveToDB() error {
-	certs := []*models.RootCertificate{
-		keyPairToCertificate(n.previousKeypair),
-		keyPairToCertificate(n.activeKeypair),
-	}
-	// only create the previous keypair if it doesn't already exist.
-	for _, cert := range certs {
-		c, err := data.GetRootCertificate(n.db, data.ByPublicKey(cert.PublicKey))
-		if c != nil {
-			continue
-		}
-
-		if !errors.Is(err, internal.ErrNotFound) {
-			return fmt.Errorf("checking for existing cert: %w", err)
-		}
-
-		if err := data.AddRootCertificate(n.db, cert); err != nil {
-			return fmt.Errorf("adding CA certificate: %w", err)
-		}
-	}
-
-	return nil
+	// TODO:
+	return fmt.Errorf("persistence not implemented")
 }
 
 func (n *NativeCertificateProvider) TLSCertificates() ([]tls.Certificate, error) {

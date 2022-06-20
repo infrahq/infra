@@ -1,4 +1,4 @@
-name: pull request
+name: ci
 
 on:
   pull_request:
@@ -23,8 +23,9 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
+          cache: true
+      - run: go mod download -x
       - run: go install gotest.tools/gotestsum@v1.8.0
-      - run: go mod tidy
 
       - name: go test
         run: ~/go/bin/gotestsum -ftestname -- -race ./...
@@ -70,6 +71,7 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
+          cache: true
       - uses: golangci/golangci-lint-action@v3.2.0
 
   helm-lint:
@@ -86,6 +88,14 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.18'
+          cache: true
+      - run: go mod download -x
+      - run: go build -debug-actiongraph=compile.json .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-log
+          path: compile.json
+
       - name: Check generated docs are updated
         run: |
           # if checking a release candidate pull request, unset `internal.Metadata`
@@ -102,3 +112,20 @@ jobs:
         run: |
           go generate ./...
           git diff --exit-code
+
+  commit-lint:
+    if: ${{ ! startsWith(github.head_ref, 'dependabot/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v3
+      - id: cache-commitlint
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-commitlint
+      - run: npm install @commitlint/{config-conventional,cli}
+        if: steps.cache-commitlint.cache-hit != true
+      - run: ./node_modules/.bin/commitlint --from origin/$GITHUB_BASE_REF --to @ --verbose --config .github/commitlint.config.js

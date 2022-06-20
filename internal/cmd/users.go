@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/mail"
+	"strings"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -36,7 +39,7 @@ func newUsersCmd(cli *CLI) *cobra.Command {
 func newUsersAddCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add USER",
-		Short: "Create a user.",
+		Short: "Create a user",
 		Long: `Create a user.
 
 Note: A new user must change their one time password before further usage.`,
@@ -44,6 +47,13 @@ Note: A new user must change their one time password before further usage.`,
 		Example: `# Create a user
 $ infra users add johndoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			email := args[0]
+
+			_, err := mail.ParseAddress(email)
+			if err != nil {
+				return fmt.Errorf("username must be a valid email")
+			}
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -79,7 +89,7 @@ func newUsersEditCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit USER",
 		Short: "Update a user",
-		Example: `# Set a new one time password for a user
+		Example: `# Set a new password for a user
 $ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -91,13 +101,15 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new one time password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password")
 
 	return cmd
 }
 
 func newUsersListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var format string
+
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List users",
@@ -111,6 +123,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			type row struct {
 				Name       string `header:"Name"`
 				LastSeenAt string `header:"Last Seen"`
+				Providers  string `header:"Provided By"`
 			}
 
 			var rows []row
@@ -127,22 +140,35 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			for _, user := range users.Items {
-				rows = append(rows, row{
-					Name:       user.Name,
-					LastSeenAt: user.LastSeenAt.Relative("never"),
-				})
-			}
+			switch format {
+			case "json":
+				jsonOutput, err := json.Marshal(users)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(jsonOutput))
+			default:
+				for _, user := range users.Items {
+					rows = append(rows, row{
+						Name:       user.Name,
+						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),
+						Providers:  strings.Join(user.ProviderNames, ", "),
+					})
+				}
 
-			if len(rows) > 0 {
-				printTable(rows, cli.Stdout)
-			} else {
-				cli.Output("No users found")
+				if len(rows) > 0 {
+					printTable(rows, cli.Stdout)
+				} else {
+					cli.Output("No users found")
+				}
 			}
 
 			return nil
 		},
 	}
+
+	addFormatFlag(cmd.Flags(), &format)
+	return cmd
 }
 
 func newUsersRemoveCmd(cli *CLI) *cobra.Command {

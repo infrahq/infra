@@ -1,0 +1,226 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#__next {
+  @apply text-white;
+  @apply h-full;
+  @apply bg-black;
+  @apply -z-10;
+  @apply antialiased;
+}
+
+.prose-docs {
+  @apply prose-headings:text-white;
+  @apply prose-headings:tracking-tight;
+  @apply prose-h1:mt-10;
+  @apply prose-h1:mb-7;
+  @apply prose-h1:text-[48px];
+  @apply prose-h1:font-normal;
+  @apply prose-h2:text-[32px];
+  @apply prose-h2:mt-10;
+  @apply prose-h2:mb-5;
+  @apply prose-h2:font-normal;
+  @apply prose-h3:text-2xl;
+  @apply prose-h3:mt-8;
+  @apply prose-h3:mb-3;
+  @apply prose-h3:font-normal;
+  @apply prose-h4:text-xl;
+  @apply prose-h4:text-lg;
+  @apply prose-blockquote:not-italic;
+  @apply prose-pre:border;
+  @apply prose-pre:bg-white/5;
+  @apply prose-pre:border-0;
+  @apply prose-pre:rounded-lg;
+  @apply prose-pre:my-0;
+  @apply prose-pre:px-6;
+  @apply prose-pre:py-4;
+  @apply prose-pre:min-w-full;
+  @apply prose-p:text-lg;
+  @apply prose-p:leading-snug;
+  @apply prose-p:text-gray-300;
+  @apply prose-p:before:content-none;
+  @apply prose-p:after:content-none;
+  @apply prose-ul:mb-4;
+  @apply prose-li:text-lg;
+  @apply prose-li:my-0;
+  @apply prose-code:font-mono;
+  @apply prose-code:font-normal;
+  @apply prose-code:text-[0.8em];
+  @apply prose-code:tracking-tight;
+  @apply prose-code:rounded-md;
+  @apply prose-code:before:content-none;
+  @apply prose-code:after:content-none;
+  @apply prose-code:overflow-auto;
+  @apply prose-code:touch-auto;
+  @apply prose-code:leading-relaxed;
+  @apply prose-code:bg-white/10;
+  @apply prose-code:px-[0.2em];
+  @apply prose-blockquote:my-10;
+  @apply prose-strong:font-bold;
+  @apply prose-table:table-auto;
+  @apply prose-table:text-base;
+  @apply prose-td:min-w-[8em];
+}
+
+.grecaptcha-badge {
+  visibility: hidden;
+}
+
+
+.language-css > code,
+.language-sass > code,
+.language-scss > code {
+	color: #fd9170;
+}
+
+[class*="language-"] .namespace {
+	opacity: 0.7;
+}
+
+.token.atrule {
+	@apply text-purple-400;
+}
+
+.token.attr-name {
+	color: #ffcb6b;
+}
+
+.token.attr-value {
+	color: #a5e844;
+}
+
+.token.attribute {
+	color: #a5e844;
+}
+
+.token.boolean {
+	@apply text-white;
+}
+
+.token.builtin {
+	color: #ffcb6b;
+}
+
+.token.cdata {
+	color: #80cbc4;
+}
+
+.token.char {
+	color: #80cbc4;
+}
+
+.token.class {
+	color: #ffcb6b;
+}
+
+.token.class-name {
+	color: #f2ff00;
+}
+
+.token.comment {
+  @apply text-gray-500;
+}
+
+.token.constant {
+	color: #c792ea;
+}
+
+.token.deleted {
+	color: #ff6666;
+}
+
+.token.doctype {
+	color: #616161;
+}
+
+.token.entity {
+	color: #ff6666;
+}
+
+.token.function {
+	color: #c792ea;
+}
+
+.token.hexcode {
+	color: #f2ff00;
+}
+
+.token.id {
+	color: #c792ea;
+	font-weight: bold;
+}
+
+.token.important {
+	font-weight: bold;
+}
+
+.token.inserted {
+	color: #80cbc4;
+}
+
+.token.keyword {
+	color: #c792ea;
+}
+
+.token.number {
+	color: #fd9170;
+}
+
+.token.operator {
+	color: #89ddff;
+}
+
+.token.prolog {
+	color: #616161;
+}
+
+.token.property {
+	color: #80cbc4;
+}
+
+.token.pseudo-class {
+	color: #a5e844;
+}
+
+.token.pseudo-element {
+	color: #a5e844;
+}
+
+.token.punctuation {
+	color: #89ddff;
+}
+
+.token.regex {
+	color: #f2ff00;
+}
+
+.token.selector {
+	color: #ff6666;
+}
+
+.token.string {
+  @apply text-teal-400;
+}
+
+.token.symbol {
+	color: #c792ea;
+}
+
+.token.tag {
+	color: #ff6666;
+}
+
+.token.unit {
+	color: #fd9170;
+}
+
+.token.url {
+	color: #ff6666;
+}
+
+.token.variable {
+	color: #ff6666;
+}

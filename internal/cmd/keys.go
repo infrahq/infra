@@ -49,7 +49,7 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 		Long:  `Create an access key for a user or a connector.`,
 		Example: `
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add example-key user@example.com --ttl=12h
+$ infra keys add user@example.com --ttl=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
 $ infra keys add connector
@@ -172,7 +172,8 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 }
 
 type keyListOptions struct {
-	UserName string
+	UserName    string
+	ShowExpired bool
 }
 
 func newKeysListCmd(cli *CLI) *cobra.Command {
@@ -190,6 +191,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var keys *api.ListResponse[api.AccessKey]
+
 			if options.UserName != "" {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
@@ -203,7 +205,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				}
 
 				logging.S.Debugf("call server: list access keys for user %s", user.ID)
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID})
+				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID, ShowExpired: options.ShowExpired})
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.S.Debug(err)
@@ -215,7 +217,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				}
 			} else {
 				logging.S.Debug("call server: list access keys")
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{})
+				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{ShowExpired: options.ShowExpired})
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.S.Debug(err)
@@ -244,9 +246,9 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				rows = append(rows, row{
 					Name:              k.Name,
 					IssuedFor:         name,
-					Created:           k.Created.Relative("never"),
-					Expires:           k.Expires.Relative("never"),
-					ExtensionDeadline: k.ExtensionDeadline.Relative("never"),
+					Created:           HumanTime(k.Created.Time(), "never"),
+					Expires:           HumanTime(k.Expires.Time(), "never"),
+					ExtensionDeadline: HumanTime(k.ExtensionDeadline.Time(), "never"),
 				})
 			}
 
@@ -261,6 +263,6 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
-
+	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd
 }

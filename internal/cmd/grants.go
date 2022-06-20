@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -56,11 +57,6 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			if options.Destination == "" {
-				logging.S.Debug("call server: list all grants")
-			} else {
-				logging.S.Debugf("call server: list grants for destination %q", options.Destination)
-			}
 			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
@@ -72,63 +68,18 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			type userRow struct {
-				User     string `header:"USER"`
-				Access   string `header:"ACCESS"`
-				Resource string `header:"DESTINATION"`
-			}
-			type groupRow struct {
-				Group    string `header:"GROUP"`
-				Access   string `header:"ACCESS"`
-				Resource string `header:"DESTINATION"`
+			numUserGrants, err := userGrants(cli, client, grants)
+			if err != nil {
+				return err
 			}
 
-			var userRows []userRow
-			var groupRows []groupRow
-			for _, g := range grants.Items {
-				switch {
-				case g.User != 0:
-					logging.S.Debugf("call server: get user %s", g.User)
-					user, err := client.GetUser(g.User)
-					if err != nil {
-						return err
-					}
-					userRows = append(userRows, userRow{
-						User:     user.Name,
-						Access:   g.Privilege,
-						Resource: g.Resource,
-					})
-				case g.Group != 0:
-					logging.S.Debugf("call server: get group %s", g.Group)
-					group, err := client.GetGroup(g.Group)
-					if err != nil {
-						return err
-					}
-
-					groupRows = append(groupRows, groupRow{
-						Group:    group.Name,
-						Access:   g.Privilege,
-						Resource: g.Resource,
-					})
-				default:
-					// unknown grant subject
-					continue
-				}
+			numGroupGrants, err := groupGrants(cli, client, grants)
+			if err != nil {
+				return err
 			}
 
-			if len(userRows)+len(groupRows) == 0 {
+			if numUserGrants+numGroupGrants == 0 {
 				cli.Output("No grants found")
-				return nil
-			}
-
-			if len(userRows) > 0 {
-				printTable(userRows, cli.Stdout)
-			}
-			if len(groupRows) > 0 {
-				if len(userRows) > 0 {
-					cli.Output("")
-				}
-				printTable(groupRows, cli.Stdout)
 			}
 
 			return nil
@@ -137,6 +88,86 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 
 	cmd.Flags().StringVar(&options.Destination, "destination", "", "Filter by destination")
 	return cmd
+}
+
+func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
+	users, err := client.ListUsers(api.ListUsersRequest{})
+	if err != nil {
+		return 0, err
+	}
+
+	mapUsers := make(map[uid.ID]api.User)
+	for _, u := range users.Items {
+		mapUsers[u.ID] = u
+	}
+
+	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.User != 0 })
+
+	type row struct {
+		User     string `header:"USER"`
+		Access   string `header:"ACCESS"`
+		Resource string `header:"DESTINATION"`
+	}
+
+	rows := make([]row, 0, len(items))
+	for _, item := range items {
+		user, ok := mapUsers[item.User]
+		if !ok {
+			return 0, fmt.Errorf("unknown user for ID %v", item.ID)
+		}
+
+		rows = append(rows, row{
+			User:     user.Name,
+			Access:   item.Privilege,
+			Resource: item.Resource,
+		})
+	}
+
+	if len(rows) > 0 {
+		printTable(rows, cli.Stdout)
+	}
+
+	return len(rows), nil
+}
+
+func groupGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
+	groups, err := client.ListGroups(api.ListGroupsRequest{})
+	if err != nil {
+		return 0, err
+	}
+
+	mapGroups := make(map[uid.ID]api.Group)
+	for _, u := range groups.Items {
+		mapGroups[u.ID] = u
+	}
+
+	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.Group != 0 })
+
+	type row struct {
+		Group    string `header:"GROUP"`
+		Access   string `header:"ACCESS"`
+		Resource string `header:"DESTINATION"`
+	}
+
+	rows := make([]row, 0, len(items))
+	for _, item := range items {
+		group, ok := mapGroups[item.Group]
+		if !ok {
+			return 0, fmt.Errorf("unknown group for ID %v", item.ID)
+		}
+
+		rows = append(rows, row{
+			Group:    group.Name,
+			Access:   item.Privilege,
+			Resource: item.Resource,
+		})
+	}
+
+	if len(rows) > 0 {
+		printTable(rows, cli.Stdout)
+	}
+
+	return len(rows), nil
 }
 
 func newGrantRemoveCmd(cli *CLI) *cobra.Command {

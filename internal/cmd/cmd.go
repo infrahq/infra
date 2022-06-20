@@ -3,17 +3,16 @@ package cmd
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
-	"github.com/goware/urlx"
 	"github.com/lensesio/tableprinter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -79,35 +78,43 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, config.SkipTLSVerify)
+	return apiClient(config.Host, config.AccessKey, httpTransportForHostConfig(config)), nil
 }
 
-func apiClient(host string, accessKey string, skipTLSVerify bool) (*api.Client, error) {
-	u, err := urlx.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
-	u.Scheme = "https"
-
-	headers := http.Header{}
-	ua := fmt.Sprintf("Infra CLI/%v (%v/%v)", internal.Version, runtime.GOOS, runtime.GOARCH)
-	headers.Add("User-Agent", ua)
-
+func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
 	return &api.Client{
-		URL:       fmt.Sprintf("%s://%s", u.Scheme, u.Host),
+		Name:      "cli",
+		Version:   internal.Version,
+		URL:       "https://" + host,
 		AccessKey: accessKey,
 		HTTP: http.Client{
-			Timeout: 60 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					//nolint:gosec // We may purposely set insecureskipverify via a flag
-					InsecureSkipVerify: skipTLSVerify,
-				},
-			},
+			Timeout:   60 * time.Second,
+			Transport: transport,
 		},
-		Headers: headers,
-	}, nil
+	}
+}
+
+func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		logging.S.Warnf("Failed to load trusted certificates from system: %v", err)
+		pool = x509.NewCertPool()
+	}
+
+	if config.TrustedCertificate != "" {
+		ok := pool.AppendCertsFromPEM([]byte(config.TrustedCertificate))
+		if !ok {
+			logging.S.Warnf("Failed to read trusted certificates for server")
+		}
+	}
+
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			//nolint:gosec // We may purposely set insecureskipverify via a flag
+			InsecureSkipVerify: config.SkipTLSVerify,
+			RootCAs:            pool,
+		},
+	}
 }
 
 func newUseCmd(_ *CLI) *cobra.Command {
@@ -146,7 +153,7 @@ $ infra use development.kube-system`,
 				return err
 			}
 
-			err = updateKubeconfig(client, id)
+			err = updateKubeConfig(client, id)
 			if err != nil {
 				return err
 			}
@@ -247,6 +254,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newDestinationsCmd(cli))
 	rootCmd.AddCommand(newGrantsCmd(cli))
 	rootCmd.AddCommand(newUsersCmd(cli))
+	rootCmd.AddCommand(newGroupsCmd(cli))
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
 
@@ -286,6 +294,10 @@ func rootPreRun(flags *pflag.FlagSet) error {
 func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
 	isNonInteractiveMode := os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
 	flags.BoolVar(bind, "non-interactive", isNonInteractiveMode, "Disable all prompts for input")
+}
+
+func addFormatFlag(flags *pflag.FlagSet, bind *string) {
+	flags.StringVar(bind, "format", "", "Output format [json]")
 }
 
 func usageTemplate() string {

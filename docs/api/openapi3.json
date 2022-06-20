@@ -301,6 +301,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -370,6 +383,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -431,6 +457,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -468,6 +507,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -496,6 +548,10 @@
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
+                "kind": {
+                  "example": "oidc",
+                  "type": "string"
+                },
                 "name": {
                   "example": "okta",
                   "type": "string"
@@ -518,6 +574,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -551,6 +620,12 @@
                 "name": {
                   "type": "string"
                 },
+                "providerNames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
@@ -564,6 +639,19 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "pagination_info": {
+            "properties": {
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -608,6 +696,10 @@
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "kind": {
+            "example": "oidc",
             "type": "string"
           },
           "name": {
@@ -660,6 +752,12 @@
           "name": {
             "type": "string"
           },
+          "providerNames": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "updated": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
@@ -687,7 +785,7 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "0.13.2+dev"
+    "version": "0.13.4+dev"
   },
   "paths": {
     "/api/access-keys": {
@@ -711,6 +809,29 @@
             "name": "name",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "show_expired",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -992,6 +1113,22 @@
             "name": "unique_id",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -1527,6 +1664,22 @@
               "example": "view",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -1896,6 +2049,22 @@
               "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -2054,6 +2223,90 @@
       }
     },
     "/api/groups/{id}": {
+      "delete": {
+        "description": "DeleteGroup",
+        "operationId": "DeleteGroup",
+        "parameters": [
+          {
+            "example": "4yJ3n3D8E2",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "DeleteGroup",
+        "tags": [
+          "Groups"
+        ]
+      },
       "get": {
         "description": "GetGroup",
         "operationId": "GetGroup",
@@ -2349,6 +2602,22 @@
               "example": "okta",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -2432,6 +2701,16 @@
                   },
                   "clientSecret": {
                     "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "oidc",
+                      "okta",
+                      "azure",
+                      "google"
+                    ],
+                    "example": "oidc",
                     "type": "string"
                   },
                   "name": {
@@ -2721,6 +3000,16 @@
                     "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                     "type": "string"
                   },
+                  "kind": {
+                    "enum": [
+                      "oidc",
+                      "okta",
+                      "azure",
+                      "google"
+                    ],
+                    "example": "oidc",
+                    "type": "string"
+                  },
                   "name": {
                     "example": "okta",
                     "type": "string"
@@ -2889,9 +3178,11 @@
               "schema": {
                 "properties": {
                   "email": {
+                    "format": "email",
                     "type": "string"
                   },
                   "name": {
+                    "format": "email",
                     "type": "string"
                   },
                   "password": {
@@ -3059,6 +3350,17 @@
             }
           },
           {
+            "example": "4yJ3n3D8E2",
+            "in": "query",
+            "name": "group",
+            "schema": {
+              "example": "4yJ3n3D8E2",
+              "format": "uid",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "ids",
             "schema": {
@@ -3069,6 +3371,22 @@
                 "type": "string"
               },
               "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "type": "integer"
             }
           }
         ],
@@ -3148,6 +3466,7 @@
               "schema": {
                 "properties": {
                   "name": {
+                    "format": "email",
                     "type": "string"
                   },
                   "setOneTimePassword": {

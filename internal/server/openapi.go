@@ -160,6 +160,13 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				for j := 0; j < f.Type.NumField(); j++ {
+					af := f.Type.Field(j)
+					schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
+				}
+				continue
+			}
 			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 		}
 
@@ -256,6 +263,10 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
 			}
 
+			if val == "email" {
+				schema.Format = "email"
+			}
+
 			if strings.HasPrefix(val, "min=") {
 				schema.MinLength = parseMinLength(val)
 			}
@@ -335,6 +346,7 @@ func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
 	case reflect.Slice:
 		if t.Elem().Kind() == reflect.Uint8 {
 			schema.Type = "string" // []byte
+			schema.Format = "base64"
 			return
 		}
 		schema.Type = "array"
@@ -433,6 +445,16 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		for i := 0; i < r.NumField(); i++ {
 			f := r.Field(i)
 
+			if f.Type.Kind() == reflect.Struct && f.Anonymous {
+				tmpOp := openapi3.NewOperation()
+
+				buildRequest(f.Type, tmpOp)
+				for _, param := range tmpOp.Parameters {
+					op.AddParameter(param.Value)
+				}
+				continue
+			}
+
 			// check first if it's a json field
 			if name, ok := f.Tag.Lookup("json"); ok {
 				jsonName := strings.Split(name, ",")[0]
@@ -486,6 +508,10 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 				for _, val := range strings.Split(validate, ",") {
 					if val == "required" {
 						p.Required = true
+					}
+
+					if val == "email" {
+						schema.Format = "email"
 					}
 
 					if strings.HasPrefix(val, "min=") {

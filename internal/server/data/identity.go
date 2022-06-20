@@ -62,7 +62,10 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 			}
 		}
 		if !found {
-			group := &models.Group{Name: name}
+			group := &models.Group{
+				Name:              name,
+				CreatedByProvider: provider.ID,
+			}
 
 			if err = CreateGroup(db, group); err != nil {
 				return fmt.Errorf("create group: %w", err)
@@ -70,11 +73,16 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 			groupID = group.ID
 		}
 
-		// add user to group
-		err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
-		if err != nil {
-			if !isUniqueConstraintViolation(err) {
-				return fmt.Errorf("insert: %w", err)
+		var ids []uid.ID
+		if err := db.Raw("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID).Scan(&ids).Error; err != nil {
+			return fmt.Errorf("select: %w", handleError(err))
+		}
+
+		if len(ids) == 0 {
+			// add user to group
+			err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
+			if err != nil {
+				return fmt.Errorf("insert: %w", handleError(err))
 			}
 		}
 
@@ -95,6 +103,23 @@ func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, erro
 func ListIdentities(db *gorm.DB, selectors ...SelectorFunc) ([]models.Identity, error) {
 	db = db.Order("name ASC")
 	return list[models.Identity](db, selectors...)
+}
+
+func ListIdentitiesByGroup(db *gorm.DB, groupID uid.ID, selectors ...SelectorFunc) ([]models.Identity, error) {
+	group, err := GetGroup(db.Preload("Identities", func(db *gorm.DB) *gorm.DB {
+		for _, selector := range selectors {
+			db = selector(db)
+		}
+		return db.Order("identities.name ASC")
+	}), ByID(groupID))
+	if err != nil {
+		return nil, err
+	}
+
+	var identities []models.Identity
+	identities = append(identities, group.Identities...)
+
+	return identities, nil
 }
 
 func DeleteIdentity(db *gorm.DB, id uid.ID) error {

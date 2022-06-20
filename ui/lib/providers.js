@@ -7,7 +7,7 @@ export const providers = [{
   kind: 'google'
 }, {
   name: 'Azure Active Directory',
-  kind: 'azure-ad'
+  kind: 'azure'
 }, {
   name: 'GitHub',
   kind: 'github'
@@ -16,7 +16,7 @@ export const providers = [{
   kind: 'gitlab'
 }, {
   name: 'OpenID',
-  kind: 'openid'
+  kind: 'oidc'
 }]
 
 export function kind (url) {

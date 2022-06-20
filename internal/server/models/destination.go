@@ -8,7 +8,7 @@ type Destination struct {
 	Model
 
 	Name     string `validate:"required"`
-	UniqueID string `gorm:"uniqueIndex:,where:deleted_at is NULL"`
+	UniqueID string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
 
 	ConnectionURL string
 	ConnectionCA  string
@@ -26,7 +26,7 @@ func (d *Destination) ToAPI() *api.Destination {
 		UniqueID: d.UniqueID,
 		Connection: api.DestinationConnection{
 			URL: d.ConnectionURL,
-			CA:  []byte(d.ConnectionCA),
+			CA:  api.PEM(d.ConnectionCA),
 		},
 		Resources: d.Resources,
 		Roles:     d.Roles,

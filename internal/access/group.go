@@ -22,8 +22,8 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string, userID uid.ID) ([]models.Group, error) {
-	var selectors []data.SelectorFunc
+func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination) ([]models.Group, error) {
+	var selectors []data.SelectorFunc = []data.SelectorFunc{data.ByPagination(pg)}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -67,4 +67,17 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 	}
 
 	return data.GetGroup(db, data.ByID(id))
+}
+
+func DeleteGroup(c *gin.Context, id uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return err
+	}
+
+	selectors := []data.SelectorFunc{
+		data.ByID(id),
+	}
+
+	return data.DeleteGroups(db, selectors...)
 }

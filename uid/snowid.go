@@ -141,10 +141,9 @@ func (id ID) String() string {
 
 // Parse parses a base58 encoded value into an ID.
 func Parse(b []byte) (ID, error) {
-	switch {
-	case bytes.HasPrefix(b, []byte("1")):
-		return -1, fmt.Errorf("invalid base58: not in canonical form")
-	case len(b) > 11:
+	// this is equivalent to leading zeros in decimal notation; they are not needed or wanted.
+	b = bytes.TrimLeft(b, "1")
+	if len(b) > 11 {
 		return -1, fmt.Errorf("invalid base58: too long")
 	}
 

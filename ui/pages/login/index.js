@@ -103,7 +103,7 @@ export default function Login () {
       {providers?.length > 0 && <Providers providers={providers || []} />}
       <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
         <div className='w-full my-2'>
-          <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username</label>
+          <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username or Email</label>
           <input
             required
             autoFocus

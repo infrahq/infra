@@ -18,12 +18,13 @@ type Destination struct {
 
 type DestinationConnection struct {
 	URL string `json:"url" validate:"required" example:"aa60eexample.us-west-2.elb.amazonaws.com"`
-	CA  []byte `json:"ca" example:"-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n"`
+	CA  PEM    `json:"ca" example:"-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n"`
 }
 
 type ListDestinationsRequest struct {
 	Name     string `form:"name"`
 	UniqueID string `form:"unique_id"`
+	PaginationRequest
 }
 
 type CreateDestinationRequest struct {
