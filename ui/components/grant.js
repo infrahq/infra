@@ -123,7 +123,7 @@ export default function ({ id }) {
       </div>
       {error && <ErrorMessage message={error} />}
       {list?.length > 0 &&
-        <div className='py-2 max-h-40 overflow-y-auto'>
+        <div className='py-2'>
           {list?.sort((a, b) => (a.user).localeCompare(b.user)).map(item => (
             <div className='flex justify-between items-center' key={item.id}>
               <User id={item.user} />
