@@ -14,7 +14,7 @@ import (
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return nil, err
+		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
 	return data.GetGrant(db, data.ByID(id))
@@ -72,7 +72,7 @@ func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "grant", "create", models.InfraAdminRole)
 	}
 
 	creator := AuthenticatedIdentity(c)
@@ -85,7 +85,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 func DeleteGrant(c *gin.Context, id uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
 	return data.DeleteGrants(db, data.ByID(id))

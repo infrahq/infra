@@ -9,18 +9,20 @@ import (
 )
 
 func CreateDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "destination", "create", roles...)
 	}
 
 	return data.CreateDestination(db, destination)
 }
 
 func SaveDestination(c *gin.Context, destination *models.Destination) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "destination", "update", roles...)
 	}
 
 	return data.SaveDestination(db, destination)
@@ -40,7 +42,7 @@ func ListDestinations(c *gin.Context, uniqueID, name string, pg models.Paginatio
 func DeleteDestination(c *gin.Context, id uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "destination", "delete", models.InfraAdminRole)
 	}
 
 	return data.DeleteDestinations(db, data.ByID(id))
