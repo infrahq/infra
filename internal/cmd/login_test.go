@@ -19,11 +19,12 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
 )
 
-func TestLoginCmdSignup(t *testing.T) {
+func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
@@ -61,8 +62,33 @@ func TestLoginCmdSignup(t *testing.T) {
 		exp.ExpectString(t, "Confirm")
 		exp.Send(t, "password\n")
 		exp.ExpectString(t, "Logged in as")
+	})
 
-		assert.NilError(t, g.Wait())
+	runStep(t, "login updated infra config", func(t *testing.T) {
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+
+		expected := []ClientHostConfig{
+			{
+				Name:          "admin@example.com",
+				AccessKey:     "any-access-key",
+				PolymorphicID: "any-id",
+				Host:          srv.Addrs.HTTPS.String(),
+				SkipTLSVerify: true,
+				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:       true,
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	runStep(t, "login updated kube config", func(t *testing.T) {
+		kubeCfg, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+
+		// config is empty because there are no grants yet
+		expected := clientcmdapi.Config{}
+		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
 	})
 }
 
@@ -93,21 +119,11 @@ func TestLoginCmd(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
 
-		console := newConsole(t)
-		ctx = PatchCLIWithPTY(ctx, console.Tty())
+		// TODO: remove --skip-tls-verify
+		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--key", adminAccessKey)
+		assert.NilError(t, err)
 
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			// TODO: remove --skip-tls-verify
-			return Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--key", adminAccessKey)
-		})
-
-		exp := expector{console: console}
-		exp.ExpectString(t, "Logged in as")
-
-		assert.NilError(t, g.Wait())
-
-		_, err := readStoredAgentProcessID()
+		_, err = readStoredAgentProcessID()
 		assert.ErrorContains(t, err, "no such file or directory")
 	})
 
@@ -148,7 +164,7 @@ var cmpClientHostConfig = cmp.Options{
 		cmpPolymorphicIDNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "Expires"),
-		cmpApiTimeWithThreshold(5*time.Second)),
+		cmpApiTimeWithThreshold(20*time.Second)),
 }
 
 func cmpApiTimeWithThreshold(threshold time.Duration) cmp.Option {
@@ -182,10 +198,10 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
-	timeout := time.Second
-	if os.Getenv("CI") != "" {
-		// CI takes much longer than local dev, use a much longer timeout
-		timeout = 20 * time.Second
+	timeout := 2 * time.Second
+	if os.Getenv("CI") != "" || race.Enabled {
+		// CI and -race take much longer than regular runs, use a much longer timeout
+		timeout = 30 * time.Second
 	}
 
 	term := vt10x.New(vt10x.WithWriter(tty))
