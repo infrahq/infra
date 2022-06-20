@@ -13,7 +13,8 @@ To connect Okta, run the following `infra` command:
 infra providers add okta \
   --url <your okta url (or domain)> \
   --client-id <your okta client id> \
-  --client-secret <your okta client secret>
+  --client-secret <your okta client secret> \
+  --kind okta
 ```
 
 ## Configure Okta

@@ -12,7 +12,8 @@ To connect Google, run the following command:
 infra providers add google \
   --url accounts.google.com \
   --client-id <your google client id> \
-  --client-secret <your google client secret>
+  --client-secret <your google client secret> \
+  --kind google
 ```
 
 ## Finding required values

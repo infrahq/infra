@@ -378,19 +378,36 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 			},
+			{
+				Name:         "azure",
+				URL:          "demo.azure.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         models.AzureKind.String(),
+			},
 		},
 	}
 
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var provider models.Provider
-	err = s.db.Where("name = ?", "okta").First(&provider).Error
+	var okta models.Provider
+	err = s.db.Where("name = ?", "okta").First(&okta).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "okta", provider.Name)
-	assert.Equal(t, "demo.okta.com", provider.URL)
-	assert.Equal(t, "client-id", provider.ClientID)
-	assert.Equal(t, models.EncryptedAtRest("client-secret"), provider.ClientSecret)
+	assert.Equal(t, "okta", okta.Name)
+	assert.Equal(t, "demo.okta.com", okta.URL)
+	assert.Equal(t, "client-id", okta.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret"), okta.ClientSecret)
+	assert.Equal(t, models.OIDCKind, okta.Kind) // the kind gets the default value
+
+	var azure models.Provider
+	err = s.db.Where("name = ?", "azure").First(&azure).Error
+	assert.NilError(t, err)
+	assert.Equal(t, "azure", azure.Name)
+	assert.Equal(t, "demo.azure.com", azure.URL)
+	assert.Equal(t, "client-id", azure.ClientID)
+	assert.Equal(t, models.EncryptedAtRest("client-secret"), azure.ClientSecret)
+	assert.Equal(t, models.AzureKind, azure.Kind) // when specified, the kind is set
 }
 
 func TestLoadConfigWithUsers(t *testing.T) {

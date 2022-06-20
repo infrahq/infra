@@ -4,7 +4,6 @@ import Head from 'next/head'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
 
-import { kind } from '../../lib/providers'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
@@ -20,9 +19,7 @@ const columns = [{
   Cell: ({ value: provider }) => (
     <div className='flex py-1.5 items-center'>
       <div className='border border-gray-800 flex-none flex items-center justify-center w-7 h-7 rounded-md'>
-        {kind(provider.url)
-          ? <img className='h-2' src={`/providers/${kind(provider.url)}.svg`} />
-          : provider.name[0].toUpperCase()}
+        <img className='h-2' src={`/providers/${provider.kind}.svg`} />
       </div>
       <div className='text-2xs leading-none ml-3'>{provider.name}</div>
     </div>

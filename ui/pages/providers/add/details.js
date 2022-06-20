@@ -43,7 +43,8 @@ export default function ProvidersAddDetails () {
             name,
             url,
             clientID,
-            clientSecret
+            clientSecret,
+            kind
           })
         })
 

@@ -56,6 +56,30 @@ func Test202204211705(t *testing.T) {
 	assert.Assert(t, rawSettings.PrivateJWK[0] != '{')
 }
 
+func Test202206151027(t *testing.T) {
+	db := setupWithNoMigrations(t, func(db *gorm.DB) {
+		loadSQL(t, db, "202206151027")
+	})
+
+	provider := map[string]interface{}{
+		"name":          "test",
+		"url":           "example.com",
+		"client_id":     "a",
+		"client_secret": "b",
+	}
+	err := db.Table("providers").Create(provider).Error
+	assert.NilError(t, err)
+
+	// TODO: call NewDB to simulate a real server starting, instead of calling migrate
+	err = migrate(db)
+	assert.NilError(t, err)
+
+	result := map[string]interface{}{}
+	err = db.Table("providers").Take(&result).Error
+	assert.NilError(t, err)
+	assert.Equal(t, models.OktaKind.String(), result["kind"])
+}
+
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
 // to create a new file for testing a migration:
 //

@@ -11,6 +11,7 @@ type Provider struct {
 	Updated  Time   `json:"updated"`
 	URL      string `json:"url" validate:"required" example:"infrahq.okta.com"`
 	ClientID string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
+	Kind     string `json:"kind" example:"oidc"`
 }
 
 type CreateProviderRequest struct {
@@ -18,6 +19,7 @@ type CreateProviderRequest struct {
 	URL          string `json:"url" validate:"required" example:"infrahq.okta.com"`
 	ClientID     string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
 	ClientSecret string `json:"clientSecret" validate:"required" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string `json:"kind" validate:"omitempty,oneof=oidc okta azure google" example:"oidc"`
 }
 
 type UpdateProviderRequest struct {
@@ -26,6 +28,7 @@ type UpdateProviderRequest struct {
 	URL          string `json:"url" validate:"required" example:"infrahq.okta.com"`
 	ClientID     string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
 	ClientSecret string `json:"clientSecret" validate:"required" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string `json:"kind" validate:"omitempty,oneof=oidc okta azure google" example:"oidc"`
 }
 
 type ListProvidersRequest struct {

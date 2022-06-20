@@ -12,7 +12,8 @@ To connect Azure, run the following command:
 infra providers add azure \
   --url login.microsoftonline.com/${TENANT_ID}/v2.0 \
   --client-id <your azure client id> \
-  --client-secret <your azure client secret>
+  --client-secret <your azure client secret> \
+  --kind azure
 ```
 
 ## Finding required values

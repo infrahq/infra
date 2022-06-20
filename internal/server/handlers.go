@@ -223,6 +223,12 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
+	kind, err := models.ParseProviderKind(r.Kind)
+	if err != nil {
+		return nil, err
+	}
+	provider.Kind = kind
+
 	if err := a.validateProvider(c, provider); err != nil {
 		return nil, err
 	}
@@ -244,6 +250,12 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		ClientID:     r.ClientID,
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
+
+	kind, err := models.ParseProviderKind(r.Kind)
+	if err != nil {
+		return nil, err
+	}
+	provider.Kind = kind
 
 	if err := a.validateProvider(c, provider); err != nil {
 		return nil, err

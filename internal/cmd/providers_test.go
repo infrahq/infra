@@ -52,7 +52,6 @@ func TestProvidersAddCmd(t *testing.T) {
 				_, _ = resp.Write(b)
 				return
 			}
-
 		}
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
@@ -71,6 +70,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--url", "https://okta.com/path",
 			"--client-id", "okta-client-id",
 			"--client-secret", "okta-client-secret",
+			"--kind", "oidc",
 		)
 		assert.NilError(t, err)
 
@@ -81,6 +81,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			URL:          "https://okta.com/path",
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
+			Kind:         "oidc",
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
@@ -102,6 +103,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			URL:          "https://okta.com/path",
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
+			Kind:         "oidc",
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
