@@ -132,7 +132,7 @@ export default function Destinations () {
   const [selected, setSelected] = useState(null)
 
   const data = destinations
-    ?.sort((a, b) => b.created?.localeCompare(a.created))
+    ?.sort((a, b) => b?.created?.localeCompare(a.created))
     ?.map(d => ({
       ...d,
       kind: 'cluster',
