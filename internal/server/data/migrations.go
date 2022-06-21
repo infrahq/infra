@@ -471,24 +471,8 @@ func migrate(db *gorm.DB) error {
 				return nil
 			},
 		},
-		// add kind to providers
-		{
-			ID: "202206151027",
-			Migrate: func(tx *gorm.DB) error {
-				if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
-					logging.S.Debug("migrating provider table kind")
-					if err := tx.Migrator().AddColumn(&models.Provider{}, "kind"); err != nil {
-						return err
-					}
-				}
-
-				db := tx.Begin()
-
-				db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
-
-				return db.Commit().Error
-			},
-		},
+		addKindToProviders(),
+		dropCertificateTables(),
 		// next one here
 	})
 
@@ -535,4 +519,37 @@ func initializeSchema(db *gorm.DB) error {
 	}
 
 	return nil
+}
+
+// #2294: set the provider kind on existing providers
+func addKindToProviders() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202206151027",
+		Migrate: func(tx *gorm.DB) error {
+			if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
+				logging.S.Debug("migrating provider table kind")
+				if err := tx.Migrator().AddColumn(&models.Provider{}, "kind"); err != nil {
+					return err
+				}
+			}
+
+			db := tx.Begin()
+			db.Table("providers").Where("kind IS NULL AND name == ?", "infra").
+				Update("kind", models.InfraKind)
+			db.Table("providers").Where("kind IS NULL").
+				Update("kind", models.OktaKind)
+
+			return db.Commit().Error
+		},
+	}
+}
+
+// #2276: drop unused certificate tables
+func dropCertificateTables() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202206161733",
+		Migrate: func(tx *gorm.DB) error {
+			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
+		},
+	}
 }
