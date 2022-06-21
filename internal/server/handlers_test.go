@@ -40,6 +40,16 @@ func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
+	// TODO: Convert the "humans" group and "AnotherUser" user to call the standard http endpoints
+	//       when the new endpoint to add a user to a group exists
+	humans := models.Group{Name: "humans"}
+	createGroups(t, srv.db, &humans)
+	anotherID := models.Identity{
+		Name:   "AnotherUser@example.com",
+		Groups: []models.Group{humans},
+	}
+	createIdentities(t, srv.db, &anotherID)
+
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
@@ -142,8 +152,9 @@ func TestAPI_ListUsers(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := api.ListResponse[api.User]{
-					Count: 6,
+					Count: 7,
 					Items: []api.User{
+						{Name: "AnotherUser@example.com"},
 						{Name: "HAL@example.com"},
 						{Name: "admin@example.com"},
 						{Name: "connector"},
@@ -176,13 +187,32 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 2,
 					Items: []api.User{
+						{Name: "admin@example.com"},
 						{Name: "connector"},
-						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
 						Page:  2,
 						Limit: 2,
 					},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+			},
+		},
+		"user in group": {
+			urlPath: fmt.Sprintf("/api/users?group=%s", humans.ID),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+
+				expected := api.ListResponse[api.User]{
+					Count: 1,
+					Items: []api.User{
+						{Name: anotherID.Name},
+					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
