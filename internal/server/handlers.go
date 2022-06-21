@@ -618,7 +618,7 @@ func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error 
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
 
-	return oidc.Validate()
+	return oidc.Validate(c.Request.Context())
 }
 
 func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (authn.OIDC, error) {

@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -24,7 +25,7 @@ func NewKeyExchangeAuthentication(requestingAccessKey string, requestedExpiry ti
 	}
 }
 
-func (a *keyExchangeAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
+func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error) {
 	validatedRequestKey, err := data.ValidateAccessKey(db, a.RequestingAccessKey)
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid access key in exchange: %w", err)
