@@ -187,7 +187,7 @@ func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupReques
 		}
 	}
 
-	return nil, access.UpdateUsersInGroup(c, r.ID, usersToAdd, usersToRemove)
+	return nil, access.UpdateUsersInGroup(c, r.GroupID, usersToAdd, usersToRemove)
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info

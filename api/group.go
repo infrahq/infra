@@ -29,6 +29,6 @@ type AddRemoveUsersInGroupRequest struct {
 }
 
 type UpdateUsersInGroupRequest struct {
-	ID       uid.ID                         `uri:"id" json:"-" validate:"required"`
+	GroupID  uid.ID                         `uri:"id" json:"-" validate:"required"`
 	Requests []AddRemoveUsersInGroupRequest `json:"requests"`
 }

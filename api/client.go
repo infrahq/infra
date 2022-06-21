@@ -236,7 +236,7 @@ func (c Client) DeleteGroup(id uid.ID) error {
 }
 
 func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
-	_, err := patch[UpdateUsersInGroupRequest, EmptyResponse](c, fmt.Sprintf("/api/groups/%s/users", req.ID), req)
+	_, err := patch[UpdateUsersInGroupRequest, EmptyResponse](c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
 	return err
 }
 

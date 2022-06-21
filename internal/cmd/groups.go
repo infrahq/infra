@@ -214,7 +214,7 @@ $ infra groups adduser johndoe@example.com Engineering
 			}
 
 			req := &api.UpdateUsersInGroupRequest{
-				ID: group.ID,
+				GroupID: group.ID,
 				Requests: []api.AddRemoveUsersInGroupRequest{
 					{
 						Method: "add",
@@ -276,7 +276,7 @@ $ infra groups removeuser johndoe@example.com Engineering
 			}
 
 			req := &api.UpdateUsersInGroupRequest{
-				ID: group.ID,
+				GroupID: group.ID,
 				Requests: []api.AddRemoveUsersInGroupRequest{
 					{
 						Method: "remove",
