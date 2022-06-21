@@ -15,13 +15,17 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	}
 
 	for _, existingGrant := range grants {
-		if existingGrant.Privilege == grant.Privilege {
-			// exact match exists, no need to store it twice.
-			return nil
+		if sameGrant(&existingGrant, grant) {
+			// exact match exists, errors
+			return UniqueConstraintError{Table: "grants", Column: "subject, resource, and privilege"}
 		}
 	}
 
 	return add(db, grant)
+}
+
+func sameGrant(grant1, grant2 *models.Grant) bool {
+	return grant1.Subject == grant2.Subject && grant1.Resource == grant2.Resource && grant1.Privilege == grant2.Privilege
 }
 
 func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {

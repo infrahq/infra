@@ -23,7 +23,7 @@ func TestDuplicateGrant(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = CreateGrant(db, &g2)
-		assert.NilError(t, err)
+		assert.ErrorContains(t, err, "value for subject, resource, and privilege already exists for grants")
 
 		grants, err := ListGrants(db, BySubject("i:1234567"), ByResource("infra"))
 		assert.NilError(t, err)
