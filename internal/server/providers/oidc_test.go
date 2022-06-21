@@ -14,16 +14,3 @@ func TestValidateInvalidURL(t *testing.T) {
 	err := oidc.Validate()
 	assert.ErrorIs(t, err, ErrInvalidProviderURL)
 }
-
-func TestUserInfo(t *testing.T) {
-	t.Run("no email and no name fails validation", func(t *testing.T) {
-		claims := &InfoClaims{}
-		err := claims.validate()
-		assert.ErrorContains(t, err, "name or email are required")
-	})
-	t.Run("groups are not required", func(t *testing.T) {
-		claims := &InfoClaims{Email: "hello@example.com"}
-		err := claims.validate()
-		assert.NilError(t, err)
-	})
-}

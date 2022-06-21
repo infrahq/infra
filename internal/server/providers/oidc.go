@@ -267,16 +267,6 @@ func (o *oidcImplementation) GetUserInfo(providerUser *models.ProviderUser) (*In
 	return claims, nil
 }
 
-// validate checks if the user info response claims have the information we expect
-func (ic *InfoClaims) validate() error {
-	// if these fields aren't present, this user may have been deleted in the up-stream provider
-	if ic.Email == "" && ic.Name == "" {
-		return fmt.Errorf("required user info not received, name or email are required, the user may have been deleted")
-	}
-
-	return nil
-}
-
 // checkRefreshAccessToken checks if an access token is expired, and gets a new one if needed and possible
 func checkRefreshAccessToken(db *gorm.DB, providerUser *models.ProviderUser, oidc OIDC) error {
 	accessToken, expiry, err := oidc.RefreshAccessToken(providerUser)
