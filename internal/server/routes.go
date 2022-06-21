@@ -184,7 +184,7 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
 		}
 
-		c.JSON(defaultResponseCodeForMethod(route.method), resp)
+		c.PureJSON(defaultResponseCodeForMethod(route.method), resp)
 	}
 
 	bindRoute(a, r, route.method, route.path, wrappedHandler)

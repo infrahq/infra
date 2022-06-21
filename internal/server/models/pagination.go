@@ -1,9 +1,7 @@
 package models
 
 import (
-	"fmt"
-	"regexp"
-	"strings"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -42,6 +40,17 @@ func PaginationToResponse(c *gin.Context, p Pagination) api.PaginationResponse {
 		return api.PaginationResponse{}
 	}
 
+	pr := api.PaginationResponse{
+		Page:  p.Page,
+		Limit: p.Limit,
+	}
+
+	SetURLs(&pr, c)
+
+	return pr
+}
+
+func SetURLs(pr *api.PaginationResponse, c *gin.Context) {
 	uri := *c.Request.URL
 	uri.Host = c.Request.Host
 
@@ -50,24 +59,20 @@ func PaginationToResponse(c *gin.Context, p Pagination) api.PaginationResponse {
 		uri.Scheme = "http"
 	}
 
-	pr := api.PaginationResponse{
-		Page:    p.Page,
-		Limit:   p.Limit,
-		Current: uri.String(),
+	query := uri.Query()
+	query.Set("limit", strconv.Itoa(pr.Limit))
+
+	query.Set("page", strconv.Itoa(pr.Page)) // set self
+	uri.RawQuery = query.Encode()
+	pr.Self = uri.String()
+
+	query.Set("page", strconv.Itoa(pr.Page+1)) // set next
+	uri.RawQuery = query.Encode()
+	pr.Next = uri.String()
+
+	if pr.Page > 1 {
+		query.Set("page", strconv.Itoa(pr.Page-1)) // set prev
+		uri.RawQuery = query.Encode()
+		pr.Prev = uri.String()
 	}
-
-	if strings.Contains(uri.RawQuery, "page=") {
-		regex := regexp.MustCompile("page=[0-9]*")
-		uri.RawQuery = regex.ReplaceAllString(uri.RawQuery, "page=%d")
-	} else {
-		uri.RawQuery += "&page=%d"
-	}
-
-	pr.Next = fmt.Sprintf(uri.String(), pr.Page+1)
-
-	if pr.Page > 0 {
-		pr.Prev = fmt.Sprintf(uri.String(), pr.Page-1)
-	}
-
-	return pr
 }

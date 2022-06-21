@@ -178,11 +178,11 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
-						Page:    2,
-						Limit:   2,
-						Current: "http:///api/users?limit=2&page=2",
-						Next:    "http:///api/users?limit=2&page=3",
-						Prev:    "http:///api/users?limit=2&page=1",
+						Page:  2,
+						Limit: 2,
+						Self:  "http:///api/users?limit=2&page=2",
+						Next:  "http:///api/users?limit=2&page=3",
+						Prev:  "http:///api/users?limit=2&page=1",
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)

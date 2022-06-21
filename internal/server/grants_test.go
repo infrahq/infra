@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -253,8 +254,14 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2,
-					Current: "http:///api/grants?page=2&limit=2", Next: "http:///api/grants?page=3&limit=2", Prev: "http:///api/grants?page=1&limit=2"})
+				assert.Assert(t, grants.PaginationInfo.Limit == 2 && grants.PaginationInfo.Page == 2)
+
+				self, _ := url.Parse("http:///api/grants?page=2&limit=2")
+				next, _ := url.Parse("http:///api/grants?page=3&limit=2")
+				prev, _ := url.Parse("http:///api/grants?page=1&limit=2")
+				assert.Assert(t, self.Query().Get("limit") == "2" && self.Query().Get("page") == "2")
+				assert.Assert(t, next.Query().Get("limit") == "2" && next.Query().Get("page") == "3")
+				assert.Assert(t, prev.Query().Get("limit") == "2" && prev.Query().Get("page") == "1")
 				// hostname is missing while testing
 			},
 		},
