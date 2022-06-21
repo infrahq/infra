@@ -159,7 +159,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	}
 
 	var claims struct {
-		Email string `json:"email" validate:"required"`
+		Email string `json:"email" validate:"required,excludesall=' "`
 	}
 
 	if err := idToken.Claims(&claims); err != nil {
