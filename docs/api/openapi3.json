@@ -248,6 +248,28 @@
       },
       "ListResponse_AccessKey": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -301,24 +323,33 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },
       "ListResponse_Destination": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -383,24 +414,33 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },
       "ListResponse_Grant": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -457,24 +497,33 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },
       "ListResponse_Group": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -507,24 +556,33 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },
       "ListResponse_Provider": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -574,24 +632,33 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },
       "ListResponse_User": {
         "properties": {
+          "_page_links": {
+            "properties": {
+              "current": {
+                "type": "string"
+              },
+              "limit": {
+                "format": "int",
+                "type": "integer"
+              },
+              "next": {
+                "type": "string"
+              },
+              "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "previous": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
           "count": {
             "format": "int",
             "type": "integer"
@@ -639,19 +706,6 @@
               "type": "object"
             },
             "type": "array"
-          },
-          "pagination_info": {
-            "properties": {
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
           }
         }
       },

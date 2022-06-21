@@ -44,7 +44,11 @@ func PaginationToResponse(c *gin.Context, p Pagination) api.PaginationResponse {
 
 	uri := *c.Request.URL
 	uri.Host = c.Request.Host
-	uri.Scheme = "https" // TODO: get proper scheme
+
+	uri.Scheme = "https"
+	if c.Request.TLS == nil {
+		uri.Scheme = "http"
+	}
 
 	pr := api.PaginationResponse{
 		Page:    p.Page,

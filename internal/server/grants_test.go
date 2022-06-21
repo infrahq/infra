@@ -253,7 +253,9 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2})
+				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2,
+					Current: "http:///api/grants?page=2&limit=2", Next: "http:///api/grants?page=3&limit=2", Prev: "http:///api/grants?page=1&limit=2"})
+				// hostname is missing while testing
 			},
 		},
 		"filter by resource": {
@@ -311,7 +313,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info":{},
+	"_page_links":{},
 	"count": 1,
 	"items": [{
 		"id": "<any-valid-uid>",

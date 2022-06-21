@@ -90,7 +90,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"pagination_info":{},"items":[],"count":0}`)
+				assert.Equal(t, resp.Body.String(), `{"_page_links":{},"items":[],"count":0}`)
 			},
 		},
 		"name match": {
@@ -178,8 +178,11 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
-						Page:  2,
-						Limit: 2,
+						Page:    2,
+						Limit:   2,
+						Current: "http:///api/users?limit=2&page=2",
+						Next:    "http:///api/users?limit=2&page=3",
+						Prev:    "http:///api/users?limit=2&page=1",
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)

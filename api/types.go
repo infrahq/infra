@@ -94,7 +94,7 @@ func (d Duration) String() string {
 }
 
 type ListResponse[T any] struct {
-	PaginationInfo PaginationResponse `json:"pagination_info"`
+	PaginationInfo PaginationResponse `json:"_page_links"`
 	Items          []T                `json:"items"`
 	Count          int                `json:"count"`
 }

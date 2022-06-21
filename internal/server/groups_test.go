@@ -137,7 +137,12 @@ func TestAPI_ListGroups(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual.Items), 1)
-				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2}, actual.PaginationInfo)
+				assert.Equal(t, api.PaginationResponse{
+					Page:    2,
+					Limit:   2,
+					Current: "http:///api/groups?page=2&limit=2",
+					Prev:    "http:///api/groups?page=1&limit=2",
+					Next:    "http:///api/groups?page=3&limit=2"}, actual.PaginationInfo)
 			},
 		},
 		"authorized by group membership": {
@@ -186,7 +191,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info": {},
+	"_page_links": {},
 	"count": 2,
 	"items": [{
 		"id": "%[1]v",
@@ -219,7 +224,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info":{},
+	"_page_links":{},
 	"count": 1,
 	"items": [{
 		"id": "%[1]v",
