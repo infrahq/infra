@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"context"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -11,6 +12,6 @@ import (
 func TestValidateInvalidURL(t *testing.T) {
 	oidc := NewOIDC(models.Provider{Name: "example-oidc", Kind: models.OIDCKind, URL: "example.com"}, "some_client_secret", "http://localhost:8301")
 
-	err := oidc.Validate()
+	err := oidc.Validate(context.Background())
 	assert.ErrorIs(t, err, ErrInvalidProviderURL)
 }

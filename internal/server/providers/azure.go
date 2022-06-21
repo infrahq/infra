@@ -36,34 +36,34 @@ type azure struct {
 	OIDC OIDC
 }
 
-func (a *azure) Validate() error {
-	return a.OIDC.Validate()
+func (a *azure) Validate(ctx context.Context) error {
+	return a.OIDC.Validate(ctx)
 }
 
-func (a *azure) ExchangeAuthCodeForProviderTokens(code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
-	return a.OIDC.ExchangeAuthCodeForProviderTokens(code)
+func (a *azure) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+	return a.OIDC.ExchangeAuthCodeForProviderTokens(ctx, code)
 }
 
-func (a *azure) RefreshAccessToken(providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
-	return a.OIDC.RefreshAccessToken(providerUser)
+func (a *azure) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+	return a.OIDC.RefreshAccessToken(ctx, providerUser)
 }
 
-func (a *azure) GetUserInfo(providerUser *models.ProviderUser) (*InfoClaims, error) {
-	return a.OIDC.GetUserInfo(providerUser)
+func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error) {
+	return a.OIDC.GetUserInfo(ctx, providerUser)
 }
 
-func (a *azure) SyncProviderUser(db *gorm.DB, user *models.Identity, provider *models.Provider) error {
+func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
 	providerUser, err := data.GetProviderUser(db, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}
 
-	if err := checkRefreshAccessToken(db, providerUser, a); err != nil {
+	if err := checkRefreshAccessToken(ctx, db, providerUser, a); err != nil {
 		return fmt.Errorf("oidc sync failed to check users access token: %w", err)
 	}
 
 	// this checks if the user still exists
-	_, err = a.OIDC.GetUserInfo(providerUser)
+	_, err = a.OIDC.GetUserInfo(ctx, providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())

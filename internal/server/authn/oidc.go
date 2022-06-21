@@ -30,7 +30,7 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 	}
 }
 
-func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provider, error) {
+func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error) {
 	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
 	if err != nil {
 		return nil, nil, err
@@ -74,7 +74,7 @@ func (a *oidcAuthn) Authenticate(db *gorm.DB) (*models.Identity, *models.Provide
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = a.OIDCProviderClient.SyncProviderUser(db, identity, provider)
+	err = a.OIDCProviderClient.SyncProviderUser(ctx, db, identity, provider)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sync user on login: %w", err)
 	}

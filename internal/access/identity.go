@@ -146,6 +146,8 @@ func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDC) error {
+	ctx := c.Request.Context()
+
 	// added by the authentication middleware
 	identity := AuthenticatedIdentity(c)
 	if identity == nil {
@@ -163,7 +165,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDC) error {
 	}
 
 	// get current identity provider groups
-	err = oidc.SyncProviderUser(db, identity, provider)
+	err = oidc.SyncProviderUser(ctx, db, identity, provider)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			return err

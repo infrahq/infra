@@ -25,7 +25,7 @@ type mockOIDCImplementation struct {
 	UserGroupsResp []string
 }
 
-func (m *mockOIDCImplementation) Validate(context.Context) error {
+func (m *mockOIDCImplementation) Validate(_ context.Context) error {
 	return nil
 }
 
@@ -38,11 +38,11 @@ func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(providerUser *models.ProviderUser) (*providers.InfoClaims, error) {
+func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.InfoClaims, error) {
 	return &providers.InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
-func (m *mockOIDCImplementation) SyncProviderUser(db *gorm.DB, user *models.Identity, provider *models.Provider) error {
+func (m *mockOIDCImplementation) SyncProviderUser(_ context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
 	if err := data.AssignIdentityToGroups(db, user, provider, m.UserGroupsResp); err != nil {
 		return err
 	}
