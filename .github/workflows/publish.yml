@@ -89,21 +89,29 @@ jobs:
     environment: ${{ inputs.ENVIRONMENT }}
     steps:
       - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - run: |
-          case "${{ inputs.ENVIRONMENT }}" in
-            Production) LATEST=1 ;;
-            Development) DEV=1 ;;
-          esac
-          docker buildx build --push \
-            --platform linux/amd64,linux/arm64 \
-            --build-arg BUILDVERSION=${{ inputs.RELEASE_NAME }} \
-            --build-arg TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }} \
-            --tag infrahq/infra:${{ inputs.RELEASE_NAME }} \
-            ${LATEST:+--tag infrahq/infra} \
-            ${DEV:+--tag infrahq/infra:dev} \
-            .
+      - id: metadata
+        uses: docker/metadata-action@v3
+        with:
+          images: infrahq/infra
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ inputs.RELEASE_NAME }}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=match,pattern=.*-(.*),group=1,value=${{ inputs.RELEASE_NAME }}
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILDVERSION=${{ inputs.RELEASE_NAME }}
+            TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=registry,ref=infrahq/infra:latest
+          cache-to: type=inline
