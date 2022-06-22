@@ -65,14 +65,14 @@ func TestOIDCAuthenticate(t *testing.T) {
 
 	t.Run("invalid provider", func(t *testing.T) {
 		unknownProviderOIDCAuthn := NewOIDCAuthentication(uid.New(), "localhost:8031", "1234", oidc)
-		_, _, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db)
+		_, _, _, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db)
 
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 
 	t.Run("successful authentication", func(t *testing.T) {
 		oidcAuthn := NewOIDCAuthentication(mocktaProvider.ID, "localhost:8031", "1234", oidc)
-		identity, provider, err := oidcAuthn.Authenticate(context.Background(), db)
+		identity, provider, _, err := oidcAuthn.Authenticate(context.Background(), db)
 
 		assert.NilError(t, err)
 		// user should be created
@@ -258,7 +258,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
-			u, _, err := loginMethod.Authenticate(context.Background(), db)
+			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, error))
 			assert.Assert(t, ok)

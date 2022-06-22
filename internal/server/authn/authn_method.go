@@ -12,14 +12,18 @@ import (
 )
 
 type LoginMethod interface {
-	Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error)
+	Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, AuthScope, error)
 	Name() string                             // Name returns the name of the authentication method used
 	RequiresUpdate(db *gorm.DB) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
 }
 
+type AuthScope struct {
+	PasswordResetOnly bool
+}
+
 func Login(ctx context.Context, db *gorm.DB, loginMethod LoginMethod, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
 	// challenge the user to authenticate
-	identity, provider, err := loginMethod.Authenticate(ctx, db)
+	identity, provider, scope, err := loginMethod.Authenticate(ctx, db)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to login: %w", err)
 	}
@@ -33,6 +37,10 @@ func Login(ctx context.Context, db *gorm.DB, loginMethod LoginMethod, keyExpires
 		ExpiresAt:         keyExpiresAt,
 		ExtensionDeadline: time.Now().UTC().Add(keyExtension),
 		Extension:         keyExtension,
+	}
+
+	if scope.PasswordResetOnly {
+		accessKey.Scopes = append(accessKey.Scopes, models.ScopePasswordReset)
 	}
 
 	bearer, err := data.CreateAccessKey(db, accessKey)

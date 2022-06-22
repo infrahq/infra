@@ -25,22 +25,22 @@ func NewKeyExchangeAuthentication(requestingAccessKey string, requestedExpiry ti
 	}
 }
 
-func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models.Identity, *models.Provider, error) {
+func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models.Identity, *models.Provider, AuthScope, error) {
 	validatedRequestKey, err := data.ValidateAccessKey(db, a.RequestingAccessKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("invalid access key in exchange: %w", err)
+		return nil, nil, AuthScope{}, fmt.Errorf("invalid access key in exchange: %w", err)
 	}
 
 	if a.RequestedExpiry.After(validatedRequestKey.ExpiresAt) {
-		return nil, nil, fmt.Errorf("%w: cannot exchange an access key for another access key with a longer lifetime", internal.ErrBadRequest)
+		return nil, nil, AuthScope{}, fmt.Errorf("%w: cannot exchange an access key for another access key with a longer lifetime", internal.ErrBadRequest)
 	}
 
 	identity, err := data.GetIdentity(db, data.ByID(validatedRequestKey.IssuedFor))
 	if err != nil {
-		return nil, nil, fmt.Errorf("user is not valid: %w", err) // the user was probably deleted
+		return nil, nil, AuthScope{}, fmt.Errorf("user is not valid: %w", err) // the user was probably deleted
 	}
 
-	return identity, data.InfraProvider(db), nil
+	return identity, data.InfraProvider(db), AuthScope{}, nil
 }
 
 func (a *keyExchangeAuthn) Name() string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 // TimeoutMiddleware adds a timeout to the request context within the Gin context.
@@ -98,6 +100,13 @@ func RequireAccessKey(c *gin.Context) error {
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
+	}
+
+	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
+		// PUT /api/users/:id only
+		if !strings.HasPrefix(c.Request.URL.Path, "/api/users/") || c.Request.Method != http.MethodPut {
+			return fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
+		}
 	}
 
 	c.Set("key", accessKey)
