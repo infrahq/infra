@@ -25,7 +25,7 @@ func TestMigration_202204111503(t *testing.T) {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	ids, err := ListIdentities(db, ByName("steven@example.com"))
+	ids, err := ListIdentities(db, &models.Pagination{}, ByName("steven@example.com"))
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(ids) == 1)
@@ -82,7 +82,7 @@ func Test202206151027(t *testing.T) {
 	db, err := NewDB(driver, loadDBKey)
 	assert.NilError(t, err)
 
-	providers, err := ListProviders(db)
+	providers, err := ListProviders(db, &models.Pagination{})
 	assert.NilError(t, err)
 	expected := []models.Provider{
 		{

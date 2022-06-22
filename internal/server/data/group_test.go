@@ -98,7 +98,7 @@ func TestListGroups(t *testing.T) {
 		createIdentities(t, db, &firstUser, &secondUser)
 
 		t.Run("all", func(t *testing.T) {
-			actual, err := ListGroups(db)
+			actual, err := ListGroups(db, &models.Pagination{})
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},
@@ -109,7 +109,7 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			actual, err := ListGroups(db, ByName(engineers.Name))
+			actual, err := ListGroups(db, &models.Pagination{}, ByName(engineers.Name))
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},
@@ -118,7 +118,7 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by identity membership", func(t *testing.T) {
-			actual, err := ListGroups(db, ByGroupMember(firstUser.ID))
+			actual, err := ListGroups(db, &models.Pagination{}, ByGroupMember(firstUser.ID))
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},

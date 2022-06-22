@@ -110,10 +110,18 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func list[T models.Modelable](db *gorm.DB /*p *models.Pagination,*/, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
 	for _, selector := range selectors {
 		db = selector(db)
 	}
+
+	var count int64
+	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
+		return nil, err
+	}
+	p.SetTotalCount(int(count))
+
+	db = ByPagination(*p)(db)
 
 	result := make([]T, 0)
 	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {

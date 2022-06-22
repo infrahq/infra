@@ -29,7 +29,7 @@ type API struct {
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
 	p := models.RequestToPagination(r.PaginationRequest)
-	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, p)
+	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, user.Name, 0, nil, models.Pagination{Limit: 2})
+	identities, err := access.ListIdentities(c, user.Name, 0, nil, &models.Pagination{Limit: 2})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
@@ -130,7 +130,7 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	p := models.RequestToPagination(r.PaginationRequest)
-	groups, err := access.ListGroups(c, r.Name, r.UserID, p)
+	groups, err := access.ListGroups(c, r.Name, r.UserID, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []string{models.InternalInfraProviderName}
 	p := models.RequestToPagination(r.PaginationRequest)
-	providers, err := access.ListProviders(c, r.Name, exclude, p)
+	providers, err := access.ListProviders(c, r.Name, exclude, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
 	p := models.RequestToPagination(r.PaginationRequest)
-	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, p)
+	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
 	p := models.RequestToPagination(r.PaginationRequest)
-	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, p)
+	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +406,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, p)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +468,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, models.Pagination{})
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, &models.Pagination{})
 		if err != nil {
 			return nil, err
 		}

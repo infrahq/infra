@@ -100,9 +100,9 @@ func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, erro
 	return get[models.Identity](db, selectors...)
 }
 
-func ListIdentities(db *gorm.DB, selectors ...SelectorFunc) ([]models.Identity, error) {
+func ListIdentities(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
 	db = db.Order("name ASC")
-	return list[models.Identity](db, selectors...)
+	return list[models.Identity](db, p, selectors...)
 }
 
 func ListIdentitiesByGroup(db *gorm.DB, groupID uid.ID, selectors ...SelectorFunc) ([]models.Identity, error) {
@@ -127,7 +127,7 @@ func DeleteIdentity(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListIdentities(db.Select("id"), selectors...)
+	toDelete, err := ListIdentities(db.Select("id"), &models.Pagination{}, selectors...)
 	if err != nil {
 		return err
 	}

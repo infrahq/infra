@@ -15,9 +15,9 @@ func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
 	return get[models.Group](db, selectors...)
 }
 
-func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
+func ListGroups(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
 	db = db.Order("name ASC")
-	return list[models.Group](db, selectors...)
+	return list[models.Group](db, p, selectors...)
 }
 
 func ByGroupMember(id uid.ID) SelectorFunc {
@@ -29,7 +29,7 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 }
 
 func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListGroups(db, selectors...)
+	toDelete, err := ListGroups(db, &models.Pagination{}, selectors...)
 	if err != nil {
 		return err
 	}

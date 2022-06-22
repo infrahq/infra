@@ -137,7 +137,7 @@ func TestAPI_ListGroups(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual.Items), 1)
-				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2}, actual.PaginationInfo)
+				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2, TotalCount: 3, TotalPages: 2}, actual.PaginationInfo)
 			},
 		},
 		"authorized by group membership": {
@@ -308,7 +308,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListGroups(srv.db, data.ByID(humans.ID))
+				actual, err := data.ListGroups(srv.db, &models.Pagination{}, data.ByID(humans.ID))
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},

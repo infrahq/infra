@@ -21,17 +21,16 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, p models.Pagination) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, p *models.Pagination) ([]models.Grant, error) {
 	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
-		data.ByPagination(p),
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err == nil {
 		selectors = append(selectors, data.ByOptionalSubject(subject))
-		return data.ListGrants(db, selectors...)
+		return data.ListGrants(db, p, selectors...)
 	}
 
 	if errors.Is(err, internal.ErrForbidden) {
@@ -44,10 +43,10 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 			return nil, err
 		case subject.IsIdentity() && identity.ID == subjectID:
 			selectors = append(selectors, data.BySubject(subject))
-			return data.ListGrants(db, selectors...)
+			return data.ListGrants(db, p, selectors...)
 		case subject.IsGroup() && userInGroup(db, identity.ID, subjectID):
 			selectors = append(selectors, data.BySubject(subject))
-			return data.ListGrants(db, selectors...)
+			return data.ListGrants(db, p, selectors...)
 		}
 	}
 
@@ -55,7 +54,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 }
 
 func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
-	groups, err := data.ListGroups(db, data.ByGroupMember(authnUserID), data.ByID(groupID))
+	groups, err := data.ListGroups(db, &models.Pagination{}, data.ByGroupMember(authnUserID), data.ByID(groupID))
 	if err != nil {
 		return false
 	}

@@ -311,6 +311,14 @@
               "page": {
                 "format": "int",
                 "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
+                "format": "int",
+                "type": "integer"
               }
             },
             "type": "object"
@@ -393,6 +401,14 @@
               "page": {
                 "format": "int",
                 "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
+                "format": "int",
+                "type": "integer"
               }
             },
             "type": "object"
@@ -467,6 +483,14 @@
               "page": {
                 "format": "int",
                 "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
+                "format": "int",
+                "type": "integer"
               }
             },
             "type": "object"
@@ -515,6 +539,14 @@
                 "type": "integer"
               },
               "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
                 "format": "int",
                 "type": "integer"
               }
@@ -584,6 +616,14 @@
               "page": {
                 "format": "int",
                 "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
+                "format": "int",
+                "type": "integer"
               }
             },
             "type": "object"
@@ -647,6 +687,14 @@
                 "type": "integer"
               },
               "page": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_count": {
+                "format": "int",
+                "type": "integer"
+              },
+              "total_pages": {
                 "format": "int",
                 "type": "integer"
               }

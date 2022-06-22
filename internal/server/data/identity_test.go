@@ -96,14 +96,14 @@ func TestListIdentities(t *testing.T) {
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
 		t.Run("list all", func(t *testing.T) {
-			identities, err := ListIdentities(db)
+			identities, err := ListIdentities(db, &models.Pagination{})
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			identities, err := ListIdentities(db, ByName(bourne.Name))
+			identities, err := ListIdentities(db, &models.Pagination{}, ByName(bourne.Name))
 			assert.NilError(t, err)
 			expected := []models.Identity{bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)

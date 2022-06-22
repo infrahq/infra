@@ -24,19 +24,18 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	return data.GetProvider(db, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, name string, excludeByName []string, p models.Pagination) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, name string, excludeByName []string, p *models.Pagination) ([]models.Provider, error) {
 	db := getDB(c)
 
 	selectors := []data.SelectorFunc{
 		data.ByOptionalName(name),
-		data.ByPagination(p),
 	}
 
 	for _, exclude := range excludeByName {
 		selectors = append(selectors, data.NotName(exclude))
 	}
 
-	return data.ListProviders(db, selectors...)
+	return data.ListProviders(db, p, selectors...)
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -57,7 +58,7 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 	}
 
 	// check if they belong to a group that is authorized
-	groups, err := data.ListGroups(db, data.ByGroupMember(identity.ID))
+	groups, err := data.ListGroups(db, &models.Pagination{}, data.ByGroupMember(identity.ID))
 	if err != nil {
 		return nil, fmt.Errorf("auth user groups: %w", err)
 	}
@@ -80,7 +81,7 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
 func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := data.ListGrants(db, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
+	grants, err := data.ListGrants(db, &models.Pagination{}, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)
 	}

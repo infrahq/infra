@@ -126,7 +126,7 @@ func TestDatabaseSelectors(t *testing.T) {
 		t.Logf("DB pointer: %p", tx)
 
 		// query using one of our helpers and selectors
-		_, err := ListGrants(tx, ByID(534))
+		_, err := ListGrants(tx, &models.Pagination{}, ByID(534))
 		assert.NilError(t, err)
 
 		// query with Model and Where
@@ -145,7 +145,7 @@ func TestDatabaseSelectors(t *testing.T) {
 	assert.NilError(t, err)
 
 	// query using one of our helpers and selectors
-	_, err = ListGrants(db, ByID(534))
+	_, err = ListGrants(db, &models.Pagination{}, ByID(534))
 	assert.NilError(t, err)
 
 	// query with Model and Where
@@ -172,7 +172,7 @@ func TestPaginationSelector(t *testing.T) {
 
 		p := models.Pagination{Page: 1, Limit: 10}
 
-		actual, err := ListIdentities(db, ByPagination(p))
+		actual, err := ListIdentities(db, &p)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -180,7 +180,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 2
-		actual, err = ListIdentities(db, ByPagination(p))
+		actual, err = ListIdentities(db, &p)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -188,7 +188,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 3
-		actual, err = ListIdentities(db, ByPagination(p))
+		actual, err = ListIdentities(db, &p)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 6)
 
@@ -197,7 +197,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page, p.Limit = 1, 26
-		actual, err = ListIdentities(db, ByPagination(p))
+		actual, err = ListIdentities(db, &p)
 		assert.NilError(t, err)
 		for i, user := range actual {
 			assert.Equal(t, user.Name, letters[i])

@@ -854,7 +854,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	admin, err := data.ListIdentities(srv.db, data.ByName("admin@example.com"))
+	admin, err := data.ListIdentities(srv.db, &models.Pagination{}, data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
 	expected := jsonUnmarshal(t, fmt.Sprintf(`
@@ -1218,7 +1218,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
-		infraAdminGrants, err := data.ListGrants(srv.db, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		infraAdminGrants, err := data.ListGrants(srv.db, &models.Pagination{}, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
 

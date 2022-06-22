@@ -22,8 +22,8 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string, userID uid.ID, p models.Pagination) ([]models.Group, error) {
-	var selectors []data.SelectorFunc = []data.SelectorFunc{data.ByPagination(p)}
+func ListGroups(c *gin.Context, name string, userID uid.ID, p *models.Pagination) ([]models.Group, error) {
+	var selectors []data.SelectorFunc = []data.SelectorFunc{}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -33,7 +33,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, p models.Pagination)
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err == nil {
-		return data.ListGroups(db, selectors...)
+		return data.ListGroups(db, p, selectors...)
 	}
 
 	if errors.Is(err, internal.ErrForbidden) {
@@ -44,7 +44,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, p models.Pagination)
 		case identity == nil:
 			return nil, err
 		case userID == identity.ID:
-			return data.ListGroups(db, selectors...)
+			return data.ListGroups(db, p, selectors...)
 		}
 	}
 

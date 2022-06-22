@@ -25,7 +25,7 @@ func TestDuplicateGrant(t *testing.T) {
 		err = CreateGrant(db, &g2)
 		assert.NilError(t, err)
 
-		grants, err := ListGrants(db, BySubject("i:1234567"), ByResource("infra"))
+		grants, err := ListGrants(db, &models.Pagination{}, BySubject("i:1234567"), ByResource("infra"))
 		assert.NilError(t, err)
 		assert.Assert(t, is.Len(grants, 1))
 	})

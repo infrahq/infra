@@ -11,7 +11,7 @@ type Pagination struct {
 	Page       int
 	Limit      int
 	TotalCount int
-	PageCount  int
+	TotalPages int
 }
 
 func RequestToPagination(pr api.PaginationRequest) Pagination {
@@ -36,12 +36,16 @@ func RequestToPagination(pr api.PaginationRequest) Pagination {
 
 func PaginationToResponse(p Pagination) api.PaginationResponse {
 	return api.PaginationResponse{
-		Page:  p.Page,
-		Limit: p.Limit,
+		Page:       p.Page,
+		Limit:      p.Limit,
+		TotalCount: p.TotalCount,
+		TotalPages: p.TotalPages,
 	}
 }
 
 func (p *Pagination) SetTotalCount(count int) {
-	p.TotalCount = count
-	p.PageCount = int(math.Ceil(float64(count) / float64(p.Limit)))
+	if p.Page != 0 && p.Limit != 0 {
+		p.TotalCount = count
+		p.TotalPages = int(math.Ceil(float64(count) / float64(p.Limit)))
+	}
 }

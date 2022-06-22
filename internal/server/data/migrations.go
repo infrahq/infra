@@ -249,7 +249,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.S.Info("running migration 202203301647")
 				if tx.Migrator().HasTable("machines") {
-					grants, err := ListGrants(db)
+					grants, err := ListGrants(db, &models.Pagination{})
 					if err != nil {
 						return err
 					}
@@ -290,7 +290,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.S.Info("running migration 202204061643")
 				if tx.Migrator().HasTable("access_keys") {
-					keys, err := ListAccessKeys(db)
+					keys, err := ListAccessKeys(db, &models.Pagination{})
 					if err != nil {
 						return err
 					}
@@ -344,7 +344,7 @@ func migrate(db *gorm.DB) error {
 
 					infraProviderID := providerIDs["infra"]
 
-					users, err := ListIdentities(db, func(db *gorm.DB) *gorm.DB {
+					users, err := ListIdentities(db, &models.Pagination{}, func(db *gorm.DB) *gorm.DB {
 						return db.Where("provider_id != ?", infraProviderID)
 					})
 					if err != nil {
