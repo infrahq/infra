@@ -188,3 +188,14 @@ func NotPrivilege(privilege string) SelectorFunc {
 		return db.Not("privilege = ?", privilege)
 	}
 }
+
+func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		if groupID == 0 {
+			return db
+		}
+		return db.
+			Joins("join identities_groups on identities_groups.identity_id = id").
+			Where("identities_groups.group_id = ?", groupID)
+	}
+}

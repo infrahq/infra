@@ -110,11 +110,8 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 	selectors := []data.SelectorFunc{
 		data.ByOptionalName(name),
 		data.ByOptionalIDs(ids),
+		data.ByOptionalIdentityGroupID(groupID),
 		data.ByPagination(pg),
-	}
-
-	if groupID != 0 {
-		return data.ListIdentitiesByGroup(db.Preload("Providers"), groupID, selectors...)
 	}
 
 	return data.ListIdentities(db.Preload("Providers"), selectors...)
