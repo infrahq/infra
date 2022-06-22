@@ -382,157 +382,154 @@ server:
   affinity: {}
 
   ## Primary server configuration
-  config: {}
-  ## Database name
-  #   dbName: ""
+  config:
+    ## Database name
+    # dbName: ""
 
-  ## Database host
-  #   dbHost: ""
+    ## Database host
+    # dbHost: ""
 
-  ## Database port
-  #   dbPort: 0
+    ## Database port
+    # dbPort: 0
 
-  ## Database username
-  #   dbUsername: ""
+    ## Database username
+    # dbUsername: ""
 
-  ## Database password. Use `file:` or `env:` to reference a file or environment variable
-  ## Ref: https://github.com/infrahq/infra/blob/main/docs/install/configure/secrets.md
-  #   dbPassword: ""
+    ## Database password. Use `file:` or `env:` to reference a file or environment variable
+    ## Ref: https://github.com/infrahq/infra/blob/main/docs/install/configure/secrets.md
+    # dbPassword: ""
 
-  ## Extra database parameters
-  ## For PostgresQL: see https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
-  #   dbParameters: ""
+    ## Extra database parameters
+    ## For PostgresQL: see https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+    # dbParameters: ""
 
-  ## Path on the filesystem to store the database encryption key
-  #   dbEncryptionKey: ""
+    ## Path on the filesystem to store the database encryption key
+    # dbEncryptionKey: ""
 
-  ## Enable service telemetry
-  #   enableTelemetry: true
+    ## Enable service telemetry
+    # enableTelemetry: true
 
-  ## Server UI configurations
-  #   ui:
-  ## Enable UI
-  #     enabled: true
+    ## Server UI configurations
+    # ui:
+      ## Enable UI
+      # enabled: true
 
-  ## Duration of a user session
-  #   sessionDuration: 720h0m0s # 30 days
+    ## Duration of a user session
+    # sessionDuration: 720h0m0s # 30 days
 
-  ## How frequently a user must use session for it to remain active
-  #   sessionExtensionDeadline: 72h0m0s # once every 3 days
+    ## How frequently a user must use session for it to remain active
+    # sessionExtensionDeadline: 72h0m0s # once every 3 days
 
-  ## Additional secret providers to configure
-  additionalSecrets: []
-  # - kind: ""  # required, kind of secret provider. one of ['plaintext', 'env', 'file', 'kubernetes', 'vault', 'awssecretmanager', 'awsssm']
-  #   name: ""  # optional, to be referenced when accessing secrets. defaults to 'kind'
-  #   config:
-  #     ...      # additional configuration options are available and may be required for certain secret providers, e.g. 'vault'. see below.
+    ## Additional secret providers to configure
+    secrets: []
+    # - kind: ""  # required, kind of secret provider. one of ['plaintext', 'env', 'file', 'kubernetes', 'vault', 'awssecretmanager', 'awsssm']
+    #   name: ""  # optional, to be referenced when accessing secrets. defaults to 'kind'
+    #   config:
+    #     ...      #  configuration options are available and may be required for certain secret providers, e.g. 'vault'. see below.
 
-  ## Example
-  # Configure Kubernetes as a secret provider
-  # - name: kubernetes                      # optional, used when referencing secrets, e.g. kubernetes:infra/secret, where 'infra' is the name of the secret in Kubernetes and `secret` is the field in that secret
-  #   kind: kubernetes                      # required
-  #   config:
-  #     namespace: ""                       # required if secret exists in a namespace separate from the one infra is deployed to
+    ## Example
+    # Configure Kubernetes as a secret provider
+    # - name: kubernetes                      # optional, used when referencing secrets, e.g. kubernetes:infra/secret, where 'infra' is the name of the secret in Kubernetes and `secret` is the field in that secret
+    #   kind: kubernetes                      # required
+    #   config:
+    #     namespace: ""                       # required if secret exists in a namespace separate from the one infra is deployed to
 
-  # Configure Vault as a secret provider
-  # - name: vault                           # optional, used when referencing secrets, e.g. vault:infra-secret, where 'infra-secret' is the name of the secret in Vault
-  #   kind: vault                           # required
-  #   config:
-  #     address: https://vault.example.com  # required
-  #     token: env:VAULT_TOKEN              # required
-  #     namespace: ""                       # optional
-  #     transitMount: ""                    # optional, default '/transit'
-  #     secretMount: ""                     # optional, default '/secret'
+    # Configure Vault as a secret provider
+    # - name: vault                           # optional, used when referencing secrets, e.g. vault:infra-secret, where 'infra-secret' is the name of the secret in Vault
+    #   kind: vault                           # required
+    #   config:
+    #     address: https://vault.example.com  # required
+    #     token: env:VAULT_TOKEN              # required
+    #     namespace: ""                       # optional
+    #     transitMount: ""                    # optional, default '/transit'
+    #     secretMount: ""                     # optional, default '/secret'
 
-  # Configure AWS Secret Manager as a secret provider
-  # - name: awssm                                               # optional, used when referencing secrets, e.g. awssm:infra-secret, where 'infra-secret' is the name of the secret in AWS Secret Manager
-  #   kind: awssecretmanager                                    # required
-  #   config:
-  #     endpoint: https://secretsmanager.us-east-2.amazonaws.com  # required
-  #     region: us-east-2                                         # required
-  #     accessKeyID: env:AWS_ACCESS_KEY_ID                        # required
-  #     secretAccessKey: env:AWS_SECRET_ACCESS_KEY                # required
+    # Configure AWS Secret Manager as a secret provider
+    # - name: awssm                                               # optional, used when referencing secrets, e.g. awssm:infra-secret, where 'infra-secret' is the name of the secret in AWS Secret Manager
+    #   kind: awssecretmanager                                    # required
+    #   config:
+    #     endpoint: https://secretsmanager.us-east-2.amazonaws.com  # required
+    #     region: us-east-2                                         # required
+    #     accessKeyID: env:AWS_ACCESS_KEY_ID                        # required
+    #     secretAccessKey: env:AWS_SECRET_ACCESS_KEY                # required
 
-  # Configure AWS Systems Manager Parameter Store as a secret provider
-  # - name: awsssm                                  # optional, used when referencing secrets, e.g. awsssm:infra-secret, where 'infra-secret' is the name of the secret in AWS SSM
-  #   kind: awsssm                                  # required
-  #   config:
-  #     endpoint: https://ssm.us-east-2.amazonaws.com # required
-  #     region: us-east-2                             # required
-  #     accessKeyID: env:AWS_ACCESS_KEY_ID            # required
-  #     secretAccessKey: env:AWS_SECRET_ACCESS_KEY    # required
-  #     keyID: ""                                     # optional, if set, this key will be used for decryption
+    # Configure AWS Systems Manager Parameter Store as a secret provider
+    # - name: awsssm                                  # optional, used when referencing secrets, e.g. awsssm:infra-secret, where 'infra-secret' is the name of the secret in AWS SSM
+    #   kind: awsssm                                  # required
+    #   config:
+    #     endpoint: https://ssm.us-east-2.amazonaws.com # required
+    #     region: us-east-2                             # required
+    #     accessKeyID: env:AWS_ACCESS_KEY_ID            # required
+    #     secretAccessKey: env:AWS_SECRET_ACCESS_KEY    # required
+    #     keyID: ""                                     # optional, if set, this key will be used for decryption
 
-  # Configure base64-encoded environment variable as a secret provider
-  # - name: based64env  # required to differentiate betweent built-in plaintext 'env' secret provider
-  #   kind: env         # required
-  #   config:
-  #     base64: true    # required
+    # Configure base64-encoded environment variable as a secret provider
+    # - name: based64env  # required to differentiate betweent built-in plaintext 'env' secret provider
+    #   kind: env         # required
+    #   config:
+    #     base64: true    # required
 
-  ## Additional identity providers to configure
-  additionalProviders: []
-  # - name: ""          # required, to be referenced when creating grants
-  #   url: ""           # required
-  #   clientID: ""      # required
-  #   clientSecret: ""  # required
+    ## Additional identity providers to configure
+    providers: []
+    # - name: ""          # required, to be referenced when creating grants
+    #   url: ""           # required
+    #   clientID: ""      # required
+    #   clientSecret: ""  # required
 
-  ## Example
-  # Configure Okta as an identity provider
-  # - name: Okta
-  #   url: example.okta.com
-  #   clientID: myoktaclientid
-  #   clientSecret: env:OKTA_CLIENT_SECRET
+    ## Example
+    # Configure Okta as an identity provider
+    # - name: Okta
+    #   url: example.okta.com
+    #   clientID: myoktaclientid
+    #   clientSecret: env:OKTA_CLIENT_SECRET
 
-  ## Additional grants to configure
-  additionalGrants: []
-  # - user: ""      # one of ['user', 'group'] is required
-  #   group: ""     # one of ['user', 'group'] is required
-  #   resource: ""  # required, resource being granted access
-  #   provider: ""  # required, references the name given to the provider
-  #   role: ""      # optional, if omitted, Infra will only grant authentication to the resource
+    ## Additional grants to configure
+    grants: []
+    # - user: ""      # one of ['user', 'group'] is required
+    #   group: ""     # one of ['user', 'group'] is required
+    #   resource: ""  # required, resource being granted access
+    #   provider: ""  # required, references the name given to the provider
+    #   role: ""      # optional, if omitted, Infra will only grant authentication to the resource
 
-  ## Example
-  # Grant user 'admin@example.com' Infra admin
-  # - user: admin@example.com
-  #   role: admin
-  #   resource: infra
+    ## Example
+    # Grant user 'admin@example.com' Infra admin
+    # - user: admin@example.com
+    #   role: admin
+    #   resource: infra
 
-  # Grant user 'admin@example.com' edit to Kubernetes cluster 'docker-desktop'
-  # - user: admin@example.com
-  #   role: edit
-  #   resource: kubernetes.docker-desktop
+    # Grant user 'admin@example.com' edit to Kubernetes cluster 'docker-desktop'
+    # - user: admin@example.com
+    #   role: edit
+    #   resource: kubernetes.docker-desktop
 
-  # Grant group 'Everyone' view to Kubernetes cluster 'docker-desktop', namespace 'default'
-  # - group: Everyone
-  #   role: view
-  #   resource: kubernetes.docker-desktop.default
+    # Grant group 'Everyone' view to Kubernetes cluster 'docker-desktop', namespace 'default'
+    # - group: Everyone
+    #   role: view
+    #   resource: kubernetes.docker-desktop.default
 
-  ## Additional users to configure
-  additionalUsers: []
-  # Configure a user with an access key
-  # - name: ""      # required
-  #   accessKey: "" # optional, can be specified as a secret. must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>)
-  #   password: ""  # optional, can be specified as a secret
+    ## Additional users to configure
+    users: []
+    # Configure a user with an access key
+    # - name: ""      # required
+    #   accessKey: "" # optional, can be specified as a secret. must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>)
+    #   password: ""  # optional, can be specified as a secret
 
-  ## Example
-  # Create an "admin" user
-  # - name: admin
+    ## Example
+    # Create an "admin" user
+    # - name: admin
 
-  # Create an "admin" user and seed an access key passed in as an environment variable.
-  # The environment variable will need to be injected into the pod using `env` or `envFrom`.
-  # - name: admin
-  #   accessKey: env:ADMIN_ACCESS_KEY
+    # Create an "admin" user and seed an access key passed in as an environment variable.
+    # The environment variable will need to be injected into the pod using `env` or `envFrom`.
+    # - name: admin
+    #   accessKey: env:ADMIN_ACCESS_KEY
 
-  # Create a "dev@example.com" user
-  # - name: dev@example.com
+    # Create a "dev@example.com" user
+    # - name: dev@example.com
 
-  # Create a "dev@example.com" user and set a password passed in as a file. The file will need
-  # to be mounted into the pod using `volumes` and `volumeMounts`.
-  # - name: dev@example.com
-  #   password: file:/var/run/secrets/dev@example.com
-    
-  ## Deprecated: use additionalUsers
-  additionalIdentities: []
+    # Create a "dev@example.com" user and set a password passed in as a file. The file will need
+    # to be mounted into the pod using `volumes` and `volumeMounts`.
+    # - name: dev@example.com
+    #   password: file:/var/run/secrets/dev@example.com
 
 ## Default connector configurations
 connector:
