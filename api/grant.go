@@ -18,8 +18,8 @@ type Grant struct {
 }
 
 type CreateGrantResponse struct {
-	Grant `json:",inline"`
-	Code  int `json:"-"`
+	*Grant `json:",inline"`
+	Code   int `json:"-"`
 }
 
 func (r *CreateGrantResponse) StatusCode() int {

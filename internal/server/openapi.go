@@ -160,6 +160,11 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 
 		for i := 0; i < rst.NumField(); i++ {
 			f := rst.Field(i)
+
+			if f.Tag.Get("json") == "-" {
+				continue
+			}
+
 			if f.Type.Kind() == reflect.Struct && f.Anonymous {
 				for j := 0; j < f.Type.NumField(); j++ {
 					af := f.Type.Field(j)

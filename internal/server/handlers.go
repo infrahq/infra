@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -437,7 +439,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	return grant.ToAPI(), nil
 }
 
-func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
+func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.CreateGrantResponse, error) {
 	var subject uid.PolymorphicID
 
 	switch {
@@ -454,11 +456,24 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	}
 
 	err := access.CreateGrant(c, grant)
+	var ucerr data.UniqueConstraintError
+
+	if errors.As(err, &ucerr) {
+		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, models.Pagination{})
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &api.CreateGrantResponse{Grant: grants[0].ToAPI(), Code: http.StatusOK}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return grant.ToAPI(), nil
+	return &api.CreateGrantResponse{Grant: grant.ToAPI(), Code: http.StatusCreated}, nil
+
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
