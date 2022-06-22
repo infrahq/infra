@@ -8,24 +8,7 @@ import (
 )
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) error {
-	// check first if it exists
-	grants, err := list[models.Grant](db, BySubject(grant.Subject), ByResource(grant.Resource))
-	if err != nil {
-		return err
-	}
-
-	for _, existingGrant := range grants {
-		if sameGrant(&existingGrant, grant) {
-			// exact match exists, errors
-			return UniqueConstraintError{Table: "grants", Column: "subject, resource, and privilege"}
-		}
-	}
-
 	return add(db, grant)
-}
-
-func sameGrant(grant1, grant2 *models.Grant) bool {
-	return grant1.Subject == grant2.Subject && grant1.Resource == grant2.Resource && grant1.Privilege == grant2.Privilege
 }
 
 func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
