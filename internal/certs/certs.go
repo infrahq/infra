@@ -1,7 +1,6 @@
 package certs
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -66,6 +65,7 @@ func GenerateCertificate(hosts []string, caCert *x509.Certificate, caKey crypto.
 
 func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		ctx := hello.Context()
 		cert, err := manager.GetCertificate(hello)
 		if err == nil {
 			return cert, nil
@@ -77,12 +77,12 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 			serverName = hello.Conn.LocalAddr().String()
 		}
 
-		certBytes, err := manager.Cache.Get(context.TODO(), serverName+".crt")
+		certBytes, err := manager.Cache.Get(ctx, serverName+".crt")
 		if err != nil {
 			logging.S.Warnf("cert: %s", err)
 		}
 
-		keyBytes, err := manager.Cache.Get(context.TODO(), serverName+".key")
+		keyBytes, err := manager.Cache.Get(ctx, serverName+".key")
 		if err != nil {
 			logging.S.Warnf("key: %s", err)
 		}
@@ -99,15 +99,16 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), serverName+".crt", certBytes); err != nil {
+			if err := manager.Cache.Put(ctx, serverName+".crt", certBytes); err != nil {
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
+			if err := manager.Cache.Put(ctx, serverName+".key", keyBytes); err != nil {
 				return nil, err
 			}
 
 			logging.L.Info("new server certificate",
+				zap.String("Server name", serverName),
 				zap.String("SHA256 fingerprint", Fingerprint(pemDecode(certBytes))))
 		}
 
