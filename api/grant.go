@@ -17,6 +17,15 @@ type Grant struct {
 	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
 }
 
+type CreateGrantResponse struct {
+	Grant `json:",inline"`
+	Code  int `json:"-"`
+}
+
+func (r *CreateGrantResponse) StatusCode() int {
+	return r.Code
+}
+
 type ListGrantsRequest struct {
 	User      uid.ID `form:"user" validate:"excluded_with=Group"`
 	Group     uid.ID `form:"group" validate:"excluded_with=User"`
