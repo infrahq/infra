@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/pem"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,15 +18,17 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
+	"gotest.tools/v3/golden"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
 )
 
-var anyUID = uid.ID(-1)
+var anyUID = uid.ID(99)
 
 func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
@@ -212,7 +215,7 @@ var cmpStringNotZero = cmp.Comparer(func(x, y string) bool {
 })
 
 var cmpUserIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
-	return x != 0 && y != 0
+	return x > 0 && y > 0
 })
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
@@ -298,7 +301,7 @@ func setupCertManager(t *testing.T, dir string, serverName string) {
 	assert.NilError(t, err)
 }
 
-func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
+func TestLoginCmd_TLSVerify(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
 	t.Setenv("USERPROFILE", dir) // Windows
@@ -413,5 +416,98 @@ func TestLoginCmd_PromptForTLSVerify(t *testing.T) {
 			},
 		}
 		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	t.Run("login with trusted cert", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		err := Run(ctx, "logout", "--clear")
+		assert.NilError(t, err)
+
+		err = Run(ctx, "login",
+			"--tls-trusted-cert", "testdata/pki/localhost.crt",
+			"--key", accessKey,
+			srv.Addrs.HTTPS.String())
+		assert.NilError(t, err)
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		// Check the client config
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin@example.com",
+				AccessKey:          "any-access-key",
+				UserID:             anyUID,
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: string(cert),
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	t.Run("login with trusted fingerprint", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		err := Run(ctx, "logout", "--clear")
+		assert.NilError(t, err)
+
+		cert, err := os.ReadFile("testdata/pki/localhost.crt")
+		assert.NilError(t, err)
+
+		block, _ := pem.Decode(cert)
+		fingerprint := certs.Fingerprint(block.Bytes)
+
+		err = Run(ctx, "login",
+			"--tls-trusted-fingerprint", fingerprint,
+			"--key", accessKey,
+			srv.Addrs.HTTPS.String())
+		assert.NilError(t, err)
+
+		// Check the client config
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := []ClientHostConfig{
+			{
+				Name:               "admin@example.com",
+				AccessKey:          "any-access-key",
+				UserID:             anyUID,
+				Host:               srv.Addrs.HTTPS.String(),
+				Expires:            api.Time(time.Now().UTC().Add(opts.SessionDuration)),
+				Current:            true,
+				TrustedCertificate: string(cert),
+			},
+		}
+		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
+	})
+
+	t.Run("login with wrong fingerprint", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		t.Cleanup(cancel)
+
+		err := Run(ctx, "logout", "--clear")
+		assert.NilError(t, err)
+
+		ctx, bufs := PatchCLI(ctx)
+
+		err = Run(ctx, "login",
+			"--tls-trusted-fingerprint", "BA::D0::FF",
+			"--key", accessKey,
+			srv.Addrs.HTTPS.String())
+		assert.ErrorContains(t, err, "authenticity of the server could not be verified")
+
+		// Check the client config is empty
+		cfg, err := readConfig()
+		assert.NilError(t, err)
+		expected := &ClientConfig{ClientConfigVersion: clientConfigVersion}
+		assert.DeepEqual(t, cfg, expected, cmpopts.EquateEmpty())
+
+		golden.Assert(t, bufs.Stderr.String(), t.Name())
 	})
 }
