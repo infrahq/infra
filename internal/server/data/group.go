@@ -43,7 +43,7 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 			return err
 		}
 
-		identities, err := ListIdentitiesByGroup(db, g.ID, []SelectorFunc{}...)
+		identities, err := ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
 		if err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ func getGroupByName(client *api.Client, name string) (*api.Group, error) {
 	}
 
 	if groups.Count == 0 {
-		return nil, ErrGroupNotFound
+		return nil, fmt.Errorf("%w: unknown group %q", ErrGroupNotFound, name)
 	}
 
 	if groups.Count > 1 {

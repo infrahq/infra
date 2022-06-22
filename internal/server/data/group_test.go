@@ -202,7 +202,7 @@ func TestAddUsersToGroup(t *testing.T) {
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
 		t.Run("add identities to group", func(t *testing.T) {
-			actual, err := ListIdentitiesByGroup(db, everyone.ID)
+			actual, err := ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
 			assert.NilError(t, err)
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
@@ -210,7 +210,7 @@ func TestAddUsersToGroup(t *testing.T) {
 			err = AddUsersToGroup(db, everyone.ID, []models.Identity{bourne, bauer})
 			assert.NilError(t, err)
 
-			actual, err = ListIdentitiesByGroup(db, everyone.ID)
+			actual, err = ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
 			assert.NilError(t, err)
 			expected = []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)

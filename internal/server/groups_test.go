@@ -455,7 +455,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentitiesByGroup(srv.db, humans.ID)
+				idents, err := data.ListIdentities(srv.db, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
 			},
@@ -481,7 +481,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentitiesByGroup(srv.db, humans.ID)
+				idents, err := data.ListIdentities(srv.db, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.Assert(t, len(idents) == 0)
 			},
