@@ -1,11 +1,15 @@
 import useSWR from 'swr'
 
+import { useGrants } from './grants'
+
 export function useAdmin () {
   const { data: auth } = useSWR('/api/users/self')
-  const { data: { items: grants } = {}, error: grantsError } = useSWR(() => `/api/grants?user=${auth.id}&resource=infra`)
+  const { grants } = useGrants({ resource: 'infra', user: auth?.id })
+
+  const admin = !!grants?.find(g => g.privilege === 'admin')
 
   return {
-    loading: !grants && !grantsError,
-    admin: !!grants?.find(g => g.privilege === 'admin')
+    loading: !auth || !grants,
+    admin
   }
 }

@@ -39,7 +39,7 @@ export default function ({ columns, data, getRowProps = () => {} }) {
               {row.cells.map(cell => {
                 const props = cell.getCellProps()
                 return (
-                  <td key={cell.id} {...props} className={`${props.className} border-b border-gray-800`}>
+                  <td key={cell.id} {...props} className={`${props.className || ''} border-b border-gray-800`}>
                     {cell.render('Cell')}
                   </td>
                 )

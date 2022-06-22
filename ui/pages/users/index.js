@@ -13,7 +13,8 @@ import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import DeleteModal from '../../components/modals/delete'
-import ResourcesGrant from '../../components/resources-grant'
+import RoleDropdown from '../../components/role-dropdown'
+import { useGrants } from '../../lib/grants'
 
 const columns = [{
   Header: 'Name',
@@ -42,30 +43,62 @@ const columns = [{
 
 function SidebarContent ({ user, admin, onDelete }) {
   const { id, name } = user
-  const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
-  const infraRole = grants?.filter(g => g.resource === 'infra')?.[0]?.privilege
+  const { grants, loading } = useGrants({ user: id, hideInfra: true })
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       {admin &&
         <section>
-          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <ResourcesGrant user={user.id} />
+          <h3 className='py-4 mb-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          {grants?.map(g => (
+            <div key={g.id} className='flex justify-between items-center text-2xs'>
+              <div>{g.resource}</div>
+              {g.inherited
+                ? (
+                  <div className='flex-none flex'>
+                    <div
+                      title='This access is inherited and cannot be edited here'
+                      className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
+                    >
+                      inherited
+                    </div>
+                    <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
+                      {g.privilege}
+                    </div>
+                  </div>
+                  )
+                : (
+                  <RoleDropdown
+                    role={g.privilege}
+                    resource={g.resource}
+                    remove
+                    direction='left'
+                    onChange={value => {
+                      if (value === 'remove') {
+                        g.remove()
+                        return
+                      }
+
+                      g.edit(value)
+                    }}
+                  />
+                  )}
+            </div>
+          ))}
+          {!grants?.length && !loading && (
+            <div className='text-2xs text-gray-400 mt-4 italic'>No access</div>
+          )}
         </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>User</div>
-            <div className='text-2xs'>{user?.name}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>Infra Role</div>
-            <div className='text-2xs'>{infraRole || '-'}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+            <div className='text-2xs'>{user?.id}</div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Created</div>

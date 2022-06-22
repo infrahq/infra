@@ -1,29 +1,30 @@
+import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import Head from 'next/head'
-import { useState } from 'react'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
+import { useGrants } from '../../lib/grants'
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
-import Grant from '../../components/grant'
+import RoleDropdown from '../../components/role-dropdown'
+import GrantForm from '../../components/grant-form'
 
 function Details ({ destination, onDelete }) {
-  const { data: auth } = useSWR('/api/users/self')
   const { admin } = useAdmin()
-  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?resource=${destination.resource}`)
+  const { grants } = useGrants({ resource: destination.resource })
 
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      {grants?.filter(g => g.user === auth.id)?.length > 0 && (
+      {grants?.filter(g => g.resource === destination.resource)?.length > 0 && (
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
           <p className='text-2xs my-4'>Connect to this {destination.kind} via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
@@ -37,7 +38,44 @@ function Details ({ destination, onDelete }) {
       {admin &&
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <Grant resource={destination.resource} />
+          <GrantForm resource={destination.resource} roles={destination.roles} />
+          <div className='mt-4'>
+            {grants?.map(g => (
+              <div key={g.id} className='flex justify-between items-center text-2xs'>
+                <div>{g.user?.name || g.group?.name || ''}</div>
+                {g.inherited
+                  ? (
+                    <div className='flex-none flex'>
+                      <div
+                        title='This access is inherited and cannot be edited here'
+                        className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
+                      >
+                        inherited
+                      </div>
+                      <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
+                        {g.privilege}
+                      </div>
+                    </div>
+                    )
+                  : (
+                    <RoleDropdown
+                      role={g.privilege}
+                      roles={destination.roles}
+                      remove
+                      direction='left'
+                      onChange={value => {
+                        if (value === 'remove') {
+                          g.remove()
+                          return
+                        }
+
+                        g.edit(value)
+                      }}
+                    />
+                    )}
+              </div>
+            ))}
+          </div>
         </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
@@ -142,7 +180,8 @@ export default function Destinations () {
       subRows: d.resources?.map(r => ({
         name: r,
         resource: `${d.name}.${r}`,
-        kind: 'namespace'
+        kind: 'namespace',
+        roles: d.roles?.filter(r => r !== 'cluster-admin')
       }))
     })) || []
 
@@ -160,7 +199,7 @@ export default function Destinations () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
-                <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
+                <div className='flex flex-col flex-1 mx-6 min-h-0 overflow-y-scroll'>
                   <Table
                     columns={columns}
                     data={data}
