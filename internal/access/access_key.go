@@ -19,13 +19,13 @@ func currentAccessKey(c *gin.Context) *models.AccessKey {
 	return accessKey
 }
 
-func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, pg models.Pagination) ([]models.AccessKey, error) {
+func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p models.Pagination) ([]models.AccessKey, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole)
 	if err != nil {
 		return nil, err
 	}
 
-	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(pg)}
+	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(p)}
 	if !showExpired {
 		s = append(s, data.ByNotExpiredOrExtended())
 	}

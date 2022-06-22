@@ -22,8 +22,8 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination) ([]models.Group, error) {
-	var selectors []data.SelectorFunc = []data.SelectorFunc{data.ByPagination(pg)}
+func ListGroups(c *gin.Context, name string, userID uid.ID, p models.Pagination) ([]models.Group, error) {
+	var selectors []data.SelectorFunc = []data.SelectorFunc{data.ByPagination(p)}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}

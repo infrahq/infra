@@ -101,7 +101,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, pg models.Pagination) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p models.Pagination) ([]models.Identity, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 	selectors := []data.SelectorFunc{
 		data.ByOptionalName(name),
 		data.ByOptionalIDs(ids),
-		data.ByPagination(pg),
+		data.ByPagination(p),
 	}
 
 	if groupID != 0 {

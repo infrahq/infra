@@ -110,7 +110,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](db *gorm.DB /*p *models.Pagination,*/, selectors ...SelectorFunc) ([]T, error) {
 	for _, selector := range selectors {
 		db = selector(db)
 	}
