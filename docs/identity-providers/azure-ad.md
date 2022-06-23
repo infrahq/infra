@@ -27,7 +27,7 @@ infra providers add azure \
     - For **Redirect URI** select `Web` and add `http://localhost:8301`
     - Click **Register**.
 ![Application details](../images/azure-setup/connect-users-azure-2.png)
-5. On the **Overview** tab, click **Client credentials > Add a certificate or secret**
+5. On the **Overview** tab, click **Certificates & secrets > Client secrets**
     - Click **New client secret**.
     - In the **Add a client secret** pane select an expiry.
     - **Note** the **client secret value**.
