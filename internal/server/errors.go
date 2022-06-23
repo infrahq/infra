@@ -15,8 +15,8 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/providers"
 )
 
 // sendAPIError translates err into the appropriate HTTP status code, builds a
@@ -57,7 +57,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 		parseFieldErrors(resp, validationErrors)
 
-	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, authn.ErrValidation):
+	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 
