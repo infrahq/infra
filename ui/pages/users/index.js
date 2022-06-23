@@ -22,8 +22,8 @@ const columns = [{
   Cell: ({ value: user }) => (
     <div className='flex items-center py-1.5'>
       <ProfileIcon name={user.name[0]} />
-      <div className='flex flex-col leading-tight ml-3'>
-        <div className='text-subtitle'>{user.name}</div>
+      <div className='flex-1 min-w-0 flex flex-col leading-tight ml-3'>
+        <div className='truncate'>{user.name}</div>
       </div>
     </div>
   )

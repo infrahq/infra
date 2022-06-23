@@ -51,7 +51,7 @@ export default function ({ resource, role, roles, onChange, remove, direction = 
           </span>
           <span className='block truncate text-gray-400'>{role}</span>
         </Listbox.Button>
-        <Listbox.Options className={`absolute z-10 min-w-[18em] max-w-[32em] ${direction === 'right' ? '' : 'right-0'} text-white text-2xs mt-2 bg-gray-800 border border-gray-700 rounded-md ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none`}>
+        <Listbox.Options className={`absolute z-10 w-48 ${direction === 'right' ? '' : 'right-0'} text-white text-2xs mt-2 bg-gray-800 border border-gray-700 rounded-md ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none`}>
           <div className={`overflow-scroll max-h-64 ${remove ? 'mb-9' : ''}`}>
             {roles?.map(r => (
               <Listbox.Option

@@ -88,7 +88,7 @@ export default function ({ resource, roles }) {
           />
           {filtered.length > 0 && (
             <Combobox.Options
-              className='absolute z-10 -left-[13px] mt-1 max-h-60 w-full max-w-[20em] overflow-auto rounded-md bg-gray-800 border border-gray-700 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'
+              className='absolute z-10 -left-[13px] mt-1 max-h-60 w-56 overflow-auto rounded-md bg-gray-800 border border-gray-700 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'
             >
               {filtered?.map(f => (
                 <Combobox.Option
@@ -97,9 +97,9 @@ export default function ({ resource, roles }) {
                   className={({ active }) => `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${active ? 'bg-gray-700' : ''}`}
                 >
                   <div className='flex flex-row'>
-                    <div className='flex-1 flex flex-col'>
+                    <div className='flex-1 min-w-0 flex flex-col'>
                       <div className='font-medium flex justify-between py-0.5'>
-                        {f.name}
+                        <span className='truncate' title={f.name}>{f.name}</span>
                         {f.id === selected?.id && <CheckIcon className='h-3 w-3 stroke-1' aria-hidden='true' />}
                       </div>
                       <div className='text-3xs text-gray-400'>

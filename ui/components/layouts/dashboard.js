@@ -52,7 +52,7 @@ function Dashboard ({ children }) {
   return (
     <AuthRequired>
       <div className='flex h-full'>
-        <nav className='flex-none flex flex-col w-56'>
+        <nav className='flex-none flex flex-col w-40 lg:w-48 xl:w-56'>
           <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-5 select-none'>
             <Link href='/'>
               <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
@@ -89,7 +89,7 @@ function Dashboard ({ children }) {
             </div>
             <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
               <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-2xs pb-px'>{auth?.name}</div>
-              <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+              <div className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
                 {subNavigation.map(s => (
                   <Link key={s.name} href={s.href}>
                     <a className={`w-full flex py-1.5 text-xs text-gray-400 hover:text-white ${s.admin ? '' : 'pointer-events-none opacity-20'}`}>
@@ -103,11 +103,11 @@ function Dashboard ({ children }) {
                 <div className='text-3xs mt-2 leading-none text-violet-50/40'>
                   Infra version <span className='font-mono select-text'>{version?.version}</span>
                 </div>
-              </nav>
+              </div>
             </div>
           </div>
         </nav>
-        <main className='flex-1 h-full min-w-0 overflow-x-hidden'>
+        <main className='flex-1 h-full min-w-0'>
           {children}
         </main>
       </div>

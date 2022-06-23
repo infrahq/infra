@@ -42,7 +42,7 @@ function Details ({ destination, onDelete }) {
           <div className='mt-4'>
             {grants?.map(g => (
               <div key={g.id} className='flex justify-between items-center text-2xs'>
-                <div>{g.user?.name || g.group?.name || ''}</div>
+                <div className='truncate'>{g.user?.name || g.group?.name || ''}</div>
                 {g.inherited
                   ? (
                     <div className='flex-none flex'>
