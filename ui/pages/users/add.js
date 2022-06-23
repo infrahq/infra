@@ -57,9 +57,9 @@ function UserOneTimePassword ({ password, onAddUser }) {
           <h1 className='text-2xs'>Add User</h1>
         </div>
       </div>
-      <h2 className='text-2xs mt-5'>User added. Send the user this one time password for their initial login. This password will not be shown again.</h2>
+      <h2 className='text-2xs mt-5'>User added. Send the user this temporary password for their initial login. This password will not be shown again.</h2>
       <div className='flex flex-col mt-6 space-y-1'>
-        <label className='text-3xs text-gray-400 uppercase'>One Time Password</label>
+        <label className='text-3xs text-gray-400 uppercase'>Temporary Password</label>
         <input
           readOnly
           value={password}
