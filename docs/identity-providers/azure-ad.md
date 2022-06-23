@@ -29,7 +29,8 @@ infra providers add azure \
 ![Application details](../images/azure-setup/connect-users-azure-2.png)
 5. On the **Overview** tab, click **Certificates & secrets > Client secrets**
     - Click **New client secret**.
-    - In the **Add a client secret** pane select an expiry.
+    - **Description** field is optional.
+    - In the **Add a client secret** pane select an expiry. (Note: you will need to generate a new client secret after expiry).
     - **Note** the **client secret value**.
 ![Add a client secret](../images/azure-setup/connect-users-azure-3.png)
 6. Navigate to **Authentication**.
