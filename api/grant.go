@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/infrahq/infra/uid"
 )
 
@@ -18,12 +20,15 @@ type Grant struct {
 }
 
 type CreateGrantResponse struct {
-	*Grant `json:",inline"`
-	Code   int `json:"-"`
+	*Grant     `json:",inline"`
+	WasCreated bool `json:"was_created"`
 }
 
 func (r *CreateGrantResponse) StatusCode() int {
-	return r.Code
+	if !r.WasCreated {
+		return http.StatusOK
+	}
+	return http.StatusCreated
 }
 
 type ListGrantsRequest struct {

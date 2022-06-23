@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -465,14 +464,18 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 			return nil, err
 		}
 
-		return &api.CreateGrantResponse{Grant: grants[0].ToAPI(), Code: http.StatusOK}, nil
+		if len(grants) == 0 {
+			return nil, fmt.Errorf("duplicate grant exists, but cannot be found")
+		}
+
+		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.CreateGrantResponse{Grant: grant.ToAPI(), Code: http.StatusCreated}, nil
+	return &api.CreateGrantResponse{Grant: grant.ToAPI(), WasCreated: true}, nil
 
 }
 

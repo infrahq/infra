@@ -99,6 +99,9 @@
               }
             },
             "type": "object"
+          },
+          "was_created": {
+            "type": "boolean"
           }
         }
       },
