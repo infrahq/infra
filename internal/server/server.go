@@ -297,7 +297,7 @@ func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
 		Cache:  autocert.DirCache(tlsCacheDir),
 	}
 	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager, "")
+	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
 
 	return tlsConfig, nil
 }
