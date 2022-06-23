@@ -79,9 +79,9 @@ type TLSOptions struct {
 	// CA is a PEM encoded public certificate for the CA that signed the
 	// certificate, or that will be used to generate a certificate if one was
 	// not provided.
-	CA           string
+	CA           types.StringOrFile
 	CAPrivateKey string
-	Certificate  string
+	Certificate  types.StringOrFile
 	PrivateKey   string
 }
 

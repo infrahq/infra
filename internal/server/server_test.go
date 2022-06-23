@@ -23,6 +23,7 @@ import (
 	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -498,8 +499,8 @@ func TestTLSConfigFromOptions(t *testing.T) {
 	ca := golden.Get(t, "pki/ca.crt")
 	t.Run("user provided certificate", func(t *testing.T) {
 		opts := TLSOptions{
-			CA:          string(ca),
-			Certificate: string(golden.Get(t, "pki/localhost.crt")),
+			CA:          types.StringOrFile(ca),
+			Certificate: types.StringOrFile(golden.Get(t, "pki/localhost.crt")),
 			PrivateKey:  "file:testdata/pki/localhost.key",
 		}
 		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
@@ -514,7 +515,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 		roots.AppendCertsFromPEM(ca)
 		client := &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{RootCAs: roots},
+				TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
 			},
 		}
 
