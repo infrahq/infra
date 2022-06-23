@@ -28,10 +28,13 @@ helm install infra infrahq/infra
 Next, log into your instance of Infra to setup your admin account:
 
 ```
-infra login localhost
+infra login localhost --skip-tls-verify
 ```
 
 {% callout type="info" %}
+
+Note: `--skip-tls-verify` should only be used for local testing and development purposes.
+
 If you're not using Docker Desktop, you'll be need to specify a different endpoint than `localhost`. This endpoint can be found via the following `kubectl` command:
 
 ```
