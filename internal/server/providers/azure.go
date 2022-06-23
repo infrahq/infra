@@ -81,13 +81,13 @@ func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.
 			return fmt.Errorf("could not check azure user groups: %w", err)
 		}
 
-		newGroups = &[]string{} // set the groups empty to clear them
+		newGroups = []string{} // set the groups empty to clear them
 		logging.S.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
 	}
 
-	logging.S.Debugf("user synchronized with %q groups from provider %q", *newGroups, provider.Name)
+	logging.S.Debugf("user synchronized with %q groups from provider %q", &newGroups, provider.Name)
 
-	if err := data.AssignIdentityToGroups(db, user, provider, *newGroups); err != nil {
+	if err := data.AssignIdentityToGroups(db, user, provider, newGroups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 
@@ -95,7 +95,7 @@ func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.
 }
 
 // checkMemberOfGraphGroups calls the Microsoft Graph API to find out what groups a user belongs to
-func checkMemberOfGraphGroups(accessToken string) (*[]string, error) {
+func checkMemberOfGraphGroups(accessToken string) ([]string, error) {
 	bearer := "Bearer " + accessToken
 
 	req, err := http.NewRequest(http.MethodGet, graphGroupMemberEndpoint, nil)
@@ -141,5 +141,5 @@ func checkMemberOfGraphGroups(accessToken string) (*[]string, error) {
 		}
 	}
 
-	return &groups, nil
+	return groups, nil
 }
