@@ -1,17 +1,14 @@
 package server
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"math/big"
 	"net"
 	"os"
-	"time"
+	"sync"
 
 	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/acme/autocert"
@@ -25,21 +22,48 @@ func tlsConfigFromOptions(
 	tlsCacheDir string,
 	opts TLSOptions,
 ) (*tls.Config, error) {
+	// TODO: how can we test this?
+	if opts.ACME {
+		if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
+			return nil, fmt.Errorf("create tls cache: %w", err)
+		}
+
+		manager := &autocert.Manager{
+			Prompt: autocert.AcceptTOS,
+			Cache:  autocert.DirCache(tlsCacheDir),
+			// TODO: according to the docs HostPolicy should be set to prevent
+			// a DoS attack on certificate requests.
+			// See https://github.com/infrahq/infra/issues/2484
+		}
+		tlsConfig := manager.TLSConfig()
+		tlsConfig.MinVersion = tls.VersionTLS12
+		return tlsConfig, nil
+	}
+
 	// TODO: print CA fingerprint when the client can trust that fingerprint
 
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		logging.Warnf("failed to load TLS roots from system: %v", err)
+		roots = x509.NewCertPool()
+	}
+
+	if opts.CA != "" {
+		if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
+			logging.Warnf("failed to load TLS CA, invalid PEM")
+		}
+	}
+
+	cfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		// enable HTTP/2
+		NextProtos: []string{"h2", "http/1.1"},
+		// enabled optional mTLS
+		ClientAuth: tls.VerifyClientCertIfGiven,
+		ClientCAs:  roots,
+	}
+
 	if opts.Certificate != "" && opts.PrivateKey != "" {
-		roots, err := x509.SystemCertPool()
-		if err != nil {
-			logging.Warnf("failed to load TLS roots from system: %v", err)
-			roots = x509.NewCertPool()
-		}
-
-		if opts.CA != "" {
-			if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
-				logging.Warnf("failed to load TLS CA, invalid PEM")
-			}
-		}
-
 		key, err := secrets.GetSecret(opts.PrivateKey, storage)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load TLS private key: %w", err)
@@ -50,85 +74,97 @@ func tlsConfigFromOptions(
 			return nil, fmt.Errorf("failed to load TLS key pair: %w", err)
 		}
 
-		return &tls.Config{
-			MinVersion: tls.VersionTLS12,
-			// enable HTTP/2
-			NextProtos:   []string{"h2", "http/1.1"},
-			Certificates: []tls.Certificate{cert},
-			// enabled optional mTLS
-			ClientAuth: tls.VerifyClientCertIfGiven,
-			ClientCAs:  roots,
-		}, nil
+		cfg.Certificates = []tls.Certificate{cert}
+		return cfg, nil
 	}
 
-	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
-		return nil, fmt.Errorf("create tls cache: %w", err)
+	if opts.CA == "" || opts.CAPrivateKey == "" {
+		return nil, fmt.Errorf("either a TLS certificate and key or a TLS CA and key is required")
 	}
 
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(tlsCacheDir),
+	key, err := secrets.GetSecret(opts.CAPrivateKey, storage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load TLS CA private key: %w", err)
 	}
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.MinVersion = tls.VersionTLS12
-	// TODO: enabled optional mTLS when opts.CA is set
-	tlsConfig.GetCertificate = SelfSignedOrLetsEncryptCert(manager)
 
-	return tlsConfig, nil
+	ca := keyPair{cert: []byte(opts.CA), key: []byte(key)}
+	cfg.GetCertificate = getCertificate(autocert.DirCache(tlsCacheDir), ca)
+	return cfg, nil
 }
 
-func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+type keyPair struct {
+	cert []byte
+	key  []byte
+}
+
+func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	var lock sync.RWMutex
+
+	getKeyPair := func(ctx context.Context, serverName string) (cert, key []byte) {
+		certBytes, _ := cache.Get(ctx, serverName+".crt")
+		keyBytes, _ := cache.Get(ctx, serverName+".key")
+		if certBytes == nil || keyBytes == nil {
+			logging.Infof("no cached TLS cert for %v", serverName)
+		}
+		return certBytes, keyBytes
+	}
+
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 		ctx := hello.Context()
-		cert, err := manager.GetCertificate(hello)
-		if err == nil {
-			return cert, nil
-		}
-
 		serverName := hello.ServerName
 
 		if serverName == "" {
+			var err error
 			serverName, _, err = net.SplitHostPort(hello.Conn.LocalAddr().String())
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		certBytes, err := manager.Cache.Get(ctx, serverName+".crt")
-		if err != nil {
-			logging.Warnf("cert: %s", err)
+		lock.RLock()
+		certBytes, keyBytes := getKeyPair(ctx, serverName)
+		lock.RUnlock()
+		if certBytes != nil && keyBytes != nil {
+			return tlsCertFromKeyPair(certBytes, keyBytes)
 		}
 
-		keyBytes, err := manager.Cache.Get(ctx, serverName+".key")
-		if err != nil {
-			logging.Warnf("key: %s", err)
+		lock.Lock()
+		// must check again after write lock is acquired
+		certBytes, keyBytes = getKeyPair(ctx, serverName)
+		defer lock.Unlock()
+		if certBytes != nil && keyBytes != nil {
+			return tlsCertFromKeyPair(certBytes, keyBytes)
 		}
 
 		// if either cert or key is missing, create it
-		if certBytes == nil || keyBytes == nil {
-			ca, caPrivKey, err := newCA()
-			if err != nil {
-				return nil, err
-			}
-
-			certBytes, keyBytes, err = certs.GenerateCertificate([]string{serverName}, ca, caPrivKey)
-			if err != nil {
-				return nil, err
-			}
-
-			if err := manager.Cache.Put(ctx, serverName+".crt", certBytes); err != nil {
-				return nil, err
-			}
-
-			if err := manager.Cache.Put(ctx, serverName+".key", keyBytes); err != nil {
-				return nil, err
-			}
-
-			logging.L.Info().
-				Str("Server name", serverName).
-				Str("SHA256 fingerprint", certs.Fingerprint(pemDecode(certBytes))).
-				Msg("new server certificate")
+		ca, err := tls.X509KeyPair(ca.cert, ca.key)
+		if err != nil {
+			return nil, err
 		}
+
+		caCert, err := x509.ParseCertificate(ca.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+
+		hosts := []string{"127.0.0.1", "::1", serverName}
+		certBytes, keyBytes, err = certs.GenerateCertificate(hosts, caCert, ca.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := cache.Put(ctx, serverName+".crt", certBytes); err != nil {
+			return nil, err
+		}
+
+		if err := cache.Put(ctx, serverName+".key", keyBytes); err != nil {
+			return nil, err
+		}
+
+		logging.L.Info().
+			Str("Server name", serverName).
+			Str("SHA256 fingerprint", certs.Fingerprint(pemDecode(certBytes))).
+			Msg("new server certificate")
 
 		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
 		if err != nil {
@@ -144,39 +180,10 @@ func pemDecode(raw []byte) []byte {
 	return block.Bytes
 }
 
-// TODO: remove
-func newCA() (*x509.Certificate, *rsa.PrivateKey, error) {
-	// Generate a CA to sign self-signed certificates
-	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+func tlsCertFromKeyPair(cert, key []byte) (*tls.Certificate, error) {
+	keypair, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ca := &x509.Certificate{
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			Organization: []string{"Infra"},
-		},
-		NotBefore:             time.Now().Add(-5 * time.Minute).UTC(),
-		NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IsCA:                  true,
-		BasicConstraintsValid: true,
-	}
-
-	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// TODO: is there really no other way to get the Raw field populated?
-	ca, _ = x509.ParseCertificate(caBytes)
-
-	return ca, caPrivKey, nil
+	return &keypair, nil
 }

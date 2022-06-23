@@ -19,8 +19,10 @@ import (
 	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -119,7 +121,12 @@ func TestServer_Run(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
+		TLS: TLSOptions{
+			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
+			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+		},
 	}
+
 	srv, err := New(opts)
 	assert.NilError(t, err)
 
@@ -199,6 +206,10 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 		UI:                      UIOptions{Enabled: true},
 		EnableSignup:            true,
+		TLS: TLSOptions{
+			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
+			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+		},
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 

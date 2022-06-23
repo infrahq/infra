@@ -142,6 +142,7 @@ tls:
   caPrivateKey: file:ca.key
   certificate: testdata/server.crt
   privateKey: file:server.key
+  ACME: true
 
 keys:
   - kind: vault
@@ -223,6 +224,7 @@ users:
 						CAPrivateKey: "file:ca.key",
 						Certificate:  "-----BEGIN CERTIFICATE-----\nnot a real server certificate\n-----END CERTIFICATE-----\n",
 						PrivateKey:   "file:server.key",
+						ACME:         true,
 					},
 
 					Keys: []server.KeyProvider{

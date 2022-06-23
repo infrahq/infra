@@ -79,6 +79,11 @@ type TLSOptions struct {
 	CAPrivateKey string
 	Certificate  types.StringOrFile
 	PrivateKey   string
+
+	// ACME enables automated certificate manangement. When set to true a TLS
+	// certificate will be requested from Let's Encrypt, which will be cached
+	// in the TLSCache.
+	ACME bool
 }
 
 type Server struct {

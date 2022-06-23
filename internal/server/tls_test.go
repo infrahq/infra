@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,6 +45,40 @@ func TestTLSConfigFromOptions(t *testing.T) {
 		}
 
 		resp, err := client.Get(srv.URL)
+		assert.NilError(t, err)
+		assert.Equal(t, resp.StatusCode, http.StatusOK)
+	})
+
+	t.Run("generate TLS cert from CA", func(t *testing.T) {
+		opts := TLSOptions{
+			CA:           types.StringOrFile(ca),
+			CAPrivateKey: "file:testdata/pki/ca.key",
+		}
+		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
+		assert.NilError(t, err)
+
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		assert.NilError(t, err)
+
+		l = tls.NewListener(l, config)
+		srv := http.Server{Handler: noopHandler}
+
+		go func() {
+			if err := srv.Serve(l); err != http.ErrServerClosed {
+				t.Log(err)
+			}
+		}()
+		t.Cleanup(func() { _ = srv.Close() })
+
+		roots := x509.NewCertPool()
+		roots.AppendCertsFromPEM(ca)
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
+			},
+		}
+
+		resp, err := client.Get("https://" + l.Addr().String())
 		assert.NilError(t, err)
 		assert.Equal(t, resp.StatusCode, http.StatusOK)
 	})
