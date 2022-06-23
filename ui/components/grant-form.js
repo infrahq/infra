@@ -88,7 +88,7 @@ export default function ({ resource, roles }) {
           />
           {filtered.length > 0 && (
             <Combobox.Options
-              className='absolute z-10 -left-[13px] mt-1 max-h-48 w-full max-w-[20em] overflow-auto rounded-md bg-gray-800 border border-gray-700 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'
+              className='absolute z-10 -left-[13px] mt-1 max-h-60 w-full max-w-[20em] overflow-auto rounded-md bg-gray-800 border border-gray-700 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'
             >
               {filtered?.map(f => (
                 <Combobox.Option
