@@ -32,11 +32,10 @@ infra login localhost
 ```
 
 {% callout type="info" %}
-You may be prompted to verify the fingerprint of the server's TLS certificate. The
-fingerprint can be found in the server logs:
+You may be prompted to verify the fingerprint of the server's TLS certificate. The fingerprint can be found in the server logs:
 
 ```
-kubectl logs -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
+kubectl logs --tail=200 -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
 ```
 
 If you're not using Docker Desktop, you'll be need to specify a different endpoint than `localhost`. This endpoint can be found via the following `kubectl` command:
