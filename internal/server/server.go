@@ -299,7 +299,6 @@ type routine struct {
 	stop func()
 }
 
-// TODO: test provided cert and key
 func tlsConfigFromOptions(
 	storage map[string]secrets.SecretStorage,
 	tlsCacheDir string,

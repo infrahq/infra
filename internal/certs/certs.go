@@ -147,9 +147,14 @@ func pemEncodePrivateKey(raw []byte) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: raw})
 }
 
-func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
+func newCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	// Generate a CA to sign self-signed certificates
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,12 +168,17 @@ func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
 		NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: is there really no other way to get the Raw field populated?
+	ca, _ = x509.ParseCertificate(caBytes)
+
 	return ca, caPrivKey, nil
 }
