@@ -161,7 +161,7 @@ export default function DocsLayout ({ children, items = [], headings = [], icon 
         <div className='flex-1 min-w-0 pl-0 md:pl-56 lg:pl-64'>
           <div className='relative flex-1 flex flex-col px-8 md:pl-0 lg:px-0 my-8 min-w-0 lg:max-w-2xl xl:max-w-3xl w-full mx-auto'>
             {icon && (<img className='w-16 h-16' src={icon} />)}
-            <div className='w-full max-w-none prose prose-docs prose-md prose-invert'>
+            <div className='w-full max-w-none prose prose-docs prose-md prose-invert break-words'>
               {children}
             </div>
             <hr className='my-12 border-zinc-800' />
