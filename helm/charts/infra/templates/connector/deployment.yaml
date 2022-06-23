@@ -45,6 +45,9 @@ spec:
           envFrom:
 {{- include "connector.envFrom" . | nindent 12 }}
           volumeMounts:
+            - name: podinfo
+              mountPath: /etc/podinfo
+              readOnly: true
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
@@ -87,6 +90,15 @@ spec:
           resources:
 {{- toYaml .Values.connector.resources | nindent 12 }}
       volumes:
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
         - name: conf
           configMap:
             name: {{ include "connector.fullname" . }}
