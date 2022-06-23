@@ -35,9 +35,10 @@ func AuthenticatedIdentity(c *gin.Context) *models.Identity {
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
-	db, err := hasAuthorization(c, id, isIdentitySelf, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := hasAuthorization(c, id, isIdentitySelf, roles...)
 	if err != nil {
-		return nil, err
+		return nil, HandleAuthErr(err, "user", "get", roles...)
 	}
 
 	return data.GetIdentity(db.Preload("Providers"), data.ByID(id))
@@ -46,7 +47,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
 	return data.CreateIdentity(db, identity)
@@ -64,16 +65,16 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	}
 
 	if self {
-		return fmt.Errorf("cannot delete self: %w", internal.ErrForbidden)
+		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
 	}
 
 	if InfraConnectorIdentity(c).ID == id {
-		return internal.ErrForbidden
+		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
 	}
 
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
 	if err := data.DeleteAccessKeys(db, data.ByIssuedFor(id)); err != nil {
@@ -102,9 +103,10 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 }
 
 func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, pg models.Pagination) ([]models.Identity, error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
-		return nil, err
+		return nil, HandleAuthErr(err, "users", "list", roles...)
 	}
 
 	selectors := []data.SelectorFunc{

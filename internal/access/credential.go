@@ -16,7 +16,7 @@ import (
 func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return "", err
+		return "", HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
 	tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
@@ -46,7 +46,7 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string) error {
 	db, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
 	}
 
 	isSelf, err := isIdentitySelf(c, user.ID)

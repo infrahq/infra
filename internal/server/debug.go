@@ -10,9 +10,9 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func (a *API) pprofHandler(c *gin.Context) {
+func pprofHandler(c *gin.Context) {
 	if _, err := access.RequireInfraRole(c, models.InfraAdminRole); err != nil {
-		sendAPIError(c, err)
+		sendAPIError(c, access.HandleAuthErr(err, "debug", "run", models.InfraAdminRole))
 		return
 	}
 

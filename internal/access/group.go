@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -23,7 +22,7 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 }
 
 func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination) ([]models.Group, error) {
-	var selectors []data.SelectorFunc = []data.SelectorFunc{data.ByPagination(pg)}
+	var selectors = []data.SelectorFunc{data.ByPagination(pg)}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -31,12 +30,14 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination
 		selectors = append(selectors, data.ByGroupMember(userID))
 	}
 
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
 		return data.ListGroups(db, selectors...)
 	}
+	err = HandleAuthErr(err, "groups", "list", roles...)
 
-	if errors.Is(err, internal.ErrForbidden) {
+	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own groups
 		db := getDB(c)
 		identity := AuthenticatedIdentity(c)
@@ -54,16 +55,17 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination
 func CreateGroup(c *gin.Context, group *models.Group) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "group", "create", models.InfraAdminRole)
 	}
 
 	return data.CreateGroup(db, group)
 }
 
 func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
-	db, err := hasAuthorization(c, id, isUserInGroup, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := hasAuthorization(c, id, isUserInGroup, roles...)
 	if err != nil {
-		return nil, err
+		return nil, HandleAuthErr(err, "group", "get", roles...)
 	}
 
 	return data.GetGroup(db, data.ByID(id))
@@ -72,7 +74,7 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 func DeleteGroup(c *gin.Context, id uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "group", "delete", models.InfraAdminRole)
 	}
 
 	selectors := []data.SelectorFunc{

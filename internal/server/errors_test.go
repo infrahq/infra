@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 )
 
@@ -40,12 +41,15 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
-			err:    internal.ErrForbidden,
-			result: api.Error{Code: http.StatusForbidden, Message: "forbidden"},
-		},
-		{
-			err:    fmt.Errorf("hide this: %w", internal.ErrForbidden),
-			result: api.Error{Code: http.StatusForbidden, Message: "forbidden"},
+			err: access.AuthorizationError{
+				Resource:      "provider",
+				Operation:     "create",
+				RequiredRoles: []string{"admin"},
+			},
+			result: api.Error{
+				Code:    http.StatusForbidden,
+				Message: "you do not have permission to create provider, requires role admin",
+			},
 		},
 		{
 			err:    internal.ErrNotFound,
