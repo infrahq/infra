@@ -30,10 +30,9 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	}
 
 	userCredential := &models.Credential{
-		IdentityID:          user.ID,
-		PasswordHash:        hash,
-		OneTimePassword:     true,
-		OneTimePasswordUsed: false,
+		IdentityID:      user.ID,
+		PasswordHash:    hash,
+		OneTimePassword: true,
 	}
 
 	if err := data.CreateCredential(db, userCredential); err != nil {
@@ -63,10 +62,9 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) && !isSelf {
 			if err := data.CreateCredential(db, &models.Credential{
-				IdentityID:          user.ID,
-				PasswordHash:        hash,
-				OneTimePassword:     true,
-				OneTimePasswordUsed: false,
+				IdentityID:      user.ID,
+				PasswordHash:    hash,
+				OneTimePassword: true,
 			}); err != nil {
 				return fmt.Errorf("creating credentials: %w", err)
 			}
@@ -77,7 +75,6 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 
 	userCredential.PasswordHash = hash
 	userCredential.OneTimePassword = !isSelf
-	userCredential.OneTimePasswordUsed = false
 
 	if err := data.SaveCredential(db, userCredential); err != nil {
 		return fmt.Errorf("saving credentials: %w", err)

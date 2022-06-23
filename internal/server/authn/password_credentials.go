@@ -44,20 +44,9 @@ func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB) (
 		return nil, nil, scope, fmt.Errorf("could not verify password: %w", err)
 	}
 
-	// check if this is a single use password that was already used
-	if userCredential.OneTimePassword && userCredential.OneTimePasswordUsed {
-		return nil, nil, scope, fmt.Errorf("one time password cannot be used more than once")
-	}
-
 	if userCredential.OneTimePassword {
 		// scope the login down to Password Reset Only
 		scope.PasswordResetOnly = true
-
-		// don't let this password be used again, it is one time use
-		userCredential.OneTimePasswordUsed = true
-		if err := data.SaveCredential(db, userCredential); err != nil {
-			return nil, nil, scope, fmt.Errorf("failed to set one time password as used: %w", err)
-		}
 	}
 
 	// authentication was a success
@@ -73,5 +62,11 @@ func (a *passwordCredentialAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("could not get identity for username: %w", err)
 	}
-	return data.HasUsedOneTimePassword(db, identity)
+
+	cred, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
+	if err != nil {
+		return false, fmt.Errorf("could not get credential for username: %w", err)
+	}
+
+	return cred.OneTimePassword, nil
 }

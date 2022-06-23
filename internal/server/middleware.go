@@ -104,7 +104,7 @@ func RequireAccessKey(c *gin.Context) error {
 
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
-		if !strings.HasPrefix(c.Request.URL.Path, "/api/users/") || c.Request.Method != http.MethodPut {
+		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
 			return fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
 		}
 	}
