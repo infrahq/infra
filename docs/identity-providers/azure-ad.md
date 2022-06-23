@@ -44,6 +44,9 @@ infra providers add azure \
     - From the list of claims select the `email` claim.
     - Click **Add**.
 ![Add the email claim](../images/azure-setup/connect-users-azure-4.png)
+
+    - If prompted to "Turn on the Microsoft Graph email permission (required for claims to appear in token)", please add it. (You will also add it in the next step.)
+
 8. Navigate to **API permissions**.
     - Click **Add a permission**.
     - Click **Microsoft Graph**.
