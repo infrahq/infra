@@ -39,25 +39,27 @@ function Details ({ destination, onDelete }) {
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
           <Grant resource={destination.resource} />
         </section>}
-      {destination.id && (
-        <section>
-          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
-          <div className='pt-3 flex flex-col space-y-2'>
-            <div className='flex flex-row items-center'>
-              <div className='text-gray-400 text-2xs w-1/3'>ID</div>
-              <div className='text-2xs font-mono'>{destination.id || '-'}</div>
-            </div>
-            <div className='flex flex-row items-center'>
-              <div className='text-gray-400 text-2xs w-1/3'>Added</div>
-              <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
-            </div>
-            <div className='flex flex-row items-center'>
-              <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
-              <div className='text-2xs'>{destination?.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
-            </div>
+      <section>
+        <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
+        <div className='pt-3 flex flex-col space-y-2'>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+            <div className='text-2xs'>{destination.id || '-'}</div>
           </div>
-        </section>
-      )}
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>Kind</div>
+            <div className='text-2xs'>{destination.kind || '-'}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>Added</div>
+            <div className='text-2xs'>{destination?.created ? dayjs(destination.created).fromNow() : '-'}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='text-gray-400 text-2xs w-1/3'>Updated</div>
+            <div className='text-2xs'>{destination?.updated ? dayjs(destination.updated).fromNow() : '-'}</div>
+          </div>
+        </div>
+      </section>
       {admin && destination.id &&
         <section className='flex-1 flex flex-col items-end justify-end py-6'>
           <button
@@ -113,7 +115,7 @@ const columns = [{
             </div>
           </span>
         )}
-        <span {...row.getToggleRowExpandedProps({ style: { marginLeft: `${row.depth * 36}px` } })}>
+        <span {...row.getToggleRowExpandedProps()} className={`flex items-center ${row.depth === 0 ? 'h-6' : ''} ${row.canExpand ? '' : 'pl-9'}`}>
           {value}
         </span>
       </div>

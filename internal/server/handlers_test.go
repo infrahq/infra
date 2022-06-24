@@ -40,6 +40,16 @@ func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
+	// TODO: Convert the "humans" group and "AnotherUser" user to call the standard http endpoints
+	//       when the new endpoint to add a user to a group exists
+	humans := models.Group{Name: "humans"}
+	createGroups(t, srv.db, &humans)
+	anotherID := models.Identity{
+		Name:   "AnotherUser@example.com",
+		Groups: []models.Group{humans},
+	}
+	createIdentities(t, srv.db, &anotherID)
+
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
 		var buf bytes.Buffer
@@ -142,8 +152,9 @@ func TestAPI_ListUsers(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := api.ListResponse[api.User]{
-					Count: 6,
+					Count: 7,
 					Items: []api.User{
+						{Name: "AnotherUser@example.com"},
 						{Name: "HAL@example.com"},
 						{Name: "admin@example.com"},
 						{Name: "connector"},
@@ -176,8 +187,8 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 2,
 					Items: []api.User{
+						{Name: "admin@example.com"},
 						{Name: "connector"},
-						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
 						Page:       2,
@@ -186,6 +197,25 @@ func TestAPI_ListUsers(t *testing.T) {
 						TotalPages: 3,
 						TotalCount: 6,
 					},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+			},
+		},
+		"user in group": {
+			urlPath: fmt.Sprintf("/api/users?group=%s", humans.ID),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+
+				expected := api.ListResponse[api.User]{
+					Count: 1,
+					Items: []api.User{
+						{Name: anotherID.Name},
+					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -369,6 +399,38 @@ func TestListKeys(t *testing.T) {
 
 		assert.Assert(t, len(resp2) > 0)
 	})
+}
+
+func TestListProviders(t *testing.T) {
+	s := setupServer(t, withAdminUser)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
+
+	testProvider := &models.Provider{Name: "mokta"}
+
+	err := data.CreateProvider(s.db, testProvider)
+	assert.NilError(t, err)
+
+	dbProviders, err := data.ListProviders(s.db, &models.Pagination{})
+	assert.NilError(t, err)
+	assert.Equal(t, len(dbProviders), 2)
+
+	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	req.Header.Add("Infra-Version", "0.12.3")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	var apiProviders api.ListResponse[Provider]
+	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(apiProviders.Items), 1)
+	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
 }
 
 // withAdminUser may be used with setupServer to setup the server
@@ -684,7 +746,7 @@ func TestDeleteUser_NoDeleteInternalIdentities(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestDeleteUser_NoDeleteSelf(t *testing.T) {
@@ -717,7 +779,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestAPI_CreateGrant_Success(t *testing.T) {
@@ -1231,7 +1293,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 	})
 
 	t.Run("not last infra admin is deleted", func(t *testing.T) {

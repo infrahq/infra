@@ -43,10 +43,9 @@ func TestLogin(t *testing.T) {
 	assert.NilError(t, err)
 
 	creds := models.Credential{
-		IdentityID:          user.ID,
-		PasswordHash:        hash,
-		OneTimePassword:     false,
-		OneTimePasswordUsed: false,
+		IdentityID:      user.ID,
+		PasswordHash:    hash,
+		OneTimePassword: false,
 	}
 
 	err = data.CreateCredential(db, &creds)

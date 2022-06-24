@@ -73,6 +73,10 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			if numUserGrants != 0 {
+				cli.Output("")
+			}
+
 			numGroupGrants, err := groupGrants(cli, client, grants)
 			if err != nil {
 				return err

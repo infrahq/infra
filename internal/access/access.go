@@ -1,12 +1,13 @@
 package access
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -76,7 +77,53 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("%w: requestor does not have required grant", internal.ErrForbidden)
+	return nil, ErrNotAuthorized
+}
+
+var ErrNotAuthorized = errors.New("not authorized")
+
+// AuthorizationError indicates that the user who performed the operation does
+// not have the required role.
+type AuthorizationError struct {
+	Resource      string
+	Operation     string
+	RequiredRoles []string
+}
+
+func (e AuthorizationError) Error() string {
+	var roles strings.Builder
+	switch len(e.RequiredRoles) {
+	case 1:
+		roles.WriteString(e.RequiredRoles[0])
+	default:
+		for i, role := range e.RequiredRoles {
+			roles.WriteString(role)
+			switch {
+			case i+1 == len(e.RequiredRoles)-1:
+				roles.WriteString(", or ")
+			case i+1 != len(e.RequiredRoles):
+				roles.WriteString(", ")
+			}
+		}
+	}
+	return fmt.Sprintf("you do not have permission to %v %v, requires role %v",
+		e.Operation, e.Resource, roles.String())
+}
+
+func (e AuthorizationError) Is(other error) bool {
+	// nolint:errorlint // comparing with == is correct here, the caller uses Unwrap.
+	return other == ErrNotAuthorized
+}
+
+func HandleAuthErr(err error, resource, operation string, roles ...string) error {
+	if !errors.Is(err, ErrNotAuthorized) {
+		return err
+	}
+	return AuthorizationError{
+		Resource:      resource,
+		Operation:     operation,
+		RequiredRoles: roles,
+	}
 }
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource

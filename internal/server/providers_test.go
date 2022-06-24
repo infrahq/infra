@@ -109,7 +109,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 		"infra provider can not be deleted": {
 			urlPath: "/api/providers/" + data.InfraProvider(srv.db).ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 			},
 		},
 	}

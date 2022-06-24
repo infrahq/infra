@@ -1,4 +1,4 @@
-package authn
+package providers
 
 import (
 	"fmt"
@@ -9,4 +9,5 @@ var (
 	ErrInvalidProviderURL          = fmt.Errorf("%w: invalid provider url", ErrValidation)
 	ErrInvalidProviderClientID     = fmt.Errorf("%w: invalid provider client id", ErrValidation)
 	ErrInvalidProviderClientSecret = fmt.Errorf("%w: invalid provider client secret", ErrValidation)
+	ErrUnauthorized                = fmt.Errorf("unauthorized")
 )

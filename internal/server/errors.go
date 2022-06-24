@@ -13,9 +13,10 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/providers"
 )
 
 // sendAPIError translates err into the appropriate HTTP status code, builds a
@@ -29,6 +30,7 @@ func sendAPIError(c *gin.Context, err error) {
 
 	validationErrors := &validator.ValidationErrors{}
 	var uniqueConstraintError data.UniqueConstraintError
+	var authzError access.AuthorizationError
 
 	log := logging.L.WithOptions(zap.AddCallerSkip(1)).Debug
 
@@ -38,10 +40,9 @@ func sendAPIError(c *gin.Context, err error) {
 		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
 
-	case errors.Is(err, internal.ErrForbidden):
+	case errors.As(err, &authzError):
 		resp.Code = http.StatusForbidden
-		// hide the error text, it may contain sensitive information
-		resp.Message = "forbidden"
+		resp.Message = authzError.Error()
 
 	case errors.As(err, &uniqueConstraintError):
 		resp.Code = http.StatusConflict
@@ -56,7 +57,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 		parseFieldErrors(resp, validationErrors)
 
-	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, authn.ErrValidation):
+	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 

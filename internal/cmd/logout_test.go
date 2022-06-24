@@ -46,7 +46,7 @@ func TestLogout(t *testing.T) {
 		t.Cleanup(srv2.Close)
 
 		cfg := ClientConfig{
-			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
+			ClientConfigVersion: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					Name:          "user1",
@@ -108,7 +108,7 @@ func TestLogout(t *testing.T) {
 		t.Cleanup(srv.Close)
 
 		cfg := ClientConfig{
-			ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion},
+			ClientConfigVersion: clientConfigVersion,
 			Hosts: []ClientHostConfig{
 				{
 					Name:          "user1",
@@ -277,7 +277,7 @@ func TestLogout(t *testing.T) {
 		updatedCfg, err := readConfig()
 		assert.NilError(t, err)
 
-		expected := ClientConfig{ClientConfigVersion: ClientConfigVersion{Version: clientConfigVersion}}
+		expected := ClientConfig{ClientConfigVersion: clientConfigVersion}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()

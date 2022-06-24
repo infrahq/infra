@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -15,7 +14,7 @@ import (
 func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return nil, err
+		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
 	return data.GetGrant(db, data.ByID(id))
@@ -27,13 +26,15 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		data.ByOptionalPrivilege(privilege),
 	}
 
-	db, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole)
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
 		selectors = append(selectors, data.ByOptionalSubject(subject))
 		return data.ListGrants(db, p, selectors...)
 	}
+	err = HandleAuthErr(err, "grants", "list", roles...)
 
-	if errors.Is(err, internal.ErrForbidden) {
+	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
 		db := getDB(c)
 		subjectID, _ := subject.ID()
@@ -70,7 +71,7 @@ func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "grant", "create", models.InfraAdminRole)
 	}
 
 	creator := AuthenticatedIdentity(c)
@@ -83,7 +84,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 func DeleteGrant(c *gin.Context, id uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return err
+		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
 	return data.DeleteGrants(db, data.ByID(id))

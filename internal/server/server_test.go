@@ -27,7 +27,10 @@ import (
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	t.Helper()
-	options := Options{}
+	options := Options{
+		SessionDuration:          10 * time.Minute,
+		SessionExtensionDeadline: 30 * time.Minute,
+	}
 	for _, op := range ops {
 		op(t, &options)
 	}

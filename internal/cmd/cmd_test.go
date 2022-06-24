@@ -268,9 +268,7 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 		user.ID = uid.New()
 	}
 	return ClientConfig{
-		ClientConfigVersion: ClientConfigVersion{
-			Version: clientConfigVersion,
-		},
+		ClientConfigVersion: clientConfigVersion,
 		Hosts: []ClientHostConfig{
 			{
 				UserID:             user.ID,

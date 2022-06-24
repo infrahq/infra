@@ -39,11 +39,13 @@ $ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 #### Options
 
 ```
-      --key string        Login with an access key
-      --no-agent          Skip starting the Infra agent in the background
-      --non-interactive   Disable all prompts for input
-      --provider string   Login with an identity provider
-      --skip-tls-verify   Skip verifying server TLS certificates
+      --key string                       Login with an access key
+      --no-agent                         Skip starting the Infra agent in the background
+      --non-interactive                  Disable all prompts for input
+      --provider string                  Login with an identity provider
+      --skip-tls-verify                  Skip verifying server TLS certificates
+      --tls-trusted-cert filepath        TLS certificate or CA used by the server
+      --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
 ```
 
 #### Options inherited from parent commands
@@ -500,7 +502,7 @@ infra providers add PROVIDER [flags]
 
 ```
 # Connect okta to infra
-$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
 ```
 
 #### Options

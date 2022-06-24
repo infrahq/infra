@@ -51,6 +51,14 @@
 {{- fail "`server.config.adminAccessKey` is no longer supported. Please migrate to `server.additionalUsers`" }}
 {{- end }}
 
+{{- range $key, $val := pick .Values.server "additionalSecrets" "additionalUsers" "additionalGrants" "additionalProviders" }}
+
+################################# WARNING ######################################
+
+  server.{{ $key }} is deprecated and will be removed in a
+  future update. Please migrate to server.config.{{ $key | trimPrefix "additional" | lower }}.
+{{- end }}
+
 {{- else if include "connector.enabled" . | eq "true" }}
 
 {{- if not .Values.connector.config.name }}
