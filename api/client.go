@@ -267,10 +267,11 @@ func (c Client) DeleteProvider(id uid.ID) error {
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](c, "/api/grants", Query{
-		"user":      {req.User.String()},
-		"group":     {req.Group.String()},
-		"resource":  {req.Resource},
-		"privilege": {req.Privilege},
+		"user":             {req.User.String()},
+		"group":            {req.Group.String()},
+		"resource":         {req.Resource},
+		"privilege":        {req.Privilege},
+		"includeInherited": {boolToStr(req.IncludeInherited)},
 	})
 }
 
@@ -348,4 +349,11 @@ func partialText(body []byte, limit int) string {
 	}
 
 	return string(body[:limit]) + "..."
+}
+
+func boolToStr(b bool) string {
+	if b {
+		return "1"
+	}
+	return "0"
 }

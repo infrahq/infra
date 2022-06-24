@@ -12,6 +12,7 @@ import (
 
 	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/ssoroka/slice"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -69,13 +70,15 @@ func TestAPI_ListGrants(t *testing.T) {
 	createGroup := func(t *testing.T, name string, users ...uid.ID) uid.ID {
 		t.Helper()
 		group := &models.Group{Name: name}
-		for _, user := range users {
-			iden := models.Identity{Model: models.Model{ID: user}}
-			group.Identities = append(group.Identities, iden)
-		}
 
 		err := data.CreateGroup(srv.db, group)
 		assert.NilError(t, err)
+
+		for _, userID := range users {
+			err = data.AddUserToGroup(srv.db, &models.Identity{Model: models.Model{ID: userID}}, group)
+			assert.NilError(t, err)
+		}
+
 		return group.ID
 	}
 
@@ -91,7 +94,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup,
 		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		ExpiresAt:  time.Now().Add(10 * time.Minute),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.db, token)
@@ -177,7 +180,10 @@ func TestAPI_ListGrants(t *testing.T) {
 						Resource:  "res1",
 					},
 				}
-				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+				items := slice.Select(grants.Items, func(g api.Grant) bool {
+					return g.Resource != "infra"
+				})
+				assert.DeepEqual(t, items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"authorized by group matching subject": {
@@ -315,25 +321,144 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
-{
-	"pagination_info":{},
-	"count": 1,
-	"items": [{
-		"id": "<any-valid-uid>",
-		"created_by": "%[1]v",
-		"privilege": "custom1",
-		"resource": "res1",
-		"user": "%[2]v",
-		"created": "%[3]v",
-		"updated": "%[3]v"
-	}]
-}`,
+					{
+						"pagination_info":{},
+						"count": 1,
+						"items": [{
+							"id": "<any-valid-uid>",
+							"created_by": "%[1]v",
+							"privilege": "custom1",
+							"resource": "res1",
+							"user": "%[2]v",
+							"created": "%[3]v",
+							"updated": "%[3]v"
+						}]
+					}`,
 					admin.ID,
 					idInGroup.String(),
 					time.Now().UTC().Format(time.RFC3339),
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_ListInheritedGrants(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	createID := func(t *testing.T, name string) uid.ID {
+		t.Helper()
+		var buf bytes.Buffer
+		body := api.CreateUserRequest{Name: name}
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+		respObj := &api.CreateUserResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respObj)
+		assert.NilError(t, err)
+		return respObj.ID
+	}
+
+	createGroup := func(t *testing.T, name string, users ...uid.ID) uid.ID {
+		t.Helper()
+		group := &models.Group{Name: name}
+
+		err := data.CreateGroup(srv.db, group)
+		assert.NilError(t, err)
+
+		for _, userID := range users {
+			err = data.AddUserToGroup(srv.db, &models.Identity{Model: models.Model{ID: userID}}, group)
+			assert.NilError(t, err)
+		}
+
+		return group.ID
+	}
+
+	idInGroup := createID(t, "inagroup@example.com")
+	mikhail := createID(t, "mikhail@example.com")
+
+	err := data.CreateGrant(srv.db, &models.Grant{
+		Resource:  "infra",
+		Privilege: "view",
+		Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+	})
+	assert.NilError(t, err)
+
+	zoologistsID := createGroup(t, "Zoologists", mikhail)
+
+	token := &models.AccessKey{
+		IssuedFor:  idInGroup,
+		ProviderID: data.InfraProvider(srv.db).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Minute),
+	}
+
+	accessKey, err := data.CreateAccessKey(srv.db, token)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+accessKey)
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"authorized by inherited group matching subject": {
+			urlPath: "/api/grants?includeInherited=1&user=" + mikhail.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				db := srv.db
+
+				err = data.CreateGrant(db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "butterflies",
+				})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 	}

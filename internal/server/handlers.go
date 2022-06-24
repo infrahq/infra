@@ -412,7 +412,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, pg)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.IncludeInherited, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -474,7 +474,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, models.Pagination{})
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, models.Pagination{})
 		if err != nil {
 			return nil, err
 		}

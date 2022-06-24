@@ -20,7 +20,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, pg models.Pagination) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, pg models.Pagination) ([]models.Grant, error) {
 	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
@@ -30,7 +30,15 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
-		selectors = append(selectors, data.ByOptionalSubject(subject))
+		if inherited && subject.IsIdentity() {
+			userID, err := subject.ID()
+			if err != nil {
+				return nil, err
+			}
+			selectors = append(selectors, data.GrantsInheritedFromUser(userID))
+		} else {
+			selectors = append(selectors, data.ByOptionalSubject(subject))
+		}
 		return data.ListGrants(db, selectors...)
 	}
 	err = HandleAuthErr(err, "grants", "list", roles...)

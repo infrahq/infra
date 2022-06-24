@@ -3,6 +3,7 @@ package data
 import (
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -53,6 +54,21 @@ func ByOptionalPrivilege(s string) SelectorFunc {
 		}
 
 		return db.Where("privilege = ?", s)
+	}
+}
+
+func GrantsInheritedFromUser(userID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		var groupIDs []uid.ID
+		err := db.Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
+		if err != nil {
+			logging.S.Errorf("GrantsInheritedFromUser: %s", err)
+		}
+		subjects := []string{uid.NewIdentityPolymorphicID(userID).String()}
+		for _, groupID := range groupIDs {
+			subjects = append(subjects, uid.NewGroupPolymorphicID(groupID).String())
+		}
+		return db.Where("subject in (?)", subjects)
 	}
 }
 

@@ -569,6 +569,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 			return
 		}
 
+		// TODO(https://github.com/infrahq/infra/issues/2422): support wildcard resource searches
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", destination.Name, n)})
 			if err != nil {

@@ -1666,6 +1666,15 @@
             }
           },
           {
+            "description": "if true, this field includes grants that the user inherits through groups",
+            "in": "query",
+            "name": "includeInherited",
+            "schema": {
+              "description": "if true, this field includes grants that the user inherits through groups",
+              "type": "boolean"
+            }
+          },
+          {
             "in": "query",
             "name": "page",
             "schema": {

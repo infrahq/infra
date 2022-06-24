@@ -1465,3 +1465,47 @@ func TestAPI_LoginResponse(t *testing.T) {
 	assert.Equal(t, loginResp.Name, "steve")
 	assert.Equal(t, loginResp.PasswordUpdateRequired, false)
 }
+
+func TestListGrants(t *testing.T) {
+	db := setupDB(t)
+	a := &API{server: &Server{db: db}}
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("db", db)
+
+	user := &models.Identity{Name: "Hamilton"}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+
+	c.Set("identity", user)
+
+	// create group
+	group := &models.Group{Name: "Oscar Winners"}
+	err = data.CreateGroup(db, group)
+	assert.NilError(t, err)
+
+	// add user to group
+	err = data.AddUserToGroup(db, user, group)
+	assert.NilError(t, err)
+
+	// create a direct grant, and a grant through a group
+
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(user.ID),
+		Privilege: models.InfraViewRole,
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   uid.NewGroupPolymorphicID(group.ID),
+		Privilege: models.InfraAdminRole,
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	resp, err := a.ListGrants(c, &api.ListGrantsRequest{User: user.ID, IncludeInherited: true})
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(resp.Items), 2)
+	assert.Equal(t, resp.Count, 2)
+}
