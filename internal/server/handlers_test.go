@@ -180,8 +180,11 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
-						Page:  2,
-						Limit: 2,
+						Page:       2,
+						Limit:      2,
+						HasNext:    true,
+						TotalPages: 3,
+						TotalCount: 6,
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)

@@ -253,7 +253,7 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Equal(t, grants.PaginationInfo, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2})
+				assert.Equal(t, grants.PaginationInfo, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2, HasNext: false})
 			},
 		},
 		"filter by resource": {

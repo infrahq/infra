@@ -12,6 +12,7 @@ type Pagination struct {
 	Limit      int
 	TotalCount int
 	TotalPages int
+	HasNext    bool
 }
 
 func RequestToPagination(pr api.PaginationRequest) Pagination {
@@ -40,6 +41,7 @@ func PaginationToResponse(p Pagination) api.PaginationResponse {
 		Limit:      p.Limit,
 		TotalCount: p.TotalCount,
 		TotalPages: p.TotalPages,
+		HasNext:    p.HasNext,
 	}
 }
 
@@ -47,5 +49,6 @@ func (p *Pagination) SetTotalCount(count int) {
 	if p.Page != 0 && p.Limit != 0 {
 		p.TotalCount = count
 		p.TotalPages = int(math.Ceil(float64(count) / float64(p.Limit)))
+		p.HasNext = p.Page < p.TotalPages
 	}
 }

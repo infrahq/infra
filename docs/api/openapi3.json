@@ -304,6 +304,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
@@ -394,6 +397,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
@@ -476,6 +482,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
@@ -534,6 +543,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
@@ -609,6 +621,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
@@ -682,6 +697,9 @@
           },
           "pagination_info": {
             "properties": {
+              "has_next": {
+                "type": "boolean"
+              },
               "limit": {
                 "format": "int",
                 "type": "integer"
