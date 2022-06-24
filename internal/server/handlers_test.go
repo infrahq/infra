@@ -194,8 +194,8 @@ func TestAPI_ListUsers(t *testing.T) {
 						Page:       2,
 						Limit:      2,
 						HasNext:    true,
-						TotalPages: 3,
-						TotalCount: 6,
+						TotalPages: 4,
+						TotalCount: 7,
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
