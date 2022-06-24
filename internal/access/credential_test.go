@@ -21,10 +21,8 @@ func TestCreateCredential(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, oneTimePassword != "")
 
-	creds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+	_, err = data.GetCredential(db, data.ByIdentityID(user.ID))
 	assert.NilError(t, err)
-
-	assert.Equal(t, creds.OneTimePasswordUsed, false)
 }
 
 func TestUpdateCredentials(t *testing.T) {

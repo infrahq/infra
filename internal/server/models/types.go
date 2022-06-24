@@ -55,3 +55,17 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 func (f CommaSeparatedStrings) GormDataType() string {
 	return "text"
 }
+
+func (s *CommaSeparatedStrings) Includes(str string) bool {
+	if s == nil {
+		return false
+	}
+
+	for _, item := range *s {
+		if item == str {
+			return true
+		}
+	}
+
+	return false
+}

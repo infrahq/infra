@@ -128,10 +128,9 @@ func migrate(db *gorm.DB) error {
 				type Credential struct {
 					models.Model
 
-					Identity            string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
-					PasswordHash        []byte `validate:"required"`
-					OneTimePassword     bool
-					OneTimePasswordUsed bool
+					Identity        string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
+					PasswordHash    []byte `validate:"required"`
+					OneTimePassword bool
 				}
 
 				var creds []Credential
@@ -160,11 +159,10 @@ func migrate(db *gorm.DB) error {
 					}
 
 					convertedCred := &models.Credential{
-						Model:               cred.Model,
-						IdentityID:          identityID,
-						PasswordHash:        cred.PasswordHash,
-						OneTimePassword:     cred.OneTimePassword,
-						OneTimePasswordUsed: cred.OneTimePasswordUsed,
+						Model:           cred.Model,
+						IdentityID:      identityID,
+						PasswordHash:    cred.PasswordHash,
+						OneTimePassword: cred.OneTimePassword,
 					}
 
 					if err := CreateCredential(db, convertedCred); err != nil {
