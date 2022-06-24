@@ -2,36 +2,19 @@ name: release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
-  release-please:
-    runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.release-please.outputs.release_created }}
-      release_name: ${{ steps.release-please.outputs.tag_name }}
-    steps:
-      - id: release-please
-        uses: google-github-actions/release-please-action@v3
-        with:
-          command: manifest
-          config-file: .github/release-please.json
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-
   release-build:
-    needs: [release-please]
-    if: needs.release-please.outputs.release_created
     uses: ./.github/workflows/build.yml
     with:
-      RELEASE_NAME: ${{ needs.release-please.outputs.release_name }}
+      RELEASE_NAME: ${{ github.ref_name }}
     secrets: inherit
 
   release-publish:
-    needs: [release-build]
-    if: needs.release-please.outputs.release_created
     uses: ./.github/workflows/publish.yml
     with:
-      RELEASE_NAME: ${{ needs.release-please.outputs.release_name }}
+      RELEASE_NAME: ${{ github.ref_name }}
       ENVIRONMENT: Production
     secrets: inherit
