@@ -534,10 +534,8 @@ func addKindToProviders() *gormigrate.Migration {
 			}
 
 			db := tx.Begin()
-			db.Table("providers").Where("kind IS NULL AND name == ?", "infra").
-				Update("kind", models.InfraKind)
-			db.Table("providers").Where("kind IS NULL").
-				Update("kind", models.OktaKind)
+			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.InfraKind)
+			db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
 
 			return db.Commit().Error
 		},
