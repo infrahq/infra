@@ -101,6 +101,7 @@ func (ts *testOIDCServer) run(t *testing.T) string {
 		"id_token_signing_alg_values_supported": ["RS256"]
 	}`, server.URL)
 
+	// general OIDC endpoints
 	newMux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, req *http.Request) {
 		_, err := io.WriteString(w, wellKnown)
 		if err != nil {
@@ -125,6 +126,18 @@ func (ts *testOIDCServer) run(t *testing.T) string {
 	newMux.HandleFunc("/userinfo", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		_, err := io.WriteString(w, ts.userInfoResponse)
+		if err != nil {
+			w.WriteHeader(500)
+		}
+	})
+
+	// azure endpoints
+	newMux.HandleFunc("/v1.0/me/memberOf/fail", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(403)
+	})
+	newMux.HandleFunc("/v1.0/me/memberOf", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		_, err := io.WriteString(w, azureGroupResponse)
 		if err != nil {
 			w.WriteHeader(500)
 		}
