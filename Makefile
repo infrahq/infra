@@ -11,17 +11,6 @@ test-all:
 test/update:
 	go test ./internal/cmd -test.update-golden
 
-.PHONY: helm
-helm:
-	helm package -d helm helm/charts/* --app-version $(IMAGEVERSION)
-	helm repo index helm
-
-helm/lint:
-	helm lint helm/charts/*
-
-helm/clean:
-	$(RM) -r helm/*.tgz
-
 dev:
 	docker build . -t infrahq/infra:dev
 	kubectl config use-context docker-desktop
@@ -32,27 +21,8 @@ dev/clean:
 	kubectl config use-context docker-desktop
 	helm uninstall infra || true
 
-docker:
-	docker buildx build --push \
-		--platform linux/amd64,linux/arm64 \
-		--build-arg BUILDVERSION_PRERELEASE=$(BUILDVERSION_PRERELEASE) \
-		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(IMAGEVERSION) \
-		.
-
-release:
-	goreleaser release -f .goreleaser.yml --rm-dist
-
-release/docker:
-	docker buildx build --push \
-		--platform linux/amd64,linux/arm64 \
-		--build-arg TELEMETRY_WRITE_KEY=$(TELEMETRY_WRITE_KEY) \
-		--tag infrahq/infra:$(IMAGEVERSION) \
-		--tag infrahq/infra \
-		.
-
-release/helm: helm
-	aws s3 --region us-east-2 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
+helm/lint:
+	helm lint helm/charts/*
 
 tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest

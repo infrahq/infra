@@ -12,7 +12,7 @@ builds:
     ldflags:
       - -s -w
         -X github.com/infrahq/infra/internal.Branch={{ .Branch }}
-        -X github.com/infrahq/infra/internal.Version={{ .RawVersion }}
+        -X github.com/infrahq/infra/internal.Version={{ .Version }}
         -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
         -X github.com/infrahq/infra/internal.Date={{ .Date }}
         -X github.com/infrahq/infra/internal.Prerelease={{ .Env.BUILDVERSION_PRERELEASE }}
@@ -64,7 +64,7 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  name_template: "{{ .RawVersion }}-dev"
 blobs:
   - provider: s3
     region: us-east-2
