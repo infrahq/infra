@@ -175,19 +175,7 @@ func (a *API) DeleteGroup(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 }
 
 func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupRequest) (*api.EmptyResponse, error) {
-	var usersToAdd []uid.ID
-	var usersToRemove []uid.ID
-
-	for _, req := range r.Requests {
-		switch req.Method {
-		case "add":
-			usersToAdd = append(usersToAdd, req.UserID)
-		case "remove":
-			usersToRemove = append(usersToRemove, req.UserID)
-		}
-	}
-
-	return nil, access.UpdateUsersInGroup(c, r.GroupID, usersToAdd, usersToRemove)
+	return nil, access.UpdateUsersInGroup(c, r.GroupID, r.UserIDsToAdd, r.UserIDsToRemove)
 }
 
 // caution: this endpoint is unauthenticated, do not return sensitive info

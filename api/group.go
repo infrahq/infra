@@ -23,12 +23,8 @@ type CreateGroupRequest struct {
 	Name string `json:"name" validate:"required"`
 }
 
-type AddRemoveUsersInGroupRequest struct {
-	Method string `json:"method" validate:"required"`
-	UserID uid.ID `json:"user" validate:"required"`
-}
-
 type UpdateUsersInGroupRequest struct {
-	GroupID  uid.ID                         `uri:"id" json:"-" validate:"required"`
-	Requests []AddRemoveUsersInGroupRequest `json:"requests"`
+	GroupID         uid.ID   `uri:"id" json:"-" validate:"required"`
+	UserIDsToAdd    []uid.ID `json:"usersToAdd"`
+	UserIDsToRemove []uid.ID `json:"usersToRemove"`
 }

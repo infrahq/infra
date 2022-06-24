@@ -461,16 +461,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
 			},
 			body: api.UpdateUsersInGroupRequest{
-				Requests: []api.AddRemoveUsersInGroupRequest{
-					{
-						Method: "add",
-						UserID: first.ID,
-					},
-					{
-						Method: "add",
-						UserID: second.ID,
-					},
-				},
+				UserIDsToAdd: []uid.ID{first.ID, second.ID},
 			},
 		},
 		"remove users": {
@@ -487,16 +478,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 				assert.Assert(t, len(idents) == 0)
 			},
 			body: api.UpdateUsersInGroupRequest{
-				Requests: []api.AddRemoveUsersInGroupRequest{
-					{
-						Method: "remove",
-						UserID: first.ID,
-					},
-					{
-						Method: "remove",
-						UserID: second.ID,
-					},
-				},
+				UserIDsToRemove: []uid.ID{first.ID, second.ID},
 			},
 		},
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 func getGroupByName(client *api.Client, name string) (*api.Group, error) {
@@ -214,13 +215,8 @@ $ infra groups adduser johndoe@example.com Engineering
 			}
 
 			req := &api.UpdateUsersInGroupRequest{
-				GroupID: group.ID,
-				Requests: []api.AddRemoveUsersInGroupRequest{
-					{
-						Method: "add",
-						UserID: user.ID,
-					},
-				},
+				GroupID:      group.ID,
+				UserIDsToAdd: []uid.ID{user.ID},
 			}
 			err = client.UpdateUsersInGroup(req)
 			if err != nil {
@@ -276,13 +272,8 @@ $ infra groups removeuser johndoe@example.com Engineering
 			}
 
 			req := &api.UpdateUsersInGroupRequest{
-				GroupID: group.ID,
-				Requests: []api.AddRemoveUsersInGroupRequest{
-					{
-						Method: "remove",
-						UserID: user.ID,
-					},
-				},
+				GroupID:         group.ID,
+				UserIDsToRemove: []uid.ID{user.ID},
 			}
 			err = client.UpdateUsersInGroup(req)
 			if err != nil {
