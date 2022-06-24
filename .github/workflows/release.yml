@@ -19,70 +19,19 @@ jobs:
           config-file: .github/release-please.json
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-  binaries:
-    needs: release-please
+  release-build:
+    needs: [release-please]
     if: needs.release-please.outputs.release_created
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v3
-        with:
-          stable: false
-          go-version: "1.18"
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-      - uses: actions/cache@v3
-        with:
-          path: /root/.cache/
-          key: ${{ runner.os }}-go-build
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - working-directory: ui
-        run: |
-          npm install
-          npm run build
-          npm run export -- -o ../internal/server/ui/static
-      # TODO: use goreleaser github action: https://github.com/goreleaser/goreleaser-action
-      - run: |
-          go install github.com/goreleaser/goreleaser@v1.7.0
-          make release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
-          GEMFURY_TOKEN: ${{ secrets.GORELEASER_GEMFURY_TOKEN }}
+    uses: ./.github/workflows/build.yml
+    with:
+      RELEASE_NAME: ${{ needs.release-please.outputs.release_name }}
+    secrets: inherit
 
-  docker:
-    needs: release-please
+  release-publish:
+    needs: [release-build]
     if: needs.release-please.outputs.release_created
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - run: make release/docker v=${{ needs.release-please.outputs.release_name }}
-        env:
-          TELEMETRY_WRITE_KEY: ${{ secrets.TELEMETRY_WRITE_KEY }}
-
-  helm:
-    needs: [release-please, docker]
-    if: needs.release-please.outputs.release_created
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: azure/setup-helm@v1
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-      - run: |
-          make helm v=${{ needs.release-please.outputs.release_name }}
-          aws s3 sync helm s3://helm.infrahq.com --exclude "*" --include "index.yaml" --include "*.tgz"
+    uses: ./.github/workflows/publish.yml
+    with:
+      RELEASE_NAME: ${{ needs.release-please.outputs.release_name }}
+      ENVIRONMENT: Production
+    secrets: inherit
