@@ -95,28 +95,23 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	var toAdd []models.Identity
-	var toRemove []models.Identity
-
 	for _, userID := range uidsToAdd {
-		identity, err := data.GetIdentity(db, data.ByID(userID))
+		_, err := data.GetIdentity(db, data.ByID(userID))
 		if err != nil {
 			return err
 		}
-		toAdd = append(toAdd, *identity)
 	}
 
 	for _, userID := range uidsToRemove {
-		identity, err := data.GetIdentity(db, data.ByID(userID))
+		_, err := data.GetIdentity(db, data.ByID(userID))
 		if err != nil {
 			return err
 		}
-		toRemove = append(toRemove, *identity)
 	}
 
-	err = data.AddUsersToGroup(db, groupID, toAdd)
+	err = data.AddUsersToGroup(db, groupID, uidsToAdd)
 	if err != nil {
 		return err
 	}
-	return data.RemoveUsersFromGroup(db, groupID, toRemove)
+	return data.RemoveUsersFromGroup(db, groupID, uidsToRemove)
 }

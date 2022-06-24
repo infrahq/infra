@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func createIdentities(t *testing.T, db *gorm.DB, identities ...*models.Identity) {
@@ -476,7 +477,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-				err := data.AddUsersToGroup(srv.db, humans.ID, []models.Identity{first, second})
+				err := data.AddUsersToGroup(srv.db, humans.ID, []uid.ID{first.ID, second.ID})
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {

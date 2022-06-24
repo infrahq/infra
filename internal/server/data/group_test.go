@@ -8,6 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestGroup(t *testing.T) {
@@ -207,7 +208,7 @@ func TestAddUsersToGroup(t *testing.T) {
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-			err = AddUsersToGroup(db, everyone.ID, []models.Identity{bourne, bauer})
+			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID})
 			assert.NilError(t, err)
 
 			actual, err = ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)

@@ -48,7 +48,11 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 			return err
 		}
 
-		err = RemoveUsersFromGroup(db, g.ID, identities)
+		var uidsToRemove []uid.ID
+		for _, id := range identities {
+			uidsToRemove = append(uidsToRemove, id.ID)
+		}
+		err = RemoveUsersFromGroup(db, g.ID, uidsToRemove)
 		if err != nil {
 			return err
 		}
@@ -57,27 +61,19 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Group](db, ByIDs(ids))
 }
 
-func AddUsersToGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
-	for _, id := range identities {
-		var ids []uid.ID
-
-		if err := db.Raw("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", id.ID, groupID).Scan(&ids).Error; err != nil {
+func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
+	for _, id := range idsToAdd {
+		err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) select ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id).Error
+		if err != nil {
 			return err
-		}
-
-		if len(ids) == 0 {
-			err := db.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", id.ID, groupID).Error
-			if err != nil {
-				return err
-			}
 		}
 	}
 	return nil
 }
 
-func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, identities []models.Identity) error {
-	for _, id := range identities {
-		err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id.ID, groupID).Error
+func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) error {
+	for _, id := range idsToRemove {
+		err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID).Error
 		if err != nil {
 			return err
 		}
