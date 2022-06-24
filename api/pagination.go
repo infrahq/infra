@@ -9,6 +9,7 @@ type PaginationResponse struct {
 	Page  int `json:"page,omitempty"`
 	Limit int `json:"limit,omitempty"`
 
-	TotalCount int `json:"total_count,omitempty"`
-	TotalPages int `json:"total_pages,omitempty"`
+	TotalCount int  `json:"total_count,omitempty"`
+	TotalPages int  `json:"total_pages,omitempty"`
+	HasNext    bool `json:"has_next,omitempty"`
 }
