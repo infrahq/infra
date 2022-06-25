@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
-import { editGrant, sortByResource } from '../../lib/grants'
+import { sortByResource } from '../../lib/grants'
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
 import Table from '../../components/table'
