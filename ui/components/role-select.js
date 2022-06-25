@@ -31,7 +31,7 @@ export default function ({
 
   const { data: { items } = {} } = useSWR(() => resource && `/api/destinations?name=${hasParent ? parts[0] : resource}`)
   roles = roles || items?.[0]?.roles || []
-  roles = roles?.sort(sortByPrivilege)?.filter(r => hasParent ? r !== 'cluster-admin' : true)
+  roles = roles?.sort(sortByPrivilege)?.filter(r => !hasParent || r !== 'cluster-admin')
 
   return (
     <Listbox
