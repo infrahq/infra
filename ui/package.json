@@ -38,10 +38,7 @@
   "standard": {
     "globals": [
       "fetch",
-      "test",
-      "describe",
-      "expect",
-      "jest"
+      "test"
     ]
   },
   "engines": {
