@@ -55,10 +55,10 @@ jobs:
       - name: install npm dependencies
         working-directory: ui
         run: npm install
-      - name: run ui tests
+      - name: Run unit tests
         working-directory: ui
         run: npm test
-      - name: Check ui build
+      - name: Build and export
         working-directory: ui
         run: |
           npm run build
@@ -68,6 +68,17 @@ jobs:
         run: |
           npm run lint
           npm run format
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+          cache: true
+      - name: run e2e tests
+        working-directory: ui
+        run: |
+          npm run build
+          npm run export -- -o ../internal/server/ui/static
+          ./node_modules/.bin/playwright install --with-deps
+          npm run test:e2e
 
   test-website:
     runs-on: ubuntu-latest

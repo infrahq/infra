@@ -12,8 +12,8 @@ services:
       - INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:internal/server/testdata/pki/ca.key
     command: server --ui-proxy-url http://ui:3000 --db-host db --db-name postgres --db-port 5432 --db-username postgres --db-password postgres
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     depends_on:
       db:
         condition: service_healthy

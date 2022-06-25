@@ -25,6 +25,17 @@ npm run build
 npm start
 ```
 
+## Test
+
+Unit tests can be run via `npm run test`
+
+To run end-to-end (e2e) tests, use:
+
+```
+docker-compose -f docker-compose.dev.yaml up --build
+npm run test:e2e
+```
+
 ## Linting
 
 Linting is done via [ESLint](https://eslint.org/)

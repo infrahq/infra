@@ -4,6 +4,9 @@
     "dev:ui": "next dev",
     "dev:server": "INFRA_SERVER_TLS_CA=../internal/server/testdata/pki/ca.crt INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:../internal/server/testdata/pki/ca.key go run .. server --ui-proxy-url http://localhost:3000",
     "test": "jest --ci --passWithNoTests",
+    "test:e2e": "concurrently -s first --kill-others 'npm run test:server' 'npm run test:playwright'",
+    "test:playwright": "wait-on http://localhost:8080 && playwright test",
+    "test:server": "INFRA_SERVER_TLS_CA=../internal/server/testdata/pki/ca.crt INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:../internal/server/testdata/pki/ca.key go run .. server --log-level error -f ./e2e/server.yaml",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -25,6 +28,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.6.3",
+    "@playwright/test": "^1.22.2",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^14.3.0",
@@ -41,7 +45,8 @@
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
     "tailwindcss": "^3.1.7",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "wait-on": "^6.0.1"
   },
   "engines": {
     "node": ">=17.8.0",
