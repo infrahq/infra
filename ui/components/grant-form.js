@@ -1,23 +1,21 @@
 import { useEffect, useState, useRef } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
+import useSWR from 'swr'
 import { Combobox } from '@headlessui/react'
 import { CheckIcon } from '@heroicons/react/solid'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleDropdown from './role-dropdown'
 
-export default function ({ resource, roles }) {
+export default function ({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
   const { data: { items: groups } = { items: [] } } = useSWR('/api/groups')
 
   const [role, setRole] = useState(roles?.[0])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
-  const comboBtn = useRef()
+  const button = useRef()
 
-  useEffect(() => setRole(roles?.[0]), [resource, roles])
-
-  const { mutate } = useSWRConfig()
+  useEffect(() => setRole(roles?.[0]), [roles])
 
   const filtered = [
     ...users.map(u => ({ ...u, user: true })),
@@ -30,42 +28,11 @@ export default function ({ resource, roles }) {
     <form
       onSubmit={e => {
         e.preventDefault()
-
-        mutate(`/api/grants?resource=${resource}`, async ({ items: grants } = { items: [] }) => {
-          const body = { privilege: role, resource }
-          if (selected.user) {
-            body.user = selected.id
-          }
-
-          if (selected.group) {
-            body.group = selected.id
-          }
-
-          // grant already exists
-          for (const g of grants) {
-            if (g.privilege === body.privilege &&
-                    g.user === body.user &&
-                    g.group === body.group) {
-              return { items: grants }
-            }
-          }
-
-          // create new grant
-          const res = await fetch('/api/grants', {
-            method: 'POST',
-            body: JSON.stringify(body)
-          })
-
-          const data = await res.json()
-
-          if (!res.ok) {
-            throw data
-          }
-
-          return { items: [...grants, data] }
+        onSubmit({
+          user: selected.user ? selected.id : undefined,
+          group: selected.group ? selected.id : undefined,
+          privilege: role
         })
-
-        setSelected(null)
       }}
       className='flex my-2'
     >
@@ -82,7 +49,7 @@ export default function ({ resource, roles }) {
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
               if (!selected) {
-                comboBtn.current?.click()
+                button.current?.click()
               }
             }}
           />
@@ -112,7 +79,7 @@ export default function ({ resource, roles }) {
               ))}
             </Combobox.Options>
           )}
-          <Combobox.Button className='hidden' ref={comboBtn} />
+          <Combobox.Button className='hidden' ref={button} />
         </Combobox>
         {roles?.length > 1 && (
           <RoleDropdown onChange={setRole} role={role} roles={roles} />

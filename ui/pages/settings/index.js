@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR from 'swr'
 
-import { useGrants } from '../../lib/grants'
+import { addGrant, removeGrant, sortBySubject } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/modals/delete'
@@ -16,10 +16,10 @@ function AdminGrant ({ name, showRemove, onRemove }) {
 
   return (
     <div className='flex justify-between items-center text-2xs group py-1'>
-      <div>{name}</div>
+      <div className='py-1.5'>{name}</div>
       {showRemove && (
         <div className='opacity-0 group-hover:opacity-100 flex justify-end text-right'>
-          <button onClick={() => setOpen(true)} className='flex-none p-2 -mr-2 cursor-pointer text-2xs text-gray-500 hover:text-violet-100'>Revoke</button>
+          <button onClick={() => setOpen(true)} className='flex-none px-2 py-1 -mr-2 cursor-pointer text-2xs text-gray-500 hover:text-violet-100'>Revoke</button>
           <DeleteModal
             open={open}
             setOpen={setOpen}
@@ -41,9 +41,12 @@ export default function Settings () {
 
   const { resetPassword } = router.query
   const [showNotification, setshowNotification] = useState(resetPassword === 'success')
-  const hasInfraProvider = auth?.providerNames.includes('infra')
 
-  const { grants } = useGrants({ resource: 'infra' })
+  const { data: { items: users } = {} } = useSWR('/api/users')
+  const { data: { items: groups } = {} } = useSWR('/api/groups')
+  const { data: { items: grants } = {}, mutate } = useSWR('/api/grants?resource=infra&privilege=admin')
+
+  const hasInfraProvider = auth?.providerNames.includes('infra')
 
   return (
     <>
@@ -83,14 +86,18 @@ export default function Settings () {
       {admin && (
         <div className='max-w-md'>
           <div className='text-2xs leading-none uppercase text-gray-400 border-b border-gray-800 pb-6'>Admins</div>
-          <GrantForm resource='infra' roles={['admin']} />
+          <GrantForm
+            resource='infra'
+            roles={['admin']}
+            onSubmit={({ user, group }) => mutate(addGrant({ user, group, privilege: 'admin', resource: 'infra' }))}
+          />
           <div className='mt-6'>
-            {grants?.map(g => (
+            {grants?.sort(sortBySubject)?.map(g => (
               <AdminGrant
                 key={g.id}
-                name={g?.user?.name || g?.group?.name || ''}
-                showRemove={g?.user?.id !== auth?.id}
-                onRemove={() => g.remove()}
+                name={users?.find(u => g.user === u.id)?.name || groups?.find(group => g.group === group.id)?.name || ''}
+                showRemove={g?.user !== auth?.id}
+                onRemove={() => mutate(removeGrant(g.id))}
               />
             ))}
           </div>

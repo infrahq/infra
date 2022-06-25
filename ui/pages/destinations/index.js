@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
+import useSWR from 'swr'
 import Head from 'next/head'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
+import { addGrant, editGrant, removeGrant, sortBySubject, sortByPrivilege } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
-import { useGrants } from '../../lib/grants'
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
@@ -15,19 +15,79 @@ import Sidebar from '../../components/sidebar'
 import RoleDropdown from '../../components/role-dropdown'
 import GrantForm from '../../components/grant-form'
 
-function Details ({ destination, onDelete }) {
-  const { admin } = useAdmin()
-  const { grants } = useGrants({ resource: destination.resource })
+function parent (resource = '') {
+  const parts = resource.split('.')
+  return parts.length > 1 ? parts[0] : null
+}
 
-  const { mutate } = useSWRConfig()
+function Details ({ destination, onDelete }) {
+  const { resource } = destination
+
+  const { admin } = useAdmin()
+  const { data: auth } = useSWR('/api/users/self')
+  const { data: { items: users } = {} } = useSWR('/api/users')
+  const { data: { items: groups } = {} } = useSWR('/api/groups')
+  const { data: { items: usergroups } = {} } = useSWR(() => auth ? `/api/groups?userID=${auth.id}` : null)
+  const { data: { items: grants } = {}, mutate } = useSWR(`/api/grants?resource=${resource}`)
+  const { data: { items: inherited } = {} } = useSWR(() => parent(resource) ? `/api/grants?resource=${parent(resource)}` : null)
+
+  const connectable = grants?.find(g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group))
+  const empty = grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      {grants?.filter(g => g.resource === destination.resource)?.length > 0 && (
+      {admin &&
+        <section>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          <GrantForm
+            roles={destination.roles}
+            onSubmit={({ user, group, privilege }) => mutate(addGrant({ user, group, privilege, resource }))}
+          />
+          <div className='mt-4'>
+            {empty && (<div className='text-2xs text-gray-400 mt-6 italic'>No access</div>)}
+            {grants?.sort(sortByPrivilege)?.sort(sortBySubject)?.map(g => (
+              <div key={g.id} className='flex justify-between items-center text-2xs'>
+                <div className='truncate'>
+                  {users?.find(u => u.id === g.user)?.name}
+                  {groups?.find(group => group.id === g.group)?.name}
+                </div>
+                <RoleDropdown
+                  role={g.privilege}
+                  roles={destination.roles}
+                  remove
+                  onRemove={() => mutate(removeGrant(g.id))}
+                  onChange={privilege => mutate(editGrant(g.id, { ...g, privilege }))}
+                  direction='left'
+                />
+              </div>
+            ))}
+            {inherited?.sort(sortByPrivilege)?.sort(sortBySubject)?.map(g => (
+              <div key={g.id} className='flex justify-between items-center text-2xs'>
+                <div className='truncate'>
+                  {users?.find(u => u.id === g.user)?.name}
+                  {groups?.find(group => group.id === g.group)?.name}
+                </div>
+                <div className='flex-none flex'>
+                  <div
+                    title='This access is inherited and cannot be edited here'
+                    className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
+                  >
+                    inherited
+                  </div>
+                  <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
+                    {g.privilege}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>}
+      {connectable && (
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
-          <p className='text-2xs my-4'>Connect to this {destination.kind} via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
+          <p className='text-2xs my-4'>Connect to this {destination?.kind || 'resource'} via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
           <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal overflow-auto'>
             infra login {window.location.host}<br />
             infra use {destination.resource}<br />
@@ -35,48 +95,6 @@ function Details ({ destination, onDelete }) {
           </pre>
         </section>
       )}
-      {admin &&
-        <section>
-          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <GrantForm resource={destination.resource} roles={destination.roles} />
-          <div className='mt-4'>
-            {grants?.map(g => (
-              <div key={g.id} className='flex justify-between items-center text-2xs'>
-                <div className='truncate'>{g.user?.name || g.group?.name || ''}</div>
-                {g.inherited
-                  ? (
-                    <div className='flex-none flex'>
-                      <div
-                        title='This access is inherited and cannot be edited here'
-                        className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
-                      >
-                        inherited
-                      </div>
-                      <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
-                        {g.privilege}
-                      </div>
-                    </div>
-                    )
-                  : (
-                    <RoleDropdown
-                      role={g.privilege}
-                      roles={destination.roles}
-                      remove
-                      direction='left'
-                      onChange={value => {
-                        if (value === 'remove') {
-                          g.remove()
-                          return
-                        }
-
-                        g.edit(value)
-                      }}
-                    />
-                    )}
-              </div>
-            ))}
-          </div>
-        </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
@@ -111,14 +129,6 @@ function Details ({ destination, onDelete }) {
             open={deleteModalOpen}
             setOpen={setDeleteModalOpen}
             onSubmit={async () => {
-              mutate('/api/destinations', async ({ items: destinations } = { items: [] }) => {
-                await fetch(`/api/destinations/${destination.id}`, {
-                  method: 'DELETE'
-                })
-
-                return { items: destinations.filter(d => d?.id !== destination.id) }
-              })
-
               setDeleteModalOpen(false)
               onDelete()
             }}
@@ -167,7 +177,7 @@ const columns = [{
 }]
 
 export default function Destinations () {
-  const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
+  const { data: { items: destinations } = {}, error, mutate } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
@@ -177,6 +187,8 @@ export default function Destinations () {
       ...d,
       kind: 'cluster',
       resource: d.name,
+
+      // Create "fake" destinations as subrows from resources
       subRows: d.resources?.map(r => ({
         name: r,
         resource: `${d.name}.${r}`,
@@ -185,7 +197,7 @@ export default function Destinations () {
       }))
     })) || []
 
-  const loading = adminLoading || (!destinations && !error)
+  const loading = adminLoading || !destinations
 
   return (
     <>
@@ -228,7 +240,16 @@ export default function Destinations () {
               title={selected.resource}
               iconPath='/destinations.svg'
             >
-              <Details destination={selected} onDelete={() => setSelected(null)} />
+              <Details
+                destination={selected} onDelete={() => {
+                  mutate(async ({ items: destinations } = { items: [] }) => {
+                    fetch(`/api/destinations/${selected.id}`, { method: 'DELETE' })
+                    return { items: destinations.filter(d => d?.id !== selected.id) }
+                  })
+
+                  setSelected(null)
+                }}
+              />
             </Sidebar>}
         </div>
       )}

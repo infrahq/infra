@@ -3,9 +3,7 @@ import { Listbox } from '@headlessui/react'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/react/solid'
 import { XIcon } from '@heroicons/react/outline'
 
-function classNames (...classes) {
-  return classes.filter(Boolean).join(' ')
-}
+const OPTION_REMOVE = 'remove'
 
 const descriptions = {
   'cluster-admin': 'Super-user access to perform any action on any resource',
@@ -17,33 +15,39 @@ const descriptions = {
   'port-forward': 'Use port-forwarding to access applications'
 }
 
-function sortRoles (roles = []) {
-  return roles.sort((a, b) => {
-    if (a === 'cluster-admin') {
-      return -1
-    }
+function sortByPrilege (a, b) {
+  if (a === 'cluster-admin') {
+    return -1
+  }
 
-    if (b === 'cluster-admin') {
-      return 1
-    }
+  if (b === 'cluster-admin') {
+    return 1
+  }
 
-    return 0
-  })
+  return 0
 }
 
-export default function ({ resource, role, roles, onChange, remove, direction = 'right' }) {
-  const parts = resource?.split('.')
-  const { data: { items } = {} } = useSWR(() => resource && `/api/destinations?name=${parts.length > 1 ? parts[0] : resource}`)
-  roles = sortRoles(roles || items?.[0]?.roles || [])?.filter(r => {
-    if (resource && parts?.length > 1) {
-      return r !== 'cluster-admin'
-    }
+export default function ({
+  resource,
+  role,
+  roles,
+  onChange,
+  onRemove,
+  remove,
+  direction = 'right'
+}) {
+  const parts = resource?.split('.') || []
+  const hasParent = parts?.length > 1
 
-    return true
-  })
+  const { data: { items } = {} } = useSWR(() => resource && `/api/destinations?name=${hasParent ? parts[0] : resource}`)
+  roles = roles || items?.[0]?.roles || []
+  roles = roles?.sort(sortByPrilege)?.filter(r => hasParent ? r !== 'cluster-admin' : true)
 
   return (
-    <Listbox value={role} onChange={onChange}>
+    <Listbox
+      value={role}
+      onChange={v => v === OPTION_REMOVE ? onRemove() : onChange(v)}
+    >
       <div className='relative'>
         <Listbox.Button className='bg-black relative w-32 pl-3 pr-8 py-2 text-left cursor-default focus:outline-none text-2xs'>
           <span className='absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none'>
@@ -56,12 +60,7 @@ export default function ({ resource, role, roles, onChange, remove, direction = 
             {roles?.map(r => (
               <Listbox.Option
                 key={r}
-                className={({ active }) =>
-                  classNames(
-                    active ? 'bg-gray-700' : '',
-                    'cursor-default select-none relative py-2 px-3',
-                    r === 'remove' ? 'border-t border-gray-700' : ''
-                  )}
+                className={({ active }) => `${active ? 'bg-gray-700' : ''} cursor-default select-none relative py-2 px-3`}
                 value={r}
               >
                 {({ selected }) => (
@@ -80,12 +79,8 @@ export default function ({ resource, role, roles, onChange, remove, direction = 
           </div>
           {remove && (
             <Listbox.Option
-              className={({ active }) =>
-                classNames(
-                  active ? 'bg-gray-700' : '',
-                  'cursor-default select-none py-2 px-3 left-0 right-0 absolute bottom-0 border-t border-gray-700 hover:bg-gray-700 z-10'
-                )}
-              value='remove'
+              className={({ active }) => `${active ? 'bg-gray-700' : ''} cursor-default select-none py-2 px-3 left-0 right-0 absolute bottom-0 border-t border-gray-700 hover:bg-gray-700 z-10`}
+              value={OPTION_REMOVE}
             >
               <div className='flex flex-row items-center py-0.5'>
                 <XIcon className='w-3 h-3 mr-2' />

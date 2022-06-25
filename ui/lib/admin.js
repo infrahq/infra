@@ -1,15 +1,28 @@
 import useSWR from 'swr'
 
-import { useGrants } from './grants'
+const INFRA_ADMIN_ROLE = 'admin'
 
 export function useAdmin () {
   const { data: auth } = useSWR('/api/users/self')
-  const { grants } = useGrants({ resource: 'infra', user: auth?.id })
+  const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${auth?.id}`)
 
-  const admin = !!grants?.find(g => g.privilege === 'admin')
+  // todo: switch to using /api/grants?inherited=1 instead of
+  // multiple fetches (/api/grants for each group)
+  const { data: { items: groups } = {} } = useSWR(`/api/groups?userID=${auth?.id}`)
+  console.log(groups)
+  const { data: groupGrantDatas } = useSWR(
+    () => groups.map(g => `/api/grants?group=${g.id}`) || null,
+    (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
+  )
+
+  const inherited = groupGrantDatas?.map(g => g.items)?.flat()
+
+  const merged = [...grants || [], ...inherited || []]
+  const loading = [auth, grants, groups, groups?.length ? inherited : true].some(x => !x)
+  const admin = merged.some(g => g.privilege === INFRA_ADMIN_ROLE)
 
   return {
-    loading: !auth || !grants,
+    loading,
     admin
   }
 }
