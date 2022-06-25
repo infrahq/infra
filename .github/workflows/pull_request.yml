@@ -59,10 +59,11 @@ jobs:
         run: |
            npm run build
            npm run export
-      - name: Check ui linting
+      - name: Lint and format ui
         working-directory: ui
         run: |
-           npm run standard
+           npm run lint
+           npm run format
 
   go-lint:
     runs-on: ubuntu-latest

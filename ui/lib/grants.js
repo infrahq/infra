@@ -1,4 +1,4 @@
-export function sortByPrivilege (a, b) {
+export function sortByPrivilege(a, b) {
   if (a === 'cluster-admin') {
     return -1
   }
@@ -10,10 +10,10 @@ export function sortByPrivilege (a, b) {
   return a?.privilege?.localeCompare(b?.privilege)
 }
 
-export function sortByResource (a, b) {
+export function sortByResource(a, b) {
   return a?.resource?.localeCompare(b?.resource)
 }
 
-export function sortBySubject (a, b) {
+export function sortBySubject(a, b) {
   return (a?.user || a?.group)?.localeCompare(b?.user || b?.group)
 }

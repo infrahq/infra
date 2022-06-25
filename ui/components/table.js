@@ -1,25 +1,28 @@
 import { useTable, useExpanded } from 'react-table'
 
-export default function ({ columns, data, getRowProps = () => {} }) {
-  const {
-    getTableProps,
-    getTableBodyProps,
-    prepareRow,
-    headerGroups,
-    rows
-  } = useTable({
-    columns,
-    data,
-    autoResetExpanded: false
-  }, useExpanded)
+export default function Table({ columns, data, getRowProps = () => {} }) {
+  const { getTableProps, getTableBodyProps, prepareRow, headerGroups, rows } =
+    useTable(
+      {
+        columns,
+        data,
+        autoResetExpanded: false,
+      },
+      useExpanded
+    )
 
   return (
-    <table className='w-full sticky top-0 table-fixed' {...getTableProps()}>
+    <table className='sticky top-0 w-full table-fixed' {...getTableProps()}>
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => (
-              <th width={column.width} key={column.id} className='sticky top-0 bg-black z-10 text-left uppercase font-normal text-3xs py-1 text-gray-400 border-b border-gray-800' {...column.getHeaderProps()}>
+              <th
+                width={column.width}
+                key={column.id}
+                className='sticky top-0 z-10 border-b border-gray-800 bg-black py-1 text-left text-3xs font-normal uppercase text-gray-400'
+                {...column.getHeaderProps()}
+              >
                 {column.render('Header')}
               </th>
             ))}
@@ -39,7 +42,13 @@ export default function ({ columns, data, getRowProps = () => {} }) {
               {row.cells.map(cell => {
                 const props = cell.getCellProps()
                 return (
-                  <td key={cell.id} {...props} className={`${props.className || ''} border-b border-gray-800`}>
+                  <td
+                    key={cell.id}
+                    {...props}
+                    className={`${
+                      props.className || ''
+                    } border-b border-gray-800`}
+                  >
                     {cell.render('Cell')}
                   </td>
                 )

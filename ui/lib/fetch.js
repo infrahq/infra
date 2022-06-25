@@ -4,13 +4,14 @@ const base = '0.13.0'
 
 // Patch the global fetch to include our base API
 // version for requests to the same domain
-global.fetch = (resource, info) => fetch(resource, {
-  ...resource.startsWith('/')
-    ? {
-        headers: {
-          'Infra-Version': base
+global.fetch = (resource, info) =>
+  fetch(resource, {
+    ...(resource.startsWith('/')
+      ? {
+          headers: {
+            'Infra-Version': base,
+          },
         }
-      }
-    : {},
-  ...info
-})
+      : {}),
+    ...info,
+  })

@@ -1,7 +1,7 @@
 module.exports = {
   content: [
     './pages/**/*.{js,ts,jsx,tsx}',
-    './components/**/*.{js,ts,jsx,tsx}'
+    './components/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -17,22 +17,22 @@ module.exports = {
           600: '#4D5562',
           700: '#394150',
           800: '#222833',
-          900: '#151A1E'
-        }
+          900: '#151A1E',
+        },
       },
       fontSize: {
         xs: ['13px', '16px'],
         '2xs': ['12px', '15px'],
         '3xs': ['11px', '13px'],
-        '4xs': ['10px', '12px']
+        '4xs': ['10px', '12px'],
       },
       animation: {
-        'spin-fast': 'spin 0.75s linear infinite'
+        'spin-fast': 'spin 0.75s linear infinite',
       },
       fontFamily: {
         sans: ['SF Pro Text', 'ui-sans-serif', 'sans-serif'],
-        mono: ['SF Mono', 'ui-monospace', 'monospace']
-      }
-    }
-  }
+        mono: ['SF Mono', 'ui-monospace', 'monospace'],
+      },
+    },
+  },
 }

@@ -3,38 +3,42 @@ import { XIcon, ChevronLeftIcon } from '@heroicons/react/outline'
 
 import AuthRequired from '../auth-required'
 
-function Fullscreen ({ children, backHref, closeHref }) {
+function Layout({ children, backHref, closeHref }) {
   return (
-    <AuthRequired>
-      <div className='flex flex-col w-full h-full'>
-        <div className={`flex flex-none text-right justify-end ${backHref ? 'justify-between' : 'justify-end'}`}>
-          {backHref && (
-            <Link href={backHref || '/'}>
-              <a className='flex items-center p-4 text-gray-400 hover:text-white text-3xs uppercase'>
-                <ChevronLeftIcon className='w-5 h-5 mr-1.5 stroke-1' />Back
-              </a>
-            </Link>
-          )}
-          <Link href={closeHref || '/'}>
-            <a className='flex items-center p-4 text-gray-400 hover:text-white text-3xs uppercase'>
-              Close<XIcon className='w-6 h-6 ml-1 stroke-1' />
+    <div className='flex h-full w-full flex-col'>
+      <div
+        className={`flex flex-none justify-end text-right ${
+          backHref ? 'justify-between' : 'justify-end'
+        }`}
+      >
+        {backHref && (
+          <Link href={backHref || '/'}>
+            <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-white'>
+              <ChevronLeftIcon className='mr-1.5 h-5 w-5 stroke-1' />
+              Back
             </a>
           </Link>
-        </div>
-        <div className='flex-1 flex justify-center items-center mb-10'>
-          <div className='w-full max-w-xs border rounded-lg border-gray-800'>
-            {children}
-          </div>
+        )}
+        <Link href={closeHref || '/'}>
+          <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-white'>
+            Close
+            <XIcon className='ml-1 h-6 w-6 stroke-1' />
+          </a>
+        </Link>
+      </div>
+      <div className='mb-10 flex flex-1 items-center justify-center'>
+        <div className='w-full max-w-xs rounded-lg border border-gray-800'>
+          {children}
         </div>
       </div>
-    </AuthRequired>
+    </div>
   )
 }
 
-export default function (props) {
+export default function Fullscreen(props) {
   return (
     <AuthRequired>
-      <Fullscreen {...props} />
+      <Layout {...props} />
     </AuthRequired>
   )
 }

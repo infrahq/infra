@@ -4,7 +4,7 @@ import { useSWRConfig } from 'swr'
 
 import Login from '../../components/layouts/login'
 
-export default function Finish () {
+export default function Finish() {
   const router = useRouter()
 
   const [password, setPassword] = useState('')
@@ -18,11 +18,14 @@ export default function Finish () {
     router.replace('/login')
   }
 
-  async function finish (e) {
+  async function finish(e) {
     e.preventDefault()
 
     try {
-      await fetch(`/api/users/${user}`, { method: 'PUT', body: JSON.stringify({ password }) })
+      await fetch(`/api/users/${user}`, {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      })
       await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
@@ -35,12 +38,24 @@ export default function Finish () {
 
   return (
     <>
-      <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>You've used a one time password.<br />Set your new password to continue.</h2>
+      <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
+      <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
+        You&apos;ve used a one time password.
+        <br />
+        Set your new password to continue.
+      </h2>
 
-      <form onSubmit={finish} className='flex flex-col w-full max-w-sm relative'>
-        <div className='w-full my-4'>
-          <label htmlFor='password' className='text-3xs text-gray-500 uppercase'>New Password</label>
+      <form
+        onSubmit={finish}
+        className='relative flex w-full max-w-sm flex-col'
+      >
+        <div className='my-4 w-full'>
+          <label
+            htmlFor='password'
+            className='text-3xs uppercase text-gray-500'
+          >
+            New Password
+          </label>
           <input
             required
             name='password'
@@ -50,13 +65,22 @@ export default function Finish () {
               setPassword(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-3 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              error ? 'border-pink-500/60' : ''
+            }`}
           />
         </div>
-        <button disabled={!password} className='border border-violet-300 hover:border-violet-100 my-2 text-2xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+        <button
+          disabled={!password}
+          className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+        >
           Finish
         </button>
-        {error && <p className='absolute -bottom-3.5 w-full mx-auto text-2xs text-pink-400 text-center'>{error}</p>}
+        {error && (
+          <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
+            {error}
+          </p>
+        )}
       </form>
     </>
   )
