@@ -43,7 +43,7 @@ func newUsersAddCmd(cli *CLI) *cobra.Command {
 		Short: "Create a user",
 		Long: `Create a user.
 
-Note: A new user must change their one time password before further usage.`,
+Note: A temporary password will be created. The user will be prompted to set a new password on first login.`,
 		Args: ExactArgs(1),
 		Example: `# Create a user
 $ infra users add johndoe@example.com`,
