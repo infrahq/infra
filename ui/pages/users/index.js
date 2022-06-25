@@ -76,8 +76,18 @@ function Details ({ user, admin, onDelete }) {
                   mutate({ items: grants.filter(x => x.id !== g.id) })
                 }}
                 onChange={async privilege => {
-                  const grant = await editGrant(g.id, { ...g, privilege })
-                  mutate({ items: [...grants.filter(x => x.id !== g.id), grant] })
+                  const res = await fetch('/api/grants', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      ...g,
+                      privilege
+                    })
+                  })
+
+                  // delete old grant
+                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+
+                  mutate({ items: [...grants.filter(f => f.id !== g.id), await res.json()] })
                 }}
               />
             </div>

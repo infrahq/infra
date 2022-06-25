@@ -1,25 +1,3 @@
-export async function editGrant (id, { user, group, privilege, resource }) {
-  const res = await fetch('/api/grants', {
-    method: 'POST',
-    body: JSON.stringify({
-      user,
-      group,
-      privilege,
-      resource
-    })
-  })
-
-  const data = await res.json()
-  if (!res.ok) {
-    throw data
-  }
-
-  // delete old grant
-  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-
-  return data
-}
-
 export function sortByPrivilege (a, b) {
   if (a === 'cluster-admin') {
     return -1
