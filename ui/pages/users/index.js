@@ -1,11 +1,11 @@
 import Head from 'next/head'
 import { useState } from 'react'
 import { useTable } from 'react-table'
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
-
+import { sortByResource } from '../../lib/grants'
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
 import Table from '../../components/table'
@@ -13,7 +13,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import DeleteModal from '../../components/modals/delete'
-import ResourcesGrant from '../../components/resources-grant'
+import RoleSelect from '../../components/role-select'
 
 const columns = [{
   Header: 'Name',
@@ -21,8 +21,8 @@ const columns = [{
   Cell: ({ value: user }) => (
     <div className='flex items-center py-1.5'>
       <ProfileIcon name={user.name[0]} />
-      <div className='flex flex-col leading-tight ml-3'>
-        <div className='text-subtitle'>{user.name}</div>
+      <div className='flex-1 min-w-0 flex flex-col leading-tight ml-3'>
+        <div className='truncate'>{user.name}</div>
       </div>
     </div>
   )
@@ -40,32 +40,84 @@ const columns = [{
   )
 }]
 
-function SidebarContent ({ user, admin, onDelete }) {
+function Details ({ user, admin, onDelete }) {
   const { id, name } = user
-  const { data: { items: grants } = {} } = useSWR(`/api/grants?user=${id}`)
   const { data: auth } = useSWR('/api/users/self')
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
-  const infraRole = grants?.filter(g => g.resource === 'infra')?.[0]?.privilege
+  const { data: { items } = {}, mutate } = useSWR(`/api/grants?user=${id}`)
+  const { data: { items: groups } = {} } = useSWR(`/api/groups?userID=${id}`)
+  const { data: groupGrantDatas } = useSWR(
+    () => groups ? groups.map(g => `/api/grants?group=${g.id}`) : null,
+    (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
+  )
+
+  const grants = items?.filter(g => g.resource !== 'infra')
+  const inherited = groupGrantDatas?.map(g => g?.items || [])?.flat()?.filter(g => g.resource !== 'infra')
+
+  const loading = [auth, grants, groups, groups?.length ? inherited : true].some(x => !x)
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
       {admin &&
         <section>
-          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <ResourcesGrant user={user.id} />
+          <h3 className='py-4 mb-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          {grants?.sort(sortByResource)?.map(g => (
+            <div key={g.id} className='flex justify-between items-center text-2xs'>
+              <div>{g.resource}</div>
+              <RoleSelect
+                role={g.privilege}
+                resource={g.resource}
+                remove
+                direction='left'
+                onRemove={async () => {
+                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                  mutate({ items: grants.filter(x => x.id !== g.id) })
+                }}
+                onChange={async privilege => {
+                  const res = await fetch('/api/grants', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      ...g,
+                      privilege
+                    })
+                  })
+
+                  // delete old grant
+                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+
+                  mutate({ items: [...grants.filter(f => f.id !== g.id), await res.json()] })
+                }}
+              />
+            </div>
+          ))}
+          {inherited?.sort(sortByResource)?.map(g => (
+            <div key={g.id} className='flex justify-between items-center text-2xs'>
+              <div>{g.resource}</div>
+              <div className='flex-none flex'>
+                <div
+                  title='This access is inherited by a group and cannot be edited here'
+                  className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
+                >
+                  inherited
+                </div>
+                <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
+                  {g.privilege}
+                </div>
+              </div>
+            </div>
+          ))}
+          {!grants?.length && !inherited?.length && !loading && (
+            <div className='text-2xs text-gray-400 mt-6 italic'>No access</div>
+          )}
         </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
           <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>User</div>
-            <div className='text-2xs'>{user?.name}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='text-gray-400 text-2xs w-1/3'>Infra Role</div>
-            <div className='text-2xs'>{infraRole || '-'}</div>
+            <div className='text-gray-400 text-2xs w-1/3'>ID</div>
+            <div className='text-2xs'>{user?.id}</div>
           </div>
           <div className='flex flex-row items-center'>
             <div className='text-gray-400 text-2xs w-1/3'>Created</div>
@@ -86,14 +138,6 @@ function SidebarContent ({ user, admin, onDelete }) {
           open={deleteModalOpen}
           setOpen={setDeleteModalOpen}
           onSubmit={async () => {
-            mutate('/api/users', async ({ items: users } = { items: [] }) => {
-              await fetch(`/api/users/${id}`, {
-                method: 'DELETE'
-              })
-
-              return { items: users?.filter(u => u?.id !== id) }
-            })
-
             setDeleteModalOpen(false)
             onDelete()
           }}
@@ -106,7 +150,7 @@ function SidebarContent ({ user, admin, onDelete }) {
 }
 
 export default function Users () {
-  const { data: { items } = {}, error } = useSWR('/api/users')
+  const { data: { items } = {}, error, mutate } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({ columns, data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [] })
@@ -146,12 +190,22 @@ export default function Users () {
                 )}
           </div>
           {selected &&
-            <Sidebar
-              handleClose={() => setSelected(null)}
-              title={selected.name}
-              profileIcon={selected.name[0]}
-            >
-              <SidebarContent user={selected} admin={admin} onDelete={() => setSelected(null)} />
+            <Sidebar handleClose={() => setSelected(null)} title={selected.name} profileIcon={selected.name[0]}>
+              <Details
+                user={selected}
+                admin={admin}
+                onDelete={() => {
+                  mutate(async ({ items: users } = { items: [] }) => {
+                    await fetch(`/api/users/${selected.id}`, {
+                      method: 'DELETE'
+                    })
+
+                    return { items: users?.filter(u => u?.id !== selected.id) }
+                  })
+
+                  setSelected(null)
+                }}
+              />
             </Sidebar>}
         </div>
       )}

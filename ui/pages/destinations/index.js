@@ -1,9 +1,10 @@
-import useSWR, { useSWRConfig } from 'swr'
-import Head from 'next/head'
 import { useState } from 'react'
+import useSWR from 'swr'
+import Head from 'next/head'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
+import { sortBySubject, sortByPrivilege } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
@@ -11,22 +12,110 @@ import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
-import Grant from '../../components/grant'
+import RoleSelect from '../../components/role-select'
+import GrantForm from '../../components/grant-form'
+
+function parent (resource = '') {
+  const parts = resource.split('.')
+  return parts.length > 1 ? parts[0] : null
+}
 
 function Details ({ destination, onDelete }) {
-  const { data: auth } = useSWR('/api/users/self')
-  const { admin } = useAdmin()
-  const { data: { items: grants } = {} } = useSWR(() => `/api/grants?resource=${destination.resource}`)
+  const { resource } = destination
 
-  const { mutate } = useSWRConfig()
+  const { admin } = useAdmin()
+  const { data: auth } = useSWR('/api/users/self')
+  const { data: { items: users } = {} } = useSWR('/api/users')
+  const { data: { items: groups } = {} } = useSWR('/api/groups')
+  const { data: { items: usergroups } = {} } = useSWR(() => auth ? `/api/groups?userID=${auth.id}` : null)
+  const { data: { items: grants } = {}, mutate } = useSWR(`/api/grants?resource=${resource}`)
+  const { data: { items: inherited } = {} } = useSWR(() => parent(resource) ? `/api/grants?resource=${parent(resource)}` : null)
+
+  const connectable = grants?.find(g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group))
+  const empty = grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   return (
     <div className='flex-1 flex flex-col space-y-6'>
-      {grants?.filter(g => g.user === auth.id)?.length > 0 && (
+      {admin &&
+        <section>
+          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
+          <GrantForm
+            roles={destination.roles}
+            onSubmit={async ({ user, group, privilege }) => {
+              // don't add grants that already exist
+              if (grants?.find(g => g.user === user && g.group === group && g.privilege === privilege)) {
+                return false
+              }
+
+              const res = await fetch('/api/grants', {
+                method: 'POST',
+                body: JSON.stringify({ user, group, privilege, resource })
+              })
+
+              mutate({ items: [...grants, await res.json()] })
+            }}
+          />
+          <div className='mt-4'>
+            {empty && (<div className='text-2xs text-gray-400 mt-6 italic'>No access</div>)}
+            {grants?.sort(sortByPrivilege)?.sort(sortBySubject)?.map(g => (
+              <div key={g.id} className='flex justify-between items-center text-2xs'>
+                <div className='truncate'>
+                  {users?.find(u => u.id === g.user)?.name}
+                  {groups?.find(group => group.id === g.group)?.name}
+                </div>
+                <RoleSelect
+                  role={g.privilege}
+                  roles={destination.roles}
+                  remove
+                  onRemove={async () => {
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                    mutate({ items: grants.filter(x => x.id !== g.id) })
+                  }}
+                  onChange={async privilege => {
+                    const res = await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        ...g,
+                        privilege
+                      })
+                    })
+
+                    // delete old grant
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+
+                    mutate({ items: [...grants.filter(f => f.id !== g.id), await res.json()] })
+                  }}
+                  direction='left'
+                />
+              </div>
+            ))}
+            {inherited?.sort(sortByPrivilege)?.sort(sortBySubject)?.map(g => (
+              <div key={g.id} className='flex justify-between items-center text-2xs'>
+                <div className='truncate'>
+                  {users?.find(u => u.id === g.user)?.name}
+                  {groups?.find(group => group.id === g.group)?.name}
+                </div>
+                <div className='flex-none flex'>
+                  <div
+                    title='This access is inherited by a parent resource and cannot be edited here'
+                    className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
+                  >
+                    inherited
+                  </div>
+                  <div className='relative flex-none pl-3 pr-8 w-32 py-2 text-left text-2xs text-gray-400'>
+                    {g.privilege}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>}
+      {connectable && (
         <section>
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Connect</h3>
-          <p className='text-2xs my-4'>Connect to this {destination.kind} via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
+          <p className='text-2xs my-4'>Connect to this {destination?.kind || 'resource'} via the <a target='_blank' href='https://infrahq.com/docs/install/install-infra-cli' className='underline text-violet-200 font-medium' rel='noreferrer'>Infra CLI</a></p>
           <pre className='px-4 py-3 rounded-md text-gray-300 bg-gray-900 text-2xs leading-normal overflow-auto'>
             infra login {window.location.host}<br />
             infra use {destination.resource}<br />
@@ -34,11 +123,6 @@ function Details ({ destination, onDelete }) {
           </pre>
         </section>
       )}
-      {admin &&
-        <section>
-          <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
-          <Grant resource={destination.resource} />
-        </section>}
       <section>
         <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Metadata</h3>
         <div className='pt-3 flex flex-col space-y-2'>
@@ -73,14 +157,6 @@ function Details ({ destination, onDelete }) {
             open={deleteModalOpen}
             setOpen={setDeleteModalOpen}
             onSubmit={async () => {
-              mutate('/api/destinations', async ({ items: destinations } = { items: [] }) => {
-                await fetch(`/api/destinations/${destination.id}`, {
-                  method: 'DELETE'
-                })
-
-                return { items: destinations.filter(d => d?.id !== destination.id) }
-              })
-
               setDeleteModalOpen(false)
               onDelete()
             }}
@@ -129,7 +205,7 @@ const columns = [{
 }]
 
 export default function Destinations () {
-  const { data: { items: destinations } = {}, error } = useSWR('/api/destinations')
+  const { data: { items: destinations } = {}, error, mutate } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
@@ -139,14 +215,17 @@ export default function Destinations () {
       ...d,
       kind: 'cluster',
       resource: d.name,
+
+      // Create "fake" destinations as subrows from resources
       subRows: d.resources?.map(r => ({
         name: r,
         resource: `${d.name}.${r}`,
-        kind: 'namespace'
+        kind: 'namespace',
+        roles: d.roles?.filter(r => r !== 'cluster-admin')
       }))
     })) || []
 
-  const loading = adminLoading || (!destinations && !error)
+  const loading = adminLoading || !destinations
 
   return (
     <>
@@ -160,7 +239,7 @@ export default function Destinations () {
             {error?.status
               ? <div className='my-20 text-center font-light text-gray-300 text-sm'>{error?.info?.message}</div>
               : (
-                <div className='flex flex-col flex-1 px-6 min-h-0 overflow-y-scroll'>
+                <div className='flex flex-col flex-1 mx-6 min-h-0 overflow-y-scroll'>
                   <Table
                     columns={columns}
                     data={data}
@@ -189,7 +268,13 @@ export default function Destinations () {
               title={selected.resource}
               iconPath='/destinations.svg'
             >
-              <Details destination={selected} onDelete={() => setSelected(null)} />
+              <Details
+                destination={selected} onDelete={() => {
+                  fetch(`/api/destinations/${selected.id}`, { method: 'DELETE' })
+                  mutate(destinations.filter(d => d?.id !== selected.id))
+                  setSelected(null)
+                }}
+              />
             </Sidebar>}
         </div>
       )}
