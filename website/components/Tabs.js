@@ -2,7 +2,7 @@ import { useState, createContext } from 'react'
 
 export const TabContext = createContext()
 
-export default function Tabs ({ labels, children }) {
+export default function Tabs({ labels, children }) {
   const [currentTab, setCurrentTab] = useState(labels[0])
 
   return (
@@ -11,7 +11,11 @@ export default function Tabs ({ labels, children }) {
         {labels.map(label => (
           <button
             key={label}
-            className={`${label === currentTab ? 'text-white border-zinc-100' : 'text-zinc-500 border-transparent'} px-7 py-1.5 leading-loose border-b text-lg font-medium first-of-type:ml-0`}
+            className={`${
+              label === currentTab
+                ? 'border-zinc-100 text-white'
+                : 'border-transparent text-zinc-500'
+            } border-b px-7 py-1.5 text-lg font-medium leading-loose first-of-type:ml-0`}
             onClick={() => setCurrentTab(label)}
           >
             {label}

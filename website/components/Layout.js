@@ -1,9 +1,9 @@
 import Nav from './Nav'
 import Footer from './Footer'
 
-export default function ({ children }) {
+export default function Layout({ children }) {
   return (
-    <div className='flex flex-col overflow-x-hidden min-h-full'>
+    <div className='flex min-h-full flex-col overflow-x-hidden'>
       <Nav />
       {children}
       <Footer />
