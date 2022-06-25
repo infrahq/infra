@@ -4,7 +4,7 @@ import { Combobox } from '@headlessui/react'
 import { CheckIcon } from '@heroicons/react/solid'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import RoleDropdown from './role-dropdown'
+import RoleSelect from './role-select'
 
 export default function ({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
@@ -26,6 +26,7 @@ export default function ({ roles, onSubmit = () => {} }) {
 
   return (
     <form
+      className='flex my-2'
       onSubmit={e => {
         e.preventDefault()
         onSubmit({
@@ -33,8 +34,9 @@ export default function ({ roles, onSubmit = () => {} }) {
           group: selected.group ? selected.id : undefined,
           privilege: role
         })
+        setRole(roles?.[0])
+        setSelected(null)
       }}
-      className='flex my-2'
     >
       <div className='flex items-center flex-1 border-b border-gray-800'>
         <Combobox
@@ -82,7 +84,7 @@ export default function ({ roles, onSubmit = () => {} }) {
           <Combobox.Button className='hidden' ref={button} />
         </Combobox>
         {roles?.length > 1 && (
-          <RoleDropdown onChange={setRole} role={role} roles={roles} />
+          <RoleSelect onChange={setRole} role={role} roles={roles} />
         )}
       </div>
       <button

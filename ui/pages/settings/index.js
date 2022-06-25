@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR from 'swr'
 
-import { addGrant, removeGrant, sortBySubject } from '../../lib/grants'
+import { sortBySubject } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/modals/delete'
@@ -89,7 +89,19 @@ export default function Settings () {
           <GrantForm
             resource='infra'
             roles={['admin']}
-            onSubmit={({ user, group }) => mutate(addGrant({ user, group, privilege: 'admin', resource: 'infra' }))}
+            onSubmit={async ({ user, group }) => {
+              // don't add grants that already exist
+              if (grants?.find(g => g.user === user && g.group === group)) {
+                return false
+              }
+
+              const res = await fetch('/api/grants', {
+                method: 'POST',
+                body: JSON.stringify({ user, group, privilege: 'admin', resource: 'infra' })
+              })
+
+              mutate({ items: [...grants, await res.json()] })
+            }}
           />
           <div className='mt-6'>
             {grants?.sort(sortBySubject)?.map(g => (
@@ -97,7 +109,10 @@ export default function Settings () {
                 key={g.id}
                 name={users?.find(u => g.user === u.id)?.name || groups?.find(group => g.group === group.id)?.name || ''}
                 showRemove={g?.user !== auth?.id}
-                onRemove={() => mutate(removeGrant(g.id))}
+                onRemove={async () => {
+                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                  mutate({ items: grants.filter(x => x.id !== g.id) })
+                }}
               />
             ))}
           </div>

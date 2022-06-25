@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
-import { editGrant, removeGrant, sortByResource } from '../../lib/grants'
+import { editGrant, sortByResource } from '../../lib/grants'
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
 import Table from '../../components/table'
@@ -13,7 +13,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import DeleteModal from '../../components/modals/delete'
-import RoleDropdown from '../../components/role-dropdown'
+import RoleSelect from '../../components/role-select'
 
 const columns = [{
   Header: 'Name',
@@ -66,13 +66,19 @@ function Details ({ user, admin, onDelete }) {
           {grants?.sort(sortByResource)?.map(g => (
             <div key={g.id} className='flex justify-between items-center text-2xs'>
               <div>{g.resource}</div>
-              <RoleDropdown
+              <RoleSelect
                 role={g.privilege}
                 resource={g.resource}
                 remove
                 direction='left'
-                onRemove={() => mutate(removeGrant(g.id))}
-                onChange={privilege => mutate(editGrant(g.id, { ...g, privilege }))}
+                onRemove={async () => {
+                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                  mutate({ items: grants.filter(x => x.id !== g.id) })
+                }}
+                onChange={async privilege => {
+                  const grant = await editGrant(g.id, { ...g, privilege })
+                  mutate({ items: [...grants.filter(x => x.id !== g.id), grant] })
+                }}
               />
             </div>
           ))}
@@ -81,7 +87,7 @@ function Details ({ user, admin, onDelete }) {
               <div>{g.resource}</div>
               <div className='flex-none flex'>
                 <div
-                  title='This access is inherited and cannot be edited here'
+                  title='This access is inherited by a group and cannot be edited here'
                   className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
                 >
                   inherited

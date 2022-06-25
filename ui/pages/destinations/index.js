@@ -4,7 +4,7 @@ import Head from 'next/head'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
-import { addGrant, editGrant, removeGrant, sortBySubject, sortByPrivilege } from '../../lib/grants'
+import { sortBySubject, sortByPrivilege } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
@@ -12,7 +12,7 @@ import EmptyTable from '../../components/empty-table'
 import DeleteModal from '../../components/modals/delete'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
-import RoleDropdown from '../../components/role-dropdown'
+import RoleSelect from '../../components/role-select'
 import GrantForm from '../../components/grant-form'
 
 function parent (resource = '') {
@@ -43,7 +43,19 @@ function Details ({ destination, onDelete }) {
           <h3 className='py-4 text-3xs text-gray-400 border-b border-gray-800 uppercase'>Access</h3>
           <GrantForm
             roles={destination.roles}
-            onSubmit={({ user, group, privilege }) => mutate(addGrant({ user, group, privilege, resource }))}
+            onSubmit={async ({ user, group, privilege }) => {
+              // don't add grants that already exist
+              if (grants?.find(g => g.user === user && g.group === group && g.privilege === privilege)) {
+                return false
+              }
+
+              const res = await fetch('/api/grants', {
+                method: 'POST',
+                body: JSON.stringify({ user, group, privilege, resource })
+              })
+
+              mutate({ items: [...grants, await res.json()] })
+            }}
           />
           <div className='mt-4'>
             {empty && (<div className='text-2xs text-gray-400 mt-6 italic'>No access</div>)}
@@ -53,12 +65,28 @@ function Details ({ destination, onDelete }) {
                   {users?.find(u => u.id === g.user)?.name}
                   {groups?.find(group => group.id === g.group)?.name}
                 </div>
-                <RoleDropdown
+                <RoleSelect
                   role={g.privilege}
                   roles={destination.roles}
                   remove
-                  onRemove={() => mutate(removeGrant(g.id))}
-                  onChange={privilege => mutate(editGrant(g.id, { ...g, privilege }))}
+                  onRemove={async () => {
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                    mutate({ items: grants.filter(x => x.id !== g.id) })
+                  }}
+                  onChange={async privilege => {
+                    const res = await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        ...g,
+                        privilege
+                      })
+                    })
+
+                    // delete old grant
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+
+                    mutate({ items: [...grants.filter(f => f.id !== g.id), await res.json()] })
+                  }}
                   direction='left'
                 />
               </div>
@@ -71,7 +99,7 @@ function Details ({ destination, onDelete }) {
                 </div>
                 <div className='flex-none flex'>
                   <div
-                    title='This access is inherited and cannot be edited here'
+                    title='This access is inherited by a parent resource and cannot be edited here'
                     className='relative pt-px mx-1 self-center text-2xs text-gray-400 border rounded px-2 bg-gray-800 border-gray-800'
                   >
                     inherited
@@ -242,11 +270,8 @@ export default function Destinations () {
             >
               <Details
                 destination={selected} onDelete={() => {
-                  mutate(async ({ items: destinations } = { items: [] }) => {
-                    fetch(`/api/destinations/${selected.id}`, { method: 'DELETE' })
-                    return { items: destinations.filter(d => d?.id !== selected.id) }
-                  })
-
+                  fetch(`/api/destinations/${selected.id}`, { method: 'DELETE' })
+                  mutate(destinations.filter(d => d?.id !== selected.id))
                   setSelected(null)
                 }}
               />

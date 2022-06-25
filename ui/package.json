@@ -39,7 +39,9 @@
     "globals": [
       "fetch",
       "test",
-      "expect"
+      "describe",
+      "expect",
+      "jest"
     ]
   },
   "engines": {

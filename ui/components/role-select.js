@@ -3,6 +3,8 @@ import { Listbox } from '@headlessui/react'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/react/solid'
 import { XIcon } from '@heroicons/react/outline'
 
+import { sortByPrivilege } from '../lib/grants'
+
 const OPTION_REMOVE = 'remove'
 
 const descriptions = {
@@ -13,18 +15,6 @@ const descriptions = {
   logs: 'Read and stream logs',
   exec: 'Shell to a running container',
   'port-forward': 'Use port-forwarding to access applications'
-}
-
-function sortByPrilege (a, b) {
-  if (a === 'cluster-admin') {
-    return -1
-  }
-
-  if (b === 'cluster-admin') {
-    return 1
-  }
-
-  return 0
 }
 
 export default function ({
@@ -41,7 +31,7 @@ export default function ({
 
   const { data: { items } = {} } = useSWR(() => resource && `/api/destinations?name=${hasParent ? parts[0] : resource}`)
   roles = roles || items?.[0]?.roles || []
-  roles = roles?.sort(sortByPrilege)?.filter(r => hasParent ? r !== 'cluster-admin' : true)
+  roles = roles?.sort(sortByPrivilege)?.filter(r => hasParent ? r !== 'cluster-admin' : true)
 
   return (
     <Listbox

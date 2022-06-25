@@ -9,7 +9,6 @@ export function useAdmin () {
   // todo: switch to using /api/grants?inherited=1 instead of
   // multiple fetches (/api/grants for each group)
   const { data: { items: groups } = {} } = useSWR(`/api/groups?userID=${auth?.id}`)
-  console.log(groups)
   const { data: groupGrantDatas } = useSWR(
     () => groups.map(g => `/api/grants?group=${g.id}`) || null,
     (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
