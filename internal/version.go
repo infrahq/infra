@@ -20,9 +20,15 @@ var (
 // While the next version may not match the patch release, it causes the right behavior for semver version comparisons.
 func FullVersion() string {
 	v := semver.MustParse(Version)
+
+	metadata := v.Metadata()
 	if v.Metadata() == "" && Metadata != "" {
+		metadata = Metadata
+	}
+
+	if metadata != "" {
 		*v = v.IncPatch()
-		*v, _ = v.SetMetadata(Metadata)
+		*v, _ = v.SetMetadata(metadata)
 	}
 
 	if v.Prerelease() == "" && Prerelease != "" {
