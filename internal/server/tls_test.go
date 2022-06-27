@@ -64,6 +64,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 		srv := http.Server{Handler: noopHandler}
 
 		go func() {
+			// nolint:errorlint
 			if err := srv.Serve(l); err != http.ErrServerClosed {
 				t.Log(err)
 			}

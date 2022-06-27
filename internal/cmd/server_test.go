@@ -321,6 +321,11 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"
         metrics: "127.0.0.1:0"
+
+      tls:
+        ca: some-ca
+        caPrivateKey: some-key
+
       secrets:
         - kind: env
           name: base64env
