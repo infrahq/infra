@@ -96,6 +96,7 @@ func numberCheck(n int, password string) bool {
 	return match
 }
 
+// list is from OWASP, wikipedia
 func symbolCheck(n int, password string) bool {
 	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){%d,}`, regexp.QuoteMeta(`/\[]`), "`", n), password)
 	return match
