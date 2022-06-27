@@ -58,3 +58,212 @@ func TestUpdateCredentials(t *testing.T) {
 		assert.Equal(t, creds.OneTimePassword, false)
 	})
 }
+
+func TestLowercaseRequirements(t *testing.T) {
+	result := lowercaseCheck(2, "a")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "A")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "ab")
+	assert.Equal(t, result, true)
+
+	result = lowercaseCheck(2, "AB")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "Ab")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "abc")
+	assert.Equal(t, result, true)
+
+	result = lowercaseCheck(2, "abC")
+	assert.Equal(t, result, true)
+
+	result = lowercaseCheck(2, "AbC")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "aBc")
+	assert.Equal(t, result, true)
+
+	result = lowercaseCheck(2, "")
+	assert.Equal(t, result, false)
+
+	result = lowercaseCheck(2, "!$!@#23")
+	assert.Equal(t, result, false)
+}
+
+func TestUppercaseRequirements(t *testing.T) {
+	result := uppercaseCheck(2, "a")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "A")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "ab")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "AB")
+	assert.Equal(t, result, true)
+
+	result = uppercaseCheck(2, "Ab")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "abc")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "abC")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "AbC")
+	assert.Equal(t, result, true)
+
+	result = uppercaseCheck(2, "aBc")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "")
+	assert.Equal(t, result, false)
+
+	result = uppercaseCheck(2, "!$!@#23")
+	assert.Equal(t, result, false)
+}
+
+func TestNumberRequirements(t *testing.T) {
+	result := numberCheck(2, "abc")
+	assert.Equal(t, result, false)
+
+	result = numberCheck(2, "aBc")
+	assert.Equal(t, result, false)
+
+	result = numberCheck(2, "")
+	assert.Equal(t, result, false)
+
+	result = numberCheck(2, "!$!@#")
+	assert.Equal(t, result, false)
+
+	result = numberCheck(2, "!$!@#23")
+	assert.Equal(t, result, true)
+
+	result = numberCheck(2, "!$!@#23123")
+	assert.Equal(t, result, true)
+}
+
+func TestSymbolRequirements(t *testing.T) {
+	result := symbolCheck(2, "")
+	assert.Equal(t, result, false)
+
+	result = symbolCheck(2, "abAB")
+	assert.Equal(t, result, false)
+
+	result = symbolCheck(2, "abc!")
+	assert.Equal(t, result, false)
+
+	result = symbolCheck(2, "  ")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "!!")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `""`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `##`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `$$`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `%%`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "&&")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "''")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "((")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "))")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "**")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "++")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, ",,")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "--")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "..")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "))")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "//")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "::")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, ";;")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "<<")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "==")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, ">>")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "??")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "@@")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "^^")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "__")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "{{")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "}}")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "||")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "~~")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, "~~")
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `//`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `\\`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `[[`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `]]`)
+	assert.Equal(t, result, true)
+
+	result = symbolCheck(2, `@$%@#ss`)
+	assert.Equal(t, result, true)
+}

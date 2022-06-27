@@ -97,12 +97,15 @@ func numberCheck(n int, password string) bool {
 }
 
 func symbolCheck(n int, password string) bool {
-	match, _ := regexp.MatchString(fmt.Sprintf(`(.*\p{S}){%d,}`, n), password)
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){%d,}`, regexp.QuoteMeta(`/\[]`), "`", n), password)
 	return match
+	// /\[]`
 }
 
 func checkPasswordRequirements(password string) error {
 	var errs []string
+
+	kind := "custom"
 	minLowercase := 1
 	minUppercase := 1
 	minNumber := 1
@@ -112,7 +115,6 @@ func checkPasswordRequirements(password string) error {
 	number := true
 	symbol := true
 	minLength := 8
-	kind := "custom"
 
 	if kind == "custom" {
 		if lowercase && !lowercaseCheck(minLowercase, password) {
@@ -128,7 +130,7 @@ func checkPasswordRequirements(password string) error {
 		}
 
 		if symbol && !symbolCheck(minSymbol, password) {
-			errs = append(errs, fmt.Sprintf("needs minimum %d numbers", minNumber))
+			errs = append(errs, fmt.Sprintf("needs minimum %d symbols", minSymbol))
 		}
 
 		if len(password) > minLength {
