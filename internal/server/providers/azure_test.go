@@ -112,16 +112,14 @@ func azureHandlers(t *testing.T, mux *http.ServeMux) {
 	mux.HandleFunc("/v1.0/me/memberOf", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		_, err := io.WriteString(w, azureGroupResponse)
+		w.WriteHeader(200)
 		if err != nil {
-			w.WriteHeader(500)
+			assert.Check(t, err, "failed to write memberOf response")
 		}
 	})
 }
 
 func TestSyncAzureProviderUser(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t, azureHandlers)
-
 	db := setupDB(t)
 
 	provider := &models.Provider{
@@ -132,42 +130,15 @@ func TestSyncAzureProviderUser(t *testing.T) {
 	err := data.CreateProvider(db, provider)
 	assert.NilError(t, err)
 
-	oidc := &oidcImplementation{
-		ProviderID:   provider.ID,
-		Domain:       serverURL,
-		ClientID:     "whatever",
-		ClientSecret: "whatever",
-		RedirectURL:  "http://localhost:8301",
-	}
-	azure := &azure{OIDC: oidc}
-
-	now := time.Now().UTC()
-
-	claims := jwt.Claims{
-		Audience:  jwt.Audience([]string{server.knownClientID}),
-		NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-		Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
-		IssuedAt:  jwt.NewNumericDate(now),
-		Issuer:    serverURL,
-	}
-
-	body, err := testTokenResponse(claims, server.signingKey, "hello@example.com")
-	assert.NilError(t, err)
-
-	server.tokenResponse = tokenResponse{
-		code: 200,
-		body: body,
-	}
-
 	tests := []struct {
 		name         string
-		setupFunc    func(t *testing.T) *models.Identity
+		setupFunc    func(t *testing.T, serverURL string) *models.Identity
 		infoResponse string
 		verifyFunc   func(t *testing.T, err error, user *models.Identity)
 	}{
 		{
 			name: "invalid/expired access token is updated",
-			setupFunc: func(t *testing.T) *models.Identity {
+			setupFunc: func(t *testing.T, serverURL string) *models.Identity {
 				user := &models.Identity{
 					Name: "sharrington@example.com",
 				}
@@ -183,8 +154,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"),
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -203,14 +174,17 @@ func TestSyncAzureProviderUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.Assert(t, err)
+				assert.NilError(t, err)
 
 				assert.Assert(t, pu.AccessToken != "aaa")
+				assert.Equal(t, string(pu.RefreshToken), "bbb")
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.ExpiresAt, time.Now().UTC().Add(1*time.Hour)))
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
 			},
 		},
 		{
 			name: "deleted user's userinfo response causes sync to fail",
-			setupFunc: func(t *testing.T) *models.Identity {
+			setupFunc: func(t *testing.T, serverURL string) *models.Identity {
 				user := &models.Identity{
 					Name: "rbuckleyn@example.com",
 				}
@@ -226,8 +200,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"),
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -244,8 +218,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 			},
 		},
 		{
-			name: "failure to sync groups does fail sync",
-			setupFunc: func(t *testing.T) *models.Identity {
+			name: "failure to sync groups does not fail sync",
+			setupFunc: func(t *testing.T, serverURL string) *models.Identity {
 				patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf/fail")
 
 				user := &models.Identity{
@@ -263,8 +237,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"), // this is used to fail the groups call, in reality this token should be valid
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -282,11 +256,12 @@ func TestSyncAzureProviderUser(t *testing.T) {
 			}`,
 			verifyFunc: func(t *testing.T, err error, user *models.Identity) {
 				assert.NilError(t, err)
+				assert.Assert(t, len(user.Groups) == 0)
 			},
 		},
 		{
 			name: "groups are set from graph response",
-			setupFunc: func(t *testing.T) *models.Identity {
+			setupFunc: func(t *testing.T, serverURL string) *models.Identity {
 				patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf")
 
 				user := &models.Identity{
@@ -304,8 +279,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"), // this is used to fail the groups call, in reality this token should be valid
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -325,7 +300,8 @@ func TestSyncAzureProviderUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.Assert(t, err)
+				assert.NilError(t, err)
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
 
 				assert.Assert(t, len(pu.Groups) == 2)
 
@@ -342,9 +318,37 @@ func TestSyncAzureProviderUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			user := test.setupFunc(t)
-			server.userInfoResponse = test.infoResponse
-			err := azure.SyncProviderUser(ctx, db, user, provider)
+			server, ctx := setupOIDCTest(t, test.infoResponse)
+			serverURL := server.run(t, azureHandlers)
+			oidc := &oidcImplementation{
+				ProviderID:   provider.ID,
+				Domain:       serverURL,
+				ClientID:     "whatever",
+				ClientSecret: "whatever",
+				RedirectURL:  "http://localhost:8301",
+			}
+			azure := &azure{OIDC: oidc}
+
+			now := time.Now().UTC()
+
+			claims := jwt.Claims{
+				Audience:  jwt.Audience([]string{"whatever"}),
+				NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+				Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
+				IssuedAt:  jwt.NewNumericDate(now),
+				Issuer:    serverURL,
+			}
+
+			body, err := testTokenResponse(claims, server.signingKey, "hello@example.com")
+			assert.NilError(t, err)
+
+			server.tokenResponse = tokenResponse{
+				code: 200,
+				body: body,
+			}
+
+			user := test.setupFunc(t, serverURL)
+			err = azure.SyncProviderUser(ctx, db, user, provider)
 			test.verifyFunc(t, err, user)
 		})
 	}

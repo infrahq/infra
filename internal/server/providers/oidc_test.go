@@ -36,10 +36,6 @@ type testOIDCServer struct {
 	userInfoResponse string
 	tokenResponse    tokenResponse
 	signingKey       *rsa.PrivateKey
-
-	knownClientID     string
-	knownClientSecret string
-	knownAuthCode     string // in this test case the auth code can be re-used
 }
 
 const (
@@ -62,6 +58,17 @@ const (
 		"error_description": "The authorization code is invalid or has expired."
 	}`
 )
+
+func cmpAPITimeWithThreshold(x, y time.Time) bool {
+	if x.IsZero() || y.IsZero() {
+		return false
+	}
+	delta := x.Sub(y)
+
+	threshold := 20 * time.Minute
+
+	return delta <= threshold && delta >= -threshold
+}
 
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
@@ -120,7 +127,7 @@ func (ts *testOIDCServer) run(t *testing.T, addHandlers func(*testing.T, *http.S
 		w.WriteHeader(ts.tokenResponse.code)
 		_, err := io.WriteString(w, ts.tokenResponse.body)
 		if err != nil {
-			w.WriteHeader(500)
+			assert.Check(t, err, "failed to write token response")
 		}
 	})
 	newMux.HandleFunc("/userinfo", func(w http.ResponseWriter, req *http.Request) {
@@ -187,14 +194,12 @@ func testTokenResponse(claims jwt.Claims, signingKey *rsa.PrivateKey, email stri
 	}`, raw), nil
 }
 
-func setupOIDCTest(t *testing.T) (testOIDCServer, context.Context) {
+func setupOIDCTest(t *testing.T, userInfoResp string) (testOIDCServer, context.Context) {
 	signingKey := loadTestSecretKey(t)
 
 	server := testOIDCServer{
-		knownClientID:     "aaa",
-		knownClientSecret: "bbb",
-		knownAuthCode:     "1234",
-		signingKey:        signingKey,
+		signingKey:       signingKey,
+		userInfoResponse: userInfoResp,
 	}
 
 	// setup a an HTTP client that skips TLS verify for test purposes
@@ -213,7 +218,7 @@ func setupOIDCTest(t *testing.T) (testOIDCServer, context.Context) {
 }
 
 func TestValidate(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
+	server, ctx := setupOIDCTest(t, "")
 	serverURL := server.run(t, nil)
 
 	tests := []struct {
@@ -242,7 +247,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:     "invalid client secret",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, "some_client_secret", "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: tokenResponse{
 				code: 500,
 				body: oktaInvalidClientSecretResp,
@@ -254,7 +259,7 @@ func TestValidate(t *testing.T) {
 
 		{
 			name:     "valid provider client",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: tokenResponse{
 				code: 500,
 				body: oktaInvalidAuthCodeResp,
@@ -275,7 +280,7 @@ func TestValidate(t *testing.T) {
 }
 
 func TestExchangeAuthCodeForProviderToken(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
+	server, ctx := setupOIDCTest(t, "")
 	serverURL := server.run(t, nil)
 
 	tests := []struct {
@@ -303,7 +308,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "invalid auth code fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				return tokenResponse{
 					code: 500,
@@ -320,7 +325,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "empty access token response fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				return tokenResponse{
 					code: 200,
@@ -337,7 +342,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "id token issued by a different provider fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				claims := jwt.Claims{
 					Issuer: "unknown-issuer",
@@ -362,7 +367,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "id token issued for wrong audience fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				claims := jwt.Claims{
 					Issuer:   "https://" + serverURL,
@@ -379,7 +384,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 				}
 			},
 			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
-				assert.ErrorContains(t, err, "expected audience \"aaa\"")
+				assert.ErrorContains(t, err, "expected audience \"client-id\"")
 				assert.Equal(t, accessToken, "")
 				assert.Equal(t, refreshToken, "")
 				assert.Assert(t, accessTokenExpiry.IsZero())
@@ -388,14 +393,14 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "expired id token fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				now := time.Now().UTC()
 
 				claims := jwt.Claims{
-					Audience:  jwt.Audience([]string{server.knownClientID}),
-					NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)),
-					Expiry:    jwt.NewNumericDate(now.Add(time.Minute * -5)),
+					Audience:  jwt.Audience([]string{"client-id"}),
+					NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)),
+					Expiry:    jwt.NewNumericDate(now.Add(-5 * time.Minute)),
 					IssuedAt:  jwt.NewNumericDate(now),
 					Issuer:    "https://" + serverURL,
 				}
@@ -419,14 +424,14 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "id token without email claim fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				now := time.Now().UTC()
 
 				claims := jwt.Claims{
-					Audience:  jwt.Audience([]string{server.knownClientID}),
-					NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-					Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
+					Audience:  jwt.Audience([]string{"client-id"}),
+					NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+					Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
 					IssuedAt:  jwt.NewNumericDate(now),
 					Issuer:    "https://" + serverURL,
 				}
@@ -450,14 +455,14 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "empty email claim fails",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				now := time.Now().UTC()
 
 				claims := jwt.Claims{
-					Audience:  jwt.Audience([]string{server.knownClientID}),
-					NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-					Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
+					Audience:  jwt.Audience([]string{"client-id"}),
+					NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+					Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
 					IssuedAt:  jwt.NewNumericDate(now),
 					Issuer:    "https://" + serverURL,
 				}
@@ -481,14 +486,14 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		},
 		{
 			name:     "valid id token is successful",
-			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: server.knownClientID}, server.knownClientSecret, "http://localhost:8301"),
+			provider: NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "client-id"}, "some_client_secret", "http://localhost:8301"),
 			tokenResponse: func(t *testing.T) tokenResponse {
 				now := time.Now().UTC()
 
 				claims := jwt.Claims{
-					Audience:  jwt.Audience([]string{server.knownClientID}),
-					NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-					Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
+					Audience:  jwt.Audience([]string{"client-id"}),
+					NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+					Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
 					IssuedAt:  jwt.NewNumericDate(now),
 					Issuer:    "https://" + serverURL,
 				}
@@ -522,16 +527,16 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 }
 
 func TestRefreshAccessToken(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
+	server, ctx := setupOIDCTest(t, "")
 	serverURL := server.run(t, nil)
 	provider := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "whatever"}, "secret", "http://localhost:8301")
 
 	now := time.Now().UTC()
 
 	claims := jwt.Claims{
-		Audience:  jwt.Audience([]string{server.knownClientID}),
-		NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-		Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
+		Audience:  jwt.Audience([]string{"client-id"}),
+		NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+		Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
 		IssuedAt:  jwt.NewNumericDate(now),
 		Issuer:    serverURL,
 	}
@@ -550,7 +555,7 @@ func TestRefreshAccessToken(t *testing.T) {
 			providerUser: &models.ProviderUser{
 				AccessToken:  models.EncryptedAtRest("aaa"),
 				RefreshToken: models.EncryptedAtRest("bbb"),
-				ExpiresAt:    time.Now().Add(time.Minute * -5),
+				ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
 			},
 			tokenResponse: tokenResponse{
 				code: 403,
@@ -565,7 +570,7 @@ func TestRefreshAccessToken(t *testing.T) {
 			providerUser: &models.ProviderUser{
 				AccessToken:  models.EncryptedAtRest("aaa"),
 				RefreshToken: models.EncryptedAtRest("bbb"),
-				ExpiresAt:    time.Now().Add(time.Minute * 5),
+				ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
 			},
 			verifyFunc: func(t *testing.T, accessToken string, expiry *time.Time, err error) {
 				assert.NilError(t, err)
@@ -577,7 +582,7 @@ func TestRefreshAccessToken(t *testing.T) {
 			providerUser: &models.ProviderUser{
 				AccessToken:  models.EncryptedAtRest("aaa"),
 				RefreshToken: models.EncryptedAtRest("bbb"),
-				ExpiresAt:    time.Now().Add(time.Minute * -5),
+				ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
 			},
 			tokenResponse: tokenResponse{
 				code: 200,
@@ -600,35 +605,14 @@ func TestRefreshAccessToken(t *testing.T) {
 }
 
 func TestSyncProviderUser(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t, nil)
-	oidc := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
 	db := setupDB(t)
-
-	now := time.Now().UTC()
-
-	claims := jwt.Claims{
-		Audience:  jwt.Audience([]string{server.knownClientID}),
-		NotBefore: jwt.NewNumericDate(now.Add(time.Minute * -5)), // adjust for clock drift
-		Expiry:    jwt.NewNumericDate(now.Add(time.Minute * 5)),
-		IssuedAt:  jwt.NewNumericDate(now),
-		Issuer:    serverURL,
-	}
-
-	body, err := testTokenResponse(claims, server.signingKey, "hello@example.com")
-	assert.NilError(t, err)
-
-	server.tokenResponse = tokenResponse{
-		code: 200,
-		body: body,
-	}
 
 	provider := &models.Provider{
 		Name: "mockta",
 		Kind: models.OktaKind,
 	}
 
-	err = data.CreateProvider(db, provider)
+	err := data.CreateProvider(db, provider)
 	assert.NilError(t, err)
 
 	tests := []struct {
@@ -655,8 +639,8 @@ func TestSyncProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"),
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -675,9 +659,12 @@ func TestSyncProviderUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.Assert(t, err)
+				assert.NilError(t, err)
 
-				assert.Assert(t, pu.AccessToken != "aaa")
+				assert.Assert(t, string(pu.AccessToken) != "aaa")
+				assert.Equal(t, string(pu.RefreshToken), "bbb")
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.ExpiresAt, time.Now().UTC().Add(1*time.Hour)))
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
 			},
 		},
 		{
@@ -698,8 +685,8 @@ func TestSyncProviderUser(t *testing.T) {
 					RedirectURL:  "http://example.com",
 					AccessToken:  models.EncryptedAtRest("aaa"),
 					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().Add(time.Minute * -5),
-					LastUpdate:   time.Now(),
+					ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
+					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
 				}
 
 				err = data.UpdateProviderUser(db, pu)
@@ -718,7 +705,8 @@ func TestSyncProviderUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.Assert(t, err)
+				assert.NilError(t, err)
+				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
 
 				assert.Assert(t, len(pu.Groups) == 2)
 
@@ -747,19 +735,37 @@ func TestSyncProviderUser(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			server, ctx := setupOIDCTest(t, test.infoResponse)
+			serverURL := server.run(t, nil)
+			oidc := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
+
+			now := time.Now().UTC()
+
+			claims := jwt.Claims{
+				Audience:  jwt.Audience([]string{"client-id"}),
+				NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
+				Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
+				IssuedAt:  jwt.NewNumericDate(now),
+				Issuer:    serverURL,
+			}
+
+			body, err := testTokenResponse(claims, server.signingKey, "hello@example.com")
+			assert.NilError(t, err)
+
+			server.tokenResponse = tokenResponse{
+				code: 200,
+				body: body,
+			}
+
 			user := test.setupProviderUser(t)
 			server.userInfoResponse = test.infoResponse
-			err := oidc.SyncProviderUser(ctx, db, user, provider)
+			err = oidc.SyncProviderUser(ctx, db, user, provider)
 			test.verifyFunc(t, err, user)
 		})
 	}
 }
 
 func TestGetUserInfo(t *testing.T) {
-	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t, nil)
-	provider := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
-
 	tests := []struct {
 		name         string
 		infoResponse string
@@ -836,8 +842,10 @@ func TestGetUserInfo(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			server.userInfoResponse = test.infoResponse
-			info, err := provider.GetUserInfo(ctx, &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().Add(time.Minute * 5)})
+			server, ctx := setupOIDCTest(t, test.infoResponse)
+			serverURL := server.run(t, nil)
+			provider := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
+			info, err := provider.GetUserInfo(ctx, &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})
 			test.verifyFunc(t, info, err)
 		})
 	}

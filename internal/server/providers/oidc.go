@@ -274,7 +274,8 @@ func checkRefreshAccessToken(ctx context.Context, db *gorm.DB, providerUser *mod
 		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
 
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-		providerUser.ExpiresAt = *expiry
+		providerUser.ExpiresAt = expiry.UTC()
+		providerUser.LastUpdate = time.Now().UTC()
 
 		err = data.UpdateProviderUser(db, providerUser)
 		if err != nil {
