@@ -217,11 +217,6 @@ func (o *oidcImplementation) SyncProviderUser(ctx context.Context, db *gorm.DB, 
 
 	logging.S.Debugf("user synchronized with %q groups from provider (ID: %v)", info.Groups, providerUser.ProviderID)
 
-	providerUser.Groups = info.Groups
-	if err := data.UpdateProviderUser(db, providerUser); err != nil {
-		return fmt.Errorf("update provider user: %w", err)
-	}
-
 	if err := data.AssignIdentityToGroups(db, user, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
