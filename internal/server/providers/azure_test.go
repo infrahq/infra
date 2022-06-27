@@ -95,6 +95,14 @@ const azureGroupResponse = `{
 	]
 }`
 
+func patchGraphGroupMemberEndpoint(t *testing.T, url string) {
+	orig := graphGroupMemberEndpoint
+	graphGroupMemberEndpoint = url
+	t.Cleanup(func() {
+		graphGroupMemberEndpoint = orig
+	})
+}
+
 func TestSyncAzureProviderUser(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
 	serverURL := server.run(t)
@@ -223,7 +231,7 @@ func TestSyncAzureProviderUser(t *testing.T) {
 		{
 			name: "failure to sync groups does fail sync",
 			setupFunc: func(t *testing.T) *models.Identity {
-				graphGroupMemberEndpoint = "https://" + serverURL + "/v1.0/me/memberOf/fail"
+				patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf/fail")
 
 				user := &models.Identity{
 					Name: "nwheeler@example.com",
@@ -264,7 +272,7 @@ func TestSyncAzureProviderUser(t *testing.T) {
 		{
 			name: "groups are set from graph response",
 			setupFunc: func(t *testing.T) *models.Identity {
-				graphGroupMemberEndpoint = "https://" + serverURL + "/v1.0/me/memberOf"
+				patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf")
 
 				user := &models.Identity{
 					Name: "jhopper@example.com",

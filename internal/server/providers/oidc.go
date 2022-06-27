@@ -167,7 +167,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	}
 
 	if err := validator.New().Struct(claims); err != nil {
-		logging.S.Errorf("%s provider incorrectly configured, no email found in ID token authenticated user, this claim is required", o.Domain)
+		logging.S.Errorf("%s provider incorrectly configured, email claim in ID token of authenticated user is missing or invalid: %s", o.Domain, err)
 		return "", "", time.Time{}, "", fmt.Errorf("failed to validate ID token claims: %w", err)
 	}
 
