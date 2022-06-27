@@ -729,13 +729,25 @@ func TestSyncProviderUser(t *testing.T) {
 
 				assert.Assert(t, len(pu.Groups) == 2)
 
-				groups := make(map[string]bool)
+				puGroups := make(map[string]bool)
 				for _, g := range pu.Groups {
-					groups[g] = true
+					puGroups[g] = true
 				}
 
-				assert.Assert(t, groups["Everyone"])
-				assert.Assert(t, groups["Developers"])
+				assert.Assert(t, puGroups["Everyone"])
+				assert.Assert(t, puGroups["Developers"])
+
+				// check that the direct user-to-group relation was updated
+				storedGroups, err := data.ListGroups(db, data.ByGroupMember(pu.IdentityID))
+				assert.NilError(t, err)
+
+				userGroups := make(map[string]bool)
+				for _, g := range storedGroups {
+					userGroups[g.Name] = true
+				}
+
+				assert.Assert(t, userGroups["Everyone"])
+				assert.Assert(t, userGroups["Developers"])
 			},
 		},
 	}
