@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -41,6 +39,10 @@ func (a *azure) Validate(ctx context.Context) error {
 	return a.OIDC.Validate(ctx)
 }
 
+func (a *azure) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
+	return a.OIDC.AuthServerInfo(ctx)
+}
+
 func (a *azure) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
 	return a.OIDC.ExchangeAuthCodeForProviderTokens(ctx, code)
 }
@@ -49,50 +51,35 @@ func (a *azure) RefreshAccessToken(ctx context.Context, providerUser *models.Pro
 	return a.OIDC.RefreshAccessToken(ctx, providerUser)
 }
 
-func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error) {
-	return a.OIDC.GetUserInfo(ctx, providerUser)
-}
-
-func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
-	providerUser, err := data.GetProviderUser(db, provider.ID, user.ID)
-	if err != nil {
-		return err
-	}
-
-	if err := checkRefreshAccessToken(ctx, db, providerUser, a); err != nil {
-		return fmt.Errorf("oidc sync failed to check users access token: %w", err)
-	}
-
+func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error) {
 	// this checks if the user still exists
-	_, err = a.OIDC.GetUserInfo(ctx, providerUser)
+	info, err := a.OIDC.GetUserInfo(ctx, providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
-		return fmt.Errorf("could not get user info from provider: %w", err)
+		return nil, fmt.Errorf("could not get user info from provider: %w", err)
 	}
 
 	newGroups, err := checkMemberOfGraphGroups(ctx, string(providerUser.AccessToken))
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
 		if !errors.Is(err, ErrUnauthorized) {
-			return fmt.Errorf("could not check azure user groups: %w", err)
+			return nil, fmt.Errorf("could not check azure user groups: %w", err)
 		}
 
 		newGroups = []string{} // set the groups empty to clear them
 		logging.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
 	}
 
-	logging.Debugf("user synchronized with %q groups from provider %q", &newGroups, provider.Name)
+	info.Groups = newGroups
 
-	if err := data.AssignIdentityToGroups(db, user, provider, newGroups); err != nil {
-		return fmt.Errorf("assign identity to groups: %w", err)
-	}
+	logging.Debugf("user synchronized with %q groups from azure provider", &newGroups)
 
-	return nil
+	return info, nil
 }
 
 // checkMemberOfGraphGroups calls the Microsoft Graph API to find out what groups a user belongs to

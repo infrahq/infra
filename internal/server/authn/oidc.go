@@ -74,7 +74,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Iden
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = a.OIDCProviderClient.SyncProviderUser(ctx, db, identity, provider)
+	err = data.SyncProviderUser(ctx, db, identity, provider, a.OIDCProviderClient)
 	if err != nil {
 		return nil, nil, AuthScope{}, fmt.Errorf("sync user on login: %w", err)
 	}

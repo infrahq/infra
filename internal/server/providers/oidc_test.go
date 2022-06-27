@@ -15,17 +15,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	"gotest.tools/v3/assert/opt"
 
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/testing/patch"
 )
 
 type tokenResponse struct {
@@ -60,21 +55,6 @@ const (
 		"error_description": "The authorization code is invalid or has expired."
 	}`
 )
-
-var cmpEncryptedAtRestNotZero = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
-	return x != "" && y != ""
-})
-
-func setupDB(t *testing.T) *gorm.DB {
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-
-	patch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver, nil)
-	assert.NilError(t, err)
-
-	return db
-}
 
 func (ts *testOIDCServer) run(t *testing.T, addHandlers func(*testing.T, *http.ServeMux)) string {
 	newMux := http.NewServeMux()
@@ -591,225 +571,16 @@ func TestRefreshAccessToken(t *testing.T) {
 	}
 }
 
-func TestOIDC_SyncProviderUser(t *testing.T) {
-	db := setupDB(t)
-
-	provider := &models.Provider{
-		Name: "mockta",
-		Kind: models.OktaKind,
-	}
-
-	err := data.CreateProvider(db, provider)
-	assert.NilError(t, err)
-
-	tests := []struct {
-		name              string
-		setupProviderUser func(t *testing.T) *models.Identity
-		infoResponse      string
-		verifyFunc        func(t *testing.T, err error, user *models.Identity)
-	}{
-		{
-			name: "invalid/expired access token is updated",
-			setupProviderUser: func(t *testing.T) *models.Identity {
-				user := &models.Identity{
-					Name: "hello@example.com",
-				}
-
-				err = data.CreateIdentity(db, user)
-				assert.NilError(t, err)
-
-				pu := &models.ProviderUser{
-					ProviderID: provider.ID,
-					IdentityID: user.ID,
-
-					Email:        user.Name,
-					RedirectURL:  "http://example.com",
-					AccessToken:  models.EncryptedAtRest("aaa"),
-					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
-					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
-				}
-
-				err = data.UpdateProviderUser(db, pu)
-				assert.NilError(t, err)
-
-				return user
-			},
-			infoResponse: `{
-				"email": "hello@example.com",
-				"groups": [
-					"Everyone",
-					"Developers"
-				]
-			}`,
-			verifyFunc: func(t *testing.T, err error, user *models.Identity) {
-				assert.NilError(t, err)
-
-				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.NilError(t, err)
-
-				expected := models.ProviderUser{
-					Model:        pu.Model, // not relevant
-					Email:        "hello@example.com",
-					Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
-					ProviderID:   provider.ID,
-					IdentityID:   user.ID,
-					RedirectURL:  "http://example.com",
-					RefreshToken: "bbb",
-					AccessToken:  "any-access-token",
-					ExpiresAt:    time.Now().Add(time.Hour).UTC(),
-					LastUpdate:   time.Now().UTC(),
-				}
-
-				cmpProviderUser := cmp.Options{
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
-						opt.TimeWithThreshold(20*time.Second)),
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "LastUpdate"),
-						opt.TimeWithThreshold(20*time.Second)),
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "AccessToken"),
-						cmpEncryptedAtRestNotZero),
-				}
-
-				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
-			},
-		},
-		{
-			name: "groups are updated to match user info",
-			setupProviderUser: func(t *testing.T) *models.Identity {
-				user := &models.Identity{
-					Name: "sync@example.com",
-				}
-
-				err = data.CreateIdentity(db, user)
-				assert.NilError(t, err)
-
-				pu := &models.ProviderUser{
-					ProviderID: provider.ID,
-					IdentityID: user.ID,
-
-					Email:        user.Name,
-					RedirectURL:  "http://example.com",
-					AccessToken:  models.EncryptedAtRest("aaa"),
-					RefreshToken: models.EncryptedAtRest("bbb"),
-					ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
-					LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
-				}
-
-				err = data.UpdateProviderUser(db, pu)
-				assert.NilError(t, err)
-
-				return user
-			},
-			infoResponse: `{
-				"email": "sync@example.com",
-				"groups": [
-					"Everyone",
-					"Developers"
-				]
-			}`,
-			verifyFunc: func(t *testing.T, err error, user *models.Identity) {
-				assert.NilError(t, err)
-
-				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
-				assert.NilError(t, err)
-
-				expected := models.ProviderUser{
-					Model:        pu.Model, // not relevant
-					Email:        "sync@example.com",
-					Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
-					ProviderID:   provider.ID,
-					IdentityID:   user.ID,
-					RedirectURL:  "http://example.com",
-					RefreshToken: "bbb",
-					AccessToken:  "any-access-token",
-					ExpiresAt:    time.Now().Add(5 * time.Minute).UTC(),
-					LastUpdate:   time.Now().UTC(),
-				}
-
-				cmpProviderUser := cmp.Options{
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
-						opt.TimeWithThreshold(20*time.Second)),
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "LastUpdate"),
-						opt.TimeWithThreshold(20*time.Second)),
-					cmp.FilterPath(
-						opt.PathField(models.ProviderUser{}, "AccessToken"),
-						cmpEncryptedAtRestNotZero),
-				}
-
-				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
-
-				assert.Assert(t, len(pu.Groups) == 2)
-
-				puGroups := make(map[string]bool)
-				for _, g := range pu.Groups {
-					puGroups[g] = true
-				}
-
-				assert.Assert(t, puGroups["Everyone"])
-				assert.Assert(t, puGroups["Developers"])
-
-				// check that the direct user-to-group relation was updated
-				storedGroups, err := data.ListGroups(db, data.ByGroupMember(pu.IdentityID))
-				assert.NilError(t, err)
-
-				userGroups := make(map[string]bool)
-				for _, g := range storedGroups {
-					userGroups[g.Name] = true
-				}
-
-				assert.Assert(t, userGroups["Everyone"])
-				assert.Assert(t, userGroups["Developers"])
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			server, ctx := setupOIDCTest(t, test.infoResponse)
-			serverURL := server.run(t, nil)
-			oidc := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
-
-			now := time.Now().UTC()
-
-			claims := jwt.Claims{
-				Audience:  jwt.Audience([]string{"client-id"}),
-				NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Minute)), // adjust for clock drift
-				Expiry:    jwt.NewNumericDate(now.Add(5 * time.Minute)),
-				IssuedAt:  jwt.NewNumericDate(now),
-				Issuer:    serverURL,
-			}
-
-			body, err := testTokenResponse(claims, server.signingKey, "hello@example.com")
-			assert.NilError(t, err)
-
-			server.tokenResponse = tokenResponse{
-				code: 200,
-				body: body,
-			}
-
-			user := test.setupProviderUser(t)
-			server.userInfoResponse = test.infoResponse
-			err = oidc.SyncProviderUser(ctx, db, user, provider)
-			test.verifyFunc(t, err, user)
-		})
-	}
-}
-
-func TestGetUserInfo(t *testing.T) {
+func TestOIDC_GetUserInfo(t *testing.T) {
 	tests := []struct {
 		name         string
 		infoResponse string
-		verifyFunc   func(t *testing.T, info *InfoClaims, err error)
+		verifyFunc   func(t *testing.T, info *UserInfoClaims, err error)
 	}{
 		{
 			name:         "empty user info response fails",
 			infoResponse: "",
-			verifyFunc: func(t *testing.T, info *InfoClaims, err error) {
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
 				assert.ErrorContains(t, err, "failed to decode userinfo")
 				assert.Assert(t, info == nil)
 			},
@@ -819,7 +590,7 @@ func TestGetUserInfo(t *testing.T) {
 			infoResponse: `{
 					"groups": []
 				}`,
-			verifyFunc: func(t *testing.T, info *InfoClaims, err error) {
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
 				assert.ErrorContains(t, err, "required_without")
 				assert.Assert(t, info == nil)
 			},
@@ -829,7 +600,7 @@ func TestGetUserInfo(t *testing.T) {
 			infoResponse: `{
 					"email": "hello@example.com"
 				}`,
-			verifyFunc: func(t *testing.T, info *InfoClaims, err error) {
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
 				assert.NilError(t, err, "required_without")
 				assert.Equal(t, info.Email, "hello@example.com")
 				assert.Equal(t, info.Name, "")
@@ -841,7 +612,7 @@ func TestGetUserInfo(t *testing.T) {
 			infoResponse: `{
 					"name": "hello"
 				}`,
-			verifyFunc: func(t *testing.T, info *InfoClaims, err error) {
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
 				assert.NilError(t, err, "required_without")
 				assert.Equal(t, info.Email, "")
 				assert.Equal(t, info.Name, "hello")
@@ -858,7 +629,7 @@ func TestGetUserInfo(t *testing.T) {
 						"Developers"
 					]
 				}`,
-			verifyFunc: func(t *testing.T, info *InfoClaims, err error) {
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
 				assert.NilError(t, err, "required_without")
 				assert.Equal(t, info.Email, "hello@example.com")
 				assert.Equal(t, info.Name, "hello")

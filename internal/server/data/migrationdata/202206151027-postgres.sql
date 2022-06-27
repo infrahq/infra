@@ -44,7 +44,9 @@ CREATE TABLE testing.providers (
     url text,
     client_id text,
     client_secret text,
-    created_by bigint
+    created_by bigint,
+    auth_url text,
+    scopes text
 );
 
 

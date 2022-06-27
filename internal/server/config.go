@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -17,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -26,6 +28,8 @@ type Provider struct {
 	ClientID     string `validate:"required"`
 	ClientSecret string `validate:"required"`
 	Kind         string
+	AuthURL      string
+	Scopes       []string
 }
 
 type Grant struct {
@@ -612,8 +616,36 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			AuthURL:      input.AuthURL,
+			Scopes:       input.Scopes,
 			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
+		}
+
+		if provider.Kind != models.InfraKind {
+			// only call the provider to resolve info if it is not known
+			if input.AuthURL == "" && len(input.Scopes) == 0 {
+				providerClient := providers.NewOIDC(*provider, input.ClientSecret, "http://localhost:8301")
+				authServerInfo, err := providerClient.AuthServerInfo(context.Background())
+				if err != nil {
+					if errors.Is(err, context.DeadlineExceeded) {
+						return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err)
+					}
+					return nil, err
+				}
+
+				provider.AuthURL = authServerInfo.AuthURL
+				provider.Scopes = authServerInfo.ScopesSupported
+			}
+
+			// check that the scopes we need are set
+			supportedScopes := make(map[string]bool)
+			for _, s := range provider.Scopes {
+				supportedScopes[s] = true
+			}
+			if !supportedScopes["openid"] || !supportedScopes["email"] {
+				return nil, fmt.Errorf("required scopes 'openid' and 'email' not found on provider %q", input.Name)
+			}
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {

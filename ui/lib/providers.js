@@ -5,12 +5,18 @@ export const providers = [
     available: true,
   },
   {
-    name: 'Google',
-    kind: 'google',
-  },
-  {
     name: 'Azure Active Directory',
     kind: 'azure',
+    available: true,
+  },
+  {
+    name: 'OpenID',
+    kind: 'oidc',
+    available: true,
+  },
+  {
+    name: 'Google',
+    kind: 'google',
   },
   {
     name: 'GitHub',
@@ -20,16 +26,4 @@ export const providers = [
     name: 'GitLab',
     kind: 'gitlab',
   },
-  {
-    name: 'OpenID',
-    kind: 'oidc',
-  },
 ]
-
-export function kind(url) {
-  if (url?.endsWith('.okta.com')) {
-    return 'okta'
-  }
-
-  return ''
-}

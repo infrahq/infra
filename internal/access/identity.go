@@ -164,7 +164,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDC) error {
 	}
 
 	// get current identity provider groups
-	err = oidc.SyncProviderUser(ctx, db, identity, provider)
+	err = data.SyncProviderUser(ctx, db, identity, provider, oidc)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			return err

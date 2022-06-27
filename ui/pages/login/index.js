@@ -2,10 +2,9 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
-import { kind } from '../../lib/providers'
 import LoginLayout from '../../components/layouts/login'
 
-function oidcLogin({ id, url, clientID }) {
+function oidcLogin({ id, clientID, authURL, scopes }) {
   window.localStorage.setItem('providerID', id)
 
   const state = [...Array(10)]
@@ -16,7 +15,7 @@ function oidcLogin({ id, url, clientID }) {
   const redirectURL = window.location.origin + '/login/callback'
   window.localStorage.setItem('redirectURL', redirectURL)
 
-  document.location.href = `https://${url}/oauth2/v1/authorize?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`
+  document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join("+")}&state=${state}`
 }
 
 function Providers({ providers }) {
@@ -30,22 +29,18 @@ function Providers({ providers }) {
             className='my-1.5 w-full rounded-md border border-gray-800 p-0.5 hover:to-pink-50'
           >
             <div className='flex flex-col items-center justify-center px-4 py-2'>
-              {kind(p.url) ? (
-                <div className='flex flex-col items-center py-0.5 text-center'>
+            <div className='flex flex-col items-center py-0.5 text-center'>
                   <img
                     alt='identity provider icon'
                     className='h-4'
-                    src={`/providers/${kind(p.url)}.svg`}
+                    src={`/providers/${p.kind}.svg`}
                   />
-                  {providers?.length > 1 && (
+                  {(providers?.length > 1) && (p.kind !== p.name) && (
                     <div className='text-2xs text-gray-300'>
-                      {p.name} - ({p.url})
+                      {p.name}
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className='m-1 h-4 font-bold'>Single Sign-On</p>
-              )}
             </div>
           </button>
         ))}

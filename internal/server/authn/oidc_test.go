@@ -29,6 +29,10 @@ func (m *mockOIDCImplementation) Validate(_ context.Context) error {
 	return nil
 }
 
+func (m *mockOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
+	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
+}
+
 func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }
@@ -38,16 +42,8 @@ func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.InfoClaims, error) {
-	return &providers.InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
-}
-
-func (m *mockOIDCImplementation) SyncProviderUser(_ context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
-	if err := data.AssignIdentityToGroups(db, user, provider, m.UserGroupsResp); err != nil {
-		return err
-	}
-
-	return nil
+func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
 func TestOIDCAuthenticate(t *testing.T) {

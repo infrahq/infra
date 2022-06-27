@@ -532,6 +532,10 @@
           "items": {
             "items": {
               "properties": {
+                "authURL": {
+                  "example": "https://example.com/oauth2/v1/authorize",
+                  "type": "string"
+                },
                 "clientID": {
                   "example": "0oapn0qwiQPiMIyR35d6",
                   "type": "string"
@@ -555,6 +559,14 @@
                 "name": {
                   "example": "okta",
                   "type": "string"
+                },
+                "scopes": {
+                  "example": "['openid', 'email']",
+                  "items": {
+                    "example": "['openid', 'email']",
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
@@ -682,6 +694,10 @@
       },
       "Provider": {
         "properties": {
+          "authURL": {
+            "example": "https://example.com/oauth2/v1/authorize",
+            "type": "string"
+          },
           "clientID": {
             "example": "0oapn0qwiQPiMIyR35d6",
             "type": "string"
@@ -705,6 +721,14 @@
           "name": {
             "example": "okta",
             "type": "string"
+          },
+          "scopes": {
+            "example": "['openid', 'email']",
+            "items": {
+              "example": "['openid', 'email']",
+              "type": "string"
+            },
+            "type": "array"
           },
           "updated": {
             "description": "formatted as an RFC3339 date-time",

@@ -10,30 +10,32 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/oauth2"
-	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 const oidcProviderRequestTimeout = time.Second * 10
 
-// InfoClaims captures the claims fields from a user-info response that we care about
-type InfoClaims struct {
+// UserInfoClaims captures the claims fields from a user-info response that we care about
+type UserInfoClaims struct {
 	Email  string   `json:"email" validate:"required_without=Name"` // returned by default for Okta user info
 	Groups []string `json:"groups"`
 	Name   string   `json:"name" validate:"required_without=Email"` // returned by default for Azure user info
 }
 
+type AuthServerInfo struct {
+	AuthURL         string
+	ScopesSupported []string `json:"scopes_supported"`
+}
+
 type OIDC interface {
 	Validate(context.Context) error
+	AuthServerInfo(context.Context) (*AuthServerInfo, error)
 	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
 	RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
-	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error)
-	SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error
+	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error)
 }
 
 type oidcImplementation struct {
@@ -88,6 +90,45 @@ func (o *oidcImplementation) Validate(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// AuthServerInfo returns details about the oidc server auth URL, and the scopes it supports
+func (o *oidcImplementation) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
+	defer cancel()
+	// find out what the authorization endpoint is
+	provider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", o.Domain))
+	if err != nil {
+		return nil, fmt.Errorf("get provider oidc info: %w", err)
+	}
+
+	// claims are the attributes of the user we want to know from the identity provider
+	var claims struct {
+		ScopesSupported []string `json:"scopes_supported"`
+	}
+
+	if err := provider.Claims(&claims); err != nil {
+		return nil, fmt.Errorf("could not parse provider claims: %w", err)
+	}
+
+	scopes := []string{"openid", "email"} // openid and email are required scopes for login to work
+
+	// we want to be able to use these scopes to access groups, but they are not needed
+	wantScope := map[string]bool{
+		"groups":         true,
+		"offline_access": true,
+	}
+
+	for _, scope := range claims.ScopesSupported {
+		if wantScope[scope] {
+			scopes = append(scopes, scope)
+		}
+	}
+
+	return &AuthServerInfo{
+		AuthURL:         provider.Endpoint().AuthURL,
+		ScopesSupported: scopes,
+	}, nil
 }
 
 // clientConfig returns the OAuth client configuration needed to interact with an identity provider
@@ -197,36 +238,9 @@ func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUse
 	return newToken.AccessToken, &newToken.Expiry, nil
 }
 
-func (o *oidcImplementation) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
-	providerUser, err := data.GetProviderUser(db, provider.ID, user.ID)
-	if err != nil {
-		return err
-	}
-
-	if err := checkRefreshAccessToken(ctx, db, providerUser, o); err != nil {
-		return fmt.Errorf("oidc sync failed to check users access token: %w", err)
-	}
-
-	info, err := o.GetUserInfo(ctx, providerUser)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
-		}
-		return fmt.Errorf("could not get user info from provider: %w", err)
-	}
-
-	logging.Debugf("user synchronized with %q groups from provider (ID: %v)", info.Groups, providerUser.ProviderID)
-
-	if err := data.AssignIdentityToGroups(db, user, provider, info.Groups); err != nil {
-		return fmt.Errorf("assign identity to groups: %w", err)
-	}
-
-	return nil
-}
-
 // GetUserInfo uses a provider token to call the OpenID Connect UserInfo endpoint,
 // make sure an access token is valid (not expired) before using this
-func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*InfoClaims, error) {
+func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
@@ -248,7 +262,7 @@ func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *mode
 		return nil, fmt.Errorf("get user info: %w", err)
 	}
 
-	claims := &InfoClaims{}
+	claims := &UserInfoClaims{}
 	if err := info.Claims(claims); err != nil {
 		return nil, fmt.Errorf("user info claims: %w", err)
 	}
@@ -260,28 +274,4 @@ func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *mode
 	}
 
 	return claims, nil
-}
-
-// checkRefreshAccessToken checks if an access token is expired, and gets a new one if needed and possible
-func checkRefreshAccessToken(ctx context.Context, db *gorm.DB, providerUser *models.ProviderUser, oidc OIDC) error {
-	accessToken, expiry, err := oidc.RefreshAccessToken(ctx, providerUser)
-	if err != nil {
-		return fmt.Errorf("refresh provider access: %w", err)
-	}
-
-	// update the stored access token if it was refreshed
-	if accessToken != string(providerUser.AccessToken) {
-		logging.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
-
-		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-		providerUser.ExpiresAt = expiry.UTC()
-		providerUser.LastUpdate = time.Now().UTC()
-
-		err = data.UpdateProviderUser(db, providerUser)
-		if err != nil {
-			return fmt.Errorf("update provider user on sync: %w", err)
-		}
-	}
-
-	return nil
 }

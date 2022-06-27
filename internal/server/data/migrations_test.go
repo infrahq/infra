@@ -161,3 +161,26 @@ func TestMigration_AddKindToProvider(t *testing.T) {
 		})
 	}
 }
+
+func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202206151027-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var providers []models.Provider
+			err = db.Omit("client_secret").Find(&providers).Error
+			assert.NilError(t, err)
+			expected := []models.Provider{
+				{Name: "infra", Kind: models.InfraKind},
+				{Name: "okta", Kind: models.OktaKind, URL: "dev.okta.com"},
+			}
+			assert.DeepEqual(t, providers, expected, cmpProviderShallow)
+		})
+	}
+}
