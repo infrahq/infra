@@ -2,6 +2,7 @@ package access
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -47,6 +48,11 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return err
 	}
 
+	err = checkPasswordRequirements(newPassword)
+	if err != nil {
+		return err
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash: %w", err)
@@ -69,6 +75,71 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 
 	if err := data.SaveCredential(db, userCredential); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func lowercaseCheck(n int, password string) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*\p{Ll}){%d,}`, n), password)
+	fmt.Println(match)
+	return match
+}
+
+func uppercaseCheck(n int, password string) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*\p{Lu}){%d,}`, n), password)
+	return match
+}
+
+func numberCheck(n int, password string) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*\p{N}){%d,}`, n), password)
+	return match
+}
+
+func symbolCheck(n int, password string) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*\p{S}){%d,}`, n), password)
+	return match
+}
+
+func checkPasswordRequirements(password string) error {
+	var errs []string
+	minLowercase := 1
+	minUppercase := 1
+	minNumber := 1
+	minSymbol := 1
+	lowercase := true
+	uppercase := true
+	number := true
+	symbol := true
+	minLength := 8
+	kind := "custom"
+
+	if kind == "custom" {
+		if lowercase && !lowercaseCheck(minLowercase, password) {
+			errs = append(errs, fmt.Sprintf("needs minimum %d lower case letters", minLowercase))
+		}
+
+		if uppercase && !uppercaseCheck(minUppercase, password) {
+			errs = append(errs, fmt.Sprintf("needs minimum %d upper case letters", minUppercase))
+		}
+
+		if number && !numberCheck(minNumber, password) {
+			errs = append(errs, fmt.Sprintf("needs minimum %d numbers", minNumber))
+		}
+
+		if symbol && !symbolCheck(minSymbol, password) {
+			errs = append(errs, fmt.Sprintf("needs minimum %d numbers", minNumber))
+		}
+
+		if len(password) > minLength {
+			errs = append(errs, fmt.Sprintf("needs min length of %d", minLength))
+		}
+	}
+
+	if len(errs) > 0 {
+		err := fmt.Errorf(fmt.Sprintf("%v", errs))
+		// Wrap so it is easier to parse the list of errors
+		return fmt.Errorf("cannot update password: new password does not pass requirements: %w", err)
 	}
 
 	return nil
