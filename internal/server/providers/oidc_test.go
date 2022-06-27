@@ -15,11 +15,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -59,16 +61,9 @@ const (
 	}`
 )
 
-func cmpAPITimeWithThreshold(x, y time.Time) bool {
-	if x.IsZero() || y.IsZero() {
-		return false
-	}
-	delta := x.Sub(y)
-
-	threshold := 20 * time.Minute
-
-	return delta <= threshold && delta >= -threshold
-}
+var cmpEncryptedAtRestNotZero = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
+	return x != "" && y != ""
+})
 
 func setupDB(t *testing.T) *gorm.DB {
 	driver, err := data.NewSQLiteDriver("file::memory:")
@@ -661,10 +656,32 @@ func TestOIDC_SyncProviderUser(t *testing.T) {
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
 				assert.NilError(t, err)
 
-				assert.Assert(t, string(pu.AccessToken) != "aaa")
-				assert.Equal(t, string(pu.RefreshToken), "bbb")
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.ExpiresAt, time.Now().UTC().Add(1*time.Hour)))
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
+				expected := models.ProviderUser{
+					Model:        pu.Model, // not relevant
+					Email:        "hello@example.com",
+					Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
+					ProviderID:   provider.ID,
+					IdentityID:   user.ID,
+					RedirectURL:  "http://example.com",
+					RefreshToken: "bbb",
+					AccessToken:  "any-access-token",
+					ExpiresAt:    time.Now().Add(time.Hour).UTC(),
+					LastUpdate:   time.Now().UTC(),
+				}
+
+				cmpProviderUser := cmp.Options{
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "LastUpdate"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "AccessToken"),
+						cmpEncryptedAtRestNotZero),
+				}
+
+				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
 			},
 		},
 		{
@@ -706,7 +723,33 @@ func TestOIDC_SyncProviderUser(t *testing.T) {
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
 				assert.NilError(t, err)
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
+
+				expected := models.ProviderUser{
+					Model:        pu.Model, // not relevant
+					Email:        "sync@example.com",
+					Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
+					ProviderID:   provider.ID,
+					IdentityID:   user.ID,
+					RedirectURL:  "http://example.com",
+					RefreshToken: "bbb",
+					AccessToken:  "any-access-token",
+					ExpiresAt:    time.Now().Add(5 * time.Minute).UTC(),
+					LastUpdate:   time.Now().UTC(),
+				}
+
+				cmpProviderUser := cmp.Options{
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "LastUpdate"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "AccessToken"),
+						cmpEncryptedAtRestNotZero),
+				}
+
+				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
 
 				assert.Assert(t, len(pu.Groups) == 2)
 

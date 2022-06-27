@@ -6,8 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -176,10 +178,32 @@ func TestAzure_SyncProviderUser(t *testing.T) {
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
 				assert.NilError(t, err)
 
-				assert.Assert(t, pu.AccessToken != "aaa")
-				assert.Equal(t, string(pu.RefreshToken), "bbb")
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.ExpiresAt, time.Now().UTC().Add(1*time.Hour)))
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
+				expected := models.ProviderUser{
+					Model:        pu.Model, // not relevant
+					Email:        "sharrington@example.com",
+					Groups:       models.CommaSeparatedStrings{},
+					ProviderID:   provider.ID,
+					IdentityID:   user.ID,
+					RedirectURL:  "http://example.com",
+					RefreshToken: "bbb",
+					AccessToken:  "any-access-token",
+					ExpiresAt:    time.Now().Add(time.Hour).UTC(),
+					LastUpdate:   time.Now().UTC(),
+				}
+
+				cmpProviderUser := cmp.Options{
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "LastUpdate"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "AccessToken"),
+						cmpEncryptedAtRestNotZero),
+				}
+
+				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
 			},
 		},
 		{
@@ -301,17 +325,33 @@ func TestAzure_SyncProviderUser(t *testing.T) {
 
 				pu, err := data.GetProviderUser(db, provider.ID, user.ID)
 				assert.NilError(t, err)
-				assert.Assert(t, cmpAPITimeWithThreshold(pu.LastUpdate, time.Now().UTC()))
 
-				assert.Assert(t, len(pu.Groups) == 2)
-
-				groups := make(map[string]bool)
-				for _, g := range pu.Groups {
-					groups[g] = true
+				expected := models.ProviderUser{
+					Model:        pu.Model, // not relevant
+					Email:        "jhopper@example.com",
+					Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
+					ProviderID:   provider.ID,
+					IdentityID:   user.ID,
+					RedirectURL:  "http://example.com",
+					RefreshToken: "bbb",
+					AccessToken:  "any-access-token",
+					ExpiresAt:    time.Now().Add(5 * time.Minute).UTC(),
+					LastUpdate:   time.Now().UTC(),
 				}
 
-				assert.Assert(t, groups["Everyone"])
-				assert.Assert(t, groups["Developers"])
+				cmpProviderUser := cmp.Options{
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "ExpiresAt"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "LastUpdate"),
+						opt.TimeWithThreshold(20*time.Second)),
+					cmp.FilterPath(
+						opt.PathField(models.ProviderUser{}, "AccessToken"),
+						cmpEncryptedAtRestNotZero),
+				}
+
+				assert.DeepEqual(t, *pu, expected, cmpProviderUser)
 			},
 		},
 	}
