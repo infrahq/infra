@@ -74,7 +74,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	return db
 }
 
-func (ts *testOIDCServer) run(t *testing.T) string {
+func (ts *testOIDCServer) run(t *testing.T, addHandlers func(*testing.T, *http.ServeMux)) string {
 	newMux := http.NewServeMux()
 	server := httptest.NewTLSServer(newMux)
 
@@ -131,17 +131,10 @@ func (ts *testOIDCServer) run(t *testing.T) string {
 		}
 	})
 
-	// azure endpoints
-	newMux.HandleFunc("/v1.0/me/memberOf/fail", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(403)
-	})
-	newMux.HandleFunc("/v1.0/me/memberOf", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		_, err := io.WriteString(w, azureGroupResponse)
-		if err != nil {
-			w.WriteHeader(500)
-		}
-	})
+	if addHandlers != nil {
+		addHandlers(t, newMux)
+	}
+
 	t.Cleanup(server.Close)
 	return strings.ReplaceAll(server.URL, "https://", "")
 }
@@ -221,7 +214,7 @@ func setupOIDCTest(t *testing.T) (testOIDCServer, context.Context) {
 
 func TestValidate(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t)
+	serverURL := server.run(t, nil)
 
 	tests := []struct {
 		name          string
@@ -283,7 +276,7 @@ func TestValidate(t *testing.T) {
 
 func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t)
+	serverURL := server.run(t, nil)
 
 	tests := []struct {
 		name          string
@@ -530,7 +523,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 
 func TestRefreshAccessToken(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t)
+	serverURL := server.run(t, nil)
 	provider := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "whatever"}, "secret", "http://localhost:8301")
 
 	now := time.Now().UTC()
@@ -608,7 +601,7 @@ func TestRefreshAccessToken(t *testing.T) {
 
 func TestSyncProviderUser(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t)
+	serverURL := server.run(t, nil)
 	oidc := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
 	db := setupDB(t)
 
@@ -764,7 +757,7 @@ func TestSyncProviderUser(t *testing.T) {
 
 func TestGetUserInfo(t *testing.T) {
 	server, ctx := setupOIDCTest(t)
-	serverURL := server.run(t)
+	serverURL := server.run(t, nil)
 	provider := NewOIDC(models.Provider{Kind: models.OIDCKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
 
 	tests := []struct {
