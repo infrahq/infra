@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"embed"
 	"errors"
 	"fmt"
@@ -12,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strings"
 	"time"
 
@@ -20,12 +17,10 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
@@ -296,63 +291,6 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 type routine struct {
 	run  func() error
 	stop func()
-}
-
-func tlsConfigFromOptions(
-	storage map[string]secrets.SecretStorage,
-	tlsCacheDir string,
-	opts TLSOptions,
-) (*tls.Config, error) {
-	// TODO: print CA fingerprint when the client can trust that fingerprint
-
-	if opts.Certificate != "" && opts.PrivateKey != "" {
-		roots, err := x509.SystemCertPool()
-		if err != nil {
-			logging.Warnf("failed to load TLS roots from system: %v", err)
-			roots = x509.NewCertPool()
-		}
-
-		if opts.CA != "" {
-			if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
-				logging.Warnf("failed to load TLS CA, invalid PEM")
-			}
-		}
-
-		key, err := secrets.GetSecret(opts.PrivateKey, storage)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load TLS private key: %w", err)
-		}
-
-		cert, err := tls.X509KeyPair([]byte(opts.Certificate), []byte(key))
-		if err != nil {
-			return nil, fmt.Errorf("failed to load TLS key pair: %w", err)
-		}
-
-		return &tls.Config{
-			MinVersion: tls.VersionTLS12,
-			// enable HTTP/2
-			NextProtos:   []string{"h2", "http/1.1"},
-			Certificates: []tls.Certificate{cert},
-			// enabled optional mTLS
-			ClientAuth: tls.VerifyClientCertIfGiven,
-			ClientCAs:  roots,
-		}, nil
-	}
-
-	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
-		return nil, fmt.Errorf("create tls cache: %w", err)
-	}
-
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(tlsCacheDir),
-	}
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.MinVersion = tls.VersionTLS12
-	// TODO: enabled optional mTLS when opts.CA is set
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
-
-	return tlsConfig, nil
 }
 
 func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
