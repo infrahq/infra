@@ -6,7 +6,7 @@ import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleSelect from './role-select'
 
-export default function ({ roles, onSubmit = () => {} }) {
+export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
   const { data: { items: groups } = { items: [] } } = useSWR('/api/groups')
 
@@ -19,26 +19,26 @@ export default function ({ roles, onSubmit = () => {} }) {
 
   const filtered = [
     ...users.map(u => ({ ...u, user: true })),
-    ...groups.map(g => ({ ...g, group: true }))
+    ...groups.map(g => ({ ...g, group: true })),
   ]
     .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
     .filter(s => s.name !== 'connector')
 
   return (
     <form
-      className='flex my-2'
+      className='my-2 flex'
       onSubmit={e => {
         e.preventDefault()
         onSubmit({
           user: selected.user ? selected.id : undefined,
           group: selected.group ? selected.id : undefined,
-          privilege: role
+          privilege: role,
         })
         setRole(roles?.[0])
         setSelected(null)
       }}
     >
-      <div className='flex items-center flex-1 border-b border-gray-800'>
+      <div className='flex flex-1 items-center border-b border-gray-800'>
         <Combobox
           as='div'
           className='relative flex-1'
@@ -46,7 +46,7 @@ export default function ({ roles, onSubmit = () => {} }) {
           onChange={setSelected}
         >
           <Combobox.Input
-            className='relative placeholder:italic text-xs w-full pr-2 py-3 bg-transparent focus:outline-none disabled:opacity-30'
+            className='relative w-full bg-transparent py-3 pr-2 text-xs placeholder:italic focus:outline-none disabled:opacity-30'
             placeholder='User or group'
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
@@ -56,20 +56,29 @@ export default function ({ roles, onSubmit = () => {} }) {
             }}
           />
           {filtered.length > 0 && (
-            <Combobox.Options
-              className='absolute z-10 -left-[13px] mt-1 max-h-60 w-56 overflow-auto rounded-md bg-gray-800 border border-gray-700 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'
-            >
+            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
               {filtered?.map(f => (
                 <Combobox.Option
                   key={f.id}
                   value={f}
-                  className={({ active }) => `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${active ? 'bg-gray-700' : ''}`}
+                  className={({ active }) =>
+                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
+                      active ? 'bg-gray-700' : ''
+                    }`
+                  }
                 >
                   <div className='flex flex-row'>
-                    <div className='flex-1 min-w-0 flex flex-col'>
-                      <div className='font-medium flex justify-between py-0.5'>
-                        <span className='truncate' title={f.name}>{f.name}</span>
-                        {f.id === selected?.id && <CheckIcon className='h-3 w-3 stroke-1' aria-hidden='true' />}
+                    <div className='flex min-w-0 flex-1 flex-col'>
+                      <div className='flex justify-between py-0.5 font-medium'>
+                        <span className='truncate' title={f.name}>
+                          {f.name}
+                        </span>
+                        {f.id === selected?.id && (
+                          <CheckIcon
+                            className='h-3 w-3 stroke-1'
+                            aria-hidden='true'
+                          />
+                        )}
                       </div>
                       <div className='text-3xs text-gray-400'>
                         {f.user && 'User'}
@@ -90,12 +99,10 @@ export default function ({ roles, onSubmit = () => {} }) {
       <button
         disabled={!selected}
         type='submit'
-        className='flex items-center border border-violet-300 disabled:opacity-30 disabled:transform-none disabled:transition-none cursor-pointer disabled:cursor-default sm:ml-4 sm:mt-0 rounded-md text-2xs px-3 py-3'
+        className='flex cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
       >
-        <PlusIcon className='w-3 h-3 mr-1.5' />
-        <div className='text-violet-100'>
-          Add
-        </div>
+        <PlusIcon className='mr-1.5 h-3 w-3' />
+        <div className='text-violet-100'>Add</div>
       </button>
     </form>
   )

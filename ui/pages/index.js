@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 
-export default function () {
+export default function Index() {
   useRouter().replace('/destinations')
 
   return null
