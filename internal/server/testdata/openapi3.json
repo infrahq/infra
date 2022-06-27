@@ -830,6 +830,17 @@
         "operationId": "ListAccessKeys",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user_id",
@@ -941,6 +952,19 @@
       "post": {
         "description": "CreateAccessKey",
         "operationId": "CreateAccessKey",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1052,6 +1076,17 @@
         "operationId": "DeleteAccessKey",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -1137,6 +1172,17 @@
         "description": "ListDestinations",
         "operationId": "ListDestinations",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "name",
@@ -1238,6 +1284,19 @@
       "post": {
         "description": "CreateDestination",
         "operationId": "CreateDestination",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1360,6 +1419,17 @@
         "operationId": "DeleteDestination",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -1444,6 +1514,17 @@
         "operationId": "GetDestination",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -1527,6 +1608,17 @@
         "description": "UpdateDestination",
         "operationId": "UpdateDestination",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -1662,6 +1754,17 @@
         "operationId": "ListGrants",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "query",
             "name": "user",
@@ -1788,6 +1891,19 @@
       "post": {
         "description": "CreateGrant",
         "operationId": "CreateGrant",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1899,6 +2015,17 @@
         "operationId": "DeleteGrant",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -1982,6 +2109,17 @@
         "description": "GetGrant",
         "operationId": "GetGrant",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -2068,6 +2206,17 @@
         "description": "ListGroups",
         "operationId": "ListGroups",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "name",
@@ -2173,6 +2322,19 @@
       "post": {
         "description": "CreateGroup",
         "operationId": "CreateGroup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2347,6 +2509,17 @@
         "description": "GetGroup",
         "operationId": "GetGroup",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -2548,6 +2721,19 @@
       "post": {
         "description": "Login",
         "operationId": "Login",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2673,6 +2859,19 @@
       "post": {
         "description": "Logout",
         "operationId": "Logout",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "400": {
             "content": {
@@ -2746,6 +2945,17 @@
         "description": "ListProviders",
         "operationId": "ListProviders",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "okta",
             "in": "query",
@@ -2842,6 +3052,19 @@
       "post": {
         "description": "CreateProvider",
         "operationId": "CreateProvider",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2959,6 +3182,17 @@
         "operationId": "DeleteProvider",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -3043,6 +3277,17 @@
         "operationId": "GetProvider",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -3126,6 +3371,17 @@
         "description": "UpdateProvider",
         "operationId": "UpdateProvider",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -3254,6 +3510,19 @@
       "get": {
         "description": "SignupEnabled",
         "operationId": "SignupEnabled",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "400": {
             "content": {
@@ -3324,6 +3593,19 @@
       "post": {
         "description": "Signup",
         "operationId": "Signup",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3421,6 +3703,19 @@
       "post": {
         "description": "CreateToken",
         "operationId": "CreateToken",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "400": {
             "content": {
@@ -3494,6 +3789,17 @@
         "description": "ListUsers",
         "operationId": "ListUsers",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "in": "query",
             "name": "name",
@@ -3612,6 +3918,19 @@
       "post": {
         "description": "CreateUser",
         "operationId": "CreateUser",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -3704,6 +4023,17 @@
         "operationId": "DeleteUser",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -3788,6 +4118,17 @@
         "operationId": "GetUser",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -3871,6 +4212,17 @@
         "description": "UpdateUser",
         "operationId": "UpdateUser",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -3974,6 +4326,19 @@
       "get": {
         "description": "Version",
         "operationId": "Version",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.3+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "400": {
             "content": {
