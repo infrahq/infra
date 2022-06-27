@@ -119,7 +119,7 @@ func azureHandlers(t *testing.T, mux *http.ServeMux) {
 	})
 }
 
-func TestSyncAzureProviderUser(t *testing.T) {
+func TestAzure_SyncProviderUser(t *testing.T) {
 	db := setupDB(t)
 
 	provider := &models.Provider{

@@ -604,7 +604,7 @@ func TestRefreshAccessToken(t *testing.T) {
 	}
 }
 
-func TestSyncProviderUser(t *testing.T) {
+func TestOIDC_SyncProviderUser(t *testing.T) {
 	db := setupDB(t)
 
 	provider := &models.Provider{
