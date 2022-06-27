@@ -1,6 +1,6 @@
 import NextLink from 'next/link'
 
-export default function ({ href, children }) {
+export default function Link({ href, children }) {
   const target = href.startsWith('http') ? '_blank' : undefined
 
   return (

@@ -2,7 +2,7 @@ const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY
 const SENDGRID_LIST_ID = process.env.SENDGRID_LIST_ID
 
-export default async (req, res) => {
+export default async function signup(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method must be POST' })
     return
@@ -20,18 +20,21 @@ export default async (req, res) => {
   }
 
   try {
-    const response = await fetch('https://www.google.com/recaptcha/api/siteverify ', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams({
-        secret: RECAPTCHA_SECRET_KEY,
-        response: req.body.code,
-        remoteip: req.ip
-      })
-    })
+    const response = await fetch(
+      'https://www.google.com/recaptcha/api/siteverify ',
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          secret: RECAPTCHA_SECRET_KEY,
+          response: req.body.code,
+          remoteip: req.ip,
+        }),
+      }
+    )
 
     const data = await response.json()
 
@@ -51,16 +54,16 @@ export default async (req, res) => {
       method: 'PUT',
       headers: {
         Authorization: `BEARER ${SENDGRID_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contacts: [{
-          email: req.body.email
-        }],
-        list_ids: [
-          SENDGRID_LIST_ID
-        ]
-      })
+        contacts: [
+          {
+            email: req.body.email,
+          },
+        ],
+        list_ids: [SENDGRID_LIST_ID],
+      }),
     })
   } catch (e) {
     console.error('could not subscribe')

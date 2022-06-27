@@ -6,7 +6,7 @@ import 'prismjs'
 import 'prismjs/components/prism-yaml.min'
 import 'prismjs/components/prism-bash.min'
 
-export default function ({ children, language = 'none' }) {
+export default function Code({ children, language = 'none' }) {
   const [copied, setCopied] = useState(false)
   const ref = useRef(null)
 
@@ -22,15 +22,22 @@ export default function ({ children, language = 'none' }) {
       const to = setTimeout(setCopied, 1000, false)
       return () => clearTimeout(to)
     }
-  }, [copied])
+  }, [copied, children])
 
   return (
-    <div className='relative group flex my-4'>
+    <div className='group relative my-4 flex'>
       <pre ref={ref} className={`language-${language}`}>
         {children}
       </pre>
-      <button onClick={() => setCopied(true)} className='opacity-0 group-hover:opacity-100 absolute right-2.5 top-2.5 px-2 py-2 rounded-md bg-white/5 backdrop-blur-xl border border-white/10 text-white/50 hover:text-white/70'>
-        {copied ? <CheckIcon className='w-4 h-4 text-green-300' /> : <DuplicateIcon className='w-4 h-4' />}
+      <button
+        onClick={() => setCopied(true)}
+        className='absolute right-2.5 top-2.5 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-white/50 opacity-0 backdrop-blur-xl hover:text-white/70 group-hover:opacity-100'
+      >
+        {copied ? (
+          <CheckIcon className='h-4 w-4 text-green-300' />
+        ) : (
+          <DuplicateIcon className='h-4 w-4' />
+        )}
       </button>
     </div>
   )

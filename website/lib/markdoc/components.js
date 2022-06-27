@@ -7,4 +7,15 @@ import Tabs from '../../components/Tabs'
 import Callout from '../../components/Callout'
 import YouTube from '../../components/YouTube'
 
-export default { Callout, Code, Heading, Image, Link, Tab, Tabs, YouTube }
+export const components = {
+  Callout,
+  Code,
+  Heading,
+  Image,
+  Link,
+  Tab,
+  Tabs,
+  YouTube,
+}
+
+export { components as default }
