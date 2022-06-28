@@ -207,3 +207,12 @@ func TestPaginationSelector(t *testing.T) {
 
 	})
 }
+
+func TestDefaultSortFromType(t *testing.T) {
+	assert.Equal(t, getDefaultSortFromType(new(models.AccessKey)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Destination)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Grant)), "id ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Group)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Provider)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Identity)), "name ASC")
+}

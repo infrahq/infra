@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -344,6 +345,12 @@ func TestListKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		assert.Equal(t, notExpiredLength, len(resp.Items)-2) // test showExpired in request
+	})
+
+	t.Run("sort", func(t *testing.T) {
+		sort.SliceIsSorted(resp.Items, func(i, j int) bool {
+			return resp.Items[i].Name < resp.Items[j].Name
+		})
 	})
 
 	t.Run("latest", func(t *testing.T) {
