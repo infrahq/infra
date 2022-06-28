@@ -39,6 +39,8 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusUnauthorized
 		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
+		// log the error at info because it is not in the response
+		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Info
 
 	case errors.As(err, &authzError):
 		resp.Code = http.StatusForbidden
@@ -81,7 +83,12 @@ func sendAPIError(c *gin.Context, err error) {
 		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
 	}
 
-	log("api request error", zap.Error(err), zap.Int32("statusCode", resp.Code))
+	log("api request error",
+		zap.String("method", c.Request.Method),
+		zap.String("path", c.Request.URL.Path),
+		zap.Int32("statusCode", resp.Code),
+		zap.String("remoteAddr", c.Request.RemoteAddr),
+		zap.Error(err))
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()

@@ -46,7 +46,7 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 	if r.ID.IsSelf {
 		iden := access.AuthenticatedIdentity(c)
 		if iden == nil {
-			return nil, internal.ErrUnauthorized
+			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
 		}
 		r.ID.ID = iden.ID
 	}
@@ -355,7 +355,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 		return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 	}
 
-	return nil, fmt.Errorf("no identity found in access key: %w", internal.ErrUnauthorized)
+	return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
@@ -569,9 +569,8 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			// this means an external request failed, probably to an IDP
 			return nil, err
 		}
-		logging.S.Debug(err)
 		// all other failures from login should result in an unauthorized response
-		return nil, internal.ErrUnauthorized
+		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
 
 	setAuthCookie(c, bearer, expires)
