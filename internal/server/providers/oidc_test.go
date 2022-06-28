@@ -190,7 +190,7 @@ func setupOIDCTest(t *testing.T, userInfoResp string) (testOIDCServer, context.C
 	}
 
 	// setup a an HTTP client that skips TLS verify for test purposes
-	//nolint:forcedtypeassert
+	//nolint:forcetypeassert
 	testTransport, ok := http.DefaultTransport.(*http.Transport)
 	assert.Assert(t, ok)
 	testTransport = testTransport.Clone()
