@@ -106,31 +106,23 @@ func (ts *testOIDCServer) run(t *testing.T, addHandlers func(*testing.T, *http.S
 	// general OIDC endpoints
 	newMux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, req *http.Request) {
 		_, err := io.WriteString(w, wellKnown)
-		if err != nil {
-			w.WriteHeader(500)
-		}
+		assert.Check(t, err, "failed to write openid config response")
 	})
 	newMux.HandleFunc("/keys", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		_, err := io.WriteString(w, jwks)
-		if err != nil {
-			w.WriteHeader(500)
-		}
+		assert.Check(t, err, "failed to write keys response")
 	})
 	newMux.HandleFunc("/token", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(ts.tokenResponse.code)
 		_, err := io.WriteString(w, ts.tokenResponse.body)
-		if err != nil {
-			assert.Check(t, err, "failed to write token response")
-		}
+		assert.Check(t, err, "failed to write token response")
 	})
 	newMux.HandleFunc("/userinfo", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		_, err := io.WriteString(w, ts.userInfoResponse)
-		if err != nil {
-			w.WriteHeader(500)
-		}
+		assert.Check(t, err, "failed to write user info response")
 	})
 
 	if addHandlers != nil {
