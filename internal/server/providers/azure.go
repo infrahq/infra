@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/oauth2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -17,10 +18,10 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-const (
-	graphGroupMemberEndpoint = "https://graph.microsoft.com/v1.0/me/memberOf"
-	graphGroupDataType       = "#microsoft.graph.group"
-)
+const graphGroupDataType = "#microsoft.graph.group"
+
+// this should only be changed for tests
+var graphGroupMemberEndpoint = "https://graph.microsoft.com/v1.0/me/memberOf"
 
 type graphObject struct {
 	Type        string `json:"@odata.type"`
@@ -71,7 +72,7 @@ func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.
 		return fmt.Errorf("could not get user info from provider: %w", err)
 	}
 
-	newGroups, err := checkMemberOfGraphGroups(string(providerUser.AccessToken))
+	newGroups, err := checkMemberOfGraphGroups(ctx, string(providerUser.AccessToken))
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -95,7 +96,7 @@ func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.
 }
 
 // checkMemberOfGraphGroups calls the Microsoft Graph API to find out what groups a user belongs to
-func checkMemberOfGraphGroups(accessToken string) ([]string, error) {
+func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string, error) {
 	bearer := "Bearer " + accessToken
 
 	req, err := http.NewRequest(http.MethodGet, graphGroupMemberEndpoint, nil)
@@ -105,10 +106,13 @@ func checkMemberOfGraphGroups(accessToken string) ([]string, error) {
 
 	req.Header.Add("Authorization", bearer)
 
-	ctx, cancel := context.WithTimeout(context.Background(), oidcProviderRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
 	client := http.DefaultClient
+	if c, ok := ctx.Value(oauth2.HTTPClient).(*http.Client); ok {
+		client = c // used in tests for specific transport needs, like skipping TLS verify
+	}
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

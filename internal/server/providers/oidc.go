@@ -159,7 +159,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	}
 
 	var claims struct {
-		Email string `json:"email" validate:"required"`
+		Email string `json:"email" validate:"required,excludesall=' "`
 	}
 
 	if err := idToken.Claims(&claims); err != nil {
@@ -167,7 +167,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	}
 
 	if err := validator.New().Struct(claims); err != nil {
-		logging.S.Errorf("%s provider incorrectly configured, no email found in ID token authenticated user, this claim is required", o.Domain)
+		logging.S.Errorf("%s provider incorrectly configured, email claim in ID token of authenticated user is missing or invalid: %s", o.Domain, err)
 		return "", "", time.Time{}, "", fmt.Errorf("failed to validate ID token claims: %w", err)
 	}
 
@@ -274,7 +274,8 @@ func checkRefreshAccessToken(ctx context.Context, db *gorm.DB, providerUser *mod
 		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
 
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-		providerUser.ExpiresAt = *expiry
+		providerUser.ExpiresAt = expiry.UTC()
+		providerUser.LastUpdate = time.Now().UTC()
 
 		err = data.UpdateProviderUser(db, providerUser)
 		if err != nil {
