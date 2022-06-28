@@ -167,7 +167,7 @@ func proxyMiddleware(
 	return func(c *gin.Context) {
 		claim, err := authn.Authenticate(c.Request)
 		if err != nil {
-			logging.L.Err(err).Msgf("failed to authenticate request")
+			logging.L.Info().Err(err).Msgf("failed to authenticate request")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}

@@ -94,6 +94,15 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 			expectedErr: "token is expired",
 		},
 		{
+			name: "no username in JWT",
+			setup: func(t *testing.T, req *http.Request) {
+				j := generateJWT(t, priv, "", time.Now().Add(time.Hour))
+				req.Header.Set("Authorization", "Bearer "+j)
+			},
+			fakeClient:  fakeClient{key: *pub},
+			expectedErr: "no username in JWT claim",
+		},
+		{
 			name: "valid JWT",
 			setup: func(t *testing.T, req *http.Request) {
 				j := generateJWT(t, priv, "test@example.com", time.Now().Add(time.Hour))
