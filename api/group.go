@@ -22,3 +22,9 @@ type ListGroupsRequest struct {
 type CreateGroupRequest struct {
 	Name string `json:"name" validate:"required"`
 }
+
+type UpdateUsersInGroupRequest struct {
+	GroupID         uid.ID   `uri:"id" json:"-" validate:"required"`
+	UserIDsToAdd    []uid.ID `json:"usersToAdd"`
+	UserIDsToRemove []uid.ID `json:"usersToRemove"`
+}

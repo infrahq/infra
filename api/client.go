@@ -149,6 +149,10 @@ func put[Req, Res any](client Client, path string, req *Req) (res *Res, err erro
 	return request[Req, Res](client, http.MethodPut, path, Query{}, req)
 }
 
+func patch[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
+	return request[Req, Res](client, http.MethodPatch, path, Query{}, req)
+}
+
 func delete(client Client, path string) error {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s%s", client.URL, path), nil)
 	if err != nil {
@@ -229,6 +233,11 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 
 func (c Client) DeleteGroup(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/groups/%s", id))
+}
+
+func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
+	_, err := patch[UpdateUsersInGroupRequest, EmptyResponse](c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
+	return err
 }
 
 // Deprecated: use ListGrants

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.13.5](https://github.com/infrahq/infra/compare/v0.13.4...v0.13.5) (2022-06-27)
+
+
+### Features
+
+* add rm users in groups ([#2349](https://github.com/infrahq/infra/issues/2349)) ([6d1cbbf](https://github.com/infrahq/infra/commit/6d1cbbfba9441f19a63798ccd0babecd4c3009d1))
+* **ui:** Improved experience around granting and listing access ([#2370](https://github.com/infrahq/infra/issues/2370)) ([09c4ee0](https://github.com/infrahq/infra/commit/09c4ee0c6c478950f7775d7d90f6398a9c73ab64))
+
+
+### Bug Fixes
+
+* db migration from 0.13.3 ([4fc18b1](https://github.com/infrahq/infra/commit/4fc18b1b7954878831faa0a62ab71b11ddf3d2f3))
+* do not update provider user groups in sync ([#2413](https://github.com/infrahq/infra/issues/2413)) ([91903ed](https://github.com/infrahq/infra/commit/91903ed0e727cab129977089022a613beb3118b1))
+* rename one time password to temporary password ([#2383](https://github.com/infrahq/infra/issues/2383)) ([5ceceda](https://github.com/infrahq/infra/commit/5cecedad11a65e0ccef7390320645949a445e1c1))
+
 ## [0.13.4](https://github.com/infrahq/infra/compare/v0.13.3...v0.13.4) (2022-06-23)
 
 

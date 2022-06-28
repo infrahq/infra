@@ -18,6 +18,6 @@ dayjs.updateLocale('en', {
     M: 'a month ago',
     MM: '%d months ago',
     y: 'a year ago',
-    yy: '%d years ago'
-  }
+    yy: '%d years ago',
+  },
 })

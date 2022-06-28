@@ -293,7 +293,7 @@ Create a user
 
 Create a user.
 
-Note: A new user must change their one time password before further usage.
+Note: A temporary password will be created. The user will be prompted to set a new password on first login.
 
 ```
 infra users add USER [flags]

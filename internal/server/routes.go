@@ -76,6 +76,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, authn, "/api/groups", a.CreateGroup)
 	get(a, authn, "/api/groups/:id", a.GetGroup)
 	delete(a, authn, "/api/groups/:id", a.DeleteGroup)
+	patch(a, authn, "/api/groups/:id/users", a.UpdateUsersInGroup)
 
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
@@ -232,6 +233,10 @@ func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler Handler
 
 func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPut, path: path, handler: handler})
+}
+
+func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{method: http.MethodPatch, path: path, handler: handler})
 }
 
 func delete[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {

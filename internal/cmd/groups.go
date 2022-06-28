@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 func getGroupByName(client *api.Client, name string) (*api.Group, error) {
@@ -16,7 +18,7 @@ func getGroupByName(client *api.Client, name string) (*api.Group, error) {
 	}
 
 	if groups.Count == 0 {
-		return nil, fmt.Errorf("unknown group %q", name)
+		return nil, fmt.Errorf("%w: unknown group %q", ErrGroupNotFound, name)
 	}
 
 	if groups.Count > 1 {
@@ -52,8 +54,10 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 	}
 
 	cmd.AddCommand(newGroupsAddCmd(cli))
+	cmd.AddCommand(newGroupsAddUserCmd(cli))
 	cmd.AddCommand(newGroupsListCmd(cli))
 	cmd.AddCommand(newGroupsRemoveCmd(cli))
+	cmd.AddCommand(newGroupsRemoveUserCmd(cli))
 
 	return cmd
 }
@@ -173,6 +177,116 @@ $ infra groups remove Engineering`,
 	}
 
 	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if the group does not exist")
+
+	return cmd
+}
+
+func newGroupsAddUserCmd(cli *CLI) *cobra.Command {
+	return &cobra.Command{
+		Use:   "adduser USER GROUP",
+		Short: "Add a user to a group",
+		Args:  ExactArgs(2),
+		Example: `# Add a user to a group
+$ infra groups adduser johndoe@example.com Engineering
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			userName := args[0]
+			groupName := args[1]
+
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
+
+			user, err := getUserByName(client, userName)
+			if err != nil {
+				if errors.Is(err, ErrUserNotFound) {
+					return Error{Message: fmt.Sprintf("unknown user %q", userName)}
+				}
+				return err
+			}
+
+			group, err := getGroupByName(client, groupName)
+			if err != nil {
+				if errors.Is(err, ErrGroupNotFound) {
+					return Error{Message: fmt.Sprintf("unknown group %q", groupName)}
+				}
+				return err
+			}
+
+			req := &api.UpdateUsersInGroupRequest{
+				GroupID:      group.ID,
+				UserIDsToAdd: []uid.ID{user.ID},
+			}
+			err = client.UpdateUsersInGroup(req)
+			if err != nil {
+				return err
+			}
+
+			cli.Output("Added user %q to group %q", user.Name, group.Name)
+
+			return nil
+		},
+	}
+}
+
+func newGroupsRemoveUserCmd(cli *CLI) *cobra.Command {
+	var force bool
+	cmd := &cobra.Command{
+		Use:     "removeuser USER GROUP",
+		Short:   "Remove a user from a group",
+		Aliases: []string{"rmuser"},
+		Args:    ExactArgs(2),
+		Example: `# Remove a user from a group
+$ infra groups removeuser johndoe@example.com Engineering
+`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			userName := args[0]
+			groupName := args[1]
+
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
+
+			user, err := getUserByName(client, userName)
+			if err != nil {
+				if !force {
+					if errors.Is(err, ErrUserNotFound) {
+						return Error{Message: fmt.Sprintf("unknown user %q", userName)}
+					}
+					return err
+				}
+				return nil
+			}
+
+			group, err := getGroupByName(client, groupName)
+			if err != nil {
+				if !force {
+					if errors.Is(err, ErrGroupNotFound) {
+						return Error{Message: fmt.Sprintf("unknown group %q", groupName)}
+					}
+					return err
+				}
+				return nil
+			}
+
+			req := &api.UpdateUsersInGroupRequest{
+				GroupID:         group.ID,
+				UserIDsToRemove: []uid.ID{user.ID},
+			}
+			err = client.UpdateUsersInGroup(req)
+			if err != nil {
+				return err
+			}
+
+			cli.Output("Removed user %q from group %q", userName, groupName)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if the user or group does not exist")
 
 	return cmd
 }

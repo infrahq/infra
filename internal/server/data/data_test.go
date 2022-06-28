@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"go.uber.org/zap/zaptest"
@@ -48,7 +49,8 @@ func dbDrivers(t *testing.T) []gorm.Dialector {
 	t.Helper()
 	var drivers []gorm.Dialector
 
-	sqlite, err := NewSQLiteDriver("file::memory:")
+	tmp := t.TempDir()
+	sqlite, err := NewSQLiteDriver(filepath.Join(tmp, t.Name()))
 	assert.NilError(t, err, "sqlite driver")
 	drivers = append(drivers, sqlite)
 
@@ -204,4 +206,13 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 	})
+}
+
+func TestDefaultSortFromType(t *testing.T) {
+	assert.Equal(t, getDefaultSortFromType(new(models.AccessKey)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Destination)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Grant)), "id ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Group)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Provider)), "name ASC")
+	assert.Equal(t, getDefaultSortFromType(new(models.Identity)), "name ASC")
 }

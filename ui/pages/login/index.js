@@ -5,10 +5,12 @@ import useSWR, { useSWRConfig } from 'swr'
 import { kind } from '../../lib/providers'
 import LoginLayout from '../../components/layouts/login'
 
-function oidcLogin ({ id, url, clientID }) {
+function oidcLogin({ id, url, clientID }) {
   window.localStorage.setItem('providerID', id)
 
-  const state = [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
+  const state = [...Array(10)]
+    .map(() => (~~(Math.random() * 36)).toString(36))
+    .join('')
   window.localStorage.setItem('state', state)
 
   const redirectURL = window.location.origin + '/login/callback'
@@ -17,39 +19,53 @@ function oidcLogin ({ id, url, clientID }) {
   document.location.href = `https://${url}/oauth2/v1/authorize?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=openid+email+groups+offline_access&state=${state}`
 }
 
-function Providers ({ providers }) {
+function Providers({ providers }) {
   return (
     <>
-      <div className='w-full max-w-sm mt-2'>
+      <div className='mt-2 w-full max-w-sm'>
         {providers?.map(p => (
-          <button onClick={() => oidcLogin(p)} key={p.id} className='w-full border border-gray-800 hover:to-pink-50 rounded-md p-0.5 my-1.5'>
+          <button
+            onClick={() => oidcLogin(p)}
+            key={p.id}
+            className='my-1.5 w-full rounded-md border border-gray-800 p-0.5 hover:to-pink-50'
+          >
             <div className='flex flex-col items-center justify-center px-4 py-2'>
-              {kind(p.url)
-                ? (
-                  <div className='flex flex-col items-center text-center py-0.5'>
-                    <img className='h-4' src={`/providers/${kind(p.url)}.svg`} />
-                    {providers?.length > 1 && <div className='text-2xs text-gray-300'>{p.name} - ({p.url})</div>}
-                  </div>
-                  )
-                : <p className='font-bold h-4 m-1'>Single Sign-On</p>}
+              {kind(p.url) ? (
+                <div className='flex flex-col items-center py-0.5 text-center'>
+                  <img
+                    alt='identity provider icon'
+                    className='h-4'
+                    src={`/providers/${kind(p.url)}.svg`}
+                  />
+                  {providers?.length > 1 && (
+                    <div className='text-2xs text-gray-300'>
+                      {p.name} - ({p.url})
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className='m-1 h-4 font-bold'>Single Sign-On</p>
+              )}
             </div>
           </button>
         ))}
       </div>
-      <div className='w-full mt-4 relative'>
+      <div className='relative mt-4 w-full'>
         <div className='absolute inset-0 flex items-center' aria-hidden='true'>
           <div className='w-full border-t border-gray-800' />
         </div>
         <div className='relative flex justify-center text-sm'>
-          <span className='px-2 bg-black text-2xs text-gray-300'>OR</span>
+          <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
         </div>
       </div>
     </>
   )
 }
 
-export default function Login () {
-  const { data: { items: providers } = {} } = useSWR('/api/providers', { fallbackData: [] })
+export default function Login() {
+  const { data: { items: providers } = {} } = useSWR('/api/providers', {
+    fallbackData: [],
+  })
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
@@ -57,7 +73,7 @@ export default function Login () {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
-  async function onSubmit (e) {
+  async function onSubmit(e) {
     e.preventDefault()
 
     try {
@@ -66,9 +82,9 @@ export default function Login () {
         body: JSON.stringify({
           passwordCredentials: {
             name,
-            password
-          }
-        })
+            password,
+          },
+        }),
       })
 
       if (!res.ok) {
@@ -80,7 +96,7 @@ export default function Login () {
       if (data.passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { user: data.userID }
+          query: { user: data.userID },
         })
 
         return false
@@ -98,12 +114,20 @@ export default function Login () {
 
   return (
     <>
-      <h1 className='text-base leading-snug font-bold'>Login to Infra</h1>
-      <h2 className='text-xs text-center max-w-[260px] my-3 text-gray-300'>Welcome back. Login with your credentials {providers?.length > 0 && 'or via your identity provider.'}</h2>
+      <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
+      <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
+        Welcome back. Login with your credentials{' '}
+        {providers?.length > 0 && 'or via your identity provider.'}
+      </h2>
       {providers?.length > 0 && <Providers providers={providers || []} />}
-      <form onSubmit={onSubmit} className='flex flex-col w-full max-w-sm relative'>
-        <div className='w-full my-2'>
-          <label htmlFor='name' className='text-3xs text-gray-500 uppercase'>Username or Email</label>
+      <form
+        onSubmit={onSubmit}
+        className='relative flex w-full max-w-sm flex-col'
+      >
+        <div className='my-2 w-full'>
+          <label htmlFor='name' className='text-3xs uppercase text-gray-500'>
+            Username or Email
+          </label>
           <input
             required
             autoFocus
@@ -113,11 +137,18 @@ export default function Login () {
               setName(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+              error ? 'border-pink-500/60' : ''
+            }`}
           />
         </div>
-        <div className='w-full my-2'>
-          <label htmlFor='password' className='text-3xs text-gray-500 uppercase'>Password</label>
+        <div className='my-2 w-full'>
+          <label
+            htmlFor='password'
+            className='text-3xs uppercase text-gray-500'
+          >
+            Password
+          </label>
           <input
             required
             name='password'
@@ -127,13 +158,22 @@ export default function Login () {
               setPassword(e.target.value)
               setError('')
             }}
-            className={`w-full bg-transparent border-b border-gray-800 text-2xs px-px py-2 focus:outline-none focus:border-b focus:ring-gray-200 placeholder:italic ${error ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              error ? 'border-pink-500/60' : ''
+            }`}
           />
         </div>
-        <button disabled={!name || !password} className='border border-violet-300 hover:border-violet-100 mt-6 mb-2 text-2xs px-4 py-3 rounded-lg disabled:pointer-events-none text-violet-100 disabled:opacity-30'>
+        <button
+          disabled={!name || !password}
+          className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+        >
           Login
         </button>
-        {error && <p className='absolute -bottom-3.5 w-full mx-auto text-2xs text-pink-400 text-center'>{error}</p>}
+        {error && (
+          <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
+            {error}
+          </p>
+        )}
       </form>
     </>
   )
