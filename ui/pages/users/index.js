@@ -211,7 +211,7 @@ export default function Users() {
       </Head>
       {!loading && (
         <div className='flex h-full flex-1'>
-          <div className='flex h-full flex-1 flex-col'>
+          <div className='flex flex-1 flex-col space-y-4'>
             <PageHeader
               header='Users'
               buttonHref={admin && '/users/add'}
