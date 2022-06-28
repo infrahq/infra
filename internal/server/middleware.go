@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -81,31 +82,42 @@ func DestinationMiddleware() gin.HandlerFunc {
 	}
 }
 
+// TODO: remove duplicate in access package
+func getDB(c *gin.Context) *gorm.DB {
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return nil
+	}
+
+	return db
+}
+
 // AuthenticationMiddleware validates the incoming token
 func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := RequireAccessKey(c); err != nil {
+		db := getDB(c)
+		authnUser, err := requireAccessKey(db, c.Request)
+		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
+		// TODO: save authnUser in a single key
+		c.Set("key", authnUser.AccessKey)
+		c.Set("identity", authnUser.User)
 		c.Next()
 	}
 }
 
-// RequireAccessKey checks the bearer token is present and valid
-func RequireAccessKey(c *gin.Context) error {
-	val, ok := c.Get("db")
-	if !ok {
-		return errors.New("could not find db in context")
-	}
+type authenticatedUser struct {
+	AccessKey *models.AccessKey
+	User      *models.Identity
+}
 
-	db, ok := val.(*gorm.DB)
-	if !ok {
-		return errors.New("unknown db type in context")
-	}
-
-	header := c.Request.Header.Get("Authorization")
+// requireAccessKey checks the bearer token is present and valid
+func requireAccessKey(db *gorm.DB, req *http.Request) (authenticatedUser, error) {
+	var u authenticatedUser
+	header := req.Header.Get("Authorization")
 
 	bearer := ""
 
@@ -114,9 +126,9 @@ func RequireAccessKey(c *gin.Context) error {
 		bearer = parts[1]
 	} else {
 		// Fall back to checking cookies
-		cookie, err := c.Cookie(CookieAuthorizationName)
+		cookie, err := getCookie(req, CookieAuthorizationName)
 		if err != nil {
-			return fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
 		}
 
 		bearer = cookie
@@ -124,37 +136,43 @@ func RequireAccessKey(c *gin.Context) error {
 
 	// this will get caught by key validation, but check to be safe
 	if strings.TrimSpace(bearer) == "" {
-		return fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+		return u, fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
 	}
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		if errors.Is(err, data.ErrAccessKeyExpired) {
-			return err
+			return u, err
 		}
-		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
+		return u, fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
-		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
-			return fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
+		if req.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || req.Method != http.MethodPut {
+			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
 		}
 	}
 
-	c.Set("key", accessKey)
-
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
-		return fmt.Errorf("identity for token: %w", err)
+		return u, fmt.Errorf("identity for token: %w", err)
 	}
 
 	identity.LastSeenAt = time.Now().UTC()
 	if err = data.SaveIdentity(db, identity); err != nil {
-		return fmt.Errorf("identity update fail: %w", err)
+		return u, fmt.Errorf("identity update fail: %w", err)
 	}
 
-	c.Set("identity", identity)
+	u.AccessKey = accessKey
+	u.User = identity
+	return u, nil
+}
 
-	return nil
+func getCookie(req *http.Request, name string) (string, error) {
+	cookie, err := req.Cookie(name)
+	if err != nil {
+		return "", err
+	}
+	return url.QueryUnescape(cookie.Value)
 }
