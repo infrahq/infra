@@ -11,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func SetupMetrics(db *gorm.DB) *prometheus.Registry {
+func setupMetrics(db *gorm.DB) *prometheus.Registry {
 	reg := prometheus.NewRegistry()
 	factory := promauto.With(reg)
 
@@ -21,7 +21,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 		Help:      "Build information about Infra Server.",
 	}, []string{"branch", "version", "commit", "date"}).With(prometheus.Labels{
 		"branch":  internal.Branch,
-		"version": internal.Version,
+		"version": internal.FullVersion(),
 		"commit":  internal.Commit,
 		"date":    internal.Date,
 	}).Set(1)

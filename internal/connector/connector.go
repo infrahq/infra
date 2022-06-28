@@ -21,7 +21,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/goware/urlx"
 	"github.com/infrahq/secrets"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -509,7 +508,7 @@ func Run(ctx context.Context, options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	promRegistry := prometheus.NewRegistry()
+	promRegistry := setupMetrics()
 	metricsServer := &http.Server{
 		Addr:     ":9090",
 		Handler:  metrics.NewHandler(promRegistry),

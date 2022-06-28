@@ -225,7 +225,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	promRegistry := SetupMetrics(s.db)
+	promRegistry := setupMetrics(s.db)
 	router := s.GenerateRoutes(promRegistry)
 
 	metricsServer := &http.Server{
