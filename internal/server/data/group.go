@@ -16,7 +16,6 @@ func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
 }
 
 func ListGroups(db *gorm.DB, selectors ...SelectorFunc) ([]models.Group, error) {
-	db = db.Order("name ASC")
 	return list[models.Group](db, selectors...)
 }
 

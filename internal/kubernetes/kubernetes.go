@@ -29,6 +29,7 @@ import (
 )
 
 const (
+	podLabelsFilePath = "/etc/podinfo/labels"
 	namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	caFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
@@ -500,6 +501,15 @@ func (k *Kubernetes) Name(chksm string) (string, error) {
 	return name, nil
 }
 
+func PodLabels() ([]string, error) {
+	contents, err := ioutil.ReadFile(podLabelsFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(string(contents), "\n"), nil
+}
+
 func Namespace() (string, error) {
 	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
@@ -530,8 +540,24 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 		return nil, err
 	}
 
+	labels, err := PodLabels()
+	if err != nil {
+		return nil, err
+	}
+
+	selector := []string{
+		fmt.Sprintf("app.infrahq.com/component=%s", component),
+	}
+
+	for _, label := range labels {
+		if strings.HasPrefix(label, "app.kubernetes.io/instance") {
+			selector = append(selector, strings.ReplaceAll(label, "\"", ""))
+			break
+		}
+	}
+
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("app.infrahq.com/component=%s", component),
+		LabelSelector: strings.Join(selector, ","),
 	})
 	if err != nil {
 		return nil, err
