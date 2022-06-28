@@ -557,7 +557,7 @@ func (s Server) loadConfig(config Config) error {
 			case g.User != "":
 				config.Users = append(config.Users, User{Name: g.User})
 			case g.Machine != "":
-				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
+				logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
 				config.Users = append(config.Users, User{Name: g.Machine})
 			}
 		}
@@ -675,7 +675,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 				return nil, err
 			}
 
-			logging.S.Debugf("creating placeholder group %q", input.Group)
+			logging.Debugf("creating placeholder group %q", input.Group)
 
 			// group does not exist yet, create a placeholder
 			group = &models.Group{
@@ -752,7 +752,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	name := input.Name
 	if name == "" {
 		if input.Email != "" {
-			logging.S.Warn("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
+			logging.Warnf("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
 			name = input.Email
 		}
 	}
@@ -766,7 +766,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 		if name != models.InternalInfraConnectorIdentityName {
 			_, err := mail.ParseAddress(name)
 			if err != nil {
-				logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+				logging.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
 			}
 		}
 

@@ -13,7 +13,7 @@ type OptionsDiffV0dot1 struct {
 
 // ToV0dot2 applies the 0.1 options to the 0.2 version
 func (o OptionsDiffV0dot1) applyToV0dot2(base *Options) {
-	logging.S.Warn("updated server options from version 0.1 to 0.2")
+	logging.Warnf("updated server options from version 0.1 to 0.2")
 
 	base.Version = 0.2
 	base.Config.Users = o.Identities

@@ -66,7 +66,7 @@ func NewOIDC(provider models.Provider, clientSecret, redirectURL string) OIDC {
 func (o *oidcImplementation) Validate(ctx context.Context) error {
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
-		logging.S.Debugf("error validating oidc provider: %s", err)
+		logging.Debugf("error validating oidc provider: %s", err)
 		return ErrInvalidProviderURL
 	}
 
@@ -75,16 +75,16 @@ func (o *oidcImplementation) Validate(ctx context.Context) error {
 		var errRetrieve *oauth2.RetrieveError
 		if errors.As(err, &errRetrieve) {
 			if strings.Contains(string(errRetrieve.Body), "client_id") || strings.Contains(string(errRetrieve.Body), "client id") {
-				logging.S.Debugf("error validating oidc provider client: %s", err)
+				logging.Debugf("error validating oidc provider client: %s", err)
 				return ErrInvalidProviderClientID
 			}
 
 			if strings.Contains(string(errRetrieve.Body), "secret") {
-				logging.S.Debugf("error validating oidc provider client: %s", err)
+				logging.Debugf("error validating oidc provider client: %s", err)
 				return ErrInvalidProviderClientSecret
 			}
 		}
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	return nil
@@ -142,7 +142,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	rawRefreshToken, ok = exchanged.Extra("refresh_token").(string)
 	if !ok {
 		// this probably means that the client does not have refresh tokens enabled
-		logging.S.Warnf("no refresh token returned from oidc client for %q, session lifetime will be reduced", o.Domain)
+		logging.Warnf("no refresh token returned from oidc client for %q, session lifetime will be reduced", o.Domain)
 	}
 
 	rawIDToken, ok := exchanged.Extra("id_token").(string)
@@ -167,7 +167,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 	}
 
 	if err := validator.New().Struct(claims); err != nil {
-		logging.S.Errorf("%s provider incorrectly configured, email claim in ID token of authenticated user is missing or invalid: %s", o.Domain, err)
+		logging.Errorf("%s provider incorrectly configured, email claim in ID token of authenticated user is missing or invalid: %s", o.Domain, err)
 		return "", "", time.Time{}, "", fmt.Errorf("failed to validate ID token claims: %w", err)
 	}
 
@@ -215,7 +215,7 @@ func (o *oidcImplementation) SyncProviderUser(ctx context.Context, db *gorm.DB, 
 		return fmt.Errorf("could not get user info from provider: %w", err)
 	}
 
-	logging.S.Debugf("user synchronized with %q groups from provider (ID: %v)", info.Groups, providerUser.ProviderID)
+	logging.Debugf("user synchronized with %q groups from provider (ID: %v)", info.Groups, providerUser.ProviderID)
 
 	if err := data.AssignIdentityToGroups(db, user, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
@@ -271,7 +271,7 @@ func checkRefreshAccessToken(ctx context.Context, db *gorm.DB, providerUser *mod
 
 	// update the stored access token if it was refreshed
 	if accessToken != string(providerUser.AccessToken) {
-		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
+		logging.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
 
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
 		providerUser.ExpiresAt = expiry.UTC()

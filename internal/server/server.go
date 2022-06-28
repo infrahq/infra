@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -159,9 +160,6 @@ func New(options Options) (*Server, error) {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	// nolint: errcheck // if logs won't sync there is no way to report this error
-	defer logging.L.Sync()
-
 	if s.tel != nil {
 		repeat.Start(ctx, 1*time.Hour, func(context.Context) {
 			s.tel.EnqueueHeartbeat()
@@ -173,7 +171,7 @@ func (s *Server) Run(ctx context.Context) error {
 		group.Go(s.routines[i].run)
 	}
 
-	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s",
+	logging.Infof("starting infra server (%s) - http:%s https:%s metrics:%s",
 		internal.FullVersion(), s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
 
 	<-ctx.Done()
@@ -228,10 +226,11 @@ func (s *Server) listen() error {
 	promRegistry := setupMetrics(s.db)
 	router := s.GenerateRoutes(promRegistry)
 
+	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
 		Handler:  metrics.NewHandler(promRegistry),
-		ErrorLog: logging.StandardErrorLog(),
+		ErrorLog: httpErrorLog,
 	}
 
 	var err error
@@ -243,7 +242,7 @@ func (s *Server) listen() error {
 	plaintextServer := &http.Server{
 		Addr:     s.options.Addr.HTTP,
 		Handler:  router,
-		ErrorLog: logging.StandardErrorLog(),
+		ErrorLog: httpErrorLog,
 	}
 	s.Addrs.HTTP, err = s.setupServer(plaintextServer)
 	if err != nil {
@@ -259,7 +258,7 @@ func (s *Server) listen() error {
 		Addr:      s.options.Addr.HTTPS,
 		TLSConfig: tlsConfig,
 		Handler:   router,
-		ErrorLog:  logging.StandardErrorLog(),
+		ErrorLog:  httpErrorLog,
 	}
 	s.Addrs.HTTPS, err = s.setupServer(tlsServer)
 	if err != nil {
@@ -309,13 +308,13 @@ func tlsConfigFromOptions(
 	if opts.Certificate != "" && opts.PrivateKey != "" {
 		roots, err := x509.SystemCertPool()
 		if err != nil {
-			logging.S.Warnf("failed to load TLS roots from system: %v", err)
+			logging.Warnf("failed to load TLS roots from system: %v", err)
 			roots = x509.NewCertPool()
 		}
 
 		if opts.CA != "" {
 			if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
-				logging.S.Warnf("failed to load TLS CA, invalid PEM")
+				logging.Warnf("failed to load TLS CA, invalid PEM")
 			}
 		}
 

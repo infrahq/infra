@@ -93,7 +93,7 @@ func (k *Kubernetes) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 
 	for cr, subjs := range subjects {
 		if !validClusterRoles[cr] {
-			logging.S.Warnf("cluster role binding %s skipped, it does not exist", cr)
+			logging.Warnf("cluster role binding %s skipped, it does not exist", cr)
 			continue
 		}
 
@@ -173,7 +173,7 @@ func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbac
 
 	for crn, subjs := range subjects {
 		if !validClusterRoles[crn.ClusterRole] {
-			logging.S.Warnf("cluster role binding %s skipped, it does not exist", crn.ClusterRole)
+			logging.Warnf("cluster role binding %s skipped, it does not exist", crn.ClusterRole)
 			continue
 		}
 
@@ -224,7 +224,7 @@ func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbac
 					if k8sErrors.IsNotFound(err) {
 						// the namespace does not exist
 						// we can proceed in this case, the role mapping is just not applicable to this cluster
-						logging.S.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
+						logging.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
 						continue
 					}
 
@@ -496,7 +496,7 @@ func (k *Kubernetes) Name(chksm string) (string, error) {
 	}
 
 	// truncated checksum will be used as default name if one could not be found
-	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
+	logging.Debugf("could not fetch cluster name, resorting to hashed cluster CA")
 
 	return name, nil
 }

@@ -37,7 +37,7 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 		c.Next()
 
 		if elapsed := time.Since(start); elapsed > timeout {
-			logging.L.Sugar().Warnf("Request to %q took %s and may have timed out", c.Request.URL.Path, elapsed)
+			logging.Warnf("Request to %q took %s and may have timed out", c.Request.URL.Path, elapsed)
 		}
 	}
 }
@@ -51,7 +51,7 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return nil
 		})
 		if err != nil {
-			logging.S.Debugf(err.Error())
+			logging.Debugf(err.Error())
 		}
 	}
 }

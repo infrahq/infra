@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -120,7 +121,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		raw := strings.ReplaceAll(authorization, "Bearer ", "")
 		if raw == "" {
-			logging.L.Debug("no bearer token found")
+			logging.Debugf("no bearer token found")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -128,7 +129,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		tok, err := jwt.ParseSigned(raw)
 		if err != nil {
-			logging.S.Debugf("invalid jwt signature: %v", err)
+			logging.Debugf("invalid jwt signature: %v", err)
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -136,7 +137,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		key, err := getJWK()
 		if err != nil {
-			logging.L.Debug("could not get jwk")
+			logging.Debugf("could not get jwk")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -149,7 +150,7 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		out := make(map[string]interface{})
 		if err := tok.Claims(key, &claims, &out); err != nil {
-			logging.L.Debug("invalid token claims")
+			logging.Debugf("invalid token claims")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -161,19 +162,19 @@ func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
 
 		switch {
 		case errors.Is(err, jwt.ErrExpired):
-			logging.S.Debugf("expired JWT %s", err.Error())
+			logging.Debugf("expired JWT %s", err.Error())
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
 		case err != nil:
-			logging.S.Debugf("invalid JWT %s", err.Error())
+			logging.Debugf("invalid JWT %s", err.Error())
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
 		}
 
 		if err := validator.New().Struct(claims.Custom); err != nil {
-			logging.L.Debug("JWT custom claims not valid")
+			logging.Debugf("JWT custom claims not valid")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -190,7 +191,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 	return func(c *gin.Context) {
 		name, ok := c.MustGet("name").(string)
 		if !ok {
-			logging.S.Debug("required field 'name' not found")
+			logging.Debugf("required field 'name' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -198,7 +199,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 
 		groups, ok := c.MustGet("groups").([]string)
 		if !ok {
-			logging.S.Debug("required field 'groups' not found")
+			logging.Debugf("required field 'groups' not found")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -207,7 +208,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 		if name != "" {
 			c.Request.Header.Set("Impersonate-User", name)
 		} else {
-			logging.S.Debug("unable to determine identity")
+			logging.Debugf("unable to determine identity")
 			c.AbortWithStatus(http.StatusUnauthorized)
 
 			return
@@ -224,7 +225,7 @@ func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.Handl
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
 func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
-	logging.L.Debug("syncing local grants from infra configuration")
+	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
 	crnSubjects := make(map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) // cluster-role+namespace: subject
@@ -278,7 +279,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 			crnSubjects[crn] = append(crnSubjects[crn], subj)
 
 		default:
-			logging.S.Warnf("invalid grant resource: %s", g.Resource)
+			logging.Warnf("invalid grant resource: %s", g.Resource)
 			continue
 		}
 	}
@@ -314,7 +315,7 @@ func (c *CertCache) AddHost(host string) (*tls.Certificate, error) {
 
 	c.hosts = append(c.hosts, host)
 
-	logging.S.Debug("generating certificate for: %v", c.hosts)
+	logging.Debugf("generating certificate for: %v", c.hosts)
 
 	ca, err := tls.X509KeyPair(c.caCert, c.caKey)
 	if err != nil {
@@ -373,14 +374,14 @@ func Run(ctx context.Context, options Options) error {
 
 	chksm, err := k8s.Checksum()
 	if err != nil {
-		logging.S.Errorf("k8s checksum error: %s", err)
+		logging.Errorf("k8s checksum error: %s", err)
 		return err
 	}
 
 	if options.Name == "" {
 		autoname, err := k8s.Name(chksm)
 		if err != nil {
-			logging.S.Errorf("k8s name error: %s", err)
+			logging.Errorf("k8s name error: %s", err)
 			return err
 		}
 		options.Name = autoname
@@ -413,17 +414,17 @@ func Run(ctx context.Context, options Options) error {
 
 	u, err := urlx.Parse(options.Server)
 	if err != nil {
-		logging.S.Errorf("server: %s", err)
+		logging.Errorf("server: %s", err)
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
 	if strings.HasPrefix(u.Host, "localhost") {
 		server, err := k8s.Service("server")
 		if err != nil {
-			logging.S.Warnf("no cluster-local infra server found for %q. check connector configurations", u.Host)
+			logging.Warnf("no cluster-local infra server found for %q. check connector configurations", u.Host)
 		} else {
 			host := fmt.Sprintf("%s.%s", server.ObjectMeta.Name, server.ObjectMeta.Namespace)
-			logging.S.Debugf("using cluster-local infra server at %q instead of %q", host, u.Host)
+			logging.Debugf("using cluster-local infra server at %q instead of %q", host, u.Host)
 			u.Host = host
 		}
 	}
@@ -509,15 +510,16 @@ func Run(ctx context.Context, options Options) error {
 	proxy.Transport = proxyTransport
 
 	promRegistry := setupMetrics()
+	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		Addr:     ":9090",
 		Handler:  metrics.NewHandler(promRegistry),
-		ErrorLog: logging.StandardErrorLog(),
+		ErrorLog: httpErrorLog,
 	}
 
 	go func() {
 		if err := metricsServer.ListenAndServe(); err != nil {
-			logging.S.Errorf("server: %s", err)
+			logging.Errorf("server: %s", err)
 		}
 	}()
 
@@ -530,10 +532,10 @@ func Run(ctx context.Context, options Options) error {
 		Addr:      ":443",
 		TLSConfig: tlsConfig,
 		Handler:   router,
-		ErrorLog:  logging.StandardErrorLog(),
+		ErrorLog:  httpErrorLog,
 	}
 
-	logging.S.Infof("starting infra (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
+	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
 	return tlsServer.ListenAndServeTLS("", "")
 }
@@ -543,14 +545,14 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 	return func(context.Context) {
 		host, port, err := k8s.Endpoint()
 		if err != nil {
-			logging.S.Errorf("failed to lookup endpoint: %v", err)
+			logging.Errorf("failed to lookup endpoint: %v", err)
 			return
 		}
 
 		if ipv4 := net.ParseIP(host); ipv4 == nil {
 			// wait for DNS resolution if endpoint is not an IPv4 address
 			if _, err := net.LookupIP(host); err != nil {
-				logging.L.Error("host could not be resolved")
+				logging.Errorf("host could not be resolved")
 				return
 			}
 		}
@@ -558,22 +560,22 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 		// update certificates if the host changed
 		_, err = certCache.AddHost(host)
 		if err != nil {
-			logging.L.Error("could not update self-signed certificates")
+			logging.Errorf("could not update self-signed certificates")
 			return
 		}
 
 		endpoint := fmt.Sprintf("%s:%d", host, port)
-		logging.S.Debugf("connector serving on %s", endpoint)
+		logging.Debugf("connector serving on %s", endpoint)
 
 		namespaces, err := k8s.Namespaces()
 		if err != nil {
-			logging.S.Errorf("could not get kubernetes namespaces: %w", err)
+			logging.Errorf("could not get kubernetes namespaces: %v", err)
 			return
 		}
 
 		clusterRoles, err := k8s.ClusterRoles()
 		if err != nil {
-			logging.S.Errorf("could not get kubernetes cluster-roles: %w", err)
+			logging.Errorf("could not get kubernetes cluster-roles: %v", err)
 			return
 		}
 
@@ -581,11 +583,11 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 		case destination.ID == 0:
 			isClusterIP, err := k8s.IsServiceTypeClusterIP()
 			if err != nil {
-				logging.S.Debugf("could not determine service type: %v", err)
+				logging.Debugf("could not determine service type: %v", err)
 			}
 
 			if isClusterIP {
-				logging.S.Warn("registering Kubernetes connector with ClusterIP. it may not be externally accessible. if you are experiencing connectivity issues, consider switching to LoadBalancer or Ingress")
+				logging.Warnf("registering Kubernetes connector with ClusterIP. it may not be externally accessible. if you are experiencing connectivity issues, consider switching to LoadBalancer or Ingress")
 			}
 
 			fallthrough
@@ -606,21 +608,21 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 			destination.Connection.URL = endpoint
 
 			if err := createOrUpdateDestination(client, destination); err != nil {
-				logging.S.Errorf("initializing destination: %v", err)
+				logging.Errorf("initializing destination: %v", err)
 				return
 			}
 		}
 
 		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: destination.Name})
 		if err != nil {
-			logging.S.Errorf("error listing grants: %v", err)
+			logging.Errorf("error listing grants: %v", err)
 			return
 		}
 
 		for _, n := range namespaces {
 			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", destination.Name, n)})
 			if err != nil {
-				logging.S.Errorf("error listing grants: %v", err)
+				logging.Errorf("error listing grants: %v", err)
 				return
 			}
 
@@ -629,7 +631,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 
 		err = updateRoles(client, k8s, grants.Items)
 		if err != nil {
-			logging.S.Errorf("error updating grants: %v", err)
+			logging.Errorf("error updating grants: %v", err)
 			return
 		}
 	}
@@ -670,7 +672,7 @@ func createOrUpdateDestination(client *api.Client, local *api.Destination) error
 
 // updateDestination updates a destination in the infra server
 func updateDestination(client *api.Client, local *api.Destination) error {
-	logging.S.Debug("updating information at server")
+	logging.Debugf("updating information at server")
 
 	request := api.UpdateDestinationRequest{
 		ID:         local.ID,

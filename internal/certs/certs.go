@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -82,12 +81,12 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 
 		certBytes, err := manager.Cache.Get(ctx, serverName+".crt")
 		if err != nil {
-			logging.S.Warnf("cert: %s", err)
+			logging.Warnf("cert: %s", err)
 		}
 
 		keyBytes, err := manager.Cache.Get(ctx, serverName+".key")
 		if err != nil {
-			logging.S.Warnf("key: %s", err)
+			logging.Warnf("key: %s", err)
 		}
 
 		// if either cert or key is missing, create it
@@ -110,9 +109,10 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 				return nil, err
 			}
 
-			logging.L.Info("new server certificate",
-				zap.String("Server name", serverName),
-				zap.String("SHA256 fingerprint", Fingerprint(pemDecode(certBytes))))
+			logging.L.Info().
+				Str("serverName", serverName).
+				Str("fingerprint", Fingerprint(pemDecode(certBytes))).
+				Msg("new server certificate")
 		}
 
 		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
