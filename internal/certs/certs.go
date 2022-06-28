@@ -1,7 +1,6 @@
 package certs
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -66,6 +65,7 @@ func GenerateCertificate(hosts []string, caCert *x509.Certificate, caKey crypto.
 
 func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		ctx := hello.Context()
 		cert, err := manager.GetCertificate(hello)
 		if err == nil {
 			return cert, nil
@@ -77,12 +77,12 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 			serverName = hello.Conn.LocalAddr().String()
 		}
 
-		certBytes, err := manager.Cache.Get(context.TODO(), serverName+".crt")
+		certBytes, err := manager.Cache.Get(ctx, serverName+".crt")
 		if err != nil {
 			logging.S.Warnf("cert: %s", err)
 		}
 
-		keyBytes, err := manager.Cache.Get(context.TODO(), serverName+".key")
+		keyBytes, err := manager.Cache.Get(ctx, serverName+".key")
 		if err != nil {
 			logging.S.Warnf("key: %s", err)
 		}
@@ -99,15 +99,16 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), serverName+".crt", certBytes); err != nil {
+			if err := manager.Cache.Put(ctx, serverName+".crt", certBytes); err != nil {
 				return nil, err
 			}
 
-			if err := manager.Cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
+			if err := manager.Cache.Put(ctx, serverName+".key", keyBytes); err != nil {
 				return nil, err
 			}
 
 			logging.L.Info("new server certificate",
+				zap.String("Server name", serverName),
 				zap.String("SHA256 fingerprint", Fingerprint(pemDecode(certBytes))))
 		}
 
@@ -146,9 +147,14 @@ func pemEncodePrivateKey(raw []byte) []byte {
 	return pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: raw})
 }
 
-func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
+func newCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	// Generate a CA to sign self-signed certificates
 	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -162,12 +168,17 @@ func newCA() (*x509.Certificate, crypto.PrivateKey, error) {
 		NotAfter:              time.Now().AddDate(0, 0, 365).UTC(),
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:                  true,
 		BasicConstraintsValid: true,
 	}
 
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// TODO: is there really no other way to get the Raw field populated?
+	ca, _ = x509.ParseCertificate(caBytes)
+
 	return ca, caPrivKey, nil
 }

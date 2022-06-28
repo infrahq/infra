@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"embed"
 	"errors"
 	"fmt"
@@ -35,7 +36,7 @@ import (
 
 type Options struct {
 	Version                  float64
-	TLSCache                 string
+	TLSCache                 string // TODO: move this to TLS.CacheDir
 	EnableTelemetry          bool
 	EnableSignup             bool
 	SessionDuration          time.Duration
@@ -58,6 +59,7 @@ type Options struct {
 
 	Addr ListenerOptions
 	UI   UIOptions
+	TLS  TLSOptions
 }
 
 type ListenerOptions struct {
@@ -71,6 +73,16 @@ type UIOptions struct {
 	ProxyURL types.URL
 	// FS is the filesystem which contains the static files for the UI.
 	FS fs.FS `config:"-"`
+}
+
+type TLSOptions struct {
+	// CA is a PEM encoded certificate for the CA that signed the
+	// certificate, or that will be used to generate a certificate if one was
+	// not provided.
+	CA           types.StringOrFile
+	CAPrivateKey string
+	Certificate  types.StringOrFile
+	PrivateKey   string
 }
 
 type Server struct {
@@ -238,7 +250,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := tlsConfigWithCacheDir(s.options.TLSCache)
+	tlsConfig, err := tlsConfigFromOptions(s.secrets, s.options.TLSCache, s.options.TLS)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -287,7 +299,47 @@ type routine struct {
 	stop func()
 }
 
-func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
+func tlsConfigFromOptions(
+	storage map[string]secrets.SecretStorage,
+	tlsCacheDir string,
+	opts TLSOptions,
+) (*tls.Config, error) {
+	// TODO: print CA fingerprint when the client can trust that fingerprint
+
+	if opts.Certificate != "" && opts.PrivateKey != "" {
+		roots, err := x509.SystemCertPool()
+		if err != nil {
+			logging.S.Warnf("failed to load TLS roots from system: %v", err)
+			roots = x509.NewCertPool()
+		}
+
+		if opts.CA != "" {
+			if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
+				logging.S.Warnf("failed to load TLS CA, invalid PEM")
+			}
+		}
+
+		key, err := secrets.GetSecret(opts.PrivateKey, storage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load TLS private key: %w", err)
+		}
+
+		cert, err := tls.X509KeyPair([]byte(opts.Certificate), []byte(key))
+		if err != nil {
+			return nil, fmt.Errorf("failed to load TLS key pair: %w", err)
+		}
+
+		return &tls.Config{
+			MinVersion: tls.VersionTLS12,
+			// enable HTTP/2
+			NextProtos:   []string{"h2", "http/1.1"},
+			Certificates: []tls.Certificate{cert},
+			// enabled optional mTLS
+			ClientAuth: tls.VerifyClientCertIfGiven,
+			ClientCAs:  roots,
+		}, nil
+	}
+
 	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
 		return nil, fmt.Errorf("create tls cache: %w", err)
 	}
@@ -297,6 +349,8 @@ func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
 		Cache:  autocert.DirCache(tlsCacheDir),
 	}
 	tlsConfig := manager.TLSConfig()
+	tlsConfig.MinVersion = tls.VersionTLS12
+	// TODO: enabled optional mTLS when opts.CA is set
 	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
 
 	return tlsConfig, nil

@@ -72,5 +72,5 @@ func hookSetFromString(from reflect.Value, to reflect.Value) (interface{}, error
 	}
 
 	err := fromString.Set(v)
-	return to, err
+	return to.Interface(), err
 }
