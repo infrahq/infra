@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -28,8 +30,31 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 
 	cmd.AddCommand(newProvidersListCmd(cli))
 	cmd.AddCommand(newProvidersAddCmd(cli))
+	cmd.AddCommand(newProvidersEditCmd(cli))
 	cmd.AddCommand(newProvidersRemoveCmd(cli))
 
+	return cmd
+}
+
+func newProvidersEditCmd(cli *CLI) *cobra.Command {
+	var secret bool
+
+	cmd := &cobra.Command{
+		Use:   "edit PROVIDER",
+		Short: "Update a provider",
+		Example: `# Set a new secret for a provider
+$ infra providers edit okta --secret`,
+		Args: ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !secret {
+				return errors.New("Please specify a field to update. For options, run 'infra providers edit --help'")
+			}
+
+			return updateProvider(cli, args[0])
+		},
+	}
+
+	cmd.Flags().BoolVar(&secret, "secret", false, "Set a new secret")
 	return cmd
 }
 
@@ -162,6 +187,61 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
 	return cmd
+}
+
+func updateProvider(cli *CLI, name string) error {
+	secret, err := promptSetSecret(cli)
+	if err != nil {
+		return err
+	}
+
+	client, err := defaultAPIClient()
+	if err != nil {
+		return err
+	}
+
+	res, err := client.ListProviders(name)
+	if err != nil {
+		return err
+	}
+
+	provider := res.Items[0]
+
+	logging.S.Debugf("call server: update provider named %q", name)
+	_, err = client.UpdateProvider(api.UpdateProviderRequest{
+		ID:           provider.ID,
+		Name:         name,
+		URL:          provider.URL,
+		ClientID:     provider.ClientID,
+		ClientSecret: secret,
+		Kind:         provider.Kind,
+	})
+
+	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			logging.S.Debug(err)
+			return Error{
+				Message: "Cannot update provider: missing privileges for UpdateProvider",
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func promptSetSecret(cli *CLI) (string, error) {
+	var secret string
+
+	if err := survey.AskOne(
+		&survey.Password{Message: "Client secret:"},
+		&secret,
+		cli.surveyIO,
+	); err != nil {
+		return "", err
+	}
+
+	return secret, nil
 }
 
 func newProvidersRemoveCmd(cli *CLI) *cobra.Command {

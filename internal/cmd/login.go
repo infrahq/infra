@@ -566,7 +566,7 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 func promptAccessKeyLogin(cli *CLI) (string, error) {
 	var accessKey string
 	err := survey.AskOne(
-		&survey.Password{Message: "Access Key:"},
+		&survey.Password{Message: "Access key:"},
 		&accessKey,
 		cli.surveyIO,
 		survey.WithValidator(survey.Required),
