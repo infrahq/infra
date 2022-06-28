@@ -113,7 +113,7 @@ func TestDBTimeout(t *testing.T) {
 	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
 }
 
-func TestRequireAuthentication(t *testing.T) {
+func TestRequireAccessKey(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"AccessKeyValid": {
 			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
@@ -250,7 +250,7 @@ func TestRequireAuthentication(t *testing.T) {
 			assert.Assert(t, ok)
 			authFunc(t, db, c)
 
-			err := RequireAccessKey(c)
+			_, err := requireAccessKey(db, c.Request)
 
 			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
 			assert.Assert(t, ok)
