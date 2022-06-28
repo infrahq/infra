@@ -45,16 +45,20 @@ type Options struct {
 	SkipTLSVerify bool
 }
 
-type jwkCache struct {
+type authenticator struct {
 	mu          sync.Mutex
 	key         *jose.JSONWebKey
 	lastChecked time.Time
 
-	client  *http.Client
+	client  httpClient
 	baseURL string
 }
 
-func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
+type httpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func (j *authenticator) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
@@ -97,22 +101,23 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	return &response.Keys[0], nil
 }
 
-var JWKCacheRefresh = 5 * time.Minute
-
-type BearerTransport struct {
-	Token     string
-	Transport http.RoundTripper
-}
-
-func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if b.Token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", b.Token))
+func newAuthenticator(url string, options Options) *authenticator {
+	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
+		InsecureSkipVerify: options.SkipTLSVerify,
 	}
 
-	return b.Transport.RoundTrip(req)
+	return &authenticator{
+		client:  &http.Client{Transport: transport},
+		baseURL: url,
+	}
 }
 
-func getClaims(req *http.Request, key *jose.JSONWebKey) (claims.Custom, error) {
+var JWKCacheRefresh = 5 * time.Minute
+
+func (j *authenticator) Authenticate(req *http.Request) (claims.Custom, error) {
 	c := claims.Custom{}
 	authHeader := req.Header.Get("Authorization")
 
@@ -123,7 +128,12 @@ func getClaims(req *http.Request, key *jose.JSONWebKey) (claims.Custom, error) {
 
 	tok, err := jwt.ParseSigned(raw)
 	if err != nil {
-		return c, fmt.Errorf("invalid jwt signature: %w", err)
+		return c, fmt.Errorf("invalid JWT signature: %w", err)
+	}
+
+	key, err := j.getJWK()
+	if err != nil {
+		return c, fmt.Errorf("get JWK from server: %w", err)
 	}
 
 	var allClaims struct {
@@ -151,20 +161,13 @@ func getClaims(req *http.Request, key *jose.JSONWebKey) (claims.Custom, error) {
 
 func proxyMiddleware(
 	proxy *httputil.ReverseProxy,
-	getJWK func() (*jose.JSONWebKey, error),
+	authn *authenticator,
 	bearerToken string,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		key, err := getJWK()
+		claim, err := authn.Authenticate(c.Request)
 		if err != nil {
-			logging.L.Err(err).Msgf("failed to retrieve jwk from server")
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-
-		claim, err := getClaims(c.Request, key)
-		if err != nil {
-			logging.L.Err(err).Msgf("failed to validate auth header")
+			logging.L.Err(err).Msgf("failed to authenticate request")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
@@ -430,15 +433,6 @@ func Run(ctx context.Context, options Options) error {
 		c.Status(http.StatusOK)
 	})
 
-	cache := jwkCache{
-		client: &http.Client{
-			Transport: &BearerTransport{
-				Transport: transport,
-			},
-		},
-		baseURL: u.String(),
-	}
-
 	proxyHost, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return fmt.Errorf("parsing host config: %w", err)
@@ -479,9 +473,10 @@ func Run(ctx context.Context, options Options) error {
 		}
 	}()
 
+	authn := newAuthenticator(u.String(), options)
 	router.Use(
 		metrics.Middleware(promRegistry),
-		proxyMiddleware(proxy, cache.getJWK, k8s.Config.BearerToken),
+		proxyMiddleware(proxy, authn, k8s.Config.BearerToken),
 	)
 	tlsServer := &http.Server{
 		Addr:      ":443",

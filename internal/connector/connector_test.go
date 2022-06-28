@@ -1,11 +1,15 @@
 package connector
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,13 +21,14 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/server"
 )
 
-func TestGetClaims(t *testing.T) {
+func TestAuthenticator_Authenticate(t *testing.T) {
 	type testCase struct {
 		name        string
 		setup       func(t *testing.T, req *http.Request)
-		key         *jose.JSONWebKey
+		fakeClient  fakeClient
 		expectedErr string
 		expected    func(t *testing.T, claims claims.Custom)
 	}
@@ -31,15 +36,15 @@ func TestGetClaims(t *testing.T) {
 	pub, priv := generateJWK(t)
 
 	run := func(t *testing.T, tc testCase) {
-		if tc.key == nil {
-			tc.key = &jose.JSONWebKey{}
-		}
 		req := httptest.NewRequest(http.MethodGet, "/apis", nil)
 		if tc.setup != nil {
 			tc.setup(t, req)
 		}
 
-		actual, err := getClaims(req, tc.key)
+		authn := newAuthenticator("https://127.0.0.1:12345", Options{SkipTLSVerify: true})
+		authn.client = tc.fakeClient
+
+		actual, err := authn.Authenticate(req)
 		if tc.expectedErr != "" {
 			assert.ErrorContains(t, err, tc.expectedErr)
 			return
@@ -61,21 +66,22 @@ func TestGetClaims(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "username:password")
 			},
-			expectedErr: "invalid jwt signature",
+			expectedErr: "invalid JWT signature",
 		},
-		//{
-		//	name: "invalid JWK",
-		//	setup: func(t *testing.T, req *http.Request) {
-		//		req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
-		//	},
-		//	expectedErr: "TODO",
-		//},
+		{
+			name: "invalid JWK",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
+			},
+			fakeClient:  fakeClient{err: fmt.Errorf("server not available")},
+			expectedErr: "get JWK from server: server not available",
+		},
 		{
 			name: "invalid JWT",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.j7o5o8GBkybaYXdFJIi8O6mPF50E-gJWZ3reLfMQD68")
 			},
-			key:         pub,
+			fakeClient:  fakeClient{key: *pub},
 			expectedErr: "error in cryptographic primitive",
 		},
 		{
@@ -84,7 +90,7 @@ func TestGetClaims(t *testing.T) {
 				j := generateJWT(t, priv, "test@example.com", time.Now().Add(-1*time.Hour))
 				req.Header.Set("Authorization", "Bearer "+j)
 			},
-			key:         pub,
+			fakeClient:  fakeClient{key: *pub},
 			expectedErr: "token is expired",
 		},
 		{
@@ -93,7 +99,7 @@ func TestGetClaims(t *testing.T) {
 				j := generateJWT(t, priv, "test@example.com", time.Now().Add(time.Hour))
 				req.Header.Set("Authorization", "Bearer "+j)
 			},
-			key: pub,
+			fakeClient: fakeClient{key: *pub},
 			expected: func(t *testing.T, actual claims.Custom) {
 				expected := claims.Custom{
 					Name:   "test@example.com",
@@ -147,7 +153,35 @@ func generateJWT(t *testing.T, priv *jose.JSONWebKey, email string, expiry time.
 	return raw
 }
 
+type fakeClient struct {
+	key jose.JSONWebKey
+	err error
+}
+
+func (f fakeClient) Do(_ *http.Request) (*http.Response, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	r := server.WellKnownJWKResponse{Keys: []jose.JSONWebKey{f.key}}
+
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioutil.NopCloser(&buf),
+	}
+	return resp, nil
+}
+
 func TestCertCache_Certificate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
 	testCACertPEM, err := os.ReadFile("./_testdata/test-ca-cert.pem")
 	assert.NilError(t, err)
 
