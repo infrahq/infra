@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/goware/urlx"
 	"github.com/infrahq/secrets"
 	"gopkg.in/square/go-jose.v2"
@@ -113,108 +112,65 @@ func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return b.Transport.RoundTrip(req)
 }
 
-type getJWKFunc func() (*jose.JSONWebKey, error)
+func getClaims(req *http.Request, key *jose.JSONWebKey) (claims.Custom, error) {
+	c := claims.Custom{}
+	authHeader := req.Header.Get("Authorization")
 
-func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authorization := c.GetHeader("Authorization")
-
-		raw := strings.ReplaceAll(authorization, "Bearer ", "")
-		if raw == "" {
-			logging.Debugf("no bearer token found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		tok, err := jwt.ParseSigned(raw)
-		if err != nil {
-			logging.Debugf("invalid jwt signature: %v", err)
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		key, err := getJWK()
-		if err != nil {
-			logging.Debugf("could not get jwk")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		var claims struct {
-			jwt.Claims
-			claims.Custom
-		}
-
-		out := make(map[string]interface{})
-		if err := tok.Claims(key, &claims, &out); err != nil {
-			logging.Debugf("invalid token claims")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		err = claims.Claims.Validate(jwt.Expected{
-			Time: time.Now().UTC(),
-		})
-
-		switch {
-		case errors.Is(err, jwt.ErrExpired):
-			logging.Debugf("expired JWT %s", err.Error())
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		case err != nil:
-			logging.Debugf("invalid JWT %s", err.Error())
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		if err := validator.New().Struct(claims.Custom); err != nil {
-			logging.Debugf("JWT custom claims not valid")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		c.Set("name", claims.Name)
-		c.Set("groups", claims.Groups)
-
-		c.Next()
+	raw := strings.TrimPrefix(authHeader, "Bearer ")
+	if raw == "" {
+		return c, fmt.Errorf("no bearer token found")
 	}
+
+	tok, err := jwt.ParseSigned(raw)
+	if err != nil {
+		return c, fmt.Errorf("invalid jwt signature: %w", err)
+	}
+
+	var allClaims struct {
+		jwt.Claims
+		claims.Custom
+	}
+	if err := tok.Claims(key, &allClaims); err != nil {
+		return c, fmt.Errorf("invalid token claims: %w", err)
+	}
+
+	err = allClaims.Claims.Validate(jwt.Expected{Time: time.Now().UTC()})
+	switch {
+	case errors.Is(err, jwt.ErrExpired):
+		return c, err
+	case err != nil:
+		return c, fmt.Errorf("invalid JWT %w", err)
+	}
+
+	if allClaims.Custom.Name == "" {
+		return c, fmt.Errorf("no username in JWT claims")
+	}
+
+	return allClaims.Custom, nil
 }
 
-func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
+func proxyMiddleware(
+	proxy *httputil.ReverseProxy,
+	getJWK func() (*jose.JSONWebKey, error),
+	bearerToken string,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		name, ok := c.MustGet("name").(string)
-		if !ok {
-			logging.Debugf("required field 'name' not found")
+		key, err := getJWK()
+		if err != nil {
+			logging.L.Err(err).Msgf("failed to retrieve jwk from server")
 			c.AbortWithStatus(http.StatusUnauthorized)
-
 			return
 		}
 
-		groups, ok := c.MustGet("groups").([]string)
-		if !ok {
-			logging.Debugf("required field 'groups' not found")
+		claim, err := getClaims(c.Request, key)
+		if err != nil {
+			logging.L.Err(err).Msgf("failed to validate auth header")
 			c.AbortWithStatus(http.StatusUnauthorized)
-
 			return
 		}
 
-		if name != "" {
-			c.Request.Header.Set("Impersonate-User", name)
-		} else {
-			logging.Debugf("unable to determine identity")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		for _, g := range groups {
+		c.Request.Header.Set("Impersonate-User", claim.Name)
+		for _, g := range claim.Groups {
 			c.Request.Header.Add("Impersonate-Group", g)
 		}
 
@@ -525,8 +481,7 @@ func Run(ctx context.Context, options Options) error {
 
 	router.Use(
 		metrics.Middleware(promRegistry),
-		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(proxy, k8s.Config.BearerToken),
+		proxyMiddleware(proxy, cache.getJWK, k8s.Config.BearerToken),
 	)
 	tlsServer := &http.Server{
 		Addr:      ":443",
