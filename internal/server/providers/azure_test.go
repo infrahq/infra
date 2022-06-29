@@ -155,7 +155,7 @@ func TestAzure_GetUserInfo(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			server, ctx := setupOIDCTest(t, test.infoResponse)
 			serverURL := server.run(t, azureHandlers)
-			provider := NewOIDC(models.Provider{Kind: models.AzureKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
+			provider := NewOIDCClient(models.Provider{Kind: models.AzureKind, URL: serverURL, ClientID: "invalid"}, "invalid", "http://localhost:8301")
 			patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf")
 			info, err := provider.GetUserInfo(ctx, &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})
 			test.verifyFunc(t, info, err)

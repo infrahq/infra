@@ -18,10 +18,10 @@ type oidcAuthn struct {
 	ProviderID         uid.ID
 	RedirectURL        string
 	Code               string
-	OIDCProviderClient providers.OIDC
+	OIDCProviderClient providers.OIDCClient
 }
 
-func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDC) LoginMethod {
+func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDCClient) LoginMethod {
 	return &oidcAuthn{
 		ProviderID:         providerID,
 		RedirectURL:        redirectURL,

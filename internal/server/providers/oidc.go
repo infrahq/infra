@@ -30,7 +30,7 @@ type AuthServerInfo struct {
 	ScopesSupported []string `json:"scopes_supported"`
 }
 
-type OIDC interface {
+type OIDCClient interface {
 	Validate(context.Context) error
 	AuthServerInfo(context.Context) (*AuthServerInfo, error)
 	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
@@ -38,7 +38,7 @@ type OIDC interface {
 	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error)
 }
 
-type oidcImplementation struct {
+type oidcClientImplementation struct {
 	ProviderID   uid.ID
 	Domain       string
 	ClientID     string
@@ -46,8 +46,8 @@ type oidcImplementation struct {
 	RedirectURL  string
 }
 
-func NewOIDC(provider models.Provider, clientSecret, redirectURL string) OIDC {
-	oidc := &oidcImplementation{
+func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) OIDCClient {
+	oidcClient := &oidcClientImplementation{
 		ProviderID:   provider.ID,
 		Domain:       provider.URL,
 		ClientID:     provider.ClientID,
@@ -58,14 +58,14 @@ func NewOIDC(provider models.Provider, clientSecret, redirectURL string) OIDC {
 	// nolint:exhaustive
 	switch provider.Kind {
 	case models.AzureKind:
-		return &azure{OIDC: oidc}
+		return &azure{OIDCClient: oidcClient}
 	default:
-		return oidc
+		return oidcClient
 	}
 }
 
 // Validate tests if an identity provider has valid attributes to support user login
-func (o *oidcImplementation) Validate(ctx context.Context) error {
+func (o *oidcClientImplementation) Validate(ctx context.Context) error {
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
 		logging.Debugf("error validating oidc provider: %s", err)
@@ -93,7 +93,7 @@ func (o *oidcImplementation) Validate(ctx context.Context) error {
 }
 
 // AuthServerInfo returns details about the oidc server auth URL, and the scopes it supports
-func (o *oidcImplementation) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
+func (o *oidcClientImplementation) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 	// find out what the authorization endpoint is
@@ -132,7 +132,7 @@ func (o *oidcImplementation) AuthServerInfo(ctx context.Context) (*AuthServerInf
 }
 
 // clientConfig returns the OAuth client configuration needed to interact with an identity provider
-func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, *oidc.Provider, error) {
+func (o *oidcClientImplementation) clientConfig(ctx context.Context) (*oauth2.Config, *oidc.Provider, error) {
 	provider, err := oidc.NewProvider(ctx, fmt.Sprintf("https://%s", o.Domain))
 	if err != nil {
 		return nil, nil, fmt.Errorf("get provider openid info: %w", err)
@@ -150,7 +150,7 @@ func (o *oidcImplementation) clientConfig(ctx context.Context) (*oauth2.Config, 
 }
 
 // tokenSource is used to call an identity provider with the specified provider tokens
-func (o *oidcImplementation) tokenSource(ctx context.Context, conf *oauth2.Config, providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
+func (o *oidcClientImplementation) tokenSource(ctx context.Context, conf *oauth2.Config, providerTokens *models.ProviderUser) (oauth2.TokenSource, error) {
 	userToken := &oauth2.Token{
 		AccessToken:  string(providerTokens.AccessToken),
 		RefreshToken: string(providerTokens.RefreshToken),
@@ -161,7 +161,7 @@ func (o *oidcImplementation) tokenSource(ctx context.Context, conf *oauth2.Confi
 }
 
 // ExchangeAuthCodeForProviderTokens exchanges the authorization code a user received on login for valid identity provider tokens
-func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
@@ -216,7 +216,7 @@ func (o *oidcImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Conte
 }
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired
-func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+func (o *oidcClientImplementation) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
@@ -240,7 +240,7 @@ func (o *oidcImplementation) RefreshAccessToken(ctx context.Context, providerUse
 
 // GetUserInfo uses a provider token to call the OpenID Connect UserInfo endpoint,
 // make sure an access token is valid (not expired) before using this
-func (o *oidcImplementation) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error) {
+func (o *oidcClientImplementation) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 

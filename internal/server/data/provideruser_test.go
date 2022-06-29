@@ -61,7 +61,7 @@ func TestSyncProviderUser(t *testing.T) {
 		tests := []struct {
 			name              string
 			setupProviderUser func(t *testing.T) *models.Identity
-			oidcClient        providers.OIDC
+			oidcClient        providers.OIDCClient
 			verifyFunc        func(t *testing.T, err error, user *models.Identity)
 		}{
 			{

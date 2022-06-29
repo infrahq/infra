@@ -32,28 +32,28 @@ type graphResponse struct {
 }
 
 type azure struct {
-	OIDC OIDC
+	OIDCClient OIDCClient
 }
 
 func (a *azure) Validate(ctx context.Context) error {
-	return a.OIDC.Validate(ctx)
+	return a.OIDCClient.Validate(ctx)
 }
 
 func (a *azure) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
-	return a.OIDC.AuthServerInfo(ctx)
+	return a.OIDCClient.AuthServerInfo(ctx)
 }
 
 func (a *azure) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
-	return a.OIDC.ExchangeAuthCodeForProviderTokens(ctx, code)
+	return a.OIDCClient.ExchangeAuthCodeForProviderTokens(ctx, code)
 }
 
 func (a *azure) RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
-	return a.OIDC.RefreshAccessToken(ctx, providerUser)
+	return a.OIDCClient.RefreshAccessToken(ctx, providerUser)
 }
 
 func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error) {
 	// this checks if the user still exists
-	info, err := a.OIDC.GetUserInfo(ctx, providerUser)
+	info, err := a.OIDCClient.GetUserInfo(ctx, providerUser)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())

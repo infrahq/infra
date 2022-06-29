@@ -615,10 +615,10 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	return access.UpdateIdentityInfoFromProvider(c, oidc)
 }
 
-func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDC, error) {
+func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
-		oidc, _ := val.(providers.OIDC)
+		oidc, _ := val.(providers.OIDCClient)
 		return oidc, nil
 	}
 
@@ -628,7 +628,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 		return nil, fmt.Errorf("client secret not found")
 	}
 
-	return providers.NewOIDC(*provider, clientSecret, redirectURL), nil
+	return providers.NewOIDCClient(*provider, clientSecret, redirectURL), nil
 }
 
 // setProviderInfoFromServer checks information provided by an OIDC server

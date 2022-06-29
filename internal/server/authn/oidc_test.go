@@ -89,7 +89,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"NewUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
@@ -101,7 +101,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"NewUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -131,7 +131,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
@@ -155,7 +155,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -185,7 +185,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -248,7 +248,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		assert.NilError(t, err)
 
 		t.Run(k, func(t *testing.T) {
-			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDC)
+			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDCClient)
 			assert.Assert(t, ok)
 			mockOIDC := setupFunc(t, db)
 

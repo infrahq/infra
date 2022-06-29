@@ -54,7 +54,7 @@ func GetProviderUser(db *gorm.DB, providerID, userID uid.ID) (*models.ProviderUs
 	return get[models.ProviderUser](db, ByProviderID(providerID), ByIdentityID(userID))
 }
 
-func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider, oidcClient providers.OIDC) error {
+func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
 	providerUser, err := GetProviderUser(db, provider.ID, user.ID)
 	if err != nil {
 		return err
