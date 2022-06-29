@@ -123,3 +123,39 @@ func TestGet(t *testing.T) {
 		assert.DeepEqual(t, req.Header, expectedHeaders)
 	})
 }
+
+func TestDelete(t *testing.T) {
+	ch := make(chan *http.Request, 1)
+	handler := func(rw http.ResponseWriter, r *http.Request) {
+		ch <- r
+		rw.WriteHeader(http.StatusOK)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(handler))
+
+	c := Client{
+		Name:      "testing",
+		Version:   "version",
+		AccessKey: "access-key",
+		URL:       srv.URL,
+	}
+
+	expected := http.Header{
+		"Accept-Encoding": []string{"gzip"},
+		"Authorization":   []string{"Bearer access-key"},
+		"Content-Type":    []string{"application/json"},
+		"Accept":          []string{"application/json"},
+		"Infra-Version":   []string{apiVersion},
+		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
+	}
+
+	t.Run("headers", func(t *testing.T) {
+		err := delete(c, "/good")
+		assert.NilError(t, err)
+
+		r := <-ch
+		assert.DeepEqual(t, r.Header, expected)
+		assert.Equal(t, r.Method, http.MethodDelete)
+		assert.Equal(t, r.URL.Path, "/good")
+	})
+}
