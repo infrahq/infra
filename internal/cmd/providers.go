@@ -52,7 +52,7 @@ $ infra providers edit okta --secret`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&secret, "secret", false, "Set a new secret")
+	cmd.Flags().BoolVar(&secret, "client-secret", false, "Set a new secret")
 	return cmd
 }
 
@@ -203,6 +203,11 @@ func updateProvider(cli *CLI, name string) error {
 		return err
 	}
 
+	if res.Count == 0 {
+		return Error{
+			Message: fmt.Sprintf("Provider %s does not exist", name),
+		}
+	}
 	provider := res.Items[0]
 
 	logging.S.Debugf("call server: update provider named %q", name)
