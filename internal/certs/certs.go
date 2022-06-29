@@ -74,7 +74,10 @@ func SelfSignedOrLetsEncryptCert(manager *autocert.Manager) func(hello *tls.Clie
 		serverName := hello.ServerName
 
 		if serverName == "" {
-			serverName = hello.Conn.LocalAddr().String()
+			serverName, _, err = net.SplitHostPort(hello.Conn.LocalAddr().String())
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		certBytes, err := manager.Cache.Get(ctx, serverName+".crt")
