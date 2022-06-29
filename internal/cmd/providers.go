@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -47,9 +46,8 @@ $ infra providers edit okta --secret`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !secret {
-				return errors.New("Please specify a field to update. For options, run 'infra providers edit --help'")
+				return fmt.Errorf("Please specify a field to update. For options, run 'infra providers edit --help'\n\n%s", cmd.UsageString())
 			}
-
 			return updateProvider(cli, args[0])
 		},
 	}
