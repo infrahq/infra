@@ -89,15 +89,6 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 }
 
 func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
-	contains := func(ids []models.Identity, id uid.ID) bool {
-		for _, i := range ids {
-			if i.ID == id {
-				return true
-			}
-		}
-		return false
-	}
-
 	identities, err := data.ListIdentities(db, data.ByIDs(ids))
 	if err != nil {
 		return nil, err
@@ -108,9 +99,15 @@ func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
 		return ids, nil
 	}
 
+	uidMap := make(map[uid.ID]bool)
+	for _, ident := range identities {
+		uidMap[ident.ID] = true
+	}
+
 	var uidStrList []string
 	for _, id := range ids {
-		if !contains(identities, id) {
+		_, ok := uidMap[id]
+		if !ok {
 			uidStrList = append(uidStrList, id.String())
 		}
 	}
