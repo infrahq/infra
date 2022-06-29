@@ -323,8 +323,8 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
         metrics: "127.0.0.1:0"
 
       tls:
-        ca: some-ca
-        caPrivateKey: some-key
+        ca: testdata/pki/localhost.crt
+        caPrivateKey: file:testdata/pki/localhost.key
 
       secrets:
         - kind: env
