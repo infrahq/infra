@@ -105,6 +105,10 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 	req.Header.Set("Infra-Version", apiVersion)
 	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", apiVersion, clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
 
+	for k, v := range client.Headers {
+		req.Header[k] = v
+	}
+
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
 		urlErr := &url.Error{}
