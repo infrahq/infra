@@ -29,16 +29,8 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
-
 		c.Request = c.Request.WithContext(ctx)
-
-		start := time.Now()
-
 		c.Next()
-
-		if elapsed := time.Since(start); elapsed > timeout {
-			logging.Warnf("Request to %q took %s and may have timed out", c.Request.URL.Path, elapsed)
-		}
 	}
 }
 
