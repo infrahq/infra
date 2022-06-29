@@ -538,7 +538,7 @@ $ infra providers edit okta --secret
 #### Options
 
 ```
-      --secret   Set a new secret
+      --client-secret   Set a new secret
 ```
 
 #### Options inherited from parent commands
