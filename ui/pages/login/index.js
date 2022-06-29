@@ -15,7 +15,9 @@ function oidcLogin({ id, clientID, authURL, scopes }) {
   const redirectURL = window.location.origin + '/login/callback'
   window.localStorage.setItem('redirectURL', redirectURL)
 
-  document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join("+")}&state=${state}`
+  document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join(
+    '+'
+  )}&state=${state}`
 }
 
 function Providers({ providers }) {
@@ -29,18 +31,16 @@ function Providers({ providers }) {
             className='my-1.5 w-full rounded-md border border-gray-800 p-0.5 hover:to-pink-50'
           >
             <div className='flex flex-col items-center justify-center px-4 py-2'>
-            <div className='flex flex-col items-center py-0.5 text-center'>
-                  <img
-                    alt='identity provider icon'
-                    className='h-4'
-                    src={`/providers/${p.kind}.svg`}
-                  />
-                  {(providers?.length > 1) && (p.kind !== p.name) && (
-                    <div className='text-2xs text-gray-300'>
-                      {p.name}
-                    </div>
-                  )}
-                </div>
+              <div className='flex flex-col items-center py-0.5 text-center'>
+                <img
+                  alt='identity provider icon'
+                  className='h-4'
+                  src={`/providers/${p.kind}.svg`}
+                />
+                {providers?.length > 1 && p.kind !== p.name && (
+                  <div className='text-2xs text-gray-300'>{p.name}</div>
+                )}
+              </div>
             </div>
           </button>
         ))}
