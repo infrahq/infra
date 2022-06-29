@@ -14,8 +14,12 @@ test/update:
 dev:
 	docker build . -t infrahq/infra:dev
 	kubectl config use-context docker-desktop
-	helm upgrade --install --wait infra ./helm/charts/infra --set global.image.pullPolicy=Never --set global.image.tag=dev $(flags)
-	kubectl delete pod -A -l app.kubernetes.io/instance=infra
+	helm upgrade --install --wait  \
+		--set global.image.pullPolicy=Never \
+		--set global.image.tag=dev \
+		--set global.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		infra ./helm/charts/infra \
+		$(flags)
 
 dev/clean:
 	kubectl config use-context docker-desktop
