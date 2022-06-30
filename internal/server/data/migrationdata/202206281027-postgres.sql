@@ -45,7 +45,7 @@ CREATE TABLE testing.providers (
     client_id text,
     client_secret text,
     created_by bigint,
-    kind text,
+    kind text
 );
 
 
