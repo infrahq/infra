@@ -2,9 +2,13 @@ package access
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -84,6 +88,33 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 	return data.DeleteGroups(db, selectors...)
 }
 
+func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
+	identities, err := data.ListIdentities(db, data.ByIDs(ids))
+	if err != nil {
+		return nil, err
+	}
+
+	// return the original list if we found all of the IDs
+	if len(identities) == len(ids) {
+		return ids, nil
+	}
+
+	uidMap := make(map[uid.ID]bool)
+	for _, ident := range identities {
+		uidMap[ident.ID] = true
+	}
+
+	var uidStrList []string
+	for _, id := range ids {
+		_, ok := uidMap[id]
+		if !ok {
+			uidStrList = append(uidStrList, id.String())
+		}
+	}
+
+	return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, "Couldn't find UIDs: "+strings.Join(uidStrList, ","))
+}
+
 func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uidsToRemove []uid.ID) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
@@ -95,23 +126,19 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	for _, userID := range uidsToAdd {
-		_, err := data.GetIdentity(db, data.ByID(userID))
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, userID := range uidsToRemove {
-		_, err := data.GetIdentity(db, data.ByID(userID))
-		if err != nil {
-			return err
-		}
-	}
-
-	err = data.AddUsersToGroup(db, groupID, uidsToAdd)
+	addIDList, err := checkIdentitiesInList(db, uidsToAdd)
 	if err != nil {
 		return err
 	}
-	return data.RemoveUsersFromGroup(db, groupID, uidsToRemove)
+
+	rmIDList, err := checkIdentitiesInList(db, uidsToRemove)
+	if err != nil {
+		return err
+	}
+
+	err = data.AddUsersToGroup(db, groupID, addIDList)
+	if err != nil {
+		return err
+	}
+	return data.RemoveUsersFromGroup(db, groupID, rmIDList)
 }
