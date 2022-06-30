@@ -42,11 +42,11 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 		Use:   "edit PROVIDER",
 		Short: "Update a provider",
 		Example: `# Set a new client secret for a connected provider
-$ infra providers edit okta --secret`,
+$ infra providers edit okta --client-secret`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !secret {
-				return fmt.Errorf("Please specify a field to update. For options, run 'infra providers edit --help'\n\n%s", cmd.UsageString())
+				return fmt.Errorf("Please specify a field to update.'\n\n%s", cmd.UsageString())
 			}
 			return updateProvider(cli, args[0])
 		},
