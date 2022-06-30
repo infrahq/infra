@@ -41,7 +41,7 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit PROVIDER",
 		Short: "Update a provider",
-		Example: `# Set a new secret for a provider
+		Example: `# Set a new client secret for a connected provider
 $ infra providers edit okta --secret`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -52,7 +52,7 @@ $ infra providers edit okta --secret`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&secret, "client-secret", false, "Set a new secret")
+	cmd.Flags().BoolVar(&secret, "client-secret", false, "Set a new client secret")
 	return cmd
 }
 
