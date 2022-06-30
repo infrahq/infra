@@ -97,14 +97,14 @@ func apiClient(host string, accessKey string, transport *http.Transport) *api.Cl
 func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 	pool, err := x509.SystemCertPool()
 	if err != nil {
-		logging.S.Warnf("Failed to load trusted certificates from system: %v", err)
+		logging.Warnf("Failed to load trusted certificates from system: %v", err)
 		pool = x509.NewCertPool()
 	}
 
 	if config.TrustedCertificate != "" {
 		ok := pool.AppendCertsFromPEM([]byte(config.TrustedCertificate))
 		if !ok {
-			logging.S.Warnf("Failed to read trusted certificates for server")
+			logging.Warnf("Failed to read trusted certificates for server")
 		}
 	}
 
@@ -187,7 +187,7 @@ func newConnectorCmd() *cobra.Command {
 		Args:   NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			logging.SetServerLogger()
+			logging.UseServerLogger()
 
 			options := defaultConnectorOptions()
 			err := cliopts.Load(&options, cliopts.Options{

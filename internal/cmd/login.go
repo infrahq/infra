@@ -123,7 +123,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 	// if signup is required, use it to create an admin account
 	// and use those credentials for subsequent requests
-	logging.S.Debug("call server: check signup enabled")
+	logging.Debugf("call server: check signup enabled")
 	signupEnabled, err := lc.APIClient.SignupEnabled()
 	if err != nil {
 		return err
@@ -191,7 +191,7 @@ func equalHosts(x, y string) bool {
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	logging.S.Debug("call server: login")
+	logging.Debugf("call server: login")
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
@@ -218,7 +218,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 			return err
 		}
 
-		logging.S.Debugf("call server: update user %s", loginRes.UserID)
+		logging.Debugf("call server: update user %s", loginRes.UserID)
 		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			return err
 		}
@@ -237,14 +237,14 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 	backgroundAgentRunning, err := configAgentRunning()
 	if err != nil {
 		// do not block login, just proceed, potentially without the agent
-		logging.S.Errorf("unable to check background agent: %v", err)
+		logging.Errorf("unable to check background agent: %v", err)
 	}
 
 	if !backgroundAgentRunning && !noAgent {
 		// the agent is started in a separate command so that it continues after the login command has finished
 		if err := execAgent(); err != nil {
 			// user still has a valid session, so do not fail
-			logging.S.Errorf("Unable to start agent, destinations will not be updated automatically: %w", err)
+			logging.Errorf("Unable to start agent, destinations will not be updated automatically: %v", err)
 		}
 	}
 
@@ -388,7 +388,7 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 		return nil, err
 	}
 
-	logging.S.Debugf("call server: signup for user %q", email)
+	logging.Debugf("call server: signup for user %q", email)
 	_, err = client.Signup(&api.SignupRequest{Name: email, Password: password})
 	if err != nil {
 		return nil, err
@@ -493,7 +493,7 @@ func attemptTLSRequest(options loginCmdOptions) error {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	logging.S.Debugf("call server: test tls for %q", reqURL)
+	logging.Debugf("call server: test tls for %q", reqURL)
 	httpClient := http.Client{Timeout: 60 * time.Second}
 	res, err := httpClient.Do(req)
 	if err == nil {
@@ -575,7 +575,7 @@ func promptAccessKeyLogin(cli *CLI) (string, error) {
 }
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
-	logging.S.Debug("call server: list providers")
+	logging.Debugf("call server: list providers")
 	providers, err := client.ListProviders("")
 	if err != nil {
 		return nil, err

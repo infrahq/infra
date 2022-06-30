@@ -83,10 +83,10 @@ func (a *azure) SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.
 		}
 
 		newGroups = []string{} // set the groups empty to clear them
-		logging.S.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
+		logging.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
 	}
 
-	logging.S.Debugf("user synchronized with %q groups from provider %q", &newGroups, provider.Name)
+	logging.Debugf("user synchronized with %q groups from provider %q", &newGroups, provider.Name)
 
 	if err := data.AssignIdentityToGroups(db, user, provider, newGroups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)

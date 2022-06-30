@@ -17,7 +17,7 @@ import (
 
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.uber.org/zap/zaptest"
+	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/golden"
@@ -55,11 +55,9 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 
 func setupLogging(t *testing.T) {
 	origL := logging.L
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
+	logging.L = logging.NewLogger(zerolog.NewTestWriter(t))
 	t.Cleanup(func() {
 		logging.L = origL
-		logging.S = logging.L.Sugar()
 	})
 }
 

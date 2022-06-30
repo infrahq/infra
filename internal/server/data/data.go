@@ -8,6 +8,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/go-playground/validator/v10"
@@ -52,7 +53,7 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 // newRawDB creates a new database connection without running migrations.
 func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
-		Logger: logging.ToGormLogger(logging.S),
+		Logger: logging.NewDatabaseLogger(time.Second),
 	})
 	if err != nil {
 		return nil, err
@@ -218,7 +219,7 @@ func handleError(err error) error {
 				Column: col,
 			}
 		default:
-			logging.S.Warnf("unhandled unique constraint error format: %q", err.Error())
+			logging.Warnf("unhandled unique constraint error format: %q", err.Error())
 
 			return UniqueConstraintError{}
 		}
@@ -264,11 +265,11 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 			if errors.Is(err, internal.ErrNotFound) {
 				p := &models.Provider{Name: models.InternalInfraProviderName}
 				if err := add(db, p); err != nil {
-					logging.S.Panic(err)
+					logging.Panicf("%s", err.Error())
 				}
 				return p
 			}
-			logging.S.Panic(err)
+			logging.Panicf("%s", err.Error())
 			return nil
 		}
 
@@ -287,7 +288,7 @@ func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
 		if err != nil {
-			logging.S.Panic(err)
+			logging.Panicf("%s", err.Error())
 			return nil
 		}
 

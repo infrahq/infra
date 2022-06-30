@@ -171,7 +171,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDC) error {
 		}
 
 		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
-			logging.S.Errorf("failed to revoke invalid user session: %s", nestedErr)
+			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
 		}
 
 		return fmt.Errorf("sync user: %w", err)

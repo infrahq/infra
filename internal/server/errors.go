@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -32,7 +31,7 @@ func sendAPIError(c *gin.Context, err error) {
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
 
-	log := logging.L.WithOptions(zap.AddCallerSkip(1)).Debug
+	log := logging.L.Debug()
 
 	switch {
 	case errors.Is(err, internal.ErrUnauthorized):
@@ -40,7 +39,7 @@ func sendAPIError(c *gin.Context, err error) {
 		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
 		// log the error at info because it is not in the response
-		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Info
+		log = logging.L.Info()
 
 	case errors.As(err, &authzError):
 		resp.Code = http.StatusForbidden
@@ -80,15 +79,16 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = "request timed out"
 
 	default:
-		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
+		log = logging.L.Error()
 	}
 
-	log("api request error",
-		zap.String("method", c.Request.Method),
-		zap.String("path", c.Request.URL.Path),
-		zap.Int32("statusCode", resp.Code),
-		zap.String("remoteAddr", c.Request.RemoteAddr),
-		zap.Error(err))
+	log.CallerSkipFrame(1).
+		Err(err).
+		Str("method", c.Request.Method).
+		Str("path", c.Request.URL.Path).
+		Int32("statusCode", resp.Code).
+		Str("remoteAddr", c.Request.RemoteAddr).
+		Msg("api request error")
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()

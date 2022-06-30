@@ -13,22 +13,11 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 )
-
-var fileLogger *zap.Logger
-
-func init() {
-	infraDir, err := infraHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	fileLogger = logging.NewFileErrorLog(filepath.Join(infraDir, "agent.log"))
-}
 
 func newAgentCmd() *cobra.Command {
 	return &cobra.Command{
@@ -38,6 +27,13 @@ func newAgentCmd() *cobra.Command {
 		Args:   NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			infraDir, err := infraHomeDir()
+			if err != nil {
+				panic(err)
+			}
+
+			logging.UseFileLogger(filepath.Join(infraDir, "agent.log"))
+
 			var wg sync.WaitGroup
 
 			// start background tasks
@@ -46,6 +42,8 @@ func newAgentCmd() *cobra.Command {
 
 			repeat.InGroup(&wg, ctx, cancel, 1*time.Minute, syncKubeConfig)
 			// add the next agent task here
+
+			logging.Infof("starting infra agent (%s)", internal.FullVersion())
 
 			wg.Wait()
 
@@ -60,7 +58,7 @@ func configAgentRunning() (bool, error) {
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			// this is the first time the agent is running, suppress the error and continue
-			logging.S.Debug(err)
+			logging.Debugf("%s", err.Error())
 			return false, nil
 		}
 		return false, err
@@ -97,7 +95,7 @@ func execAgent() error {
 		return err
 	}
 
-	logging.S.Debugf("agent started, pid: %d", cmd.Process.Pid)
+	logging.Debugf("agent started, pid: %d", cmd.Process.Pid)
 
 	return writeAgentConfig(cmd.Process.Pid)
 }
@@ -149,7 +147,7 @@ func writeAgentConfig(pid int) error {
 func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
 	client, err := defaultAPIClient()
 	if err != nil {
-		fileLogger.Sugar().Errorf("api client: %v\n", err)
+		logging.Errorf("api client: %v\n", err)
 		cancel()
 	}
 
@@ -157,11 +155,11 @@ func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
 
 	user, destinations, grants, err := getUserDestinationGrants(client)
 	if err != nil {
-		fileLogger.Sugar().Errorf("agent failed to get user destination grants: %v\n", err)
+		logging.Errorf("agent failed to get user destination grants: %v\n", err)
 		cancel()
 	}
 	if err := writeKubeconfig(user, destinations.Items, grants.Items); err != nil {
-		fileLogger.Sugar().Errorf("agent failed to update kube config: %v\n", err)
+		logging.Errorf("agent failed to update kube config: %v\n", err)
 		cancel()
 	}
 }

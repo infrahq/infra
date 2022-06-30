@@ -77,7 +77,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	case 1:
 		user.ID = identities[0].ID
 	default:
-		logging.S.Errorf("Multiple identites match name %q. DB is missing unique index on user names", r.Name)
+		logging.Errorf("Multiple identites match name %q. DB is missing unique index on user names", r.Name)
 		return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 	}
 
@@ -633,7 +633,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 
 	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
 	if err != nil {
-		logging.S.Debugf("could not get client secret: %s", err)
+		logging.Debugf("could not get client secret: %s", err)
 		return nil, fmt.Errorf("client secret not found")
 	}
 

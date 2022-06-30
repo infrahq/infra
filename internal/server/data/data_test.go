@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.uber.org/zap/zaptest"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -34,11 +34,9 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 func setupLogging(t *testing.T) {
 	origL := logging.L
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
+	logging.L = logging.NewLogger(zerolog.NewTestWriter(t))
 	t.Cleanup(func() {
 		logging.L = origL
-		logging.S = logging.L.Sugar()
 	})
 }
 
