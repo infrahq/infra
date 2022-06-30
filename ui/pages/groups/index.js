@@ -12,16 +12,30 @@ const columns = [
   {
     Header: 'Name',
     accessor: g => g,
+    Cell: ({ value: group }) => <div>{group.name}</div>,
   },
   {
     Header: 'Team Size',
     accessor: g => g,
+    width: '25%',
+    Cell: ({ value: group }) => {
+      const { data: { items: users } = {}, error } = useSWR(
+        `/api/users?group=${group.id}`
+      )
+      const loading = !users && !error
+
+      console.log(users)
+
+      return <>{/* {!loading && (<div>{users.length}</div>)} */}</>
+    },
   },
 ]
 
 export default function Groups() {
   const { data: { items: groups } = {}, error } = useSWR('/api/groups')
   const table = useTable({ columns, data: groups || [] })
+
+  console.log(groups)
 
   const [selected, setSelected] = useState(null)
 
