@@ -572,13 +572,19 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 				// need to select only these fields from the providers
 				// we dont have the database encryption key for the client secret at this point
 				var providerModels []models.Provider
-				err := tx.Select("id", "url").Find(&providerModels).Error
+				err := db.Select("id", "url", "kind").Find(&providerModels).Error
 				if err != nil {
 					return err
 				}
 
 				for i := range providerModels {
-					logging.S.Debugf("migrating provider %s", providerModels[i].ID.String())
+					// do not resolve the auth details for the infra provider
+					// check infra provider name and kind just in case other migrations haven't run
+					if providerModels[i].Kind == models.InfraKind || providerModels[i].Name == models.InternalInfraProviderName {
+						continue
+					}
+
+					logging.S.Debugf("migrating %s provider", providerModels[i].Name)
 
 					providerClient := providers.NewOIDCClient(providerModels[i], "not-used", "http://localhost:8301")
 					authServerInfo, err := providerClient.AuthServerInfo(context.Background())
@@ -590,7 +596,7 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 					}
 
 					db.Model(&providerModels[i]).Update("auth_url", authServerInfo.AuthURL)
-					db.Model(&providerModels[i]).Update("scopes", authServerInfo.ScopesSupported)
+					db.Model(&providerModels[i]).Update("scopes", strings.Join(authServerInfo.ScopesSupported, ","))
 				}
 
 				return db.Commit().Error
