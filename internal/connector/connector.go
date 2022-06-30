@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/goware/urlx"
 	"github.com/infrahq/secrets"
 	"gopkg.in/square/go-jose.v2"
@@ -46,16 +45,20 @@ type Options struct {
 	SkipTLSVerify bool
 }
 
-type jwkCache struct {
+type authenticator struct {
 	mu          sync.Mutex
 	key         *jose.JSONWebKey
 	lastChecked time.Time
 
-	client  *http.Client
+	client  httpClient
 	baseURL string
 }
 
-func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
+type httpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+func (j *authenticator) getJWK() (*jose.JSONWebKey, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 
@@ -98,123 +101,79 @@ func (j *jwkCache) getJWK() (*jose.JSONWebKey, error) {
 	return &response.Keys[0], nil
 }
 
+func newAuthenticator(url string, options Options) *authenticator {
+	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
+		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
+		InsecureSkipVerify: options.SkipTLSVerify,
+	}
+
+	return &authenticator{
+		client:  &http.Client{Transport: transport},
+		baseURL: url,
+	}
+}
+
 var JWKCacheRefresh = 5 * time.Minute
 
-type BearerTransport struct {
-	Token     string
-	Transport http.RoundTripper
-}
+func (j *authenticator) Authenticate(req *http.Request) (claims.Custom, error) {
+	c := claims.Custom{}
+	authHeader := req.Header.Get("Authorization")
 
-func (b *BearerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if b.Token != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", b.Token))
+	raw := strings.TrimPrefix(authHeader, "Bearer ")
+	if raw == "" {
+		return c, fmt.Errorf("no bearer token found")
 	}
 
-	return b.Transport.RoundTrip(req)
-}
-
-type getJWKFunc func() (*jose.JSONWebKey, error)
-
-func jwtMiddleware(getJWK getJWKFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authorization := c.GetHeader("Authorization")
-
-		raw := strings.ReplaceAll(authorization, "Bearer ", "")
-		if raw == "" {
-			logging.Debugf("no bearer token found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		tok, err := jwt.ParseSigned(raw)
-		if err != nil {
-			logging.Debugf("invalid jwt signature: %v", err)
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		key, err := getJWK()
-		if err != nil {
-			logging.Debugf("could not get jwk")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		var claims struct {
-			jwt.Claims
-			claims.Custom
-		}
-
-		out := make(map[string]interface{})
-		if err := tok.Claims(key, &claims, &out); err != nil {
-			logging.Debugf("invalid token claims")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		err = claims.Claims.Validate(jwt.Expected{
-			Time: time.Now().UTC(),
-		})
-
-		switch {
-		case errors.Is(err, jwt.ErrExpired):
-			logging.Debugf("expired JWT %s", err.Error())
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		case err != nil:
-			logging.Debugf("invalid JWT %s", err.Error())
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		if err := validator.New().Struct(claims.Custom); err != nil {
-			logging.Debugf("JWT custom claims not valid")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		c.Set("name", claims.Name)
-		c.Set("groups", claims.Groups)
-
-		c.Next()
+	tok, err := jwt.ParseSigned(raw)
+	if err != nil {
+		return c, fmt.Errorf("invalid JWT signature: %w", err)
 	}
+
+	key, err := j.getJWK()
+	if err != nil {
+		return c, fmt.Errorf("get JWK from server: %w", err)
+	}
+
+	var allClaims struct {
+		jwt.Claims
+		claims.Custom
+	}
+	if err := tok.Claims(key, &allClaims); err != nil {
+		return c, fmt.Errorf("invalid token claims: %w", err)
+	}
+
+	err = allClaims.Claims.Validate(jwt.Expected{Time: time.Now().UTC()})
+	switch {
+	case errors.Is(err, jwt.ErrExpired):
+		return c, err
+	case err != nil:
+		return c, fmt.Errorf("invalid JWT %w", err)
+	}
+
+	if allClaims.Custom.Name == "" {
+		return c, fmt.Errorf("no username in JWT claims")
+	}
+
+	return allClaims.Custom, nil
 }
 
-func proxyMiddleware(proxy *httputil.ReverseProxy, bearerToken string) gin.HandlerFunc {
+func proxyMiddleware(
+	proxy *httputil.ReverseProxy,
+	authn *authenticator,
+	bearerToken string,
+) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		name, ok := c.MustGet("name").(string)
-		if !ok {
-			logging.Debugf("required field 'name' not found")
+		claim, err := authn.Authenticate(c.Request)
+		if err != nil {
+			logging.L.Info().Err(err).Msgf("failed to authenticate request")
 			c.AbortWithStatus(http.StatusUnauthorized)
-
 			return
 		}
 
-		groups, ok := c.MustGet("groups").([]string)
-		if !ok {
-			logging.Debugf("required field 'groups' not found")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		if name != "" {
-			c.Request.Header.Set("Impersonate-User", name)
-		} else {
-			logging.Debugf("unable to determine identity")
-			c.AbortWithStatus(http.StatusUnauthorized)
-
-			return
-		}
-
-		for _, g := range groups {
+		c.Request.Header.Set("Impersonate-User", claim.Name)
+		for _, g := range claim.Groups {
 			c.Request.Header.Add("Impersonate-Group", g)
 		}
 
@@ -474,15 +433,6 @@ func Run(ctx context.Context, options Options) error {
 		c.Status(http.StatusOK)
 	})
 
-	cache := jwkCache{
-		client: &http.Client{
-			Transport: &BearerTransport{
-				Transport: transport,
-			},
-		},
-		baseURL: u.String(),
-	}
-
 	proxyHost, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return fmt.Errorf("parsing host config: %w", err)
@@ -523,10 +473,10 @@ func Run(ctx context.Context, options Options) error {
 		}
 	}()
 
+	authn := newAuthenticator(u.String(), options)
 	router.Use(
 		metrics.Middleware(promRegistry),
-		jwtMiddleware(cache.getJWK),
-		proxyMiddleware(proxy, k8s.Config.BearerToken),
+		proxyMiddleware(proxy, authn, k8s.Config.BearerToken),
 	)
 	tlsServer := &http.Server{
 		Addr:      ":443",
