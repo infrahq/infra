@@ -20,7 +20,7 @@ INSERT INTO migrations VALUES('202206151027');
 INSERT INTO migrations VALUES('202206161733');
 
 CREATE TABLE `providers` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`url` text,`client_id` text,`client_secret` text,`kind` text,`created_by` integer, PRIMARY KEY (`id`));
-INSERT INTO providers VALUES(60484726289670144,'2022-06-16 17:44:42.499252201-04:00','2022-06-16 17:44:42.499252201-04:00',NULL,'okta','example.okta.com','client','AAAAEFGaJWjlslpTkgpWZNQpX1sGYWVzZ2NtBJMjsyciL2hvbWUvZGFuaWVsLy5pbmZyYS9zcWxpdGUzLmRiLmtleQxTEYqzdxuWUi9krL4','okta',1);
+INSERT INTO providers VALUES(60484726289670144,'2022-06-16 17:44:42.499252201-04:00','2022-06-16 17:44:42.499252201-04:00',NULL,'okta','example.okta.com','client-id','AAAAEFGaJWjlslpTkgpWZNQpX1sGYWVzZ2NtBJMjsyciL2hvbWUvZGFuaWVsLy5pbmZyYS9zcWxpdGUzLmRiLmtleQxTEYqzdxuWUi9krL4','okta',1);
 INSERT INTO providers VALUES(60484726289670145,'2022-06-16 17:44:42.499252201-04:00','2022-06-16 17:44:42.499252201-04:00',NULL,'infra','','client','AAAAEFGaJWjlslpTkgpWZNQpX1sGYWVzZ2NtBJMjsyciL2hvbWUvZGFuaWVsLy5pbmZyYS9zcWxpdGUzLmRiLmtleQxTEYqzdxuWUi9krL4','infra',1);
 
 CREATE TABLE `settings` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`private_jwk` blob,`public_jwk` blob,PRIMARY KEY (`id`));

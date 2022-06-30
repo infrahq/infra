@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.2 (Debian 14.2-1.pgdg110+1)
--- Dumped by pg_dump version 14.2 (Debian 14.2-1.pgdg110+1)
+-- Dumped from database version 14.4 (Debian 14.4-1.pgdg110+1)
+-- Dumped by pg_dump version 14.4 (Debian 14.4-1.pgdg110+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: migrations; Type: TABLE; Schema: public; Owner: postgres
+-- Name: migrations; Type: TABLE; Schema: testing; Owner: postgres
 --
 
 CREATE TABLE testing.migrations (
@@ -32,7 +32,7 @@ CREATE TABLE testing.migrations (
 ALTER TABLE testing.migrations OWNER TO postgres;
 
 --
--- Name: providers; Type: TABLE; Schema: public; Owner: postgres
+-- Name: providers; Type: TABLE; Schema: testing; Owner: postgres
 --
 
 CREATE TABLE testing.providers (
@@ -44,15 +44,15 @@ CREATE TABLE testing.providers (
     url text,
     client_id text,
     client_secret text,
+    created_by bigint,
     kind text,
-    created_by bigint
 );
 
 
 ALTER TABLE testing.providers OWNER TO postgres;
 
 --
--- Name: providers_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: providers_id_seq; Type: SEQUENCE; Schema: testing; Owner: postgres
 --
 
 CREATE SEQUENCE testing.providers_id_seq
@@ -66,65 +66,61 @@ CREATE SEQUENCE testing.providers_id_seq
 ALTER TABLE testing.providers_id_seq OWNER TO postgres;
 
 --
--- Name: providers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: providers_id_seq; Type: SEQUENCE OWNED BY; Schema: testing; Owner: postgres
 --
 
 ALTER SEQUENCE testing.providers_id_seq OWNED BY testing.providers.id;
 
 
 --
--- Name: providers id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: providers id; Type: DEFAULT; Schema: testing; Owner: postgres
 --
 
 ALTER TABLE ONLY testing.providers ALTER COLUMN id SET DEFAULT nextval('testing.providers_id_seq'::regclass);
 
 
 --
--- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: migrations; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-COPY testing.migrations (id) FROM stdin;
-SCHEMA_INIT
-202203231621
-202203241643
-202203301642
-202203301652
-202203301643
-202203301645
-202203301646
-202203301647
-202203301648
-202204061643
-202204111503
-202204181613
-202204211705
-202204281130
-202204291613
-202206081027
-202206151027
-202206161733
-\.
+INSERT INTO testing.migrations (id) VALUES ('SCHEMA_INIT');
+INSERT INTO testing.migrations (id) VALUES ('202203231621');
+INSERT INTO testing.migrations (id) VALUES ('202203241643');
+INSERT INTO testing.migrations (id) VALUES ('202203301642');
+INSERT INTO testing.migrations (id) VALUES ('202203301652');
+INSERT INTO testing.migrations (id) VALUES ('202203301643');
+INSERT INTO testing.migrations (id) VALUES ('202203301645');
+INSERT INTO testing.migrations (id) VALUES ('202203301646');
+INSERT INTO testing.migrations (id) VALUES ('202203301647');
+INSERT INTO testing.migrations (id) VALUES ('202203301648');
+INSERT INTO testing.migrations (id) VALUES ('202204061643');
+INSERT INTO testing.migrations (id) VALUES ('202204111503');
+INSERT INTO testing.migrations (id) VALUES ('202204181613');
+INSERT INTO testing.migrations (id) VALUES ('202204211705');
+INSERT INTO testing.migrations (id) VALUES ('202204281130');
+INSERT INTO testing.migrations (id) VALUES ('202204291613');
+INSERT INTO testing.migrations (id) VALUES ('202206081027');
+INSERT INTO testing.migrations (id) VALUES ('202206151027');
+INSERT INTO testing.migrations (id) VALUES ('202206161733');
 
 
 --
--- Data for Name: providers; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: providers; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-COPY testing.providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) FROM stdin;
-64820631565574144	2022-06-28 20:54:02.8749+00	2022-06-28 20:54:02.8749+00	\N	okta	example.okta.com	something	AAAAGATRE6Fo/SgPgUZcOfqjFkHGmZuwwJcVrAZhZXNnY20EX+Q8WCYvdmFyL2xpYi9pbmZyYWhxL3NlcnZlci9zcWxpdGUzLmRiLmtleQwZo2b2fhrBmLLPm2A	okta	1
-64820631578157056	2022-06-28 20:54:02.877415+00	2022-06-28 20:54:02.877415+00	\N	infra			AAAAEB6xj0FEgRoB8/MhvCgHQEQGYWVzZ2NtBF/kPFgmL3Zhci9saWIvaW5mcmFocS9zZXJ2ZXIvc3FsaXRlMy5kYi5rZXkMGwEKLrM74+XQILWf	infra	1
-\.
+INSERT INTO testing.providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, created_by, kind) VALUES (63423113657131008, '2022-06-25 00:20:48.640037+00', '2022-06-25 00:20:48.640037+00', NULL, 'infra', '', '', 'AAAAEC8bWPoKbfyEQ/0dUXXXobAGYWVzZ2NtBMNQas4bL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DH+uGwwZiaRaeBM7/w', 1, 'infra');
+INSERT INTO testing.providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, created_by, kind) VALUES (63423113657131009, '2022-06-25 00:20:48.640037+00', '2022-06-25 00:20:48.640037+00', NULL, 'okta', 'example.okta.com', 'client-id', 'AAAAEC8bWPoKbfyEQ/0dUXXXobAGYWVzZ2NtBMNQas4bL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DH+uGwwZiaRaeBM7/w', 1, 'okta');
 
 
 --
--- Name: providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: providers_id_seq; Type: SEQUENCE SET; Schema: testing; Owner: postgres
 --
 
 SELECT pg_catalog.setval('testing.providers_id_seq', 1, false);
 
 
 --
--- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: testing; Owner: postgres
 --
 
 ALTER TABLE ONLY testing.migrations
@@ -132,7 +128,7 @@ ALTER TABLE ONLY testing.migrations
 
 
 --
--- Name: providers providers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: providers providers_pkey; Type: CONSTRAINT; Schema: testing; Owner: postgres
 --
 
 ALTER TABLE ONLY testing.providers
@@ -140,7 +136,7 @@ ALTER TABLE ONLY testing.providers
 
 
 --
--- Name: idx_providers_name; Type: INDEX; Schema: public; Owner: postgres
+-- Name: idx_providers_name; Type: INDEX; Schema: testing; Owner: postgres
 --
 
 CREATE UNIQUE INDEX idx_providers_name ON testing.providers USING btree (name) WHERE (deleted_at IS NULL);
@@ -149,4 +145,3 @@ CREATE UNIQUE INDEX idx_providers_name ON testing.providers USING btree (name) W
 --
 -- PostgreSQL database dump complete
 --
-
