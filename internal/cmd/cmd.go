@@ -113,6 +113,7 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 			//nolint:gosec // We may purposely set insecureskipverify via a flag
 			InsecureSkipVerify: config.SkipTLSVerify,
 			RootCAs:            pool,
+			ServerName:         config.Host,
 		},
 	}
 }

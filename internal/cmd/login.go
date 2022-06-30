@@ -455,6 +455,7 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 				// set min version to the same as default to make gosec linter happy
 				MinVersion: tls.VersionTLS12,
 				RootCAs:    pool,
+				ServerName: options.Server,
 			},
 		}
 		c.APIClient = apiClient(options.Server, "", transport)
@@ -517,7 +518,11 @@ func attemptTLSRequest(options loginCmdOptions) error {
 	httpClient = http.Client{
 		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+			TLSClientConfig: &tls.Config{
+				RootCAs:    pool,
+				MinVersion: tls.VersionTLS12,
+				ServerName: options.Server,
+			},
 		},
 	}
 	res, err = httpClient.Do(req)
