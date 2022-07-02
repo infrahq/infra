@@ -12,7 +12,10 @@ export default function Table({ columns, data, getRowProps = () => {} }) {
     )
 
   return (
-    <table className='sticky top-0 w-full table-fixed' {...getTableProps()}>
+    <table
+      className='w-full table-fixed border-separate border-spacing-0'
+      {...getTableProps()}
+    >
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>

@@ -389,7 +389,7 @@ export default function Destinations() {
           </div>
           {selected && (
             <Sidebar
-              handleClose={() => setSelected(null)}
+              onClose={() => setSelected(null)}
               title={selected.resource}
               iconPath='/destinations.svg'
             >
