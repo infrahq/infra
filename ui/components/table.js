@@ -1,12 +1,18 @@
 import { useTable, useExpanded } from 'react-table'
 
-export default function Table({ columns, data, getRowProps = () => {} }) {
+export default function Table({
+  columns,
+  data,
+  initialState,
+  getRowProps = () => {},
+}) {
   const { getTableProps, getTableBodyProps, prepareRow, headerGroups, rows } =
     useTable(
       {
         columns,
         data,
         autoResetExpanded: false,
+        initialState,
       },
       useExpanded
     )

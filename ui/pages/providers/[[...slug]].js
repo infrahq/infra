@@ -1,7 +1,7 @@
 import useSWR, { useSWRConfig } from 'swr'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
 import Head from 'next/head'
-import { useTable } from 'react-table'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
@@ -39,9 +39,10 @@ const columns = [
   },
 ]
 
-function SidebarContent({ provider, admin, setSelectedProvider }) {
+function SidebarContent({ provider, admin }) {
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const router = useRouter()
 
   return (
     <div className='flex flex-1 flex-col space-y-6'>
@@ -89,10 +90,12 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
             open={deleteModalOpen}
             setOpen={setDeleteModalOpen}
             onSubmit={() => {
+              router.replace('/providers')
+
               mutate(
                 '/api/providers',
                 async ({ items: providers } = { items: [] }) => {
-                  await fetch(`/api/providers/${provider.id}`, {
+                  fetch(`/api/providers/${provider.id}`, {
                     method: 'DELETE',
                   })
 
@@ -101,7 +104,6 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
               )
 
               setDeleteModalOpen(false)
-              setSelectedProvider(null)
             }}
             title='Remove Identity Provider'
             message={
@@ -119,78 +121,74 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
 }
 
 export default function Providers() {
-  const { data: { items: providers } = {}, error } = useSWR('/api/providers')
+  const { data: { items: providers } = {} } = useSWR('/api/providers')
   const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({
-    columns,
-    data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
-  })
 
-  const [selected, setSelected] = useState(null)
+  const router = useRouter()
 
-  const loading = adminLoading || (!providers && !error)
+  if (adminLoading || !providers) {
+    return null
+  }
+
+  const { slug: [id] = [] } = router.query
+  const provider = providers?.find(p => p.id === id)
+  if (id && !provider) {
+    router.replace('/providers')
+    return null
+  }
 
   return (
     <>
       <Head>
         <title>Identity Providers - Infra</title>
       </Head>
-      {!loading && (
-        <div className='flex h-full flex-1'>
-          <div className='flex flex-1 flex-col space-y-4'>
-            <PageHeader
-              header='Providers'
-              buttonHref='/providers/add'
-              buttonLabel='Provider'
+      <div className='flex h-full flex-1'>
+        <div className='flex flex-1 flex-col space-y-4'>
+          <PageHeader
+            header='Providers'
+            buttonHref='/providers/add'
+            buttonLabel='Provider'
+          />
+          <div className='flex min-h-0 flex-1 flex-col overflow-y-scroll px-6'>
+            <Table
+              columns={columns}
+              data={
+                providers?.sort((a, b) =>
+                  b.created?.localeCompare(a.created)
+                ) || []
+              }
+              getRowProps={row => ({
+                onClick: () => router.push(`/providers/${row.original.id}`),
+                className:
+                  id === row.original.id ? 'bg-gray-900/50' : 'cursor-pointer',
+              })}
             />
-            {error?.status ? (
-              <div className='my-20 text-center text-sm font-light text-gray-300'>
-                {error?.info?.message}
-              </div>
-            ) : (
-              <div className='flex min-h-0 flex-1 flex-col overflow-y-scroll px-6'>
-                <Table
-                  {...table}
-                  getRowProps={row => ({
-                    onClick: () => setSelected(row.original),
-                    className:
-                      selected?.id === row.original.id
-                        ? 'bg-gray-900/50'
-                        : 'cursor-pointer',
-                  })}
-                />
-                {providers?.length === 0 && (
-                  <EmptyTable
-                    title='There are no providers'
-                    subtitle={
-                      <>
-                        Identity providers allow you to connect your existing
-                        users &amp; groups to Infra.
-                      </>
-                    }
-                    iconPath='/providers.svg'
-                    buttonHref='/providers/add'
-                    buttonText='Provider'
-                  />
-                )}
-              </div>
+            {providers?.length === 0 && (
+              <EmptyTable
+                title='There are no providers'
+                subtitle={
+                  <>
+                    Identity providers allow you to connect your existing users
+                    &amp; groups to Infra.
+                  </>
+                }
+                iconPath='/providers.svg'
+                buttonHref='/providers/add'
+                buttonText='Provider'
+              />
             )}
           </div>
-          {selected && (
-            <Sidebar
-              handleClose={() => setSelected(null)}
-              title={selected.name}
-              iconPath='/providers.svg'
-            >
-              <SidebarContent
-                provider={selected}
-                admin={admin}
-                setSelectedProvider={setSelected}
-              />
-            </Sidebar>
-          )}
         </div>
-      )}
+        {id && (
+          <Sidebar
+            handleClose={() => router.push('/providers')}
+            title={provider?.name}
+            iconPath='/providers.svg'
+          >
+            <SidebarContent provider={provider} admin={admin} />
+          </Sidebar>
+        )}
+      </div>
     </>
   )
 }
