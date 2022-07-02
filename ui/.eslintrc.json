@@ -5,7 +5,8 @@
   },
   "plugins": ["jest"],
   "globals": {
-    "Promise": true
+    "Promise": true,
+    "Set": true
   },
   "env": {
     "jest/globals": true
