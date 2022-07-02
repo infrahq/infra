@@ -103,6 +103,10 @@ function Details({ destination, onDelete }) {
                       mutate({ items: grants.filter(x => x.id !== g.id) })
                     }}
                     onChange={async privilege => {
+                      if (privilege === g.privilege) {
+                        return
+                      }
+
                       const res = await fetch('/api/grants', {
                         method: 'POST',
                         body: JSON.stringify({
