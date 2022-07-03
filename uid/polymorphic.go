@@ -35,6 +35,10 @@ func NewGroupPolymorphicID(id ID) PolymorphicID {
 	return newPolymorphicID("g", id)
 }
 
+func NewOrganizationPolymorphicID(id ID) PolymorphicID {
+	return newPolymorphicID("o", id)
+}
+
 func newPolymorphicID(prefix string, id ID) PolymorphicID {
 	return PolymorphicID(fmt.Sprintf("%s:%s", prefix, id))
 }
