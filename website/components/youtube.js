@@ -1,4 +1,4 @@
-export default function YouTube(props) {
+export default function Youtube(props) {
   return (
     <iframe
       {...props}

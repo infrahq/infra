@@ -131,7 +131,7 @@ export const config = {
       },
     },
     youtube: {
-      render: 'YouTube',
+      render: 'Youtube',
       attributes: {
         src: {
           type: String,

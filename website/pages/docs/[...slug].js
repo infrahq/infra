@@ -6,7 +6,7 @@ import Head from 'next/head'
 import Markdoc from '@markdoc/markdoc'
 import yaml from 'js-yaml'
 
-import DocsLayout from '../../components/DocsLayout'
+import DocsLayout from '../../components/docs-layout'
 import config from '../../lib/markdoc/config'
 import components from '../../lib/markdoc/components'
 
