@@ -67,10 +67,6 @@ func UseFileLogger(filepath string) {
 	L = newLogger(writer)
 }
 
-func Tracef(format string, v ...interface{}) {
-	L.Trace().Msgf(format, v...)
-}
-
 func Debugf(format string, v ...interface{}) {
 	L.Debug().Msgf(format, v...)
 }
@@ -85,14 +81,6 @@ func Warnf(format string, v ...interface{}) {
 
 func Errorf(format string, v ...interface{}) {
 	L.Error().Msgf(format, v...)
-}
-
-func Fatalf(format string, v ...interface{}) {
-	L.Fatal().Msgf(format, v...)
-}
-
-func Panicf(format string, v ...interface{}) {
-	L.Panic().Msgf(format, v...)
 }
 
 func SetLevel(levelName string) error {
