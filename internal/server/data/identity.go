@@ -94,10 +94,6 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	return nil
 }
 
-func AddUserToGroup(db *gorm.DB, user *models.Identity, group *models.Group) error {
-	return db.Exec("insert or ignore into identities_groups (identity_id, group_id) values (?, ?)", user.ID, group.ID).Error
-}
-
 func CreateIdentity(db *gorm.DB, identity *models.Identity) error {
 	return add(db, identity)
 }

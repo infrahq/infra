@@ -1484,7 +1484,7 @@ func TestListGrants(t *testing.T) {
 	assert.NilError(t, err)
 
 	// add user to group
-	err = data.AddUserToGroup(db, user, group)
+	err = data.AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
 	assert.NilError(t, err)
 
 	// create a direct grant, and a grant through a group
