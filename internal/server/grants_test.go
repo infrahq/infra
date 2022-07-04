@@ -13,7 +13,6 @@ import (
 
 	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/ssoroka/slice"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -179,10 +178,7 @@ func TestAPI_ListGrants(t *testing.T) {
 						Resource:  "res1",
 					},
 				}
-				items := slice.Select(grants.Items, func(g api.Grant) bool {
-					return g.Resource != "infra"
-				})
-				assert.DeepEqual(t, items, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"authorized by group matching subject": {
