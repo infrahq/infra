@@ -6,12 +6,15 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/assert/opt"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/server/data"
@@ -346,6 +349,17 @@ func TestLoadConfigInvalid(t *testing.T) {
 				},
 			},
 		},
+		"MissingProviderRequiredScopes": {
+			Providers: []Provider{
+				{
+					Name:     "okta",
+					URL:      "demo.okta.com",
+					ClientID: "client-id",
+					AuthURL:  "example.com",
+					Scopes:   []string{"offline_access"},
+				},
+			},
+		},
 		"MissingGrantIdentity": {
 			Grants: []Grant{
 				{
@@ -367,6 +381,10 @@ func TestLoadConfigInvalid(t *testing.T) {
 	}
 }
 
+var cmpEncryptedAtRestEqual = cmp.Comparer(func(x, y models.EncryptedAtRest) bool {
+	return string(x) == string(y)
+})
+
 func TestLoadConfigWithProviders(t *testing.T) {
 	s := setupServer(t)
 
@@ -377,6 +395,8 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				URL:          "demo.okta.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
+				AuthURL:      "dev.okta.com/oauth2/default/v1/token",
+				Scopes:       []string{"openid", "email"},
 			},
 			{
 				Name:         "azure",
@@ -384,6 +404,8 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 				Kind:         models.AzureKind.String(),
+				AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
+				Scopes:       []string{"openid", "email"},
 			},
 		},
 	}
@@ -394,20 +416,47 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	var okta models.Provider
 	err = s.db.Where("name = ?", "okta").First(&okta).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "okta", okta.Name)
-	assert.Equal(t, "demo.okta.com", okta.URL)
-	assert.Equal(t, "client-id", okta.ClientID)
-	assert.Equal(t, models.EncryptedAtRest("client-secret"), okta.ClientSecret)
-	assert.Equal(t, models.OIDCKind, okta.Kind) // the kind gets the default value
+
+	expected := models.Provider{
+		Model:        okta.Model,     // not relevant
+		CreatedBy:    okta.CreatedBy, // not relevant
+		Name:         "okta",
+		URL:          "demo.okta.com",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		Kind:         models.OIDCKind, // the kind gets the default value
+		AuthURL:      "dev.okta.com/oauth2/default/v1/token",
+		Scopes:       []string{"openid", "email"},
+	}
+
+	cmpProvider := cmp.Options{
+		cmp.FilterPath(
+			opt.PathField(models.Provider{}, "ClientSecret"),
+			cmpEncryptedAtRestEqual),
+		cmp.FilterPath(
+			opt.PathField(models.Provider{}, "Scopes"),
+			cmp.Comparer(slices.Equal)),
+	}
+
+	assert.DeepEqual(t, okta, expected, cmpProvider)
 
 	var azure models.Provider
 	err = s.db.Where("name = ?", "azure").First(&azure).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "azure", azure.Name)
-	assert.Equal(t, "demo.azure.com", azure.URL)
-	assert.Equal(t, "client-id", azure.ClientID)
-	assert.Equal(t, models.EncryptedAtRest("client-secret"), azure.ClientSecret)
-	assert.Equal(t, models.AzureKind, azure.Kind) // when specified, the kind is set
+
+	expected = models.Provider{
+		Model:        azure.Model,     // not relevant
+		CreatedBy:    azure.CreatedBy, // not relevant
+		Name:         "azure",
+		URL:          "demo.azure.com",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		Kind:         models.AzureKind, // when specified, the kind is set
+		AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
+		Scopes:       []string{"openid", "email"},
+	}
+
+	assert.DeepEqual(t, azure, expected, cmpProvider)
 }
 
 func TestLoadConfigWithUsers(t *testing.T) {
@@ -645,6 +694,8 @@ func TestLoadConfigUpdate(t *testing.T) {
 				URL:          "demo.okta.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
+				AuthURL:      "demo.okta.com/auth",
+				Scopes:       []string{"openid", "email"},
 			},
 		},
 		Users: []User{
@@ -728,6 +779,8 @@ func TestLoadConfigUpdate(t *testing.T) {
 				URL:          "demo.atko.com",
 				ClientID:     "client-id-2",
 				ClientSecret: "client-secret-2",
+				AuthURL:      "demo.okta.com/v1/auth",
+				Scopes:       []string{"openid", "email", "groups"},
 			},
 		},
 		Grants: []Grant{
@@ -754,10 +807,29 @@ func TestLoadConfigUpdate(t *testing.T) {
 	var provider models.Provider
 	err = s.db.Where("name = ?", "atko").First(&provider).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "atko", provider.Name)
-	assert.Equal(t, "demo.atko.com", provider.URL)
-	assert.Equal(t, "client-id-2", provider.ClientID)
-	assert.Equal(t, models.EncryptedAtRest("client-secret-2"), provider.ClientSecret)
+
+	expected := models.Provider{
+		Model:        provider.Model,     // not relevant
+		CreatedBy:    provider.CreatedBy, // not relevant
+		Name:         "atko",
+		URL:          "demo.atko.com",
+		ClientID:     "client-id-2",
+		ClientSecret: "client-secret-2",
+		Kind:         models.OIDCKind, // the kind gets the default value
+		AuthURL:      "demo.okta.com/v1/auth",
+		Scopes:       []string{"openid", "email", "groups"},
+	}
+
+	cmpProvider := cmp.Options{
+		cmp.FilterPath(
+			opt.PathField(models.Provider{}, "ClientSecret"),
+			cmpEncryptedAtRestEqual),
+		cmp.FilterPath(
+			opt.PathField(models.Provider{}, "Scopes"),
+			cmp.Comparer(slices.Equal)),
+	}
+
+	assert.DeepEqual(t, provider, expected, cmpProvider)
 
 	grants = make([]models.Grant, 0)
 	err = s.db.Find(&grants).Error

@@ -49,6 +49,8 @@ type Provider struct {
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
+	AuthURL      string
+	Scopes       CommaSeparatedStrings
 	Kind         ProviderKind
 	CreatedBy    uid.ID
 }
@@ -63,5 +65,7 @@ func (p *Provider) ToAPI() *api.Provider {
 		URL:      p.URL,
 		ClientID: p.ClientID,
 		Kind:     p.Kind.String(),
+		AuthURL:  p.AuthURL,
+		Scopes:   p.Scopes,
 	}
 }

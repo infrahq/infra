@@ -24,9 +24,9 @@ INSERT INTO grants VALUES(36544743275307009,'2022-04-11 20:15:45.765891717+00:00
 INSERT INTO grants VALUES(36544743279501313,'2022-04-11 20:15:45.766258592+00:00','2022-04-11 20:15:45.766258592+00:00',NULL,'i:5Vnbrm1TB7','cluster-admin','docker-desktop',1);
 INSERT INTO grants VALUES(36547838294171648,'2022-04-11 20:28:03.680813086+00:00','2022-04-11 20:28:03.680813086+00:00',NULL,'i:5VozJLKzWG','admin','infra',0);
 INSERT INTO grants VALUES(36548620389261312,'2022-04-11 20:31:10.152810048+00:00','2022-04-11 20:31:10.152810048+00:00',NULL,'i:5VozJLKzWH','admin','infra',36547838281588736);
-CREATE TABLE `providers` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`url` text,`client_id` text,`client_secret` text,PRIMARY KEY (`id`));
-INSERT INTO providers VALUES(36544743090757632,'2022-04-11 20:15:45.721963717+00:00','2022-04-11 20:15:45.763277384+00:00',NULL,'infra','','','');
-INSERT INTO providers VALUES(36544743262724096,'2022-04-11 20:15:45.762991842+00:00','2022-04-11 20:28:03.681333795+00:00',NULL,'okta','dev.okta.com','','');
+CREATE TABLE `providers` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`url` text,`client_id` text,`client_secret` text, `scopes` text, `auth_ul` text, PRIMARY KEY (`id`));
+INSERT INTO providers VALUES(36544743090757632,'2022-04-11 20:15:45.721963717+00:00','2022-04-11 20:15:45.763277384+00:00',NULL,'infra','','','','','');
+INSERT INTO providers VALUES(36544743262724096,'2022-04-11 20:15:45.762991842+00:00','2022-04-11 20:28:03.681333795+00:00',NULL,'okta','dev.okta.com','','','','');
 CREATE TABLE `provider_tokens` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`user_id` integer,`provider_id` integer,`redirect_url` text,`access_token` text,`refresh_token` text,`expires_at` datetime,PRIMARY KEY (`id`));
 CREATE TABLE `destinations` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`unique_id` text,`connection_url` text,`connection_ca` text,PRIMARY KEY (`id`));
 CREATE TABLE `access_keys` (`id` integer,`created_at` datetime,`updated_at` datetime,`deleted_at` datetime,`name` text,`issued_for` integer,`expires_at` datetime,`extension` integer,`extension_deadline` datetime,`key_id` text,`secret_checksum` blob,PRIMARY KEY (`id`));

@@ -16,7 +16,6 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -288,43 +287,14 @@ func updateInfraConfig(lc loginClient, loginReq *api.LoginRequest, loginRes *api
 	return nil
 }
 
-func oidcflow(host string, clientId string) (string, error) {
-	// find out what the authorization endpoint is
-	provider, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://%s", host))
-	if err != nil {
-		return "", fmt.Errorf("get provider oidc info: %w", err)
-	}
-
-	// claims are the attributes of the user we want to know from the identity provider
-	var claims struct {
-		ScopesSupported []string `json:"scopes_supported"`
-	}
-
-	if err := provider.Claims(&claims); err != nil {
-		return "", fmt.Errorf("parsing claims: %w", err)
-	}
-
-	scopes := []string{"openid", "email"} // openid and email are required scopes for login to work
-
-	// we want to be able to use these scopes to access groups, but they are not needed
-	wantScope := map[string]bool{
-		"groups":         true,
-		"offline_access": true,
-	}
-
-	for _, scope := range claims.ScopesSupported {
-		if wantScope[scope] {
-			scopes = append(scopes, scope)
-		}
-	}
-
+func oidcflow(provider *api.Provider) (string, error) {
 	// the state makes sure we are getting the correct response for our request
 	state, err := generate.CryptoRandom(12, generate.CharsetAlphaNumeric)
 	if err != nil {
 		return "", err
 	}
 
-	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.Endpoint().AuthURL, clientId, strings.Join(scopes, "+"), state)
+	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.AuthURL, provider.ClientID, strings.Join(provider.Scopes, "+"), state)
 
 	// the local server receives the response from the identity provider and sends it along to the infra server
 	ls, err := newLocalServer()
@@ -363,7 +333,7 @@ func loginToProviderN(client *api.Client, providerName string) (*api.LoginReques
 func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 	fmt.Fprintf(os.Stderr, "  Logging in with %s...\n", termenv.String(provider.Name).Bold().String())
 
-	code, err := oidcflow(provider.URL, provider.ClientID)
+	code, err := oidcflow(provider)
 	if err != nil {
 		return nil, err
 	}

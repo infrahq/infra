@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -471,6 +473,7 @@ func migrate(db *gorm.DB) error {
 		},
 		addKindToProviders(),
 		dropCertificateTables(),
+		addAuthURLAndScopeToProviders(),
 		// next one here
 	})
 
@@ -546,6 +549,60 @@ func dropCertificateTables() *gormigrate.Migration {
 		ID: "202206161733",
 		Migrate: func(tx *gorm.DB) error {
 			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
+		},
+	}
+}
+
+// #2353: store auth URL and scopes to provider
+func addAuthURLAndScopeToProviders() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202206281027",
+		Migrate: func(tx *gorm.DB) error {
+			if !tx.Migrator().HasColumn(&models.Provider{}, "scopes") {
+				logging.Debugf("migrating provider table auth URL and scopes")
+				if err := tx.Migrator().AddColumn(&models.Provider{}, "auth_url"); err != nil {
+					return err
+				}
+				if err := tx.Migrator().AddColumn(&models.Provider{}, "scopes"); err != nil {
+					return err
+				}
+
+				db := tx.Begin()
+
+				// need to select only these fields from the providers
+				// we dont have the database encryption key for the client secret at this point
+				var providerModels []models.Provider
+				err := db.Select("id", "url", "kind").Find(&providerModels).Error
+				if err != nil {
+					return err
+				}
+
+				for i := range providerModels {
+					// do not resolve the auth details for the infra provider
+					// check infra provider name and kind just in case other migrations haven't run
+					if providerModels[i].Kind == models.InfraKind || providerModels[i].Name == models.InternalInfraProviderName {
+						continue
+					}
+
+					logging.Debugf("migrating %s provider", providerModels[i].Name)
+
+					providerClient := providers.NewOIDCClient(providerModels[i], "not-used", "http://localhost:8301")
+					authServerInfo, err := providerClient.AuthServerInfo(context.Background())
+					if err != nil {
+						if errors.Is(err, context.DeadlineExceeded) {
+							return fmt.Errorf("%w: %s", internal.ErrBadGateway, err)
+						}
+						return fmt.Errorf("could not get provider info: %w", err)
+					}
+
+					db.Model(&providerModels[i]).Update("auth_url", authServerInfo.AuthURL)
+					db.Model(&providerModels[i]).Update("scopes", strings.Join(authServerInfo.ScopesSupported, ","))
+				}
+
+				return db.Commit().Error
+			}
+
+			return nil
 		},
 	}
 }

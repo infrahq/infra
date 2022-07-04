@@ -29,6 +29,10 @@ func (m *mockOIDCImplementation) Validate(_ context.Context) error {
 	return nil
 }
 
+func (m *mockOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
+	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
+}
+
 func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
 	return "acc", "ref", exp, m.UserEmailResp, nil
 }
@@ -38,16 +42,8 @@ func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.InfoClaims, error) {
-	return &providers.InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
-}
-
-func (m *mockOIDCImplementation) SyncProviderUser(_ context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider) error {
-	if err := data.AssignIdentityToGroups(db, user, provider, m.UserGroupsResp); err != nil {
-		return err
-	}
-
-	return nil
+func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
 func TestOIDCAuthenticate(t *testing.T) {
@@ -93,7 +89,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"NewUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
@@ -105,7 +101,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"NewUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -135,7 +131,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
@@ -159,7 +155,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -189,7 +185,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -252,7 +248,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		assert.NilError(t, err)
 
 		t.Run(k, func(t *testing.T) {
-			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDC)
+			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDCClient)
 			assert.Assert(t, ok)
 			mockOIDC := setupFunc(t, db)
 

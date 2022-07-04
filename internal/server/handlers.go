@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -231,7 +232,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.validateProvider(c, provider); err != nil {
+	if err := a.setProviderInforFromServer(c, provider); err != nil {
 		return nil, err
 	}
 
@@ -259,7 +260,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.validateProvider(c, provider); err != nil {
+	if err := a.setProviderInforFromServer(c, provider); err != nil {
 		return nil, err
 	}
 
@@ -614,20 +615,10 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	return access.UpdateIdentityInfoFromProvider(c, oidc)
 }
 
-// validateProvider checks that a provider being modified is valid
-func (a *API) validateProvider(c *gin.Context, provider *models.Provider) error {
-	oidc, err := a.providerClient(c, provider, "") // redirect URL is not used during validation
-	if err != nil {
-		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
-	}
-
-	return oidc.Validate(c.Request.Context())
-}
-
-func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDC, error) {
+func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
 	if val, ok := c.Get("oidc"); ok {
 		// oidc is added to the context during unit tests
-		oidc, _ := val.(providers.OIDC)
+		oidc, _ := val.(providers.OIDCClient)
 		return oidc, nil
 	}
 
@@ -637,5 +628,35 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 		return nil, fmt.Errorf("client secret not found")
 	}
 
-	return providers.NewOIDC(*provider, clientSecret, redirectURL), nil
+	return providers.NewOIDCClient(*provider, clientSecret, redirectURL), nil
+}
+
+// setProviderInfoFromServer checks information provided by an OIDC server
+func (a *API) setProviderInforFromServer(c *gin.Context, provider *models.Provider) error {
+	// create a provider client to validate the server and get its info
+	oidc, err := a.providerClient(c, provider, "http://localhost:8301")
+	if err != nil {
+		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	}
+
+	err = oidc.Validate(c)
+	if err != nil {
+		if errors.Is(err, providers.ErrValidation) {
+			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+		}
+		return err
+	}
+
+	authServerInfo, err := oidc.AuthServerInfo(c)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return fmt.Errorf("%w: %s", internal.ErrBadGateway, err)
+		}
+		return err
+	}
+
+	provider.AuthURL = authServerInfo.AuthURL
+	provider.Scopes = authServerInfo.ScopesSupported
+
+	return nil
 }

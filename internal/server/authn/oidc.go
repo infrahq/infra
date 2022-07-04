@@ -18,10 +18,10 @@ type oidcAuthn struct {
 	ProviderID         uid.ID
 	RedirectURL        string
 	Code               string
-	OIDCProviderClient providers.OIDC
+	OIDCProviderClient providers.OIDCClient
 }
 
-func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDC) LoginMethod {
+func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDCClient) LoginMethod {
 	return &oidcAuthn{
 		ProviderID:         providerID,
 		RedirectURL:        redirectURL,
@@ -74,7 +74,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Iden
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = a.OIDCProviderClient.SyncProviderUser(ctx, db, identity, provider)
+	err = data.SyncProviderUser(ctx, db, identity, provider, a.OIDCProviderClient)
 	if err != nil {
 		return nil, nil, AuthScope{}, fmt.Errorf("sync user on login: %w", err)
 	}

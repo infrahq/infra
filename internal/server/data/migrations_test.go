@@ -9,6 +9,7 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
@@ -158,6 +159,36 @@ func TestMigration_AddKindToProvider(t *testing.T) {
 				{Name: "okta", Kind: models.OktaKind, URL: "dev.okta.com"},
 			}
 			assert.DeepEqual(t, providers, expected, cmpProviderShallow)
+		})
+	}
+}
+
+func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202206281027-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var providers []models.Provider
+			err = db.Omit("client_secret").Find(&providers).Error
+			assert.NilError(t, err)
+
+			assert.Equal(t, len(providers), 2)
+			authUrls := make(map[string]string)
+			scopes := make(map[string][]string)
+			for _, p := range providers {
+				authUrls[p.Name] = p.AuthURL
+				scopes[p.Name] = p.Scopes
+			}
+			assert.Equal(t, authUrls["infra"], "")
+			assert.Equal(t, len(scopes["infra"]), 0)
+			assert.Equal(t, authUrls["okta"], "https://example.okta.com/oauth2/v1/authorize")
+			assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
 		})
 	}
 }
