@@ -350,7 +350,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	}
 }
 
-func TestAPI_ListInheritedGrants(t *testing.T) {
+func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 

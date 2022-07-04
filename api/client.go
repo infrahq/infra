@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime"
+	"strconv"
 
 	"github.com/ssoroka/slice"
 
@@ -271,7 +272,7 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 		"group":            {req.Group.String()},
 		"resource":         {req.Resource},
 		"privilege":        {req.Privilege},
-		"includeInherited": {boolToStr(req.IncludeInherited)},
+		"includeInherited": {strconv.FormatBool(req.IncludeInherited)},
 	})
 }
 
@@ -349,11 +350,4 @@ func partialText(body []byte, limit int) string {
 	}
 
 	return string(body[:limit]) + "..."
-}
-
-func boolToStr(b bool) string {
-	if b {
-		return "1"
-	}
-	return "0"
 }

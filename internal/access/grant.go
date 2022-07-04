@@ -35,7 +35,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 			if err != nil {
 				return nil, err
 			}
-			selectors = append(selectors, data.GrantsInheritedFromUser(userID))
+			selectors = append(selectors, data.GrantsInheritedByUser(userID))
 		} else {
 			selectors = append(selectors, data.ByOptionalSubject(subject))
 		}

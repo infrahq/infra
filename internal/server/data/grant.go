@@ -57,12 +57,12 @@ func ByOptionalPrivilege(s string) SelectorFunc {
 	}
 }
 
-func GrantsInheritedFromUser(userID uid.ID) SelectorFunc {
+func GrantsInheritedByUser(userID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		var groupIDs []uid.ID
 		err := db.Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
 		if err != nil {
-			logging.S.Errorf("GrantsInheritedFromUser: %s", err)
+			logging.S.Errorf("GrantsInheritedByUser: %s", err)
 		}
 		subjects := []string{uid.NewIdentityPolymorphicID(userID).String()}
 		for _, groupID := range groupIDs {
