@@ -12,21 +12,39 @@ const columns = [
   {
     Header: 'Name',
     accessor: g => g,
-    Cell: ({ value: group }) => <div>{group.name}</div>,
+    width: '80%',
+    Cell: ({ value: group }) => {
+      return (
+        <div className='flex items-center py-2'>
+          <div className='flex h-6 w-6 select-none items-center justify-center rounded-md border border-violet-300/40'>
+            <img alt='group icon' src='/groups.svg' className='h-3 w-3' />
+          </div>
+          <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>
+            <div className='truncate'>{group.name}</div>
+          </div>
+        </div>
+      )
+    },
   },
   {
     Header: 'Team Size',
     accessor: g => g,
-    width: '25%',
+    width: '20%',
     Cell: ({ value: group }) => {
       const { data: { items: users } = {}, error } = useSWR(
         `/api/users?group=${group.id}`
       )
-      const loading = !users && !error
 
-      console.log(users)
-
-      return <>{!loading && <div>{users.length}</div>}</>
+      return (
+        <>
+          {users && (
+            <div className='text-gray-400'>
+              {users?.length} {users?.length > 1 ? 'members' : 'member'}
+            </div>
+          )}
+          {error?.status && <div className='text-gray-400'>--</div>}
+        </>
+      )
     },
   },
 ]
