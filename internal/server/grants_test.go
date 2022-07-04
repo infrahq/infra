@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -457,6 +458,24 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
+		"user can select grants for groups they are a member of": {
+			urlPath: "/api/grants?group=" + zoologistsID.String(),
+			setup:   func(t *testing.T, req *http.Request) {},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -472,4 +491,247 @@ var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
 var cmpAPIGrantJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+func TestAPI_CreateGrant_Success(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "user": "TJ",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.3")
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	assert.NilError(t, err)
+
+	runStep(t, "full JSON response", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster",
+		  "user": "TJ",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "subject": "i:TJ",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	assert.NilError(t, err)
+
+	runStep(t, "full JSON response", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster",
+		  "subject": "i:TJ",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.2")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+func TestAPI_ListGrantsV0_12_2(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	admin, err := data.ListIdentities(srv.db, data.ByName("admin@example.com"))
+	assert.NilError(t, err)
+
+	expected := jsonUnmarshal(t, fmt.Sprintf(`
+	[
+		{
+			"id": "<any-valid-uid>",
+			"created_by": "%[1]v",
+			"privilege": "admin",
+			"resource": "infra",
+			"subject": "%[2]v",
+			"created": "%[3]v",
+			"updated": "%[3]v"
+		}
+	]`,
+		uid.ID(1),
+		uid.NewIdentityPolymorphicID(admin[0].ID),
+		time.Now().UTC().Format(time.RFC3339),
+	))
+
+	actual := jsonUnmarshal(t, resp.Body.String())
+	assert.NilError(t, err)
+	assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+}
+
+func TestAPI_DeleteGrant(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	user := &models.Identity{Name: "non-admin"}
+
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	t.Run("last infra admin is deleted", func(t *testing.T) {
+		infraAdminGrants, err := data.ListGrants(srv.db, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		assert.NilError(t, err)
+		assert.Assert(t, len(infraAdminGrants) == 1)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants[0].ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+	})
+
+	t.Run("not last infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraAdminRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last infra non-admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraViewRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last non-infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: "admin",
+			Resource:  "example",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
 }
