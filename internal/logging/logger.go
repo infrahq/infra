@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	L = NewLogger(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	L = newLogger(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 )
 
 type logger struct {
@@ -30,7 +30,7 @@ func init() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
-func NewLogger(writer io.Writer) *logger {
+func newLogger(writer io.Writer) *logger {
 	return &logger{
 		Logger: zerolog.New(writer).With().Timestamp().Caller().Logger(),
 	}
@@ -41,7 +41,7 @@ func UseServerLogger() {
 	if os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd())) {
 		return
 	}
-	L = NewLogger(os.Stderr)
+	L = newLogger(os.Stderr)
 }
 
 func Tracef(format string, v ...interface{}) {
@@ -80,4 +80,21 @@ func SetLevel(levelName string) error {
 
 	zerolog.SetGlobalLevel(level)
 	return nil
+}
+
+type TestingT interface {
+	zerolog.TestingLog
+	Cleanup(func())
+}
+
+// PatchLogger sets the global L logger to write logs to t. When the test ends
+// the global L logger is reset to the previous value.
+// PatchLogger changes a static variable, so tests that use PatchLogger can not
+// use t.Parallel.
+func PatchLogger(t TestingT) {
+	origL := L
+	L = newLogger(zerolog.NewTestWriter(t))
+	t.Cleanup(func() {
+		L = origL
+	})
 }

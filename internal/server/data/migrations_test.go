@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
 )
@@ -115,7 +116,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
 	f(db)
 
 	patch.ModelsSymmetricKey(t)
-	setupLogging(t)
+	logging.PatchLogger(t)
 
 	return driver
 }

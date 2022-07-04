@@ -16,5 +16,5 @@ func UseFileLogger(filepath string) {
 		MaxAge:     28, // days
 	}
 
-	L = NewLogger(writer)
+	L = newLogger(writer)
 }
