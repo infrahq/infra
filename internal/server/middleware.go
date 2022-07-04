@@ -82,7 +82,7 @@ func DestinationMiddleware() gin.HandlerFunc {
 }
 
 // AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware(a *API) gin.HandlerFunc {
+func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
 			sendAPIError(c, err)

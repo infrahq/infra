@@ -61,7 +61,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
 	authn := apiGroup.Group("/",
-		AuthenticationMiddleware(a),
+		AuthenticationMiddleware(),
 		DestinationMiddleware(),
 	)
 
