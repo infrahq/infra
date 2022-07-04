@@ -531,14 +531,14 @@ infra providers edit PROVIDER [flags]
 #### Examples
 
 ```
-# Set a new secret for a provider
-$ infra providers edit okta --secret
+# Set a new client secret for a connected provider
+$ infra providers edit okta --client-secret
 ```
 
 #### Options
 
 ```
-      --client-secret   Set a new secret
+      --client-secret string   Set a new client secret
 ```
 
 #### Options inherited from parent commands

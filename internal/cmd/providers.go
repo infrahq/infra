@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
@@ -36,7 +35,7 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 }
 
 func newProvidersEditCmd(cli *CLI) *cobra.Command {
-	var secret bool
+	var secret string
 
 	cmd := &cobra.Command{
 		Use:   "edit PROVIDER",
@@ -45,14 +44,14 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 $ infra providers edit okta --client-secret`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !secret {
+			if secret == "" {
 				return fmt.Errorf("Please specify a field to update.'\n\n%s", cmd.UsageString())
 			}
-			return updateProvider(cli, args[0])
+			return updateProvider(cli, args[0], secret)
 		},
 	}
 
-	cmd.Flags().BoolVar(&secret, "client-secret", false, "Set a new client secret")
+	cmd.Flags().StringVar(&secret, "client-secret", "", "Set a new client secret")
 	return cmd
 }
 
@@ -187,12 +186,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 	return cmd
 }
 
-func updateProvider(cli *CLI, name string) error {
-	secret, err := promptSetSecret(cli)
-	if err != nil {
-		return err
-	}
-
+func updateProvider(cli *CLI, name string, secret string) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -231,20 +225,6 @@ func updateProvider(cli *CLI, name string) error {
 	}
 
 	return nil
-}
-
-func promptSetSecret(cli *CLI) (string, error) {
-	var secret string
-
-	if err := survey.AskOne(
-		&survey.Password{Message: "Client secret:"},
-		&secret,
-		cli.surveyIO,
-	); err != nil {
-		return "", err
-	}
-
-	return secret, nil
 }
 
 func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
