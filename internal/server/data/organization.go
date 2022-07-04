@@ -4,7 +4,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
-	//"github.com/infrahq/infra/uid"
 )
 
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {
@@ -19,7 +18,7 @@ func ListOrganizations(db *gorm.DB, p *models.Pagination, selectors ...SelectorF
 	return list[models.Organization](db, p, selectors...)
 }
 
-func DeleteOrganization(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteOrganizations(db *gorm.DB, selectors ...SelectorFunc) error {
 	toDelete, err := GetOrganization(db, selectors...)
 	if err != nil {
 		return err

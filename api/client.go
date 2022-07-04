@@ -224,6 +224,24 @@ func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider]
 			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
 }
 
+func (c Client) ListOrganizations(req ListOrganizationsRequest) (*ListResponse[Organization], error) {
+	return get[ListResponse[Organization]](c, "/api/organizations", Query{
+		"name": {req.Name},
+	})
+}
+
+func (c Client) GetOrganization(id uid.ID) (*Organization, error) {
+	return get[Organization](c, fmt.Sprintf("/api/organizations/%s", id), Query{})
+}
+
+func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organization, error) {
+	return post[CreateOrganizationRequest, Organization](c, "/api/organizations", req)
+}
+
+func (c Client) DeleteOrganization(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/api/organizations/%s", id))
+}
+
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
 	return get[Provider](c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }

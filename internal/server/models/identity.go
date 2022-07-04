@@ -16,7 +16,7 @@ const (
 type Identity struct {
 	Model
 
-	Name       string // XXX - this should be unique in the org, but not unique across all orgs
+	Name       string    // XXX - this should be unique in the org, but not unique across all orgs
 	LastSeenAt time.Time // updated on when an identity uses a session token
 	CreatedBy  uid.ID
 
