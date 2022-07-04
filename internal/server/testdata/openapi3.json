@@ -835,7 +835,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -959,7 +959,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1081,7 +1081,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1178,7 +1178,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1291,7 +1291,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1424,7 +1424,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1519,7 +1519,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1614,7 +1614,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1759,7 +1759,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1898,7 +1898,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2020,7 +2020,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2115,7 +2115,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2212,7 +2212,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2329,7 +2329,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2426,6 +2426,17 @@
         "operationId": "DeleteGroup",
         "parameters": [
           {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.6+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
             "example": "4yJ3n3D8E2",
             "in": "path",
             "name": "id",
@@ -2515,7 +2526,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2606,6 +2617,17 @@
         "description": "UpdateUsersInGroup",
         "operationId": "UpdateUsersInGroup",
         "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.13.6+dev",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
           {
             "example": "4yJ3n3D8E2",
             "in": "path",
@@ -2728,7 +2750,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2866,7 +2888,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2951,7 +2973,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3059,7 +3081,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3187,7 +3209,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3282,7 +3304,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3377,7 +3399,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3517,7 +3539,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3600,7 +3622,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3710,7 +3732,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3795,7 +3817,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3925,7 +3947,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4028,7 +4050,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4123,7 +4145,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4218,7 +4240,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4333,7 +4355,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "0.13.3+dev",
+              "example": "0.13.6+dev",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }

@@ -433,7 +433,9 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 			buildRequest(f.Type, tmpOp)
 			for _, param := range tmpOp.Parameters {
-				op.AddParameter(param.Value)
+				if param.Value.Name != "Infra-Version" {
+					op.AddParameter(param.Value)
+				}
 			}
 			continue
 		}
