@@ -26,11 +26,12 @@ func init() {
 		short := filepath.Join(filepath.Base(filepath.Dir(file)), filepath.Base(file))
 		return fmt.Sprintf("%s:%d", short, line)
 	}
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
 func NewLogger(writer io.Writer) *logger {
 	return &logger{
-		zerolog.New(writer).With().Timestamp().Caller().Logger(),
+		Logger: zerolog.New(writer).With().Timestamp().Caller().Logger(),
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -21,10 +22,17 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+func TestMain(m *testing.M) {
+	// set mode so that test failure output is not filled by gin debug output by default
+	ginutil.SetMode()
+	os.Exit(m.Run())
+}
 
 func adminAccessKey(s *Server) string {
 	for _, id := range s.options.Users {
