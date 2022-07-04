@@ -130,6 +130,51 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 	return a.ListGroups(c, &api.ListGroupsRequest{UserID: r.ID})
 }
 
+func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
+	pg := models.RequestToPagination(r.PaginationRequest)
+	orgs, err := access.ListOrganizations(c, r.Name, pg)
+	if err != nil {
+		return nil, err
+	}
+
+	result := api.NewListResponse(orgs, models.PaginationToResponse(pg), func(org models.Organization) api.Organization {
+		return *org.ToAPI()
+	})
+
+	return result, nil
+}
+
+func (a *API) GetOrganization(c *gin.Context, r *api.Resource) (*api.Organization, error) {
+	org, err := access.GetOrganization(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return org.ToAPI(), nil
+}
+
+func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationRequest) (*api.Organization, error) {
+	org := &models.Organization{
+		Name: r.Name,
+	}
+
+	authIdent := access.AuthenticatedIdentity(c)
+	if authIdent != nil {
+		org.CreatedBy = authIdent.ID
+	}
+
+	err := access.CreateOrganization(c, org)
+	if err != nil {
+		return nil, err
+	}
+
+	return org.ToAPI(), nil
+}
+
+func (a *API) DeleteOrganization(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	return nil, access.DeleteOrganization(c, r.ID)
+}
+
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	pg := models.RequestToPagination(r.PaginationRequest)
 	groups, err := access.ListGroups(c, r.Name, r.UserID, pg)

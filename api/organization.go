@@ -11,6 +11,11 @@ type Organization struct {
 	Updated Time   `json:"updated"`
 }
 
+type ListOrganizationsRequest struct {
+	Name string `form:"name"`
+	PaginationRequest
+}
+
 type CreateOrganizationRequest struct {
 	Name string `json:"name" validate:"required"`
 }

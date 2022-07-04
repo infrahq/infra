@@ -19,7 +19,7 @@ func ListOrganizations(db *gorm.DB, selectors ...SelectorFunc) ([]models.Organiz
 	return list[models.Organization](db, selectors...)
 }
 
-func DeleteOrganization(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteOrganizations(db *gorm.DB, selectors ...SelectorFunc) error {
 	toDelete, err := GetOrganization(db, selectors...)
 	if err != nil {
 		return err

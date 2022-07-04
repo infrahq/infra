@@ -81,6 +81,11 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	delete(a, authn, "/api/groups/:id", a.DeleteGroup)
 	patch(a, authn, "/api/groups/:id/users", a.UpdateUsersInGroup)
 
+	get(a, authn, "/api/organizations", a.ListOrganizations)
+	post(a, authn, "/api/organizations", a.CreateOrganization)
+	get(a, authn, "/api/organizations/:id", a.GetOrganization)
+	delete(a, authn, "/api/organizations/:id", a.DeleteOrganization)
+
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
 	post(a, authn, "/api/grants", a.CreateGrant)
