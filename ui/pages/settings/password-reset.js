@@ -42,7 +42,7 @@ export default function PasswordReset() {
         throw data
       }
 
-      await router.replace('/settings?resetPassword=success')
+      router.replace('/settings?resetPassword=success')
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}

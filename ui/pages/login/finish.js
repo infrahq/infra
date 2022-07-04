@@ -101,13 +101,13 @@ export default function Finish() {
             htmlFor='password'
             className='text-3xs uppercase text-gray-500'
           >
-            Confirm New Password
+            Confirm Password
           </label>
           <input
             required
             name='confirmPassword'
             type='password'
-            placeholder='confirm your new password'
+            placeholder='confirm your password'
             onChange={e => {
               setConfirmPassword(e.target.value)
               setErrors({})

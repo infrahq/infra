@@ -57,7 +57,7 @@ export default function Signup() {
       await mutate('/api/signup')
       await mutate('/api/users/self')
 
-      await router.replace('/')
+      router.replace('/')
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
@@ -129,13 +129,13 @@ export default function Signup() {
             htmlFor='password'
             className='text-3xs uppercase text-gray-500'
           >
-            Confirm New Password
+            Confirm Password
           </label>
           <input
             required
             name='confirmPassword'
             type='password'
-            placeholder='confirm your new password'
+            placeholder='confirm your password'
             onChange={e => {
               setConfirmPassword(e.target.value)
               setErrors({})
