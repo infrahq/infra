@@ -3,8 +3,8 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon } from '@heroicons/react/solid'
 
-import Nav from './Nav'
-import SignupForm from './SignupForm'
+import Nav from './nav'
+import SignupForm from './signup-form'
 
 function Expandable({ expanded, children }) {
   const ref = useRef()

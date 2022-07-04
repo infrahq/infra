@@ -1,8 +1,8 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import SignupForm from '../components/SignupForm'
 
-import Layout from '../components/Layout'
+import SignupForm from '../components/signup-form'
+import Layout from '../components/layout'
 
 export default function Index() {
   return (
