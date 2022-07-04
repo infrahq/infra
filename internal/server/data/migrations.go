@@ -477,7 +477,7 @@ func migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	// TODO: why? isn't this already called by NewDB?
+	// migrate should work even if you didn't call preMigrate before calling migrate(), so register the premigration.
 	m.InitSchema(preMigrate)
 
 	if err := m.Migrate(); err != nil {
