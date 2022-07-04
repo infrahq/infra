@@ -57,18 +57,31 @@ func ByOptionalPrivilege(s string) SelectorFunc {
 	}
 }
 
-func GrantsInheritedByUser(userID uid.ID) SelectorFunc {
+func GrantsInheritedBySubject(subjectID uid.PolymorphicID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-		var groupIDs []uid.ID
-		err := db.Session(&gorm.Session{Logger: db.Logger}).Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
-		if err != nil {
-			logging.Errorf("GrantsInheritedByUser: %s", err)
+		switch {
+		case subjectID.IsIdentity():
+			userID, err := subjectID.ID()
+			if err != nil {
+				logging.Errorf("invalid subject id %q", subjectID)
+				return db.Where("1 = 0")
+			}
+			var groupIDs []uid.ID
+			err = db.Session(&gorm.Session{Logger: db.Logger}).Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
+			if err != nil {
+				logging.Errorf("GrantsInheritedByUser: %s", err)
+			}
+
+			subjects := []string{subjectID.String()}
+			for _, groupID := range groupIDs {
+				subjects = append(subjects, uid.NewGroupPolymorphicID(groupID).String())
+			}
+			return db.Where("subject in (?)", subjects)
+		case subjectID.IsGroup():
+			return BySubject(subjectID)(db)
+		default:
+			panic("unhandled subject type")
 		}
-		subjects := []string{uid.NewIdentityPolymorphicID(userID).String()}
-		for _, groupID := range groupIDs {
-			subjects = append(subjects, uid.NewGroupPolymorphicID(groupID).String())
-		}
-		return db.Where("subject in (?)", subjects)
 	}
 }
 

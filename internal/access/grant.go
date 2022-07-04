@@ -29,38 +29,43 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	db, err := RequireInfraRole(c, roles...)
-	if err == nil {
-		if inherited && subject.IsIdentity() {
-			userID, err := subject.ID()
-			if err != nil {
-				return nil, err
-			}
-			selectors = append(selectors, data.GrantsInheritedByUser(userID))
-		} else {
-			selectors = append(selectors, data.ByOptionalSubject(subject))
-		}
-		return data.ListGrants(db, selectors...)
-	}
 	err = HandleAuthErr(err, "grants", "list", roles...)
-
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
-		db := getDB(c)
+		db = getDB(c)
 		subjectID, _ := subject.ID()
 		identity := AuthenticatedIdentity(c)
 		switch {
 		case identity == nil:
 			return nil, err
 		case subject.IsIdentity() && identity.ID == subjectID:
-			selectors = append(selectors, data.BySubject(subject))
+			if inherited {
+				selectors = append(selectors, data.GrantsInheritedBySubject(subject))
+			} else {
+				selectors = append(selectors, data.BySubject(subject))
+			}
 			return data.ListGrants(db, selectors...)
 		case subject.IsGroup() && userInGroup(db, identity.ID, subjectID):
-			selectors = append(selectors, data.BySubject(subject))
+			if inherited {
+				selectors = append(selectors, data.GrantsInheritedBySubject(subject))
+			} else {
+				selectors = append(selectors, data.BySubject(subject))
+			}
 			return data.ListGrants(db, selectors...)
+		default:
+			return nil, err
 		}
+	} else if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	if inherited {
+		selectors = append(selectors, data.GrantsInheritedBySubject(subject))
+	} else {
+		selectors = append(selectors, data.ByOptionalSubject(subject))
+	}
+
+	return data.ListGrants(db, selectors...)
 }
 
 func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {

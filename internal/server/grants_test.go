@@ -390,6 +390,22 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	idInGroup := createID(t, "inagroup@example.com")
 	mikhail := createID(t, "mikhail@example.com")
 
+	zoologistsID := createGroup(t, "Zoologists", mikhail)
+
+	var accessKey string
+
+	loginAs := func(userID uid.ID) {
+		token := &models.AccessKey{
+			IssuedFor:  userID,
+			ProviderID: data.InfraProvider(srv.db).ID,
+			ExpiresAt:  time.Now().Add(10 * time.Minute),
+		}
+
+		var err error
+		accessKey, err = data.CreateAccessKey(srv.db, token)
+		assert.NilError(t, err)
+	}
+
 	err := data.CreateGrant(srv.db, &models.Grant{
 		Resource:  "infra",
 		Privilege: "view",
@@ -397,15 +413,11 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	zoologistsID := createGroup(t, "Zoologists", mikhail)
-
-	token := &models.AccessKey{
-		IssuedFor:  idInGroup,
-		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Minute),
-	}
-
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	err = data.CreateGrant(srv.db, &models.Grant{
+		Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+		Privilege: "examine",
+		Resource:  "butterflies",
+	})
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -417,12 +429,13 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
 		}
+
+		req.Header.Set("Authorization", "Bearer "+accessKey)
+		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -436,6 +449,8 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				db := srv.db
 
+				loginAs(idInGroup)
+
 				err = data.CreateGrant(db, &models.Grant{
 					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
 					Privilege: "examine",
@@ -446,7 +461,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
-				err = json.NewDecoder(resp.Body).Decode(&grants)
+				err := json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 				expected := []api.Grant{
 					{
@@ -460,9 +475,31 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		},
 		"user can select grants for groups they are a member of": {
 			urlPath: "/api/grants?group=" + zoologistsID.String(),
-			setup:   func(t *testing.T, req *http.Request) {},
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(mikhail)
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
+				var grants api.ListResponse[api.Grant]
+				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"user can select their own inherited grants without any special permissions": {
+			urlPath: "/api/grants?showInherited=1&user=" + mikhail.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(mikhail)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
