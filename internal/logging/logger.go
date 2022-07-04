@@ -15,6 +15,7 @@ import (
 var L = &logger{
 	Logger: zerolog.New(zerolog.ConsoleWriter{
 		Out:          os.Stderr,
+		NoColor:      !isTerminal(),
 		PartsExclude: []string{"time"},
 		FormatLevel:  consoleFormatLevel,
 	}),
