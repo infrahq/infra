@@ -16,6 +16,7 @@ var L = &logger{
 	Logger: zerolog.New(zerolog.ConsoleWriter{
 		Out:          os.Stderr,
 		PartsExclude: []string{"time"},
+		FormatLevel:  consoleFormatLevel,
 	}),
 }
 
@@ -43,11 +44,14 @@ func newLogger(writer io.Writer) *logger {
 // like the infra server and connector. If the process is being run in an
 // interactive terminal, use the default console logger.
 func UseServerLogger() {
-	// If the server is run from an interactive terminal, use the default ConsoleWriter
-	if os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd())) {
+	if isTerminal() {
 		return
 	}
 	L = newLogger(os.Stderr)
+}
+
+func isTerminal() bool {
+	return os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 // UseFileLogger changes L to a logger that writes log output to a file that is
