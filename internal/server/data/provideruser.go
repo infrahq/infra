@@ -67,7 +67,7 @@ func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, p
 
 	// update the stored access token if it was refreshed
 	if accessToken != string(providerUser.AccessToken) {
-		logging.S.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
+		logging.Debugf("access token for user at provider %s was refreshed", providerUser.ProviderID)
 
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
 		providerUser.ExpiresAt = *expiry

@@ -559,7 +559,7 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 		ID: "202206281027",
 		Migrate: func(tx *gorm.DB) error {
 			if !tx.Migrator().HasColumn(&models.Provider{}, "scopes") {
-				logging.S.Debug("migrating provider table auth URL and scopes")
+				logging.Debugf("migrating provider table auth URL and scopes")
 				if err := tx.Migrator().AddColumn(&models.Provider{}, "auth_url"); err != nil {
 					return err
 				}
@@ -584,7 +584,7 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 						continue
 					}
 
-					logging.S.Debugf("migrating %s provider", providerModels[i].Name)
+					logging.Debugf("migrating %s provider", providerModels[i].Name)
 
 					providerClient := providers.NewOIDCClient(providerModels[i], "not-used", "http://localhost:8301")
 					authServerInfo, err := providerClient.AuthServerInfo(context.Background())

@@ -72,7 +72,7 @@ func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUs
 		}
 
 		newGroups = []string{} // set the groups empty to clear them
-		logging.Warnf("Unable to get groups from the Azure API for %q provider. Make sure the application client has the required permissions.", provider.Name)
+		logging.Warnf("Unable to get groups from the Azure API for provider ID:%q. Make sure the application client has the required permissions.", providerUser.ProviderID)
 	}
 
 	info.Groups = newGroups
