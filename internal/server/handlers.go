@@ -181,7 +181,7 @@ func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupReques
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
-	exclude := []string{models.InternalInfraProviderName}
+	exclude := []models.ProviderKind{models.ProviderKindInfra}
 	pg := models.RequestToPagination(r.PaginationRequest)
 	providers, err := access.ListProviders(c, r.Name, exclude, pg)
 	if err != nil {
@@ -603,7 +603,7 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 		return err
 	}
 
-	if provider.Name == models.InternalInfraProviderName {
+	if provider.Name == models.InternalInfraProviderName || provider.Kind == models.ProviderKindInfra {
 		return nil
 	}
 

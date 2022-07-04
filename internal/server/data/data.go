@@ -260,10 +260,10 @@ var infraProviderCache *models.Provider
 // helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
 	if infraProviderCache == nil {
-		infra, err := get[models.Provider](db, ByName(models.InternalInfraProviderName))
+		infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra))
 		if err != nil {
 			if errors.Is(err, internal.ErrNotFound) {
-				p := &models.Provider{Name: models.InternalInfraProviderName}
+				p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra}
 				if err := add(db, p); err != nil {
 					logging.Panicf("%s", err.Error())
 				}

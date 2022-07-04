@@ -50,7 +50,7 @@ func TestOIDCAuthenticate(t *testing.T) {
 	// setup
 	db := setupDB(t)
 
-	mocktaProvider := models.Provider{Name: "mockta"}
+	mocktaProvider := models.Provider{Name: "mockta", Kind: models.ProviderKindOkta}
 	err := data.CreateProvider(db, &mocktaProvider)
 	assert.NilError(t, err)
 
@@ -243,7 +243,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		c.Set("db", db)
 
 		// setup fake identity provider
-		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com"}
+		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com", Kind: models.ProviderKindOIDC}
 		err := data.CreateProvider(db, provider)
 		assert.NilError(t, err)
 

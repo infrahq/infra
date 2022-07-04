@@ -477,7 +477,7 @@ func migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	// TODO: why? isn't this already called by NewDB?
+	// migrate should work even if you didn't call preMigrate before calling migrate(), so register the premigration.
 	m.InitSchema(preMigrate)
 
 	if err := m.Migrate(); err != nil {
@@ -535,8 +535,8 @@ func addKindToProviders() *gormigrate.Migration {
 			}
 
 			db := tx.Begin()
-			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.InfraKind)
-			db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
+			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.ProviderKindInfra)
+			db.Table("providers").Where("kind IS NULL").Update("kind", models.ProviderKindOkta)
 
 			return db.Commit().Error
 		},
@@ -580,7 +580,7 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 				for i := range providerModels {
 					// do not resolve the auth details for the infra provider
 					// check infra provider name and kind just in case other migrations haven't run
-					if providerModels[i].Kind == models.InfraKind || providerModels[i].Name == models.InternalInfraProviderName {
+					if providerModels[i].Kind == models.ProviderKindInfra || providerModels[i].Name == models.InternalInfraProviderName {
 						continue
 					}
 

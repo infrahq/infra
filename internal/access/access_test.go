@@ -49,9 +49,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	err = data.CreateGrant(db, adminGrant)
 	assert.NilError(t, err)
 
-	provider := &models.Provider{Name: models.InternalInfraProviderName}
-	err = data.CreateProvider(db, provider)
-	assert.NilError(t, err)
+	provider := data.InfraProvider(db)
 
 	identity := &models.Identity{Name: models.InternalInfraConnectorIdentityName}
 	err = data.CreateIdentity(db, identity)
@@ -93,12 +91,9 @@ func TestUsersGroupGrant(t *testing.T) {
 
 	tom = &models.Identity{Name: "tom@infrahq.com"}
 	tomsGroup = &models.Group{Name: "tom's group"}
-	provider := &models.Provider{Name: models.InternalInfraProviderName}
+	provider := data.InfraProvider(db)
 
-	err := data.CreateProvider(db, provider)
-	assert.NilError(t, err)
-
-	err = data.CreateIdentity(db, tom)
+	err := data.CreateIdentity(db, tom)
 	assert.NilError(t, err)
 
 	_, err = data.CreateProviderUser(db, provider, tom)

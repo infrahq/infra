@@ -538,7 +538,7 @@ func (s Server) loadConfig(config Config) error {
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
 			Name: models.InternalInfraProviderName,
-			Kind: models.InfraKind.String(),
+			Kind: models.ProviderKindInfra.String(),
 		})
 
 		config.Users = append(config.Users, User{
@@ -622,7 +622,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			CreatedBy:    models.CreatedBySystem,
 		}
 
-		if provider.Kind != models.InfraKind {
+		if provider.Kind != models.ProviderKindInfra {
 			// only call the provider to resolve info if it is not known
 			if input.AuthURL == "" && len(input.Scopes) == 0 {
 				providerClient := providers.NewOIDCClient(*provider, input.ClientSecret, "http://localhost:8301")

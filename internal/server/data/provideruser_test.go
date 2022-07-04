@@ -52,7 +52,7 @@ func TestSyncProviderUser(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		provider := &models.Provider{
 			Name: "mockta",
-			Kind: models.OktaKind,
+			Kind: models.ProviderKindOkta,
 		}
 
 		err := CreateProvider(db, provider)

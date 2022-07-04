@@ -12,11 +12,11 @@ const InternalInfraProviderName = "infra"
 type ProviderKind string
 
 const (
-	InfraKind  ProviderKind = "infra"
-	OIDCKind   ProviderKind = "oidc"
-	OktaKind   ProviderKind = "okta"
-	AzureKind  ProviderKind = "azure"
-	GoogleKind ProviderKind = "google"
+	ProviderKindInfra  ProviderKind = "infra"
+	ProviderKindOIDC   ProviderKind = "oidc"
+	ProviderKindOkta   ProviderKind = "okta"
+	ProviderKindAzure  ProviderKind = "azure"
+	ProviderKindGoogle ProviderKind = "google"
 )
 
 func (p ProviderKind) String() string {
@@ -24,19 +24,19 @@ func (p ProviderKind) String() string {
 }
 
 var providerKindMap = map[string]ProviderKind{
-	"":                  OIDCKind, // set empty provider kind to OIDC
-	InfraKind.String():  InfraKind,
-	OIDCKind.String():   OIDCKind,
-	OktaKind.String():   OktaKind,
-	AzureKind.String():  AzureKind,
-	GoogleKind.String(): GoogleKind,
+	"":                          ProviderKindOIDC, // set empty provider kind to OIDC
+	ProviderKindInfra.String():  ProviderKindInfra,
+	ProviderKindOIDC.String():   ProviderKindOIDC,
+	ProviderKindOkta.String():   ProviderKindOkta,
+	ProviderKindAzure.String():  ProviderKindAzure,
+	ProviderKindGoogle.String(): ProviderKindGoogle,
 }
 
 // ParseProviderKind validates that a string is valid kind then returns the ProviderKind
 func ParseProviderKind(kind string) (ProviderKind, error) {
 	providerKind, ok := providerKindMap[kind]
 	if !ok {
-		return OIDCKind, fmt.Errorf("%s is not a valid provider kind", kind)
+		return ProviderKindOIDC, fmt.Errorf("%s is not a valid provider kind", kind)
 	}
 
 	return providerKind, nil
@@ -45,13 +45,13 @@ func ParseProviderKind(kind string) (ProviderKind, error) {
 type Provider struct {
 	Model
 
-	Name         string `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL" validate:"required"`
+	Name         string       `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL" validate:"required"`
+	Kind         ProviderKind `validate:"required"`
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
 	AuthURL      string
 	Scopes       CommaSeparatedStrings
-	Kind         ProviderKind
 	CreatedBy    uid.ID
 }
 
