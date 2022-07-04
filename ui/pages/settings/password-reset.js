@@ -15,16 +15,17 @@ export default function PasswordReset() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState({})
 
   async function onSubmit(e) {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      setError('password does not match')
+      setErrors({
+        confirmPassword: 'the confirm password confirmation does not match.',
+      })
       return false
     }
-
-    setError('')
 
     try {
       const rest = await fetch(`/api/users/${auth?.id}`, {
@@ -41,9 +42,18 @@ export default function PasswordReset() {
         throw data
       }
 
-      router.replace('/settings?resetPassword=success')
+      await router.replace('/settings?resetPassword=success')
     } catch (e) {
-      setError(e.message || 'something went wrong, please try again')
+      if (e.fieldErrors) {
+        const errors = {}
+        for (const error of e.fieldErrors) {
+          errors[error.fieldName.toLowerCase()] =
+            error.errors[0] || 'invalid value'
+        }
+        setErrors(errors)
+      } else {
+        setError(e.message)
+      }
     }
   }
 
@@ -70,12 +80,14 @@ export default function PasswordReset() {
             placeholder='enter your new password'
             onChange={e => {
               setPassword(e.target.value)
+              setErrors({})
               setError('')
             }}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-              error ? 'border-pink-500/60' : ''
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              errors.password ? 'border-pink-500/60' : ''
             }`}
           />
+          {errors.password && <ErrorMessage message={errors.password} />}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -91,12 +103,16 @@ export default function PasswordReset() {
             placeholder='confirm your new password'
             onChange={e => {
               setConfirmPassword(e.target.value)
+              setErrors({})
               setError('')
             }}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              error ? 'border-pink-500/60' : ''
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              errors.confirmPassword ? 'border-pink-500/60' : ''
             }`}
           />
+          {errors.confirmPassword && (
+            <ErrorMessage message={errors.confirmPassword} />
+          )}
         </div>
         <div className='mt-6 flex flex-row items-center justify-end'>
           <Link href='/settings'>

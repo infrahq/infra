@@ -11,14 +11,19 @@ export default function Signup() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
 
   async function onSubmit(e) {
     e.preventDefault()
 
-    setErrors({})
-    setError('')
+    if (password !== confirmPassword) {
+      setErrors({
+        confirmPassword: 'the confirm password confirmation does not match.',
+      })
+      return false
+    }
 
     try {
       // signup
@@ -52,7 +57,7 @@ export default function Signup() {
       await mutate('/api/signup')
       await mutate('/api/users/self')
 
-      router.replace('/')
+      await router.replace('/')
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
@@ -78,8 +83,8 @@ export default function Signup() {
         Set up your admin user to get started.
       </h2>
       <form onSubmit={onSubmit} className='flex w-full max-w-sm flex-col'>
-        <div className='my-4 w-full'>
-          <label htmlFor='email' className='text-3xs uppercase text-gray-400'>
+        <div className='my-2 w-full'>
+          <label htmlFor='email' className='text-3xs uppercase text-gray-500'>
             Email
           </label>
           <input
@@ -87,38 +92,70 @@ export default function Signup() {
             name='email'
             type='email'
             placeholder='email@address.com'
-            onChange={e => setEmail(e.target.value)}
-            className={`mt-2 w-full border-b border-gray-800 bg-transparent px-px py-3 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+            onChange={e => {
+              setEmail(e.target.value)
+              setErrors({})
+              setError('')
+            }}
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
               errors.email ? 'border-pink-500/60' : ''
             }`}
           />
           {errors.email && <ErrorMessage message={errors.email} />}
         </div>
-        <div className='my-4 w-full'>
+        <div className='my-2 w-full'>
           <label
             htmlFor='password'
-            className='text-3xs uppercase text-gray-400'
+            className='text-3xs uppercase text-gray-500'
           >
             Password
           </label>
           <input
             type='password'
             placeholder='enter your password'
-            onChange={e => setPassword(e.target.value)}
-            className={`mt-2 w-full border-b border-gray-800 bg-transparent px-px py-3 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+            onChange={e => {
+              setPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
               errors.password ? 'border-pink-500/60' : ''
             }`}
           />
           {errors.password && <ErrorMessage message={errors.password} />}
         </div>
-
+        <div className='my-2 w-full'>
+          <label
+            htmlFor='password'
+            className='text-3xs uppercase text-gray-500'
+          >
+            Confirm New Password
+          </label>
+          <input
+            required
+            name='confirmPassword'
+            type='password'
+            placeholder='confirm your new password'
+            onChange={e => {
+              setConfirmPassword(e.target.value)
+              setErrors({})
+              setError('')
+            }}
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              errors.confirmPassword ? 'border-pink-500/60' : ''
+            }`}
+          />
+          {errors.confirmPassword && (
+            <ErrorMessage message={errors.confirmPassword} />
+          )}
+        </div>
         <button
-          disabled={!email || !password}
+          disabled={!email || !password || !confirmPassword}
           className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
         >
           Get Started
-          {error && <ErrorMessage message={error} center />}
         </button>
+        {error && <ErrorMessage message={error} center />}
       </form>
     </>
   )
