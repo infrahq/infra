@@ -32,7 +32,7 @@
     "eslint-config-next": "^12.1.6",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-jest": "^26.5.3",
-    "jest": "^28.1.1",
+    "jest": "^28.1.2",
     "postcss": "^8.4.13",
     "tailwindcss": "^3.1.4",
     "prettier": "^2.7.1",
