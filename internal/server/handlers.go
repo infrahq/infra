@@ -412,7 +412,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.IncludeInherited, pg)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, pg)
 	if err != nil {
 		return nil, err
 	}

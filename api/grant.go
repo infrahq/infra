@@ -18,11 +18,11 @@ type Grant struct {
 }
 
 type ListGrantsRequest struct {
-	User             uid.ID `form:"user" validate:"excluded_with=Group"`
-	Group            uid.ID `form:"group" validate:"excluded_with=User"`
-	Resource         string `form:"resource" example:"production"`
-	Privilege        string `form:"privilege" example:"view"`
-	IncludeInherited bool   `form:"includeInherited" note:"if true, this field includes grants that the user inherits through groups"`
+	User          uid.ID `form:"user" validate:"excluded_with=Group"`
+	Group         uid.ID `form:"group" validate:"excluded_with=User"`
+	Resource      string `form:"resource" example:"production"`
+	Privilege     string `form:"privilege" example:"view"`
+	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
 	PaginationRequest
 }
 

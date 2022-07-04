@@ -432,7 +432,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"authorized by inherited group matching subject": {
-			urlPath: "/api/grants?includeInherited=1&user=" + mikhail.String(),
+			urlPath: "/api/grants?showInherited=1&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				db := srv.db
 

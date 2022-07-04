@@ -1668,7 +1668,7 @@
           {
             "description": "if true, this field includes grants that the user inherits through groups",
             "in": "query",
-            "name": "includeInherited",
+            "name": "showInherited",
             "schema": {
               "description": "if true, this field includes grants that the user inherits through groups",
               "type": "boolean"

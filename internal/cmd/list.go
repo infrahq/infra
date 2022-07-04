@@ -122,7 +122,7 @@ func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[
 		return nil, nil, nil, err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID, IncludeInherited: true})
+	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
 	if err != nil {
 		return nil, nil, nil, err
 	}

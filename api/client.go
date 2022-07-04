@@ -268,11 +268,11 @@ func (c Client) DeleteProvider(id uid.ID) error {
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](c, "/api/grants", Query{
-		"user":             {req.User.String()},
-		"group":            {req.Group.String()},
-		"resource":         {req.Resource},
-		"privilege":        {req.Privilege},
-		"includeInherited": {strconv.FormatBool(req.IncludeInherited)},
+		"user":          {req.User.String()},
+		"group":         {req.Group.String()},
+		"resource":      {req.Resource},
+		"privilege":     {req.Privilege},
+		"showInherited": {strconv.FormatBool(req.ShowInherited)},
 	})
 }
 

@@ -415,10 +415,10 @@ func createUser(client *api.Client, name string) (*api.CreateUserResponse, error
 // This might be handy for customizing error messages
 func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientHostConfig) (bool, error) {
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		User:             config.UserID,
-		Privilege:        api.InfraAdminRole,
-		Resource:         "infra",
-		IncludeInherited: true,
+		User:          config.UserID,
+		Privilege:     api.InfraAdminRole,
+		Resource:      "infra",
+		ShowInherited: true,
 	})
 	if err != nil {
 		return false, err
