@@ -130,12 +130,12 @@ export default function GroupsAdd() {
   }
 
   const addUsersToGroup = async groupId => {
-    const userIDsToAdd = emails.map(email => email.id)
+    const usersToAdd = emails.map(email => email.id)
 
     try {
       const res = await fetch(`/api/groups/${groupId}/users`, {
         method: 'PATCH',
-        body: JSON.stringify({ groupID: groupId, userIDsToAdd }),
+        body: JSON.stringify({ usersToAdd }),
       })
 
       const data = await res.json()

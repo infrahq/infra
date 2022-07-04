@@ -26,7 +26,7 @@ const columns = [
 
       console.log(users)
 
-      return <>{/* {!loading && (<div>{users.length}</div>)} */}</>
+      return <>{!loading && <div>{users.length}</div>}</>
     },
   },
 ]
