@@ -6,15 +6,18 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/rs/zerolog"
 	"golang.org/x/term"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var (
-	L = newLogger(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-)
+var L = &logger{
+	Logger: zerolog.New(zerolog.ConsoleWriter{
+		Out:          os.Stderr,
+		PartsExclude: []string{"time"},
+	}),
+}
 
 type logger struct {
 	zerolog.Logger
@@ -36,12 +39,28 @@ func newLogger(writer io.Writer) *logger {
 	}
 }
 
+// UseServerLogger changes L to a logger appropriate for long-running processes,
+// like the infra server and connector. If the process is being run in an
+// interactive terminal, use the default console logger.
 func UseServerLogger() {
 	// If the server is run from an interactive terminal, use the default ConsoleWriter
 	if os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd())) {
 		return
 	}
 	L = newLogger(os.Stderr)
+}
+
+// UseFileLogger changes L to a logger that writes log output to a file that is
+// rotated.
+func UseFileLogger(filepath string) {
+	writer := &lumberjack.Logger{
+		Filename:   filepath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 7,
+		MaxAge:     28, // days
+	}
+
+	L = newLogger(writer)
 }
 
 func Tracef(format string, v ...interface{}) {
