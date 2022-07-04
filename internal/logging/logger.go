@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"golang.org/x/term"
 )
 
 var (
@@ -36,6 +37,10 @@ func NewLogger(writer io.Writer) *logger {
 }
 
 func UseServerLogger() {
+	// If the server is run from an interactive terminal, use the default ConsoleWriter
+	if os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd())) {
+		return
+	}
 	L = NewLogger(os.Stderr)
 }
 
