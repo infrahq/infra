@@ -28,11 +28,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = data.CreateProvider(db, &models.Provider{
-		Name:      models.InternalInfraProviderName,
-		CreatedBy: models.CreatedBySystem,
-	})
-	assert.NilError(t, err)
+	// create the provider if it's missing.
+	data.InfraProvider(db)
 
 	return db
 }

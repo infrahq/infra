@@ -410,7 +410,7 @@ func TestListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testProvider := &models.Provider{Name: "mokta", AuthURL: "https://example.com/v1/auth", Scopes: []string{"openid", "email"}}
+	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta, AuthURL: "https://example.com/v1/auth", Scopes: []string{"openid", "email"}}
 
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
@@ -571,7 +571,7 @@ func TestCreateUserAndUpdatePassword(t *testing.T) {
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
-		idp := &models.Provider{Name: "Super Provider"}
+		idp := &models.Provider{Name: "Super Provider", Kind: models.ProviderKindOIDC}
 		err := data.CreateProvider(db, idp)
 		assert.NilError(t, err)
 
@@ -766,8 +766,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
-	internalProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-	assert.NilError(t, err)
+	internalProvider := data.InfraProvider(s.db)
 
 	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
 		Name:       "test",

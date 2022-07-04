@@ -23,8 +23,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
-	assert.NilError(t, err)
+	InfraProvider(db)
 
 	setupLogging(t)
 	t.Cleanup(InvalidateCache)

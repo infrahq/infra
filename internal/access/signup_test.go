@@ -77,10 +77,7 @@ func TestSignupEnabled(t *testing.T) {
 		err := data.CreateIdentity(db, &identity)
 		assert.NilError(t, err)
 
-		provider := models.Provider{Name: models.InternalInfraProviderName}
-
-		err = data.CreateProvider(db, &provider)
-		assert.NilError(t, err)
+		provider := data.InfraProvider(db)
 
 		accessKey := models.AccessKey{
 			IssuedFor:  identity.ID,
@@ -100,16 +97,11 @@ func TestSignupEnabled(t *testing.T) {
 	pass := "password"
 
 	t.Run("SignupUser", func(t *testing.T) {
-		c, db := setup(t)
+		c, _ := setup(t)
 
 		enabled, err := SignupEnabled(c)
 		assert.NilError(t, err)
 		assert.Equal(t, enabled, true)
-
-		provider := models.Provider{Name: models.InternalInfraProviderName}
-
-		err = data.CreateProvider(db, &provider)
-		assert.NilError(t, err)
 
 		identity, err := Signup(c, user, pass)
 		assert.NilError(t, err)

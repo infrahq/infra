@@ -57,7 +57,7 @@ func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) O
 
 	// nolint:exhaustive
 	switch provider.Kind {
-	case models.AzureKind:
+	case models.ProviderKindAzure:
 		return &azure{OIDCClient: oidcClient}
 	default:
 		return oidcClient

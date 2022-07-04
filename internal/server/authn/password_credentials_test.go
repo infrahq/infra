@@ -42,6 +42,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "goku@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPassword": {
@@ -70,6 +71,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "bulma@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPasswordReuse": {
@@ -103,6 +105,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "cell@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"ValidUsernameAndNoPasswordFails": {

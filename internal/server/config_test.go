@@ -403,7 +403,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				URL:          "demo.azure.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
-				Kind:         models.AzureKind.String(),
+				Kind:         models.ProviderKindAzure.String(),
 				AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
 				Scopes:       []string{"openid", "email"},
 			},
@@ -424,7 +424,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		URL:          "demo.okta.com",
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
-		Kind:         models.OIDCKind, // the kind gets the default value
+		Kind:         models.ProviderKindOIDC, // the kind gets the default value
 		AuthURL:      "dev.okta.com/oauth2/default/v1/token",
 		Scopes:       []string{"openid", "email"},
 	}
@@ -451,7 +451,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		URL:          "demo.azure.com",
 		ClientID:     "client-id",
 		ClientSecret: "client-secret",
-		Kind:         models.AzureKind, // when specified, the kind is set
+		Kind:         models.ProviderKindAzure, // when specified, the kind is set
 		AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
 		Scopes:       []string{"openid", "email"},
 	}
@@ -526,10 +526,6 @@ func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
 	}
 
 	err := s.loadConfig(config)
-	assert.NilError(t, err)
-
-	var provider models.Provider
-	err = s.db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
 	assert.NilError(t, err)
 
 	var user models.Identity
@@ -815,7 +811,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		URL:          "demo.atko.com",
 		ClientID:     "client-id-2",
 		ClientSecret: "client-secret-2",
-		Kind:         models.OIDCKind, // the kind gets the default value
+		Kind:         models.ProviderKindOIDC, // the kind gets the default value
 		AuthURL:      "demo.okta.com/v1/auth",
 		Scopes:       []string{"openid", "email", "groups"},
 	}

@@ -535,8 +535,8 @@ func addKindToProviders() *gormigrate.Migration {
 			}
 
 			db := tx.Begin()
-			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.InfraKind)
-			db.Table("providers").Where("kind IS NULL").Update("kind", models.OktaKind)
+			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.ProviderKindInfra)
+			db.Table("providers").Where("kind IS NULL").Update("kind", models.ProviderKindOkta)
 
 			return db.Commit().Error
 		},
@@ -580,7 +580,7 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 				for i := range providerModels {
 					// do not resolve the auth details for the infra provider
 					// check infra provider name and kind just in case other migrations haven't run
-					if providerModels[i].Kind == models.InfraKind || providerModels[i].Name == models.InternalInfraProviderName {
+					if providerModels[i].Kind == models.ProviderKindInfra || providerModels[i].Name == models.InternalInfraProviderName {
 						continue
 					}
 

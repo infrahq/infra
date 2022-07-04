@@ -155,8 +155,8 @@ func TestMigration_AddKindToProvider(t *testing.T) {
 			err = db.Omit("client_secret").Find(&providers).Error
 			assert.NilError(t, err)
 			expected := []models.Provider{
-				{Name: "infra", Kind: models.InfraKind},
-				{Name: "okta", Kind: models.OktaKind, URL: "dev.okta.com"},
+				{Name: "infra", Kind: models.ProviderKindInfra},
+				{Name: "okta", Kind: models.ProviderKindOkta, URL: "dev.okta.com"},
 			}
 			assert.DeepEqual(t, providers, expected, cmpProviderShallow)
 		})
