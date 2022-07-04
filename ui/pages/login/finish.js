@@ -1,8 +1,8 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
-import ErrorMessage from '../../components/error-message'
 
+import ErrorMessage from '../../components/error-message'
 import Login from '../../components/layouts/login'
 
 export default function Finish() {
