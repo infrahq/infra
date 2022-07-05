@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -33,7 +34,11 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
 		db = getDB(c)
-		subjectID, _ := subject.ID()
+		subjectID, err2 := subject.ID()
+		if err2 != nil {
+			// user is only allowed to select their own grants, so if the subject is missing or invalid, this is an access error
+			return nil, fmt.Errorf("%w: %s", AuthorizationError{Resource: "grants", Operation: "list", RequiredRoles: []string{"view"}}, err)
+		}
 		identity := AuthenticatedIdentity(c)
 		switch {
 		case identity == nil:
@@ -59,7 +64,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		return nil, err
 	}
 
-	if inherited {
+	if inherited && len(subject) > 0 {
 		selectors = append(selectors, data.GrantsInheritedBySubject(subject))
 	} else {
 		selectors = append(selectors, data.ByOptionalSubject(subject))

@@ -388,9 +388,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	zoologistsID := createGroup(t, "Zoologists", mikhail)
 
-	var accessKey string
-
-	loginAs := func(userID uid.ID) {
+	loginAs := func(userID uid.ID, req *http.Request) {
 		token := &models.AccessKey{
 			IssuedFor:  userID,
 			ProviderID: data.InfraProvider(srv.db).ID,
@@ -398,8 +396,10 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		}
 
 		var err error
-		accessKey, err = data.CreateAccessKey(srv.db, token)
+		accessKey, err := data.CreateAccessKey(srv.db, token)
 		assert.NilError(t, err)
+
+		req.Header.Set("Authorization", "Bearer "+accessKey)
 	}
 
 	err := data.CreateGrant(srv.db, &models.Grant{
@@ -426,12 +426,11 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 
+		req.Header.Add("Infra-Version", "0.12.3")
+
 		if tc.setup != nil {
 			tc.setup(t, req)
 		}
-
-		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.12.3")
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -441,13 +440,11 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"authorized by inherited group matching subject": {
-			urlPath: "/api/grants?showInherited=1&user=" + mikhail.String(),
+			urlPath: "/api/grants?resource=butterflies&showInherited=1&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				db := srv.db
+				loginAs(idInGroup, req)
 
-				loginAs(idInGroup)
-
-				err = data.CreateGrant(db, &models.Grant{
+				err = data.CreateGrant(srv.db, &models.Grant{
 					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
 					Privilege: "examine",
 					Resource:  "butterflies",
@@ -469,10 +466,37 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
-		"user can select grants for groups they are a member of": {
-			urlPath: "/api/grants?group=" + zoologistsID.String(),
+		"can list grants without a subject": {
+			urlPath: "/api/grants?showInherited=1&resource=dinosaurs", // inherited doesn't mean anything here
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(mikhail)
+				loginAs(idInGroup, req)
+
+				err = data.CreateGrant(srv.db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "dinosaurs",
+				})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "dinosaurs",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"user can select grants for groups they are a member of": {
+			urlPath: "/api/grants?resource=butterflies&group=" + zoologistsID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(mikhail, req)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
@@ -490,9 +514,15 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			},
 		},
 		"user can select their own inherited grants without any special permissions": {
-			urlPath: "/api/grants?showInherited=1&user=" + mikhail.String(),
+			urlPath: "/api/grants?showInherited=1&resource=butterflies&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(mikhail)
+				loginAs(mikhail, req)
+				err = data.CreateGrant(srv.db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "butterflies",
+				})
+				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
