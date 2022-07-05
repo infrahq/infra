@@ -474,6 +474,7 @@ func migrate(db *gorm.DB) error {
 		addKindToProviders(),
 		dropCertificateTables(),
 		addAuthURLAndScopeToProviders(),
+		setDestinationLastSeenAt(),
 		// next one here
 	})
 
@@ -603,6 +604,25 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 			}
 
 			return nil
+		},
+	}
+}
+
+// setDestinationLastSeenAt creates the `last_seen_at` column if it does not exist and sets it to
+// the destination's `updated_at` value. No effect if the `last_seen_at` exists
+func setDestinationLastSeenAt() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202207041724",
+		Migrate: func(tx *gorm.DB) error {
+			if tx.Migrator().HasColumn(&models.Destination{}, "last_seen_at") {
+				return nil
+			}
+
+			if err := tx.Migrator().AddColumn(&models.Destination{}, "last_seen_at"); err != nil {
+				return err
+			}
+
+			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
 		},
 	}
 }

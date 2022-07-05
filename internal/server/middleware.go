@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -48,8 +49,40 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
+func DestinationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uniqueID := c.GetHeader("Infra-Destination")
+		if uniqueID != "" {
+			destinations, err := access.ListDestinations(c, uniqueID, "", models.Pagination{})
+			if err != nil {
+				return
+			}
+
+			switch len(destinations) {
+			case 0:
+				// destination does not exist yet, noop
+			case 1:
+				destination := destinations[0]
+				// only save if there's significant difference between LastSeenAt and Now
+				if time.Since(destination.LastSeenAt) > time.Second {
+					destination.LastSeenAt = time.Now()
+					if err := access.SaveDestination(c, &destination); err != nil {
+						sendAPIError(c, err)
+						return
+					}
+				}
+			default:
+				sendAPIError(c, fmt.Errorf("multiple destinations found for unique ID %q", uniqueID))
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
 // AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware(a *API) gin.HandlerFunc {
+func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
 			sendAPIError(c, err)

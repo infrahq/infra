@@ -1401,6 +1401,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 		"url": "cluster.production.example",
 		"ca": "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n"
 	},
+	"lastSeen": null,
 	"resources": ["res1", "res2"],
 	"roles": ["role1", "role2"],
 	"created": "%[1]v",

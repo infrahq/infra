@@ -1,14 +1,17 @@
 package models
 
 import (
+	"time"
+
 	"github.com/infrahq/infra/api"
 )
 
 type Destination struct {
 	Model
 
-	Name     string `validate:"required"`
-	UniqueID string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
+	Name       string `validate:"required"`
+	UniqueID   string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
+	LastSeenAt time.Time
 
 	ConnectionURL string
 	ConnectionCA  string
@@ -30,5 +33,6 @@ func (d *Destination) ToAPI() *api.Destination {
 		},
 		Resources: d.Resources,
 		Roles:     d.Roles,
+		LastSeen:  api.Time(d.LastSeenAt),
 	}
 }
