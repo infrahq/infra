@@ -60,7 +60,7 @@ function Layout({ children }) {
         <div className='lg:my-18 mt-6 mb-10 flex flex-shrink-0 select-none items-center px-5'>
           <Link href='/'>
             <a>
-              <img className='h-[15px]' src='infra.svg' alt='Infra' />
+              <img className='h-[15px]' src='/infra.svg' alt='Infra' />
             </a>
           </Link>
         </div>
