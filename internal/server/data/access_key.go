@@ -15,6 +15,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+var (
+	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
+	ErrAccessKeyDeadlineExceeded = fmt.Errorf("%w: extension deadline exceeded", ErrAccessKeyExpired)
+)
+
 func secretChecksum(secret string) []byte {
 	chksm := sha256.Sum256([]byte(secret))
 	return chksm[:]
