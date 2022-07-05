@@ -22,7 +22,7 @@ export default function PasswordReset() {
 
     if (password !== confirmPassword) {
       setErrors({
-        confirmPassword: 'the confirm password confirmation does not match.',
+        confirmPassword: 'passwords do not match',
       })
       return false
     }
