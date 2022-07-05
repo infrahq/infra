@@ -4,7 +4,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
-	//"github.com/infrahq/infra/uid"
 )
 
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {

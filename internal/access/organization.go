@@ -14,7 +14,7 @@ func ListOrganizations(c *gin.Context, name string, pg models.Pagination) ([]mod
 		selectors = append(selectors, data.ByName(name))
 	}
 
-	roles := []string{models.InfraAdminRole}
+	roles := []string{models.InfraSupportAdminRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
 		return data.ListOrganizations(db, selectors...)
@@ -28,7 +28,7 @@ func ListOrganizations(c *gin.Context, name string, pg models.Pagination) ([]mod
 }
 
 func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
-	roles := []string{models.InfraAdminRole}
+	roles := []string{models.InfraSupportAdminRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
 		return nil, HandleAuthErr(err, "organizations", "get", roles...)
@@ -38,7 +38,7 @@ func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
 }
 
 func CreateOrganization(c *gin.Context, org *models.Organization) error {
-	roles := []string{models.InfraAdminRole}
+	roles := []string{models.InfraSupportAdminRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
 		return HandleAuthErr(err, "organizations", "create", roles...)
@@ -48,7 +48,7 @@ func CreateOrganization(c *gin.Context, org *models.Organization) error {
 }
 
 func DeleteOrganization(c *gin.Context, id uid.ID) error {
-	roles := []string{models.InfraAdminRole}
+	roles := []string{models.InfraSupportAdminRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
 		return HandleAuthErr(err, "organizations", "delete", roles...)
