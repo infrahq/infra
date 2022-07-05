@@ -54,7 +54,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(providers)
+				jsonOutput, err := json.Marshal(providers.Items)
 				if err != nil {
 					return err
 				}
