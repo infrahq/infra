@@ -5,7 +5,7 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useAdmin } from '../../lib/admin'
 import AuthRequired from '../auth-required'
 
-function Dashboard ({ children }) {
+function Layout({ children }) {
   const router = useRouter()
   const { data: auth } = useSWR('/api/users/self')
   const { data: version } = useSWR('/api/version')
@@ -18,9 +18,9 @@ function Dashboard ({ children }) {
     return null
   }
 
-  async function logout () {
+  async function logout() {
     fetch('/api/logout', {
-      method: 'POST'
+      method: 'POST',
     })
     await mutate('/api/users/self', async () => undefined)
     router.replace('/login')
@@ -28,12 +28,17 @@ function Dashboard ({ children }) {
 
   const navigation = [
     { name: 'Clusters', href: '/destinations', icon: '/destinations.svg' },
-    { name: 'Providers', href: '/providers', icon: '/providers.svg', admin: true },
-    { name: 'Users', href: '/users', icon: '/users.svg', admin: true }
+    {
+      name: 'Providers',
+      href: '/providers',
+      icon: '/providers.svg',
+      admin: true,
+    },
+    { name: 'Users', href: '/users', icon: '/users.svg', admin: true },
   ]
 
   const subNavigation = [
-    { name: 'Settings', href: '/settings', admin: accessToSettingsPage }
+    { name: 'Settings', href: '/settings', admin: accessToSettingsPage },
   ]
 
   // redirect non-admin routes if user isn't admin
@@ -50,75 +55,92 @@ function Dashboard ({ children }) {
   }
 
   return (
-    <AuthRequired>
-      <div className='flex h-full'>
-        <nav className='flex-none flex flex-col w-56'>
-          <div className='flex-shrink-0 flex items-center mt-6 mb-10 lg:my-18 px-5 select-none'>
-            <Link href='/'>
-              <a><img className='h-[15px]' src='infra.svg' alt='Infra' /></a>
-            </Link>
-          </div>
-          <div className='flex-1 space-y-1 px-5 select-none'>
-            {navigation.map(n =>
-              <Link key={n.name} href={n.href}>
-                <a
-                  href={n.href}
-                  className={`
-                    ${router.asPath.startsWith(n.href) ? 'text-white' : 'text-gray-400'}
-                    rounded-lg py-2 flex items-center text-xs leading-none transition-colors duration-100
-                    ${n.admin && !admin ? 'opacity-30 pointer-events-none' : ''}
+    <div className='flex h-full min-w-[800px]'>
+      <nav className='flex w-40 flex-none flex-col lg:w-48 xl:w-56'>
+        <div className='lg:my-18 mt-6 mb-10 flex flex-shrink-0 select-none items-center px-5'>
+          <Link href='/'>
+            <a>
+              <img className='h-[15px]' src='/infra.svg' alt='Infra' />
+            </a>
+          </Link>
+        </div>
+        <div className='flex-1 select-none space-y-1 px-5'>
+          {navigation.map(n => (
+            <Link key={n.name} href={n.href}>
+              <a
+                href={n.href}
+                className={`
+                    ${
+                      router.asPath.startsWith(n.href)
+                        ? 'text-white'
+                        : 'text-gray-400'
+                    }
+                    flex items-center rounded-lg py-2 text-xs leading-none transition-colors duration-100
+                    ${n.admin && !admin ? 'pointer-events-none opacity-30' : ''}
                   `}
-                >
-                  <img
-                    src={n.icon}
-                    className={`
+              >
+                <img
+                  alt={n?.name?.toLowerCase()}
+                  src={n.icon}
+                  className={`
                       ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
-                      mr-3 flex-shrink-0 h-[18px] w-[18px]
+                      mr-3 h-[18px] w-[18px] flex-shrink-0
                     `}
-                  />
-                  {n.name}
-                </a>
-              </Link>
-            )}
+                />
+                {n.name}
+              </a>
+            </Link>
+          ))}
+        </div>
+        <div className='group mx-2 mb-2 flex h-12 overflow-hidden rounded-xl bg-transparent p-2.5 pb-1 transition-all duration-300 ease-in-out hover:h-[132px] hover:bg-gray-900'>
+          <div className='flex h-[23px] w-[23px] flex-none items-stretch self-start rounded-md border border-violet-300/40'>
+            <div className='relative m-0.5 flex flex-1 select-none items-center justify-center rounded-[4px] border border-violet-300/70 text-center text-3xs font-normal leading-none'>
+              <span className='absolute inset-x-0 -mt-[1px]'>
+                {auth?.name?.[0]}
+              </span>
+            </div>
           </div>
-          <div className='flex group mx-2 mb-2 p-2.5 pb-1 h-12 hover:h-[132px] transition-all duration-300 ease-in-out rounded-xl bg-transparent hover:bg-gray-900 overflow-hidden'>
-            <div className='flex flex-none self-start items-stretch border border-violet-300/40 rounded-md w-[23px] h-[23px]'>
-              <div className='relative text-center flex flex-1 justify-center items-center border border-violet-300/70 text-3xs rounded-[4px] leading-none font-normal m-0.5 select-none'>
-                <span className='absolute inset-x-0 -mt-[1px]'>{auth?.name?.[0]}</span>
+          <div className='ml-1 min-w-0 flex-1 select-none px-2'>
+            <div className='mt-[5px] mb-2 truncate pb-px text-2xs leading-none text-gray-400 transition-colors duration-300 group-hover:text-white'>
+              {auth?.name}
+            </div>
+            <div className='opacity-0 transition-opacity duration-300 group-hover:opacity-100'>
+              {subNavigation.map(s => (
+                <Link key={s.name} href={s.href}>
+                  <a
+                    className={`flex w-full py-1.5 text-xs text-gray-400 hover:text-white ${
+                      s.admin ? '' : 'pointer-events-none opacity-20'
+                    }`}
+                  >
+                    {s.name}
+                  </a>
+                </Link>
+              ))}
+              <button
+                onClick={() => logout()}
+                className='w-full cursor-pointer py-1.5 text-left text-xs text-gray-400 hover:text-white'
+              >
+                Sign Out
+              </button>
+              <div className='mt-2 text-3xs leading-none text-violet-50/40'>
+                Infra version{' '}
+                <span className='select-text font-mono'>
+                  {version?.version}
+                </span>
               </div>
             </div>
-            <div className='flex-1 min-w-0 ml-1 px-2 select-none'>
-              <div className='text-gray-400 group-hover:text-white transition-colors duration-300 mt-[5px] mb-2 leading-none truncate text-2xs pb-px'>{auth?.name}</div>
-              <nav className='opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                {subNavigation.map(s => (
-                  <Link key={s.name} href={s.href}>
-                    <a className={`w-full flex py-1.5 text-xs text-gray-400 hover:text-white ${s.admin ? '' : 'pointer-events-none opacity-20'}`}>
-                      {s.name}
-                    </a>
-                  </Link>
-                ))}
-                <button onClick={() => logout()} className='w-full text-left py-1.5 text-gray-400 text-xs hover:text-white cursor-pointer'>
-                  Sign Out
-                </button>
-                <div className='text-3xs mt-2 leading-none text-violet-50/40'>
-                  Infra version <span className='font-mono select-text'>{version?.version}</span>
-                </div>
-              </nav>
-            </div>
           </div>
-        </nav>
-        <main className='flex-1 h-full min-w-0 overflow-x-hidden'>
-          {children}
-        </main>
-      </div>
-    </AuthRequired>
+        </div>
+      </nav>
+      <main className='h-full min-w-0 flex-1'>{children}</main>
+    </div>
   )
 }
 
-export default function (props) {
+export default function Dashboard(props) {
   return (
     <AuthRequired>
-      <Dashboard {...props} />
+      <Layout {...props} />
     </AuthRequired>
   )
 }

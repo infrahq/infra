@@ -46,7 +46,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.S.Debug("call server: list providers")
+			logging.Debugf("call server: list providers")
 			providers, err := client.ListProviders("")
 			if err != nil {
 				return err
@@ -118,7 +118,7 @@ func newProvidersAddCmd(cli *CLI) *cobra.Command {
 		Long: `Add an identity provider for users to authenticate.
 PROVIDER is a short unique name of the identity provider being added (eg. okta)`,
 		Example: `# Connect okta to infra
-$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
@@ -134,7 +134,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				return err
 			}
 
-			logging.S.Debugf("call server: create provider named %q", args[0])
+			logging.Debugf("call server: create provider named %q", args[0])
 			_, err = client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
 				URL:          opts.URL,
@@ -144,7 +144,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 			})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
-					logging.S.Debug(err)
+					logging.Debugf("%s", err.Error())
 					return Error{
 						Message: "Cannot connect provider: missing privileges for CreateProvider",
 					}
@@ -179,7 +179,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.S.Debugf("call server: list providers named %q", args[0])
+			logging.Debugf("call server: list providers named %q", args[0])
 			providers, err := client.ListProviders(args[0])
 			if err != nil {
 				return err
@@ -189,12 +189,12 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				return Error{Message: fmt.Sprintf("No identity providers connected with the name %q", args[0])}
 			}
 
-			logging.S.Debugf("deleting %s providers named %q...", providers.Count, args[0])
+			logging.Debugf("deleting %d providers named %q...", providers.Count, args[0])
 			for _, provider := range providers.Items {
-				logging.S.Debugf("...call server: delete provider %s", provider.ID)
+				logging.Debugf("...call server: delete provider %s", provider.ID)
 				if err := client.DeleteProvider(provider.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
-						logging.S.Debug(err)
+						logging.Debugf("%s", err.Error())
 						return Error{
 							Message: "Cannot disconnect provider: missing privileges for DeleteProvider",
 						}
@@ -215,7 +215,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 }
 
 func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
-	logging.S.Debugf("call server: list providers named %q", name)
+	logging.Debugf("call server: list providers named %q", name)
 	providers, err := client.ListProviders(name)
 	if err != nil {
 		return nil, err

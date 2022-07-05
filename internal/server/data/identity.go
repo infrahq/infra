@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
@@ -21,6 +22,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	groupsToBeAdded := slice.Subtract(newGroups, oldGroups)
 
 	pu.Groups = newGroups
+	pu.LastUpdate = time.Now().UTC()
 	if err := save(db, pu); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
@@ -101,25 +103,7 @@ func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, erro
 }
 
 func ListIdentities(db *gorm.DB, selectors ...SelectorFunc) ([]models.Identity, error) {
-	db = db.Order("name ASC")
 	return list[models.Identity](db, selectors...)
-}
-
-func ListIdentitiesByGroup(db *gorm.DB, groupID uid.ID, selectors ...SelectorFunc) ([]models.Identity, error) {
-	group, err := GetGroup(db.Preload("Identities", func(db *gorm.DB) *gorm.DB {
-		for _, selector := range selectors {
-			db = selector(db)
-		}
-		return db.Order("identities.name ASC")
-	}), ByID(groupID))
-	if err != nil {
-		return nil, err
-	}
-
-	var identities []models.Identity
-	identities = append(identities, group.Identities...)
-
-	return identities, nil
 }
 
 func DeleteIdentity(db *gorm.DB, id uid.ID) error {

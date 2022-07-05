@@ -4,12 +4,10 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 
-import { providers } from '../../../lib/providers'
-
 import Fullscreen from '../../../components/layouts/fullscreen'
 import ErrorMessage from '../../../components/error-message'
 
-export default function ProvidersAddDetails () {
+export default function ProvidersAddDetails() {
   const router = useRouter()
   const { kind } = router.query
 
@@ -22,45 +20,50 @@ export default function ProvidersAddDetails () {
   const [errors, setErrors] = useState({})
   const [name, setName] = useState(kind)
 
-  const provider = providers.find(p => p.name.toLowerCase() === kind)
+  function docLink() {
+    if (kind == 'azure') {
+      return 'https://infrahq.com/docs/identity-providers/azure-ad'
+    }
 
-  if (!provider) {
-    router.replace('/providers/add')
-    return null
+    return 'https://infrahq.com/docs/identity-providers/' + kind
   }
 
-  async function onSubmit (e) {
+  async function onSubmit(e) {
     e.preventDefault()
 
     setErrors({})
     setError('')
 
     try {
-      await mutate('/api/providers', async ({ items: providers } = { items: [] }) => {
-        const res = await fetch('/api/providers', {
-          method: 'POST',
-          body: JSON.stringify({
-            name,
-            url,
-            clientID,
-            clientSecret,
-            kind
+      await mutate(
+        '/api/providers',
+        async ({ items: providers } = { items: [] }) => {
+          const res = await fetch('/api/providers', {
+            method: 'POST',
+            body: JSON.stringify({
+              name,
+              url,
+              clientID,
+              clientSecret,
+              kind,
+            }),
           })
-        })
 
-        const data = await res.json()
+          const data = await res.json()
 
-        if (!res.ok) {
-          throw data
+          if (!res.ok) {
+            throw data
+          }
+
+          return { items: [...providers, data] }
         }
-
-        return { items: [...providers, data] }
-      })
+      )
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName.toLowerCase()] = error.errors[0] || 'invalid value'
+          errors[error.fieldName.toLowerCase()] =
+            error.errors[0] || 'invalid value'
         }
         setErrors(errors)
       } else {
@@ -76,17 +79,23 @@ export default function ProvidersAddDetails () {
   }
 
   return (
-    <div className='pt-8 px-3 pb-3'>
+    <div className='px-3 pt-8 pb-3'>
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
-      <header className='flex flex-row px-2 items-center'>
-        <img src='/providers.svg' className='w-6 h-6 mr-2 mt-0.5' />
+      <header className='flex flex-row items-center px-2'>
+        <img
+          alt='providers icon'
+          src='/providers.svg'
+          className='mr-2 mt-0.5 h-6 w-6'
+        />
         <h1 className='text-2xs capitalize'>Connect {kind}</h1>
       </header>
-      <form onSubmit={onSubmit} className='flex flex-col mt-12'>
+      <form onSubmit={onSubmit} className='mt-12 flex flex-col'>
         <div className='mb-8'>
-          <label className='text-3xs text-gray-400 uppercase'>Name your provider</label>
+          <label className='text-3xs uppercase text-gray-400'>
+            Name your provider
+          </label>
           <input
             required
             autoFocus
@@ -94,56 +103,80 @@ export default function ProvidersAddDetails () {
             placeholder='choose a name for your identity provider'
             value={name}
             onChange={e => setName(e.target.value)}
-            className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.name ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+              errors.name ? 'border-pink-500/60' : ''
+            }`}
           />
           {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <label className='text-2xs text-white/90'>
-          Additional details <a className='text-violet-100 underline' target='_blank' href='https://infrahq.com/docs/identity-providers/okta' rel='noreferrer'>learn more</a>
+          Additional details{' '}
+          <a
+            className='text-violet-100 underline'
+            target='_blank'
+            href={docLink()}
+            rel='noreferrer'
+          >
+            learn more
+          </a>
         </label>
         <div className='mt-4'>
-          <label className='text-3xs text-gray-400 uppercase'>URL (Domain)</label>
+          <label className='text-3xs uppercase text-gray-400'>
+            URL (Domain)
+          </label>
           <input
             required
             placeholder='domain or URL'
             value={url}
             onChange={e => setURL(e.target.value)}
-            className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.url ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+              errors.url ? 'border-pink-500/60' : ''
+            }`}
           />
           {errors.url && <ErrorMessage message={errors.url} />}
         </div>
         <div className='mt-4'>
-          <label className='text-3xs text-gray-400 uppercase'>Client ID</label>
+          <label className='text-3xs uppercase text-gray-400'>Client ID</label>
           <input
             required
             placeholder='client ID'
             type='search'
             value={clientID}
             onChange={e => setClientID(e.target.value)}
-            className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientid ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+              errors.clientid ? 'border-pink-500/60' : ''
+            }`}
           />
           {errors.clientid && <ErrorMessage message={errors.clientid} />}
         </div>
         <div className='mt-4'>
-          <label className='text-3xs text-gray-400 uppercase'>Client Secret</label>
+          <label className='text-3xs uppercase text-gray-400'>
+            Client Secret
+          </label>
           <input
             required
             type='password'
             placeholder='client secret'
             value={clientSecret}
             onChange={e => setClientSecret(e.target.value)}
-            className={`w-full bg-transparent border-b border-gray-800 text-3xs px-px py-3 focus:outline-none focus:border-b focus:border-gray-200 placeholder:italic ${errors.clientsecret ? 'border-pink-500/60' : ''}`}
+            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+              errors.clientsecret ? 'border-pink-500/60' : ''
+            }`}
           />
-          {errors.clientsecret && <ErrorMessage message={errors.clientsecret} />}
+          {errors.clientsecret && (
+            <ErrorMessage message={errors.clientsecret} />
+          )}
         </div>
-        <div className='flex flex-row justify-end mt-6 items-center'>
+        <div className='mt-6 flex flex-row items-center justify-end'>
           <Link href='/providers'>
-            <a className='uppercase border-0 hover:text-white px-6 py-3 focus:outline-none focus:text-white text-gray-400 text-2xs'>Cancel</a>
+            <a className='border-0 px-6 py-3 text-2xs uppercase text-gray-400 hover:text-white focus:text-white focus:outline-none'>
+              Cancel
+            </a>
           </Link>
           <button
             type='submit'
             disabled={!name || !url || !clientID || !clientSecret}
-            className='border border-violet-300 text-2xs text-violet-100 rounded-md px-5 py-2.5 text-center disabled:opacity-30'
+            className='rounded-md border border-violet-300 px-5 py-2.5 text-center text-2xs text-violet-100 disabled:opacity-30'
           >
             Connect Provider
           </button>
@@ -154,4 +187,8 @@ export default function ProvidersAddDetails () {
   )
 }
 
-ProvidersAddDetails.layout = page => <Fullscreen backHref='/providers/add' closeHref='/providers'>{page}</Fullscreen>
+ProvidersAddDetails.layout = page => (
+  <Fullscreen backHref='/providers/add' closeHref='/providers'>
+    {page}
+  </Fullscreen>
+)

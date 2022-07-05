@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
@@ -57,45 +57,6 @@ func TestMigration_202204211705(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Assert(t, rawSettings.PrivateJWK[0] != '{')
-}
-
-func Test202206151027(t *testing.T) {
-	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
-		loadSQL(t, db, "202206151027")
-	})
-
-	// TODO: share more of Server.loadDBKey
-	loadDBKey := func(db *gorm.DB) error {
-		provider := secrets.NativeKeyProvider{
-			SecretStorage: &secrets.FileSecretProvider{},
-		}
-		keyRec, err := GetEncryptionKey(db, ByName("dbkey"))
-		assert.NilError(t, err)
-
-		sKey, err := provider.DecryptDataKey("migrationdata/202206151027.sql.key", keyRec.Encrypted)
-		assert.NilError(t, err)
-		models.SymmetricKey = sKey
-		return nil
-	}
-
-	// migration runs as part of NewDB
-	db, err := NewDB(driver, loadDBKey)
-	assert.NilError(t, err)
-
-	providers, err := ListProviders(db)
-	assert.NilError(t, err)
-	expected := []models.Provider{
-		{
-			Name: "infra",
-			Kind: models.InfraKind,
-		},
-		{
-			Name: "test",
-			Kind: models.OktaKind,
-			URL:  "example.com/provider",
-		},
-	}
-	assert.DeepEqual(t, providers, expected, cmpProviderShallow)
 }
 
 var cmpProviderShallow = gocmp.Comparer(func(x, y models.Provider) bool {
@@ -177,4 +138,79 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 	err := db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", name).Row().Scan(&count)
 	assert.NilError(t, err)
 	return count > 0
+}
+
+func TestMigration_AddKindToProvider(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202206151027-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var providers []models.Provider
+			err = db.Omit("client_secret").Find(&providers).Error
+			assert.NilError(t, err)
+			expected := []models.Provider{
+				{Name: "infra", Kind: models.ProviderKindInfra},
+				{Name: "okta", Kind: models.ProviderKindOkta, URL: "dev.okta.com"},
+			}
+			assert.DeepEqual(t, providers, expected, cmpProviderShallow)
+		})
+	}
+}
+
+func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202206281027-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var providers []models.Provider
+			err = db.Omit("client_secret").Find(&providers).Error
+			assert.NilError(t, err)
+
+			assert.Equal(t, len(providers), 2)
+			authUrls := make(map[string]string)
+			scopes := make(map[string][]string)
+			for _, p := range providers {
+				authUrls[p.Name] = p.AuthURL
+				scopes[p.Name] = p.Scopes
+			}
+			assert.Equal(t, authUrls["infra"], "")
+			assert.Equal(t, len(scopes["infra"]), 0)
+			assert.Equal(t, authUrls["okta"], "https://example.okta.com/oauth2/v1/authorize")
+			assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
+		})
+	}
+}
+
+func TestMigration_SetDestinationLastSeenAt(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202207041724-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var destinations []models.Destination
+			err = db.Find(&destinations).Error
+			assert.NilError(t, err)
+
+			for _, destination := range destinations {
+				assert.Equal(t, destination.LastSeenAt, destination.UpdatedAt)
+			}
+		})
+	}
 }

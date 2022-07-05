@@ -37,14 +37,13 @@ data:
 {{- end }}
 
     providers:
-{{- .Values.server.config.providers | default list | concat .Values.server.additionalProviders | uniq | toYaml | nindent 6 }}
+{{- .Values.server.additionalProviders | default list | concat .Values.server.config.providers | uniq | toYaml | nindent 6 }}
 
     grants:
-{{- .Values.server.config.grants | default list | concat .Values.server.additionalGrants | uniq | toYaml | nindent 6 }}
+{{- .Values.server.additionalGrants | default list | concat .Values.server.config.grants | uniq | toYaml | nindent 6 }}
 
     users:
-{{- $identities := .Values.server.config.identities | default list }}
-{{- $users := .Values.server.config.users | default list | concat .Values.server.additionalUsers .Values.server.additionalIdentities $identities}}
+{{- $users := .Values.server.additionalUsers | default list | concat .Values.server.config.users }}
 
 {{- if include "connector.enabled" . | eq "true" }}
 {{- $accessKey := default "" .Values.connector.config.accessKey -}}
@@ -57,5 +56,5 @@ data:
 {{- $users | uniq | toYaml | nindent 6 }}
 
     secrets:
-{{- .Values.server.config.secrets | default list | concat .Values.server.additionalSecrets | uniq | toYaml | nindent 6 }}
+{{- .Values.server.additionalSecrets | default list | concat .Values.server.config.secrets | uniq | toYaml | nindent 6 }}
 {{- end }}

@@ -22,8 +22,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = data.CreateProvider(db, &models.Provider{Name: models.InternalInfraProviderName})
-	assert.NilError(t, err)
+	// create the provider if it's missing
+	data.InfraProvider(db)
 
 	return db
 }
@@ -43,10 +43,9 @@ func TestLogin(t *testing.T) {
 	assert.NilError(t, err)
 
 	creds := models.Credential{
-		IdentityID:          user.ID,
-		PasswordHash:        hash,
-		OneTimePassword:     false,
-		OneTimePasswordUsed: false,
+		IdentityID:      user.ID,
+		PasswordHash:    hash,
+		OneTimePassword: false,
 	}
 
 	err = data.CreateCredential(db, &creds)

@@ -29,6 +29,7 @@ import (
 )
 
 const (
+	podLabelsFilePath = "/etc/podinfo/labels"
 	namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 	caFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 )
@@ -92,7 +93,7 @@ func (k *Kubernetes) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 
 	for cr, subjs := range subjects {
 		if !validClusterRoles[cr] {
-			logging.S.Warnf("cluster role binding %s skipped, it does not exist", cr)
+			logging.Warnf("cluster role binding %s skipped, it does not exist", cr)
 			continue
 		}
 
@@ -172,7 +173,7 @@ func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbac
 
 	for crn, subjs := range subjects {
 		if !validClusterRoles[crn.ClusterRole] {
-			logging.S.Warnf("cluster role binding %s skipped, it does not exist", crn.ClusterRole)
+			logging.Warnf("cluster role binding %s skipped, it does not exist", crn.ClusterRole)
 			continue
 		}
 
@@ -223,7 +224,7 @@ func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbac
 					if k8sErrors.IsNotFound(err) {
 						// the namespace does not exist
 						// we can proceed in this case, the role mapping is just not applicable to this cluster
-						logging.S.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
+						logging.Warnf("skipping unapplicable namespace for this cluster: %s %s", rb.Namespace, err.Error())
 						continue
 					}
 
@@ -495,9 +496,36 @@ func (k *Kubernetes) Name(chksm string) (string, error) {
 	}
 
 	// truncated checksum will be used as default name if one could not be found
-	logging.L.Debug("could not fetch cluster name, resorting to hashed cluster CA")
+	logging.Debugf("could not fetch cluster name, resorting to hashed cluster CA")
 
 	return name, nil
+}
+
+func PodLabels() ([]string, error) {
+	contents, err := ioutil.ReadFile(podLabelsFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(string(contents), "\n"), nil
+}
+
+// InstancePodLabels returns all pod labels with the prefix "app.kubernetes.io/instance"
+func InstancePodLabels() ([]string, error) {
+	podLabels, err := PodLabels()
+	if err != nil {
+		return nil, err
+	}
+
+	instanceLabels := []string{}
+	for _, label := range podLabels {
+		if strings.HasPrefix(label, "app.kubernetes.io/instance") {
+			instanceLabels = append(instanceLabels, strings.ReplaceAll(label, "\"", ""))
+			break
+		}
+	}
+
+	return instanceLabels, nil
 }
 
 func Namespace() (string, error) {
@@ -519,7 +547,7 @@ func CA() ([]byte, error) {
 }
 
 // Find the first suitable Service, filtering on infrahq.com/component
-func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
+func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Service, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return nil, err
@@ -530,8 +558,14 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 		return nil, err
 	}
 
+	selector := []string{
+		fmt.Sprintf("app.infrahq.com/component=%s", component),
+	}
+
+	selector = append(selector, labels...)
+
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("app.infrahq.com/component=%s", component),
+		LabelSelector: strings.Join(selector, ","),
 	})
 	if err != nil {
 		return nil, err
@@ -546,7 +580,12 @@ func (k *Kubernetes) Service(component string) (*corev1.Service, error) {
 
 // Find a suitable Endpoint to use by inspecting Service objects
 func (k *Kubernetes) Endpoint() (string, int, error) {
-	service, err := k.Service("connector")
+	labels, err := InstancePodLabels()
+	if err != nil {
+		return "", -1, err
+	}
+
+	service, err := k.Service("connector", labels...)
 	if err != nil {
 		return "", -1, err
 	}
@@ -582,7 +621,11 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 }
 
 func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
-	service, err := k.Service("connector")
+	labels, err := InstancePodLabels()
+	if err != nil {
+		return false, err
+	}
+	service, err := k.Service("connector", labels...)
 	if err != nil {
 		return false, err
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -24,8 +25,12 @@ type mockOIDCImplementation struct {
 	UserGroupsResp []string
 }
 
-func (m *mockOIDCImplementation) Validate(context.Context) error {
+func (m *mockOIDCImplementation) Validate(_ context.Context) error {
 	return nil
+}
+
+func (m *mockOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
+	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
 }
 
 func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
@@ -37,15 +42,15 @@ func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
 }
 
-func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*InfoClaims, error) {
-	return &InfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
+func (m *mockOIDCImplementation) GetUserInfo(_ context.Context, providerUser *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{Email: m.UserEmailResp, Groups: m.UserGroupsResp}, nil
 }
 
 func TestOIDCAuthenticate(t *testing.T) {
 	// setup
 	db := setupDB(t)
 
-	mocktaProvider := models.Provider{Name: "mockta"}
+	mocktaProvider := models.Provider{Name: "mockta", Kind: models.ProviderKindOkta}
 	err := data.CreateProvider(db, &mocktaProvider)
 	assert.NilError(t, err)
 
@@ -56,14 +61,14 @@ func TestOIDCAuthenticate(t *testing.T) {
 
 	t.Run("invalid provider", func(t *testing.T) {
 		unknownProviderOIDCAuthn := NewOIDCAuthentication(uid.New(), "localhost:8031", "1234", oidc)
-		_, _, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db)
+		_, _, _, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db)
 
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 
 	t.Run("successful authentication", func(t *testing.T) {
 		oidcAuthn := NewOIDCAuthentication(mocktaProvider.ID, "localhost:8031", "1234", oidc)
-		identity, provider, err := oidcAuthn.Authenticate(context.Background(), db)
+		identity, provider, _, err := oidcAuthn.Authenticate(context.Background(), db)
 
 		assert.NilError(t, err)
 		// user should be created
@@ -81,17 +86,10 @@ func TestOIDCAuthenticate(t *testing.T) {
 	})
 }
 
-func TestValidateInvalidURL(t *testing.T) {
-	oidc := NewOIDC("invalid.example.com", "some_client_id", "some_client_secret", "http://localhost:8301")
-
-	err := oidc.Validate(context.Background())
-	assert.ErrorIs(t, err, ErrInvalidProviderURL)
-}
-
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	cases := map[string]map[string]interface{}{
 		"NewUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
@@ -103,7 +101,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"NewUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -133,7 +131,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
@@ -157,7 +155,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -187,7 +185,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) OIDC {
+			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -245,18 +243,18 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		c.Set("db", db)
 
 		// setup fake identity provider
-		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com"}
+		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com", Kind: models.ProviderKindOIDC}
 		err := data.CreateProvider(db, provider)
 		assert.NilError(t, err)
 
 		t.Run(k, func(t *testing.T) {
-			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) OIDC)
+			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDCClient)
 			assert.Assert(t, ok)
 			mockOIDC := setupFunc(t, db)
 
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
-			u, _, err := loginMethod.Authenticate(context.Background(), db)
+			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, error))
 			assert.Assert(t, ok)
@@ -272,17 +270,4 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestUserInfo(t *testing.T) {
-	t.Run("no email and no name fails validation", func(t *testing.T) {
-		claims := &InfoClaims{}
-		err := claims.validate()
-		assert.ErrorContains(t, err, "name or email are required")
-	})
-	t.Run("groups are not required", func(t *testing.T) {
-		claims := &InfoClaims{Email: "hello@example.com"}
-		err := claims.validate()
-		assert.NilError(t, err)
-	})
 }

@@ -1,10 +1,21 @@
 import Image from 'next/image'
-import Link from '../../components/Link'
-import Heading from '../../components/Heading'
-import Code from '../../components/Code'
-import Tab from '../../components/Tab'
-import Tabs from '../../components/Tabs'
-import Callout from '../../components/Callout'
-import YouTube from '../../components/YouTube'
+import Link from '../../components/link'
+import Heading from '../../components/heading'
+import Code from '../../components/code'
+import Tab from '../../components/tab'
+import Tabs from '../../components/tabs'
+import Callout from '../../components/callout'
+import Youtube from '../../components/youtube'
 
-export default { Callout, Code, Heading, Image, Link, Tab, Tabs, YouTube }
+export const components = {
+  Callout,
+  Code,
+  Heading,
+  Image,
+  Link,
+  Tab,
+  Tabs,
+  Youtube,
+}
+
+export { components as default }

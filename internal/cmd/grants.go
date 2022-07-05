@@ -60,7 +60,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
-					logging.S.Debug(err)
+					logging.Debugf("%s", err.Error())
 					return Error{
 						Message: "Cannot list grants: missing privileges for ListGrants",
 					}
@@ -71,6 +71,10 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			numUserGrants, err := userGrants(cli, client, grants)
 			if err != nil {
 				return err
+			}
+
+			if numUserGrants != 0 {
+				cli.Output("")
 			}
 
 			numGroupGrants, err := groupGrants(cli, client, grants)
@@ -228,11 +232,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		Resource:  cmdOptions.Destination,
 	}
 
-	logging.S.Debugf("call server: list grants %#v", listGrantsReq)
+	logging.Debugf("call server: list grants %#v", listGrantsReq)
 	grants, err := client.ListGrants(listGrantsReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
-			logging.S.Debug(err)
+			logging.Debugf("%s", err.Error())
 			return Error{
 				Message: "Cannot revoke grants: missing privileges for ListGrants",
 			}
@@ -245,11 +249,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	for _, g := range grants.Items {
-		logging.S.Debugf("call server: delete grant %s", g.ID)
+		logging.Debugf("call server: delete grant %s", g.ID)
 		err := client.DeleteGrant(g.ID)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
-				logging.S.Debug(err)
+				logging.Debugf("%s", err.Error())
 				return Error{
 					Message: "Cannot revoke grants: missing privileges for DeleteGrant",
 				}
@@ -318,7 +322,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		user, err := createUser(client, cmdOptions.Name)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
-				logging.S.Debug(err)
+				logging.Debugf("%s", err.Error())
 				return Error{
 					Message: "Cannot create grants: missing privileges for ListGrants",
 				}
@@ -334,7 +338,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		if err != nil {
 
 			if api.ErrorStatusCode(err) == 403 {
-				logging.S.Debug(err)
+				logging.Debugf("%s", err.Error())
 				return Error{
 					Message: "Cannot create grants: missing privileges for CreateGroup",
 				}
@@ -358,11 +362,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		Privilege: cmdOptions.Role,
 		Resource:  cmdOptions.Destination,
 	}
-	logging.S.Debugf("call server: create grant %#v", createGrantReq)
+	logging.Debugf("call server: create grant %#v", createGrantReq)
 	response, err := client.CreateGrant(createGrantReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
-			logging.S.Debug(err)
+			logging.Debugf("%s", err.Error())
 			return Error{
 				Message: "Cannot create grant: missing privileges for CreateGrant",
 			}
@@ -385,7 +389,7 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 		group, err := getGroupByName(client, subject)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
-				logging.S.Debug(err)
+				logging.Debugf("%s", err.Error())
 				return 0, 0, Error{
 					Message: "missing privileges for GetGroup",
 				}
@@ -399,7 +403,7 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 	user, err := getUserByName(client, subject)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
-			logging.S.Debug(err)
+			logging.Debugf("%s", err.Error())
 			return 0, 0, Error{
 				Message: "missing privileges for GetUser",
 			}
@@ -426,7 +430,7 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 	supportedRoles := make(map[string]struct{})
 
 	if destination != "infra" {
-		logging.S.Debugf("call server: list destinations named %q", destination)
+		logging.Debugf("call server: list destinations named %q", destination)
 		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: destination})
 		if err != nil {
 			return err

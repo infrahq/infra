@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -16,13 +18,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+func TestMain(m *testing.M) {
+	// set mode so that test failure output is not filled by gin debug output by default
+	ginutil.SetMode()
+	os.Exit(m.Run())
+}
 
 func adminAccessKey(s *Server) string {
 	for _, id := range s.options.Users {
@@ -39,6 +49,16 @@ var defaultPagination api.PaginationResponse
 func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	// TODO: Convert the "humans" group and "AnotherUser" user to call the standard http endpoints
+	//       when the new endpoint to add a user to a group exists
+	humans := models.Group{Name: "humans"}
+	createGroups(t, srv.db, &humans)
+	anotherID := models.Identity{
+		Name:   "AnotherUser@example.com",
+		Groups: []models.Group{humans},
+	}
+	createIdentities(t, srv.db, &anotherID)
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
@@ -142,8 +162,9 @@ func TestAPI_ListUsers(t *testing.T) {
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
 				expected := api.ListResponse[api.User]{
-					Count: 6,
+					Count: 7,
 					Items: []api.User{
+						{Name: "AnotherUser@example.com"},
 						{Name: "HAL@example.com"},
 						{Name: "admin@example.com"},
 						{Name: "connector"},
@@ -176,13 +197,32 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 2,
 					Items: []api.User{
+						{Name: "admin@example.com"},
 						{Name: "connector"},
-						{Name: "me@example.com"},
 					},
 					PaginationInfo: api.PaginationResponse{
 						Page:  2,
 						Limit: 2,
 					},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+			},
+		},
+		"user in group": {
+			urlPath: fmt.Sprintf("/api/users?group=%s", humans.ID),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+
+				expected := api.ListResponse[api.User]{
+					Count: 1,
+					Items: []api.User{
+						{Name: anotherID.Name},
+					},
+					PaginationInfo: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -316,6 +356,12 @@ func TestListKeys(t *testing.T) {
 		assert.Equal(t, notExpiredLength, len(resp.Items)-2) // test showExpired in request
 	})
 
+	t.Run("sort", func(t *testing.T) {
+		sort.SliceIsSorted(resp.Items, func(i, j int) bool {
+			return resp.Items[i].Name < resp.Items[j].Name
+		})
+	})
+
 	t.Run("latest", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
@@ -366,6 +412,40 @@ func TestListKeys(t *testing.T) {
 
 		assert.Assert(t, len(resp2) > 0)
 	})
+}
+
+func TestListProviders(t *testing.T) {
+	s := setupServer(t, withAdminUser)
+	routes := s.GenerateRoutes(prometheus.NewRegistry())
+
+	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta, AuthURL: "https://example.com/v1/auth", Scopes: []string{"openid", "email"}}
+
+	err := data.CreateProvider(s.db, testProvider)
+	assert.NilError(t, err)
+
+	dbProviders, err := data.ListProviders(s.db)
+	assert.NilError(t, err)
+	assert.Equal(t, len(dbProviders), 2)
+
+	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+	req.Header.Add("Infra-Version", "0.12.3")
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+	var apiProviders api.ListResponse[Provider]
+	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+	assert.NilError(t, err)
+
+	assert.Equal(t, len(apiProviders.Items), 1)
+	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
+	assert.Equal(t, apiProviders.Items[0].AuthURL, "https://example.com/v1/auth")
+	assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, []string{"openid", "email"}))
 }
 
 // withAdminUser may be used with setupServer to setup the server
@@ -499,7 +579,7 @@ func TestCreateUserAndUpdatePassword(t *testing.T) {
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
-		idp := &models.Provider{Name: "Super Provider"}
+		idp := &models.Provider{Name: "Super Provider", Kind: models.ProviderKindOIDC}
 		err := data.CreateProvider(db, idp)
 		assert.NilError(t, err)
 
@@ -681,7 +761,7 @@ func TestDeleteUser_NoDeleteInternalIdentities(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestDeleteUser_NoDeleteSelf(t *testing.T) {
@@ -694,8 +774,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
-	internalProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-	assert.NilError(t, err)
+	internalProvider := data.InfraProvider(s.db)
 
 	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
 		Name:       "test",
@@ -714,7 +793,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 }
 
 func TestAPI_CreateGrant_Success(t *testing.T) {
@@ -1229,7 +1308,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 	})
 
 	t.Run("not last infra admin is deleted", func(t *testing.T) {
@@ -1323,6 +1402,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 		"url": "cluster.production.example",
 		"ca": "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n"
 	},
+	"lastSeen": null,
 	"resources": ["res1", "res2"],
 	"roles": ["role1", "role2"],
 	"created": "%[1]v",

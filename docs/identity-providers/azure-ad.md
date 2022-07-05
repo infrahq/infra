@@ -27,9 +27,10 @@ infra providers add azure \
     - For **Redirect URI** select `Web` and add `http://localhost:8301`
     - Click **Register**.
 ![Application details](../images/azure-setup/connect-users-azure-2.png)
-5. On the **Overview** tab, click **Client credentials > Add a certificate or secret**
+5. On the **Overview** tab, click **Certificates & secrets > Client secrets**
     - Click **New client secret**.
-    - In the **Add a client secret** pane select an expiry.
+    - **Description** field is optional.
+    - In the **Add a client secret** pane select an expiry. (Note: you will need to generate a new client secret after expiry).
     - **Note** the **client secret value**.
 ![Add a client secret](../images/azure-setup/connect-users-azure-3.png)
 6. Navigate to **Authentication**.
@@ -43,6 +44,9 @@ infra providers add azure \
     - From the list of claims select the `email` claim.
     - Click **Add**.
 ![Add the email claim](../images/azure-setup/connect-users-azure-4.png)
+
+    - If prompted to "Turn on the Microsoft Graph email permission (required for claims to appear in token)", please add it. (You will also add it in the next step.)
+
 8. Navigate to **API permissions**.
     - Click **Add a permission**.
     - Click **Microsoft Graph**.

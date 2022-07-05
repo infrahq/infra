@@ -144,7 +144,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 
 		u.Scheme = "https"
 
-		logging.S.Debugf("creating kubeconfig for %s", context)
+		logging.Debugf("creating kubeconfig for %s", context)
 
 		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
 			Server:                   u.String(),

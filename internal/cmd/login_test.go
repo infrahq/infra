@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/pem"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -42,7 +43,10 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
+	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
+	assert.NilError(t, err)
+
+	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -321,7 +325,10 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
+	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
+	assert.NilError(t, err)
+
+	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()

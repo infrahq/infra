@@ -1,6 +1,7 @@
 package access
 
 import (
+	"errors"
 	"fmt"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,6 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
@@ -49,9 +49,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	err = data.CreateGrant(db, adminGrant)
 	assert.NilError(t, err)
 
-	provider := &models.Provider{Name: models.InternalInfraProviderName}
-	err = data.CreateProvider(db, provider)
-	assert.NilError(t, err)
+	provider := data.InfraProvider(db)
 
 	identity := &models.Identity{Name: models.InternalInfraConnectorIdentityName}
 	err = data.CreateIdentity(db, identity)
@@ -93,12 +91,9 @@ func TestUsersGroupGrant(t *testing.T) {
 
 	tom = &models.Identity{Name: "tom@infrahq.com"}
 	tomsGroup = &models.Group{Name: "tom's group"}
-	provider := &models.Provider{Name: models.InternalInfraProviderName}
+	provider := data.InfraProvider(db)
 
-	err := data.CreateProvider(db, provider)
-	assert.NilError(t, err)
-
-	err = data.CreateIdentity(db, tom)
+	err := data.CreateIdentity(db, tom)
 	assert.NilError(t, err)
 
 	_, err = data.CreateProviderUser(db, provider, tom)
@@ -115,7 +110,7 @@ func TestUsersGroupGrant(t *testing.T) {
 	c.Set("identity", tom)
 
 	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
-	assert.ErrorIs(t, err, internal.ErrForbidden)
+	assert.ErrorIs(t, err, ErrNotAuthorized)
 	assert.Assert(t, authDB == nil)
 
 	grant(t, db, tom, tomsGroup.PolyID(), models.InfraAdminRole, "infra")
@@ -156,7 +151,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 		c := setup(t, models.InfraViewRole)
 
 		authDB, err := RequireInfraRole(c, models.InfraAdminRole)
-		assert.Error(t, err, "forbidden: requestor does not have required grant")
+		assert.ErrorIs(t, err, ErrNotAuthorized)
 		assert.Assert(t, authDB == nil)
 	})
 
@@ -172,7 +167,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 		c := setup(t, models.InfraViewRole)
 
 		authDB, err := RequireInfraRole(c, models.InfraAdminRole, models.InfraConnectorRole)
-		assert.Error(t, err, "forbidden: requestor does not have required grant")
+		assert.ErrorIs(t, err, ErrNotAuthorized)
 		assert.Assert(t, authDB == nil)
 	})
 }
@@ -197,4 +192,38 @@ func cant(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resou
 	canAccess, err := Can(db, subject, privilege, resource)
 	assert.NilError(t, err)
 	assert.Assert(t, !canAccess)
+}
+
+func TestAuthorizationError(t *testing.T) {
+	t.Run("one role", func(t *testing.T) {
+		err := AuthorizationError{
+			Operation:     "create",
+			Resource:      "access key",
+			RequiredRoles: []string{"admin"},
+		}
+		expected := "you do not have permission to create access key, requires role admin"
+		assert.Equal(t, err.Error(), expected)
+	})
+	t.Run("two roles", func(t *testing.T) {
+		err := AuthorizationError{
+			Operation:     "list",
+			Resource:      "users",
+			RequiredRoles: []string{"admin", "view"},
+		}
+		expected := "you do not have permission to list users, requires role admin, or view"
+		assert.Equal(t, err.Error(), expected)
+	})
+	t.Run("three roles", func(t *testing.T) {
+		err := AuthorizationError{
+			Operation:     "add",
+			Resource:      "destination",
+			RequiredRoles: []string{"admin", "view", "connector"},
+		}
+		expected := "you do not have permission to add destination, requires role admin, view, or connector"
+		assert.Equal(t, err.Error(), expected)
+	})
+	t.Run("is ErrNotAuthorized", func(t *testing.T) {
+		err := AuthorizationError{}
+		assert.Assert(t, errors.Is(err, ErrNotAuthorized))
+	})
 }

@@ -6,11 +6,11 @@ import Head from 'next/head'
 import Markdoc from '@markdoc/markdoc'
 import yaml from 'js-yaml'
 
-import DocsLayout from '../../components/DocsLayout'
+import DocsLayout from '../../components/docs-layout'
 import config from '../../lib/markdoc/config'
 import components from '../../lib/markdoc/components'
 
-export default function Docs ({ markdoc, title }) {
+export default function Docs({ markdoc, title }) {
   return (
     <>
       <Head>
@@ -26,62 +26,61 @@ export default function Docs ({ markdoc, title }) {
 
 Docs.layout = page => {
   return (
-    <DocsLayout headings={page.props.headings} items={page.props.items} icon={page.props.icon}>
+    <DocsLayout
+      headings={page.props.headings}
+      items={page.props.items}
+      icon={page.props.icon}
+    >
       {page}
     </DocsLayout>
   )
 }
 
-function title (filename) {
-  const uppercase = [
-    'ssh',
-    'sdk',
-    'api',
-    'cli',
-    'faq'
-  ]
+function title(filename) {
+  const uppercase = ['ssh', 'sdk', 'api', 'cli', 'faq']
 
-  const capitalize = [
-    'infra',
-    'kubernetes'
-  ]
+  const capitalize = ['infra', 'kubernetes']
 
   filename = filename.replace('.md', '')
 
-  return filename
-    .replace(/-/g, ' ')
-    .replace(/\w\S*/g, (w, offset) => {
-      if (uppercase.indexOf(w) !== -1) {
-        return w.toUpperCase()
-      }
+  return filename.replace(/-/g, ' ').replace(/\w\S*/g, (w, offset) => {
+    if (uppercase.indexOf(w) !== -1) {
+      return w.toUpperCase()
+    }
 
-      if (offset === 0 || capitalize.indexOf(w) !== -1) {
-        return w.charAt(0).toUpperCase() + w.slice(1)
-      }
+    if (offset === 0 || capitalize.indexOf(w) !== -1) {
+      return w.charAt(0).toUpperCase() + w.slice(1)
+    }
 
-      return w
-    })
+    return w
+  })
 }
 
 const rootDir = path.join(process.cwd(), '..')
 
-function items (all = false) {
+function items() {
   // discover categories
-  const categories = glob.sync('docs/**/.category', { cwd: rootDir })
-    .map(f => {
-      const contents = fs.readFileSync(path.join(rootDir, f), 'utf-8')
-      const fm = yaml.load(contents)
-      fm.title = fm.title || title(path.basename(path.dirname(f)))
-      return { ...fm, href: `/${path.dirname(f)}`, empty: !fs.existsSync(path.join(rootDir, path.dirname(f), 'README.md')) }
-    })
+  const categories = glob.sync('docs/**/.category', { cwd: rootDir }).map(f => {
+    const contents = fs.readFileSync(path.join(rootDir, f), 'utf-8')
+    const fm = yaml.load(contents)
+    fm.title = fm.title || title(path.basename(path.dirname(f)))
+    return {
+      ...fm,
+      href: `/${path.dirname(f)}`,
+      empty: !fs.existsSync(path.join(rootDir, path.dirname(f), 'README.md')),
+    }
+  })
 
   // discover individual documents
-  const docs = glob.sync('docs/**/*.md', { cwd: rootDir })
+  const docs = glob
+    .sync('docs/**/*.md', { cwd: rootDir })
     .filter(f => !f.endsWith('README.md'))
     .map(f => {
       const contents = fs.readFileSync(path.join(rootDir, f), 'utf-8')
       const ast = Markdoc.parse(contents)
-      const frontmatter = ast?.attributes?.frontmatter ? yaml.load(ast.attributes.frontmatter) : {}
+      const frontmatter = ast?.attributes?.frontmatter
+        ? yaml.load(ast.attributes.frontmatter)
+        : {}
       const filename = path.basename(f)
       if (!frontmatter.title) {
         frontmatter.title = title(filename)
@@ -91,7 +90,7 @@ function items (all = false) {
     })
 
   // build the tree of categories and documents
-  function build (href, links = []) {
+  function build(href, links = []) {
     const cs = categories.filter(c => path.relative(c.href, href) === '..')
     const ds = docs.filter(d => path.relative(d.href, href) === '..')
 
@@ -117,9 +116,9 @@ function items (all = false) {
   return build('/docs')
 }
 
-function allitems () {
+function allitems() {
   // if `all` was specified, traverse the tree to put every item in a single list
-  function traverse (items) {
+  function traverse(items) {
     let ret = items
 
     for (const i of items) {
@@ -134,7 +133,7 @@ function allitems () {
   return traverse(items())
 }
 
-export function texts (node) {
+export function texts(node) {
   if (typeof node === 'string') {
     return [node]
   }
@@ -147,10 +146,13 @@ export function texts (node) {
     return []
   }
 
-  return node.children.map(c => texts(c)).flat().map(t => t.trim())
+  return node.children
+    .map(c => texts(c))
+    .flat()
+    .map(t => t.trim())
 }
 
-export function nodeid (node) {
+export function nodeid(node) {
   return texts(node)
     .join(' ')
     .replace(/[\s+@]/g, '-')
@@ -158,7 +160,7 @@ export function nodeid (node) {
     .toLowerCase()
 }
 
-function headers (node) {
+function headers(node) {
   const hs = []
 
   if (node.name === 'Tabs') {
@@ -172,7 +174,7 @@ function headers (node) {
   return [...hs, ...(node.children?.map(c => headers(c)) || []).flat()]
 }
 
-export function addids (node) {
+export function addids(node) {
   const count = {}
   const hs = headers(node)
 
@@ -188,7 +190,7 @@ export function addids (node) {
   }
 }
 
-function headings (node) {
+function headings(node) {
   if (!node) {
     return []
   }
@@ -200,7 +202,7 @@ function headings (node) {
 
     hs.push({
       ...node.attributes,
-      title
+      title,
     })
   }
 
@@ -213,16 +215,27 @@ function headings (node) {
   return hs
 }
 
-function isRelative (href) {
+function isRelative(href) {
   return href?.startsWith('./') || href?.startsWith('../')
 }
 
-function checklinks (node) {
+function checklinks(node) {
   if (node.type === 'link' && isRelative(node.attributes.href)) {
     let filename = node.attributes?.href?.split('#')[0]
     filename = filename.endsWith('.md') ? filename : filename + '.md'
-    if (!fs.existsSync(path.join(process.cwd(), '..', path.dirname(node.location.file), filename))) {
-      throw Error(`Broken link in ${node.location.file}: ${node.attributes.href}`)
+    if (
+      !fs.existsSync(
+        path.join(
+          process.cwd(),
+          '..',
+          path.dirname(node.location.file),
+          filename
+        )
+      )
+    ) {
+      throw Error(
+        `Broken link in ${node.location.file}: ${node.attributes.href}`
+      )
     }
   }
 
@@ -231,10 +244,12 @@ function checklinks (node) {
   }
 }
 
-export async function getStaticProps ({ params }) {
+export async function getStaticProps({ params }) {
   const slug = '/' + ['docs', ...params.slug].join('/')
   const item = allitems().find(i => i.href === slug)
-  const filepath = item?.items ? path.join(rootDir, `${slug}/README.md`) : path.join(rootDir, `${slug}.md`)
+  const filepath = item?.items
+    ? path.join(rootDir, `${slug}/README.md`)
+    : path.join(rootDir, `${slug}.md`)
 
   const content = fs.readFileSync(filepath, 'utf-8')
   const ast = Markdoc.parse(content, slug)
@@ -249,16 +264,29 @@ export async function getStaticProps ({ params }) {
   // todo: store me with docs frontmatter
   const base = path.basename(slug)
   let icon = ''
-  if (fs.existsSync(path.join(process.cwd(), 'public', 'icons', base + '.svg'))) {
+  if (
+    fs.existsSync(path.join(process.cwd(), 'public', 'icons', base + '.svg'))
+  ) {
     icon = path.join('/', 'icons', `${base}.svg`)
   }
 
-  return { props: { markdoc, items: items(), icon, title: item.title, headings: headings(transformed) } }
+  return {
+    props: {
+      markdoc,
+      items: items(),
+      icon,
+      title: item.title,
+      headings: headings(transformed),
+    },
+  }
 }
 
-export async function getStaticPaths () {
+export async function getStaticPaths() {
   return {
-    paths: allitems().filter(i => !i?.items).filter(i => !i.link).map(i => i.href),
-    fallback: false
+    paths: allitems()
+      .filter(i => !i?.items)
+      .filter(i => !i.link)
+      .map(i => i.href),
+    fallback: false,
   }
 }

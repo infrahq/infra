@@ -293,7 +293,7 @@ Create a user
 
 Create a user.
 
-Note: A new user must change their one time password before further usage.
+Note: A temporary password will be created. The user will be prompted to set a new password on first login.
 
 ```
 infra users add USER [flags]
@@ -502,7 +502,7 @@ infra providers add PROVIDER [flags]
 
 ```
 # Connect okta to infra
-$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
 ```
 
 #### Options

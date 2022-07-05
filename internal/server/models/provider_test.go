@@ -8,9 +8,9 @@ import (
 
 func TestParseProviderKind(t *testing.T) {
 	t.Run("accepts a valid provider kind", func(t *testing.T) {
-		kind, err := ParseProviderKind(OktaKind.String())
+		kind, err := ParseProviderKind(ProviderKindOkta.String())
 		assert.NilError(t, err)
-		assert.Equal(t, OktaKind, kind)
+		assert.Equal(t, ProviderKindOkta, kind)
 	})
 	t.Run("rejects invalid provider kinds", func(t *testing.T) {
 		_, err := ParseProviderKind("invalid-provider-kind")
@@ -19,6 +19,6 @@ func TestParseProviderKind(t *testing.T) {
 	t.Run("defaults to oidc", func(t *testing.T) {
 		kind, err := ParseProviderKind("")
 		assert.NilError(t, err)
-		assert.Equal(t, OIDCKind, kind)
+		assert.Equal(t, ProviderKindOIDC, kind)
 	})
 }

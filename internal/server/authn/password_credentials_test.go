@@ -28,10 +28,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     true,
-					OneTimePasswordUsed: false,
+					IdentityID:      user.ID,
+					PasswordHash:    hash,
+					OneTimePassword: true,
 				}
 
 				err = data.CreateCredential(db, &creds)
@@ -43,33 +42,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "goku@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
-			},
-		},
-		"UsernameAndOneTimePasswordFailsOnReuse": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
-				username := "vegeta@example.com"
-				user := &models.Identity{Name: username}
-				err := data.CreateIdentity(db, user)
-				assert.NilError(t, err)
-
-				oneTimePassword := "password123"
-				hash, err := bcrypt.GenerateFromPassword([]byte(oneTimePassword), bcrypt.DefaultCost)
-				assert.NilError(t, err)
-
-				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     true,
-					OneTimePasswordUsed: true,
-				}
-
-				err = data.CreateCredential(db, &creds)
-				assert.NilError(t, err)
-
-				return NewPasswordCredentialAuthentication(username, oneTimePassword)
-			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "one time password cannot be used more than once")
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPassword": {
@@ -84,10 +57,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     false,
-					OneTimePasswordUsed: false,
+					IdentityID:      user.ID,
+					PasswordHash:    hash,
+					OneTimePassword: false,
 				}
 
 				err = data.CreateCredential(db, &creds)
@@ -99,6 +71,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "bulma@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPasswordReuse": {
@@ -113,10 +86,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     false,
-					OneTimePasswordUsed: false,
+					IdentityID:      user.ID,
+					PasswordHash:    hash,
+					OneTimePassword: false,
 				}
 
 				err = data.CreateCredential(db, &creds)
@@ -124,7 +96,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				userPassLogin := NewPasswordCredentialAuthentication(username, password)
 
-				_, _, err = userPassLogin.Authenticate(context.Background(), db)
+				_, _, _, err = userPassLogin.Authenticate(context.Background(), db)
 				assert.NilError(t, err)
 
 				return userPassLogin
@@ -133,6 +105,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, "cell@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"ValidUsernameAndNoPasswordFails": {
@@ -160,10 +133,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     false,
-					OneTimePasswordUsed: false,
+					IdentityID:      user.ID,
+					PasswordHash:    hash,
+					OneTimePassword: false,
 				}
 
 				err = data.CreateCredential(db, &creds)
@@ -187,10 +159,9 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 				assert.NilError(t, err)
 
 				creds := models.Credential{
-					IdentityID:          user.ID,
-					PasswordHash:        hash,
-					OneTimePassword:     false,
-					OneTimePasswordUsed: false,
+					IdentityID:      user.ID,
+					PasswordHash:    hash,
+					OneTimePassword: false,
 				}
 
 				err = data.CreateCredential(db, &creds)
@@ -218,7 +189,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			assert.Assert(t, ok)
 			credentialLogin := setupFunc(t, db)
 
-			identity, provider, err := credentialLogin.Authenticate(context.Background(), db)
+			identity, provider, _, err := credentialLogin.Authenticate(context.Background(), db)
 
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, *models.Provider, error))
 			assert.Assert(t, ok)

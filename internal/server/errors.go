@@ -9,13 +9,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/providers"
 )
 
 // sendAPIError translates err into the appropriate HTTP status code, builds a
@@ -29,19 +29,21 @@ func sendAPIError(c *gin.Context, err error) {
 
 	validationErrors := &validator.ValidationErrors{}
 	var uniqueConstraintError data.UniqueConstraintError
+	var authzError access.AuthorizationError
 
-	log := logging.L.WithOptions(zap.AddCallerSkip(1)).Debug
+	log := logging.L.Debug()
 
 	switch {
 	case errors.Is(err, internal.ErrUnauthorized):
 		resp.Code = http.StatusUnauthorized
 		// hide the error text, it may contain sensitive information
 		resp.Message = "unauthorized"
+		// log the error at info because it is not in the response
+		log = logging.L.Info()
 
-	case errors.Is(err, internal.ErrForbidden):
+	case errors.As(err, &authzError):
 		resp.Code = http.StatusForbidden
-		// hide the error text, it may contain sensitive information
-		resp.Message = "forbidden"
+		resp.Message = authzError.Error()
 
 	case errors.As(err, &uniqueConstraintError):
 		resp.Code = http.StatusConflict
@@ -56,7 +58,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 		parseFieldErrors(resp, validationErrors)
 
-	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, authn.ErrValidation):
+	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 
@@ -77,10 +79,16 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = "request timed out"
 
 	default:
-		log = logging.L.WithOptions(zap.AddCallerSkip(1)).Error
+		log = logging.L.Error()
 	}
 
-	log("api request error", zap.Error(err), zap.Int32("statusCode", resp.Code))
+	log.CallerSkipFrame(1).
+		Err(err).
+		Str("method", c.Request.Method).
+		Str("path", c.Request.URL.Path).
+		Int32("statusCode", resp.Code).
+		Str("remoteAddr", c.Request.RemoteAddr).
+		Msg("api request error")
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()

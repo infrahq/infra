@@ -60,7 +60,10 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/", AuthenticationMiddleware(a))
+	authn := apiGroup.Group("/",
+		AuthenticationMiddleware(),
+		DestinationMiddleware(),
+	)
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -76,6 +79,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, authn, "/api/groups", a.CreateGroup)
 	get(a, authn, "/api/groups/:id", a.GetGroup)
 	delete(a, authn, "/api/groups/:id", a.DeleteGroup)
+	patch(a, authn, "/api/groups/:id/users", a.UpdateUsersInGroup)
 
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
@@ -95,7 +99,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
 
-	authn.GET("/api/debug/pprof/*profile", a.pprofHandler)
+	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
 	noAuthn := apiGroup.Group("/")
@@ -245,6 +249,10 @@ func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerF
 	add(a, r, route[Req, Res]{method: http.MethodPut, path: path, handler: handler})
 }
 
+func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{method: http.MethodPatch, path: path, handler: handler})
+}
+
 func delete[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
 }
@@ -313,7 +321,7 @@ func (a *API) notFoundHandler(c *gin.Context) {
 		if _, err := fs.Stat(uiFS, filePath404); err == nil {
 			buf, err = fs.ReadFile(uiFS, filePath404)
 			if err != nil {
-				logging.S.Error(err)
+				logging.Errorf("%s", err.Error())
 			}
 		}
 	}
@@ -321,6 +329,6 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	// the response will default to "404 not found"
 	_, err := c.Writer.Write(buf)
 	if err != nil {
-		logging.S.Error(err)
+		logging.Errorf("%s", err.Error())
 	}
 }

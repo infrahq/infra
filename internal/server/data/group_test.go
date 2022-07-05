@@ -8,6 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestGroup(t *testing.T) {
@@ -177,5 +178,43 @@ func TestRecreateGroupSameName(t *testing.T) {
 
 		err = CreateGroup(db, &models.Group{Name: everyone.Name})
 		assert.NilError(t, err)
+	})
+}
+
+func TestAddUsersToGroup(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var everyone = models.Group{Name: "Everyone"}
+		createGroups(t, db, &everyone)
+
+		var (
+			bond = models.Identity{
+				Name:   "jbond@infrahq.com",
+				Groups: []models.Group{everyone},
+			}
+			bourne = models.Identity{
+				Name:   "jbourne@infrahq.com",
+				Groups: []models.Group{},
+			}
+			bauer = models.Identity{Name: "jbauer@infrahq.com",
+				Groups: []models.Group{},
+			}
+		)
+
+		createIdentities(t, db, &bond, &bourne, &bauer)
+
+		t.Run("add identities to group", func(t *testing.T) {
+			actual, err := ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			assert.NilError(t, err)
+			expected := []models.Identity{bond}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID})
+			assert.NilError(t, err)
+
+			actual, err = ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			assert.NilError(t, err)
+			expected = []models.Identity{bauer, bond, bourne}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+		})
 	})
 }

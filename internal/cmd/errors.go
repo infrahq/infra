@@ -16,6 +16,12 @@ var (
 	ErrConfigNotFound    = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
 	ErrProviderNotUnique = errors.New(`more than one provider exists with this name`)
 	ErrUserNotFound      = errors.New(`user not found`)
+	ErrGroupNotFound     = errors.New(`group not found`)
+)
+
+// User facing constant errors: to let user know why their command failed. Not meant for a stack trace, but a readable output of the reason for failure.
+var (
+	ErrTLSNotVerified = errors.New(`The authenticity of the host can't be established.`)
 )
 
 type LoginError struct {
@@ -28,7 +34,7 @@ func (e *LoginError) Error() string {
 
 	hostConfig, err := currentHostConfig()
 	if err != nil {
-		logging.S.Debugf("current host config: %v", err)
+		logging.Debugf("current host config: %v", err)
 		return sb.String()
 	}
 

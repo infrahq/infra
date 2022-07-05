@@ -16,7 +16,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 )
 
 var (
@@ -217,11 +216,11 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 }
 
-func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
+func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
 	spec.OpenAPI = "3.0.0"
 	spec.Info = &openapi3.Info{
 		Title:       "Infra API",
-		Version:     internal.FullVersion(),
+		Version:     version,
 		Description: "Infra API",
 		License:     &openapi3.License{Name: "Elastic License v2.0", URL: "https://www.elastic.co/licensing/elastic-license"},
 	}
@@ -237,13 +236,13 @@ func writeOpenAPISpec(spec openapi3.T, out io.Writer) error {
 	return nil
 }
 
-func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, filename string) error {
+func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, version string, filename string) error {
 	fh, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
 	defer fh.Close()
-	if err := writeOpenAPISpec(openAPIDoc, fh); err != nil {
+	if err := writeOpenAPISpec(openAPIDoc, version, fh); err != nil {
 		return err
 	}
 	return nil

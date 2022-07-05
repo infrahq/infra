@@ -2,21 +2,22 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 
-export default function () {
+export default function Callback() {
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  async function login ({ providerID, code, redirectURL }) {
+  async function login({ providerID, code, redirectURL }) {
     await fetch('/api/login', {
       method: 'POST',
       body: JSON.stringify({
         oidc: {
           providerID,
           code,
-          redirectURL
-        }
-      })
+          redirectURL,
+        },
+      }),
     })
+
     await mutate('/api/users/self')
     router.replace('/')
   }
@@ -37,17 +38,21 @@ export default function () {
       login({
         providerID,
         code: params.code,
-        redirectURL: redirectURL
+        redirectURL,
       })
       window.localStorage.removeItem('providerID')
       window.localStorage.removeItem('state')
       window.localStorage.removeItem('redirectURL')
     }
-  }, [])
+  })
 
   return (
-    <div className='flex items-center justify-center w-full h-full'>
-      <img className='w-20 h-20 animate-spin-fast' src='/spinner.svg' />
+    <div className='flex h-full w-full items-center justify-center'>
+      <img
+        alt='loading'
+        className='h-20 w-20 animate-spin-fast'
+        src='/spinner.svg'
+      />
     </div>
   )
 }

@@ -1,5 +1,73 @@
 # Changelog
 
+## [0.13.5](https://github.com/infrahq/infra/compare/v0.13.4...v0.13.5) (2022-06-27)
+
+
+### Features
+
+* add rm users in groups ([#2349](https://github.com/infrahq/infra/issues/2349)) ([6d1cbbf](https://github.com/infrahq/infra/commit/6d1cbbfba9441f19a63798ccd0babecd4c3009d1))
+* **ui:** Improved experience around granting and listing access ([#2370](https://github.com/infrahq/infra/issues/2370)) ([09c4ee0](https://github.com/infrahq/infra/commit/09c4ee0c6c478950f7775d7d90f6398a9c73ab64))
+
+
+### Bug Fixes
+
+* db migration from 0.13.3 ([4fc18b1](https://github.com/infrahq/infra/commit/4fc18b1b7954878831faa0a62ab71b11ddf3d2f3))
+* do not update provider user groups in sync ([#2413](https://github.com/infrahq/infra/issues/2413)) ([91903ed](https://github.com/infrahq/infra/commit/91903ed0e727cab129977089022a613beb3118b1))
+* rename one time password to temporary password ([#2383](https://github.com/infrahq/infra/issues/2383)) ([5ceceda](https://github.com/infrahq/infra/commit/5cecedad11a65e0ccef7390320645949a445e1c1))
+
+## [0.13.4](https://github.com/infrahq/infra/compare/v0.13.3...v0.13.4) (2022-06-23)
+
+
+### Features
+
+* added optional pagination to list endpoints ([#2282](https://github.com/infrahq/infra/issues/2282)) ([6516b2e](https://github.com/infrahq/infra/commit/6516b2e3c34b343e207d604baf08943d158be048))
+* azure groups ([#2355](https://github.com/infrahq/infra/issues/2355)) ([8d66805](https://github.com/infrahq/infra/commit/8d6680530f4f040c939e03de882f10feca129d02))
+* edit own password ([#2243](https://github.com/infrahq/infra/issues/2243)) ([edd5ee4](https://github.com/infrahq/infra/commit/edd5ee4a9fcf4f1b379597f4646acc2a00b7b7f2))
+* introduce format flag, support json output ([#2208](https://github.com/infrahq/infra/issues/2208)) ([88a2c8c](https://github.com/infrahq/infra/commit/88a2c8c7e141774dcc3ffd6bac81e4b57d4a2d47))
+* prompt to verify server certificate ([60a020b](https://github.com/infrahq/infra/commit/60a020bf9b3d1fe39a1f283ec42d5205520c53c2))
+* **ui:** namespace access ([#2251](https://github.com/infrahq/infra/issues/2251)) ([fbc50a9](https://github.com/infrahq/infra/commit/fbc50a99998438398d293eb67cb5dc1c991c6429))
+* updates cli forbidden to more user friendly messages ([#2213](https://github.com/infrahq/infra/issues/2213)) ([2eb49b0](https://github.com/infrahq/infra/commit/2eb49b0d4fb0cdbeb98829bef1965dbfdac0db4c))
+
+
+### Bug Fixes
+
+* broken anchor in docs ([#2317](https://github.com/infrahq/infra/issues/2317)) ([42df8e5](https://github.com/infrahq/infra/commit/42df8e5c1b8b261819a9d2952f40a312dddd4d64))
+* **cmd:** insert newline between user and group grants ([e6cbe29](https://github.com/infrahq/infra/commit/e6cbe298cb1265596ecdf67f7669900d0506286c))
+* delete access keys and users when providers are removed ([#2311](https://github.com/infrahq/infra/issues/2311)) ([8def756](https://github.com/infrahq/infra/commit/8def756ce4878405e65fd321419cc93f866fb618))
+* **docs:** active directory docs ([#2380](https://github.com/infrahq/infra/issues/2380)) ([a73e475](https://github.com/infrahq/infra/commit/a73e4758cc23ef9d0518c98d6e1a58a6710fa218))
+* **docs:** okta bullets not aligned ([#2326](https://github.com/infrahq/infra/issues/2326)) ([765480a](https://github.com/infrahq/infra/commit/765480aef57fd6f6ad38b652279b12c173bfb3fc))
+* **docs:** search more logs for server cert fingerprint ([#2389](https://github.com/infrahq/infra/issues/2389)) ([a5c8067](https://github.com/infrahq/infra/commit/a5c80674a65ed82626c06c4150e22cb96de5df48))
+* **helm:** remove deprecated adminAccessKey ([1fc9f07](https://github.com/infrahq/infra/commit/1fc9f07ae9e3cf186655440a5a8e6195c6364263))
+* **helm:** s/server/connector/ ([d4c76e4](https://github.com/infrahq/infra/commit/d4c76e408b72c176320783cb91b49af9483d418e))
+* hides expired keys by default ([#2257](https://github.com/infrahq/infra/issues/2257)) ([8067a89](https://github.com/infrahq/infra/commit/8067a89114122efa00c54ec2e7522ac002f5707c))
+* hides non-extended access keys ([#2308](https://github.com/infrahq/infra/issues/2308)) ([642a7fc](https://github.com/infrahq/infra/commit/642a7fc97b45e0ce5939df8e58c5951314030bfe))
+* improve grants list performance ([47fd0c2](https://github.com/infrahq/infra/commit/47fd0c2c02ee4140b57ea36db078bba8e07d19a3))
+* nil check for AccessKey.IssuedForIdentity ([b5c13a0](https://github.com/infrahq/infra/commit/b5c13a05edd125d08975f3b022cdadf1c1fff83f))
+* normalize uids ([#2289](https://github.com/infrahq/infra/issues/2289)) ([24dfdfd](https://github.com/infrahq/infra/commit/24dfdfd77db8d5953332a38f049efd9cdc2695f7))
+* one password input field bug ([#2239](https://github.com/infrahq/infra/issues/2239)) ([589e1b1](https://github.com/infrahq/infra/commit/589e1b1197b6570a189a57882ed14206e81e0fe1))
+* redirect on website ([#2315](https://github.com/infrahq/infra/issues/2315)) ([6acd482](https://github.com/infrahq/infra/commit/6acd48265dd6986db32e2ada83d9d02337bc8227))
+* remove agent message ([#2292](https://github.com/infrahq/infra/issues/2292)) ([9ab3751](https://github.com/infrahq/infra/commit/9ab3751759c5f2b73749df57ee7e910144361d23))
+* respect context namespace if overwritten by user ([f5b8791](https://github.com/infrahq/infra/commit/f5b879181ab5a94bd8e569d8f60f893ac6b406c6))
+* set logLevel from helm chart values ([fde3746](https://github.com/infrahq/infra/commit/fde374637b1da5c8696b91d008d57cc66a4b22d7))
+* **ui:** dont scroll grants view ([#2336](https://github.com/infrahq/infra/issues/2336)) ([cdfcfe7](https://github.com/infrahq/infra/commit/cdfcfe7616b93ef771b0204291f443a41f356430))
+* **ui:** fix a few edge cases around missing namespaces and no admin access ([#2371](https://github.com/infrahq/infra/issues/2371)) ([0be435f](https://github.com/infrahq/infra/commit/0be435f3aa815f7b0c13aeb868978aaa58a15e6e))
+* **ui:** hide group grants for now ([#2350](https://github.com/infrahq/infra/issues/2350)) ([9ffc62e](https://github.com/infrahq/infra/commit/9ffc62e6419e5dc8755c4c5b0597a07ce5d70563))
+* **ui:** no longer require type="url" for identity provider ([#2334](https://github.com/infrahq/infra/issues/2334)) ([1f2022f](https://github.com/infrahq/infra/commit/1f2022f32255a3dba02e01a34394cfa089742129))
+* **ui:** use correct name on inherited access; fix potential crash ([#2351](https://github.com/infrahq/infra/issues/2351)) ([b91c135](https://github.com/infrahq/infra/commit/b91c13527651645ab701577ed8a2657abf20c4b3))
+* update api client on login ([cff3e78](https://github.com/infrahq/infra/commit/cff3e7807fba74e4a23ddd78b2132f263d10837b))
+* update providers add example ([beb7148](https://github.com/infrahq/infra/commit/beb71481f7f69b0e1b1aa6683c5901ec27705263))
+* url running over when clicking on cluster ([#2296](https://github.com/infrahq/infra/issues/2296)) ([5c9166e](https://github.com/infrahq/infra/commit/5c9166e8d1405922c29d58ed702b8cb567064d3f))
+* use the correct TLS certificate ([0cad9c1](https://github.com/infrahq/infra/commit/0cad9c1aca7daa0e82b3769059292358f90f199d))
+* **website:** add missing redirect from an older page ([#2325](https://github.com/infrahq/infra/issues/2325)) ([c439b7f](https://github.com/infrahq/infra/commit/c439b7f09fc293889466ba6828a632dbe04d4e88))
+* **website:** add missing redirect link ([#2335](https://github.com/infrahq/infra/issues/2335)) ([81e08e9](https://github.com/infrahq/infra/commit/81e08e9564ad1d5e54575a34573c2cf6b4462d87))
+* **website:** break words if necessary to avoid layout issues ([#2382](https://github.com/infrahq/infra/issues/2382)) ([7eb3af2](https://github.com/infrahq/infra/commit/7eb3af2563441700a983a582acc2b1371b124e29))
+* **website:** broken code scroll and padding ([#2330](https://github.com/infrahq/infra/issues/2330)) ([0252bd1](https://github.com/infrahq/infra/commit/0252bd11ee0fdebcde5b8ba82145f7d456d47344))
+* **website:** nav button background on hover ([#2352](https://github.com/infrahq/infra/issues/2352)) ([8884ce1](https://github.com/infrahq/infra/commit/8884ce1d2f7cce94653fa68f1fd4cc0829423d1c))
+* **website:** newsletter signup ([#2331](https://github.com/infrahq/infra/issues/2331)) ([9741c6b](https://github.com/infrahq/infra/commit/9741c6b10a662f4da8ca0b7f36e8be719da4d7da))
+* **website:** remove button duration classes causing flash ([#2323](https://github.com/infrahq/infra/issues/2323)) ([c219113](https://github.com/infrahq/infra/commit/c21911326a2519556a43732cec7e9ebcc1463227))
+* **website:** replace link to api docs ([#2388](https://github.com/infrahq/infra/issues/2388)) ([768e7a2](https://github.com/infrahq/infra/commit/768e7a22aef0b7e18059d6633035e8835fa7e45b))
+* **website:** scroll issue on safari ([#2319](https://github.com/infrahq/infra/issues/2319)) ([bd2e1b5](https://github.com/infrahq/infra/commit/bd2e1b50d8f126ea2f8421d537db6e0b1ccadcec))
+
 ## [0.13.3](https://github.com/infrahq/infra/compare/v0.13.2...v0.13.3) (2022-06-09)
 
 

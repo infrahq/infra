@@ -5,13 +5,15 @@ import (
 )
 
 type Provider struct {
-	ID       uid.ID `json:"id"`
-	Name     string `json:"name" example:"okta"`
-	Created  Time   `json:"created"`
-	Updated  Time   `json:"updated"`
-	URL      string `json:"url" validate:"required" example:"infrahq.okta.com"`
-	ClientID string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
-	Kind     string `json:"kind" example:"oidc"`
+	ID       uid.ID   `json:"id"`
+	Name     string   `json:"name" example:"okta"`
+	Created  Time     `json:"created"`
+	Updated  Time     `json:"updated"`
+	URL      string   `json:"url" validate:"required" example:"infrahq.okta.com"`
+	ClientID string   `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
+	Kind     string   `json:"kind" example:"oidc"`
+	AuthURL  string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize"`
+	Scopes   []string `json:"scopes" example:"['openid', 'email']"`
 }
 
 type CreateProviderRequest struct {

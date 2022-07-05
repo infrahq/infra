@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -17,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -26,6 +28,8 @@ type Provider struct {
 	ClientID     string `validate:"required"`
 	ClientSecret string `validate:"required"`
 	Kind         string
+	AuthURL      string
+	Scopes       []string
 }
 
 type Grant struct {
@@ -534,7 +538,7 @@ func (s Server) loadConfig(config Config) error {
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
 			Name: models.InternalInfraProviderName,
-			Kind: models.InfraKind.String(),
+			Kind: models.ProviderKindInfra.String(),
 		})
 
 		config.Users = append(config.Users, User{
@@ -557,7 +561,7 @@ func (s Server) loadConfig(config Config) error {
 			case g.User != "":
 				config.Users = append(config.Users, User{Name: g.User})
 			case g.Machine != "":
-				logging.S.Warn("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
+				logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
 				config.Users = append(config.Users, User{Name: g.Machine})
 			}
 		}
@@ -612,8 +616,36 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			URL:          input.URL,
 			ClientID:     input.ClientID,
 			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			AuthURL:      input.AuthURL,
+			Scopes:       input.Scopes,
 			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
+		}
+
+		if provider.Kind != models.ProviderKindInfra {
+			// only call the provider to resolve info if it is not known
+			if input.AuthURL == "" && len(input.Scopes) == 0 {
+				providerClient := providers.NewOIDCClient(*provider, input.ClientSecret, "http://localhost:8301")
+				authServerInfo, err := providerClient.AuthServerInfo(context.Background())
+				if err != nil {
+					if errors.Is(err, context.DeadlineExceeded) {
+						return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err)
+					}
+					return nil, err
+				}
+
+				provider.AuthURL = authServerInfo.AuthURL
+				provider.Scopes = authServerInfo.ScopesSupported
+			}
+
+			// check that the scopes we need are set
+			supportedScopes := make(map[string]bool)
+			for _, s := range provider.Scopes {
+				supportedScopes[s] = true
+			}
+			if !supportedScopes["openid"] || !supportedScopes["email"] {
+				return nil, fmt.Errorf("required scopes 'openid' and 'email' not found on provider %q", input.Name)
+			}
 		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
@@ -675,7 +707,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 				return nil, err
 			}
 
-			logging.S.Debugf("creating placeholder group %q", input.Group)
+			logging.Debugf("creating placeholder group %q", input.Group)
 
 			// group does not exist yet, create a placeholder
 			group = &models.Group{
@@ -752,7 +784,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	name := input.Name
 	if name == "" {
 		if input.Email != "" {
-			logging.S.Warn("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
+			logging.Warnf("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
 			name = input.Email
 		}
 	}
@@ -766,7 +798,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 		if name != models.InternalInfraConnectorIdentityName {
 			_, err := mail.ParseAddress(name)
 			if err != nil {
-				logging.S.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+				logging.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
 			}
 		}
 

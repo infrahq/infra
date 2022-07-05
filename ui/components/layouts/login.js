@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { useRouter } from 'next/router'
 
-export default function ({ children }) {
+export default function Login({ children }) {
   const { data: auth, error } = useSWR('/api/users/self')
   const router = useRouter()
 
@@ -19,10 +19,10 @@ export default function ({ children }) {
   }
 
   return (
-    <div className='w-full min-h-full flex flex-col justify-center'>
-      <div className='flex flex-col w-full max-w-xs mx-auto justify-center items-center my-8 px-5 pt-8 pb-4 border rounded-lg border-gray-800'>
-        <div className='border border-violet-200/25 rounded-full p-2.5 mb-4'>
-          <img className='w-12 h-12' src='/infra-color.svg' />
+    <div className='flex min-h-full w-full flex-col justify-center'>
+      <div className='mx-auto my-8 flex w-full max-w-xs flex-col items-center justify-center rounded-lg border border-gray-800 px-5 pt-8 pb-6'>
+        <div className='mb-4 rounded-full border border-violet-200/25 p-2.5'>
+          <img alt='infra icon' className='h-12 w-12' src='/infra-color.svg' />
         </div>
         {children}
       </div>

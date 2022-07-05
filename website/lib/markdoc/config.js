@@ -3,13 +3,13 @@ import fs from 'fs'
 import { imageSize } from 'image-size'
 import Markdoc, { Tag } from '@markdoc/markdoc'
 
-export default {
+export const config = {
   nodes: {
     fence: {
       render: 'Code',
       attributes: {
-        language: { type: String }
-      }
+        language: { type: String },
+      },
     },
     heading: {
       render: 'Heading',
@@ -17,8 +17,8 @@ export default {
       attributes: {
         id: { type: String },
         className: { type: String },
-        level: { type: Number, required: true, default: 1 }
-      }
+        level: { type: Number, required: true, default: 1 },
+      },
     },
     link: {
       render: 'Link',
@@ -27,19 +27,25 @@ export default {
           description: 'The path or URL to navigate to.',
           type: String,
           errorLevel: 'critical',
-          required: true
-        }
+          required: true,
+        },
       },
-      transform (node, config) {
+      transform(node, config) {
         const attributes = node.transformAttributes(config)
         const children = node.transformChildren(config)
 
-        if (attributes.href.startsWith('./') || attributes.href.startsWith('../')) {
-          attributes.href = path.join(path.dirname(node.location.file), attributes.href?.replace('.md', ''))
+        if (
+          attributes.href.startsWith('./') ||
+          attributes.href.startsWith('../')
+        ) {
+          attributes.href = path.join(
+            path.dirname(node.location.file),
+            attributes.href?.replace('.md', '')
+          )
         }
 
         return new Tag(this.render, attributes, children)
-      }
+      },
     },
     image: {
       render: 'Image',
@@ -48,12 +54,24 @@ export default {
         alt: { type: String },
         width: { type: Number },
         height: { type: Number },
-        layout: { type: String }
+        layout: { type: String },
       },
-      transform (node, config) {
+      transform(node, config) {
         const attributes = node.transformAttributes(config)
-        const filepath = path.join(process.cwd(), '..', node.location.file, '..', attributes.src)
-        const destination = path.join(process.cwd(), 'public', node.location.file, '..', attributes.src)
+        const filepath = path.join(
+          process.cwd(),
+          '..',
+          node.location.file,
+          '..',
+          attributes.src
+        )
+        const destination = path.join(
+          process.cwd(),
+          'public',
+          node.location.file,
+          '..',
+          attributes.src
+        )
 
         if (fs.statSync(filepath).isFile()) {
           const dirname = path.dirname(destination)
@@ -70,31 +88,32 @@ export default {
 
         attributes.src = path.join(node.location.file, '..', attributes.src)
         return new Tag(this.render, attributes)
-      }
-    }
+      },
+    },
   },
   tags: {
     tabs: {
       render: 'Tabs',
       attributes: {},
-      transform (node, config) {
+      transform(node, config) {
         const tabs = node
           .transformChildren(config)
           .filter(child => child && child.name === 'Tab')
 
-        const labels = tabs
-          .map(tab => (typeof tab === 'object' ? tab.attributes.label : null))
+        const labels = tabs.map(tab =>
+          typeof tab === 'object' ? tab.attributes.label : null
+        )
 
         return new Tag(this.render, { labels }, tabs)
-      }
+      },
     },
     tab: {
       render: 'Tab',
       attributes: {
         label: {
-          type: String
-        }
-      }
+          type: String,
+        },
+      },
     },
     callout: {
       render: 'Callout',
@@ -106,39 +125,46 @@ export default {
           default: 'note',
           matches: ['warning', 'info', 'success'],
           errorLevel: 'critical',
-          description: 'Controls the color and icon of the callout. Can be: "warning", "info", "success"'
-        }
-      }
+          description:
+            'Controls the color and icon of the callout. Can be: "warning", "info", "success"',
+        },
+      },
     },
     youtube: {
-      render: 'YouTube',
+      render: 'Youtube',
       attributes: {
         src: {
           type: String,
-          required: true
+          required: true,
         },
         title: {
           type: String,
-          required: true
+          required: true,
         },
         width: {
-          type: String
-        }
-      }
+          type: String,
+        },
+      },
     },
     partial: {
       selfClosing: true,
       attributes: {
         file: { type: String, render: false, required: true },
-        variables: { type: Object, render: false }
+        variables: { type: Object, render: false },
       },
-      transform (node, config) {
+      transform(node, config) {
         const { partials = {} } = config
         const { file, variables } = node.attributes
         let partial = partials[file]
 
         if (!partial) {
-          const filepath = path.join(process.cwd(), '..', node.location.file, '..', file)
+          const filepath = path.join(
+            process.cwd(),
+            '..',
+            node.location.file,
+            '..',
+            file
+          )
 
           if (!fs.existsSync(filepath)) {
             return null
@@ -153,15 +179,18 @@ export default {
           variables: {
             ...config.variables,
             ...variables,
-            '$$partial:filename': file
-          }
+            '$$partial:filename': file,
+          },
         }
 
-        const transformChildren = part => part.resolve(scopedConfig).transformChildren(scopedConfig)
+        const transformChildren = part =>
+          part.resolve(scopedConfig).transformChildren(scopedConfig)
         return Array.isArray(partial)
           ? partial.flatMap(transformChildren)
           : transformChildren(partial)
-      }
-    }
-  }
+      },
+    },
+  },
 }
+
+export { config as default }

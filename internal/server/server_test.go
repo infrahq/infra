@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -16,18 +17,23 @@ import (
 
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.uber.org/zap/zaptest"
+	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
+	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	t.Helper()
-	options := Options{}
+	options := Options{
+		SessionDuration:          10 * time.Minute,
+		SessionExtensionDeadline: 30 * time.Minute,
+	}
 	for _, op := range ops {
 		op(t, &options)
 	}
@@ -49,11 +55,9 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 
 func setupLogging(t *testing.T) {
 	origL := logging.L
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
+	logging.L = logging.NewLogger(zerolog.NewTestWriter(t))
 	t.Cleanup(func() {
 		logging.L = origL
-		logging.S = logging.L.Sugar()
 	})
 }
 
@@ -483,3 +487,42 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	// retry the authenticated endpoint
 	checkAuthenticated()
 }
+
+func TestTLSConfigFromOptions(t *testing.T) {
+	storage := map[string]secrets.SecretStorage{
+		"plaintext": &secrets.PlainSecretProvider{},
+		"file":      &secrets.FileSecretProvider{},
+	}
+
+	ca := golden.Get(t, "pki/ca.crt")
+	t.Run("user provided certificate", func(t *testing.T) {
+		opts := TLSOptions{
+			CA:          types.StringOrFile(ca),
+			Certificate: types.StringOrFile(golden.Get(t, "pki/localhost.crt")),
+			PrivateKey:  "file:testdata/pki/localhost.key",
+		}
+		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
+		assert.NilError(t, err)
+
+		srv := httptest.NewUnstartedServer(noopHandler)
+		srv.TLS = config
+		srv.StartTLS()
+		t.Cleanup(srv.Close)
+
+		roots := x509.NewCertPool()
+		roots.AppendCertsFromPEM(ca)
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
+			},
+		}
+
+		resp, err := client.Get(srv.URL)
+		assert.NilError(t, err)
+		assert.Equal(t, resp.StatusCode, http.StatusOK)
+	})
+}
+
+var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+})

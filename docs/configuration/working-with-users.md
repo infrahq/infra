@@ -31,7 +31,7 @@ To add a user to Infra, use `infra id add`:
 infra users add example@acme.com
 ```
 
-You'll be provided a one time password to share with the user (via slack, eamil or similar) they should use when running `infra login`.
+You'll be provided a temporary password to share with the user (via slack, eamil or similar) they should use when running `infra login`.
 
 ## Removing a user
 

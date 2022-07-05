@@ -18,7 +18,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testProvider := &models.Provider{Name: "mokta"}
+	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
 
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
@@ -52,7 +52,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 
 	createProvider := func(t *testing.T) *models.Provider {
 		t.Helper()
-		p := &models.Provider{Name: "mokta"}
+		p := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
 		err := data.CreateProvider(srv.db, p)
 		assert.NilError(t, err)
 		return p
@@ -109,7 +109,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 		"infra provider can not be deleted": {
 			urlPath: "/api/providers/" + data.InfraProvider(srv.db).ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, http.StatusForbidden, resp.Code, resp.Body.String())
+				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 			},
 		},
 	}

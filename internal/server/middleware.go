@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -11,8 +12,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 // TimeoutMiddleware adds a timeout to the request context within the Gin context.
@@ -27,16 +30,8 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
 		defer cancel()
-
 		c.Request = c.Request.WithContext(ctx)
-
-		start := time.Now()
-
 		c.Next()
-
-		if elapsed := time.Since(start); elapsed > timeout {
-			logging.L.Sugar().Warnf("Request to %q took %s and may have timed out", c.Request.URL.Path, elapsed)
-		}
 	}
 }
 
@@ -49,13 +44,45 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 			return nil
 		})
 		if err != nil {
-			logging.S.Debugf(err.Error())
+			logging.Debugf(err.Error())
 		}
 	}
 }
 
+func DestinationMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		uniqueID := c.GetHeader("Infra-Destination")
+		if uniqueID != "" {
+			destinations, err := access.ListDestinations(c, uniqueID, "", models.Pagination{})
+			if err != nil {
+				return
+			}
+
+			switch len(destinations) {
+			case 0:
+				// destination does not exist yet, noop
+			case 1:
+				destination := destinations[0]
+				// only save if there's significant difference between LastSeenAt and Now
+				if time.Since(destination.LastSeenAt) > time.Second {
+					destination.LastSeenAt = time.Now()
+					if err := access.SaveDestination(c, &destination); err != nil {
+						sendAPIError(c, err)
+						return
+					}
+				}
+			default:
+				sendAPIError(c, fmt.Errorf("multiple destinations found for unique ID %q", uniqueID))
+				return
+			}
+		}
+
+		c.Next()
+	}
+}
+
 // AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware(a *API) gin.HandlerFunc {
+func AuthenticationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if err := RequireAccessKey(c); err != nil {
 			sendAPIError(c, err)
@@ -98,6 +125,13 @@ func RequireAccessKey(c *gin.Context) error {
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
+	}
+
+	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
+		// PUT /api/users/:id only
+		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
+			return fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
+		}
 	}
 
 	c.Set("key", accessKey)
