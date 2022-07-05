@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -25,18 +24,10 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 	InfraProvider(db)
 
-	setupLogging(t)
+	logging.PatchLogger(t)
 	t.Cleanup(InvalidateCache)
 
 	return db
-}
-
-func setupLogging(t *testing.T) {
-	origL := logging.L
-	logging.L = logging.NewLogger(zerolog.NewTestWriter(t))
-	t.Cleanup(func() {
-		logging.L = origL
-	})
 }
 
 // dbDrivers returns the list of database drivers to test.

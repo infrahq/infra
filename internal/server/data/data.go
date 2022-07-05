@@ -265,12 +265,12 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 			if errors.Is(err, internal.ErrNotFound) {
 				p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra}
 				if err := add(db, p); err != nil {
-					logging.Panicf("%s", err.Error())
+					logging.L.Panic().Err(err).Msg("failed to create infra provider")
 				}
 				return p
 			}
-			logging.Panicf("%s", err.Error())
-			return nil
+			logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
+			return nil // unreachable, the line above panics
 		}
 
 		infraProviderCache = infra
@@ -288,8 +288,8 @@ func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
 		if err != nil {
-			logging.Panicf("%s", err.Error())
-			return nil
+			logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
+			return nil // unreachable, the line above panics
 		}
 
 		infraConnectorCache = connector
