@@ -1,12 +1,16 @@
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import useSWR from 'swr'
-import { useTable } from 'react-table'
 import { useState } from 'react'
+
+import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
 import PageHeader from '../../components/page-header'
 import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
+import Sidebar from '../../components/sidebar'
+import DeleteModal from '../../components/delete-modal'
 
 const columns = [
   {
@@ -49,15 +53,72 @@ const columns = [
   },
 ]
 
+function Details({ group, admin }) {
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
+  return (
+    <div className='flex flex-1 flex-col space-y-6'>
+      {admin && (
+        <>
+          <section>
+            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+              Access
+            </h3>
+          </section>
+          <section>
+            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+              Team
+            </h3>
+          </section>
+        </>
+      )}
+      <section>
+        <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+          Metadata
+        </h3>
+      </section>
+      {admin && (
+        <section className='flex flex-1 flex-col items-end justify-end py-6'>
+          <button
+            type='button'
+            onClick={() => setDeleteModalOpen(true)}
+            className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'
+          >
+            Remove
+          </button>
+          <DeleteModal
+            open={deleteModalOpen}
+            setOpen={setDeleteModalOpen}
+            onSubmit={() => {}}
+            title='Remove Group'
+            message={
+              <>
+                Are you sure you want to delete{' '}
+                <span className='font-bold text-white'>{group?.name}</span>?
+                This action cannot be undone.
+              </>
+            }
+          />
+        </section>
+      )}
+    </div>
+  )
+}
+
 export default function Groups() {
   const { data: { items: groups } = {}, error } = useSWR('/api/groups')
-  const table = useTable({ columns, data: groups || [] })
+  const { admin, loading: adminLoading } = useAdmin()
+  const router = useRouter()
 
-  console.log(groups)
+  const loading = adminLoading || (!groups && !error)
+  const { slug: [id] = [] } = router.query
 
-  const [selected, setSelected] = useState(null)
+  const group = groups?.find(g => g.id === id)
 
-  const loading = !groups && !error
+  if (id && groups && !group) {
+    router.replace('/groups')
+    return null
+  }
 
   return (
     <>
@@ -77,11 +138,16 @@ export default function Groups() {
             ) : (
               <div className='flex min-h-0 flex-1 flex-col overflow-y-scroll px-6'>
                 <Table
-                  {...table}
+                  columns={columns}
+                  data={
+                    groups?.sort((a, b) =>
+                      b.created?.localeCompare(a.created)
+                    ) || []
+                  }
                   getRowProps={row => ({
-                    onClick: () => setSelected(row.original),
+                    onClick: () => router.push(`/groups/${row.original.id}`),
                     className:
-                      selected?.id === row.original.id
+                      id === row.original.id
                         ? 'bg-gray-900/50'
                         : 'cursor-pointer',
                   })}
@@ -98,6 +164,15 @@ export default function Groups() {
               </div>
             )}
           </div>
+          {id && (
+            <Sidebar
+              handleClose={() => router.push('/groups')}
+              title={group?.name}
+              iconPath='/groups.svg'
+            >
+              <Details group={groups?.find(g => g.id === id)} admin={admin} />
+            </Sidebar>
+          )}
         </div>
       )}
     </>
