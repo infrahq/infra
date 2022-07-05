@@ -40,8 +40,6 @@ func tlsConfigFromOptions(
 		return tlsConfig, nil
 	}
 
-	// TODO: print CA fingerprint when the client can trust that fingerprint
-
 	roots, err := x509.SystemCertPool()
 	if err != nil {
 		logging.Warnf("failed to load TLS roots from system: %v", err)
@@ -49,6 +47,11 @@ func tlsConfigFromOptions(
 	}
 
 	if opts.CA != "" {
+		raw := pemDecode([]byte(opts.CA))
+		logging.L.Info().
+			Str("SHA256 fingerprint", certs.Fingerprint(raw)).
+			Msg("TLS CA")
+
 		if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
 			logging.Warnf("failed to load TLS CA, invalid PEM")
 		}
@@ -137,21 +140,26 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 		}
 
 		// if either cert or key is missing, create it
-		ca, err := tls.X509KeyPair(ca.cert, ca.key)
+		caTLSCert, err := tls.X509KeyPair(ca.cert, ca.key)
 		if err != nil {
 			return nil, err
 		}
 
-		caCert, err := x509.ParseCertificate(ca.Certificate[0])
+		caCert, err := x509.ParseCertificate(caTLSCert.Certificate[0])
 		if err != nil {
 			return nil, err
 		}
 
 		hosts := []string{"127.0.0.1", "::1", serverName}
-		certBytes, keyBytes, err = certs.GenerateCertificate(hosts, caCert, ca.PrivateKey)
+		certBytes, keyBytes, err = certs.GenerateCertificate(hosts, caCert, caTLSCert.PrivateKey)
 		if err != nil {
 			return nil, err
 		}
+
+		// append the CA PEM to the cert PEM so that the full chain is available
+		// to clients. Not strictly required by TLS, but we do this so that the
+		// CLI can prompt the user to trust the CA.
+		certBytes = append(certBytes, ca.cert...)
 
 		if err := cache.Put(ctx, serverName+".crt", certBytes); err != nil {
 			return nil, err
