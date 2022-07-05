@@ -204,7 +204,7 @@ func updateProvider(cli *CLI, name string, secret string) error {
 	}
 	provider := res.Items[0]
 
-	logging.S.Debugf("call server: update provider named %q", name)
+	logging.Debugf("call server: update provider named %q", name)
 	_, err = client.UpdateProvider(api.UpdateProviderRequest{
 		ID:           provider.ID,
 		Name:         name,
@@ -216,7 +216,7 @@ func updateProvider(cli *CLI, name string, secret string) error {
 
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
-			logging.S.Debug(err)
+			logging.Debugf("%v", err)
 			return Error{
 				Message: "Cannot update provider: missing privileges for UpdateProvider",
 			}
