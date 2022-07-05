@@ -35,6 +35,7 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 		patchNewServer(t, &actual)
 
 		cmd := newServerCmd()
+		cmd.SetArgs([]string{}) // prevent reading of os.Args
 		if tc.setup != nil {
 			tc.setup(t, cmd)
 		}
