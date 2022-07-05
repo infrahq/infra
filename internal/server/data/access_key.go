@@ -120,12 +120,12 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 	}
 
 	if time.Now().UTC().After(t.ExpiresAt) {
-		return nil, fmt.Errorf("token expired")
+		return nil, ErrAccessKeyExpired
 	}
 
 	if !t.ExtensionDeadline.IsZero() {
 		if time.Now().UTC().After(t.ExtensionDeadline) {
-			return nil, fmt.Errorf("token extension deadline exceeded")
+			return nil, ErrAccessKeyDeadlineExceeded
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)

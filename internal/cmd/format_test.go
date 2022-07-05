@@ -74,5 +74,21 @@ func TestHumanTime(t *testing.T) {
 		v := now.Add(-48 * time.Hour)
 		assert.Equal(t, HumanTime(v, ""), "2 days ago")
 	})
+}
 
+func TestExactDuration(t *testing.T) {
+	assert.Equal(t, "1 millisecond", ExactDuration(1*time.Millisecond))
+	assert.Equal(t, "10 milliseconds", ExactDuration(10*time.Millisecond))
+	assert.Equal(t, "1 second", ExactDuration(1*time.Second))
+	assert.Equal(t, "10 seconds", ExactDuration(10*time.Second))
+	assert.Equal(t, "1 minute", ExactDuration(1*time.Minute))
+	assert.Equal(t, "10 minutes", ExactDuration(10*time.Minute))
+	assert.Equal(t, "1 hour", ExactDuration(1*time.Hour))
+	assert.Equal(t, "10 hours", ExactDuration(10*time.Hour))
+	assert.Equal(t, "1 hour 1 second", ExactDuration(1*time.Hour+1*time.Second))
+	assert.Equal(t, "1 hour 10 seconds", ExactDuration(1*time.Hour+10*time.Second))
+	assert.Equal(t, "1 hour 1 minute", ExactDuration(1*time.Hour+1*time.Minute))
+	assert.Equal(t, "1 hour 10 minutes", ExactDuration(1*time.Hour+10*time.Minute))
+	assert.Equal(t, "1 hour 1 minute 1 second", ExactDuration(1*time.Hour+1*time.Minute+1*time.Second))
+	assert.Equal(t, "10 hours 10 minutes 10 seconds", ExactDuration(10*time.Hour+10*time.Minute+10*time.Second))
 }

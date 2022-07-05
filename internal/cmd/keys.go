@@ -11,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-const ThirtyDays = 30 * (24 * time.Hour)
+const thirtyDays = 30 * (24 * time.Hour)
 
 func newKeysCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
@@ -97,15 +97,26 @@ $ infra keys add connector
 				return err
 			}
 
+			var expMsg strings.Builder
+			expMsg.WriteString("This key will expire in ")
+			expMsg.WriteString(ExactDuration(options.TTL))
+			if !resp.Expires.Equal(resp.ExtensionDeadline) {
+				expMsg.WriteString(", and must be used every ")
+				expMsg.WriteString(ExactDuration(options.ExtensionDeadline))
+				expMsg.WriteString(" to remain valid")
+			}
 			cli.Output("Issued access key %q for %q", resp.Name, userName)
+			cli.Output(expMsg.String())
+			cli.Output("")
+
 			cli.Output("Key: %s", resp.AccessKey)
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&options.Name, "name", "", "The name of the access key")
-	cmd.Flags().DurationVar(&options.TTL, "ttl", ThirtyDays, "The total time that the access key will be valid for")
-	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", ThirtyDays, "A specified deadline that the access key must be used within to remain valid")
+	cmd.Flags().DurationVar(&options.TTL, "ttl", thirtyDays, "The total time that the access key will be valid for")
+	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd
 }

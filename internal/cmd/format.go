@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 )
 
@@ -56,4 +57,60 @@ func HumanTime(t time.Time, zeroValue string) string {
 		return HumanDuration(-delta) + " from now"
 	}
 	return HumanDuration(delta) + " ago"
+}
+
+// ExcatDuration returns a human readable hours/minutes/seconds or milliseconds format of a duration
+// the most precise level of duration is milliseconds
+func ExactDuration(d time.Duration) string {
+	if d.Seconds() < 1 {
+		if d.Milliseconds() == 1 {
+			return fmt.Sprintf("%d millisecond", d.Milliseconds())
+		}
+		return fmt.Sprintf("%d milliseconds", d.Milliseconds())
+	}
+
+	var readableDur strings.Builder
+
+	dur := d.String()
+
+	// split the default duration string format of 0h0m0s into something nicer to read
+	h := strings.Split(dur, "h")
+	if len(h) > 1 {
+		hours := h[0]
+		if hours == "1" {
+			readableDur.WriteString(fmt.Sprintf("%s hour ", hours))
+		} else {
+			readableDur.WriteString(fmt.Sprintf("%s hours ", hours))
+		}
+		dur = h[1]
+	}
+
+	m := strings.Split(dur, "m")
+	if len(m) > 1 {
+		mins := m[0]
+		switch mins {
+		case "0":
+			// skip
+		case "1":
+			readableDur.WriteString(fmt.Sprintf("%s minute ", mins))
+		default:
+			readableDur.WriteString(fmt.Sprintf("%s minutes ", mins))
+		}
+		dur = m[1]
+	}
+
+	s := strings.Split(dur, "s")
+	if len(s) > 0 {
+		sec := s[0]
+		switch sec {
+		case "0":
+			// skip
+		case "1":
+			readableDur.WriteString(fmt.Sprintf("%s second ", sec))
+		default:
+			readableDur.WriteString(fmt.Sprintf("%s seconds ", sec))
+		}
+	}
+
+	return strings.TrimSpace(readableDur.String())
 }

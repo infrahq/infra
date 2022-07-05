@@ -41,6 +41,11 @@ func sendAPIError(c *gin.Context, err error) {
 		// log the error at info because it is not in the response
 		log = logging.L.Info()
 
+	case errors.Is(err, data.ErrAccessKeyExpired):
+		resp.Code = http.StatusUnauthorized
+		// this means the key was once valid, so include some extra details
+		resp.Message = fmt.Sprintf("%s: %s", internal.ErrUnauthorized, err)
+
 	case errors.As(err, &authzError):
 		resp.Code = http.StatusForbidden
 		resp.Message = authzError.Error()
