@@ -510,6 +510,24 @@ func PodLabels() ([]string, error) {
 	return strings.Split(string(contents), "\n"), nil
 }
 
+// InstancePodLabels returns all pod labels with the prefix "app.kubernetes.io/instance"
+func InstancePodLabels() ([]string, error) {
+	podLabels, err := PodLabels()
+	if err != nil {
+		return nil, err
+	}
+
+	instanceLabels := []string{}
+	for _, label := range podLabels {
+		if strings.HasPrefix(label, "app.kubernetes.io/instance") {
+			instanceLabels = append(instanceLabels, strings.ReplaceAll(label, "\"", ""))
+			break
+		}
+	}
+
+	return instanceLabels, nil
+}
+
 func Namespace() (string, error) {
 	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
@@ -544,12 +562,7 @@ func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Servic
 		fmt.Sprintf("app.infrahq.com/component=%s", component),
 	}
 
-	for _, label := range labels {
-		if strings.HasPrefix(label, "app.kubernetes.io/instance") {
-			selector = append(selector, strings.ReplaceAll(label, "\"", ""))
-			break
-		}
-	}
+	selector = append(selector, labels...)
 
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
 		LabelSelector: strings.Join(selector, ","),
@@ -567,10 +580,11 @@ func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Servic
 
 // Find a suitable Endpoint to use by inspecting Service objects
 func (k *Kubernetes) Endpoint() (string, int, error) {
-	labels, err := PodLabels()
+	labels, err := InstancePodLabels()
 	if err != nil {
 		return "", -1, err
 	}
+
 	service, err := k.Service("connector", labels...)
 	if err != nil {
 		return "", -1, err
@@ -607,7 +621,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 }
 
 func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
-	labels, err := PodLabels()
+	labels, err := InstancePodLabels()
 	if err != nil {
 		return false, err
 	}
