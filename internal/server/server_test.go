@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -122,7 +121,12 @@ func TestServer_Run(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
+		TLS: TLSOptions{
+			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
+			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+		},
 	}
+
 	srv, err := New(opts)
 	assert.NilError(t, err)
 
@@ -202,6 +206,10 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 		UI:                      UIOptions{Enabled: true},
 		EnableSignup:            true,
+		TLS: TLSOptions{
+			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
+			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
+		},
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 
@@ -487,42 +495,3 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	// retry the authenticated endpoint
 	checkAuthenticated()
 }
-
-func TestTLSConfigFromOptions(t *testing.T) {
-	storage := map[string]secrets.SecretStorage{
-		"plaintext": &secrets.PlainSecretProvider{},
-		"file":      &secrets.FileSecretProvider{},
-	}
-
-	ca := golden.Get(t, "pki/ca.crt")
-	t.Run("user provided certificate", func(t *testing.T) {
-		opts := TLSOptions{
-			CA:          types.StringOrFile(ca),
-			Certificate: types.StringOrFile(golden.Get(t, "pki/localhost.crt")),
-			PrivateKey:  "file:testdata/pki/localhost.key",
-		}
-		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
-		assert.NilError(t, err)
-
-		srv := httptest.NewUnstartedServer(noopHandler)
-		srv.TLS = config
-		srv.StartTLS()
-		t.Cleanup(srv.Close)
-
-		roots := x509.NewCertPool()
-		roots.AppendCertsFromPEM(ca)
-		client := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12},
-			},
-		}
-
-		resp, err := client.Get(srv.URL)
-		assert.NilError(t, err)
-		assert.Equal(t, resp.StatusCode, http.StatusOK)
-	})
-}
-
-var noopHandler = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-})

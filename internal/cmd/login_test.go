@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/pem"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +14,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hinshun/vt10x"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
@@ -24,6 +22,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
@@ -35,7 +34,7 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	setupServerTLSOptions(t, &opts)
 
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
@@ -43,10 +42,6 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
-	assert.NilError(t, err)
-
-	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -133,7 +128,7 @@ func TestLoginCmd_Options(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	setupServerTLSOptions(t, &opts)
 	adminAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 	opts.Config.Users = []server.User{
 		{
@@ -147,7 +142,6 @@ func TestLoginCmd_Options(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -286,23 +280,18 @@ func setupEnv(t *testing.T) string {
 	return dir
 }
 
-// setupCertManager copies the static TLS cert and key into the cache that will
-// be used by the server. This allows the server to skip generating a private key
-// for both the CA and server certificate, which takes multiple seconds.
-func setupCertManager(t *testing.T, dir string, serverName string) {
+func setupServerTLSOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
-	ctx := context.Background()
-	cache := autocert.DirCache(dir)
+
+	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 
 	key, err := os.ReadFile("testdata/pki/localhost.key")
 	assert.NilError(t, err)
-	err = cache.Put(ctx, serverName+".key", key)
-	assert.NilError(t, err)
+	opts.TLS.PrivateKey = string(key)
 
 	cert, err := os.ReadFile("testdata/pki/localhost.crt")
 	assert.NilError(t, err)
-	err = cache.Put(ctx, serverName+".crt", cert)
-	assert.NilError(t, err)
+	opts.TLS.Certificate = types.StringOrFile(cert)
 }
 
 func TestLoginCmd_TLSVerify(t *testing.T) {
@@ -314,21 +303,17 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
 	opts := defaultServerOptions(dir)
+	setupServerTLSOptions(t, &opts)
 	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
 		{Name: "admin@example.com", AccessKey: accessKey},
 	}
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
-	assert.NilError(t, err)
-
-	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
