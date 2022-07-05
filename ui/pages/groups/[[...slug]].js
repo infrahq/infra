@@ -1,7 +1,9 @@
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import useSWR from 'swr'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import dayjs from 'dayjs'
+import { Combobox } from '@headlessui/react'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -11,6 +13,8 @@ import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
 import DeleteModal from '../../components/delete-modal'
+import EmailBadge from '../../components/email-badge'
+import { PlusIcon } from '@heroicons/react/outline'
 
 const columns = [
   {
@@ -53,8 +57,131 @@ const columns = [
   },
 ]
 
+// TODO: refactor
+function EmailsSelectInput({
+  selectedEmails,
+  setSelectedEmails,
+  existMembers,
+  onClick,
+}) {
+  const { data: { items: users } = { items: [] } } = useSWR('/api/users')
+
+  console.log(existMembers)
+
+  const [query, setQuery] = useState('')
+  const button = useRef()
+  const inputRef = useRef(null)
+
+  const selectedEmailsId = selectedEmails.map(i => i.id)
+
+  const filteredEmail = [...users.map(u => ({ ...u, user: true }))]
+    .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
+    .filter(s => s.name !== 'connector')
+    .filter(s => !selectedEmailsId?.includes(s.id))
+    .filter(s => !existMembers?.includes(s.id))
+
+  const removeSelectedEmail = email => {
+    setSelectedEmails(selectedEmails.filter(item => item.id !== email.id))
+  }
+
+  const handleKeyDownEvent = key => {
+    if (key === 'Backspace' && inputRef.current.value.length === 0) {
+      removeSelectedEmail(selectedEmails[selectedEmails.length - 1])
+    }
+  }
+
+  return (
+    <section className='my-2 flex'>
+      <div className='flex flex-1 items-center border-b border-gray-800 py-3'>
+        <Combobox
+          as='div'
+          className='relative flex-1'
+          onChange={e => {
+            setSelectedEmails([...selectedEmails, e])
+          }}
+        >
+          <div className='flex flex-auto flex-wrap'>
+            {selectedEmails?.map(i => (
+              <EmailBadge
+                key={i.id}
+                email={i.name}
+                onRemove={() => removeSelectedEmail(i)}
+              />
+            ))}
+            <div className='flex-1'>
+              <Combobox.Input
+                ref={inputRef}
+                className='relative w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
+                onChange={e => setQuery(e.target.value)}
+                onFocus={() => {
+                  button.current?.click()
+                }}
+                onKeyDown={e => handleKeyDownEvent(e.key)}
+                placeholder={
+                  selectedEmails.length === 0 ? 'Add email here' : ''
+                }
+              />
+            </div>
+          </div>
+          {filteredEmail.length > 0 && (
+            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
+              {filteredEmail?.map(f => (
+                <Combobox.Option
+                  key={f.id}
+                  value={f}
+                  className={({ active }) =>
+                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
+                      active ? 'bg-gray-700' : ''
+                    }`
+                  }
+                >
+                  <div className='flex flex-row'>
+                    <div className='flex min-w-0 flex-1 flex-col'>
+                      <div className='flex justify-between py-0.5 font-medium'>
+                        <span className='truncate' title={f.name}>
+                          {f.name}
+                        </span>
+                      </div>
+                      <div className='text-3xs text-gray-400'>
+                        {f.user && 'User'}
+                      </div>
+                    </div>
+                  </div>
+                </Combobox.Option>
+              ))}
+            </Combobox.Options>
+          )}
+          <Combobox.Button className='hidden' ref={button} />
+        </Combobox>
+      </div>
+      <div className='relative'>
+        <button
+          type='button'
+          onClick={onClick}
+          disabled={selectedEmails.length === 0}
+          className='flex h-10 cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
+        >
+          <PlusIcon className='mr-1.5 h-3 w-3' />
+          <div className='text-violet-100'>Add</div>
+        </button>
+      </div>
+    </section>
+  )
+}
+
 function Details({ group, admin }) {
+  const { id, name } = group
+
+  const { data: { items: users } = {}, mutate } = useSWR(
+    `/api/users?group=${group.id}`
+  )
+
+  console.log(users)
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [emails, setEmails] = useState([])
+
+  const existMembers = users?.map(m => m.id)
 
   return (
     <div className='flex flex-1 flex-col space-y-6'>
@@ -69,6 +196,54 @@ function Details({ group, admin }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Team
             </h3>
+            <EmailsSelectInput
+              selectedEmails={emails}
+              setSelectedEmails={setEmails}
+              existMembers={existMembers}
+              onClick={async () => {
+                const usersToAdd = emails.map(email => email.id)
+                await fetch(`/api/groups/${id}/users`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ usersToAdd }),
+                })
+
+                await mutate(`/api/users?group=${group.id}`)
+                setEmails([])
+              }}
+            />
+            <div className='mt-4'>
+              {users?.length === 0 && (
+                <div className='mt-6 text-2xs italic text-gray-400'>
+                  No members in the group
+                </div>
+              )}
+
+              {users
+                ?.sort((a, b) => b.created?.localeCompare(a.created))
+                .map(u => (
+                  <div
+                    key={u.id}
+                    className='group flex items-center justify-between truncate text-2xs'
+                  >
+                    <div className='py-2'>{u.name}</div>
+                    <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
+                      <button
+                        onClick={async () => {
+                          const usersToRemove = [u.id]
+                          await fetch(`/api/groups/${id}/users`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ usersToRemove }),
+                          })
+                          mutate({ items: users.filter(i => i.id !== u.id) })
+                        }}
+                        className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </section>
         </>
       )}
@@ -76,6 +251,18 @@ function Details({ group, admin }) {
         <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
+        <div className='flex flex-col space-y-2 pt-3'>
+          <div className='flex flex-row items-center'>
+            <div className='w-1/3 text-2xs text-gray-400'>ID</div>
+            <div className='text-2xs'>{id}</div>
+          </div>
+          <div className='flex flex-row items-center'>
+            <div className='w-1/3 text-2xs text-gray-400'>Created</div>
+            <div className='text-2xs'>
+              {group?.created ? dayjs(group.created).fromNow() : '-'}
+            </div>
+          </div>
+        </div>
       </section>
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
@@ -94,8 +281,8 @@ function Details({ group, admin }) {
             message={
               <>
                 Are you sure you want to delete{' '}
-                <span className='font-bold text-white'>{group?.name}</span>?
-                This action cannot be undone.
+                <span className='font-bold text-white'>{name}</span>? This
+                action cannot be undone.
               </>
             }
           />

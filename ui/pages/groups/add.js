@@ -3,28 +3,11 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useRef } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { XIcon } from '@heroicons/react/outline'
 import { useRouter } from 'next/router'
 
 import ErrorMessage from '../../components/error-message'
 import Fullscreen from '../../components/layouts/fullscreen'
-
-function EmailBadge({ email, onRemove }) {
-  return (
-    <div className='m-1 flex items-center justify-center overflow-hidden text-ellipsis rounded-md bg-gray-800 py-1 px-2 font-medium text-white'>
-      <div className='max-w-full flex-initial overflow-hidden text-ellipsis text-xs font-normal leading-none'>
-        {email}
-      </div>
-      <div className='flex flex-auto flex-row-reverse pl-1'>
-        <XIcon
-          className='h-2 w-2 hover:cursor-pointer'
-          aria-hidden='true'
-          onClick={onRemove}
-        />
-      </div>
-    </div>
-  )
-}
+import EmailBadge from '../../components/email-badge'
 
 function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
