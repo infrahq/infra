@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -18,20 +17,24 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-var (
-	pathIDReplacer            = regexp.MustCompile(`:\w+`)
-	funcPartialNameToTagNames = map[string]string{
-		"Grant":       "Grants",
-		"User":        "Users",
-		"Group":       "Groups",
-		"AccessKey":   "Authentication",
-		"Provider":    "Providers",
-		"Destination": "Destinations",
-		"Token":       "Destinations",
-		"Login":       "Authentication",
-		"Logout":      "Authentication",
-	}
-)
+var pathIDReplacer = regexp.MustCompile(`:\w+`)
+
+// funcPartialNameToTagNames is a sorted (alphabetically by tag name) list of
+// function name substrings to the tags associated with the operation.
+var funcPartialNameToTagNames = []struct {
+	partial string
+	tag     string
+}{
+	{partial: "AccessKey", tag: "Authentication"},
+	{partial: "Login", tag: "Authentication"},
+	{partial: "Logout", tag: "Authentication"},
+	{partial: "Destination", tag: "Destinations"},
+	{partial: "Token", tag: "Destinations"},
+	{partial: "Grant", tag: "Grants"},
+	{partial: "Group", tag: "Groups"},
+	{partial: "Provider", tag: "Providers"},
+	{partial: "User", tag: "Users"},
+}
 
 // openAPIRouteDefinition converts the route into a format that can be used
 // by API.register. This is necessary because currently methods can not have
@@ -78,20 +81,11 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 
 	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
-tagLoop:
-	for _, partialName := range orderedTagNames() {
-		tagName := funcPartialNameToTagNames[partialName]
-		if strings.Contains(funcName, partialName) {
-			for _, tag := range op.Tags {
-				if tag == tagName {
-					continue tagLoop
-				}
-			}
-			op.Tags = append(op.Tags, tagName)
-
+	for _, item := range funcPartialNameToTagNames {
+		if strings.Contains(funcName, item.partial) {
+			op.Tags = append(op.Tags, item.tag)
 		}
 	}
-
 	if len(op.Tags) == 0 {
 		op.Tags = append(op.Tags, "Misc")
 	}
@@ -120,16 +114,6 @@ func getFuncName(i interface{}) string {
 	name = nameParts[len(nameParts)-1]
 	name = strings.TrimSuffix(name, "-fm")
 	return name
-}
-
-func orderedTagNames() []string {
-	tagNames := make([]string, 0, len(funcPartialNameToTagNames))
-	for k := range funcPartialNameToTagNames {
-		tagNames = append(tagNames, k)
-	}
-
-	sort.Strings(tagNames)
-	return tagNames
 }
 
 // createComponent creates and returns the SchemaRef for a type. If the type is
