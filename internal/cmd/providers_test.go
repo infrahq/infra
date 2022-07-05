@@ -127,7 +127,8 @@ func TestProvidersAddCmd(t *testing.T) {
 		err = Run(ctx, "providers", "list", "--format=json")
 		assert.NilError(t, err)
 
-		strings.Contains(bufs.Stdout.String(), `{"items":[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id"}],"count":1}`)
-		assert.NilError(t, err)
+		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id","kind":"","authURL":"","scopes":null}]`))
+		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `count`))
+		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `items`))
 	})
 }
