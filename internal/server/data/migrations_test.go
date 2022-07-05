@@ -192,3 +192,25 @@ func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
 		})
 	}
 }
+
+func TestMigration_SetDestinationLastSeenAt(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202207041724-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var destinations []models.Destination
+			err = db.Find(&destinations).Error
+			assert.NilError(t, err)
+
+			for _, destination := range destinations {
+				assert.Equal(t, destination.LastSeenAt, destination.UpdatedAt)
+			}
+		})
+	}
+}
