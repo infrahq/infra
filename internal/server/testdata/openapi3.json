@@ -82,6 +82,9 @@
       },
       "Destination": {
         "properties": {
+          "connected": {
+            "type": "boolean"
+          },
           "connection": {
             "properties": {
               "ca": {
@@ -332,6 +335,9 @@
           "items": {
             "items": {
               "properties": {
+                "connected": {
+                  "type": "boolean"
+                },
                 "connection": {
                   "properties": {
                     "ca": {

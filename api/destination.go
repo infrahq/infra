@@ -15,7 +15,8 @@ type Destination struct {
 	Resources []string `json:"resources"`
 	Roles     []string `json:"roles"`
 
-	LastSeen Time `json:"lastSeen"`
+	LastSeen  Time `json:"lastSeen"`
+	Connected bool `json:"connected"`
 }
 
 type DestinationConnection struct {
