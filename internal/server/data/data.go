@@ -105,6 +105,7 @@ func getDefaultSortFromType(t interface{}) string {
 }
 
 func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
+	db = db.Session(&gorm.Session{})
 	for _, selector := range selectors {
 		db = selector(db)
 	}
@@ -122,6 +123,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 }
 
 func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
+	db = db.Session(&gorm.Session{NewDB: true})
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
@@ -141,6 +143,7 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
+	db = db.Session(&gorm.Session{NewDB: true})
 	err := db.Save(model).Error
 	return handleError(err)
 }
@@ -151,6 +154,7 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 		return err
 	}
 
+	db = db.Session(&gorm.Session{NewDB: true})
 	err := db.Create(model).Error
 	return handleError(err)
 }
@@ -229,10 +233,12 @@ func handleError(err error) error {
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
+	db = db.Session(&gorm.Session{NewDB: true})
 	return db.Delete(new(T), id).Error
 }
 
 func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error {
+	db = db.Session(&gorm.Session{NewDB: true})
 	for _, selector := range selectors {
 		db = selector(db)
 	}
@@ -241,6 +247,7 @@ func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error
 }
 
 func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
+	db = db.Session(&gorm.Session{NewDB: true})
 	for _, selector := range selectors {
 		db = selector(db)
 	}

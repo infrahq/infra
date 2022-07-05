@@ -7,7 +7,9 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
@@ -148,6 +150,39 @@ func TestDatabaseSelectors(t *testing.T) {
 	// Show that queries have not modified the original gorm.DB references
 	assert.Equal(t, len(db.Statement.Clauses), 0)
 	assert.Equal(t, len(withCtx.Statement.Clauses), 0)
+}
+
+func TestGormSession(t *testing.T) {
+	driver, err := NewSQLiteDriver("file::memory:")
+	assert.NilError(t, err)
+
+	db, err := newRawDB(driver)
+	assert.NilError(t, err)
+
+	wheres := func(d *gorm.DB) []clause.Expression {
+		w, ok := d.Statement.Clauses["WHERE"].Expression.(clause.Where)
+		if !ok {
+			return nil
+		}
+		return w.Exprs
+	}
+
+	sessionDB := db.Session(&gorm.Session{})
+	db2 := sessionDB.Where("1 == 1")
+	assert.Check(t, cmp.Len(wheres(db), 0))
+	assert.Check(t, cmp.Len(wheres(sessionDB), 0))
+	assert.Check(t, cmp.Len(wheres(db2), 1))
+	db3 := db2.Session(&gorm.Session{NewDB: true}).Where("2 == 2")
+	assert.Check(t, cmp.Len(wheres(db), 0))
+	assert.Check(t, cmp.Len(wheres(sessionDB), 0))
+	assert.Check(t, cmp.Len(wheres(db2), 1))
+	assert.Check(t, cmp.Len(wheres(db3), 1))
+	db4 := db3.Session(&gorm.Session{NewDB: true}).Where("3 == 3")
+	assert.Check(t, cmp.Len(wheres(db), 0), "%p", db)
+	assert.Check(t, cmp.Len(wheres(sessionDB), 0), "%p", sessionDB)
+	assert.Check(t, cmp.Len(wheres(db2), 1), "%p", db2)
+	assert.Check(t, cmp.Len(wheres(db3), 1), "%p", db3)
+	assert.Check(t, cmp.Len(wheres(db4), 1), "%p", db4)
 }
 
 func TestPaginationSelector(t *testing.T) {
