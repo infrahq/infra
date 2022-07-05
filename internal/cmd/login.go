@@ -65,7 +65,8 @@ $ infra login infraexampleserver.com
 $ infra login --provider okta
 
 # Login with an access key
-$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
+$ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ infra login`,
 		Args:  MaxArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -94,8 +95,12 @@ func login(cli *CLI, options loginCmdOptions) error {
 	}
 
 	if options.Server == "" {
+		options.Server = os.Getenv("INFRA_SERVER")
+	}
+
+	if options.Server == "" {
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login requires the [SERVER] argument"}
+			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
 		}
 
 		options.Server, err = promptServer(cli, config)
@@ -137,12 +142,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return loginToInfra(cli, lc, loginReq, options.NoAgent)
 	}
 
+	if options.AccessKey == "" {
+		options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
+	}
+
 	switch {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.Provider != "":
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
+			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
 		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
 		if err != nil {
@@ -150,7 +159,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	default:
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
+			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
 		loginMethod, provider, err := promptLoginOptions(cli, lc.APIClient)
 		if err != nil {
@@ -193,6 +202,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 	logging.Debugf("call server: login")
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
+		logging.Debugf("err: %s", err)
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
 			case loginReq.AccessKey != "":
@@ -566,7 +576,6 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 
 	options = append(options, "Login with username and password")
-	options = append(options, "Login with an access key")
 
 	var i int
 	selectPrompt := &survey.Select{
@@ -578,14 +587,10 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 		return 0, nil, err
 	}
 
-	switch i {
-	case len(options) - 1: // last option: accessKeyLogin
-		return accessKeyLogin, nil, nil
-	case len(options) - 2: // second last option: localLogin
+	if i == len(options)-1 {
 		return localLogin, nil, nil
-	default:
-		return oidcLogin, &providers[i], nil
 	}
+	return oidcLogin, &providers[i], nil
 }
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
@@ -655,6 +660,10 @@ manually verify the certificate can be trusted.
 // Returns the host address of the Infra server that user would like to log into
 func promptServer(cli *CLI, config *ClientConfig) (string, error) {
 	servers := config.Hosts
+
+	if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
+		return server, nil
+	}
 
 	if len(servers) == 0 {
 		return promptNewServer(cli)
