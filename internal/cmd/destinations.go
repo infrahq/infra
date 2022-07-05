@@ -43,7 +43,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.S.Debug("call server: list destinations")
+			logging.Debugf("call server: list destinations")
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
 			if err != nil {
 				return err
@@ -99,11 +99,11 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.S.Debugf("call server: list destinations named %q", name)
+			logging.Debugf("call server: list destinations named %q", name)
 			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: name})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
-					logging.S.Debug(err)
+					logging.Debugf("%s", err.Error())
 					return Error{
 						Message: "Cannot disconnect destination: missing privileges for ListDestinations",
 					}
@@ -115,13 +115,13 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				return Error{Message: fmt.Sprintf("Destination %q not connected", name)}
 			}
 
-			logging.S.Debugf("deleting %s destinations named %q...", destinations.Count, name)
+			logging.Debugf("deleting %d destinations named %q...", destinations.Count, name)
 			for _, d := range destinations.Items {
-				logging.S.Debugf("...call server: delete destination %s", d.ID)
+				logging.Debugf("...call server: delete destination %s", d.ID)
 				err := client.DeleteDestination(d.ID)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
-						logging.S.Debug(err)
+						logging.Debugf("%s", err.Error())
 						return Error{
 							Message: "Cannot disconnect destination: missing privileges for DeleteDestination",
 						}

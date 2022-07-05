@@ -55,7 +55,7 @@ function Layout({ children }) {
   }
 
   return (
-    <div className='flex h-full'>
+    <div className='flex h-full min-w-[800px]'>
       <nav className='flex w-40 flex-none flex-col lg:w-48 xl:w-56'>
         <div className='lg:my-18 mt-6 mb-10 flex flex-shrink-0 select-none items-center px-5'>
           <Link href='/'>

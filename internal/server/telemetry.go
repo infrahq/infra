@@ -75,27 +75,27 @@ func (t *Telemetry) Close() {
 func (t *Telemetry) EnqueueHeartbeat() {
 	users, err := data.Count[models.Identity](t.db)
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	groups, err := data.Count[models.Group](t.db)
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	grants, err := data.Count[models.Grant](t.db)
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	providers, err := data.Count[models.Provider](t.db)
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	destinations, err := data.Count[models.Destination](t.db)
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 
 	t.Event("heartbeat", "", map[string]interface{}{
@@ -137,7 +137,7 @@ func (t *Telemetry) Event(event string, userId string, properties ...map[string]
 	}
 
 	if err := t.Enqueue(track); err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 }
 
@@ -151,6 +151,6 @@ func (t *Telemetry) User(id string, name string) {
 		Timestamp: time.Now().UTC(),
 	})
 	if err != nil {
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 	}
 }

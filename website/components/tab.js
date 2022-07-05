@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { TabContext } from './Tabs'
+import { TabContext } from './tabs'
 
 export default function Tab({ label, children }) {
   const currentTab = useContext(TabContext)

@@ -481,6 +481,30 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 				UserIDsToRemove: []uid.ID{first.ID, second.ID},
 			},
 		},
+		"add unknown user": {
+			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+			},
+			body: api.UpdateUsersInGroupRequest{
+				UserIDsToAdd: []uid.ID{first.ID, 1337, second.ID},
+			},
+		},
+		"remove unknown user": {
+			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+			},
+			body: api.UpdateUsersInGroupRequest{
+				UserIDsToRemove: []uid.ID{1337},
+			},
+		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {

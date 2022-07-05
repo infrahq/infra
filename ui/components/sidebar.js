@@ -16,7 +16,7 @@ export default function Sidebar({
   return (
     <aside
       ref={ref}
-      className='my-0 flex h-full w-full max-w-sm flex-col overflow-x-visible overflow-y-scroll pl-8 pr-6 lg:max-w-md lg:pl-12 xl:max-w-lg xl:pl-16'
+      className='my-0 flex h-full w-full min-w-[18em] max-w-sm flex-col overflow-x-visible overflow-y-scroll pl-8 pr-6 lg:max-w-md lg:pl-12 xl:max-w-lg xl:pl-16'
     >
       <header className='flex-start sticky top-0 z-10 flex items-center justify-between bg-black py-3'>
         <div className='mr-3 flex-none'>

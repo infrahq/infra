@@ -2,205 +2,77 @@
 package logging
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"log"
+	"io"
 	"os"
-	"strings"
+	"path/filepath"
+	"time"
 
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"golang.org/x/term"
-	"gopkg.in/natefinch/lumberjack.v2"
-
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/rs/zerolog"
 )
 
 var (
-	level                    = zap.NewAtomicLevel()
-	L                        = newLogger(level, os.Stderr)
-	S     *zap.SugaredLogger = L.Sugar()
+	L = NewLogger(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 )
 
-// SetLevel of the global loggers L and S.
-func SetLevel(l string) error {
-	return level.UnmarshalText([]byte(l))
+type logger struct {
+	zerolog.Logger
 }
 
-func newLogger(level zapcore.LevelEnabler, stderr zapcore.WriteSyncer) *zap.Logger {
-	writer := zapcore.Lock(filtered(stderr))
-	levelEncoder := zapcore.CapitalLevelEncoder
-	if term.IsTerminal(int(os.Stdin.Fd())) {
-		levelEncoder = zapcore.CapitalColorLevelEncoder
+func init() {
+	zerolog.DisableSampling(true)
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
+	zerolog.CallerMarshalFunc = func(file string, line int) string {
+		short := filepath.Join(filepath.Base(filepath.Dir(file)), filepath.Base(file))
+		return fmt.Sprintf("%s:%d", short, line)
 	}
-	encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
-		LevelKey:         "level",
-		EncodeLevel:      levelEncoder,
-		MessageKey:       "message",
-		ConsoleSeparator: "  ",
-	})
-	return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller())
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
-// SetServerLogger changes L and S to a logger that is appropriate for long
-// running processes like the api server and connectors. The logger uses
-// json format and includes the function name and line number in the log message.
-//
-// SetServerLogger should not be called concurrently. It should be called
-// before any goroutines that may use the logger are started.
-func SetServerLogger() {
-	L = newServerLogger(level, os.Stdout, os.Stderr)
-	S = L.Sugar()
-}
-
-func newServerLogger(level zapcore.LevelEnabler, stdout, stderr zapcore.WriteSyncer) *zap.Logger {
-	if term.IsTerminal(int(os.Stdin.Fd())) {
-		writer := zapcore.Lock(filtered(stderr))
-		encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
-			MessageKey: "message",
-
-			LevelKey:    "level",
-			EncodeLevel: zapcore.CapitalColorLevelEncoder,
-
-			TimeKey:    "time",
-			EncodeTime: zapcore.ISO8601TimeEncoder,
-
-			CallerKey:    "caller",
-			EncodeCaller: zapcore.ShortCallerEncoder,
-		})
-
-		return zap.New(zapcore.NewCore(encoder, writer, level), zap.AddCaller())
+func NewLogger(writer io.Writer) *logger {
+	return &logger{
+		Logger: zerolog.New(writer).With().Timestamp().Caller().Logger(),
 	}
-
-	return zap.New(
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-			zapcore.Lock(filtered(stdout)),
-			level,
-		),
-		zap.AddCaller(),
-	)
 }
 
-func NewFileErrorLog(outputFilePath string) *zap.Logger {
-	w := zapcore.AddSync(&lumberjack.Logger{
-		Filename:   outputFilePath,
-		MaxSize:    10, // megabytes
-		MaxBackups: 0,
-		MaxAge:     28, // days
-	})
-
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
-		w,
-		zap.ErrorLevel,
-	)
-
-	return zap.New(core)
+func UseServerLogger() {
+	L = NewLogger(os.Stderr)
 }
 
-func StandardErrorLog() *log.Logger {
-	errorLog, err := zap.NewStdLogAt(L, zapcore.ErrorLevel)
+func Tracef(format string, v ...interface{}) {
+	L.Trace().Msgf(format, v...)
+}
+
+func Debugf(format string, v ...interface{}) {
+	L.Debug().Msgf(format, v...)
+}
+
+func Infof(format string, v ...interface{}) {
+	L.Info().Msgf(format, v...)
+}
+
+func Warnf(format string, v ...interface{}) {
+	L.Warn().Msgf(format, v...)
+}
+
+func Errorf(format string, v ...interface{}) {
+	L.Error().Msgf(format, v...)
+}
+
+func Fatalf(format string, v ...interface{}) {
+	L.Fatal().Msgf(format, v...)
+}
+
+func Panicf(format string, v ...interface{}) {
+	L.Panic().Msgf(format, v...)
+}
+
+func SetLevel(levelName string) error {
+	level, err := zerolog.ParseLevel(levelName)
 	if err != nil {
-		return nil
+		return err
 	}
 
-	return errorLog
-}
-
-// TODO: Remove the filtered writer after Go stops writing header
-// values to errors, as it's cpu expensive to search every log line.
-// https://github.com/golang/go/pull/48979
-func filtered(logger zapcore.WriteSyncer) zapcore.WriteSyncer {
-	return &filteredWriterSyncer{
-		dest: logger,
-	}
-}
-
-type filteredWriterSyncer struct {
-	dest zapcore.WriteSyncer
-}
-
-var strInvalidHeaderFieldValue = []byte("invalid header field value")
-
-func (w *filteredWriterSyncer) Write(b []byte) (int, error) {
-	if idx := bytes.Index(b, strInvalidHeaderFieldValue); idx >= 0 {
-		idx += len(strInvalidHeaderFieldValue)
-
-		forKeyIdx := bytes.Index(b, []byte("for key"))
-		if forKeyIdx > idx {
-			return w.dest.Write(append(b[:idx+1], b[forKeyIdx:]...))
-		}
-
-		if b[0] != '{' {
-			// not json; free to truncate.
-			return w.dest.Write(b[:idx])
-		}
-
-		// we can't see where the end is. parse the message so you can truncate it. :/
-		m := map[string]interface{}{}
-		if err := json.Unmarshal(b, &m); err != nil {
-			S.Error("Had some trouble parsing log line that needs to be filtered. Omitting log entry")
-			// on error write nothing, just to be safe.
-			return 0, nil // nolint
-		}
-
-		if msg, ok := m["msg"]; ok {
-			if smsg, ok := msg.(string); ok {
-				if idx := strings.Index(smsg, string(strInvalidHeaderFieldValue)); idx >= 0 {
-					m["msg"] = smsg[:idx+len(strInvalidHeaderFieldValue)]
-
-					newBytes, err := json.Marshal(m)
-					if err == nil {
-						return w.dest.Write(newBytes)
-					}
-				}
-			}
-		}
-		// write nothing, just to be safe.
-		return 0, nil
-	}
-
-	return w.dest.Write(b)
-}
-
-func (w *filteredWriterSyncer) Sync() error {
-	return w.dest.Sync()
-}
-
-// Middleware logs incoming requests using configured logger.
-func Middleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-
-		msg := fmt.Sprintf(
-			"\"%s %s\" %d %d \"%s\" %s %s %d",
-			c.Request.Method,
-			c.Request.URL.Path,
-			c.Writer.Status(),
-			c.Writer.Size(),
-			c.Request.Host,
-			c.Request.UserAgent(),
-			c.Request.RemoteAddr,
-			c.Request.ContentLength,
-		)
-
-		logger := L
-		// TODO: use access.GetAuthenticatedIdentity, requires refactor
-		if raw, ok := c.Get("identity"); ok {
-			if identity, ok := raw.(*models.Identity); ok {
-				logger = logger.With(zap.Stringer("identity", identity.ID))
-			}
-		}
-
-		logger.Info(
-			msg,
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-			zap.Int("statusCode", c.Writer.Status()),
-			zap.String("remoteAddr", c.Request.RemoteAddr),
-		)
-	}
+	zerolog.SetGlobalLevel(level)
+	return nil
 }

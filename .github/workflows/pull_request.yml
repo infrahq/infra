@@ -122,7 +122,6 @@ jobs:
           if [[ "$GITHUB_HEAD_REF" =~ ^release-please-.*$ ]]; then LDFLAGS='-X github.com/infrahq/infra/internal.Metadata='; fi
           # fake a terminal to get the right defaults for non-interactive
           script -e -q -c "go run ${LDFLAGS:+-ldflags \"$LDFLAGS\"} ./internal/docgen"
-          go run ${LDFLAGS:+-ldflags "$LDFLAGS"} ./internal/openapigen docs/api/openapi3.json
           git diff --exit-code
       - name: Check go mod is tidy
         run: |

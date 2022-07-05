@@ -11,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func SetupMetrics(db *gorm.DB) *prometheus.Registry {
+func setupMetrics(db *gorm.DB) *prometheus.Registry {
 	reg := prometheus.NewRegistry()
 	factory := promauto.With(reg)
 
@@ -21,7 +21,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 		Help:      "Build information about Infra Server.",
 	}, []string{"branch", "version", "commit", "date"}).With(prometheus.Labels{
 		"branch":  internal.Branch,
-		"version": internal.Version,
+		"version": internal.FullVersion(),
 		"commit":  internal.Commit,
 		"date":    internal.Date,
 	}).Set(1)
@@ -33,7 +33,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		count, err := data.Count[models.Identity](db)
 		if err != nil {
-			logging.S.Warnf("users: %s", err)
+			logging.Warnf("users: %s", err)
 			return 0
 		}
 
@@ -47,7 +47,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		count, err := data.Count[models.Group](db)
 		if err != nil {
-			logging.S.Warnf("groups: %s", err)
+			logging.Warnf("groups: %s", err)
 			return 0
 		}
 
@@ -61,7 +61,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		count, err := data.Count[models.Grant](db)
 		if err != nil {
-			logging.S.Warnf("grants: %s", err)
+			logging.Warnf("grants: %s", err)
 			return 0
 		}
 
@@ -75,7 +75,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		count, err := data.Count[models.Provider](db)
 		if err != nil {
-			logging.S.Warnf("providers: %s", err)
+			logging.Warnf("providers: %s", err)
 			return 0
 		}
 
@@ -89,7 +89,7 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		count, err := data.Count[models.Destination](db)
 		if err != nil {
-			logging.S.Warnf("destinations: %s", err)
+			logging.Warnf("destinations: %s", err)
 			return 0
 		}
 
@@ -111,12 +111,12 @@ func SetupMetrics(db *gorm.DB) *prometheus.Registry {
 	}, func() float64 {
 		pinger, ok := db.ConnPool.(interface{ Ping() error })
 		if !ok {
-			logging.L.Warn("ping: not supported")
+			logging.Warnf("ping: not supported")
 			return -1
 		}
 
 		if err := pinger.Ping(); err != nil {
-			logging.L.Warn("ping: not connected")
+			logging.Warnf("ping: not connected")
 			return 0
 		}
 

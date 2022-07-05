@@ -6,9 +6,10 @@ import copy from 'copy-to-clipboard'
 import Fullscreen from '../../components/layouts/fullscreen'
 
 export default function DestinationsAdd() {
-  const [accessKey, setAccessKey] = useState('')
   const [name, setName] = useState('')
+  const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [accessKey, setAccessKey] = useState('')
   const [connected, setConnected] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -27,12 +28,25 @@ export default function DestinationsAdd() {
     }
   }, [name, accessKey])
 
-  async function handleNext() {
+  async function onSubmit(e) {
+    e.preventDefault()
+
+    if (!/^[A-Za-z.0-9_-]+$/.test(name)) {
+      setError('Invalid cluster name')
+      return
+    }
+
     setConnected(false)
+
     let res = await fetch('/api/users?name=connector')
     const { items: connectors } = await res.json()
 
     // TODO (https://github.com/infrahq/infra/issues/2056): handle the case where connector does not exist
+    if (!connectors.length) {
+      setError('Could not create access key')
+      return
+    }
+
     const { id } = connectors[0]
     const keyName =
       name +
@@ -49,6 +63,7 @@ export default function DestinationsAdd() {
     })
     const key = await res.json()
     setAccessKey(key.accessKey)
+    setSubmitted(true)
   }
 
   const server = window.location.host
@@ -75,29 +90,26 @@ export default function DestinationsAdd() {
         />
         <h1 className='text-2xs capitalize'>Connect infrastructure</h1>
       </header>
-      <form
-        onSubmit={e => {
-          e.preventDefault()
-          setSubmitted(true)
-          handleNext()
-          return false
-        }}
-        className='mb-10 flex space-x-2 px-4'
-      >
+      <form onSubmit={onSubmit} className='mb-10 flex space-x-2 px-4'>
         <div className='flex-1'>
           <label className='text-3xs uppercase text-gray-400'>
             Cluster Name
           </label>
           <input
-            type='search'
-            autoFocus
             required
-            placeholder='provide a cluster name'
+            name='name'
+            placeholder='provide a name'
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setError('')
+              setName(e.target.value)
+            }}
             disabled={submitted}
             className='w-full border-b border-gray-800 bg-transparent px-px py-2 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none disabled:opacity-10'
           />
+          {error && (
+            <p className='absolute py-1 text-2xs text-pink-500'>{error}</p>
+          )}
         </div>
         <button
           className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-10'

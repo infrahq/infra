@@ -247,6 +247,7 @@ const columns = [
   {
     Header: 'Name',
     accessor: 'name',
+    width: '67%',
     Cell: ({ row, value }) => {
       return (
         <div className='flex items-center py-2'>
@@ -289,7 +290,7 @@ const columns = [
   {
     Header: 'Kind',
     accessor: v => v,
-    width: '25%',
+    width: '33%',
     Cell: ({ value }) => (
       <span className='rounded bg-gray-800 px-2 py-0.5 text-gray-400'>
         {value.kind}
@@ -333,7 +334,7 @@ export default function Destinations() {
       </Head>
       {!loading && (
         <div className='flex h-full flex-1'>
-          <div className='flex flex-1 flex-col space-y-4'>
+          <div className='flex min-w-[20em] flex-1 flex-col space-y-4'>
             <PageHeader
               header='Clusters'
               buttonHref={admin && '/destinations/add'}

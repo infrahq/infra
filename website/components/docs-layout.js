@@ -3,8 +3,8 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
 import { ChevronRightIcon, ExternalLinkIcon } from '@heroicons/react/solid'
 
-import Nav from './Nav'
-import SignupForm from './SignupForm'
+import Nav from './nav'
+import SignupForm from './signup-form'
 
 function Expandable({ expanded, children }) {
   const ref = useRef()
@@ -169,7 +169,7 @@ export default function DocsLayout({
     <main className='flex w-full flex-1 flex-col justify-center'>
       <Nav docs />
       <div className='mx-auto flex w-full max-w-screen-2xl flex-col md:flex-row'>
-        <ul className='fixed hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none flex-col self-start overflow-y-scroll py-10 px-8 text-lg tracking-[-0.02em] text-gray-300 md:flex md:w-56 md:flex-none lg:w-64'>
+        <ul className='fixed hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none flex-col self-start overflow-y-auto py-10 px-8 text-lg tracking-[-0.02em] text-gray-300 md:flex md:w-56 md:flex-none lg:w-64'>
           {items.map(i => (
             <NavItem key={i.href} item={i} />
           ))}
@@ -205,7 +205,7 @@ export default function DocsLayout({
             </div>
           </div>
         </div>
-        <aside className='text-md sticky top-20 hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none self-start overflow-scroll py-10 lg:block lg:w-64 lg:px-10 xl:w-72'>
+        <aside className='text-md sticky top-20 hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none self-start overflow-auto py-10 lg:block lg:w-64 lg:px-10 xl:w-72'>
           {headings.length > 0 && (
             <>
               <h2 className='text-md mb-2 font-normal text-white'>

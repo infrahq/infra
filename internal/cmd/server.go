@@ -23,7 +23,7 @@ func newServerCmd() *cobra.Command {
 		Args:   NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			logging.SetServerLogger()
+			logging.UseServerLogger()
 
 			if configFilename == "" {
 				configFilename = os.Getenv("INFRA_SERVER_CONFIG_FILE")

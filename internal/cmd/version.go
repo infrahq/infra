@@ -34,7 +34,7 @@ func version(cli *CLI) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 		fmt.Fprintln(w)
 
 		return nil
@@ -43,7 +43,7 @@ func version(cli *CLI) error {
 	version, err := client.GetServerVersion()
 	if err != nil {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
-		logging.S.Debug(err)
+		logging.Debugf("%s", err.Error())
 		fmt.Fprintln(w)
 
 		return nil

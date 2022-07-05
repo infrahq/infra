@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.uber.org/zap/zaptest"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -23,8 +23,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
-	assert.NilError(t, err)
+	InfraProvider(db)
 
 	setupLogging(t)
 	t.Cleanup(InvalidateCache)
@@ -34,11 +33,9 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 func setupLogging(t *testing.T) {
 	origL := logging.L
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
+	logging.L = logging.NewLogger(zerolog.NewTestWriter(t))
 	t.Cleanup(func() {
 		logging.L = origL
-		logging.S = logging.L.Sugar()
 	})
 }
 

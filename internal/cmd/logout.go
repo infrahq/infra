@@ -64,7 +64,7 @@ $ infra logout --all --clear`,
 
 func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	if !hostConfig.isLoggedIn() {
-		logging.S.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
+		logging.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
 		return false
 	}
 
@@ -77,25 +77,25 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	err := client.Logout()
 	switch {
 	case api.ErrorStatusCode(err) == http.StatusUnauthorized:
-		logging.S.Debugf("err: %s", err)
+		logging.Debugf("err: %s", err)
 		return false
 	case err != nil:
-		logging.S.Debugf("err: %s", err)
+		logging.Debugf("err: %s", err)
 		return false
 	}
 
-	logging.S.Debugf("logged out of server [%s]", hostConfig.Host)
+	logging.Debugf("logged out of server [%s]", hostConfig.Host)
 	return true
 }
 
 func logout(clear bool, server string, all bool) error {
 	switch {
 	case all:
-		logging.S.Debug("logging out of all servers\n")
+		logging.Debugf("logging out of all servers\n")
 	case server == "":
-		logging.S.Debug("logging out of current server\n")
+		logging.Debugf("logging out of current server\n")
 	default:
-		logging.S.Debugf("logging out of server [%s]\n", server)
+		logging.Debugf("logging out of server [%s]\n", server)
 	}
 
 	if all {
@@ -122,7 +122,7 @@ func logoutAll(clear bool) error {
 	fmt.Fprintf(os.Stderr, "Logged out of all servers.\n")
 	if clear {
 		config.Hosts = nil
-		logging.S.Debug("cleared all servers from login list\n")
+		logging.Debugf("cleared all servers from login list\n")
 	}
 
 	if err := clearKubeconfig(); err != nil {
@@ -161,7 +161,7 @@ func logoutOne(clear bool, server string) error {
 		serverURL := host.Host
 		config.Hosts[idx] = config.Hosts[len(config.Hosts)-1]
 		config.Hosts = config.Hosts[:len(config.Hosts)-1]
-		logging.S.Debugf("cleared server [%s]", serverURL)
+		logging.Debugf("cleared server [%s]", serverURL)
 	}
 
 	if err := clearKubeconfig(); err != nil {
