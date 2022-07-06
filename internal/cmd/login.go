@@ -536,32 +536,6 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 	}, nil
 }
 
-<<<<<<< HEAD
-func promptAccessKeyLogin(cli *CLI) (string, error) {
-	var accessKey string
-	err := survey.AskOne(
-		&survey.Password{Message: "Access key:"},
-		&accessKey,
-		cli.surveyIO,
-		survey.WithValidator(survey.Required),
-	)
-	return accessKey, err
-}
-
-||||||| parent of b1928a47 (improve: login if needed)
-func promptAccessKeyLogin(cli *CLI) (string, error) {
-	var accessKey string
-	err := survey.AskOne(
-		&survey.Password{Message: "Access Key:"},
-		&accessKey,
-		cli.surveyIO,
-		survey.WithValidator(survey.Required),
-	)
-	return accessKey, err
-}
-
-=======
->>>>>>> b1928a47 (improve: login if needed)
 func listProviders(client *api.Client) ([]api.Provider, error) {
 	logging.Debugf("call server: list providers")
 	providers, err := client.ListProviders("")
