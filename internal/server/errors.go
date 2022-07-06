@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -69,6 +70,9 @@ func sendAPIError(c *gin.Context, err error) {
 				Errors:    problems,
 			})
 		}
+		sort.Slice(resp.FieldErrors, func(i, j int) bool {
+			return resp.FieldErrors[i].FieldName < resp.FieldErrors[j].FieldName
+		})
 
 	case errors.As(err, pgValidationErrors):
 		resp.Code = http.StatusBadRequest
