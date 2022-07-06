@@ -1,5 +1,4 @@
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
 import dayjs from 'dayjs'
@@ -22,7 +21,7 @@ const columns = [
   {
     Header: 'Name',
     accessor: g => g,
-    width: '80%',
+    width: '67%',
     Cell: ({ value: group }) => {
       return (
         <div className='flex items-center py-2'>
@@ -39,7 +38,7 @@ const columns = [
   {
     Header: 'Team Size',
     accessor: g => g,
-    width: '20%',
+    width: '33%',
     Cell: ({ value: group }) => {
       const { data: { items: users } = {}, error } = useSWR(
         `/api/users?group=${group.id}`
@@ -169,7 +168,7 @@ function EmailsSelectInput({
   )
 }
 
-function Details({ group, admin }) {
+function Details({ group, admin, onDelete }) {
   const { id, name } = group
 
   const { data: { items: users } = {}, mutate: mutateUsers } = useSWR(
@@ -183,7 +182,6 @@ function Details({ group, admin }) {
   const [emails, setEmails] = useState([])
 
   const grants = items?.filter(g => g.resource !== 'infra')
-
   const existMembers = users?.map(m => m.id)
 
   return (
@@ -318,7 +316,10 @@ function Details({ group, admin }) {
           <DeleteModal
             open={deleteModalOpen}
             setOpen={setDeleteModalOpen}
-            onSubmit={() => {}}
+            onSubmit={async () => {
+              setDeleteModalOpen(false)
+              onDelete()
+            }}
             title='Remove Group'
             message={
               <>
@@ -335,19 +336,12 @@ function Details({ group, admin }) {
 }
 
 export default function Groups() {
-  const { data: { items: groups } = {}, error } = useSWR('/api/groups')
+  const { data: { items: groups } = {}, error, mutate } = useSWR('/api/groups')
   const { admin, loading: adminLoading } = useAdmin()
-  const router = useRouter()
+
+  const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!groups && !error)
-  const { slug: [id] = [] } = router.query
-
-  const group = groups?.find(g => g.id === id)
-
-  if (id && groups && !group) {
-    router.replace('/groups')
-    return null
-  }
 
   return (
     <>
@@ -374,9 +368,9 @@ export default function Groups() {
                     ) || []
                   }
                   getRowProps={row => ({
-                    onClick: () => router.push(`/groups/${row.original.id}`),
+                    onClick: () => setSelected(row.original),
                     className:
-                      id === row.original.id
+                      selected?.id === row.original.id
                         ? 'bg-gray-900/50'
                         : 'cursor-pointer',
                   })}
@@ -393,13 +387,28 @@ export default function Groups() {
               </div>
             )}
           </div>
-          {id && (
+          {selected && (
             <Sidebar
-              handleClose={() => router.push('/groups')}
-              title={group?.name}
+              handleClose={() => setSelected(null)}
+              title={selected?.name}
               iconPath='/groups.svg'
             >
-              <Details group={groups?.find(g => g.id === id)} admin={admin} />
+              <Details
+                group={selected}
+                admin={admin}
+                onDelete={() => {
+                  mutate(async ({ items: groups } = { items: [] }) => {
+                    await fetch(`/api/groups/${selected.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    return {
+                      items: groups?.filter(g => g?.id !== selected.id),
+                    }
+                  })
+                  setSelected(null)
+                }}
+              />
             </Sidebar>
           )}
         </div>
