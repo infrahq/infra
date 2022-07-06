@@ -69,6 +69,10 @@ $ infra login`,
 		Args:  MaxArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
+				options.Server = server
+			}
+
 			if len(args) == 1 {
 				options.Server = args[0]
 			}
@@ -91,10 +95,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 	config, err := readConfig()
 	if err != nil {
 		return err
-	}
-
-	if options.Server == "" {
-		options.Server = os.Getenv("INFRA_SERVER")
 	}
 
 	if options.Server == "" {
@@ -668,10 +668,6 @@ manually verify the certificate can be trusted.
 // Returns the host address of the Infra server that user would like to log into
 func promptServer(cli *CLI, config *ClientConfig) (string, error) {
 	servers := config.Hosts
-
-	if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
-		return server, nil
-	}
 
 	if len(servers) == 0 {
 		return promptNewServer(cli)

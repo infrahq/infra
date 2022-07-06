@@ -34,48 +34,26 @@ func Run(ctx context.Context, args ...string) error {
 	return cmd.ExecuteContext(ctx)
 }
 
-func tryLogin(cli *CLI) error {
-	if accessKey, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
-		server, isSet := os.LookupEnv("INFRA_SERVER")
-		if !isSet {
-			return errors.New("INFRA_ACCESS_KEY environment variable is set but INFRA_SERVER is not. please set INFRA_SERVER to log in automatically.")
-		}
-		return login(cli, loginCmdOptions{
-			Server:         server,
-			AccessKey:      accessKey,
-			NonInteractive: true,
-		})
-	}
-
-	return nil
-}
-
 func mustBeLoggedIn(cli *CLI) error {
-	tryLoginOrError := func(err Error) error {
-		if _, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
-			if err2 := tryLogin(cli); err2 != nil {
-				cli.Output(err2.Error())
-				return err
-			}
-			return nil
-		}
-		return err
+	if _, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+		// user doesn't need to log in if supplying an access key
+		return nil
 	}
 
 	config, err := currentHostConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
-			return tryLoginOrError(Error{Message: "Not logged in; run 'infra login' before running this command"})
+			return Error{Message: "Not logged in; run 'infra login' before running this command"}
 		}
 		return fmt.Errorf("getting host config: %w", err)
 	}
 
 	if !config.isLoggedIn() {
-		return tryLoginOrError(Error{Message: "Not logged in; run 'infra login' before running this command"})
+		return Error{Message: "Not logged in; run 'infra login' before running this command"}
 	}
 
 	if config.isExpired() {
-		return tryLoginOrError(Error{Message: "Session expired; run 'infra login' to start a new session"})
+		return Error{Message: "Session expired; run 'infra login' to start a new session"}
 	}
 
 	return nil
@@ -105,7 +83,18 @@ func defaultAPIClient() (*api.Client, error) {
 		return nil, err
 	}
 
-	return apiClient(config.Host, config.AccessKey, httpTransportForHostConfig(config)), nil
+	server := config.Host
+	accessKey := config.AccessKey
+
+	if envAccessKey, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+		accessKey = envAccessKey
+	}
+
+	if envServer, ok := os.LookupEnv("INFRA_SERVER"); ok {
+		server = envServer
+	}
+
+	return apiClient(server, accessKey, httpTransportForHostConfig(config)), nil
 }
 
 func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
