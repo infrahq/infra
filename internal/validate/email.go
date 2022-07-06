@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"fmt"
 	"net/mail"
 	"strings"
 
@@ -26,7 +27,7 @@ func (e email) Validate() *Failure {
 		return fail(e.name, "invalid email address: "+strings.TrimPrefix(err.Error(), "mail: "))
 	}
 	if addr.Name != "" {
-		return fail(e.name, "email address must not contain a name")
+		return fail(e.name, fmt.Sprintf("email address must not contain display name %q", addr.Name))
 	}
 	return nil
 }

@@ -66,7 +66,7 @@ func TestValidate(t *testing.T) {
 		expected := Error{
 			"fieldOne":           {"a value is required"},
 			"strOne":             {"a value is required"},
-			"subNested.fieldOne": {"length (20) must be no more than 10"},
+			"subNested.fieldOne": {"length of string (20) must be no more than 10"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})

@@ -13,12 +13,12 @@ func TestStringRule_Validate(t *testing.T) {
 	t.Run("min length", func(t *testing.T) {
 		r := &ExampleRequest{RequiredString: "a"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length (1) must be at least 2")
+		assert.ErrorContains(t, err, "length of string (1) must be at least 2")
 	})
 	t.Run("max length", func(t *testing.T) {
 		r := &ExampleRequest{RequiredString: "abcdefghijklm"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length (13) must be no more than 10")
+		assert.ErrorContains(t, err, "length of string (13) must be no more than 10")
 	})
 	t.Run("character ranges", func(t *testing.T) {
 		r := &ExampleRequest{RequiredString: "almost~valid"}
@@ -29,7 +29,7 @@ func TestStringRule_Validate(t *testing.T) {
 		expected := Error{
 			"fieldOne": {"a value is required"},
 			"strOne": {
-				"length (12) must be no more than 10",
+				"length of string (12) must be no more than 10",
 				"character ~ at position 6 is not allowed",
 			},
 		}
