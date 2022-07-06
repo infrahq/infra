@@ -4,7 +4,9 @@ import useSWR from 'swr'
 import { useState, useRef } from 'react'
 import dayjs from 'dayjs'
 import { Combobox } from '@headlessui/react'
+import { PlusIcon } from '@heroicons/react/outline'
 
+import { sortByResource } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
@@ -14,7 +16,7 @@ import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
 import DeleteModal from '../../components/delete-modal'
 import EmailBadge from '../../components/email-badge'
-import { PlusIcon } from '@heroicons/react/outline'
+import RoleSelect from '../../components/role-select'
 
 const columns = [
   {
@@ -65,9 +67,6 @@ function EmailsSelectInput({
   onClick,
 }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
-
-  console.log(existMembers)
-
   const [query, setQuery] = useState('')
   const button = useRef()
   const inputRef = useRef(null)
@@ -110,6 +109,7 @@ function EmailsSelectInput({
             ))}
             <div className='flex-1'>
               <Combobox.Input
+                type='search'
                 ref={inputRef}
                 className='relative w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
                 onChange={e => setQuery(e.target.value)}
@@ -154,12 +154,12 @@ function EmailsSelectInput({
           <Combobox.Button className='hidden' ref={button} />
         </Combobox>
       </div>
-      <div className='relative'>
+      <div className='relative mt-3'>
         <button
           type='button'
           onClick={onClick}
           disabled={selectedEmails.length === 0}
-          className='flex h-10 cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
+          className='flex h-8 cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
         >
           <PlusIcon className='mr-1.5 h-3 w-3' />
           <div className='text-violet-100'>Add</div>
@@ -172,14 +172,17 @@ function EmailsSelectInput({
 function Details({ group, admin }) {
   const { id, name } = group
 
-  const { data: { items: users } = {}, mutate } = useSWR(
+  const { data: { items: users } = {}, mutate: mutateUsers } = useSWR(
     `/api/users?group=${group.id}`
   )
-
-  console.log(users)
+  const { data: { items } = {}, mutate: mutateGrants } = useSWR(
+    `/api/grants?group=${id}`
+  )
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [emails, setEmails] = useState([])
+
+  const grants = items?.filter(g => g.resource !== 'infra')
 
   const existMembers = users?.map(m => m.id)
 
@@ -191,9 +194,46 @@ function Details({ group, admin }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
+            {grants?.sort(sortByResource)?.map(g => (
+              <div
+                key={g.id}
+                className='flex items-center justify-between text-2xs'
+              >
+                <div>{g.resource}</div>
+                <RoleSelect
+                  role={g.privilege}
+                  resource={g.resource}
+                  remove
+                  direction='left'
+                  onRemove={async () => {
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                    mutateGrants({ items: grants.filter(x => x.id !== g.id) })
+                  }}
+                  onChange={async privilege => {
+                    const res = await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        ...g,
+                        privilege,
+                      }),
+                    })
+
+                    // delete old grant
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+
+                    mutateGrants({
+                      items: [
+                        ...grants.filter(f => f.id !== g.id),
+                        await res.json(),
+                      ],
+                    })
+                  }}
+                />
+              </div>
+            ))}
           </section>
           <section>
-            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+            <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Team
             </h3>
             <EmailsSelectInput
@@ -207,7 +247,7 @@ function Details({ group, admin }) {
                   body: JSON.stringify({ usersToAdd }),
                 })
 
-                await mutate(`/api/users?group=${group.id}`)
+                await mutateUsers(`/api/users?group=${group.id}`)
                 setEmails([])
               }}
             />
@@ -234,7 +274,9 @@ function Details({ group, admin }) {
                             method: 'PATCH',
                             body: JSON.stringify({ usersToRemove }),
                           })
-                          mutate({ items: users.filter(i => i.id !== u.id) })
+                          mutateUsers({
+                            items: users.filter(i => i.id !== u.id),
+                          })
                         }}
                         className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
                       >
