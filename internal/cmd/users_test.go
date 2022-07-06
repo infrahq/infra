@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -83,7 +84,7 @@ func TestUsersCmd(t *testing.T) {
 
 					var apiUsers []api.User
 					for _, mu := range modifiedUsers {
-						if mu.Name == name {
+						if mu.Name == name || name == "" {
 							apiUsers = append(apiUsers, *mu.ToAPI())
 						}
 					}
@@ -182,8 +183,37 @@ func TestUsersCmd(t *testing.T) {
 	})
 
 	t.Run("remove without required argument", func(t *testing.T) {
+		setup(t)
 		err := Run(context.Background(), "users", "remove")
 		assert.ErrorContains(t, err, `"infra users remove" requires exactly 1 argument`)
 		assert.ErrorContains(t, err, `Usage:  infra users remove USER`)
+	})
+
+	t.Run("list with json", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "users", "add", "apple@example.com")
+		assert.NilError(t, err)
+		err = Run(ctx, "users", "list", "--format=json")
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `"created":null,"updated":null,"lastSeenAt":null,"name":"apple@example.com"}]`),
+			fmt.Sprintf("got: %s\n", bufs.Stdout.String()))
+	})
+
+	t.Run("list with yaml", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "users", "add", "apple@example.com")
+		assert.NilError(t, err)
+		err = Run(ctx, "users", "list", "--format=yaml")
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `created: {}
+  updated: {}
+  lastseenat: {}
+  name: apple@example.com
+  providernames: []`),
+			fmt.Sprintf("got: %s\n", bufs.Stdout.String()))
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
@@ -56,6 +57,12 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 					return err
 				}
 				cli.Output(string(jsonOutput))
+			case "yaml":
+				yamlOutput, err := yaml.Marshal(destinations.Items)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(yamlOutput))
 			default:
 				type row struct {
 					Name string `header:"NAME"`

@@ -130,4 +130,29 @@ func TestProvidersAddCmd(t *testing.T) {
 		strings.Contains(bufs.Stdout.String(), `{"items":[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id"}],"count":1}`)
 		assert.NilError(t, err)
 	})
+
+	t.Run("list with yaml", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+
+		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
+		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
+		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
+
+		err := Run(ctx, "providers", "add", "okta")
+		assert.NilError(t, err)
+
+		err = Run(ctx, "providers", "list", "--format=yaml")
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `- id: ""
+  name: okta
+  created: {}
+  updated: {}
+  url: https://okta.com/path
+  clientid: okta-client-id
+  kind: ""
+  authurl: ""
+  scopes: []`))
+	})
 }
