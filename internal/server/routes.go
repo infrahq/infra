@@ -47,7 +47,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	// This group of middleware will apply to everything, including the UI
 	router.Use(
 		logging.Middleware(),
-		TimeoutMiddleware(2*time.Minute),
+		TimeoutMiddleware(1*time.Minute),
 	)
 
 	a.addRewrites()

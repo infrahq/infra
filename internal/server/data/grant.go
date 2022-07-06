@@ -67,9 +67,11 @@ func GrantsInheritedBySubject(subjectID uid.PolymorphicID) SelectorFunc {
 				return db.Where("1 = 0")
 			}
 			var groupIDs []uid.ID
-			err = db.Session(&gorm.Session{Logger: db.Logger}).Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
+			err = db.Session(&gorm.Session{}).Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
 			if err != nil {
 				logging.Errorf("GrantsInheritedByUser: %s", err)
+				_ = db.AddError(err)
+				return db.Where("1 = 0")
 			}
 
 			subjects := []string{subjectID.String()}
