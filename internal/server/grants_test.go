@@ -316,7 +316,6 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info":{},
 	"count": 1,
 	"items": [{
 		"id": "<any-valid-uid>",

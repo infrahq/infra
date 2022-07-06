@@ -103,7 +103,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"pagination_info":{},"items":[],"count":0}`)
+				assert.Equal(t, resp.Body.String(), `{"count":0,"items":[]}`)
 			},
 		},
 		"name match": {

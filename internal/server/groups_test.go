@@ -188,7 +188,6 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info": {},
 	"count": 2,
 	"items": [{
 		"id": "%[1]v",
@@ -221,7 +220,6 @@ func TestAPI_ListGroups(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
-	"pagination_info":{},
 	"count": 1,
 	"items": [{
 		"id": "%[1]v",
