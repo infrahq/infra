@@ -228,7 +228,7 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
-	timeout := 2 * time.Second
+	timeout := 10 * time.Second
 	if os.Getenv("CI") != "" || race.Enabled {
 		// CI and -race take much longer than regular runs, use a much longer timeout
 		timeout = 30 * time.Second

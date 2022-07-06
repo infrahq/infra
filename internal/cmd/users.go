@@ -414,39 +414,15 @@ func createUser(client *api.Client, name string) (*api.CreateUserResponse, error
 // check if the user has permissions to reset passwords for another user.
 // This might be handy for customizing error messages
 func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientHostConfig) (bool, error) {
-	// TODO: could really use inherited grants for this
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		User:      config.UserID,
-		Privilege: api.InfraAdminRole,
-		Resource:  "infra",
+		User:          config.UserID,
+		Privilege:     api.InfraAdminRole,
+		Resource:      "infra",
+		ShowInherited: true,
 	})
 	if err != nil {
 		return false, err
 	}
 
-	if len(grants.Items) > 0 {
-		return true, nil
-	}
-
-	myGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
-	if err != nil {
-		return false, err
-	}
-
-	for _, group := range myGroups.Items {
-		grants, err := client.ListGrants(api.ListGrantsRequest{
-			Group:     group.ID,
-			Privilege: api.InfraAdminRole,
-			Resource:  "infra",
-		})
-		if err != nil {
-			return false, err
-		}
-
-		if len(grants.Items) > 0 {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return len(grants.Items) > 0, nil
 }

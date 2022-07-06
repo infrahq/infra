@@ -122,23 +122,9 @@ func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[
 		return nil, nil, nil, err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID})
+	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
 	if err != nil {
 		return nil, nil, nil, err
-	}
-
-	groups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	for _, g := range groups.Items {
-		groupGrants, err := client.ListGrants(api.ListGrantsRequest{Group: g.ID})
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		grants.Items = append(grants.Items, groupGrants.Items...)
 	}
 
 	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
