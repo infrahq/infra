@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - INFRA_SERVER_TLS_CA=internal/server/testdata/pki/ca.crt
+      - INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:internal/server/testdata/pki/ca.key
+    command: server --ui-proxy-url http://ui:3000 --db-host db --db-name postgres --db-port 5432 --db-username postgres --db-password postgres
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - /root/.infra
+
+  ui:
+    build:
+      context: ui
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./ui:/app
+      - /app/node_modules/
+
+  db:
+    image: postgres:alpine
+    restart: always
+    user: postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
