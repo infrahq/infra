@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -502,4 +503,42 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		golden.Assert(t, bufs.Stderr.String(), t.Name())
 	})
+}
+
+func TestAuthURLForProvider(t *testing.T) {
+	expectedOktaAuthURL := "https://okta.example.com/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=001&response_type=code&scope=email+openid&state=state"
+	okta := api.Provider{
+		AuthURL:  "https://okta.example.com/oauth2/v1/authorize",
+		ClientID: "001",
+		Kind:     string(models.ProviderKindOkta),
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(okta, "state"), expectedOktaAuthURL)
+
+	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?redirect_uri=http://localhost:8301&client_id=001&response_type=code&scope=email+openid&state=state"
+	azure := api.Provider{
+		AuthURL:  "https://login.microsoftonline.com/0/oauth2/v2.0/authorize",
+		ClientID: "001",
+		Kind:     string(models.ProviderKindAzure),
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(azure, "state"), expectedAzureAuthURL)
+
+	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=http://localhost:8301&prompt=consent&access_type=offline&client_id=001&response_type=code&scope=email+openid&state=state"
+	google := api.Provider{
+		AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+		ClientID: "001",
+		Kind:     string(models.ProviderKindGoogle),
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(google, "state"), expectedGoogleAuthURL)
 }
