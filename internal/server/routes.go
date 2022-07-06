@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -261,6 +262,13 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
+	if r, ok := req.(validate.Request); ok {
+		if err := validate.Validate(r); err != nil {
+			return err
+		}
+	}
+
+	// TODO: remove once all requests use internal/validate
 	if err := pgValidate.Struct(req); err != nil {
 		return err
 	}

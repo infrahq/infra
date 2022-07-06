@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 // sendAPIError translates err into the appropriate HTTP status code, builds a
@@ -27,7 +28,8 @@ func sendAPIError(c *gin.Context, err error) {
 		Message: "internal server error", // don't leak any info by default
 	}
 
-	validationErrors := &validator.ValidationErrors{}
+	pgValidationErrors := &validator.ValidationErrors{}
+	var validationError validate.Error
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
 
@@ -58,10 +60,20 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusNotFound
 		resp.Message = err.Error()
 
-	case errors.As(err, validationErrors):
+	case errors.As(err, &validationError):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
-		parseFieldErrors(resp, validationErrors)
+		for name, problems := range validationError {
+			resp.FieldErrors = append(resp.FieldErrors, api.FieldError{
+				FieldName: name,
+				Errors:    problems,
+			})
+		}
+
+	case errors.As(err, pgValidationErrors):
+		resp.Code = http.StatusBadRequest
+		resp.Message = err.Error()
+		parseFieldErrors(resp, pgValidationErrors)
 
 	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
 		resp.Code = http.StatusBadRequest
@@ -99,6 +111,7 @@ func sendAPIError(c *gin.Context, err error) {
 	c.Abort()
 }
 
+// TODO: remove with pgValidate
 func parseFieldErrors(resp *api.Error, validationErrors *validator.ValidationErrors) {
 	errs := map[string][]string{}
 

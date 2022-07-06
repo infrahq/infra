@@ -1031,54 +1031,98 @@ var cmpAPIUserJSON = gocmp.Options{
 }
 
 func TestAPI_CreateAccessKey(t *testing.T) {
+	type testCase struct {
+		name     string
+		setup    func(t *testing.T) api.CreateAccessKeyRequest
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	connector := data.InfraConnectorIdentity(srv.db)
+	userResp := createUser(t, srv, routes, "usera@example.com")
 
-	run := func(body api.CreateAccessKeyRequest) *api.CreateAccessKeyResponse {
-		var buf bytes.Buffer
-		err := json.NewEncoder(&buf).Encode(body)
-		assert.NilError(t, err)
+	run := func(t *testing.T, tc testCase) {
+		body := tc.setup(t)
 
-		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", &buf)
+		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
-
-		respBody := &api.CreateAccessKeyResponse{}
-		err = json.Unmarshal(resp.Body.Bytes(), respBody)
-		assert.NilError(t, err)
-
-		return respBody
+		tc.expected(t, resp)
 	}
 
-	t.Run("AutomaticName", func(t *testing.T) {
-		req := api.CreateAccessKeyRequest{
-			UserID:            connector.ID,
-			TTL:               api.Duration(time.Minute),
-			ExtensionDeadline: api.Duration(time.Minute),
-		}
+	var testCases = []testCase{
+		{
+			name: "automatic name",
+			setup: func(t *testing.T) api.CreateAccessKeyRequest {
+				return api.CreateAccessKeyRequest{
+					UserID:            userResp.ID,
+					TTL:               api.Duration(time.Minute),
+					ExtensionDeadline: api.Duration(time.Minute),
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-		resp := run(req)
-		assert.Assert(t, strings.HasPrefix(resp.Name, "connector-"))
-	})
+				respBody := &api.CreateAccessKeyResponse{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+				assert.Assert(t, strings.HasPrefix(respBody.Name, "usera@example.com-"), respBody.Name)
+			},
+		},
+		{
+			name: "user provided name",
+			setup: func(t *testing.T) api.CreateAccessKeyRequest {
+				return api.CreateAccessKeyRequest{
+					UserID:            userResp.ID,
+					Name:              "mysupersecretaccesskey",
+					TTL:               api.Duration(time.Minute),
+					ExtensionDeadline: api.Duration(time.Minute),
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-	t.Run("UserProvidedName", func(t *testing.T) {
-		req := api.CreateAccessKeyRequest{
-			UserID:            connector.ID,
-			Name:              "mysupersecretaccesskey",
-			TTL:               api.Duration(time.Minute),
-			ExtensionDeadline: api.Duration(time.Minute),
-		}
+				respBody := &api.CreateAccessKeyResponse{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+				assert.Equal(t, respBody.Name, "mysupersecretaccesskey")
+			},
+		},
+		{
+			name: "invalid name",
+			setup: func(t *testing.T) api.CreateAccessKeyRequest {
+				return api.CreateAccessKeyRequest{
+					UserID:            userResp.ID,
+					Name:              "this-name-should-not-contain-slash/",
+					TTL:               api.Duration(time.Minute),
+					ExtensionDeadline: api.Duration(time.Minute),
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 
-		resp := run(req)
-		assert.Equal(t, resp.Name, "mysupersecretaccesskey")
-	})
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "name", Errors: []string{"character / at position 34 is not allowed"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestAPI_ListAccessKey(t *testing.T) {
