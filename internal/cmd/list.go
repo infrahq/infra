@@ -21,7 +21,7 @@ func newListCmd(cli *CLI) *cobra.Command {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
 			}
-			return mustBeLoggedIn()
+			return mustBeLoggedIn(cli)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return list(cli)

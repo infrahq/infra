@@ -34,21 +34,48 @@ func Run(ctx context.Context, args ...string) error {
 	return cmd.ExecuteContext(ctx)
 }
 
-func mustBeLoggedIn() error {
+func tryLogin(cli *CLI) error {
+	if accessKey, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+		server, isSet := os.LookupEnv("INFRA_SERVER")
+		if !isSet {
+			return errors.New("INFRA_ACCESS_KEY environment variable is set but INFRA_SERVER is not. please set INFRA_SERVER to log in automatically.")
+		}
+		return login(cli, loginCmdOptions{
+			Server:         server,
+			AccessKey:      accessKey,
+			NonInteractive: true,
+		})
+	}
+
+	return nil
+}
+
+func mustBeLoggedIn(cli *CLI) error {
+	tryLoginOrError := func(err Error) error {
+		if _, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+			if err2 := tryLogin(cli); err2 != nil {
+				cli.Output(err2.Error())
+				return err
+			}
+			return nil
+		}
+		return err
+	}
+
 	config, err := currentHostConfig()
 	if err != nil {
 		if errors.Is(err, ErrConfigNotFound) {
-			return Error{Message: "Not logged in; run 'infra login' before running this command"}
+			return tryLoginOrError(Error{Message: "Not logged in; run 'infra login' before running this command"})
 		}
 		return fmt.Errorf("getting host config: %w", err)
 	}
 
 	if !config.isLoggedIn() {
-		return Error{Message: "Not logged in; run 'infra login' before running this command"}
+		return tryLoginOrError(Error{Message: "Not logged in; run 'infra login' before running this command"})
 	}
 
 	if config.isExpired() {
-		return Error{Message: "Session expired; run 'infra login' to start a new session"}
+		return tryLoginOrError(Error{Message: "Session expired; run 'infra login' to start a new session"})
 	}
 
 	return nil
@@ -117,7 +144,7 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 	}
 }
 
-func newUseCmd(_ *CLI) *cobra.Command {
+func newUseCmd(cli *CLI) *cobra.Command {
 	return &cobra.Command{
 		Use:   "use DESTINATION",
 		Short: "Access a destination",
@@ -133,7 +160,7 @@ $ infra use development.kube-system`,
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
 			}
-			return mustBeLoggedIn()
+			return mustBeLoggedIn(cli)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			destination := args[0]

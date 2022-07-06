@@ -42,7 +42,6 @@ type loginMethod int8
 
 const (
 	localLogin loginMethod = iota
-	accessKeyLogin
 	oidcLogin
 )
 
@@ -167,11 +166,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 
 		switch loginMethod {
-		case accessKeyLogin:
-			loginReq.AccessKey, err = promptAccessKeyLogin(cli)
-			if err != nil {
-				return err
-			}
 		case localLogin:
 			loginReq.PasswordCredentials, err = promptLocalLogin(cli)
 			if err != nil {
@@ -199,10 +193,9 @@ func equalHosts(x, y string) bool {
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	logging.Debugf("call server: login")
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
-		logging.Debugf("err: %s", err)
+		logging.Debugf("login: %s", err)
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
 			case loginReq.AccessKey != "":
@@ -543,6 +536,7 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 	}, nil
 }
 
+<<<<<<< HEAD
 func promptAccessKeyLogin(cli *CLI) (string, error) {
 	var accessKey string
 	err := survey.AskOne(
@@ -554,6 +548,20 @@ func promptAccessKeyLogin(cli *CLI) (string, error) {
 	return accessKey, err
 }
 
+||||||| parent of b1928a47 (improve: login if needed)
+func promptAccessKeyLogin(cli *CLI) (string, error) {
+	var accessKey string
+	err := survey.AskOne(
+		&survey.Password{Message: "Access Key:"},
+		&accessKey,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	)
+	return accessKey, err
+}
+
+=======
+>>>>>>> b1928a47 (improve: login if needed)
 func listProviders(client *api.Client) ([]api.Provider, error) {
 	logging.Debugf("call server: list providers")
 	providers, err := client.ListProviders("")
