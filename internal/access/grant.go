@@ -2,7 +2,6 @@ package access
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -37,7 +36,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		subjectID, err2 := subject.ID()
 		if err2 != nil {
 			// user is only allowed to select their own grants, so if the subject is missing or invalid, this is an access error
-			return nil, fmt.Errorf("%w: %s", AuthorizationError{Resource: "grants", Operation: "list", RequiredRoles: []string{"view"}}, err)
+			return nil, err
 		}
 		identity := AuthenticatedIdentity(c)
 		switch {
