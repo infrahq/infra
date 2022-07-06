@@ -307,6 +307,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
+		Version:       r.Version,
 	}
 
 	err := access.CreateDestination(c, destination)
@@ -328,6 +329,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
+		Version:       r.Version,
 	}
 
 	if err := access.SaveDestination(c, destination); err != nil {

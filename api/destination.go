@@ -17,6 +17,8 @@ type Destination struct {
 
 	LastSeen  Time `json:"lastSeen"`
 	Connected bool `json:"connected"`
+
+	Version string `json:"version"`
 }
 
 type DestinationConnection struct {
@@ -31,8 +33,10 @@ type ListDestinationsRequest struct {
 }
 
 type CreateDestinationRequest struct {
-	UniqueID   string                `json:"uniqueID"`
-	Name       string                `json:"name" validate:"required"`
+	UniqueID string `json:"uniqueID" validate:"required"`
+	Name     string `json:"name" validate:"required"`
+	Version  string `json:"version"`
+
 	Connection DestinationConnection `json:"connection"`
 
 	Resources []string `json:"resources"`
@@ -40,9 +44,11 @@ type CreateDestinationRequest struct {
 }
 
 type UpdateDestinationRequest struct {
-	ID         uid.ID                `uri:"id" json:"-" validate:"required"`
-	Name       string                `json:"name" validate:"required"`
-	UniqueID   string                `json:"uniqueID"`
+	ID       uid.ID `uri:"id" json:"-" validate:"required"`
+	UniqueID string `json:"uniqueID" validate:"required"`
+	Name     string `json:"name" validate:"required"`
+	Version  string `json:"version"`
+
 	Connection DestinationConnection `json:"connection"`
 
 	Resources []string `json:"resources"`
