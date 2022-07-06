@@ -210,3 +210,7 @@ func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
 			Where("identities_groups.group_id = ?", groupID)
 	}
 }
+
+func IncludeSoftDeleted(db *gorm.DB) *gorm.DB {
+	return db.Unscoped()
+}

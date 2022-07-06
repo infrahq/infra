@@ -336,7 +336,7 @@ func TestListKeys(t *testing.T) {
 	resp, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
 	assert.NilError(t, err)
 
-	assert.Assert(t, len(resp.Items) > 0)
+	assert.Equal(t, len(resp.Items), 1)
 	assert.Equal(t, resp.Count, len(resp.Items))
 	assert.Equal(t, resp.Items[0].IssuedForName, user.Name)
 

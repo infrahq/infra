@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -26,12 +27,19 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 		return nil, HandleAuthErr(err, "access keys", "list", roles...)
 	}
 
-	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(pg)}
+	s := []data.SelectorFunc{
+		func(db *gorm.DB) *gorm.DB {
+			return db.Preload("IssuedForIdentity")
+		},
+		data.ByOptionalIssuedFor(identityID),
+		data.ByOptionalName(name),
+		data.ByPagination(pg),
+	}
 	if !showExpired {
 		s = append(s, data.ByNotExpiredOrExtended())
 	}
 
-	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), s...)
+	return data.ListAccessKeys(db, s...)
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {

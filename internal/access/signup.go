@@ -19,23 +19,22 @@ func SignupEnabled(c *gin.Context) (bool, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	// use Unscoped because deleting identities, providers or grants should not re-enable signup
-	identities, err := data.Count[models.Identity](db.Unscoped(), data.NotName(models.InternalInfraConnectorIdentityName))
+	identities, err := data.Count[models.Identity](db, data.IncludeSoftDeleted, data.NotName(models.InternalInfraConnectorIdentityName))
 	if err != nil {
 		return false, err
 	}
 
-	providers, err := data.Count[models.Provider](db.Unscoped(), data.NotProviderKind(models.ProviderKindInfra))
+	providers, err := data.Count[models.Provider](db, data.IncludeSoftDeleted, data.NotProviderKind(models.ProviderKindInfra))
 	if err != nil {
 		return false, err
 	}
 
-	grants, err := data.Count[models.Grant](db.Unscoped(), data.NotPrivilege(models.InfraConnectorRole))
+	grants, err := data.Count[models.Grant](db, data.IncludeSoftDeleted, data.NotPrivilege(models.InfraConnectorRole))
 	if err != nil {
 		return false, err
 	}
 
-	accessKeys, err := data.Count[models.AccessKey](db.Unscoped())
+	accessKeys, err := data.Count[models.AccessKey](db, data.IncludeSoftDeleted)
 	if err != nil {
 		return false, err
 	}
