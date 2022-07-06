@@ -25,7 +25,7 @@ func SignupEnabled(c *gin.Context) (bool, error) {
 		return false, err
 	}
 
-	providers, err := data.Count[models.Provider](db.Unscoped(), data.NotName(models.InternalInfraProviderName))
+	providers, err := data.Count[models.Provider](db.Unscoped(), data.NotProviderKind(models.ProviderKindInfra))
 	if err != nil {
 		return false, err
 	}

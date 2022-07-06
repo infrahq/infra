@@ -60,7 +60,10 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/", AuthenticationMiddleware(a))
+	authn := apiGroup.Group("/",
+		AuthenticationMiddleware(),
+		DestinationMiddleware(),
+	)
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -307,7 +310,7 @@ func (a *API) notFoundHandler(c *gin.Context) {
 		if _, err := fs.Stat(uiFS, filePath404); err == nil {
 			buf, err = fs.ReadFile(uiFS, filePath404)
 			if err != nil {
-				logging.S.Error(err)
+				logging.Errorf("%s", err.Error())
 			}
 		}
 	}
@@ -315,6 +318,6 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	// the response will default to "404 not found"
 	_, err := c.Writer.Write(buf)
 	if err != nil {
-		logging.S.Error(err)
+		logging.Errorf("%s", err.Error())
 	}
 }

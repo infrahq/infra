@@ -110,6 +110,12 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "lastSeen": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -357,6 +363,12 @@
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
+                "lastSeen": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "name": {
                   "type": "string"
                 },
@@ -544,6 +556,10 @@
           "items": {
             "items": {
               "properties": {
+                "authURL": {
+                  "example": "https://example.com/oauth2/v1/authorize",
+                  "type": "string"
+                },
                 "clientID": {
                   "example": "0oapn0qwiQPiMIyR35d6",
                   "type": "string"
@@ -567,6 +583,14 @@
                 "name": {
                   "example": "okta",
                   "type": "string"
+                },
+                "scopes": {
+                  "example": "['openid', 'email']",
+                  "items": {
+                    "example": "['openid', 'email']",
+                    "type": "string"
+                  },
+                  "type": "array"
                 },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
@@ -700,6 +724,10 @@
       },
       "Provider": {
         "properties": {
+          "authURL": {
+            "example": "https://example.com/oauth2/v1/authorize",
+            "type": "string"
+          },
           "clientID": {
             "example": "0oapn0qwiQPiMIyR35d6",
             "type": "string"
@@ -723,6 +751,14 @@
           "name": {
             "example": "okta",
             "type": "string"
+          },
+          "scopes": {
+            "example": "['openid', 'email']",
+            "items": {
+              "example": "['openid', 'email']",
+              "type": "string"
+            },
+            "type": "array"
           },
           "updated": {
             "description": "formatted as an RFC3339 date-time",
@@ -803,7 +839,7 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "0.13.6+dev"
+    "version": "0.0.0"
   },
   "paths": {
     "/api/access-keys": {

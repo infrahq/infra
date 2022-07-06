@@ -183,6 +183,18 @@ func NotName(name string) SelectorFunc {
 	}
 }
 
+func NotProviderKind(kind models.ProviderKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Not("kind = ?", kind)
+	}
+}
+
+func ByProviderKind(kind models.ProviderKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("kind = ?", kind)
+	}
+}
+
 func NotPrivilege(privilege string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("privilege = ?", privilege)

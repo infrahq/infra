@@ -2,15 +2,14 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"embed"
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strings"
 	"time"
 
@@ -18,12 +17,10 @@ import (
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
@@ -35,7 +32,7 @@ import (
 
 type Options struct {
 	Version                  float64
-	TLSCache                 string
+	TLSCache                 string // TODO: move this to TLS.CacheDir
 	EnableTelemetry          bool
 	EnableSignup             bool
 	SessionDuration          time.Duration
@@ -58,6 +55,7 @@ type Options struct {
 
 	Addr ListenerOptions
 	UI   UIOptions
+	TLS  TLSOptions
 }
 
 type ListenerOptions struct {
@@ -71,6 +69,21 @@ type UIOptions struct {
 	ProxyURL types.URL
 	// FS is the filesystem which contains the static files for the UI.
 	FS fs.FS `config:"-"`
+}
+
+type TLSOptions struct {
+	// CA is a PEM encoded certificate for the CA that signed the
+	// certificate, or that will be used to generate a certificate if one was
+	// not provided.
+	CA           types.StringOrFile
+	CAPrivateKey string
+	Certificate  types.StringOrFile
+	PrivateKey   string
+
+	// ACME enables automated certificate management. When set to true a TLS
+	// certificate will be requested from Let's Encrypt, which will be cached
+	// in the TLSCache.
+	ACME bool
 }
 
 type Server struct {
@@ -147,9 +160,6 @@ func New(options Options) (*Server, error) {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	// nolint: errcheck // if logs won't sync there is no way to report this error
-	defer logging.L.Sync()
-
 	if s.tel != nil {
 		repeat.Start(ctx, 1*time.Hour, func(context.Context) {
 			s.tel.EnqueueHeartbeat()
@@ -161,7 +171,7 @@ func (s *Server) Run(ctx context.Context) error {
 		group.Go(s.routines[i].run)
 	}
 
-	logging.S.Infof("starting infra (%s) - http:%s https:%s metrics:%s",
+	logging.Infof("starting infra server (%s) - http:%s https:%s metrics:%s",
 		internal.FullVersion(), s.Addrs.HTTP, s.Addrs.HTTPS, s.Addrs.Metrics)
 
 	<-ctx.Done()
@@ -213,13 +223,14 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	promRegistry := SetupMetrics(s.db)
+	promRegistry := setupMetrics(s.db)
 	router := s.GenerateRoutes(promRegistry)
 
+	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		Addr:     s.options.Addr.Metrics,
 		Handler:  metrics.NewHandler(promRegistry),
-		ErrorLog: logging.StandardErrorLog(),
+		ErrorLog: httpErrorLog,
 	}
 
 	var err error
@@ -231,14 +242,14 @@ func (s *Server) listen() error {
 	plaintextServer := &http.Server{
 		Addr:     s.options.Addr.HTTP,
 		Handler:  router,
-		ErrorLog: logging.StandardErrorLog(),
+		ErrorLog: httpErrorLog,
 	}
 	s.Addrs.HTTP, err = s.setupServer(plaintextServer)
 	if err != nil {
 		return err
 	}
 
-	tlsConfig, err := tlsConfigWithCacheDir(s.options.TLSCache)
+	tlsConfig, err := tlsConfigFromOptions(s.secrets, s.options.TLSCache, s.options.TLS)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
@@ -247,7 +258,7 @@ func (s *Server) listen() error {
 		Addr:      s.options.Addr.HTTPS,
 		TLSConfig: tlsConfig,
 		Handler:   router,
-		ErrorLog:  logging.StandardErrorLog(),
+		ErrorLog:  httpErrorLog,
 	}
 	s.Addrs.HTTPS, err = s.setupServer(tlsServer)
 	if err != nil {
@@ -285,21 +296,6 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 type routine struct {
 	run  func() error
 	stop func()
-}
-
-func tlsConfigWithCacheDir(tlsCacheDir string) (*tls.Config, error) {
-	if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
-		return nil, fmt.Errorf("create tls cache: %w", err)
-	}
-
-	manager := &autocert.Manager{
-		Prompt: autocert.AcceptTOS,
-		Cache:  autocert.DirCache(tlsCacheDir),
-	}
-	tlsConfig := manager.TLSConfig()
-	tlsConfig.GetCertificate = certs.SelfSignedOrLetsEncryptCert(manager)
-
-	return tlsConfig, nil
 }
 
 func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {

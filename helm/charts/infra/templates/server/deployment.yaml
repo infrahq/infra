@@ -48,6 +48,10 @@ spec:
             - name: conf
               mountPath: /etc/infrahq
               readOnly: true
+{{- if (not .Values.server.config.tls) }}
+            - name: tls-ca
+              mountPath: /var/run/secrets/infrahq.com/tls-ca
+{{- end }}
 {{- if .Values.server.persistence.enabled }}
             - name: data
               mountPath: /var/lib/infrahq/server
@@ -89,6 +93,11 @@ spec:
         - name: conf
           configMap:
             name: {{ include "server.fullname" . }}
+{{- if (not .Values.server.config.tls) }}
+        - name: tls-ca
+          secret:
+            secretName: {{ include "server.fullname" . }}-ca
+{{- end }}
 {{- if .Values.server.persistence.enabled }}
         - name: data
           persistentVolumeClaim:

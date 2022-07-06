@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.uber.org/zap/zaptest"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -23,23 +22,12 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = db.Create(&models.Provider{Name: models.InternalInfraProviderName}).Error
-	assert.NilError(t, err)
+	InfraProvider(db)
 
-	setupLogging(t)
+	logging.PatchLogger(t)
 	t.Cleanup(InvalidateCache)
 
 	return db
-}
-
-func setupLogging(t *testing.T) {
-	origL := logging.L
-	logging.L = zaptest.NewLogger(t)
-	logging.S = logging.L.Sugar()
-	t.Cleanup(func() {
-		logging.L = origL
-		logging.S = logging.L.Sugar()
-	})
 }
 
 // dbDrivers returns the list of database drivers to test.

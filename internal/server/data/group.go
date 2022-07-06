@@ -62,7 +62,9 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 
 func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
 	for _, id := range idsToAdd {
-		err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) select ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id).Error
+		// This is effectively an "INSERT OR IGNORE" or "INSERT ... ON CONFLICT ... DO NOTHING" statement which
+		// works across both sqlite and postgres
+		err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id).Error
 		if err != nil {
 			return err
 		}

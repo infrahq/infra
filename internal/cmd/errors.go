@@ -34,7 +34,7 @@ func (e *LoginError) Error() string {
 
 	hostConfig, err := currentHostConfig()
 	if err != nil {
-		logging.S.Debugf("current host config: %v", err)
+		logging.Debugf("current host config: %v", err)
 		return sb.String()
 	}
 

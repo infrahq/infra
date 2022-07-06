@@ -105,6 +105,10 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 	req.Header.Set("Infra-Version", apiVersion)
 	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", apiVersion, clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
 
+	for k, v := range client.Headers {
+		req.Header[k] = v
+	}
+
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
 		urlErr := &url.Error{}
@@ -130,8 +134,10 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 	}
 
 	var resBody Res
-	if err := json.Unmarshal(body, &resBody); err != nil {
-		return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &resBody); err != nil {
+			return nil, fmt.Errorf("parsing json response: %w. partial text: %q", err, partialText(body, 100))
+		}
 	}
 
 	return &resBody, nil
@@ -141,51 +147,21 @@ func get[Res any](client Client, path string, query Query) (*Res, error) {
 	return request[EmptyRequest, Res](client, http.MethodGet, path, query, nil)
 }
 
-func post[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
+func post[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	return request[Req, Res](client, http.MethodPost, path, Query{}, req)
 }
 
-func put[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
+func put[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	return request[Req, Res](client, http.MethodPut, path, Query{}, req)
 }
 
-func patch[Req, Res any](client Client, path string, req *Req) (res *Res, err error) {
+func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	return request[Req, Res](client, http.MethodPatch, path, Query{}, req)
 }
 
 func delete(client Client, path string) error {
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s%s", client.URL, path), nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
-
-	resp, err := client.HTTP.Do(req)
-	if err != nil {
-		urlErr := &url.Error{}
-		if errors.As(err, &urlErr) {
-			if urlErr.Timeout() {
-				return fmt.Errorf("%w: %s", ErrTimeout, err)
-			}
-		}
-		return fmt.Errorf("DELETE %q: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return fmt.Errorf("%w: %s", ErrTimeout, err)
-		}
-		return fmt.Errorf("reading response: %w", err)
-	}
-
-	if err := checkError(req, resp, body); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := request[EmptyRequest, EmptyResponse](client, http.MethodDelete, path, Query{}, nil)
+	return err
 }
 
 func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {

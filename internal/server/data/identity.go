@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
@@ -21,6 +22,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	groupsToBeAdded := slice.Subtract(newGroups, oldGroups)
 
 	pu.Groups = newGroups
+	pu.LastUpdate = time.Now().UTC()
 	if err := save(db, pu); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}

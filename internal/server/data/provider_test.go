@@ -13,7 +13,7 @@ import (
 
 func TestProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com"}
+		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
 
 		err := db.Create(&providerDevelop).Error
 		assert.NilError(t, err)
@@ -35,8 +35,8 @@ func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 func TestCreateProviderDuplicate(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
 		createProviders(t, db, providerDevelop, providerProduction)
@@ -53,8 +53,8 @@ func TestCreateProviderDuplicate(t *testing.T) {
 func TestGetProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
 		createProviders(t, db, providerDevelop, providerProduction)
@@ -69,8 +69,8 @@ func TestGetProvider(t *testing.T) {
 func TestListProviders(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
 		createProviders(t, db, providerDevelop, providerProduction)
@@ -95,8 +95,8 @@ func TestDeleteProviders(t *testing.T) {
 			i                  = 0
 		)
 		setup := func() {
-			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com"}
+			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "dev.okta.com", Kind: models.ProviderKindOkta}
+			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 			i += 2
 
 			err := CreateProvider(db, &providerDevelop)
@@ -153,18 +153,18 @@ func TestDeleteProviders(t *testing.T) {
 func TestRecreateProviderSameDomain(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com"}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com"}
+			providerDevelop    = models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
+			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
 		createProviders(t, db, providerDevelop, providerProduction)
 
 		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-			return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com"})
+			return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta})
 		})
 		assert.NilError(t, err)
 
-		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "dev.okta.com"})
+		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta})
 		assert.NilError(t, err)
 	})
 }

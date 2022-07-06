@@ -1,10 +1,11 @@
 package logging
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
-	"go.uber.org/zap/zapcore"
+	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 )
 
@@ -29,31 +30,19 @@ func TestFiltersOutBearerTokenValue(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run("", func(t *testing.T) {
-			writeSyncer := &testWriterSyncer{}
-
-			logger := newServerLogger(zapcore.InfoLevel, writeSyncer, writeSyncer)
-			logger.Sugar().Info(testCase.Input)
+			b := &bytes.Buffer{}
+			logger := FilteredHTTPLogger{zerolog.New(b)}
+			n, err := logger.Write([]byte(testCase.Input))
+			assert.NilError(t, err)
+			assert.Equal(t, n, len(testCase.Expected))
 
 			m := map[string]interface{}{}
-			err := json.Unmarshal(writeSyncer.data, &m)
-			assert.NilError(t, err, string(writeSyncer.data))
+			err = json.Unmarshal(b.Bytes(), &m)
+			assert.NilError(t, err, b.String())
 
-			msg, ok := m["msg"].(string)
+			msg, ok := m["message"].(string)
 			assert.Assert(t, ok)
 			assert.Equal(t, testCase.Expected, msg)
 		})
 	}
-}
-
-type testWriterSyncer struct {
-	data []byte
-}
-
-func (w *testWriterSyncer) Write(b []byte) (int, error) {
-	w.data = append(w.data, b...)
-	return len(b), nil
-}
-
-func (*testWriterSyncer) Sync() error {
-	return nil
 }

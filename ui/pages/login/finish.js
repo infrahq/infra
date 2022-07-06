@@ -22,15 +22,20 @@ export default function Finish() {
     e.preventDefault()
 
     try {
-      await fetch(`/api/users/${user}`, {
+      const res = await fetch(`/api/users/${user}`, {
         method: 'PUT',
         body: JSON.stringify({ password }),
       })
+
+      if (!res.ok) {
+        throw await res.json()
+      }
+
       await mutate('/api/users/self')
+
       router.replace('/')
     } catch (e) {
-      setError(e.message || 'invalid password')
-      setError('Invalid password')
+      setError(e.message || 'Invalid password')
     }
 
     return false

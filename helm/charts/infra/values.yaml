@@ -531,6 +531,19 @@ server:
     # - name: dev@example.com
     #   password: file:/var/run/secrets/dev@example.com
 
+    # TLS configuration for the API server. Defaults to generating a self-signed CA and
+    # generating certificates from that CA.
+    tls: {}
+
+    # Configure a CA and private key using files
+    # ca: /path/to/ca.crt
+    # caPrivateKey: file:/path/to/ca.key
+
+    # Configure a TLS certificate and private key using files
+    # certificate: /path/to/server.crt
+    # privateKey: file:/path/to/server.key
+
+
 ## Default connector configurations
 connector:
 

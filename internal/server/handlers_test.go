@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -17,13 +18,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+func TestMain(m *testing.M) {
+	// set mode so that test failure output is not filled by gin debug output by default
+	ginutil.SetMode()
+	os.Exit(m.Run())
+}
 
 func adminAccessKey(s *Server) string {
 	for _, id := range s.options.Users {
@@ -411,7 +420,7 @@ func TestListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testProvider := &models.Provider{Name: "mokta"}
+	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta, AuthURL: "https://example.com/v1/auth", Scopes: []string{"openid", "email"}}
 
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
@@ -437,6 +446,8 @@ func TestListProviders(t *testing.T) {
 
 	assert.Equal(t, len(apiProviders.Items), 1)
 	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
+	assert.Equal(t, apiProviders.Items[0].AuthURL, "https://example.com/v1/auth")
+	assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, []string{"openid", "email"}))
 }
 
 // withAdminUser may be used with setupServer to setup the server
@@ -570,7 +581,7 @@ func TestCreateUserAndUpdatePassword(t *testing.T) {
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
-		idp := &models.Provider{Name: "Super Provider"}
+		idp := &models.Provider{Name: "Super Provider", Kind: models.ProviderKindOIDC}
 		err := data.CreateProvider(db, idp)
 		assert.NilError(t, err)
 
@@ -765,8 +776,7 @@ func TestDeleteUser_NoDeleteSelf(t *testing.T) {
 	err := data.CreateIdentity(s.db, testUser)
 	assert.NilError(t, err)
 
-	internalProvider, err := data.GetProvider(s.db, data.ByName(models.InternalInfraProviderName))
-	assert.NilError(t, err)
+	internalProvider := data.InfraProvider(s.db)
 
 	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
 		Name:       "test",
@@ -1393,6 +1403,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 		"url": "cluster.production.example",
 		"ca": "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n"
 	},
+	"lastSeen": null,
 	"resources": ["res1", "res2"],
 	"roles": ["role1", "role2"],
 	"created": "%[1]v",

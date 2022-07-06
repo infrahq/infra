@@ -12,7 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -28,11 +30,8 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = data.CreateProvider(db, &models.Provider{
-		Name:      models.InternalInfraProviderName,
-		CreatedBy: models.CreatedBySystem,
-	})
-	assert.NilError(t, err)
+	// create the provider if it's missing.
+	data.InfraProvider(db)
 
 	return db
 }
@@ -255,4 +254,82 @@ func TestRequireAuthentication(t *testing.T) {
 			verifyFunc(t, c, err)
 		})
 	}
+}
+
+func TestDestinationMiddleware(t *testing.T) {
+	db := setupDB(t)
+
+	router := gin.New()
+	router.Use(
+		DatabaseMiddleware(db),
+		AuthenticationMiddleware(),
+		DestinationMiddleware(),
+	)
+
+	connector := models.Identity{Name: "connector"}
+	err := data.CreateIdentity(db, &connector)
+	assert.NilError(t, err)
+
+	grant := models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
+		Privilege: models.InfraConnectorRole,
+		Resource:  "infra",
+	}
+	err = data.CreateGrant(db, &grant)
+	assert.NilError(t, err)
+
+	token := models.AccessKey{
+		IssuedFor:  connector.ID,
+		ProviderID: data.InfraProvider(db).ID,
+		ExpiresAt:  time.Now().Add(time.Hour).UTC(),
+	}
+	secret, err := data.CreateAccessKey(db, &token)
+	assert.NilError(t, err)
+
+	router.GET("/good", func(c *gin.Context) {
+		assert.Equal(t, c.Request.Method, http.MethodGet)
+		assert.Equal(t, c.Request.URL.Path, "/good")
+	})
+
+	t.Run("good", func(t *testing.T) {
+		destination := &models.Destination{Name: t.Name(), UniqueID: t.Name()}
+		err := data.CreateDestination(db, destination)
+		assert.NilError(t, err)
+
+		r := httptest.NewRequest("GET", "/good", nil)
+		r.Header.Add("Infra-Destination", destination.UniqueID)
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
+		assert.NilError(t, err)
+		assert.DeepEqual(t, destination.LastSeenAt, time.Now(), opt.TimeWithThreshold(time.Second))
+	})
+
+	t.Run("good no destination header", func(t *testing.T) {
+		destination := &models.Destination{Name: t.Name(), UniqueID: t.Name()}
+		err := data.CreateDestination(db, destination)
+		assert.NilError(t, err)
+
+		r := httptest.NewRequest("GET", "/good", nil)
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
+		assert.NilError(t, err)
+		assert.Equal(t, destination.LastSeenAt, time.Time{})
+	})
+
+	t.Run("good no destination", func(t *testing.T) {
+		r := httptest.NewRequest("GET", "/good", nil)
+		r.Header.Add("Infra-Destination", "nonexistent")
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+
+		_, err := data.GetDestination(db, data.ByOptionalUniqueID("nonexistent"))
+		assert.ErrorIs(t, err, internal.ErrNotFound)
+	})
 }

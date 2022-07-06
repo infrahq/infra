@@ -18,6 +18,7 @@
 /internal/server/openapi.go @ssoroka
 /internal/server/routes.go @ssoroka
 /internal/server/validator.go @ssoroka
+/internal/server/testdata/openapi3.json @ssoroka @hoyyeva @dnephin @jmorganca @pdevine
 
 pki/ @ssoroka @dnephin
 ui/ @FSHA @hoyyeva @jmorganca
@@ -25,7 +26,6 @@ uid/ @ssoroka @dnephin
 
 docs/ @FSHA @technovangelist @dnephin @jmorganca @pdevine @mchiang0610
 /docs/reference/helm-chart.md @mxyng @FSHA @technovangelist @dnephin @jmorganca @pdevine @mchiang0610
-/docs/api/openapi3.json @ssoroka @hoyyeva @dnephin @jmorganca @pdevine
 
 grants.go @ssoroka
 grant.go @ssoroka
