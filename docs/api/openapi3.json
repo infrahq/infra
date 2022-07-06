@@ -302,29 +302,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },
@@ -395,29 +387,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },
@@ -480,29 +464,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },
@@ -541,29 +517,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },
@@ -619,29 +587,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },
@@ -695,29 +655,21 @@
             },
             "type": "array"
           },
-          "pagination_info": {
-            "properties": {
-              "has_next": {
-                "type": "boolean"
-              },
-              "limit": {
-                "format": "int",
-                "type": "integer"
-              },
-              "page": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_count": {
-                "format": "int",
-                "type": "integer"
-              },
-              "total_pages": {
-                "format": "int",
-                "type": "integer"
-              }
-            },
-            "type": "object"
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
           }
         }
       },

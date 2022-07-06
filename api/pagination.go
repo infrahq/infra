@@ -6,10 +6,8 @@ type PaginationRequest struct {
 }
 
 type PaginationResponse struct {
-	Page  int `json:"page,omitempty"`
-	Limit int `json:"limit,omitempty"`
-
-	TotalCount int  `json:"totalCount,omitempty"`
-	TotalPages int  `json:"totalPages,omitempty"`
-	HasNext    bool `json:"hasNext,omitempty"`
+	Page       int `json:"page,omitempty"`
+	Limit      int `json:"limit,omitempty"`
+	TotalPages int `json:"totalPages,omitempty"`
+	TotalCount int `json:"totalCount,omitempty"`
 }

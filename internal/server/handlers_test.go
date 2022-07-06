@@ -119,7 +119,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: "me@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -139,7 +139,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -163,7 +163,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -191,10 +191,9 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "admin@example.com"},
 						{Name: "connector"},
 					},
-					PaginationInfo: api.PaginationResponse{
+					PaginationResponse: api.PaginationResponse{
 						Page:       2,
 						Limit:      2,
-						HasNext:    true,
 						TotalPages: 4,
 						TotalCount: 7,
 					},
@@ -216,7 +215,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: anotherID.Name},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
