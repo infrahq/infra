@@ -34,14 +34,13 @@ func TestListCmd(t *testing.T) {
 			{User: "manygrants@example.com", Resource: "moon", Role: "inhabitant"},
 		},
 	}
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	setupServerTLSOptions(t, &opts)
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()

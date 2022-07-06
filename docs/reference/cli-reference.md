@@ -520,6 +520,33 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+### `infra providers edit`
+
+Update a provider
+
+```
+infra providers edit PROVIDER [flags]
+```
+
+#### Examples
+
+```
+# Set a new client secret for a connected provider
+$ infra providers edit okta --client-secret
+```
+
+#### Options
+
+```
+      --client-secret string   Set a new client secret
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
 ### `infra providers remove`
 
 Disconnect an identity provider

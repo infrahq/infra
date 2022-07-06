@@ -110,6 +110,12 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "lastSeen": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -352,6 +358,12 @@
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "lastSeen": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
                   "type": "string"
                 },
                 "name": {

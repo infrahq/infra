@@ -142,6 +142,7 @@ tls:
   caPrivateKey: file:ca.key
   certificate: testdata/server.crt
   privateKey: file:server.key
+  ACME: true
 
 keys:
   - kind: vault
@@ -223,6 +224,7 @@ users:
 						CAPrivateKey: "file:ca.key",
 						Certificate:  "-----BEGIN CERTIFICATE-----\nnot a real server certificate\n-----END CERTIFICATE-----\n",
 						PrivateKey:   "file:server.key",
+						ACME:         true,
 					},
 
 					Keys: []server.KeyProvider{
@@ -319,6 +321,11 @@ func TestServerCmd_WithSecretsConfig(t *testing.T) {
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"
         metrics: "127.0.0.1:0"
+
+      tls:
+        ca: testdata/pki/localhost.crt
+        caPrivateKey: file:testdata/pki/localhost.key
+
       secrets:
         - kind: env
           name: base64env

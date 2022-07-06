@@ -4,8 +4,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 
-import { providers } from '../../../lib/providers'
-
 import Fullscreen from '../../../components/layouts/fullscreen'
 import ErrorMessage from '../../../components/error-message'
 
@@ -22,11 +20,12 @@ export default function ProvidersAddDetails() {
   const [errors, setErrors] = useState({})
   const [name, setName] = useState(kind)
 
-  const provider = providers.find(p => p.name.toLowerCase() === kind)
+  function docLink() {
+    if (kind == 'azure') {
+      return 'https://infrahq.com/docs/identity-providers/azure-ad'
+    }
 
-  if (!provider) {
-    router.replace('/providers/add')
-    return null
+    return 'https://infrahq.com/docs/identity-providers/' + kind
   }
 
   async function onSubmit(e) {
@@ -115,7 +114,7 @@ export default function ProvidersAddDetails() {
           <a
             className='text-violet-100 underline'
             target='_blank'
-            href='https://infrahq.com/docs/identity-providers/okta'
+            href={docLink()}
             rel='noreferrer'
           >
             learn more

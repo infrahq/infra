@@ -37,9 +37,17 @@ function Details({ destination, onDelete }) {
     parent(resource) ? `/api/grants?resource=${parent(resource)}` : null
   )
 
-  const connectable = grants?.find(
+  const showConnect = grants?.find(
     g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
   )
+
+  const usergrants = [...(grants || []), ...(inherited || [])]?.filter(
+    g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
+  )
+  const userroles = [
+    ...new Set(usergrants?.sort(sortByPrivilege)?.map(ug => ug.privilege)),
+  ]
+
   const empty =
     grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
 
@@ -102,6 +110,10 @@ function Details({ destination, onDelete }) {
                       mutate({ items: grants.filter(x => x.id !== g.id) })
                     }}
                     onChange={async privilege => {
+                      if (privilege === g.privilege) {
+                        return
+                      }
+
                       const res = await fetch('/api/grants', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -152,12 +164,12 @@ function Details({ destination, onDelete }) {
           </div>
         </section>
       )}
-      {connectable && (
+      {showConnect && (
         <section>
           <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
             Connect
           </h3>
-          <p className='my-4 text-2xs'>
+          <p className='my-4 text-2xs leading-normal'>
             Connect to this {destination?.kind || 'resource'} via the{' '}
             <a
               target='_blank'
@@ -167,6 +179,9 @@ function Details({ destination, onDelete }) {
             >
               Infra CLI
             </a>
+            . You have{' '}
+            <span className='font-semibold'>{userroles.join(', ')}</span>{' '}
+            access.
           </p>
           <pre className='overflow-auto rounded-md bg-gray-900 px-4 py-3 text-2xs leading-normal text-gray-300'>
             infra login {window.location.host}

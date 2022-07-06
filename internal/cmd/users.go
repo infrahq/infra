@@ -144,7 +144,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(users)
+				jsonOutput, err := json.Marshal(users.Items)
 				if err != nil {
 					return err
 				}

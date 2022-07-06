@@ -133,6 +133,9 @@ func Run(ctx context.Context, options Options) error {
 		HTTP: http.Client{
 			Transport: transport,
 		},
+		Headers: http.Header{
+			"Infra-Destination": {chksm},
+		},
 	}
 
 	ctx, cancel := context.WithCancel(ctx)

@@ -536,7 +536,7 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 func promptAccessKeyLogin(cli *CLI) (string, error) {
 	var accessKey string
 	err := survey.AskOne(
-		&survey.Password{Message: "Access Key:"},
+		&survey.Password{Message: "Access key:"},
 		&accessKey,
 		cli.surveyIO,
 		survey.WithValidator(survey.Required),
@@ -592,13 +592,17 @@ func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	formatTime := func(t time.Time) string {
 		return fmt.Sprintf("%v (%v)", HumanTime(t, "none"), t.Format(time.RFC1123))
 	}
+	title := "Certificate"
+	if cert.IsCA {
+		title = "Certificate Authority"
+	}
 
 	// TODO: improve this message
 	// TODO: use color/bold to highlight important parts
 	fmt.Fprintf(cli.Stderr, `
 The certificate presented by the server is not trusted by your operating system.
 
-Certificate
+%[6]v
 
 Subject: %[1]s
 Issuer: %[2]s
@@ -608,7 +612,7 @@ Validity
   Not After:  %[4]v
 
 SHA256 Fingerprint
-  %[5]s
+  %[5]v
 
 Compare the SHA256 fingerprint to the one provided by your administrator to
 manually verify the certificate can be trusted.
@@ -619,6 +623,7 @@ manually verify the certificate can be trusted.
 		formatTime(cert.NotBefore),
 		formatTime(cert.NotAfter),
 		certs.Fingerprint(cert.Raw),
+		title,
 	)
 	confirmPrompt := &survey.Select{
 		Message: "Options:",

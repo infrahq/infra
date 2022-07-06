@@ -36,6 +36,12 @@ data:
 {{- end }}
 {{- end }}
 
+{{- if not .Values.server.config.tls }}
+    tls:
+      ca: "/var/run/secrets/infrahq.com/tls-ca/ca.crt"
+      caPrivateKey: "file:/var/run/secrets/infrahq.com/tls-ca/ca.key"
+{{- end }}
+
     providers:
 {{- .Values.server.additionalProviders | default list | concat .Values.server.config.providers | uniq | toYaml | nindent 6 }}
 
