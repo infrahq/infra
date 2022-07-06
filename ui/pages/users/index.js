@@ -1,7 +1,7 @@
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import { useState } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
+import { useTable } from 'react-table'
+import useSWR from 'swr'
 import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
@@ -51,17 +51,13 @@ const columns = [
   },
 ]
 
-function Details({ user, admin }) {
+function Details({ user, admin, onDelete }) {
   const { id, name } = user
   const { data: auth } = useSWR('/api/users/self')
-  const router = useRouter()
-  const { mutate } = useSWRConfig()
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
-  const { data: { items } = {}, mutateGrants } = useSWR(
-    `/api/grants?user=${id}`
-  )
+  const { data: { items } = {}, mutate } = useSWR(`/api/grants?user=${id}`)
   const { data: { items: groups } = {} } = useSWR(`/api/groups?userID=${id}`)
   const { data: groupGrantDatas } = useSWR(
     () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
@@ -80,10 +76,6 @@ function Details({ user, admin }) {
     groups,
     groups?.length ? inherited : true,
   ].some(x => !x)
-
-  if (loading) {
-    return null
-  }
 
   return (
     <div className='flex flex-1 flex-col space-y-6'>
@@ -105,7 +97,7 @@ function Details({ user, admin }) {
                 direction='left'
                 onRemove={async () => {
                   await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                  mutateGrants({ items: grants.filter(x => x.id !== g.id) })
+                  mutate({ items: grants.filter(x => x.id !== g.id) })
                 }}
                 onChange={async privilege => {
                   const res = await fetch('/api/grants', {
@@ -119,7 +111,7 @@ function Details({ user, admin }) {
                   // delete old grant
                   await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
 
-                  mutateGrants({
+                  mutate({
                     items: [
                       ...grants.filter(f => f.id !== g.id),
                       await res.json(),
@@ -148,7 +140,7 @@ function Details({ user, admin }) {
               </div>
             </div>
           ))}
-          {!grants?.length && !inherited?.length && (
+          {!grants?.length && !inherited?.length && !loading && (
             <div className='mt-6 text-2xs italic text-gray-400'>No access</div>
           )}
         </section>
@@ -185,21 +177,7 @@ function Details({ user, admin }) {
           setOpen={setDeleteModalOpen}
           onSubmit={async () => {
             setDeleteModalOpen(false)
-
-            router.replace('/users')
-
-            await mutate(
-              '/api/users',
-              async ({ items: users } = { items: [] }) => {
-                fetch(`/api/users/${id}`, {
-                  method: 'DELETE',
-                })
-
-                return {
-                  items: users?.filter(u => u?.id !== id),
-                }
-              }
-            )
+            onDelete()
           }}
           title='Remove User'
           message={
@@ -215,20 +193,16 @@ function Details({ user, admin }) {
 }
 
 export default function Users() {
-  const { data: { items } = {}, error } = useSWR('/api/users')
+  const { data: { items } = {}, error, mutate } = useSWR('/api/users')
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
-
-  const router = useRouter()
+  const table = useTable({
+    columns,
+    data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+  })
+  const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!users && !error)
-  const { slug: [id] = [] } = router.query
-
-  const user = users?.find(u => u.id === id)
-  if (id && users && !user) {
-    router.replace('/users')
-    return null
-  }
 
   return (
     <>
@@ -250,16 +224,11 @@ export default function Users() {
             ) : (
               <div className='flex min-h-0 flex-1 flex-col overflow-y-scroll px-6'>
                 <Table
-                  columns={columns}
-                  data={
-                    users?.sort((a, b) =>
-                      b.created?.localeCompare(a.created)
-                    ) || []
-                  }
+                  {...table}
                   getRowProps={row => ({
-                    onClick: () => router.push(`/users/${row.original.id}`),
+                    onClick: () => setSelected(row.original),
                     className:
-                      id === row.original.id
+                      selected?.id === row.original.id
                         ? 'bg-gray-900/50'
                         : 'cursor-pointer',
                   })}
@@ -276,13 +245,29 @@ export default function Users() {
               </div>
             )}
           </div>
-          {id && (
+          {selected && (
             <Sidebar
-              handleClose={() => router.push('/users')}
-              title={user?.name}
-              profileIcon={user?.name[0]}
+              handleClose={() => setSelected(null)}
+              title={selected.name}
+              profileIcon={selected.name[0]}
             >
-              <Details user={users?.find(u => u.id === id)} admin={admin} />
+              <Details
+                user={selected}
+                admin={admin}
+                onDelete={() => {
+                  mutate(async ({ items: users } = { items: [] }) => {
+                    await fetch(`/api/users/${selected.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    return {
+                      items: users?.filter(u => u?.id !== selected.id),
+                    }
+                  })
+
+                  setSelected(null)
+                }}
+              />
             </Sidebar>
           )}
         </div>

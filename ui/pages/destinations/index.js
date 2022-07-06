@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
@@ -292,6 +291,7 @@ const columns = [
             </span>
           )}
           <span
+            {...row.getToggleRowExpandedProps()}
             className={`flex items-center ${row.depth === 0 ? 'h-6' : ''} ${
               row.canExpand ? '' : 'pl-9'
             }`}
@@ -321,8 +321,7 @@ export default function Destinations() {
     mutate,
   } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
-  const router = useRouter()
-  const { slug: [id, resource] = [] } = router.query
+  const [selected, setSelected] = useState(null)
 
   const data =
     destinations
@@ -333,44 +332,15 @@ export default function Destinations() {
         resource: d.name,
 
         // Create "fake" destinations as subrows from resources
-        subRows:
-          d.resources?.map(r => ({
-            parent: d.id,
-            name: r,
-            resource: `${d.name}.${r}`,
-            kind: 'namespace',
-            roles: d.roles?.filter(r => r !== 'cluster-admin'),
-          })) || [],
+        subRows: d.resources?.map(r => ({
+          name: r,
+          resource: `${d.name}.${r}`,
+          kind: 'namespace',
+          roles: d.roles?.filter(r => r !== 'cluster-admin'),
+        })),
       })) || []
 
   const loading = adminLoading || !destinations
-
-  const initialState = {
-    expanded: {},
-  }
-
-  let destination = null
-  for (const [i, d] of data.entries()) {
-    if (d.id === id && !resource) {
-      destination = d
-    }
-
-    for (const sr of d.subRows) {
-      if (sr.parent === id && sr.name === resource) {
-        initialState.expanded[`${i}`] = true
-        destination = sr
-      }
-    }
-  }
-
-  if (!destinations || adminLoading) {
-    return null
-  }
-
-  if (id && !destination) {
-    router.replace('/destinations')
-    return null
-  }
 
   return (
     <>
@@ -394,23 +364,13 @@ export default function Destinations() {
                 <Table
                   columns={columns}
                   data={data}
-                  initialState={initialState}
                   getRowProps={row => ({
                     onClick: () => {
-                      if (row.original.parent) {
-                        router.push(
-                          `/destinations/${row.original.parent}/${row.original.name}`
-                        )
-
-                        return
-                      }
-
-                      router.push(`/destinations/${row.original.id}`)
+                      setSelected(row.original)
+                      row.toggleRowExpanded(true)
                     },
                     className:
-                      (row.original.id === id && id && !resource) ||
-                      (row.original.parent === id &&
-                        row.original.name === resource)
+                      selected?.resource === row.original.resource
                         ? 'bg-gray-900/50'
                         : 'cursor-pointer',
                   })}
@@ -427,20 +387,20 @@ export default function Destinations() {
               </div>
             )}
           </div>
-          {id && (
+          {selected && (
             <Sidebar
-              handleClose={() => router.push('/destinations')}
-              title={destination?.name}
+              handleClose={() => setSelected(null)}
+              title={selected.resource}
               iconPath='/destinations.svg'
             >
               <Details
-                destination={destination}
+                destination={selected}
                 onDelete={() => {
-                  fetch(`/api/destinations/${id}`, {
+                  fetch(`/api/destinations/${selected.id}`, {
                     method: 'DELETE',
                   })
-                  mutate(destinations.filter(d => d?.id !== id))
-                  router.replace('/destinations')
+                  mutate(destinations.filter(d => d?.id !== selected.id))
+                  setSelected(null)
                 }}
               />
             </Sidebar>
