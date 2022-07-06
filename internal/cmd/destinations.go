@@ -51,7 +51,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(destinations)
+				jsonOutput, err := json.Marshal(destinations.Items)
 				if err != nil {
 					return err
 				}
