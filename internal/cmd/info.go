@@ -17,7 +17,7 @@ func newInfoCmd(cli *CLI) *cobra.Command {
 		Args:  NoArgs,
 		Group: "Other commands:",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := mustBeLoggedIn(cli); err != nil {
+			if err := mustBeLoggedIn(); err != nil {
 				return err
 			}
 			return info(cli)

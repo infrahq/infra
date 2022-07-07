@@ -20,7 +20,7 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
 			}
-			return mustBeLoggedIn(cli)
+			return mustBeLoggedIn()
 		},
 	}
 

@@ -34,8 +34,8 @@ func Run(ctx context.Context, args ...string) error {
 	return cmd.ExecuteContext(ctx)
 }
 
-func mustBeLoggedIn(cli *CLI) error {
-	if _, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+func mustBeLoggedIn() error {
+	if _, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
 		// user doesn't need to log in if supplying an access key
 		return nil
 	}
@@ -86,7 +86,7 @@ func defaultAPIClient() (*api.Client, error) {
 	server := config.Host
 	accessKey := config.AccessKey
 
-	if envAccessKey, isSet := os.LookupEnv("INFRA_ACCESS_KEY"); isSet {
+	if envAccessKey, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
 		accessKey = envAccessKey
 	}
 
@@ -149,7 +149,7 @@ $ infra use development.kube-system`,
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
 			}
-			return mustBeLoggedIn(cli)
+			return mustBeLoggedIn()
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			destination := args[0]
