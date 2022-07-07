@@ -47,6 +47,9 @@ jobs:
           for ASSET in infra-checksums.txt *.zip *.deb *.rpm; do
             curl -fs -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" --data-binary @$ASSET https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $ASSET)
           done
+        if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
+      - run: |
           for PACKAGE in *.deb *.rpm; do
             curl -fs -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
           done
