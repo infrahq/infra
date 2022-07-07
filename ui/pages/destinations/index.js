@@ -262,7 +262,7 @@ const columns = [
   {
     Header: 'Name',
     accessor: 'name',
-    width: '67%',
+    width: '70%',
     Cell: ({ row, value }) => {
       return (
         <div className='flex items-center py-2'>
@@ -305,11 +305,32 @@ const columns = [
   {
     Header: 'Kind',
     accessor: v => v,
-    width: '33%',
+    width: '15%',
     Cell: ({ value }) => (
       <span className='rounded bg-gray-800 px-2 py-0.5 text-gray-400'>
         {value.kind}
       </span>
+    ),
+  },
+  {
+    Header: 'Status',
+    accessor: v => v,
+    width: '15%',
+    Cell: ({ value }) => (
+      <div className='flex items-center py-2'>
+        {value.kind === 'cluster' && (
+          <>
+            <div
+              className={`h-2 w-2 rounded-full ${
+                value.connected ? 'bg-green-400' : 'bg-gray-400'
+              }`}
+            />
+            <span className='px-2 text-gray-400'>
+              {value.connected ? 'Connected' : 'Disconnected'}
+            </span>
+          </>
+        )}
+      </div>
     ),
   },
 ]
@@ -389,7 +410,7 @@ export default function Destinations() {
           </div>
           {selected && (
             <Sidebar
-              handleClose={() => setSelected(null)}
+              onClose={() => setSelected(null)}
               title={selected.resource}
               iconPath='/destinations.svg'
             >

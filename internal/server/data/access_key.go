@@ -15,6 +15,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+var (
+	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
+	ErrAccessKeyDeadlineExceeded = fmt.Errorf("%w: extension deadline exceeded", ErrAccessKeyExpired)
+)
+
 func secretChecksum(secret string) []byte {
 	chksm := sha256.Sum256([]byte(secret))
 	return chksm[:]
@@ -77,8 +82,8 @@ func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db *gorm.DB, selectors ...SelectorFunc) ([]models.AccessKey, error) {
-	return list[models.AccessKey](db, selectors...)
+func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+	return list[models.AccessKey](db, p, selectors...)
 }
 
 func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
@@ -90,7 +95,7 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, selectors...)
+	toDelete, err := list[models.AccessKey](db, &models.Pagination{}, selectors...)
 	if err != nil {
 		return err
 	}
@@ -120,12 +125,12 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 	}
 
 	if time.Now().UTC().After(t.ExpiresAt) {
-		return nil, fmt.Errorf("token expired")
+		return nil, ErrAccessKeyExpired
 	}
 
 	if !t.ExtensionDeadline.IsZero() {
 		if time.Now().UTC().After(t.ExtensionDeadline) {
-			return nil, fmt.Errorf("token extension deadline exceeded")
+			return nil, ErrAccessKeyDeadlineExceeded
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)

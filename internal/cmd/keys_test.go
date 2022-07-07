@@ -54,6 +54,7 @@ func TestKeysAddCmd(t *testing.T) {
 			resp.WriteHeader(http.StatusOK)
 			err = json.NewEncoder(resp).Encode(&api.CreateAccessKeyResponse{
 				AccessKey: "the-access-key",
+				Name:      "the-key-name",
 			})
 			assert.Check(t, err)
 			requestCh <- createRequest
@@ -72,7 +73,7 @@ func TestKeysAddCmd(t *testing.T) {
 	t.Run("all flags", func(t *testing.T) {
 		ch := setup(t)
 
-		ctx := context.Background()
+		ctx, bufs := PatchCLI(context.Background())
 		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "my-user")
 		assert.NilError(t, err)
 
@@ -84,17 +85,19 @@ func TestKeysAddCmd(t *testing.T) {
 			ExtensionDeadline: api.Duration(5 * time.Hour),
 		}
 		assert.DeepEqual(t, expected, req)
+		assert.Equal(t, withNewline(bufs.Stdout.String()), expectedKeysAddOutput)
 	})
 
 	t.Run("automatic name", func(t *testing.T) {
 		ch := setup(t)
 
-		ctx := context.Background()
+		ctx, bufs := PatchCLI(context.Background())
 		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
 		assert.Equal(t, req.Name, "") // filled by server
+		assert.Equal(t, withNewline(bufs.Stdout.String()), expectedKeysAddOutput)
 	})
 
 	t.Run("without required arguments", func(t *testing.T) {
@@ -102,6 +105,20 @@ func TestKeysAddCmd(t *testing.T) {
 		assert.ErrorContains(t, err, `"infra keys add" requires exactly 1 argument`)
 		assert.ErrorContains(t, err, `Usage:  infra keys add USER`)
 	})
+}
+
+// expectedKeysAddOutput can be updated automatically by running tests with -update
+var expectedKeysAddOutput = `
+Issued access key "the-key-name" for "my-user"
+This key will expire in 400 hours
+
+Key: the-access-key
+`
+
+// withNewline adds a preceding newline so that expected output that is managed
+// in golden variables formats nicely.
+func withNewline(v string) string {
+	return "\n" + v
 }
 
 func requestMatches(req *http.Request, method string, path string) bool {

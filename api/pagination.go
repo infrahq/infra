@@ -6,8 +6,8 @@ type PaginationRequest struct {
 }
 
 type PaginationResponse struct {
-	Page  int `json:"page,omitempty"`
-	Limit int `json:"limit,omitempty"`
-
-	//TODO: add some indication of number of records/pages or if a next page exists
+	Page       int `json:"page,omitempty"`
+	Limit      int `json:"limit,omitempty"`
+	TotalPages int `json:"totalPages,omitempty"`
+	TotalCount int `json:"totalCount,omitempty"`
 }

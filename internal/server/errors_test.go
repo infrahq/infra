@@ -42,6 +42,14 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
+			err:    data.ErrAccessKeyExpired,
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized: " + data.ErrAccessKeyExpired.Error()},
+		},
+		{
+			err:    data.ErrAccessKeyDeadlineExceeded,
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized: " + data.ErrAccessKeyDeadlineExceeded.Error()},
+		},
+		{
 			err: access.AuthorizationError{
 				Resource:      "provider",
 				Operation:     "create",
@@ -68,7 +76,7 @@ func TestSendAPIError(t *testing.T) {
 			},
 		},
 		{
-			err: validate.Struct(struct {
+			err: pgValidate.Struct(struct {
 				Email string `validate:"required,email" json:"email"`
 			}{}),
 			result: api.Error{

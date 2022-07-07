@@ -386,6 +386,118 @@ $ infra users remove janedoe@example.com
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+### `infra groups add`
+
+Create a group
+
+```
+infra groups add GROUP [flags]
+```
+
+#### Examples
+
+```
+# Create a group
+$ infra groups add Engineering
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups adduser`
+
+Add a user to a group
+
+```
+infra groups adduser USER GROUP [flags]
+```
+
+#### Examples
+
+```
+# Add a user to a group
+$ infra groups adduser johndoe@example.com Engineering
+
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups list`
+
+List groups
+
+```
+infra groups list [flags]
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups remove`
+
+Delete a group
+
+```
+infra groups remove GROUP [flags]
+```
+
+#### Examples
+
+```
+# Delete a group
+$ infra groups remove Engineering
+```
+
+#### Options
+
+```
+      --force   Exit successfully even if the group does not exist
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups removeuser`
+
+Remove a user from a group
+
+```
+infra groups removeuser USER GROUP [flags]
+```
+
+#### Examples
+
+```
+# Remove a user from a group
+$ infra groups removeuser johndoe@example.com Engineering
+
+```
+
+#### Options
+
+```
+      --force   Exit successfully even if the user or group does not exist
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
 ### `infra keys list`
 
 List access keys

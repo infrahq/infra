@@ -7,8 +7,10 @@ import { PlusIcon } from '@heroicons/react/outline'
 import RoleSelect from './role-select'
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
-  const { data: { items: users } = { items: [] } } = useSWR('/api/users')
-  const { data: { items: groups } = { items: [] } } = useSWR('/api/groups')
+  const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
+    useSWR('/api/users')
+  const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
+    useSWR('/api/groups')
 
   const [role, setRole] = useState(roles?.[0])
   const [query, setQuery] = useState('')
@@ -44,6 +46,10 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
           className='relative flex-1'
           value={selected?.name}
           onChange={setSelected}
+          onFocus={() => {
+            mutateUsers()
+            mutateGroups()
+          }}
         >
           <Combobox.Input
             className='relative w-full bg-transparent py-3 pr-2 text-xs placeholder:italic focus:outline-none disabled:opacity-30'

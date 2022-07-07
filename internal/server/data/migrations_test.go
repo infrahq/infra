@@ -26,7 +26,7 @@ func TestMigration_202204111503(t *testing.T) {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	ids, err := ListIdentities(db, ByName("steven@example.com"))
+	ids, err := ListIdentities(db, &models.Pagination{}, ByName("steven@example.com"))
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(ids) == 1)
@@ -164,6 +164,7 @@ func TestMigration_AddKindToProvider(t *testing.T) {
 	}
 }
 
+// this test does an external call to example.okta.com, if it fails check your network connection
 func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
 	for _, driver := range dbDrivers(t) {
 		t.Run(driver.Name(), func(t *testing.T) {

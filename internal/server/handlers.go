@@ -30,13 +30,13 @@ type API struct {
 }
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	pg := models.RequestToPagination(r.PaginationRequest)
-	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, pg)
+	p := models.RequestToPagination(r.PaginationRequest)
+	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(users, models.PaginationToResponse(pg), func(identity models.Identity) api.User {
+	result := api.NewListResponse(users, models.PaginationToResponse(p), func(identity models.Identity) api.User {
 		return *identity.ToAPI()
 	})
 
@@ -65,7 +65,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, user.Name, 0, nil, models.Pagination{Limit: 2})
+	identities, err := access.ListIdentities(c, user.Name, 0, nil, &models.Pagination{Limit: 2})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
@@ -131,13 +131,13 @@ func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.Li
 }
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
-	pg := models.RequestToPagination(r.PaginationRequest)
-	groups, err := access.ListGroups(c, r.Name, r.UserID, pg)
+	p := models.RequestToPagination(r.PaginationRequest)
+	groups, err := access.ListGroups(c, r.Name, r.UserID, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(groups, models.PaginationToResponse(pg), func(group models.Group) api.Group {
+	result := api.NewListResponse(groups, models.PaginationToResponse(p), func(group models.Group) api.Group {
 		return *group.ToAPI()
 	})
 
@@ -182,13 +182,13 @@ func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupReques
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []models.ProviderKind{models.ProviderKindInfra}
-	pg := models.RequestToPagination(r.PaginationRequest)
-	providers, err := access.ListProviders(c, r.Name, exclude, pg)
+	p := models.RequestToPagination(r.PaginationRequest)
+	providers, err := access.ListProviders(c, r.Name, exclude, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(providers, models.PaginationToResponse(pg), func(provider models.Provider) api.Provider {
+	result := api.NewListResponse(providers, models.PaginationToResponse(p), func(provider models.Provider) api.Provider {
 		return *provider.ToAPI()
 	})
 
@@ -276,13 +276,13 @@ func (a *API) DeleteProvider(c *gin.Context, r *api.Resource) (*api.EmptyRespons
 }
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
-	pg := models.RequestToPagination(r.PaginationRequest)
-	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, pg)
+	p := models.RequestToPagination(r.PaginationRequest)
+	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(destinations, models.PaginationToResponse(pg), func(destination models.Destination) api.Destination {
+	result := api.NewListResponse(destinations, models.PaginationToResponse(p), func(destination models.Destination) api.Destination {
 		return *destination.ToAPI()
 	})
 
@@ -360,13 +360,13 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	pg := models.RequestToPagination(r.PaginationRequest)
-	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, pg)
+	p := models.RequestToPagination(r.PaginationRequest)
+	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(accessKeys, models.PaginationToResponse(pg), func(accessKey models.AccessKey) api.AccessKey {
+	result := api.NewListResponse(accessKeys, models.PaginationToResponse(p), func(accessKey models.AccessKey) api.AccessKey {
 		return *accessKey.ToAPI()
 	})
 
@@ -405,7 +405,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
 	var subject uid.PolymorphicID
-	pg := models.RequestToPagination(r.PaginationRequest)
+	p := models.RequestToPagination(r.PaginationRequest)
 	switch {
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
@@ -413,12 +413,12 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, pg)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(grants, models.PaginationToResponse(pg), func(grant models.Grant) api.Grant {
+	result := api.NewListResponse(grants, models.PaginationToResponse(p), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
 	})
 
@@ -475,7 +475,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, models.Pagination{})
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, &models.Pagination{})
 		if err != nil {
 			return nil, err
 		}

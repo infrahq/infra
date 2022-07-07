@@ -11,6 +11,11 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
+const (
+	DestinationStatusConnected    = "Connected"
+	DestinationStatusDisconnected = "Disconnected"
+)
+
 func newDestinationsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "destinations",
@@ -65,15 +70,24 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				cli.Output(string(yamlOutput))
 			default:
 				type row struct {
-					Name string `header:"NAME"`
-					URL  string `header:"URL"`
+					Name     string `header:"NAME"`
+					URL      string `header:"URL"`
+					Status   string `header:"STATUS"`
+					LastSeen string `header:"LAST SEEN"`
 				}
 
 				var rows []row
 				for _, d := range destinations.Items {
+					status := DestinationStatusDisconnected
+					if d.Connected {
+						status = DestinationStatusConnected
+					}
+
 					rows = append(rows, row{
-						Name: d.Name,
-						URL:  d.Connection.URL,
+						Name:     d.Name,
+						URL:      d.Connection.URL,
+						Status:   status,
+						LastSeen: HumanTime(d.LastSeen.Time(), "never"),
 					})
 				}
 				if len(rows) > 0 {

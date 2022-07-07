@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -16,22 +15,27 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 )
 
-var (
-	pathIDReplacer            = regexp.MustCompile(`:\w+`)
-	funcPartialNameToTagNames = map[string]string{
-		"Grant":       "Grants",
-		"User":        "Users",
-		"Group":       "Groups",
-		"AccessKey":   "Authentication",
-		"Provider":    "Providers",
-		"Destination": "Destinations",
-		"Token":       "Destinations",
-		"Login":       "Authentication",
-		"Logout":      "Authentication",
-	}
-)
+var pathIDReplacer = regexp.MustCompile(`:\w+`)
+
+// funcPartialNameToTagNames is a sorted (alphabetically by tag name) list of
+// function name substrings to the tags associated with the operation.
+var funcPartialNameToTagNames = []struct {
+	partial string
+	tag     string
+}{
+	{partial: "AccessKey", tag: "Authentication"},
+	{partial: "Login", tag: "Authentication"},
+	{partial: "Logout", tag: "Authentication"},
+	{partial: "Destination", tag: "Destinations"},
+	{partial: "Token", tag: "Destinations"},
+	{partial: "Grant", tag: "Grants"},
+	{partial: "Group", tag: "Groups"},
+	{partial: "Provider", tag: "Providers"},
+	{partial: "User", tag: "Users"},
+}
 
 // openAPIRouteDefinition converts the route into a format that can be used
 // by API.register. This is necessary because currently methods can not have
@@ -78,20 +82,11 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 
 	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
-tagLoop:
-	for _, partialName := range orderedTagNames() {
-		tagName := funcPartialNameToTagNames[partialName]
-		if strings.Contains(funcName, partialName) {
-			for _, tag := range op.Tags {
-				if tag == tagName {
-					continue tagLoop
-				}
-			}
-			op.Tags = append(op.Tags, tagName)
-
+	for _, item := range funcPartialNameToTagNames {
+		if strings.Contains(funcName, item.partial) {
+			op.Tags = append(op.Tags, item.tag)
 		}
 	}
-
 	if len(op.Tags) == 0 {
 		op.Tags = append(op.Tags, "Misc")
 	}
@@ -122,71 +117,51 @@ func getFuncName(i interface{}) string {
 	return name
 }
 
-func orderedTagNames() []string {
-	tagNames := make([]string, 0, len(funcPartialNameToTagNames))
-	for k := range funcPartialNameToTagNames {
-		tagNames = append(tagNames, k)
+// createComponent creates and returns the SchemaRef for a response type.
+func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
+	if rst.Kind() == reflect.Pointer {
+		rst = rst.Elem()
+	}
+	if rst.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("openapi: unexpected kind %v (%v) for response struct", rst.Kind(), rst))
 	}
 
-	sort.Strings(tagNames)
-	return tagNames
-}
+	schema := &openapi3.Schema{
+		Properties: openapi3.Schemas{},
+	}
 
-// createComponent creates and returns the SchemaRef for a type. If the type is
-// a struct, the definition of the struct is added  to the schemas map.
-func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.SchemaRef {
-	//nolint:exhaustive
-	switch rst.Kind() {
-	case reflect.Pointer:
-		return createComponent(schemas, rst.Elem())
-	case reflect.Slice:
-		schema := createComponent(schemas, rst.Elem())
+	// Reformat the name of generic types
+	name := strings.ReplaceAll(rst.Name(), rst.PkgPath()+".", "")
+	name = strings.ReplaceAll(name, "[", "_")
+	name = strings.ReplaceAll(name, "]", "")
 
-		return &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
-				Type:  "array",
-				Items: schema,
-			},
-		}
-	case reflect.Struct:
-		schema := &openapi3.Schema{
-			Properties: openapi3.Schemas{},
-		}
-
-		name := strings.ReplaceAll(rst.Name(), rst.PkgPath()+".", "")
-		name = strings.ReplaceAll(name, "[", "_")
-		name = strings.ReplaceAll(name, "]", "")
-
-		for i := 0; i < rst.NumField(); i++ {
-			f := rst.Field(i)
-			if f.Type.Kind() == reflect.Struct && f.Anonymous {
-				for j := 0; j < f.Type.NumField(); j++ {
-					af := f.Type.Field(j)
-					schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
-				}
-				continue
+	for i := 0; i < rst.NumField(); i++ {
+		f := rst.Field(i)
+		if f.Type.Kind() == reflect.Struct && f.Anonymous {
+			for j := 0; j < f.Type.NumField(); j++ {
+				af := f.Type.Field(j)
+				schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
 			}
-			schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
+			continue
 		}
+		schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
+	}
 
-		if _, ok := schemas[name]; ok {
-			return &openapi3.SchemaRef{
-				Ref: "#/components/schemas/" + name,
-			}
-		}
-
-		schemas[name] = &openapi3.SchemaRef{Value: schema}
+	if _, ok := schemas[name]; ok {
 		return &openapi3.SchemaRef{
 			Ref: "#/components/schemas/" + name,
 		}
-	default:
-		panic("unexpected component kind " + rst.Kind().String())
+	}
+
+	schemas[name] = &openapi3.SchemaRef{Value: schema}
+	return &openapi3.SchemaRef{
+		Ref: "#/components/schemas/" + name,
 	}
 }
 
 func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *openapi3.Schema) *openapi3.SchemaRef {
 	if t.Kind() == reflect.Pointer {
-		return buildProperty(f, t.Elem(), parent, parentSchema)
+		t = t.Elem()
 	}
 
 	s := &openapi3.Schema{}
@@ -206,9 +181,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 		}
 	}
 
-	return &openapi3.SchemaRef{
-		Value: s,
-	}
+	return &openapi3.SchemaRef{Value: s}
 }
 
 func writeOpenAPISpec(spec openapi3.T, version string, out io.Writer) error {
@@ -381,12 +354,8 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 		},
 	}
 
-	errStruct := &api.Error{}
-	t := reflect.TypeOf(errStruct)
-	errComp := createComponent(schemas, t)
-
 	content := openapi3.Content{"application/json": &openapi3.MediaType{
-		Schema: errComp,
+		Schema: createComponent(schemas, reflect.TypeOf(api.Error{})),
 	}}
 
 	resp["400"] = &openapi3.ResponseRef{
@@ -427,106 +396,122 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 	return resp
 }
 
+var apiVersion = internal.FullVersion
+
 func buildRequest(r reflect.Type, op *openapi3.Operation) {
+	if r.Kind() == reflect.Pointer {
+		r = r.Elem()
+	}
+
+	if r.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("openapi: unexpected kind %v (%v) for %v request struct", r.Kind(), r, op.OperationID))
+	}
+
 	op.Parameters = openapi3.NewParameters()
+
+	op.AddParameter(&openapi3.Parameter{
+		Name:     "Infra-Version",
+		In:       "header",
+		Required: true,
+		Schema: &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Example:     apiVersion(),
+				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
+				Type:        "string",
+				Description: "Version of the API being requested",
+			},
+		},
+	})
 
 	schema := &openapi3.Schema{
 		Type:       "object",
 		Properties: openapi3.Schemas{},
 	}
 
-	//nolint:exhaustive
-	switch r.Kind() {
-	case reflect.Pointer:
-		buildRequest(r.Elem(), op)
-		return
-	case reflect.Struct:
-		for i := 0; i < r.NumField(); i++ {
-			f := r.Field(i)
+	for i := 0; i < r.NumField(); i++ {
+		f := r.Field(i)
+		if f.Type.Kind() == reflect.Struct && f.Anonymous {
+			tmpOp := openapi3.NewOperation()
 
-			if f.Type.Kind() == reflect.Struct && f.Anonymous {
-				tmpOp := openapi3.NewOperation()
-
-				buildRequest(f.Type, tmpOp)
-				for _, param := range tmpOp.Parameters {
+			buildRequest(f.Type, tmpOp)
+			for _, param := range tmpOp.Parameters {
+				if param.Value.Name != "Infra-Version" {
 					op.AddParameter(param.Value)
 				}
+			}
+			continue
+		}
+
+		// check first if it's a json field
+		if name, ok := f.Tag.Lookup("json"); ok {
+			jsonName := strings.Split(name, ",")[0]
+			if jsonName != "-" {
+				prop := buildProperty(f, f.Type, r, schema)
+
+				schema.Properties[jsonName] = prop
+
 				continue
 			}
-
-			// check first if it's a json field
-			if name, ok := f.Tag.Lookup("json"); ok {
-				jsonName := strings.Split(name, ",")[0]
-				if jsonName != "-" {
-					prop := buildProperty(f, f.Type, r, schema)
-
-					schema.Properties[jsonName] = prop
-
-					continue
-				}
-			}
-
-			// if not, it's a query or uri parameter
-			p := &openapi3.Parameter{
-				Name:     getFieldName(f, r),
-				Schema:   buildProperty(f, f.Type, r, nil),
-				Required: false,
-				In:       "",
-			}
-
-			if name, ok := f.Tag.Lookup("form"); ok {
-				p.Name = name
-				p.In = "query"
-			}
-
-			if name, ok := f.Tag.Lookup("uri"); ok {
-				uriName := strings.Split(name, ",")[0]
-				p.Name = uriName
-				p.In = "path"
-				p.Required = true
-			}
-
-			if p.In == "" {
-				// field isn't properly labelled
-				panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, r.Name()))
-			}
-
-			if ex := getDefaultExampleForType(f.Type); len(ex) > 0 {
-				p.Example = ex
-			}
-
-			if example, ok := f.Tag.Lookup("example"); ok {
-				p.Example = example
-			}
-
-			if note, ok := f.Tag.Lookup("note"); ok {
-				p.Description = note
-			}
-
-			if validate, ok := f.Tag.Lookup("validate"); ok {
-				for _, val := range strings.Split(validate, ",") {
-					if val == "required" {
-						p.Required = true
-					}
-
-					if val == "email" {
-						schema.Format = "email"
-					}
-
-					if strings.HasPrefix(val, "min=") {
-						p.Schema.Value.MinLength = parseMinLength(val)
-					}
-
-					if strings.HasPrefix(val, "oneof=") {
-						schema.Enum = parseOneOf(val)
-					}
-				}
-			}
-
-			op.AddParameter(p)
 		}
-	default:
-		panic("unexpected type " + r.Kind().String() + "(" + r.Name() + ")")
+
+		// if not, it's a query or uri parameter
+		p := &openapi3.Parameter{
+			Name:     getFieldName(f, r),
+			Schema:   buildProperty(f, f.Type, r, nil),
+			Required: false,
+			In:       "",
+		}
+
+		if name, ok := f.Tag.Lookup("form"); ok {
+			p.Name = name
+			p.In = "query"
+		}
+
+		if name, ok := f.Tag.Lookup("uri"); ok {
+			uriName := strings.Split(name, ",")[0]
+			p.Name = uriName
+			p.In = "path"
+			p.Required = true
+		}
+
+		if p.In == "" {
+			// field isn't properly labelled
+			panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, r.Name()))
+		}
+
+		if ex := getDefaultExampleForType(f.Type); len(ex) > 0 {
+			p.Example = ex
+		}
+
+		if example, ok := f.Tag.Lookup("example"); ok {
+			p.Example = example
+		}
+
+		if note, ok := f.Tag.Lookup("note"); ok {
+			p.Description = note
+		}
+
+		if validate, ok := f.Tag.Lookup("validate"); ok {
+			for _, val := range strings.Split(validate, ",") {
+				if val == "required" {
+					p.Required = true
+				}
+
+				if val == "email" {
+					schema.Format = "email"
+				}
+
+				if strings.HasPrefix(val, "min=") {
+					p.Schema.Value.MinLength = parseMinLength(val)
+				}
+
+				if strings.HasPrefix(val, "oneof=") {
+					schema.Enum = parseOneOf(val)
+				}
+			}
+		}
+
+		op.AddParameter(p)
 	}
 
 	if len(schema.Properties) > 0 {

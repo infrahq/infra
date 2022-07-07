@@ -636,7 +636,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(3), grants) // 2 from config, 1 internal connector
 
-	identities, err := data.ListIdentities(s.db)
+	identities, err := data.ListIdentities(s.db, &models.Pagination{})
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(identities))
 
@@ -671,7 +671,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), grants) // connector
 
-	identities, err = data.ListIdentities(s.db)
+	identities, err = data.ListIdentities(s.db, &models.Pagination{})
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(identities))
 
@@ -752,7 +752,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 0)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err := data.ListIdentities(s.db)
+	identities, err := data.ListIdentities(s.db, &models.Pagination{})
 	assert.NilError(t, err)
 	assert.Equal(t, 6, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
 
@@ -846,7 +846,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 2)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err = data.ListIdentities(s.db)
+	identities, err = data.ListIdentities(s.db, &models.Pagination{})
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(identities))
 

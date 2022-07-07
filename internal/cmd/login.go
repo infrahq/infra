@@ -294,15 +294,13 @@ func oidcflow(provider *api.Provider) (string, error) {
 		return "", err
 	}
 
-	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.AuthURL, provider.ClientID, strings.Join(provider.Scopes, "+"), state)
-
 	// the local server receives the response from the identity provider and sends it along to the infra server
 	ls, err := newLocalServer()
 	if err != nil {
 		return "", err
 	}
 
-	err = browser.OpenURL(authorizeURL)
+	err = browser.OpenURL(authURLForProvider(*provider, state))
 	if err != nil {
 		return "", err
 	}
@@ -313,7 +311,6 @@ func oidcflow(provider *api.Provider) (string, error) {
 	}
 
 	if state != recvstate {
-		//lint:ignore ST1005, user facing error
 		return "", Error{Message: "Login aborted, provider state did not match the expected state"}
 	}
 
@@ -723,4 +720,21 @@ PROMPT:
 	}
 
 	return email, nil
+}
+
+// authURLForProvider builds an authorization URL that will get the information we need from an identity provider
+func authURLForProvider(provider api.Provider, state string) string {
+	// build the authorization query parameters based on attributes of the provider
+	params := url.Values{}
+	params.Add("redirect_uri", "http://localhost:8301") // where to send the access codes after the user logs in with an IDP
+	if provider.Kind == "google" {
+		params.Add("prompt", "consent")      // google only sends a refresh token when a user consents, always prompt so we always get the ref token
+		params.Add("access_type", "offline") // specifies that we want a refresh token
+	}
+	params.Add("client_id", provider.ClientID)
+	params.Add("response_type", "code")
+	params.Add("scope", strings.Join(provider.Scopes, " "))
+	params.Add("state", state)
+
+	return fmt.Sprintf("%s?%s", provider.AuthURL, params.Encode())
 }

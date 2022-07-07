@@ -116,7 +116,7 @@ func newServer(options Options) *Server {
 func New(options Options) (*Server, error) {
 	server := newServer(options)
 
-	if err := validate.Struct(options); err != nil {
+	if err := pgValidate.Struct(options); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 
