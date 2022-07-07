@@ -292,7 +292,7 @@ func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
 }
 
 func addFormatFlag(flags *pflag.FlagSet, bind *string) {
-	flags.StringVar(bind, "format", "", "Output format [json]")
+	flags.StringVar(bind, "format", "", "Output format [json|yaml]")
 }
 
 func usageTemplate() string {
