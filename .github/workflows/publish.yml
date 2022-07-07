@@ -20,7 +20,7 @@ on:
         required: true
       GEMFURY_TOKEN:
         required: true
-      RELEASE_PLEASE_TOKEN:
+      GORELEASER_GITHUB_TOKEN:
         required: true
       DOCKERHUB_USERNAME:
         required: true
@@ -59,7 +59,7 @@ jobs:
         with:
           repository: infrahq/homebrew-tap
           path: homebrew-tap
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
           sh update-tap.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
@@ -73,7 +73,7 @@ jobs:
         with:
           repository: infrahq/scoop
           path: scoop
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
           sh update-scoop.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
