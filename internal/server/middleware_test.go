@@ -131,7 +131,7 @@ func TestRequireAuthentication(t *testing.T) {
 				c.Request = r
 			},
 			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
-				assert.ErrorContains(t, err, data.ErrAccessKeyExpired.Error())
+				assert.ErrorIs(t, err, data.ErrAccessKeyExpired)
 			},
 		},
 		"AccessKeyInvalidKey": {
