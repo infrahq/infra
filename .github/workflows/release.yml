@@ -24,7 +24,7 @@ jobs:
     secrets: inherit
 
   release-publish:
-    needs: [release-name]
+    needs: [release-name, release-build]
     uses: ./.github/workflows/publish.yml
     with:
       RELEASE_NAME: ${{ needs.release-name.outputs.release_name }}
