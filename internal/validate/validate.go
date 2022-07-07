@@ -105,7 +105,7 @@ func (r requiredRule) Validate() *Failure {
 	if !reflect.ValueOf(r.value).IsZero() {
 		return nil
 	}
-	return fail(r.name, "a value is required")
+	return fail(r.name, "is required")
 }
 
 // Field is used to construct validation rules that incorporate multiple fields.

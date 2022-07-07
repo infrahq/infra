@@ -9,26 +9,41 @@ import (
 	"gotest.tools/v3/assert"
 )
 
+type StringExample struct {
+	Field string
+}
+
+func (s StringExample) ValidationRules() []ValidationRule {
+	return []ValidationRule{
+		&StringRule{
+			Value:           s.Field,
+			Name:            "strField",
+			MinLength:       2,
+			MaxLength:       10,
+			CharacterRanges: []CharRange{AlphabetLower},
+		},
+	}
+}
+
 func TestStringRule_Validate(t *testing.T) {
 	t.Run("min length", func(t *testing.T) {
-		r := &ExampleRequest{RequiredString: "a"}
+		r := StringExample{Field: "a"}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "length of string (1) must be at least 2")
 	})
 	t.Run("max length", func(t *testing.T) {
-		r := &ExampleRequest{RequiredString: "abcdefghijklm"}
+		r := StringExample{Field: "abcdefghijklm"}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "length of string (13) must be no more than 10")
 	})
 	t.Run("character ranges", func(t *testing.T) {
-		r := &ExampleRequest{RequiredString: "almost~valid"}
+		r := StringExample{Field: "almost~valid"}
 		err := Validate(r)
 
 		var verr Error
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
-			"fieldOne": {"a value is required"},
-			"strOne": {
+			"strField": {
 				"length of string (12) must be no more than 10",
 				"character ~ at position 6 is not allowed",
 			},

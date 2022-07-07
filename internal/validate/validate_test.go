@@ -8,55 +8,77 @@ import (
 )
 
 type ExampleRequest struct {
-	RequiredString string `json:"strOne"`
-	SubNested      Sub    `json:"subNested"`
-	Sub                   // sub embedded
+	ID string
+
+	Either string
+	Or     int
+
+	First  string
+	Second int
+	Third  bool
+
+	EmailAddr  string
+	EmailOther string
+
+	TooFew    string
+	TooMany   string
+	WrongOnes string
 }
 
-type Sub struct {
-	FieldOne string `json:"fieldOne"`
-}
-
-func (r *ExampleRequest) ValidationRules() []ValidationRule {
+func (r ExampleRequest) ValidationRules() []ValidationRule {
 	return []ValidationRule{
-		Required("strOne", r.RequiredString),
+		Required("id", r.ID),
+		MutuallyExclusive(
+			Field{Name: "either", Value: r.Either},
+			Field{Name: "or", Value: r.Or},
+		),
+		RequireOneOf(
+			Field{Name: "first", Value: r.First},
+			Field{Name: "second", Value: r.Second},
+			Field{Name: "third", Value: r.Third},
+		),
+		Email("emailAddr", r.EmailAddr),
+		Email("emailOther", r.EmailOther),
+
 		&StringRule{
-			Value:     r.RequiredString,
-			Name:      "strOne",
-			MinLength: 2,
-			MaxLength: 10,
-			CharacterRanges: []CharRange{
-				AlphabetLower,
-				AlphabetUpper,
-				Numbers,
-				Dot, Dash, Underscore,
-			},
+			Name:      "tooFew",
+			Value:     r.TooFew,
+			MinLength: 5,
 		},
-		Required("fieldOne", r.Sub.FieldOne),
 		&StringRule{
-			Value:     r.SubNested.FieldOne,
-			Name:      "subNested.fieldOne",
-			MaxLength: 10,
+			Name:      "tooMany",
+			Value:     r.TooMany,
+			MaxLength: 5,
+		},
+		&StringRule{
+			CharacterRanges: []CharRange{AlphabetLower},
 		},
 	}
 }
 
-func TestValidate(t *testing.T) {
+func TestValidate_AllRules(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		r := &ExampleRequest{
-			RequiredString: "not-zero",
-			Sub:            Sub{FieldOne: "not-zero2"},
+		r := ExampleRequest{
+			ID:         "id",
+			First:      "something",
+			EmailAddr:  "valid@example.com",
+			EmailOther: "other@example.com",
+			TooFew:     "abcdef",
+			WrongOnes:  "abc",
 		}
 		err := Validate(r)
 		assert.NilError(t, err)
 	})
 
 	t.Run("with failures", func(t *testing.T) {
-		r := &ExampleRequest{
-			RequiredString: "",
-			SubNested: Sub{
-				FieldOne: "abcdefghijklmnopqrst",
-			},
+		r := ExampleRequest{
+			Either:     "yes",
+			Or:         1,
+			EmailAddr:  "nope~example.com",
+			EmailOther: `"Display Name" <other@example.com>`,
+			TooFew:     "a",
+			TooMany:    "ababab",
+			WrongOnes:  "ah CAPS",
 		}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -64,9 +86,15 @@ func TestValidate(t *testing.T) {
 		var fieldError Error
 		assert.Assert(t, errors.As(err, &fieldError))
 		expected := Error{
-			"fieldOne":           {"a value is required"},
-			"strOne":             {"a value is required"},
-			"subNested.fieldOne": {"length of string (20) must be no more than 10"},
+			"id": {"is required"},
+			"": {
+				"only one of (either, or) can be set",
+				"one of (first, second, third) is required",
+			},
+			"emailAddr":  {"invalid email address: missing '@' or angle-addr"},
+			"emailOther": {`email address must not contain display name "Display Name"`},
+			"tooFew":     {"length of string (1) must be at least 5"},
+			"tooMany":    {"length of string (6) must be no more than 5"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})
