@@ -30,6 +30,8 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --rm-dist --skip-publish
+        env:
+          GORELEASER_CURRENT_TAG: ${{ inputs.RELEASE_NAME }}
       - uses: actions/upload-artifact@v3
         with:
           name: binaries
