@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
 )
@@ -128,9 +129,26 @@ func TestProvidersAddCmd(t *testing.T) {
 		err = Run(ctx, "providers", "list", "--format=json")
 		assert.NilError(t, err)
 
-		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id","kind":"","authURL":"","scopes":null}]`))
+		golden.Assert(t, bufs.Stdout.String(), t.Name())
 		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `count`))
 		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `items`))
+	})
+
+	t.Run("list with yaml", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+
+		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
+		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
+		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
+
+		err := Run(ctx, "providers", "add", "okta")
+		assert.NilError(t, err)
+
+		err = Run(ctx, "providers", "list", "--format=yaml")
+		assert.NilError(t, err)
+
+		golden.Assert(t, bufs.Stdout.String(), t.Name())
 	})
 }
 
@@ -230,32 +248,8 @@ func TestProvidersEditCmd(t *testing.T) {
 	})
 
 	t.Run("edit non-supported flag", func(t *testing.T) {
+		_ = setup(t)
 		err := Run(context.Background(), "providers", "edit", "okta", "--client-id", "okta-client-id")
 		assert.ErrorContains(t, err, "unknown flag")
-	})
-
-	t.Run("list with yaml", func(t *testing.T) {
-		setup(t)
-		ctx, bufs := PatchCLI(context.Background())
-
-		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
-		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
-		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
-
-		err := Run(ctx, "providers", "add", "okta")
-		assert.NilError(t, err)
-
-		err = Run(ctx, "providers", "list", "--format=yaml")
-		assert.NilError(t, err)
-
-		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `- id: ""
-  name: okta
-  created: {}
-  updated: {}
-  url: https://okta.com/path
-  clientid: okta-client-id
-  kind: ""
-  authurl: ""
-  scopes: []`))
 	})
 }

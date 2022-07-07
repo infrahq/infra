@@ -1,0 +1,11 @@
+Connected provider "okta" (https://okta.com/path) to infra
+- id: ""
+  name: okta
+  created: {}
+  updated: {}
+  url: https://okta.com/path
+  clientid: okta-client-id
+  kind: ""
+  authurl: ""
+  scopes: []
+

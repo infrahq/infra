@@ -1,0 +1,12 @@
+- connection:
+    ca: ""
+    url: ""
+  created: null
+  id: "38"
+  lastSeen: null
+  name: destinationName
+  resources: null
+  roles: null
+  uniqueID: ""
+  updated: null
+

@@ -3,13 +3,13 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/models"
@@ -35,7 +35,10 @@ func TestUsersCmd(t *testing.T) {
 	t.Setenv("HOME", homeDir)
 	t.Setenv("USERPROFILE", homeDir) // for windows
 
-	providerID := uid.New()
+	providerIDs := []uid.ID{123}
+	providerIdx := 0
+	userIDs := []uid.ID{12, 23, 34, 45, 56}
+	userIdx := 0
 
 	setup := func(t *testing.T) *[]models.Identity {
 		modifiedUsers := []models.Identity{}
@@ -47,9 +50,10 @@ func TestUsersCmd(t *testing.T) {
 				providers := []*api.Provider{
 					{
 						Name: "infra",
-						ID:   providerID,
+						ID:   providerIDs[providerIdx],
 					},
 				}
+				providerIdx++
 				b, err := json.Marshal(providers)
 				assert.NilError(t, err)
 				_, _ = resp.Write(b)
@@ -67,7 +71,8 @@ func TestUsersCmd(t *testing.T) {
 					newUser := models.Identity{
 						Name: createUserReq.Name,
 					}
-					newUser.ID = uid.New()
+					newUser.ID = userIDs[userIdx]
+					userIdx++
 
 					respBody := api.CreateUserResponse{
 						ID:   newUser.ID,
@@ -197,8 +202,9 @@ func TestUsersCmd(t *testing.T) {
 		err = Run(ctx, "users", "list", "--format=json")
 		assert.NilError(t, err)
 
-		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `"created":null,"updated":null,"lastSeenAt":null,"name":"apple@example.com"}]`),
-			fmt.Sprintf("got: %s\n", bufs.Stdout.String()))
+		golden.Assert(t, bufs.Stdout.String(), t.Name())
+		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `count`))
+		assert.Assert(t, !strings.Contains(bufs.Stdout.String(), `items`))
 	})
 
 	t.Run("list with yaml", func(t *testing.T) {
@@ -209,11 +215,6 @@ func TestUsersCmd(t *testing.T) {
 		err = Run(ctx, "users", "list", "--format=yaml")
 		assert.NilError(t, err)
 
-		assert.Assert(t, strings.Contains(bufs.Stdout.String(), `created: {}
-  updated: {}
-  lastseenat: {}
-  name: apple@example.com
-  providernames: []`),
-			fmt.Sprintf("got: %s\n", bufs.Stdout.String()))
+		golden.Assert(t, bufs.Stdout.String(), t.Name())
 	})
 }

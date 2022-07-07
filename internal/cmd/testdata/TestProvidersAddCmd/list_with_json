@@ -1,0 +1,2 @@
+Connected provider "okta" (https://okta.com/path) to infra
+[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id","kind":"","authURL":"","scopes":null}]

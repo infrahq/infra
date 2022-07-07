@@ -1,0 +1,8 @@
+Added user "apple@example.com"
+- id: "Y"
+  created: {}
+  updated: {}
+  lastseenat: {}
+  name: apple@example.com
+  providernames: []
+
