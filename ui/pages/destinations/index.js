@@ -262,10 +262,10 @@ const columns = [
   {
     Header: 'Name',
     accessor: 'name',
-    width: '70%',
+    width: '55%',
     Cell: ({ row, value }) => {
       return (
-        <div className='flex items-center py-2'>
+        <div className='flex truncate py-2'>
           {row.canExpand && (
             <span
               {...row.getToggleRowExpandedProps({
@@ -291,12 +291,12 @@ const columns = [
             </span>
           )}
           <span
-            {...row.getToggleRowExpandedProps()}
-            className={`flex items-center ${row.depth === 0 ? 'h-6' : ''} ${
-              row.canExpand ? '' : 'pl-9'
-            }`}
+            title={value}
+            className={`flex flex-1 items-center truncate ${
+              row.depth === 0 ? 'h-6' : ''
+            } ${row.canExpand ? '' : 'pl-9'}`}
           >
-            {value}
+            <span className='truncate'>{value}</span>
           </span>
         </div>
       )
@@ -305,7 +305,7 @@ const columns = [
   {
     Header: 'Kind',
     accessor: v => v,
-    width: '15%',
+    width: '20%',
     Cell: ({ value }) => (
       <span className='rounded bg-gray-800 px-2 py-0.5 text-gray-400'>
         {value.kind}
@@ -315,17 +315,17 @@ const columns = [
   {
     Header: 'Status',
     accessor: v => v,
-    width: '15%',
+    width: '25%',
     Cell: ({ value }) => (
       <div className='flex items-center py-2'>
         {value.kind === 'cluster' && (
           <>
             <div
-              className={`h-2 w-2 rounded-full ${
-                value.connected ? 'bg-green-400' : 'bg-gray-400'
+              className={`h-2 w-2 flex-none rounded-full ${
+                value.connected ? 'bg-green-400' : 'bg-gray-600'
               }`}
             />
-            <span className='px-2 text-gray-400'>
+            <span className='flex-none px-2 text-gray-400'>
               {value.connected ? 'Connected' : 'Disconnected'}
             </span>
           </>
@@ -370,7 +370,7 @@ export default function Destinations() {
       </Head>
       {!loading && (
         <div className='flex h-full flex-1'>
-          <div className='flex min-w-[20em] flex-1 flex-col space-y-4'>
+          <div className='flex min-w-[32em] flex-1 flex-col space-y-4'>
             <PageHeader
               header='Clusters'
               buttonHref={admin && '/destinations/add'}
@@ -386,10 +386,7 @@ export default function Destinations() {
                   columns={columns}
                   data={data}
                   getRowProps={row => ({
-                    onClick: () => {
-                      setSelected(row.original)
-                      row.toggleRowExpanded(true)
-                    },
+                    onClick: () => setSelected(row.original),
                     className:
                       selected?.resource === row.original.resource
                         ? 'bg-gray-900/50'
