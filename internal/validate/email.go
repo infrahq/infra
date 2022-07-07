@@ -3,7 +3,6 @@ package validate
 import (
 	"fmt"
 	"net/mail"
-	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -24,7 +23,7 @@ func (e email) Validate() *Failure {
 	}
 	addr, err := mail.ParseAddress(e.value)
 	if err != nil {
-		return fail(e.name, "invalid email address: "+strings.TrimPrefix(err.Error(), "mail: "))
+		return fail(e.name, "invalid email address")
 	}
 	if addr.Name != "" {
 		return fail(e.name, fmt.Sprintf("email address must not contain display name %q", addr.Name))

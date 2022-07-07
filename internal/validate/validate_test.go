@@ -91,7 +91,7 @@ func TestValidate_AllRules(t *testing.T) {
 				"only one of (either, or) can be set",
 				"one of (first, second, third) is required",
 			},
-			"emailAddr":  {"invalid email address: missing '@' or angle-addr"},
+			"emailAddr":  {"invalid email address"},
 			"emailOther": {`email address must not contain display name "Display Name"`},
 			"tooFew":     {"length of string (1) must be at least 5"},
 			"tooMany":    {"length of string (6) must be no more than 5"},

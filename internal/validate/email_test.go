@@ -44,13 +44,8 @@ func TestEmail_Validate(t *testing.T) {
 			email: "m@e.tv",
 		},
 		{
-			name:  "with angles",
+			name:  "with angle brackets",
 			email: "<myaddr@example.com>",
-		},
-		{
-			name:        "no tld",
-			email:       "sam@",
-			expectedErr: "validation failed: addr: invalid email address: no angle-addr",
 		},
 		{
 			name:        "with name",
@@ -60,17 +55,22 @@ func TestEmail_Validate(t *testing.T) {
 		{
 			name:        "too many ats",
 			email:       "foo@what@example.com",
-			expectedErr: "validation failed: addr: invalid email address: expected single address",
+			expectedErr: "validation failed: addr: invalid email address",
 		},
 		{
 			name:        "missing username",
 			email:       "@example.com",
-			expectedErr: "validation failed: addr: invalid email address: no angle-addr",
+			expectedErr: "validation failed: addr: invalid email address",
+		},
+		{
+			name:        "no hostname",
+			email:       "sam@",
+			expectedErr: "validation failed: addr: invalid email address",
 		},
 		{
 			name:        "missing at",
 			email:       "james",
-			expectedErr: "validation failed: addr: invalid email address: missing '@' or angle-addr",
+			expectedErr: "validation failed: addr: invalid email address",
 		},
 	}
 
