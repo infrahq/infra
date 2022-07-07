@@ -10,7 +10,7 @@ import (
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	// check first if it exists
-	grants, err := list[models.Grant](db, BySubject(grant.Subject), ByResource(grant.Resource))
+	grants, err := list[models.Grant](db, &models.Pagination{}, BySubject(grant.Subject), ByResource(grant.Resource))
 	if err != nil {
 		return err
 	}
@@ -29,12 +29,12 @@ func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
 	return get[models.Grant](db, selectors...)
 }
 
-func ListGrants(db *gorm.DB, selectors ...SelectorFunc) ([]models.Grant, error) {
-	return list[models.Grant](db, selectors...)
+func ListGrants(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
+	return list[models.Grant](db, p, selectors...)
 }
 
 func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.Grant](db, selectors...)
+	toDelete, err := list[models.Grant](db, &models.Pagination{}, selectors...)
 	if err != nil {
 		return err
 	}

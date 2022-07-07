@@ -99,7 +99,7 @@ func TestListGroups(t *testing.T) {
 		createIdentities(t, db, &firstUser, &secondUser)
 
 		t.Run("all", func(t *testing.T) {
-			actual, err := ListGroups(db)
+			actual, err := ListGroups(db, &models.Pagination{})
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},
@@ -110,7 +110,7 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			actual, err := ListGroups(db, ByName(engineers.Name))
+			actual, err := ListGroups(db, &models.Pagination{}, ByName(engineers.Name))
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},
@@ -119,7 +119,7 @@ func TestListGroups(t *testing.T) {
 		})
 
 		t.Run("filter by identity membership", func(t *testing.T) {
-			actual, err := ListGroups(db, ByGroupMember(firstUser.ID))
+			actual, err := ListGroups(db, &models.Pagination{}, ByGroupMember(firstUser.ID))
 			assert.NilError(t, err)
 			expected := []models.Group{
 				{Name: "Engineering"},
@@ -203,7 +203,7 @@ func TestAddUsersToGroup(t *testing.T) {
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
 		t.Run("add identities to group", func(t *testing.T) {
-			actual, err := ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err := ListIdentities(db, &models.Pagination{}, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
 			assert.NilError(t, err)
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
@@ -211,7 +211,7 @@ func TestAddUsersToGroup(t *testing.T) {
 			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID})
 			assert.NilError(t, err)
 
-			actual, err = ListIdentities(db, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err = ListIdentities(db, &models.Pagination{}, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
 			assert.NilError(t, err)
 			expected = []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)

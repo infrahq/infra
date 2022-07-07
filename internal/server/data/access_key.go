@@ -82,8 +82,8 @@ func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db *gorm.DB, selectors ...SelectorFunc) ([]models.AccessKey, error) {
-	return list[models.AccessKey](db, selectors...)
+func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+	return list[models.AccessKey](db, p, selectors...)
 }
 
 func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
@@ -95,7 +95,7 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, selectors...)
+	toDelete, err := list[models.AccessKey](db, &models.Pagination{}, selectors...)
 	if err != nil {
 		return err
 	}

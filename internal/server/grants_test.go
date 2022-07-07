@@ -259,7 +259,7 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2})
+				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2})
 			},
 		},
 		"filter by resource": {
@@ -317,7 +317,6 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 					{
-						"pagination_info":{},
 						"count": 1,
 						"items": [{
 							"id": "<any-valid-uid>",
@@ -693,7 +692,7 @@ func TestAPI_ListGrantsV0_12_2(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	admin, err := data.ListIdentities(srv.db, data.ByName("admin@example.com"))
+	admin, err := data.ListIdentities(srv.db, &models.Pagination{}, data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
 	expected := jsonUnmarshal(t, fmt.Sprintf(`
@@ -728,7 +727,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
-		infraAdminGrants, err := data.ListGrants(srv.db, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		infraAdminGrants, err := data.ListGrants(srv.db, &models.Pagination{}, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
 

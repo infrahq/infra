@@ -112,7 +112,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"pagination_info":{},"items":[],"count":0}`)
+				assert.Equal(t, resp.Body.String(), `{"count":0,"items":[]}`)
 			},
 		},
 		"name match": {
@@ -128,7 +128,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: "me@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -148,7 +148,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -172,7 +172,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -200,9 +200,11 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "admin@example.com"},
 						{Name: "connector"},
 					},
-					PaginationInfo: api.PaginationResponse{
-						Page:  2,
-						Limit: 2,
+					PaginationResponse: api.PaginationResponse{
+						Page:       2,
+						Limit:      2,
+						TotalPages: 4,
+						TotalCount: 7,
 					},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
@@ -222,7 +224,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: anotherID.Name},
 					},
-					PaginationInfo: defaultPagination,
+					PaginationResponse: defaultPagination,
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -423,7 +425,7 @@ func TestListProviders(t *testing.T) {
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
 
-	dbProviders, err := data.ListProviders(s.db)
+	dbProviders, err := data.ListProviders(s.db, &models.Pagination{})
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 

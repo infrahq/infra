@@ -25,8 +25,8 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 	return false, nil
 }
 
-func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination) ([]models.Group, error) {
-	var selectors = []data.SelectorFunc{data.ByPagination(pg)}
+func ListGroups(c *gin.Context, name string, userID uid.ID, p *models.Pagination) ([]models.Group, error) {
+	var selectors []data.SelectorFunc = []data.SelectorFunc{}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -37,7 +37,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err == nil {
-		return data.ListGroups(db, selectors...)
+		return data.ListGroups(db, p, selectors...)
 	}
 	err = HandleAuthErr(err, "groups", "list", roles...)
 
@@ -49,7 +49,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination
 		case identity == nil:
 			return nil, err
 		case userID == identity.ID:
-			return data.ListGroups(db, selectors...)
+			return data.ListGroups(db, p, selectors...)
 		}
 	}
 
@@ -89,7 +89,7 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 }
 
 func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
-	identities, err := data.ListIdentities(db, data.ByIDs(ids))
+	identities, err := data.ListIdentities(db, &models.Pagination{}, data.ByIDs(ids))
 	if err != nil {
 		return nil, err
 	}

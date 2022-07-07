@@ -1,11 +1,17 @@
 package models
 
-import "github.com/infrahq/infra/api"
+import (
+	"math"
+
+	"github.com/infrahq/infra/api"
+)
 
 // Internal Pagination Data
 type Pagination struct {
-	Page  int
-	Limit int
+	Page       int
+	Limit      int
+	TotalCount int
+	TotalPages int
 }
 
 func RequestToPagination(pr api.PaginationRequest) Pagination {
@@ -28,9 +34,18 @@ func RequestToPagination(pr api.PaginationRequest) Pagination {
 	}
 }
 
-func PaginationToResponse(pr Pagination) api.PaginationResponse {
+func PaginationToResponse(p Pagination) api.PaginationResponse {
 	return api.PaginationResponse{
-		Page:  pr.Page,
-		Limit: pr.Limit,
+		Page:       p.Page,
+		Limit:      p.Limit,
+		TotalCount: p.TotalCount,
+		TotalPages: p.TotalPages,
+	}
+}
+
+func (p *Pagination) SetTotalCount(count int) {
+	if p.Page != 0 && p.Limit != 0 {
+		p.TotalCount = count
+		p.TotalPages = int(math.Ceil(float64(count) / float64(p.Limit)))
 	}
 }
