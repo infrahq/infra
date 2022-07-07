@@ -1,4 +1,3 @@
-import { Combobox } from '@headlessui/react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useRef } from 'react'
@@ -7,13 +6,12 @@ import { useRouter } from 'next/router'
 
 import ErrorMessage from '../../components/error-message'
 import Fullscreen from '../../components/layouts/fullscreen'
-import EmailBadge from '../../components/email-badge'
+import TypeaheadCombobox from '../../components/typeahead-combobox'
 
 function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
 
   const [query, setQuery] = useState('')
-  const button = useRef()
   const inputRef = useRef(null)
 
   const selectedEmailsId = selectedEmails.map(i => i.id)
@@ -35,64 +33,15 @@ function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
 
   return (
     <div className='bg-gray-900 px-4 py-3'>
-      <Combobox
-        as='div'
-        className='relative flex-1'
-        onChange={e => {
-          setSelectedEmails([...selectedEmails, e])
-        }}
-      >
-        <div className='flex flex-auto flex-wrap'>
-          {selectedEmails?.map(i => (
-            <EmailBadge
-              key={i.id}
-              email={i.name}
-              onRemove={() => removeSelectedEmail(i)}
-            />
-          ))}
-          <div className='flex-1'>
-            <Combobox.Input
-              ref={inputRef}
-              className='relative w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
-              onChange={e => setQuery(e.target.value)}
-              onFocus={() => {
-                button.current?.click()
-              }}
-              onKeyDown={e => handleKeyDownEvent(e.key)}
-              placeholder={selectedEmails.length === 0 ? 'Add email here' : ''}
-            />
-          </div>
-        </div>
-        {filteredEmail.length > 0 && (
-          <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
-            {filteredEmail?.map(f => (
-              <Combobox.Option
-                key={f.id}
-                value={f}
-                className={({ active }) =>
-                  `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
-                    active ? 'bg-gray-700' : ''
-                  }`
-                }
-              >
-                <div className='flex flex-row'>
-                  <div className='flex min-w-0 flex-1 flex-col'>
-                    <div className='flex justify-between py-0.5 font-medium'>
-                      <span className='truncate' title={f.name}>
-                        {f.name}
-                      </span>
-                    </div>
-                    <div className='text-3xs text-gray-400'>
-                      {f.user && 'User'}
-                    </div>
-                  </div>
-                </div>
-              </Combobox.Option>
-            ))}
-          </Combobox.Options>
-        )}
-        <Combobox.Button className='hidden' ref={button} />
-      </Combobox>
+      <TypeaheadCombobox
+        selectedEmails={selectedEmails}
+        setSelectedEmails={setSelectedEmails}
+        onRemove={removedEmail => removeSelectedEmail(removedEmail)}
+        inputRef={inputRef}
+        setQuery={setQuery}
+        filteredEmail={filteredEmail}
+        onKeyDownEvent={key => handleKeyDownEvent(key)}
+      />
     </div>
   )
 }

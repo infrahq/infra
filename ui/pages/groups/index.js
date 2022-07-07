@@ -2,10 +2,8 @@ import Head from 'next/head'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
 import dayjs from 'dayjs'
-import { Combobox } from '@headlessui/react'
 import { PlusIcon } from '@heroicons/react/outline'
 
-import { sortByResource } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
@@ -13,9 +11,12 @@ import PageHeader from '../../components/page-header'
 import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
-import DeleteModal from '../../components/delete-modal'
-import EmailBadge from '../../components/email-badge'
-import RoleSelect from '../../components/role-select'
+import AccessForm from '../../components/access-form'
+import EmptyData from '../../components/empty-data'
+import IdentityList from '../../components/identity-list'
+import Remove from '../../components/remove'
+import TypeaheadCombobox from '../../components/typeahead-combobox'
+import Metadata from '../../components/metadata'
 
 const columns = [
   {
@@ -58,7 +59,6 @@ const columns = [
   },
 ]
 
-// TODO: refactor
 function EmailsSelectInput({
   selectedEmails,
   setSelectedEmails,
@@ -66,8 +66,8 @@ function EmailsSelectInput({
   onClick,
 }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
+
   const [query, setQuery] = useState('')
-  const button = useRef()
   const inputRef = useRef(null)
 
   const selectedEmailsId = selectedEmails.map(i => i.id)
@@ -82,76 +82,22 @@ function EmailsSelectInput({
     setSelectedEmails(selectedEmails.filter(item => item.id !== email.id))
   }
 
-  const handleKeyDownEvent = key => {
-    if (key === 'Backspace' && inputRef.current.value.length === 0) {
-      removeSelectedEmail(selectedEmails[selectedEmails.length - 1])
-    }
-  }
-
   return (
     <section className='my-2 flex'>
       <div className='flex flex-1 items-center border-b border-gray-800 py-3'>
-        <Combobox
-          as='div'
-          className='relative flex-1'
-          onChange={e => {
-            setSelectedEmails([...selectedEmails, e])
+        <TypeaheadCombobox
+          selectedEmails={selectedEmails}
+          setSelectedEmails={setSelectedEmails}
+          onRemove={removedEmail => removeSelectedEmail(removedEmail)}
+          inputRef={inputRef}
+          setQuery={setQuery}
+          filteredEmail={filteredEmail}
+          onKeyDownEvent={key => {
+            if (key === 'Backspace' && inputRef.current.value.length === 0) {
+              removeSelectedEmail(selectedEmails[selectedEmails.length - 1])
+            }
           }}
-        >
-          <div className='flex flex-auto flex-wrap'>
-            {selectedEmails?.map(i => (
-              <EmailBadge
-                key={i.id}
-                email={i.name}
-                onRemove={() => removeSelectedEmail(i)}
-              />
-            ))}
-            <div className='flex-1'>
-              <Combobox.Input
-                type='search'
-                ref={inputRef}
-                className='relative w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
-                onChange={e => setQuery(e.target.value)}
-                onFocus={() => {
-                  button.current?.click()
-                }}
-                onKeyDown={e => handleKeyDownEvent(e.key)}
-                placeholder={
-                  selectedEmails.length === 0 ? 'Add email here' : ''
-                }
-              />
-            </div>
-          </div>
-          {filteredEmail.length > 0 && (
-            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
-              {filteredEmail?.map(f => (
-                <Combobox.Option
-                  key={f.id}
-                  value={f}
-                  className={({ active }) =>
-                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
-                      active ? 'bg-gray-700' : ''
-                    }`
-                  }
-                >
-                  <div className='flex flex-row'>
-                    <div className='flex min-w-0 flex-1 flex-col'>
-                      <div className='flex justify-between py-0.5 font-medium'>
-                        <span className='truncate' title={f.name}>
-                          {f.name}
-                        </span>
-                      </div>
-                      <div className='text-3xs text-gray-400'>
-                        {f.user && 'User'}
-                      </div>
-                    </div>
-                  </div>
-                </Combobox.Option>
-              ))}
-            </Combobox.Options>
-          )}
-          <Combobox.Button className='hidden' ref={button} />
-        </Combobox>
+        />
       </div>
       <div className='relative mt-3'>
         <button
@@ -183,6 +129,13 @@ function Details({ group, admin, onDelete }) {
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const existMembers = users?.map(m => m.id)
+  const metadata = [
+    { title: 'ID', data: id },
+    {
+      title: 'Created',
+      data: group?.created ? dayjs(group.created).fromNow() : '-',
+    },
+  ]
 
   return (
     <div className='flex flex-1 flex-col space-y-6'>
@@ -192,43 +145,8 @@ function Details({ group, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            {grants?.sort(sortByResource)?.map(g => (
-              <div
-                key={g.id}
-                className='flex items-center justify-between text-2xs'
-              >
-                <div>{g.resource}</div>
-                <RoleSelect
-                  role={g.privilege}
-                  resource={g.resource}
-                  remove
-                  direction='left'
-                  onRemove={async () => {
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                    mutateGrants({ items: grants.filter(x => x.id !== g.id) })
-                  }}
-                  onChange={async privilege => {
-                    const res = await fetch('/api/grants', {
-                      method: 'POST',
-                      body: JSON.stringify({
-                        ...g,
-                        privilege,
-                      }),
-                    })
-
-                    // delete old grant
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-
-                    mutateGrants({
-                      items: [
-                        ...grants.filter(f => f.id !== g.id),
-                        await res.json(),
-                      ],
-                    })
-                  }}
-                />
-              </div>
-            ))}
+            <AccessForm grants={grants} mutate={mutateGrants} />
+            {!grants?.length && <EmptyData text='No access' />}
           </section>
           <section>
             <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
@@ -251,38 +169,24 @@ function Details({ group, admin, onDelete }) {
             />
             <div className='mt-4'>
               {users?.length === 0 && (
-                <div className='mt-6 text-2xs italic text-gray-400'>
-                  No members in the group
-                </div>
+                <EmptyData text='No members in the group' />
               )}
-
-              {users
-                ?.sort((a, b) => b.created?.localeCompare(a.created))
-                .map(u => (
-                  <div
-                    key={u.id}
-                    className='group flex items-center justify-between truncate text-2xs'
-                  >
-                    <div className='py-2'>{u.name}</div>
-                    <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
-                      <button
-                        onClick={async () => {
-                          const usersToRemove = [u.id]
-                          await fetch(`/api/groups/${id}/users`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ usersToRemove }),
-                          })
-                          mutateUsers({
-                            items: users.filter(i => i.id !== u.id),
-                          })
-                        }}
-                        className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <IdentityList
+                list={users?.sort((a, b) =>
+                  b.created?.localeCompare(a.created)
+                )}
+                actionText='Remove'
+                onClick={async userId => {
+                  const usersToRemove = [userId]
+                  await fetch(`/api/groups/${id}/users`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ usersToRemove }),
+                  })
+                  mutateUsers({
+                    items: users.filter(i => i.id !== userId),
+                  })
+                }}
+              />
             </div>
           </section>
         </>
@@ -291,37 +195,19 @@ function Details({ group, admin, onDelete }) {
         <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
-        <div className='flex flex-col space-y-2 pt-3'>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>ID</div>
-            <div className='text-2xs'>{id}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Created</div>
-            <div className='text-2xs'>
-              {group?.created ? dayjs(group.created).fromNow() : '-'}
-            </div>
-          </div>
-        </div>
+        <Metadata data={metadata} />
       </section>
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <button
-            type='button'
-            onClick={() => setDeleteModalOpen(true)}
-            className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'
-          >
-            Remove
-          </button>
-          <DeleteModal
-            open={deleteModalOpen}
-            setOpen={setDeleteModalOpen}
+          <Remove
+            deleteModalOpen={deleteModalOpen}
+            setDeleteModalOpen={setDeleteModalOpen}
             onSubmit={async () => {
               setDeleteModalOpen(false)
               onDelete()
             }}
-            title='Remove Group'
-            message={
+            deleteModalTitle='Remove Group'
+            deleteModalMessage={
               <>
                 Are you sure you want to delete{' '}
                 <span className='font-bold text-white'>{name}</span>? This

@@ -7,11 +7,12 @@ import dayjs from 'dayjs'
 import { useAdmin } from '../../lib/admin'
 
 import Dashboard from '../../components/layouts/dashboard'
-import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
+import Remove from '../../components/remove'
+import Metadata from '../../components/metadata'
 
 const columns = [
   {
@@ -43,43 +44,35 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
   const { mutate } = useSWRConfig()
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
+  const { name, url, clientID, created, updated } = provider
+
+  const metadata = [
+    { title: 'Name', data: name },
+    { title: 'URL', data: url },
+    { title: 'Client ID', data: clientID },
+    {
+      title: 'Added',
+      data: created ? dayjs(created).fromNow() : '-',
+    },
+    {
+      title: 'Updated',
+      data: updated ? dayjs(updated).fromNow() : '-',
+    },
+  ]
+
   return (
     <div className='flex flex-1 flex-col space-y-6'>
       <section>
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
-        <div className='grid grid-cols-3 gap-x-1 gap-y-2 pt-3'>
-          <div className='col-span-1 text-2xs text-gray-400'>Name</div>
-          <div className='col-span-2 text-2xs'>{provider.name}</div>
-          <div className='col-span-1 text-2xs text-gray-400'>URL</div>
-          <div className='col-span-2 break-all text-2xs'>{provider.url}</div>
-          <div className='col-span-1 text-2xs text-gray-400'>Client ID</div>
-          <div className='col-span-2 break-all text-2xs'>
-            {provider.clientID}
-          </div>
-          <div className='col-span-1 text-2xs text-gray-400'>Added</div>
-          <div className='col-span-2 text-2xs'>
-            {provider?.created ? dayjs(provider.created).fromNow() : '-'}
-          </div>
-          <div className='col-span-1 text-2xs text-gray-400'>Updated</div>
-          <div className='col-span-2 text-2xs'>
-            {provider.updated ? dayjs(provider.updated).fromNow() : '-'}
-          </div>
-        </div>
+        <Metadata data={metadata} />
       </section>
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <button
-            type='button'
-            onClick={() => setDeleteModalOpen(true)}
-            className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'
-          >
-            Remove
-          </button>
-          <DeleteModal
-            open={deleteModalOpen}
-            setOpen={setDeleteModalOpen}
+          <Remove
+            deleteModalOpen={deleteModalOpen}
+            setDeleteModalOpen={setDeleteModalOpen}
             onSubmit={() => {
               mutate(
                 '/api/providers',
@@ -95,8 +88,8 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
               setDeleteModalOpen(false)
               setSelectedProvider(null)
             }}
-            title='Remove Identity Provider'
-            message={
+            deleteModalTitle='Remove Identity Provider'
+            deleteModalMessage={
               <>
                 Are you sure you want to delete{' '}
                 <span className='font-bold text-white'>{provider?.name}</span>?

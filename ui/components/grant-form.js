@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
 import useSWR from 'swr'
 import { Combobox } from '@headlessui/react'
-import { CheckIcon } from '@heroicons/react/solid'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleSelect from './role-select'
+import TypeaheadDropdown from './typeahead-dropdown'
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
@@ -61,55 +61,23 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
               }
             }}
           />
-          {filtered.length > 0 && (
-            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
-              {filtered?.map(f => (
-                <Combobox.Option
-                  key={f.id}
-                  value={f}
-                  className={({ active }) =>
-                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
-                      active ? 'bg-gray-700' : ''
-                    }`
-                  }
-                >
-                  <div className='flex flex-row'>
-                    <div className='flex min-w-0 flex-1 flex-col'>
-                      <div className='flex justify-between py-0.5 font-medium'>
-                        <span className='truncate' title={f.name}>
-                          {f.name}
-                        </span>
-                        {f.id === selected?.id && (
-                          <CheckIcon
-                            className='h-3 w-3 stroke-1'
-                            aria-hidden='true'
-                          />
-                        )}
-                      </div>
-                      <div className='text-3xs text-gray-400'>
-                        {f.user && 'User'}
-                        {f.group && 'Group'}
-                      </div>
-                    </div>
-                  </div>
-                </Combobox.Option>
-              ))}
-            </Combobox.Options>
-          )}
+          <TypeaheadDropdown filtered={filtered} selected={selected} />
           <Combobox.Button className='hidden' ref={button} />
         </Combobox>
         {roles?.length > 1 && (
           <RoleSelect onChange={setRole} role={role} roles={roles} />
         )}
       </div>
-      <button
-        disabled={!selected}
-        type='submit'
-        className='flex cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
-      >
-        <PlusIcon className='mr-1.5 h-3 w-3' />
-        <div className='text-violet-100'>Add</div>
-      </button>
+      <div className='relative mt-2'>
+        <button
+          disabled={!selected}
+          type='submit'
+          className='flex h-8 cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
+        >
+          <PlusIcon className='mr-1.5 h-3 w-3' />
+          <div className='text-violet-100'>Add</div>
+        </button>
+      </div>
     </form>
   )
 }

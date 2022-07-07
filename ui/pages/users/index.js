@@ -13,8 +13,11 @@ import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
-import DeleteModal from '../../components/delete-modal'
-import RoleSelect from '../../components/role-select'
+import EmptyData from '../../components/empty-data'
+import IdentityList from '../../components/identity-list'
+import AccessForm from '../../components/access-form'
+import Remove from '../../components/remove'
+import Metadata from '../../components/metadata'
 
 const columns = [
   {
@@ -72,6 +75,13 @@ function Details({ user, admin, onDelete }) {
     ?.map(g => g?.items || [])
     ?.flat()
     ?.filter(g => g.resource !== 'infra')
+  const metadata = [
+    { title: 'ID', data: user?.id },
+    {
+      title: 'Created',
+      data: user?.created ? dayjs(user.created).fromNow() : '-',
+    },
+  ]
 
   const loading = [
     auth,
@@ -88,43 +98,7 @@ function Details({ user, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            {grants?.sort(sortByResource)?.map(g => (
-              <div
-                key={g.id}
-                className='flex items-center justify-between text-2xs'
-              >
-                <div>{g.resource}</div>
-                <RoleSelect
-                  role={g.privilege}
-                  resource={g.resource}
-                  remove
-                  direction='left'
-                  onRemove={async () => {
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                    mutate({ items: grants.filter(x => x.id !== g.id) })
-                  }}
-                  onChange={async privilege => {
-                    const res = await fetch('/api/grants', {
-                      method: 'POST',
-                      body: JSON.stringify({
-                        ...g,
-                        privilege,
-                      }),
-                    })
-
-                    // delete old grant
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-
-                    mutate({
-                      items: [
-                        ...grants.filter(f => f.id !== g.id),
-                        await res.json(),
-                      ],
-                    })
-                  }}
-                />
-              </div>
-            ))}
+            <AccessForm grants={grants} mutate={mutate} />
             {inherited?.sort(sortByResource)?.map(g => (
               <div
                 key={g.id}
@@ -145,9 +119,7 @@ function Details({ user, admin, onDelete }) {
               </div>
             ))}
             {!grants?.length && !inherited?.length && !loading && (
-              <div className='mt-6 text-2xs italic text-gray-400'>
-                No access
-              </div>
+              <EmptyData text='No access' />
             )}
           </section>
           <section>
@@ -155,38 +127,23 @@ function Details({ user, admin, onDelete }) {
               Groups
             </h3>
             <div className='mt-4'>
-              {groups?.length === 0 && (
-                <div className='mt-6 text-2xs italic text-gray-400'>
-                  No groups
-                </div>
-              )}
-              {groups
-                ?.sort((a, b) => b.created?.localeCompare(a.created))
-                ?.map(group => (
-                  <div
-                    key={group.id}
-                    className='group flex items-center justify-between truncate text-2xs'
-                  >
-                    <div className='py-2'>{group.name}</div>
-                    <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
-                      <button
-                        onClick={async () => {
-                          const usersToRemove = [id]
-                          await fetch(`/api/groups/${group.id}/users`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ usersToRemove }),
-                          })
-                          mutateGroups({
-                            items: groups.filter(i => i.id !== group.id),
-                          })
-                        }}
-                        className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
-                      >
-                        Leave
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              {groups?.length === 0 && <EmptyData text='No groups' />}
+              <IdentityList
+                list={groups?.sort((a, b) =>
+                  b.created?.localeCompare(a.created)
+                )}
+                actionText='Leave'
+                onClick={async groupId => {
+                  const usersToRemove = [id]
+                  await fetch(`/api/groups/${groupId}/users`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ usersToRemove }),
+                  })
+                  mutateGroups({
+                    items: groups.filter(i => i.id !== groupId),
+                  })
+                }}
+              />
             </div>
           </section>
         </>
@@ -195,43 +152,24 @@ function Details({ user, admin, onDelete }) {
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
-        <div className='flex flex-col space-y-2 pt-3'>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>ID</div>
-            <div className='text-2xs'>{user?.id}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Created</div>
-            <div className='text-2xs'>
-              {user?.created ? dayjs(user.created).fromNow() : '-'}
-            </div>
-          </div>
-        </div>
+        <Metadata data={metadata} />
       </section>
       <section className='flex flex-1 flex-col items-end justify-end py-6'>
-        {auth.id !== id && (
-          <button
-            type='button'
-            onClick={() => setDeleteModalOpen(true)}
-            className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'
-          >
-            Remove
-          </button>
-        )}
-        <DeleteModal
-          open={deleteModalOpen}
-          setOpen={setDeleteModalOpen}
+        <Remove
+          deleteModalOpen={deleteModalOpen}
+          setDeleteModalOpen={setDeleteModalOpen}
           onSubmit={async () => {
             setDeleteModalOpen(false)
             onDelete()
           }}
-          title='Remove User'
-          message={
+          deleteModalTitle='Remove User'
+          deleteModalMessage={
             <>
               Are you sure you want to remove{' '}
               <span className='font-bold text-white'>{name}?</span>
             </>
           }
+          hide={auth.id === id}
         />
       </section>
     </div>
