@@ -33,7 +33,8 @@ $ infra login infraexampleserver.com
 $ infra login --provider okta
 
 # Login with an access key
-$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ infra login
 ```
 
 #### Options
