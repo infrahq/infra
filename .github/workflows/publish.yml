@@ -43,7 +43,7 @@ jobs:
         with:
           name: binaries
       - run: |
-          apt update && apt install -y jq
+          sudo apt-get update && sudo apt-get install -y jq
           RELEASE_ID=$(curl -fs -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ inputs.RELEASE_NAME }} | jq -r .id)
           for ASSET in infra-checksums.txt *.zip *.deb *.rpm; do
             curl -fs -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" --data-binary @$ASSET https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $ASSET)
