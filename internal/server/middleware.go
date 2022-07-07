@@ -124,6 +124,9 @@ func RequireAccessKey(c *gin.Context) error {
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
+		if errors.Is(err, data.ErrAccessKeyExpired) {
+			return err
+		}
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 

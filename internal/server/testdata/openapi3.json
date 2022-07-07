@@ -277,7 +277,7 @@
                   "type": "string"
                 },
                 "extensionDeadline": {
-                  "description": "key must be renewed after this time",
+                  "description": "key must be used within this duration to remain valid",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
                   "type": "string"

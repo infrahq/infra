@@ -11,8 +11,8 @@ type AccessKey struct {
 	IssuedForName     string `json:"issuedForName"`
 	IssuedFor         uid.ID `json:"issuedFor"`
 	ProviderID        uid.ID `json:"providerID"`
-	Expires           Time   `json:"expires,omitempty" note:"key is no longer valid after this time"`
-	ExtensionDeadline Time   `json:"extensionDeadline" note:"key must be renewed after this time"`
+	Expires           Time   `json:"expires" note:"key is no longer valid after this time"`
+	ExtensionDeadline Time   `json:"extensionDeadline" note:"key must be used within this duration to remain valid"`
 }
 
 type ListAccessKeysRequest struct {

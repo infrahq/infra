@@ -42,6 +42,14 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
 		},
 		{
+			err:    data.ErrAccessKeyExpired,
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized: " + data.ErrAccessKeyExpired.Error()},
+		},
+		{
+			err:    data.ErrAccessKeyDeadlineExceeded,
+			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized: " + data.ErrAccessKeyDeadlineExceeded.Error()},
+		},
+		{
 			err: access.AuthorizationError{
 				Resource:      "provider",
 				Operation:     "create",
