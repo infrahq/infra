@@ -1,5 +1,45 @@
 # Changelog
 
+## [0.13.6](https://github.com/infrahq/infra/compare/v0.13.5...v0.13.6) (2022-07-07)
+
+
+### Features
+
+* add connector build_info ([9ca7448](https://github.com/infrahq/infra/commit/9ca74489c6f993121509ed870db35330f8781c0c))
+* add destination LastSeenAt ([accc0b9](https://github.com/infrahq/infra/commit/accc0b96efb54fed230f5cbf5ba213574c80b852))
+* add DestinationMiddleware ([c5d4360](https://github.com/infrahq/infra/commit/c5d4360a9a6efc2b7c9e8687877b256fc95a6dc7))
+* add TRACE level logging ([8943afc](https://github.com/infrahq/infra/commit/8943afce9e4d7ff952ac9971f657e01431882e1a))
+* better feedback for connector key ([#2486](https://github.com/infrahq/infra/issues/2486)) ([fc64278](https://github.com/infrahq/infra/commit/fc64278006bdf48a655efe66226348e5ebbf4888))
+* destinations list status/last seen ([6b6cfaa](https://github.com/infrahq/infra/commit/6b6cfaa610e24b472d8e1b4fc14863f3dd9ee315))
+* expose provider auth url for ui sso ([#2443](https://github.com/infrahq/infra/issues/2443)) ([c90d39b](https://github.com/infrahq/infra/commit/c90d39b19a84cf06e3449e328390b4e6bb4bef95))
+* providers edit ([#2434](https://github.com/infrahq/infra/issues/2434)) ([d536643](https://github.com/infrahq/infra/commit/d5366430efed4e61680fba3ff5412d16654a64e3))
+* require Infra-Version header ([#2041](https://github.com/infrahq/infra/issues/2041)) ([#2424](https://github.com/infrahq/infra/issues/2424)) ([78d5bc4](https://github.com/infrahq/infra/commit/78d5bc42f12c93b12098f5dbd3a4cd308bbf41cb))
+* set client headers ([b63665b](https://github.com/infrahq/infra/commit/b63665b04b2349e4111433ca98ff702206301ae2))
+* set connector header ([a04e90b](https://github.com/infrahq/infra/commit/a04e90b64a64eb5e856956030c2821422bf88179))
+* support requesting inherited grants ([#2423](https://github.com/infrahq/infra/issues/2423)) ([0eb7aca](https://github.com/infrahq/infra/commit/0eb7aca062a3c6ef795db3c777bbc49401757f9f))
+* ui destination status and last seen ([f967d6d](https://github.com/infrahq/infra/commit/f967d6d72508f4b5f51c205d5761db912b082452))
+* **ui:** show which roles user has access to for a given destination ([#2474](https://github.com/infrahq/infra/issues/2474)) ([40c5224](https://github.com/infrahq/infra/commit/40c5224df23294f75da209dedffae6a581134e10))
+* unhide the groups command in the cli ([#2507](https://github.com/infrahq/infra/issues/2507)) ([64b2f90](https://github.com/infrahq/infra/commit/64b2f90d9d2338424971cf3ef8cd881ff101d982))
+* yaml output ([#2496](https://github.com/infrahq/infra/issues/2496)) ([4cbad5a](https://github.com/infrahq/infra/commit/4cbad5a5db6402e1ff923c59ae0d4e6d818f596e))
+
+
+### Bug Fixes
+
+* client delete request ([8c8488f](https://github.com/infrahq/infra/commit/8c8488f036700cde3a65d77fb686b1e90ce038cb))
+* do not redirect adding unknown providers ([#2491](https://github.com/infrahq/infra/issues/2491)) ([40550b7](https://github.com/infrahq/infra/commit/40550b788b6863970390920d0f0aced52477bdcc))
+* find server endpoint for localhost ([#2481](https://github.com/infrahq/infra/issues/2481)) ([6db14a0](https://github.com/infrahq/infra/commit/6db14a0178aaf3c344dda2f6b45d14d1b19ab756))
+* offline access for google ([#2502](https://github.com/infrahq/infra/issues/2502)) ([898ba7c](https://github.com/infrahq/infra/commit/898ba7cdb93336da1eba50abb96860cac3878d37))
+* password confirmation field and minor improvements ([#2479](https://github.com/infrahq/infra/issues/2479)) ([3a69150](https://github.com/infrahq/infra/commit/3a69150010d512c40432f2087220aef16c034f36))
+* strip port from self-signed certs ([#2438](https://github.com/infrahq/infra/issues/2438)) ([6b82ede](https://github.com/infrahq/infra/commit/6b82ede09678a1be6c8afb8ce315d1b41bba0493))
+* **ui:** fix issue where editing role would clear access ([#2475](https://github.com/infrahq/infra/issues/2475)) ([6fe7bb4](https://github.com/infrahq/infra/commit/6fe7bb4046aa7c4483fc7dea074d5309a93b249a))
+* **ui:** fix minor issues in destinations dashboard ([#2523](https://github.com/infrahq/infra/issues/2523)) ([5cedc03](https://github.com/infrahq/infra/commit/5cedc038799348788255ee2a20a6467fb712859c))
+* **ui:** layout on smaller window sizes ([#2477](https://github.com/infrahq/infra/issues/2477)) ([9e059f0](https://github.com/infrahq/infra/commit/9e059f0b9d7cfe38f9c4fa24813c2b97a43f8f3a))
+* **ui:** limit destination name to regex ([#2471](https://github.com/infrahq/infra/issues/2471)) ([f92b714](https://github.com/infrahq/infra/commit/f92b7144a45fbfd89a5e736b9b45e65af55296d1))
+* **ui:** minor display issues in UI ([#2460](https://github.com/infrahq/infra/issues/2460)) ([337a9eb](https://github.com/infrahq/infra/commit/337a9eb2ceec14212fe1952120372c354c62436a))
+* **ui:** show correct error message when using temporary password ([#2461](https://github.com/infrahq/infra/issues/2461)) ([7729198](https://github.com/infrahq/infra/commit/7729198e5b75956662b86beb88a1885e5f3093ee))
+* use correct version for dev builds ([377db4b](https://github.com/infrahq/infra/commit/377db4bcc65bfb71cc3eaf337b8c10c6c825894d))
+* **website:** use `overflow: auto` instead of to `overflow: scroll` scrollbars by default ([#2436](https://github.com/infrahq/infra/issues/2436)) ([051ad58](https://github.com/infrahq/infra/commit/051ad58a66932224baec509a12bc7471661cdf0b))
+
 ## [0.13.5](https://github.com/infrahq/infra/compare/v0.13.4...v0.13.5) (2022-06-27)
 
 
