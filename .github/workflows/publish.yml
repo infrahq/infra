@@ -76,6 +76,7 @@ jobs:
           git push origin @:refs/heads/main
         working-directory: homebrew-tap
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
       - uses: actions/checkout@v3
         with:
           repository: infrahq/scoop
@@ -90,6 +91,7 @@ jobs:
           git push origin @:refs/heads/main
         working-directory: scoop
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
 
   publish-docker:
     runs-on: ubuntu-latest
