@@ -1,7 +1,6 @@
-- id: "Y"
-  created: {}
-  updated: {}
-  lastseenat: {}
+- created: null
+  id: "Y"
+  lastSeenAt: null
   name: apple@example.com
-  providernames: []
+  updated: null
 
