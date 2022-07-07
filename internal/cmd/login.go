@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 type loginCmdOptions struct {
@@ -725,30 +724,17 @@ PROMPT:
 
 // authURLForProvider builds an authorization URL that will get the information we need from an identity provider
 func authURLForProvider(provider api.Provider, state string) string {
-	// build the authorization URL to redirect the user to with the approprite query parameters
-	var authorizeURL strings.Builder
-	// base URL
-	authorizeURL.WriteString(provider.AuthURL)
-	// query parameters
-	authorizeURL.WriteString("?")
-	authorizeURL.WriteString("redirect_uri=http://localhost:8301") // where to send the access codes after the user logs in with an IDP
-	if provider.Kind == string(models.ProviderKindGoogle) {
-		authorizeURL.WriteString("&")
-		authorizeURL.WriteString("prompt=consent") // google only sends a refresh token when a user consents, always prompt so we always get the ref token
-		authorizeURL.WriteString("&")
-		authorizeURL.WriteString("access_type=offline") // specifies that we want a refresh token
+	// build the authorization query parameters based on attributes of the provider
+	params := url.Values{}
+	params.Add("redirect_uri", "http://localhost:8301") // where to send the access codes after the user logs in with an IDP
+	if provider.Kind == "google" {
+		params.Add("prompt", "consent")      // google only sends a refresh token when a user consents, always prompt so we always get the ref token
+		params.Add("access_type", "offline") // specifies that we want a refresh token
 	}
-	authorizeURL.WriteString("&")
-	authorizeURL.WriteString("client_id=")
-	authorizeURL.WriteString(provider.ClientID)
-	authorizeURL.WriteString("&")
-	authorizeURL.WriteString("response_type=code")
-	authorizeURL.WriteString("&")
-	authorizeURL.WriteString("scope=")
-	authorizeURL.WriteString(strings.Join(provider.Scopes, "+"))
-	authorizeURL.WriteString("&")
-	authorizeURL.WriteString("state=")
-	authorizeURL.WriteString(state)
+	params.Add("client_id", provider.ClientID)
+	params.Add("response_type", "code")
+	params.Add("scope", strings.Join(provider.Scopes, " "))
+	params.Add("state", state)
 
-	return authorizeURL.String()
+	return fmt.Sprintf("%s?%s", provider.AuthURL, params.Encode())
 }

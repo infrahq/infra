@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -506,11 +505,11 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 }
 
 func TestAuthURLForProvider(t *testing.T) {
-	expectedOktaAuthURL := "https://okta.example.com/oauth2/v1/authorize?redirect_uri=http://localhost:8301&client_id=001&response_type=code&scope=email+openid&state=state"
+	expectedOktaAuthURL := "https://okta.example.com/oauth2/v1/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
 	okta := api.Provider{
 		AuthURL:  "https://okta.example.com/oauth2/v1/authorize",
 		ClientID: "001",
-		Kind:     string(models.ProviderKindOkta),
+		Kind:     "okta",
 		Scopes: []string{
 			"email",
 			"openid",
@@ -518,11 +517,11 @@ func TestAuthURLForProvider(t *testing.T) {
 	}
 	assert.Equal(t, authURLForProvider(okta, "state"), expectedOktaAuthURL)
 
-	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?redirect_uri=http://localhost:8301&client_id=001&response_type=code&scope=email+openid&state=state"
+	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
 	azure := api.Provider{
 		AuthURL:  "https://login.microsoftonline.com/0/oauth2/v2.0/authorize",
 		ClientID: "001",
-		Kind:     string(models.ProviderKindAzure),
+		Kind:     "azure",
 		Scopes: []string{
 			"email",
 			"openid",
@@ -530,11 +529,11 @@ func TestAuthURLForProvider(t *testing.T) {
 	}
 	assert.Equal(t, authURLForProvider(azure, "state"), expectedAzureAuthURL)
 
-	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=http://localhost:8301&prompt=consent&access_type=offline&client_id=001&response_type=code&scope=email+openid&state=state"
+	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=001&prompt=consent&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
 	google := api.Provider{
 		AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
 		ClientID: "001",
-		Kind:     string(models.ProviderKindGoogle),
+		Kind:     "google",
 		Scopes: []string{
 			"email",
 			"openid",
