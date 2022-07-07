@@ -82,6 +82,9 @@
       },
       "Destination": {
         "properties": {
+          "connected": {
+            "type": "boolean"
+          },
           "connection": {
             "properties": {
               "ca": {
@@ -335,6 +338,9 @@
           "items": {
             "items": {
               "properties": {
+                "connected": {
+                  "type": "boolean"
+                },
                 "connection": {
                   "properties": {
                     "ca": {
@@ -1717,6 +1723,15 @@
             "schema": {
               "example": "view",
               "type": "string"
+            }
+          },
+          {
+            "description": "if true, this field includes grants that the user inherits through groups",
+            "in": "query",
+            "name": "showInherited",
+            "schema": {
+              "description": "if true, this field includes grants that the user inherits through groups",
+              "type": "boolean"
             }
           },
           {

@@ -40,7 +40,6 @@ func createGroup(client *api.Client, name string) (*api.Group, error) {
 
 func newGroupsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Hidden:  true,
 		Use:     "groups",
 		Short:   "Manage groups of identities",
 		Aliases: []string{"group"},

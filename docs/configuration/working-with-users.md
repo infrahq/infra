@@ -7,7 +7,7 @@ position: 3
 
 ## Listing users
 
-To see all users being managed by Infra, use `infra id list`:
+To see all users being managed by Infra, use `infra users list`:
 
 ```
 infra users list
@@ -25,7 +25,7 @@ michael@infrahq.com          3 days ago
 
 ## Adding a user
 
-To add a user to Infra, use `infra id add`:
+To add a user to Infra, use `infra users add`:
 
 ```
 infra users add example@acme.com

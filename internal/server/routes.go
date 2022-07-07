@@ -261,7 +261,7 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
-	if err := validate.Struct(req); err != nil {
+	if err := pgValidate.Struct(req); err != nil {
 		return err
 	}
 

@@ -130,6 +130,12 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
 			case reflect.Uint, reflect.Uint64:
 				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+			case reflect.Bool:
+				if f.Bool() {
+					query.Add(fieldName, "1")
+				} else {
+					query.Add(fieldName, "0")
+				}
 			default:
 				panic("unhandled reflection kind " + f.Kind().String())
 			}

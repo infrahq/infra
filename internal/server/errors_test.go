@@ -68,7 +68,7 @@ func TestSendAPIError(t *testing.T) {
 			},
 		},
 		{
-			err: validate.Struct(struct {
+			err: pgValidate.Struct(struct {
 				Email string `validate:"required,email" json:"email"`
 			}{}),
 			result: api.Error{
