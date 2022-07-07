@@ -15,7 +15,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 )
 
 var pathIDReplacer = regexp.MustCompile(`:\w+`)
@@ -413,7 +412,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		Required: true,
 		Schema: &openapi3.SchemaRef{
 			Value: &openapi3.Schema{
-				Example:     internal.FullVersion(),
+				Example:     "0.13.3",
 				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
 				Type:        "string",
 				Description: "Version of the API being requested",
