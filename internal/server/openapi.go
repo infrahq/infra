@@ -15,6 +15,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 )
 
 var pathIDReplacer = regexp.MustCompile(`:\w+`)
@@ -395,6 +396,8 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 	return resp
 }
 
+var apiVersion = internal.FullVersion
+
 func buildRequest(r reflect.Type, op *openapi3.Operation) {
 	if r.Kind() == reflect.Pointer {
 		r = r.Elem()
@@ -405,6 +408,21 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 	}
 
 	op.Parameters = openapi3.NewParameters()
+
+	op.AddParameter(&openapi3.Parameter{
+		Name:     "Infra-Version",
+		In:       "header",
+		Required: true,
+		Schema: &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Example:     apiVersion(),
+				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
+				Type:        "string",
+				Description: "Version of the API being requested",
+			},
+		},
+	})
+
 	schema := &openapi3.Schema{
 		Type:       "object",
 		Properties: openapi3.Schemas{},
@@ -417,7 +435,9 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 
 			buildRequest(f.Type, tmpOp)
 			for _, param := range tmpOp.Parameters {
-				op.AddParameter(param.Value)
+				if param.Value.Name != "Infra-Version" {
+					op.AddParameter(param.Value)
+				}
 			}
 			continue
 		}
