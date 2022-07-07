@@ -56,7 +56,7 @@ function Layout({ children }) {
 
   return (
     <div className='flex h-full min-w-[800px]'>
-      <nav className='flex w-40 flex-none flex-col lg:w-48 xl:w-56'>
+      <nav className='flex w-48 flex-none flex-col xl:w-56'>
         <div className='lg:my-18 mt-6 mb-10 flex flex-shrink-0 select-none items-center px-5'>
           <Link href='/'>
             <a>
@@ -127,7 +127,7 @@ function Layout({ children }) {
                 Sign Out
               </button>
               <div className='mt-2 text-3xs leading-none text-violet-50/40'>
-                Infra version{' '}
+                version{' '}
                 <span className='select-text font-mono'>
                   {version?.version}
                 </span>
