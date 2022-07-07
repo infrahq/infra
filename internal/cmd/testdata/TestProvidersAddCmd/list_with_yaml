@@ -1,10 +1,10 @@
-- id: ""
-  name: okta
-  created: {}
-  updated: {}
-  url: https://okta.com/path
-  clientid: okta-client-id
+- authURL: ""
+  clientID: okta-client-id
+  created: null
+  id: ""
   kind: ""
-  authurl: ""
-  scopes: []
+  name: okta
+  scopes: null
+  updated: null
+  url: https://okta.com/path
 
