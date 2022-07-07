@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -30,6 +31,10 @@ type ListDestinationsRequest struct {
 	Name     string `form:"name"`
 	UniqueID string `form:"unique_id"`
 	PaginationRequest
+}
+
+func (r ListDestinationsRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
 }
 
 type CreateDestinationRequest struct {

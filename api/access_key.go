@@ -23,6 +23,10 @@ type ListAccessKeysRequest struct {
 	PaginationRequest
 }
 
+func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
+}
+
 type CreateAccessKeyRequest struct {
 	UserID            uid.ID   `json:"userID"`
 	Name              string   `json:"name"`
