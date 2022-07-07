@@ -2,126 +2,181 @@ package server
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
+type metricValue struct {
+	Value       float64
+	LabelValues []string
+}
+
+// collector implements the prometheus.Collector interface
+type collector struct {
+	desc        *prometheus.Desc
+	valueType   prometheus.ValueType
+	collectFunc func() []metricValue
+}
+
+func newCollector(opts prometheus.Opts, valueType prometheus.ValueType, variableLabels []string, collectFunc func() []metricValue) *collector {
+	fqname := prometheus.BuildFQName(opts.Namespace, opts.Subsystem, opts.Name)
+	return &collector{
+		desc:        prometheus.NewDesc(fqname, opts.Help, variableLabels, opts.ConstLabels),
+		valueType:   valueType,
+		collectFunc: collectFunc,
+	}
+}
+
+// NewGaugeCollector creates a collect with type Gauge
+func NewGaugeCollector(opts prometheus.Opts, variableLabels []string, collectFunc func() []metricValue) *collector {
+	return newCollector(opts, prometheus.GaugeValue, variableLabels, collectFunc)
+}
+
+// Describe is implemented by DescribeByCollect
+func (c *collector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(c, ch)
+}
+
+// Collect implements Collector. It create a set of constant metrics with the values and labels
+// as described by collectFunc
+func (c *collector) Collect(ch chan<- prometheus.Metric) {
+	for _, metricValue := range c.collectFunc() {
+		ch <- prometheus.MustNewConstMetric(c.desc, c.valueType, float64(metricValue.Value), metricValue.LabelValues...)
+	}
+}
+
 func setupMetrics(db *gorm.DB) *prometheus.Registry {
-	reg := prometheus.NewRegistry()
-	factory := promauto.With(reg)
+	registry := prometheus.NewRegistry()
 
-	factory.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "build",
-		Name:      "info",
-		Help:      "Build information about Infra Server.",
-	}, []string{"branch", "version", "commit", "date"}).With(prometheus.Labels{
-		"branch":  internal.Branch,
-		"version": internal.FullVersion(),
-		"commit":  internal.Commit,
-		"date":    internal.Date,
-	}).Set(1)
+	if rawDB, err := db.DB(); err == nil {
+		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))
+	}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "build_info",
+		Help: "A metric with a constant '1' value labeled by branch, version, commit, and date from which infra was built",
+		ConstLabels: prometheus.Labels{
+			"branch":  internal.Branch,
+			"version": internal.FullVersion(),
+			"commit":  internal.Commit,
+			"date":    internal.Date,
+		},
+	}, func() float64 { return 1 }))
+
+	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "users",
-		Help:      "Number of users managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Identity](db)
-		if err != nil {
-			logging.Warnf("users: %s", err)
-			return 0
+		Help:      "The total number of users",
+	}, []string{}, func() []metricValue {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM identities").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("users")
+			return []metricValue{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metricValue, 0, len(results))
+		for _, result := range results {
+			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "groups",
-		Help:      "Number of groups managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Group](db)
-		if err != nil {
-			logging.Warnf("groups: %s", err)
-			return 0
+		Help:      "The total number of groups",
+	}, []string{}, func() []metricValue {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM groups").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("groups")
+			return []metricValue{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metricValue, 0, len(results))
+		for _, result := range results {
+			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "grants",
-		Help:      "Number of grants managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Grant](db)
-		if err != nil {
-			logging.Warnf("grants: %s", err)
-			return 0
+		Help:      "The total number of grants",
+	}, []string{}, func() []metricValue {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM grants").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("grants")
+			return []metricValue{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metricValue, 0, len(results))
+		for _, result := range results {
+			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "providers",
-		Help:      "Number of providers managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Provider](db)
-		if err != nil {
-			logging.Warnf("providers: %s", err)
-			return 0
+		Help:      "The total number of providers",
+	}, []string{"kind"}, func() []metricValue {
+		var results []struct {
+			Kind  string
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers GROUP BY kind").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("providers")
+			return []metricValue{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metricValue, 0, len(results))
+		for _, result := range results {
+			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{result.Kind}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "destinations",
-		Help:      "Number of destinations managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Destination](db)
-		if err != nil {
-			logging.Warnf("destinations: %s", err)
-			return 0
+		Help:      "The total number of destinations",
+	}, []string{"version"}, func() []metricValue {
+		var results []struct {
+			Version string
+			Count   int
 		}
 
-		return float64(count)
-	})
-
-	factory.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "database",
-		Name:      "info",
-		Help:      "Information about configured database.",
-	}, []string{"name"}).With(prometheus.Labels{
-		"name": db.Dialector.Name(),
-	}).Set(1)
-
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
-		Namespace: "database",
-		Name:      "connected",
-		Help:      "Database connection status.",
-	}, func() float64 {
-		pinger, ok := db.ConnPool.(interface{ Ping() error })
-		if !ok {
-			logging.Warnf("ping: not supported")
-			return -1
+		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations GROUP BY version").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("destinations")
+			return []metricValue{}
 		}
 
-		if err := pinger.Ping(); err != nil {
-			logging.Warnf("ping: not connected")
-			return 0
+		values := make([]metricValue, 0, len(results))
+		for _, result := range results {
+			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{result.Version}})
 		}
 
-		return 1
-	})
+		return values
+	}))
 
-	return reg
+	return registry
 }
