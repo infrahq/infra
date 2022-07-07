@@ -153,7 +153,7 @@ infra destinations list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands
@@ -351,7 +351,7 @@ infra users list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands
@@ -589,7 +589,7 @@ infra providers list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands

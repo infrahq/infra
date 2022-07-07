@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
@@ -81,6 +82,12 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 					return err
 				}
 				cli.Output(string(jsonOutput))
+			case "yaml":
+				yamlOutput, err := yaml.Marshal(providers.Items)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(yamlOutput))
 			default:
 				type row struct {
 					Name string `header:"NAME"`

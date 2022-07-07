@@ -9,6 +9,7 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -148,6 +149,12 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 					return err
 				}
 				cli.Output(string(jsonOutput))
+			case "yaml":
+				yamlOutput, err := yaml.Marshal(users.Items)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(yamlOutput))
 			default:
 				for _, user := range users.Items {
 					rows = append(rows, row{
