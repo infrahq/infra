@@ -4,7 +4,7 @@ import ProfileIcon from './profile-icon'
 
 export default function Sidebar({
   children,
-  handleClose,
+  onClose,
   title,
   iconPath,
   profileIcon,
@@ -38,7 +38,7 @@ export default function Sidebar({
         <button
           type='button'
           className='bg-transparents -mr-2 flex-none cursor-pointer rounded-md p-2 text-gray-400 hover:text-white focus:outline-none'
-          onClick={handleClose}
+          onClick={onClose}
         >
           <XIcon className='h-6 w-6 stroke-1' aria-hidden='true' />
         </button>

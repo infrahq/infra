@@ -65,32 +65,33 @@ function Layout({ children }) {
           </Link>
         </div>
         <div className='flex-1 select-none space-y-1 px-5'>
-          {navigation.map(n => (
-            <Link key={n.name} href={n.href}>
-              <a
-                href={n.href}
-                className={`
+          {navigation
+            ?.filter(n => (n.admin ? admin : true))
+            .map(n => (
+              <Link key={n.name} href={n.href}>
+                <a
+                  href={n.href}
+                  className={`
                     ${
                       router.asPath.startsWith(n.href)
                         ? 'text-white'
                         : 'text-gray-400'
                     }
                     flex items-center rounded-lg py-2 text-xs leading-none transition-colors duration-100
-                    ${n.admin && !admin ? 'pointer-events-none opacity-30' : ''}
                   `}
-              >
-                <img
-                  alt={n?.name?.toLowerCase()}
-                  src={n.icon}
-                  className={`
+                >
+                  <img
+                    alt={n?.name?.toLowerCase()}
+                    src={n.icon}
+                    className={`
                       ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
                       mr-3 h-[18px] w-[18px] flex-shrink-0
                     `}
-                />
-                {n.name}
-              </a>
-            </Link>
-          ))}
+                  />
+                  {n.name}
+                </a>
+              </Link>
+            ))}
         </div>
         <div className='group mx-2 mb-2 flex h-12 overflow-hidden rounded-xl bg-transparent p-2.5 pb-1 transition-all duration-300 ease-in-out hover:h-[132px] hover:bg-gray-900'>
           <div className='flex h-[23px] w-[23px] flex-none items-stretch self-start rounded-md border border-violet-300/40'>
@@ -101,7 +102,10 @@ function Layout({ children }) {
             </div>
           </div>
           <div className='ml-1 min-w-0 flex-1 select-none px-2'>
-            <div className='mt-[5px] mb-2 truncate pb-px text-2xs leading-none text-gray-400 transition-colors duration-300 group-hover:text-white'>
+            <div
+              title={auth?.name}
+              className='mt-[5px] mb-2 truncate pb-px text-2xs leading-none text-gray-400 transition-colors duration-300 group-hover:text-white'
+            >
               {auth?.name}
             </div>
             <div className='opacity-0 transition-opacity duration-300 group-hover:opacity-100'>

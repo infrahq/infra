@@ -247,7 +247,7 @@ export default function Users() {
           </div>
           {selected && (
             <Sidebar
-              handleClose={() => setSelected(null)}
+              onClose={() => setSelected(null)}
               title={selected.name}
               profileIcon={selected.name[0]}
             >

@@ -98,7 +98,6 @@ export default function ProvidersAddDetails() {
           </label>
           <input
             required
-            autoFocus
             type='search'
             placeholder='choose a name for your identity provider'
             value={name}
@@ -126,6 +125,7 @@ export default function ProvidersAddDetails() {
           </label>
           <input
             required
+            autoFocus
             placeholder='domain or URL'
             value={url}
             onChange={e => setURL(e.target.value)}

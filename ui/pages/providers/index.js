@@ -49,30 +49,22 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
-        <div className='flex flex-col space-y-2 pt-3'>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Name</div>
-            <div className='text-2xs'>{provider.name}</div>
+        <div className='grid grid-cols-3 gap-x-1 gap-y-2 pt-3'>
+          <div className='col-span-1 text-2xs text-gray-400'>Name</div>
+          <div className='col-span-2 text-2xs'>{provider.name}</div>
+          <div className='col-span-1 text-2xs text-gray-400'>URL</div>
+          <div className='col-span-2 break-all text-2xs'>{provider.url}</div>
+          <div className='col-span-1 text-2xs text-gray-400'>Client ID</div>
+          <div className='col-span-2 break-all text-2xs'>
+            {provider.clientID}
           </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>URL</div>
-            <div className='text-2xs'>{provider.url}</div>
+          <div className='col-span-1 text-2xs text-gray-400'>Added</div>
+          <div className='col-span-2 text-2xs'>
+            {provider?.created ? dayjs(provider.created).fromNow() : '-'}
           </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Client ID</div>
-            <div className='text-2xs'>{provider.clientID}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Added</div>
-            <div className='text-2xs'>
-              {provider?.created ? dayjs(provider.created).fromNow() : '-'}
-            </div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Updated</div>
-            <div className='text-2xs'>
-              {provider.updated ? dayjs(provider.updated).fromNow() : '-'}
-            </div>
+          <div className='col-span-1 text-2xs text-gray-400'>Updated</div>
+          <div className='col-span-2 text-2xs'>
+            {provider.updated ? dayjs(provider.updated).fromNow() : '-'}
           </div>
         </div>
       </section>
@@ -178,7 +170,7 @@ export default function Providers() {
           </div>
           {selected && (
             <Sidebar
-              handleClose={() => setSelected(null)}
+              onClose={() => setSelected(null)}
               title={selected.name}
               iconPath='/providers.svg'
             >
