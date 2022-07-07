@@ -62,10 +62,10 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
-          sh update-tap.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          sh update-tap.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
           RECIPE=$(git status --porcelain | awk '{ print $2 }')
           git add $RECIPE
-          git commit -m "Brew formula update for ${RECIPE%.*} version $RELEASE_NAME"
+          git commit -m "Brew formula update for ${RECIPE%.*} version ${{ inputs.RELEASE_NAME }}"
           git push origin @:refs/heads/main
         working-directory: homebrew-tap
         if: ${{ inputs.ENVIRONMENT == 'production' }}
@@ -76,10 +76,10 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
-          sh update-scoop.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          sh update-scoop.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
           PACKAGE=$(git status --porcelain | awk '{ print $2 }')
           git add $PACKAGE
-          git commit -m "Scoop update for ${PACKAGE%.*} version $RELEASE_NAME"
+          git commit -m "Scoop update for ${PACKAGE%.*} version ${{ inputs.RELEASE_NAME }}"
           git push origin @:refs/heads/main
         working-directory: scoop
         if: ${{ inputs.ENVIRONMENT == 'production' }}
