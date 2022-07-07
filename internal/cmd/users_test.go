@@ -196,9 +196,9 @@ func TestUsersCmd(t *testing.T) {
 
 	t.Run("list with json", func(t *testing.T) {
 		setup(t)
-		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "users", "add", "apple@example.com")
+		err := Run(context.Background(), "users", "add", "apple@example.com")
 		assert.NilError(t, err)
+		ctx, bufs := PatchCLI(context.Background())
 		err = Run(ctx, "users", "list", "--format=json")
 		assert.NilError(t, err)
 
@@ -209,9 +209,9 @@ func TestUsersCmd(t *testing.T) {
 
 	t.Run("list with yaml", func(t *testing.T) {
 		setup(t)
-		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "users", "add", "apple@example.com")
+		err := Run(context.Background(), "users", "add", "apple@example.com")
 		assert.NilError(t, err)
+		ctx, bufs := PatchCLI(context.Background())
 		err = Run(ctx, "users", "list", "--format=yaml")
 		assert.NilError(t, err)
 

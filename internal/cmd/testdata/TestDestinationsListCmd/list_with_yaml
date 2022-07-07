@@ -1,4 +1,5 @@
-- connection:
+- connected: false
+  connection:
     ca: ""
     url: ""
   created: null

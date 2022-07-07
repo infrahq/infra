@@ -117,15 +117,15 @@ func TestProvidersAddCmd(t *testing.T) {
 
 	t.Run("list with json", func(t *testing.T) {
 		setup(t)
-		ctx, bufs := PatchCLI(context.Background())
 
 		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
 		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
 		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
 
-		err := Run(ctx, "providers", "add", "okta")
+		err := Run(context.Background(), "providers", "add", "okta")
 		assert.NilError(t, err)
 
+		ctx, bufs := PatchCLI(context.Background())
 		err = Run(ctx, "providers", "list", "--format=json")
 		assert.NilError(t, err)
 
@@ -136,15 +136,15 @@ func TestProvidersAddCmd(t *testing.T) {
 
 	t.Run("list with yaml", func(t *testing.T) {
 		setup(t)
-		ctx, bufs := PatchCLI(context.Background())
 
 		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
 		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
 		t.Setenv("INFRA_PROVIDER_CLIENT_SECRET", "okta-client-secret")
 
-		err := Run(ctx, "providers", "add", "okta")
+		err := Run(context.Background(), "providers", "add", "okta")
 		assert.NilError(t, err)
 
+		ctx, bufs := PatchCLI(context.Background())
 		err = Run(ctx, "providers", "list", "--format=yaml")
 		assert.NilError(t, err)
 
