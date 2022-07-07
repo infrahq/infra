@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -490,17 +489,20 @@ func attemptTLSRequest(options loginCmdOptions) error {
 			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 		},
 	}
+
 	res, err = httpClient.Do(req)
-	urlErr := &url.Error{}
-	switch {
-	case err == nil:
+
+	if err == nil {
 		res.Body.Close()
 		return nil
-	case errors.As(err, &urlErr):
-		if urlErr.Timeout() {
-			return fmt.Errorf("%w: %s", api.ErrTimeout, err)
-		}
 	}
+
+	connError := api.HandleConnError(err)
+
+	if connError != nil {
+		return connError
+	}
+
 	return err
 }
 

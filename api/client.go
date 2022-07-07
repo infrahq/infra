@@ -14,6 +14,7 @@ import (
 
 	"github.com/ssoroka/slice"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -112,11 +113,9 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
-		urlErr := &url.Error{}
-		if errors.As(err, &urlErr) {
-			if urlErr.Timeout() {
-				return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
-			}
+		connError := HandleConnError(err)
+		if connError != nil {
+			return nil, connError
 		}
 		return nil, fmt.Errorf("%s %q: %w", method, path, err)
 	}
@@ -326,4 +325,20 @@ func partialText(body []byte, limit int) string {
 	}
 
 	return string(body[:limit]) + "..."
+}
+
+func HandleConnError(err error) error {
+	urlErr := &url.Error{}
+	if errors.As(err, &urlErr) {
+		if urlErr.Timeout() {
+			return fmt.Errorf("%w: %s", ErrTimeout, err)
+		}
+	}
+
+	if errors.Is(err, io.EOF) {
+		logging.Debugf("request error: %v", err)
+		return fmt.Errorf("could not reach infra server, please wait a moment and try again")
+	}
+
+	return nil
 }
