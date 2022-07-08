@@ -178,9 +178,7 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 
 	err := group.Wait()
-	if s.tel != nil {
-		s.tel.Close()
-	}
+	s.tel.Close()
 	if errors.Is(err, context.Canceled) {
 		return nil
 	}

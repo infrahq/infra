@@ -57,6 +57,9 @@ func (t *Telemetry) Enqueue(track analytics.Message) error {
 }
 
 func (t *Telemetry) Close() {
+	if t == nil {
+		return
+	}
 	// the only error here is "already closed"
 	_ = t.client.Close()
 }
