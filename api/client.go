@@ -113,7 +113,8 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 
 	resp, err := client.HTTP.Do(req)
 	if err != nil {
-		if connError := HandleConnError(err); connError != nil {
+		connError := HandleConnError(err)
+		if connError != nil {
 			return nil, connError
 		}
 		return nil, fmt.Errorf("%s %q: %w", method, path, err)
@@ -326,9 +327,6 @@ func partialText(body []byte, limit int) string {
 	return string(body[:limit]) + "..."
 }
 
-// HandleConnError translates common connection errors into more informative human
-// readable errors. Returns `nil` if the error was not handled, so it is the callers responsibility to
-// return the original error if `HandleConnError` returns nil.
 func HandleConnError(err error) error {
 	urlErr := &url.Error{}
 	if errors.As(err, &urlErr) {

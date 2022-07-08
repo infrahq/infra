@@ -491,12 +491,15 @@ func attemptTLSRequest(options loginCmdOptions) error {
 	}
 
 	res, err = httpClient.Do(req)
+
 	if err == nil {
 		res.Body.Close()
 		return nil
 	}
 
-	if connError := api.HandleConnError(err); connError != nil {
+	connError := api.HandleConnError(err)
+
+	if connError != nil {
 		return connError
 	}
 
