@@ -27,8 +27,12 @@ func TestMigration_202204111503(t *testing.T) {
 
 	ids, err := ListIdentities(db, ByName("steven@example.com"))
 	assert.NilError(t, err)
-
 	assert.Assert(t, len(ids) == 1)
+
+	grants, err := ListGrants(db, BySubject(ids[0].PolyID()))
+	assert.NilError(t, err)
+	assert.Assert(t, len(grants) == 1)
+
 }
 
 func TestMigration_202204211705(t *testing.T) {

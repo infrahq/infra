@@ -475,6 +475,12 @@ func migrate(db *gorm.DB) error {
 		dropCertificateTables(),
 		addAuthURLAndScopeToProviders(),
 		setDestinationLastSeenAt(),
+		// delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
+		{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
+			subQuery := tx.Select("min(id)").Group("subject, resource, privilege").Model(&models.Grant{})
+			return tx.Where("id NOT in (?)", subQuery).Delete(&models.Grant{}).Error
+		},
+		},
 		// next one here
 	})
 
