@@ -55,3 +55,38 @@ func NewHandler(promRegistry *prometheus.Registry) *gin.Engine {
 	})
 	return engine
 }
+
+// Metric is a container for a count metric and its related labels
+type Metric struct {
+	Count       float64
+	LabelValues []string
+}
+
+// Collector implements the prometheus.Collector interface. It creates a Prometheus Metric for each
+// item returned by collectFunc and sets the count and label values accordingly.
+type Collector struct {
+	desc        *prometheus.Desc
+	collectFunc func() []Metric
+}
+
+// NewCollector creates a Collector
+func NewCollector(opts prometheus.Opts, labelNames []string, collectFunc func() []Metric) *Collector {
+	fqname := prometheus.BuildFQName(opts.Namespace, opts.Subsystem, opts.Name)
+	return &Collector{
+		desc:        prometheus.NewDesc(fqname, opts.Help, labelNames, opts.ConstLabels),
+		collectFunc: collectFunc,
+	}
+}
+
+// Describe is implemented by DescribeByCollect
+func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(c, ch)
+}
+
+// Collect implements Collector. It create a set of constant metrics with the values and labels
+// as described by collectFunc
+func (c *Collector) Collect(ch chan<- prometheus.Metric) {
+	for _, metric := range c.collectFunc() {
+		ch <- prometheus.MustNewConstMetric(c.desc, prometheus.GaugeValue, float64(metric.Count), metric.LabelValues...)
+	}
+}

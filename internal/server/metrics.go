@@ -7,46 +7,8 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/metrics"
 )
-
-type metricValue struct {
-	Value       float64
-	LabelValues []string
-}
-
-// collector implements the prometheus.Collector interface
-type collector struct {
-	desc        *prometheus.Desc
-	valueType   prometheus.ValueType
-	collectFunc func() []metricValue
-}
-
-func newCollector(opts prometheus.Opts, valueType prometheus.ValueType, variableLabels []string, collectFunc func() []metricValue) *collector {
-	fqname := prometheus.BuildFQName(opts.Namespace, opts.Subsystem, opts.Name)
-	return &collector{
-		desc:        prometheus.NewDesc(fqname, opts.Help, variableLabels, opts.ConstLabels),
-		valueType:   valueType,
-		collectFunc: collectFunc,
-	}
-}
-
-// NewGaugeCollector creates a collect with type Gauge
-func NewGaugeCollector(opts prometheus.Opts, variableLabels []string, collectFunc func() []metricValue) *collector {
-	return newCollector(opts, prometheus.GaugeValue, variableLabels, collectFunc)
-}
-
-// Describe is implemented by DescribeByCollect
-func (c *collector) Describe(ch chan<- *prometheus.Desc) {
-	prometheus.DescribeByCollect(c, ch)
-}
-
-// Collect implements Collector. It create a set of constant metrics with the values and labels
-// as described by collectFunc
-func (c *collector) Collect(ch chan<- prometheus.Metric) {
-	for _, metricValue := range c.collectFunc() {
-		ch <- prometheus.MustNewConstMetric(c.desc, c.valueType, float64(metricValue.Value), metricValue.LabelValues...)
-	}
-}
 
 func setupMetrics(db *gorm.DB) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
@@ -66,77 +28,77 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 		},
 	}, func() float64 { return 1 }))
 
-	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "users",
 		Help:      "The total number of users",
-	}, []string{}, func() []metricValue {
+	}, []string{}, func() []metrics.Metric {
 		var results []struct {
 			Count int
 		}
 
 		if err := db.Raw("SELECT COUNT(*) as count FROM identities").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("users")
-			return []metricValue{}
+			return []metrics.Metric{}
 		}
 
-		values := make([]metricValue, 0, len(results))
+		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
 		}
 
 		return values
 	}))
 
-	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "groups",
 		Help:      "The total number of groups",
-	}, []string{}, func() []metricValue {
+	}, []string{}, func() []metrics.Metric {
 		var results []struct {
 			Count int
 		}
 
 		if err := db.Raw("SELECT COUNT(*) as count FROM groups").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("groups")
-			return []metricValue{}
+			return []metrics.Metric{}
 		}
 
-		values := make([]metricValue, 0, len(results))
+		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
 		}
 
 		return values
 	}))
 
-	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "grants",
 		Help:      "The total number of grants",
-	}, []string{}, func() []metricValue {
+	}, []string{}, func() []metrics.Metric {
 		var results []struct {
 			Count int
 		}
 
 		if err := db.Raw("SELECT COUNT(*) as count FROM grants").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("grants")
-			return []metricValue{}
+			return []metrics.Metric{}
 		}
 
-		values := make([]metricValue, 0, len(results))
+		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{}})
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
 		}
 
 		return values
 	}))
 
-	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "providers",
 		Help:      "The total number of providers",
-	}, []string{"kind"}, func() []metricValue {
+	}, []string{"kind"}, func() []metrics.Metric {
 		var results []struct {
 			Kind  string
 			Count int
@@ -144,22 +106,22 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 
 		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers GROUP BY kind").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("providers")
-			return []metricValue{}
+			return []metrics.Metric{}
 		}
 
-		values := make([]metricValue, 0, len(results))
+		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{result.Kind}})
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Kind}})
 		}
 
 		return values
 	}))
 
-	registry.MustRegister(NewGaugeCollector(prometheus.Opts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "destinations",
 		Help:      "The total number of destinations",
-	}, []string{"version"}, func() []metricValue {
+	}, []string{"version"}, func() []metrics.Metric {
 		var results []struct {
 			Version string
 			Count   int
@@ -167,12 +129,12 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 
 		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations GROUP BY version").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("destinations")
-			return []metricValue{}
+			return []metrics.Metric{}
 		}
 
-		values := make([]metricValue, 0, len(results))
+		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metricValue{Value: float64(result.Count), LabelValues: []string{result.Version}})
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Version}})
 		}
 
 		return values
