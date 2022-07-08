@@ -195,6 +195,9 @@
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
             "type": "string"
+          },
+          "version": {
+            "type": "string"
           }
         }
       },
@@ -450,6 +453,9 @@
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
                   "format": "date-time",
+                  "type": "string"
+                },
+                "version": {
                   "type": "string"
                 }
               },
@@ -1411,9 +1417,13 @@
                   },
                   "uniqueID": {
                     "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
                   }
                 },
                 "required": [
+                  "uniqueID",
                   "name"
                 ],
                 "type": "object"
@@ -1746,9 +1756,13 @@
                   },
                   "uniqueID": {
                     "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
                   }
                 },
                 "required": [
+                  "uniqueID",
                   "name"
                 ],
                 "type": "object"
