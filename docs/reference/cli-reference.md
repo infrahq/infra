@@ -33,7 +33,8 @@ $ infra login infraexampleserver.com
 $ infra login --provider okta
 
 # Login with an access key
-$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ infra login
 ```
 
 #### Options
@@ -152,7 +153,7 @@ infra destinations list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands
@@ -350,7 +351,7 @@ infra users list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands
@@ -378,6 +379,118 @@ $ infra users remove janedoe@example.com
 
 ```
       --force   Exit successfully even if user does not exist
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups add`
+
+Create a group
+
+```
+infra groups add GROUP [flags]
+```
+
+#### Examples
+
+```
+# Create a group
+$ infra groups add Engineering
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups adduser`
+
+Add a user to a group
+
+```
+infra groups adduser USER GROUP [flags]
+```
+
+#### Examples
+
+```
+# Add a user to a group
+$ infra groups adduser johndoe@example.com Engineering
+
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups list`
+
+List groups
+
+```
+infra groups list [flags]
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups remove`
+
+Delete a group
+
+```
+infra groups remove GROUP [flags]
+```
+
+#### Examples
+
+```
+# Delete a group
+$ infra groups remove Engineering
+```
+
+#### Options
+
+```
+      --force   Exit successfully even if the group does not exist
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra groups removeuser`
+
+Remove a user from a group
+
+```
+infra groups removeuser USER GROUP [flags]
+```
+
+#### Examples
+
+```
+# Remove a user from a group
+$ infra groups removeuser johndoe@example.com Engineering
+
+```
+
+#### Options
+
+```
+      --force   Exit successfully even if the user or group does not exist
 ```
 
 #### Options inherited from parent commands
@@ -476,7 +589,7 @@ infra providers list [flags]
 #### Options
 
 ```
-      --format string   Output format [json]
+      --format string   Output format [json|yaml]
 ```
 
 #### Options inherited from parent commands
@@ -512,6 +625,33 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
       --client-secret string   OIDC client secret
       --kind string            The identity provider kind. One of 'oidc, okta, azure, or google' (default "oidc")
       --url string             Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra providers edit`
+
+Update a provider
+
+```
+infra providers edit PROVIDER [flags]
+```
+
+#### Examples
+
+```
+# Set a new client secret for a connected provider
+$ infra providers edit okta --client-secret
+```
+
+#### Options
+
+```
+      --client-secret string   Set a new client secret
 ```
 
 #### Options inherited from parent commands

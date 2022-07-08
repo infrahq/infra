@@ -121,11 +121,19 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func list[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
 	}
+
+	var count int64
+	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
+		return nil, err
+	}
+	p.SetTotalCount(int(count))
+
+	db = ByPagination(*p)(db)
 
 	result := make([]T, 0)
 	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {
@@ -265,12 +273,12 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 			if errors.Is(err, internal.ErrNotFound) {
 				p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra}
 				if err := add(db, p); err != nil {
-					logging.Panicf("%s", err.Error())
+					logging.L.Panic().Err(err).Msg("failed to create infra provider")
 				}
 				return p
 			}
-			logging.Panicf("%s", err.Error())
-			return nil
+			logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
+			return nil // unreachable, the line above panics
 		}
 
 		infraProviderCache = infra
@@ -288,8 +296,8 @@ func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	if infraConnectorCache == nil {
 		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
 		if err != nil {
-			logging.Panicf("%s", err.Error())
-			return nil
+			logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
+			return nil // unreachable, the line above panics
 		}
 
 		infraConnectorCache = connector

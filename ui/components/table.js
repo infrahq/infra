@@ -1,24 +1,21 @@
 import { useTable, useExpanded } from 'react-table'
 
-export default function Table({
-  columns,
-  data,
-  initialState,
-  getRowProps = () => {},
-}) {
+export default function Table({ columns, data, getRowProps = () => {} }) {
   const { getTableProps, getTableBodyProps, prepareRow, headerGroups, rows } =
     useTable(
       {
         columns,
         data,
         autoResetExpanded: false,
-        initialState,
       },
       useExpanded
     )
 
   return (
-    <table className='sticky top-0 w-full table-fixed' {...getTableProps()}>
+    <table
+      className='w-full table-fixed border-separate border-spacing-0'
+      {...getTableProps()}
+    >
       <thead>
         {headerGroups.map(headerGroup => (
           <tr key={headerGroup.id} {...headerGroup.getHeaderGroupProps()}>

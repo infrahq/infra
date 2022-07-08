@@ -140,7 +140,7 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 		body, _ := createTestAccessKey(t, db, -1*time.Hour)
 
 		_, err := ValidateAccessKey(db, body)
-		assert.Error(t, err, "token expired")
+		assert.ErrorIs(t, err, ErrAccessKeyExpired)
 	})
 }
 
@@ -149,7 +149,7 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 		body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
 
 		_, err := ValidateAccessKey(db, body)
-		assert.Error(t, err, "token extension deadline exceeded")
+		assert.ErrorIs(t, err, ErrAccessKeyDeadlineExceeded)
 	})
 }
 

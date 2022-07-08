@@ -9,6 +9,7 @@ import (
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -143,11 +144,17 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(users)
+				jsonOutput, err := json.Marshal(users.Items)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(jsonOutput))
+			case "yaml":
+				yamlOutput, err := yaml.Marshal(users.Items)
+				if err != nil {
+					return err
+				}
+				cli.Output(string(yamlOutput))
 			default:
 				for _, user := range users.Items {
 					rows = append(rows, row{
@@ -414,39 +421,15 @@ func createUser(client *api.Client, name string) (*api.CreateUserResponse, error
 // check if the user has permissions to reset passwords for another user.
 // This might be handy for customizing error messages
 func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientHostConfig) (bool, error) {
-	// TODO: could really use inherited grants for this
 	grants, err := client.ListGrants(api.ListGrantsRequest{
-		User:      config.UserID,
-		Privilege: api.InfraAdminRole,
-		Resource:  "infra",
+		User:          config.UserID,
+		Privilege:     api.InfraAdminRole,
+		Resource:      "infra",
+		ShowInherited: true,
 	})
 	if err != nil {
 		return false, err
 	}
 
-	if len(grants.Items) > 0 {
-		return true, nil
-	}
-
-	myGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
-	if err != nil {
-		return false, err
-	}
-
-	for _, group := range myGroups.Items {
-		grants, err := client.ListGrants(api.ListGrantsRequest{
-			Group:     group.ID,
-			Privilege: api.InfraAdminRole,
-			Resource:  "infra",
-		})
-		if err != nil {
-			return false, err
-		}
-
-		if len(grants.Items) > 0 {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return len(grants.Items) > 0, nil
 }

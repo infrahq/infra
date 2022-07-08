@@ -24,12 +24,12 @@ func GetDestination(db *gorm.DB, selectors ...SelectorFunc) (*models.Destination
 	return get[models.Destination](db, selectors...)
 }
 
-func ListDestinations(db *gorm.DB, selectors ...SelectorFunc) ([]models.Destination, error) {
-	return list[models.Destination](db, selectors...)
+func ListDestinations(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
+	return list[models.Destination](db, p, selectors...)
 }
 
 func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
-	toDelete, err := ListDestinations(db, selector)
+	toDelete, err := ListDestinations(db, &models.Pagination{}, selector)
 	if err != nil {
 		return err
 	}

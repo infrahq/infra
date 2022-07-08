@@ -20,7 +20,7 @@ on:
         required: true
       GEMFURY_TOKEN:
         required: true
-      RELEASE_PLEASE_TOKEN:
+      GORELEASER_GITHUB_TOKEN:
         required: true
       DOCKERHUB_USERNAME:
         required: true
@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ inputs.ENVIRONMENT }}
     steps:
+      - uses: actions/checkout@v3
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-region: ${{ secrets.AWS_REGION }}
@@ -43,10 +44,16 @@ jobs:
         with:
           name: binaries
       - run: |
+          gh release upload --clobber v${{ inputs.RELEASE_NAME }} *.txt *.zip *.deb *.rpm
+        if: ${{ github.ref_type == 'tag' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
           for PACKAGE in *.deb *.rpm; do
-            curl -fs -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
+            curl -fsSL -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
           done
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
       - run: aws s3 sync . s3://${{ secrets.RELEASES_BUCKET }}/infra/v${{ inputs.RELEASE_NAME }} --exclude '*' --include '*.zip' --include '*.deb' --include '*.rpm' --include 'infra-checksums.txt' --acl public-read
       - uses: actions/download-artifact@v3
         with:
@@ -59,30 +66,32 @@ jobs:
         with:
           repository: infrahq/homebrew-tap
           path: homebrew-tap
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
-          sh update-tap.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          sh update-tap.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
           RECIPE=$(git status --porcelain | awk '{ print $2 }')
           git add $RECIPE
-          git commit -m "Brew formula update for ${RECIPE%.*} version $RELEASE_NAME"
+          git commit -m "Brew formula update for ${RECIPE%.*} version ${{ inputs.RELEASE_NAME }}"
           git push origin @:refs/heads/main
         working-directory: homebrew-tap
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
       - uses: actions/checkout@v3
         with:
           repository: infrahq/scoop
           path: scoop
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          token: ${{ secrets.GORELEASER_GITHUB_TOKEN }}
         if: ${{ inputs.ENVIRONMENT == 'production' }}
       - run: |
-          sh update-scoop.sh -b https://${{ inputs.RELEASES_BUCKET }}/infra $RELEASE_NAME
+          sh update-scoop.sh -b https://${{ secrets.RELEASES_BUCKET }}/infra ${{ inputs.RELEASE_NAME }}
           PACKAGE=$(git status --porcelain | awk '{ print $2 }')
           git add $PACKAGE
-          git commit -m "Scoop update for ${PACKAGE%.*} version $RELEASE_NAME"
+          git commit -m "Scoop update for ${PACKAGE%.*} version ${{ inputs.RELEASE_NAME }}"
           git push origin @:refs/heads/main
         working-directory: scoop
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
 
   publish-docker:
     runs-on: ubuntu-latest
@@ -97,10 +106,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: infrahq/infra
-          flavor: latest=false
           tags: |
             type=raw,value=${{ inputs.RELEASE_NAME }}
-            type=raw,value=latest,enable={{is_default_branch}}
             type=match,pattern=.*-(.*),group=1,value=${{ inputs.RELEASE_NAME }}
       - uses: docker/setup-buildx-action@v2
       - uses: docker/build-push-action@v3

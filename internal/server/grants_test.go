@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -69,13 +70,13 @@ func TestAPI_ListGrants(t *testing.T) {
 	createGroup := func(t *testing.T, name string, users ...uid.ID) uid.ID {
 		t.Helper()
 		group := &models.Group{Name: name}
-		for _, user := range users {
-			iden := models.Identity{Model: models.Model{ID: user}}
-			group.Identities = append(group.Identities, iden)
-		}
 
 		err := data.CreateGroup(srv.db, group)
 		assert.NilError(t, err)
+
+		err = data.AddUsersToGroup(srv.db, group.ID, users)
+		assert.NilError(t, err)
+
 		return group.ID
 	}
 
@@ -91,7 +92,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup,
 		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
+		ExpiresAt:  time.Now().Add(10 * time.Minute),
 	}
 
 	accessKey, err := data.CreateAccessKey(srv.db, token)
@@ -258,7 +259,7 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Assert(t, grants.PaginationInfo == api.PaginationResponse{Limit: 2, Page: 2})
+				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2})
 			},
 		},
 		"filter by resource": {
@@ -315,25 +316,226 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
-{
-	"pagination_info":{},
-	"count": 1,
-	"items": [{
-		"id": "<any-valid-uid>",
-		"created_by": "%[1]v",
-		"privilege": "custom1",
-		"resource": "res1",
-		"user": "%[2]v",
-		"created": "%[3]v",
-		"updated": "%[3]v"
-	}]
-}`,
+					{
+						"count": 1,
+						"items": [{
+							"id": "<any-valid-uid>",
+							"created_by": "%[1]v",
+							"privilege": "custom1",
+							"resource": "res1",
+							"user": "%[2]v",
+							"created": "%[3]v",
+							"updated": "%[3]v"
+						}]
+					}`,
 					admin.ID,
 					idInGroup.String(),
 					time.Now().UTC().Format(time.RFC3339),
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	createID := func(t *testing.T, name string) uid.ID {
+		t.Helper()
+		var buf bytes.Buffer
+		body := api.CreateUserRequest{Name: name}
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+		respObj := &api.CreateUserResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respObj)
+		assert.NilError(t, err)
+		return respObj.ID
+	}
+
+	createGroup := func(t *testing.T, name string, users ...uid.ID) uid.ID {
+		t.Helper()
+		group := &models.Group{Name: name}
+
+		err := data.CreateGroup(srv.db, group)
+		assert.NilError(t, err)
+
+		err = data.AddUsersToGroup(srv.db, group.ID, users)
+		assert.NilError(t, err)
+
+		return group.ID
+	}
+
+	idInGroup := createID(t, "inagroup@example.com")
+	mikhail := createID(t, "mikhail@example.com")
+
+	zoologistsID := createGroup(t, "Zoologists", mikhail)
+
+	loginAs := func(userID uid.ID, req *http.Request) {
+		token := &models.AccessKey{
+			IssuedFor:  userID,
+			ProviderID: data.InfraProvider(srv.db).ID,
+			ExpiresAt:  time.Now().Add(10 * time.Minute),
+		}
+
+		var err error
+		accessKey, err := data.CreateAccessKey(srv.db, token)
+		assert.NilError(t, err)
+
+		req.Header.Set("Authorization", "Bearer "+accessKey)
+	}
+
+	err := data.CreateGrant(srv.db, &models.Grant{
+		Resource:  "infra",
+		Privilege: "view",
+		Subject:   uid.NewIdentityPolymorphicID(idInGroup),
+	})
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(srv.db, &models.Grant{
+		Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+		Privilege: "examine",
+		Resource:  "butterflies",
+	})
+	assert.NilError(t, err)
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
+		assert.NilError(t, err)
+
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"authorized by inherited group matching subject": {
+			urlPath: "/api/grants?resource=butterflies&showInherited=1&user=" + mikhail.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(idInGroup, req)
+
+				err = data.CreateGrant(srv.db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "butterflies",
+				})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"can list grants without a subject": {
+			urlPath: "/api/grants?showInherited=1&resource=dinosaurs", // inherited doesn't mean anything here
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(idInGroup, req)
+
+				err = data.CreateGrant(srv.db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "dinosaurs",
+				})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "dinosaurs",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"user can select grants for groups they are a member of": {
+			urlPath: "/api/grants?resource=butterflies&group=" + zoologistsID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(mikhail, req)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+				var grants api.ListResponse[api.Grant]
+				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"user can select their own inherited grants without any special permissions": {
+			urlPath: "/api/grants?showInherited=1&resource=butterflies&user=" + mikhail.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				loginAs(mikhail, req)
+				err = data.CreateGrant(srv.db, &models.Grant{
+					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
+					Privilege: "examine",
+					Resource:  "butterflies",
+				})
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+				expected := []api.Grant{
+					{
+						Group:     zoologistsID,
+						Privilege: "examine",
+						Resource:  "butterflies",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 	}
@@ -351,4 +553,247 @@ var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
 var cmpAPIGrantJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+func TestAPI_CreateGrant_Success(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "user": "TJ",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.3")
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	assert.NilError(t, err)
+
+	runStep(t, "full JSON response", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster",
+		  "user": "TJ",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.3")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+func TestAPI_CreateGrantV0_12_2_Success(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	reqBody := strings.NewReader(`
+		{
+		  "subject": "i:TJ",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster"
+		}`)
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodPost, "/v1/grants", reqBody)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	assert.NilError(t, err)
+
+	runStep(t, "full JSON response", func(t *testing.T) {
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated)
+
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+		{
+		  "id": "<any-valid-uid>",
+		  "created_by": "%[1]v",
+		  "privilege": "admin-role",
+		  "resource": "some-cluster",
+		  "subject": "i:TJ",
+		  "created": "%[2]v",
+		  "updated": "%[2]v"
+		}`,
+			accessKey.IssuedFor,
+			time.Now().UTC().Format(time.RFC3339),
+		))
+		actual := jsonUnmarshal(t, resp.Body.String())
+		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+	})
+
+	var newGrant api.Grant
+	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	assert.NilError(t, err)
+
+	runStep(t, "grant exists", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/v1/grants/"+newGrant.ID.String(), nil)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.12.2")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var getGrant api.Grant
+		err = json.NewDecoder(resp.Body).Decode(&getGrant)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, getGrant, newGrant)
+	})
+}
+
+func TestAPI_ListGrantsV0_12_2(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	resp := httptest.NewRecorder()
+	req, err := http.NewRequest(http.MethodGet, "/v1/grants?privilege=admin", nil)
+	assert.NilError(t, err)
+	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", "0.12.2")
+
+	routes.ServeHTTP(resp, req)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	admin, err := data.ListIdentities(srv.db, &models.Pagination{}, data.ByName("admin@example.com"))
+	assert.NilError(t, err)
+
+	expected := jsonUnmarshal(t, fmt.Sprintf(`
+	[
+		{
+			"id": "<any-valid-uid>",
+			"created_by": "%[1]v",
+			"privilege": "admin",
+			"resource": "infra",
+			"subject": "%[2]v",
+			"created": "%[3]v",
+			"updated": "%[3]v"
+		}
+	]`,
+		uid.ID(1),
+		uid.NewIdentityPolymorphicID(admin[0].ID),
+		time.Now().UTC().Format(time.RFC3339),
+	))
+
+	actual := jsonUnmarshal(t, resp.Body.String())
+	assert.NilError(t, err)
+	assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+}
+
+func TestAPI_DeleteGrant(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	user := &models.Identity{Name: "non-admin"}
+
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	t.Run("last infra admin is deleted", func(t *testing.T) {
+		infraAdminGrants, err := data.ListGrants(srv.db, &models.Pagination{}, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		assert.NilError(t, err)
+		assert.Assert(t, len(infraAdminGrants) == 1)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants[0].ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+	})
+
+	t.Run("not last infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraAdminRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last infra non-admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraViewRole,
+			Resource:  "infra",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
+
+	t.Run("last non-infra admin is deleted", func(t *testing.T) {
+		grant2 := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: "admin",
+			Resource:  "example",
+		}
+
+		err := data.CreateGrant(srv.db, grant2)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
+	})
 }

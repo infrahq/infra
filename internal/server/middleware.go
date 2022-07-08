@@ -53,7 +53,7 @@ func DestinationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uniqueID := c.GetHeader("Infra-Destination")
 		if uniqueID != "" {
-			destinations, err := access.ListDestinations(c, uniqueID, "", models.Pagination{})
+			destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{})
 			if err != nil {
 				return
 			}
@@ -124,6 +124,9 @@ func RequireAccessKey(c *gin.Context) error {
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
+		if errors.Is(err, data.ErrAccessKeyExpired) {
+			return err
+		}
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 

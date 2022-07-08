@@ -6,14 +6,20 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/rs/zerolog"
+	"golang.org/x/term"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-var (
-	L = NewLogger(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-)
+var L = &logger{
+	Logger: zerolog.New(zerolog.ConsoleWriter{
+		Out:          os.Stderr,
+		NoColor:      !isTerminal(),
+		PartsExclude: []string{"time"},
+		FormatLevel:  consoleFormatLevel,
+	}),
+}
 
 type logger struct {
 	zerolog.Logger
@@ -29,18 +35,37 @@ func init() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
 
-func NewLogger(writer io.Writer) *logger {
+func newLogger(writer io.Writer) *logger {
 	return &logger{
 		Logger: zerolog.New(writer).With().Timestamp().Caller().Logger(),
 	}
 }
 
+// UseServerLogger changes L to a logger appropriate for long-running processes,
+// like the infra server and connector. If the process is being run in an
+// interactive terminal, use the default console logger.
 func UseServerLogger() {
-	L = NewLogger(os.Stderr)
+	if isTerminal() {
+		return
+	}
+	L = newLogger(os.Stderr)
 }
 
-func Tracef(format string, v ...interface{}) {
-	L.Trace().Msgf(format, v...)
+func isTerminal() bool {
+	return os.Stdin != nil && term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+// UseFileLogger changes L to a logger that writes log output to a file that is
+// rotated.
+func UseFileLogger(filepath string) {
+	writer := &lumberjack.Logger{
+		Filename:   filepath,
+		MaxSize:    10, // megabytes
+		MaxBackups: 7,
+		MaxAge:     28, // days
+	}
+
+	L = newLogger(writer)
 }
 
 func Debugf(format string, v ...interface{}) {
@@ -59,14 +84,6 @@ func Errorf(format string, v ...interface{}) {
 	L.Error().Msgf(format, v...)
 }
 
-func Fatalf(format string, v ...interface{}) {
-	L.Fatal().Msgf(format, v...)
-}
-
-func Panicf(format string, v ...interface{}) {
-	L.Panic().Msgf(format, v...)
-}
-
 func SetLevel(levelName string) error {
 	level, err := zerolog.ParseLevel(levelName)
 	if err != nil {
@@ -75,4 +92,21 @@ func SetLevel(levelName string) error {
 
 	zerolog.SetGlobalLevel(level)
 	return nil
+}
+
+type TestingT interface {
+	zerolog.TestingLog
+	Cleanup(func())
+}
+
+// PatchLogger sets the global L logger to write logs to t. When the test ends
+// the global L logger is reset to the previous value.
+// PatchLogger changes a static variable, so tests that use PatchLogger can not
+// use t.Parallel.
+func PatchLogger(t TestingT) {
+	origL := L
+	L = newLogger(zerolog.NewTestWriter(t))
+	t.Cleanup(func() {
+		L = origL
+	})
 }

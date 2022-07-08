@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/pem"
-	"net"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +14,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hinshun/vt10x"
-	"golang.org/x/crypto/acme/autocert"
 	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
@@ -24,6 +22,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
@@ -35,7 +34,7 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	setupServerTLSOptions(t, &opts)
 
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
@@ -43,10 +42,6 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
-	assert.NilError(t, err)
-
-	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -133,7 +128,7 @@ func TestLoginCmd_Options(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
+	setupServerTLSOptions(t, &opts)
 	adminAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 	opts.Config.Users = []server.User{
 		{
@@ -147,7 +142,6 @@ func TestLoginCmd_Options(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	setupCertManager(t, opts.TLSCache, srv.Addrs.HTTPS.String())
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -234,7 +228,7 @@ func newConsole(t *testing.T) *expect.Console {
 	pseudoTY, tty, err := pty.Open()
 	assert.NilError(t, err, "failed to open pseudo tty")
 
-	timeout := 2 * time.Second
+	timeout := 10 * time.Second
 	if os.Getenv("CI") != "" || race.Enabled {
 		// CI and -race take much longer than regular runs, use a much longer timeout
 		timeout = 30 * time.Second
@@ -286,23 +280,18 @@ func setupEnv(t *testing.T) string {
 	return dir
 }
 
-// setupCertManager copies the static TLS cert and key into the cache that will
-// be used by the server. This allows the server to skip generating a private key
-// for both the CA and server certificate, which takes multiple seconds.
-func setupCertManager(t *testing.T, dir string, serverName string) {
+func setupServerTLSOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
-	ctx := context.Background()
-	cache := autocert.DirCache(dir)
+
+	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 
 	key, err := os.ReadFile("testdata/pki/localhost.key")
 	assert.NilError(t, err)
-	err = cache.Put(ctx, serverName+".key", key)
-	assert.NilError(t, err)
+	opts.TLS.PrivateKey = string(key)
 
 	cert, err := os.ReadFile("testdata/pki/localhost.crt")
 	assert.NilError(t, err)
-	err = cache.Put(ctx, serverName+".crt", cert)
-	assert.NilError(t, err)
+	opts.TLS.Certificate = types.StringOrFile(cert)
 }
 
 func TestLoginCmd_TLSVerify(t *testing.T) {
@@ -314,21 +303,17 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
 	opts := defaultServerOptions(dir)
+	setupServerTLSOptions(t, &opts)
 	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
 		{Name: "admin@example.com", AccessKey: accessKey},
 	}
-	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	host, _, err := net.SplitHostPort(srv.Addrs.HTTPS.String())
-	assert.NilError(t, err)
-
-	setupCertManager(t, opts.TLSCache, host)
 	go func() {
 		assert.Check(t, srv.Run(ctx))
 	}()
@@ -461,6 +446,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Run("login with trusted fingerprint", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
+		t.Setenv("INFRA_ACCESS_KEY", accessKey)
+		t.Setenv("INFRA_SERVER", srv.Addrs.HTTPS.String())
 
 		err := Run(ctx, "logout", "--clear")
 		assert.NilError(t, err)
@@ -472,9 +459,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		fingerprint := certs.Fingerprint(block.Bytes)
 
 		err = Run(ctx, "login",
-			"--tls-trusted-fingerprint", fingerprint,
-			"--key", accessKey,
-			srv.Addrs.HTTPS.String())
+			"--tls-trusted-fingerprint", fingerprint)
 		assert.NilError(t, err)
 
 		// Check the client config
@@ -517,4 +502,42 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		golden.Assert(t, bufs.Stderr.String(), t.Name())
 	})
+}
+
+func TestAuthURLForProvider(t *testing.T) {
+	expectedOktaAuthURL := "https://okta.example.com/oauth2/v1/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
+	okta := api.Provider{
+		AuthURL:  "https://okta.example.com/oauth2/v1/authorize",
+		ClientID: "001",
+		Kind:     "okta",
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(okta, "state"), expectedOktaAuthURL)
+
+	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
+	azure := api.Provider{
+		AuthURL:  "https://login.microsoftonline.com/0/oauth2/v2.0/authorize",
+		ClientID: "001",
+		Kind:     "azure",
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(azure, "state"), expectedAzureAuthURL)
+
+	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=001&prompt=consent&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
+	google := api.Provider{
+		AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
+		ClientID: "001",
+		Kind:     "google",
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	assert.Equal(t, authURLForProvider(google, "state"), expectedGoogleAuthURL)
 }

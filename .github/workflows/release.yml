@@ -6,15 +6,27 @@ on:
       - 'v*'
 
 jobs:
+  release-name:
+    runs-on: ubuntu-latest
+    outputs:
+      release_name: ${{ steps.release-name.outputs.release_name }}
+    steps:
+      - id: release-name
+        run: |
+          # strip the `v` prefix
+          echo "::set-output name=release_name::${GITHUB_REF_NAME#v}"
+
   release-build:
+    needs: [release-name]
     uses: ./.github/workflows/build.yml
     with:
-      RELEASE_NAME: ${{ github.ref_name }}
+      RELEASE_NAME: ${{ needs.release-name.outputs.release_name }}
     secrets: inherit
 
   release-publish:
+    needs: [release-name, release-build]
     uses: ./.github/workflows/publish.yml
     with:
-      RELEASE_NAME: ${{ github.ref_name }}
+      RELEASE_NAME: ${{ needs.release-name.outputs.release_name }}
       ENVIRONMENT: Production
     secrets: inherit

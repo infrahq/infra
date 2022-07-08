@@ -7,12 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -44,6 +42,7 @@ func TestAddRequestRewrite(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
+	req.Header.Add("Infra-Version", "0.1.0")
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Result().StatusCode, 200)
@@ -74,6 +73,7 @@ func TestStackedAddRequestRewrite(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?cucumberCount=5&carrotCount=7", nil)
+	req.Header.Add("Infra-Version", "0.1.0")
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Result().StatusCode, 200)
@@ -94,6 +94,7 @@ func TestRedirect(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/test?vegetableCount=17", nil)
+	req.Header.Add("Infra-Version", "0.1.0")
 	router.ServeHTTP(resp, req)
 
 	assert.Assert(t, resp.Result().StatusCode == 200)
@@ -130,6 +131,7 @@ func TestRedirectOfRequestAndResponseRewrite(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/oldtest?cucumberCount=5&carrotCount=7", nil)
+	req.Header.Add("Infra-Version", "0.1.0")
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Result().StatusCode, 200)
@@ -321,6 +323,7 @@ func TestRedirectWithPathVariable(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/identity/"+id.String(), nil)
+	req.Header.Add("Infra-Version", "0.1.0")
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Result().StatusCode, 200)
@@ -447,22 +450,12 @@ func TestEmptyVersionHeader(t *testing.T) {
 	req.Header.Add("Infra-Version", "")
 	router.ServeHTTP(resp, req)
 
-	if afterVersion("0.14.0") {
-		assert.Equal(t, resp.Result().StatusCode, http.StatusBadRequest, "Request should fail: Client must provide Infra-Version")
+	assert.Equal(t, resp.Result().StatusCode, http.StatusBadRequest, "Request should fail: Client must provide Infra-Version")
 
-		apiErr := &api.Error{}
-		err := json.Unmarshal(resp.Body.Bytes(), apiErr)
-		assert.NilError(t, err)
-		assert.Assert(t, strings.Contains(apiErr.Message, "Infra-Version header required"))
-
-	} else {
-		assert.Equal(t, resp.Result().StatusCode, 200)
-
-		r := &legacyResponse{}
-		err := json.Unmarshal(resp.Body.Bytes(), r)
-		assert.NilError(t, err)
-		assert.Equal(t, r.Shoes, 8)
-	}
+	apiErr := &api.Error{}
+	err := json.Unmarshal(resp.Body.Bytes(), apiErr)
+	assert.NilError(t, err)
+	assert.Assert(t, strings.Contains(apiErr.Message, "Infra-Version header required"))
 }
 
 func TestRedirectWithARequestRewriteToQueryParameter(t *testing.T) {
@@ -502,10 +495,4 @@ func TestRedirectWithARequestRewriteToQueryParameter(t *testing.T) {
 		assert.Equal(t, lr.Loafers, 5)
 	})
 
-}
-
-func afterVersion(ver string) bool {
-	serverVer, _ := semver.NewVersion(internal.FullVersion())
-	checkVer, _ := semver.NewVersion(ver)
-	return !serverVer.LessThan(checkVer)
 }

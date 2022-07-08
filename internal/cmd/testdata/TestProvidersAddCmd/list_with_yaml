@@ -1,0 +1,10 @@
+- authURL: ""
+  clientID: okta-client-id
+  created: null
+  id: ""
+  kind: ""
+  name: okta
+  scopes: null
+  updated: null
+  url: https://okta.com/path
+

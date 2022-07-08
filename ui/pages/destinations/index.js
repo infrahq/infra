@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import useSWR from 'swr'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
@@ -38,9 +37,17 @@ function Details({ destination, onDelete }) {
     parent(resource) ? `/api/grants?resource=${parent(resource)}` : null
   )
 
-  const connectable = grants?.find(
+  const showConnect = grants?.find(
     g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
   )
+
+  const usergrants = [...(grants || []), ...(inherited || [])]?.filter(
+    g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
+  )
+  const userroles = [
+    ...new Set(usergrants?.sort(sortByPrivilege)?.map(ug => ug.privilege)),
+  ]
+
   const empty =
     grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
 
@@ -103,6 +110,10 @@ function Details({ destination, onDelete }) {
                       mutate({ items: grants.filter(x => x.id !== g.id) })
                     }}
                     onChange={async privilege => {
+                      if (privilege === g.privilege) {
+                        return
+                      }
+
                       const res = await fetch('/api/grants', {
                         method: 'POST',
                         body: JSON.stringify({
@@ -153,12 +164,12 @@ function Details({ destination, onDelete }) {
           </div>
         </section>
       )}
-      {connectable && (
+      {showConnect && (
         <section>
           <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
             Connect
           </h3>
-          <p className='my-4 text-2xs'>
+          <p className='my-4 text-2xs leading-normal'>
             Connect to this {destination?.kind || 'resource'} via the{' '}
             <a
               target='_blank'
@@ -168,6 +179,9 @@ function Details({ destination, onDelete }) {
             >
               Infra CLI
             </a>
+            . You have{' '}
+            <span className='font-semibold'>{userroles.join(', ')}</span>{' '}
+            access.
           </p>
           <pre className='overflow-auto rounded-md bg-gray-900 px-4 py-3 text-2xs leading-normal text-gray-300'>
             infra login {window.location.host}
@@ -248,10 +262,10 @@ const columns = [
   {
     Header: 'Name',
     accessor: 'name',
-    width: '67%',
+    width: '55%',
     Cell: ({ row, value }) => {
       return (
-        <div className='flex items-center py-2'>
+        <div className='flex truncate py-2'>
           {row.canExpand && (
             <span
               {...row.getToggleRowExpandedProps({
@@ -277,11 +291,12 @@ const columns = [
             </span>
           )}
           <span
-            className={`flex items-center ${row.depth === 0 ? 'h-6' : ''} ${
-              row.canExpand ? '' : 'pl-9'
-            }`}
+            title={value}
+            className={`flex flex-1 items-center truncate ${
+              row.depth === 0 ? 'h-6' : ''
+            } ${row.canExpand ? '' : 'pl-9'}`}
           >
-            {value}
+            <span className='truncate'>{value}</span>
           </span>
         </div>
       )
@@ -290,11 +305,32 @@ const columns = [
   {
     Header: 'Kind',
     accessor: v => v,
-    width: '33%',
+    width: '20%',
     Cell: ({ value }) => (
       <span className='rounded bg-gray-800 px-2 py-0.5 text-gray-400'>
         {value.kind}
       </span>
+    ),
+  },
+  {
+    Header: 'Status',
+    accessor: v => v,
+    width: '25%',
+    Cell: ({ value }) => (
+      <div className='flex items-center py-2'>
+        {value.kind === 'cluster' && (
+          <>
+            <div
+              className={`h-2 w-2 flex-none rounded-full ${
+                value.connected ? 'bg-green-400' : 'bg-gray-600'
+              }`}
+            />
+            <span className='flex-none px-2 text-gray-400'>
+              {value.connected ? 'Connected' : 'Disconnected'}
+            </span>
+          </>
+        )}
+      </div>
     ),
   },
 ]
@@ -306,8 +342,7 @@ export default function Destinations() {
     mutate,
   } = useSWR('/api/destinations')
   const { admin, loading: adminLoading } = useAdmin()
-  const router = useRouter()
-  const { slug: [id, resource] = [] } = router.query
+  const [selected, setSelected] = useState(null)
 
   const data =
     destinations
@@ -318,44 +353,15 @@ export default function Destinations() {
         resource: d.name,
 
         // Create "fake" destinations as subrows from resources
-        subRows:
-          d.resources?.map(r => ({
-            parent: d.id,
-            name: r,
-            resource: `${d.name}.${r}`,
-            kind: 'namespace',
-            roles: d.roles?.filter(r => r !== 'cluster-admin'),
-          })) || [],
+        subRows: d.resources?.map(r => ({
+          name: r,
+          resource: `${d.name}.${r}`,
+          kind: 'namespace',
+          roles: d.roles?.filter(r => r !== 'cluster-admin'),
+        })),
       })) || []
 
   const loading = adminLoading || !destinations
-
-  const initialState = {
-    expanded: {},
-  }
-
-  let destination = null
-  for (const [i, d] of data.entries()) {
-    if (d.id === id && !resource) {
-      destination = d
-    }
-
-    for (const sr of d.subRows) {
-      if (sr.parent === id && sr.name === resource) {
-        initialState.expanded[`${i}`] = true
-        destination = sr
-      }
-    }
-  }
-
-  if (!destinations || adminLoading) {
-    return null
-  }
-
-  if (id && !destination) {
-    router.replace('/destinations')
-    return null
-  }
 
   return (
     <>
@@ -364,7 +370,7 @@ export default function Destinations() {
       </Head>
       {!loading && (
         <div className='flex h-full flex-1'>
-          <div className='flex min-w-[20em] flex-1 flex-col space-y-4'>
+          <div className='flex min-w-[32em] flex-1 flex-col space-y-4'>
             <PageHeader
               header='Clusters'
               buttonHref={admin && '/destinations/add'}
@@ -379,23 +385,10 @@ export default function Destinations() {
                 <Table
                   columns={columns}
                   data={data}
-                  initialState={initialState}
                   getRowProps={row => ({
-                    onClick: () => {
-                      if (row.original.parent) {
-                        router.push(
-                          `/destinations/${row.original.parent}/${row.original.name}`
-                        )
-
-                        return
-                      }
-
-                      router.push(`/destinations/${row.original.id}`)
-                    },
+                    onClick: () => setSelected(row.original),
                     className:
-                      (row.original.id === id && id && !resource) ||
-                      (row.original.parent === id &&
-                        row.original.name === resource)
+                      selected?.resource === row.original.resource
                         ? 'bg-gray-900/50'
                         : 'cursor-pointer',
                   })}
@@ -412,20 +405,20 @@ export default function Destinations() {
               </div>
             )}
           </div>
-          {id && (
+          {selected && (
             <Sidebar
-              handleClose={() => router.push('/destinations')}
-              title={destination?.name}
+              onClose={() => setSelected(null)}
+              title={selected.resource}
               iconPath='/destinations.svg'
             >
               <Details
-                destination={destination}
+                destination={selected}
                 onDelete={() => {
-                  fetch(`/api/destinations/${id}`, {
+                  fetch(`/api/destinations/${selected.id}`, {
                     method: 'DELETE',
                   })
-                  mutate(destinations.filter(d => d?.id !== id))
-                  router.replace('/destinations')
+                  mutate(destinations.filter(d => d?.id !== selected.id))
+                  setSelected(null)
                 }}
               />
             </Sidebar>

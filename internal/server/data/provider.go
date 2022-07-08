@@ -19,8 +19,8 @@ func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, erro
 	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db *gorm.DB, selectors ...SelectorFunc) ([]models.Provider, error) {
-	return list[models.Provider](db, selectors...)
+func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
+	return list[models.Provider](db, p, selectors...)
 }
 
 func SaveProvider(db *gorm.DB, provider *models.Provider) error {
@@ -28,7 +28,8 @@ func SaveProvider(db *gorm.DB, provider *models.Provider) error {
 }
 
 func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListProviders(db, selectors...)
+	// Better solution here needed when Pagination becomes mandatory, Replace with a multiple-page "ListAll" function?
+	toDelete, err := ListProviders(db, &models.Pagination{}, selectors...)
 	if err != nil {
 		return fmt.Errorf("listing providers: %w", err)
 	}
@@ -37,7 +38,8 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		providerUsers, err := ListProviderUsers(db, ByProviderID(p.ID))
+		// Same as toDelete
+		providerUsers, err := ListProviderUsers(db, &models.Pagination{}, ByProviderID(p.ID))
 		if err != nil {
 			return fmt.Errorf("listing provider users: %w", err)
 		}

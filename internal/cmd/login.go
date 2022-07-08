@@ -42,7 +42,6 @@ type loginMethod int8
 
 const (
 	localLogin loginMethod = iota
-	accessKeyLogin
 	oidcLogin
 )
 
@@ -65,10 +64,15 @@ $ infra login infraexampleserver.com
 $ infra login --provider okta
 
 # Login with an access key
-$ infra login --key 1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy`,
+$ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ infra login`,
 		Args:  MaxArgs(1),
 		Group: "Core commands:",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
+				options.Server = server
+			}
+
 			if len(args) == 1 {
 				options.Server = args[0]
 			}
@@ -95,7 +99,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 	if options.Server == "" {
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login requires the [SERVER] argument"}
+			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
 		}
 
 		options.Server, err = promptServer(cli, config)
@@ -137,12 +141,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return loginToInfra(cli, lc, loginReq, options.NoAgent)
 	}
 
+	if options.AccessKey == "" {
+		options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
+	}
+
 	switch {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.Provider != "":
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
+			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
 		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
 		if err != nil {
@@ -150,7 +158,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	default:
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
+			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
 		loginMethod, provider, err := promptLoginOptions(cli, lc.APIClient)
 		if err != nil {
@@ -158,11 +166,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 
 		switch loginMethod {
-		case accessKeyLogin:
-			loginReq.AccessKey, err = promptAccessKeyLogin(cli)
-			if err != nil {
-				return err
-			}
 		case localLogin:
 			loginReq.PasswordCredentials, err = promptLocalLogin(cli)
 			if err != nil {
@@ -190,9 +193,9 @@ func equalHosts(x, y string) bool {
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	logging.Debugf("call server: login")
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
+		logging.Debugf("login: %s", err)
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
 			case loginReq.AccessKey != "":
@@ -294,15 +297,13 @@ func oidcflow(provider *api.Provider) (string, error) {
 		return "", err
 	}
 
-	authorizeURL := fmt.Sprintf("%s?redirect_uri=http://localhost:8301&client_id=%s&response_type=code&scope=%s&state=%s", provider.AuthURL, provider.ClientID, strings.Join(provider.Scopes, "+"), state)
-
 	// the local server receives the response from the identity provider and sends it along to the infra server
 	ls, err := newLocalServer()
 	if err != nil {
 		return "", err
 	}
 
-	err = browser.OpenURL(authorizeURL)
+	err = browser.OpenURL(authURLForProvider(*provider, state))
 	if err != nil {
 		return "", err
 	}
@@ -313,7 +314,6 @@ func oidcflow(provider *api.Provider) (string, error) {
 	}
 
 	if state != recvstate {
-		//lint:ignore ST1005, user facing error
 		return "", Error{Message: "Login aborted, provider state did not match the expected state"}
 	}
 
@@ -490,17 +490,18 @@ func attemptTLSRequest(options loginCmdOptions) error {
 			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 		},
 	}
+
 	res, err = httpClient.Do(req)
-	urlErr := &url.Error{}
-	switch {
-	case err == nil:
+
+	if err == nil {
 		res.Body.Close()
 		return nil
-	case errors.As(err, &urlErr):
-		if urlErr.Timeout() {
-			return fmt.Errorf("%w: %s", api.ErrTimeout, err)
-		}
 	}
+
+	if connError := api.HandleConnError(err); connError != nil {
+		return connError
+	}
+
 	return err
 }
 
@@ -533,17 +534,6 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 	}, nil
 }
 
-func promptAccessKeyLogin(cli *CLI) (string, error) {
-	var accessKey string
-	err := survey.AskOne(
-		&survey.Password{Message: "Access Key:"},
-		&accessKey,
-		cli.surveyIO,
-		survey.WithValidator(survey.Required),
-	)
-	return accessKey, err
-}
-
 func listProviders(client *api.Client) ([]api.Provider, error) {
 	logging.Debugf("call server: list providers")
 	providers, err := client.ListProviders("")
@@ -566,7 +556,6 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 
 	options = append(options, "Login with username and password")
-	options = append(options, "Login with an access key")
 
 	var i int
 	selectPrompt := &survey.Select{
@@ -578,19 +567,19 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 		return 0, nil, err
 	}
 
-	switch i {
-	case len(options) - 1: // last option: accessKeyLogin
-		return accessKeyLogin, nil, nil
-	case len(options) - 2: // second last option: localLogin
+	if i == len(options)-1 {
 		return localLogin, nil, nil
-	default:
-		return oidcLogin, &providers[i], nil
 	}
+	return oidcLogin, &providers[i], nil
 }
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	formatTime := func(t time.Time) string {
 		return fmt.Sprintf("%v (%v)", HumanTime(t, "none"), t.Format(time.RFC1123))
+	}
+	title := "Certificate"
+	if cert.IsCA {
+		title = "Certificate Authority"
 	}
 
 	// TODO: improve this message
@@ -598,7 +587,7 @@ func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	fmt.Fprintf(cli.Stderr, `
 The certificate presented by the server is not trusted by your operating system.
 
-Certificate
+%[6]v
 
 Subject: %[1]s
 Issuer: %[2]s
@@ -608,7 +597,7 @@ Validity
   Not After:  %[4]v
 
 SHA256 Fingerprint
-  %[5]s
+  %[5]v
 
 Compare the SHA256 fingerprint to the one provided by your administrator to
 manually verify the certificate can be trusted.
@@ -619,6 +608,7 @@ manually verify the certificate can be trusted.
 		formatTime(cert.NotBefore),
 		formatTime(cert.NotAfter),
 		certs.Fingerprint(cert.Raw),
+		title,
 	)
 	confirmPrompt := &survey.Select{
 		Message: "Options:",
@@ -718,4 +708,21 @@ PROMPT:
 	}
 
 	return email, nil
+}
+
+// authURLForProvider builds an authorization URL that will get the information we need from an identity provider
+func authURLForProvider(provider api.Provider, state string) string {
+	// build the authorization query parameters based on attributes of the provider
+	params := url.Values{}
+	params.Add("redirect_uri", "http://localhost:8301") // where to send the access codes after the user logs in with an IDP
+	if provider.Kind == "google" {
+		params.Add("prompt", "consent")      // google only sends a refresh token when a user consents, always prompt so we always get the ref token
+		params.Add("access_type", "offline") // specifies that we want a refresh token
+	}
+	params.Add("client_id", provider.ClientID)
+	params.Add("response_type", "code")
+	params.Add("scope", strings.Join(provider.Scopes, " "))
+	params.Add("state", state)
+
+	return fmt.Sprintf("%s?%s", provider.AuthURL, params.Encode())
 }

@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
-	github.com/aws/aws-sdk-go v1.44.47
+	github.com/aws/aws-sdk-go v1.44.50
 	github.com/cli/browser v1.1.0
-	github.com/gin-gonic/gin v1.7.7
+	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/goware/urlx v0.3.2
 	github.com/hashicorp/vault/api v1.5.0 // indirect
@@ -25,7 +25,7 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/postgres v1.3.7
-	gorm.io/driver/sqlite v1.3.5
+	gorm.io/driver/sqlite v1.3.6
 	gorm.io/gorm v1.23.5
 	k8s.io/api v0.23.6
 	k8s.io/apimachinery v0.23.6
@@ -38,7 +38,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.97.0
-	github.com/gin-contrib/gzip v0.0.5
+	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.2
 	github.com/google/go-cmp v0.5.8
@@ -167,7 +167,7 @@ require (
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
-	sigs.k8s.io/yaml v1.2.0 // indirect
+	sigs.k8s.io/yaml v1.2.0
 )
 
 // switch back to main repo when https://github.com/gin-gonic/gin/pull/3045 is merged

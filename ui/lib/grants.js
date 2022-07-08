@@ -1,9 +1,9 @@
 export function sortByPrivilege(a, b) {
-  if (a === 'cluster-admin') {
+  if (a?.privilege === 'cluster-admin') {
     return -1
   }
 
-  if (b === 'cluster-admin') {
+  if (b?.privilege === 'cluster-admin') {
     return 1
   }
 

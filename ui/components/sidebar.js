@@ -4,7 +4,7 @@ import ProfileIcon from './profile-icon'
 
 export default function Sidebar({
   children,
-  handleClose,
+  onClose,
   title,
   iconPath,
   profileIcon,
@@ -16,7 +16,7 @@ export default function Sidebar({
   return (
     <aside
       ref={ref}
-      className='my-0 flex h-full w-full min-w-[18em] max-w-sm flex-col overflow-x-visible overflow-y-scroll pl-8 pr-6 lg:max-w-md lg:pl-12 xl:max-w-lg xl:pl-16'
+      className='my-0 flex h-full w-full min-w-[24em] max-w-sm flex-col overflow-x-visible overflow-y-scroll pl-8 pr-6 lg:max-w-md lg:pl-12 xl:max-w-lg xl:pl-16'
     >
       <header className='flex-start sticky top-0 z-10 flex items-center justify-between bg-black py-3'>
         <div className='mr-3 flex-none'>
@@ -38,7 +38,7 @@ export default function Sidebar({
         <button
           type='button'
           className='bg-transparents -mr-2 flex-none cursor-pointer rounded-md p-2 text-gray-400 hover:text-white focus:outline-none'
-          onClick={handleClose}
+          onClick={onClose}
         >
           <XIcon className='h-6 w-6 stroke-1' aria-hidden='true' />
         </button>

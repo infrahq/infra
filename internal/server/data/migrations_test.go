@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
 )
@@ -25,11 +26,11 @@ func TestMigration_202204111503(t *testing.T) {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	ids, err := ListIdentities(db, ByName("steven@example.com"))
+	ids, err := ListIdentities(db, &models.Pagination{}, ByName("steven@example.com"))
 	assert.NilError(t, err)
 	assert.Assert(t, len(ids) == 1)
-
-	grants, err := ListGrants(db, BySubject(ids[0].PolyID()))
+	// check that merged identity has unique grants
+	grants, err := ListGrants(db, &models.Pagination{}, BySubject(ids[0].PolyID()))
 	assert.NilError(t, err)
 	assert.Assert(t, len(grants) == 1)
 
@@ -119,7 +120,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
 	f(db)
 
 	patch.ModelsSymmetricKey(t)
-	setupLogging(t)
+	logging.PatchLogger(t)
 
 	return driver
 }
@@ -167,6 +168,7 @@ func TestMigration_AddKindToProvider(t *testing.T) {
 	}
 }
 
+// this test does an external call to example.okta.com, if it fails check your network connection
 func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
 	for _, driver := range dbDrivers(t) {
 		t.Run(driver.Name(), func(t *testing.T) {

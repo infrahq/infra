@@ -94,16 +94,16 @@ func (d Duration) String() string {
 }
 
 type ListResponse[T any] struct {
-	PaginationInfo PaginationResponse `json:"pagination_info"`
-	Items          []T                `json:"items"`
-	Count          int                `json:"count"`
+	PaginationResponse `json:",inline"`
+	Count              int `json:"count"`
+	Items              []T `json:"items"`
 }
 
 func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
 	result := &ListResponse[T]{
-		Items:          make([]T, 0, len(items)),
-		Count:          len(items),
-		PaginationInfo: pr,
+		Items:              make([]T, 0, len(items)),
+		Count:              len(items),
+		PaginationResponse: pr,
 	}
 
 	for _, item := range items {

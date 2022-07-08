@@ -82,16 +82,12 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
 	headerVer := c.Request.Header.Get("Infra-Version")
 	if headerVer == "" {
-		// remove this conditional in v0.15.0
-		headerVer = "0.0.0"
-	}
-	if headerVer == "" {
-		sendAPIError(c, fmt.Errorf("%w: Infra-Version header required", internal.ErrBadRequest))
+		sendAPIError(c, fmt.Errorf("%w: Infra-Version header required. Current version is %s", internal.ErrBadRequest, internal.FullVersion()))
 		return false
 	}
 	reqVer, err := semver.NewVersion(headerVer)
 	if err != nil {
-		sendAPIError(c, fmt.Errorf("%w: invalid Infra-Version header: %s", internal.ErrBadRequest, err))
+		sendAPIError(c, fmt.Errorf("%w: invalid Infra-Version header: %q. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion()))
 		return false
 	}
 
@@ -130,6 +126,12 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
 			case reflect.Uint, reflect.Uint64:
 				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+			case reflect.Bool:
+				if f.Bool() {
+					query.Add(fieldName, "1")
+				} else {
+					query.Add(fieldName, "0")
+				}
 			default:
 				panic("unhandled reflection kind " + f.Kind().String())
 			}

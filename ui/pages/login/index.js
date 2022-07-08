@@ -20,28 +20,29 @@ function oidcLogin({ id, clientID, authURL, scopes }) {
   )}&state=${state}`
 }
 
+const KIND_OKTA = 'okta'
+
 function Providers({ providers }) {
   return (
     <>
       <div className='mt-2 w-full max-w-sm'>
-        {providers?.map(p => (
+        {providers.map(p => (
           <button
             onClick={() => oidcLogin(p)}
             key={p.id}
-            className='my-1.5 w-full rounded-md border border-gray-800 p-0.5 hover:to-pink-50'
+            title={`${p.name} — ${p.url}`}
+            className='my-1.5 flex w-full flex-row items-center justify-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
           >
-            <div className='flex flex-col items-center justify-center px-4 py-2'>
-              <div className='flex flex-col items-center py-0.5 text-center'>
-                <img
-                  alt='identity provider icon'
-                  className='h-4'
-                  src={`/providers/${p.kind}.svg`}
-                />
-                {providers?.length > 1 && p.kind !== p.name && (
-                  <div className='text-2xs text-gray-300'>{p.name}</div>
-                )}
-              </div>
-            </div>
+            <img
+              alt='identity provider icon'
+              className='h-4'
+              src={`/providers/${p.kind}.svg`}
+            />
+            {p.kind !== KIND_OKTA && (
+              <span className='relative pl-2 text-sm font-semibold leading-none'>
+                Single Sign-On
+              </span>
+            )}
           </button>
         ))}
       </div>

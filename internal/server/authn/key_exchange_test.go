@@ -50,7 +50,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				return NewKeyExchangeAuthentication(bearer, time.Now().Add(5*time.Minute))
 			},
 			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "token expired")
+				assert.ErrorContains(t, err, data.ErrAccessKeyExpired.Error())
 			},
 		},
 		"AccessKeyCannotBeExchangedForLongerLived": {
