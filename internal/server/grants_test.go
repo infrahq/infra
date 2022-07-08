@@ -442,13 +442,6 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			urlPath: "/api/grants?resource=butterflies&showInherited=1&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(idInGroup, req)
-
-				err = data.CreateGrant(srv.db, &models.Grant{
-					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
-					Privilege: "examine",
-					Resource:  "butterflies",
-				})
-				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -516,12 +509,6 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			urlPath: "/api/grants?showInherited=1&resource=butterflies&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(mikhail, req)
-				err = data.CreateGrant(srv.db, &models.Grant{
-					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
-					Privilege: "examine",
-					Resource:  "butterflies",
-				})
-				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -587,7 +574,8 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		  "resource": "some-cluster",
 		  "user": "TJ",
 		  "created": "%[2]v",
-		  "updated": "%[2]v"
+		  "updated": "%[2]v",
+		  "was_created": true
 		}`,
 			accessKey.IssuedFor,
 			time.Now().UTC().Format(time.RFC3339),
