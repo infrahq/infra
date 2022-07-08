@@ -490,17 +490,18 @@ func attemptTLSRequest(options loginCmdOptions) error {
 			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 		},
 	}
+
 	res, err = httpClient.Do(req)
-	urlErr := &url.Error{}
-	switch {
-	case err == nil:
+
+	if err == nil {
 		res.Body.Close()
 		return nil
-	case errors.As(err, &urlErr):
-		if urlErr.Timeout() {
-			return fmt.Errorf("%w: %s", api.ErrTimeout, err)
-		}
 	}
+
+	if connError := api.HandleConnError(err); connError != nil {
+		return connError
+	}
+
 	return err
 }
 
