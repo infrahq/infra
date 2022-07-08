@@ -45,15 +45,16 @@ jobs:
       - run: |
           RELEASE_ID=$(curl -fs -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/${{ github.repository }}/releases/tags/v${{ inputs.RELEASE_NAME }} | jq -r .id)
           for ASSET in infra-checksums.txt *.zip *.deb *.rpm; do
-            curl -fs -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" --data-binary @$ASSET https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $ASSET)
+            curl -fsSL -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" --data-binary @$ASSET https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=$(basename $ASSET)
           done
         if: ${{ inputs.ENVIRONMENT == 'production' }}
         continue-on-error: true
       - run: |
           for PACKAGE in *.deb *.rpm; do
-            curl -fs -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
+            curl -fsSL -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
           done
         if: ${{ inputs.ENVIRONMENT == 'production' }}
+        continue-on-error: true
       - run: aws s3 sync . s3://${{ secrets.RELEASES_BUCKET }}/infra/v${{ inputs.RELEASE_NAME }} --exclude '*' --include '*.zip' --include '*.deb' --include '*.rpm' --include 'infra-checksums.txt' --acl public-read
       - uses: actions/download-artifact@v3
         with:
