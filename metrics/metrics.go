@@ -10,24 +10,29 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-var requestDuration = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-	Namespace: "http",
-	Name:      "request_duration_seconds",
-	Help:      "A histogram of duration, in seconds, handling HTTP requests.",
-	Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-}, []string{"host", "method", "path", "status"})
-
-// Middleware registers metrics with promRegistry and returns a middleware that
-// emits a request_duration_seconds metric on every request.
+// NewRegistry creates a new prometheus.Registry and registers some common Go collectors.
 //
-// The metrics registered with the registry include:
+// Collectors installed by NewRegistry include:
 //   * the standard process metrics
 //   * the standard go metrics
-//   * the request_duration_seconds metric emitted by the middleware
-func Middleware(promRegistry prometheus.Registerer) gin.HandlerFunc {
-	promRegistry.MustRegister(requestDuration)
-	promRegistry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
-	promRegistry.MustRegister(collectors.NewGoCollector())
+func NewRegistry() *prometheus.Registry {
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	registry.MustRegister(collectors.NewGoCollector())
+	return registry
+}
+
+// Middleware registers the http_request_duration_seconds histogram metric with registry
+// and returns a middleware that emits a request_duration_seconds metric on every request.
+func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
+	requestDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http",
+		Name:      "request_duration_seconds",
+		Help:      "A histogram of duration, in seconds, handling HTTP requests.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+	}, []string{"host", "method", "path", "status"})
+
+	registry.MustRegister(requestDuration)
 
 	return func(c *gin.Context) {
 		t := time.Now()

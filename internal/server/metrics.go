@@ -11,7 +11,7 @@ import (
 )
 
 func setupMetrics(db *gorm.DB) *prometheus.Registry {
-	registry := prometheus.NewRegistry()
+	registry := metrics.NewRegistry()
 
 	if rawDB, err := db.DB(); err == nil {
 		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))

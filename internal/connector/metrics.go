@@ -4,10 +4,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/metrics"
 )
 
 func setupMetrics() *prometheus.Registry {
-	registry := prometheus.NewRegistry()
+	registry := metrics.NewRegistry()
 
 	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "build_info",
