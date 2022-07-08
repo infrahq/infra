@@ -497,9 +497,7 @@ func attemptTLSRequest(options loginCmdOptions) error {
 		return nil
 	}
 
-	connError := api.HandleConnError(err)
-
-	if connError != nil {
+	if connError := api.HandleConnError(err); connError != nil {
 		return connError
 	}
 
