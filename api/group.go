@@ -21,7 +21,7 @@ type ListGroupsRequest struct {
 }
 
 func (r ListGroupsRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	return nil
 }
 
 type CreateGroupRequest struct {

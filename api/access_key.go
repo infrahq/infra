@@ -24,7 +24,7 @@ type ListAccessKeysRequest struct {
 }
 
 func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	return nil
 }
 
 type CreateAccessKeyRequest struct {

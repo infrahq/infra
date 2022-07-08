@@ -23,8 +23,14 @@ type Destination struct {
 }
 
 type DestinationConnection struct {
-	URL string `json:"url" validate:"required" example:"aa60eexample.us-west-2.elb.amazonaws.com"`
+	URL string `json:"url" example:"aa60eexample.us-west-2.elb.amazonaws.com"`
 	CA  PEM    `json:"ca" example:"-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n"`
+}
+
+func (r DestinationConnection) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("url", r.URL),
+	}
 }
 
 type ListDestinationsRequest struct {
@@ -34,28 +40,43 @@ type ListDestinationsRequest struct {
 }
 
 func (r ListDestinationsRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	return nil
 }
 
 type CreateDestinationRequest struct {
-	UniqueID string `json:"uniqueID" validate:"required"`
-	Name     string `json:"name" validate:"required"`
-	Version  string `json:"version"`
-
+	UniqueID   string                `json:"uniqueID"`
+	Name       string                `json:"name"`
+	Version    string                `json:"version"`
 	Connection DestinationConnection `json:"connection"`
 
 	Resources []string `json:"resources"`
 	Roles     []string `json:"roles"`
 }
 
-type UpdateDestinationRequest struct {
-	ID       uid.ID `uri:"id" json:"-" validate:"required"`
-	UniqueID string `json:"uniqueID" validate:"required"`
-	Name     string `json:"name" validate:"required"`
-	Version  string `json:"version"`
+func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		ValidateName(r.Name),
+		validate.Required("name", r.Name),
+		validate.Required("uniqueID", r.UniqueID),
+	}
+}
 
+type UpdateDestinationRequest struct {
+	ID         uid.ID                `uri:"id" json:"-"`
+	Name       string                `json:"name"`
+	UniqueID   string                `json:"uniqueID"`
+	Version    string                `json:"version"`
 	Connection DestinationConnection `json:"connection"`
 
 	Resources []string `json:"resources"`
 	Roles     []string `json:"roles"`
+}
+
+func (r UpdateDestinationRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		ValidateName(r.Name),
+		validate.Required("name", r.Name),
+		validate.Required("id", r.ID),
+		validate.Required("uniqueID", r.UniqueID),
+	}
 }

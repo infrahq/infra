@@ -232,13 +232,31 @@ func TestAPI_ListUsers(t *testing.T) {
 		"invalid limit": {
 			urlPath: "/api/users?limit=1001",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusBadRequest)
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "limit", Errors: []string{"value (1001) must be at most 1000"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
 		"invalid page": {
 			urlPath: "/api/users?page=-1",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusBadRequest)
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "page", Errors: []string{"value (-1) must be at least 0"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
 		// TODO: assert full JSON response

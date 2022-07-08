@@ -111,6 +111,75 @@ func TestValidate_AllRules(t *testing.T) {
 	})
 }
 
+type NestedExample struct {
+	Anything string
+	Sub      SubExample `json:"sub"`
+	ExampleRequest
+}
+
+func (n NestedExample) ValidationRules() []ValidationRule {
+	return []ValidationRule{
+		StringRule{Name: "any", Value: n.Anything, MaxLength: 3},
+	}
+}
+
+type SubExample struct {
+	Ok     bool
+	Nested ExampleRequest `json:"nested"`
+}
+
+func (s SubExample) ValidationRules() []ValidationRule {
+	return []ValidationRule{
+		Required("ok", s.Ok),
+	}
+}
+
+func TestValidate_Nested(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		n := NestedExample{
+			Sub: SubExample{
+				Ok:     true,
+				Nested: ExampleRequest{ID: "id", Third: true},
+			},
+			ExampleRequest: ExampleRequest{ID: "ok", First: "1"},
+		}
+		err := Validate(n)
+		assert.NilError(t, err)
+	})
+
+	t.Run("with failures", func(t *testing.T) {
+		n := NestedExample{
+			Anything: "abcdef",
+			Sub: SubExample{
+				Nested: ExampleRequest{
+					Either: "yes",
+					Or:     1,
+				},
+			},
+			ExampleRequest: ExampleRequest{
+				ID:     "ok",
+				TooFew: "a",
+			},
+		}
+		err := Validate(n)
+		assert.ErrorContains(t, err, "validation failed: ")
+		var fieldError Error
+		assert.Assert(t, errors.As(err, &fieldError))
+		expected := Error{
+			"":    {"one of (first, second, third) is required"},
+			"any": {"length of string (6) must be no more than 3"},
+			"sub.nested": {
+				"only one of (either, or) can be set",
+				"one of (first, second, third) is required",
+			},
+			"sub.nested.id": {"is required"},
+			"sub.ok":        {"is required"},
+			"tooFew":        {"length of string (1) must be at least 5"},
+		}
+		assert.DeepEqual(t, fieldError, expected)
+	})
+}
+
 type MutualExample struct {
 	First  string
 	Second bool

@@ -40,5 +40,5 @@ type ListProvidersRequest struct {
 }
 
 func (r ListProvidersRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	return nil
 }

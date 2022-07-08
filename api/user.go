@@ -26,7 +26,7 @@ type ListUsersRequest struct {
 }
 
 func (r ListUsersRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	return nil
 }
 
 // CreateUserRequest is only for creating users with the Infra provider
