@@ -2,7 +2,7 @@ import { sortByResource } from '../lib/grants'
 
 import RoleSelect from './role-select'
 
-export default function AccessForm({ grants, mutate }) {
+export default function GrantsList({ grants, mutate }) {
   return (
     <>
       {grants?.sort(sortByResource)?.map(g => (

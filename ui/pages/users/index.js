@@ -15,9 +15,9 @@ import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
 import IdentityList from '../../components/identity-list'
-import AccessForm from '../../components/access-form'
 import Remove from '../../components/remove'
 import Metadata from '../../components/metadata'
+import GrantsList from '../../components/grants-list'
 
 const columns = [
   {
@@ -98,7 +98,7 @@ function Details({ user, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            <AccessForm grants={grants} mutate={mutate} />
+            <GrantsList grants={grants} mutate={mutate} />
             {inherited?.sort(sortByResource)?.map(g => (
               <div
                 key={g.id}

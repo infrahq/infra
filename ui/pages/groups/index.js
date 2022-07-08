@@ -11,12 +11,12 @@ import PageHeader from '../../components/page-header'
 import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
-import AccessForm from '../../components/access-form'
 import EmptyData from '../../components/empty-data'
 import IdentityList from '../../components/identity-list'
 import Remove from '../../components/remove'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
+import GrantsList from '../../components/grants-list'
 
 const columns = [
   {
@@ -145,7 +145,7 @@ function Details({ group, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            <AccessForm grants={grants} mutate={mutateGrants} />
+            <GrantsList grants={grants} mutate={mutateGrants} />
             {!grants?.length && <EmptyData text='No access' />}
           </section>
           <section>

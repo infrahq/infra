@@ -1,7 +1,7 @@
 import { Combobox } from '@headlessui/react'
 import { useRef } from 'react'
 
-import EmailBadge from './email-badge'
+import Badge from './badge'
 import TypeaheadDropdown from './typeahead-dropdown'
 
 export default function TypeaheadCombobox({
@@ -25,7 +25,9 @@ export default function TypeaheadCombobox({
     >
       <div className='flex flex-auto flex-wrap'>
         {selectedEmails?.map(i => (
-          <EmailBadge key={i.id} email={i.name} onRemove={() => onRemove(i)} />
+          <Badge key={i.id} onRemove={() => onRemove(i)}>
+            {i.name}
+          </Badge>
         ))}
         <div className='flex-1'>
           <Combobox.Input
