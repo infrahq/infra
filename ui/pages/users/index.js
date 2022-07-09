@@ -155,22 +155,23 @@ function Details({ user, admin, onDelete }) {
         <Metadata data={metadata} />
       </section>
       <section className='flex flex-1 flex-col items-end justify-end py-6'>
-        <Remove
-          deleteModalOpen={deleteModalOpen}
-          setDeleteModalOpen={setDeleteModalOpen}
-          onSubmit={async () => {
-            setDeleteModalOpen(false)
-            onDelete()
-          }}
-          deleteModalTitle='Remove User'
-          deleteModalMessage={
-            <>
-              Are you sure you want to remove{' '}
-              <span className='font-bold text-white'>{name}?</span>
-            </>
-          }
-          hide={auth.id === id}
-        />
+        {auth.id !== id && (
+          <Remove
+            deleteModalOpen={deleteModalOpen}
+            setDeleteModalOpen={setDeleteModalOpen}
+            onSubmit={async () => {
+              setDeleteModalOpen(false)
+              onDelete()
+            }}
+            deleteModalTitle='Remove User'
+            deleteModalMessage={
+              <>
+                Are you sure you want to remove{' '}
+                <span className='font-bold text-white'>{name}?</span>
+              </>
+            }
+          />
+        )}
       </section>
     </div>
   )
