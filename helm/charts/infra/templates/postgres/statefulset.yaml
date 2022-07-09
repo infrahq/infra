@@ -1,0 +1,86 @@
+{{- if include "postgres.enabled" . | eq "true" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+{{- include "postgres.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "postgres.fullname" . }}
+  replicas: {{ .Values.postgres.replicas }}
+  selector:
+    matchLabels:
+{{- include "postgres.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "postgres.podLabels" . | nindent 8 }}
+      annotations:
+{{- include "postgres.podAnnotations" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.postgres.serviceAccount.automountServiceAccountToken }}
+      serviceAccountName: {{ include "postgres.serviceAccountName" . }}
+      securityContext:
+{{- toYaml .Values.postgres.podSecurityContext | nindent 8 }}
+      containers:
+        - name: postgres
+          securityContext:
+{{- toYaml .Values.postgres.securityContext | nindent 12 }}
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag | default "alpine" }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          env:
+{{- include "postgres.env" . | nindent 12 }}
+          envFrom:
+{{- include "postgres.envFrom" . | nindent 12 }}
+          volumeMounts:
+{{- if .Values.postgres.persistence.enabled }}
+            - name: data
+              mountPath: /var/lib/postgresql/data
+{{- end }}
+{{- if .Values.postgres.volumeMounts }}
+{{- toYaml .Values.postgres.volumeMounts | nindent 12 }}
+{{- end }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: [pg_isready]
+            successThreshold: {{ .Values.postgres.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.postgres.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.postgres.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            exec:
+              command: [pg_isready]
+            successThreshold: {{ .Values.postgres.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.postgres.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.postgres.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.readinessProbe.timeoutSeconds }}
+          resources:
+{{- toYaml .Values.postgres.resources | nindent 12 }}
+      volumes:
+{{- if .Values.postgres.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "postgres.fullname" . }}
+{{- end }}
+{{- if .Values.postgres.volumes }}
+{{- toYaml .Values.postgres.volumes | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- end }}

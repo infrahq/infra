@@ -30,13 +30,6 @@ data:
       {{ $key }}: ':{{ $val }}'
 {{- end }}
 
-{{- if .Values.server.persistence.enabled }}
-
-{{- if not (hasKey .Values.server.config "dbFile") }}
-    dbFile: /var/lib/infrahq/server/sqlite3.db
-{{- end }}
-{{- end }}
-
 {{- if not .Values.server.config.dbEncryptionKey }}
     dbEncryptionKey: /var/run/secrets/infrahq.com/encryption-key/key
 {{- end }}
@@ -45,6 +38,13 @@ data:
     tls:
       ca: "/var/run/secrets/infrahq.com/tls-ca/ca.crt"
       caPrivateKey: "file:/var/run/secrets/infrahq.com/tls-ca/ca.key"
+{{- end }}
+
+{{- if include "postgres.enabled" . | eq "true" }}
+    dbHost: {{ include "postgres.fullname" . }}
+    dbPort: {{ .Values.postgres.service.port }}
+    dbName: {{ .Values.postgres.dbName }}
+    dbUsername: {{ .Values.postgres.dbUsername }}
 {{- end }}
 
     providers:
