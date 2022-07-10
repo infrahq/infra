@@ -475,6 +475,7 @@ func migrate(db *gorm.DB) error {
 		dropCertificateTables(),
 		addAuthURLAndScopeToProviders(),
 		setDestinationLastSeenAt(),
+		addOrganizations(),
 		// next one here
 	})
 
@@ -625,5 +626,38 @@ func setDestinationLastSeenAt() *gormigrate.Migration {
 
 			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
 		},
+	}
+}
+
+func addOrganizations() *gormigrate.Migration {
+	return &gormigrate.Migration{
+		ID: "202207061554",
+		Migrate: func(tx *gorm.DB) error {
+			logging.Debugf("migrating orgs")
+			mods := []interface{}{
+				&models.AccessKey{},
+				&models.Credential{},
+				&models.Destination{},
+				&models.EncryptionKey{},
+				&models.Grant{},
+				&models.Group{},
+				&models.Identity{},
+				&models.Organization{},
+				&models.Provider{},
+				&models.ProviderUser{},
+				&models.Settings{},
+			}
+
+			for _, mod := range mods {
+				if !tx.Migrator().HasColumn(mod, "organization_id") {
+					if err := tx.Migrator().AddColumn(mod, "organization_id"); err != nil {
+						return err
+					}
+				}
+			}
+
+			return nil
+		},
+
 	}
 }
