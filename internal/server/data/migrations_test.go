@@ -17,33 +17,6 @@ import (
 	"github.com/infrahq/infra/internal/testing/patch"
 )
 
-func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			patch.ModelsSymmetricKey(t)
-			logging.PatchLogger(t, zerolog.NewTestWriter(t))
-
-			loadSQL(t, db, "202207120000-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			var settings models.Settings
-			err = db.Omit("private_jwk").First(&settings).Error
-			assert.NilError(t, err)
-
-			assert.Equal(t, settings.LowercaseMin, 0)
-			assert.Equal(t, settings.UppercaseMin, 0)
-			assert.Equal(t, settings.NumberMin, 0)
-			assert.Equal(t, settings.SymbolMin, 0)
-			assert.Equal(t, settings.LengthMin, 8)
-		})
-	}
-}
-
 // see loadSQL for setting up your own migration test
 func TestMigration_202204111503(t *testing.T) {
 	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
@@ -273,6 +246,47 @@ func TestMigration_RemoveDeletedProviderUsers(t *testing.T) {
 			assert.Equal(t, len(puDetails), 1)
 			assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
 			assert.Equal(t, puDetails[0].ProviderID, "75225930151567361")
+		})
+	}
+}
+
+func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			patch.ModelsSymmetricKey(t)
+			logging.PatchLogger(t, zerolog.NewTestWriter(t))
+
+			loadSQL(t, db, "202207120000-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			var settings models.Settings
+			err = db.Omit("private_jwk").First(&settings).Error
+			assert.NilError(t, err)
+
+			assert.Equal(t, settings.LowercaseMin, 0)
+			assert.Equal(t, settings.UppercaseMin, 0)
+			assert.Equal(t, settings.NumberMin, 0)
+			assert.Equal(t, settings.SymbolMin, 0)
+			assert.Equal(t, settings.LengthMin, 8)
+		})
+	}
+}
+
+func TestMigration_AddOrganizations(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202207041724-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
 		})
 	}
 }
