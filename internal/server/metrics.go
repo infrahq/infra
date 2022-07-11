@@ -115,7 +115,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count   int
 		}
 
-		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations WHERE deleted_at IS NULL GROUP BY version").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COALESCE(version, '') AS version, COUNT(*) as count FROM destinations WHERE deleted_at IS NULL GROUP BY COALESCE(version, '')").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("destinations")
 			return []metrics.Metric{}
 		}
