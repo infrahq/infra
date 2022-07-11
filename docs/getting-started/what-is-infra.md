@@ -84,7 +84,7 @@ providers:
 
 Most RBAC or access tooling is _coarse_ grained, meaning users usually receive **admin or nothing** access to infrastructure. With Infra, users or groups can be provided access to specific resources:
 
-```bash
+```
 # grant `view` access for the Engineering group to the
 # cluster and `edit` access to the `web` namespace
 $ infra grants add -g Engineering production --role view
@@ -95,7 +95,7 @@ $ infra grants add -g Engineering production.web --role edit
 
 Using Infra's API, access can be granted and revoked on-the-fly for users who need it for a limited amount of time. For example, if `suzie@infrahq.com` is starting their on-call schedule, they can be granted and revoked access automatically via an `infra` CLI command or API call:
 
-```bash
+```
 # grant escalated production cluster access to suzie@infrahq.com
 $ infra grants add suzie@infrahq.com production --role admin
 
