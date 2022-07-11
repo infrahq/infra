@@ -25,7 +25,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM identities").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM identities WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("users")
 			return []metrics.Metric{}
 		}
@@ -47,7 +47,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM groups").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM groups WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("groups")
 			return []metrics.Metric{}
 		}
@@ -69,7 +69,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM grants").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM grants WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("grants")
 			return []metrics.Metric{}
 		}
@@ -92,7 +92,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers GROUP BY kind").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("providers")
 			return []metrics.Metric{}
 		}
@@ -115,7 +115,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count   int
 		}
 
-		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations GROUP BY version").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations WHERE deleted_at IS NULL GROUP BY version").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("destinations")
 			return []metrics.Metric{}
 		}
