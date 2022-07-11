@@ -95,7 +95,12 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 
 // RequireAccessKey checks the bearer token is present and valid
 func RequireAccessKey(c *gin.Context) error {
-	db, ok := c.MustGet("db").(*gorm.DB)
+	val, ok := c.Get("db")
+	if !ok {
+		return errors.New("could not find db in context")
+	}
+
+	db, ok := val.(*gorm.DB)
 	if !ok {
 		return errors.New("unknown db type in context")
 	}
