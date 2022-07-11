@@ -474,6 +474,7 @@ func migrate(db *gorm.DB) error {
 		addKindToProviders(),
 		dropCertificateTables(),
 		addAuthURLAndScopeToProviders(),
+		setDestinationLastSeenAt(),
 		deleteDuplicateGrants(),
 		// next one here
 	})
