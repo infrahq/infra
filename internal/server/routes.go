@@ -188,10 +188,21 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
 		}
 
-		c.JSON(defaultResponseCodeForMethod(route.method), resp)
+		statusCode := defaultResponseCodeForMethod(route.method)
+		if c, ok := any(resp).(statusCoder); ok {
+			if code := c.StatusCode(); code != 0 {
+				statusCode = code
+			}
+		}
+
+		c.JSON(statusCode, resp)
 	}
 
 	bindRoute(a, r, route.method, route.path, wrappedHandler)
+}
+
+type statusCoder interface {
+	StatusCode() int
 }
 
 var reflectTypeString = reflect.TypeOf("")

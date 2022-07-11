@@ -48,6 +48,58 @@
           }
         }
       },
+      "CreateGrantResponse": {
+        "properties": {
+          "created": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "created_by": {
+            "description": "id of the user that created the grant",
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "group": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "privilege": {
+            "description": "a role or permission",
+            "type": "string"
+          },
+          "resource": {
+            "description": "a resource name in Infra's Universal Resource Notation",
+            "type": "string"
+          },
+          "updated": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "wasCreated": {
+            "type": "boolean"
+          }
+        }
+      },
       "CreateTokenResponse": {
         "properties": {
           "expires": {
@@ -2029,7 +2081,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Grant"
+                  "$ref": "#/components/schemas/CreateGrantResponse"
                 }
               }
             },

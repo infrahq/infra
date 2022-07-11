@@ -9,19 +9,6 @@ import (
 )
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) error {
-	// check first if it exists
-	grants, err := list[models.Grant](db, &models.Pagination{}, BySubject(grant.Subject), ByResource(grant.Resource))
-	if err != nil {
-		return err
-	}
-
-	for _, existingGrant := range grants {
-		if existingGrant.Privilege == grant.Privilege {
-			// exact match exists, no need to store it twice.
-			return nil
-		}
-	}
-
 	return add(db, grant)
 }
 

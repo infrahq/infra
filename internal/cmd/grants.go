@@ -363,7 +363,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		Resource:  cmdOptions.Destination,
 	}
 	logging.Debugf("call server: create grant %#v", createGrantReq)
-	_, err = client.CreateGrant(createGrantReq)
+	response, err := client.CreateGrant(createGrantReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			logging.Debugf("%s", err.Error())
@@ -373,8 +373,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 		return err
 	}
-
-	cli.Output("Created grant to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+	if response.WasCreated {
+		cli.Output("Created grant to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+	} else {
+		cli.Output("%q grant to %q already exists for %q. Nothing changed", cmdOptions.Role, cmdOptions.Destination, cmdOptions.Name)
+	}
 
 	return nil
 }
