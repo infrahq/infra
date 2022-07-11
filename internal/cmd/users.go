@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
 func newUsersCmd(cli *CLI) *cobra.Command {
@@ -314,7 +315,7 @@ func updateUser(cli *CLI, name string) error {
 		return Error{Message: "No permission to change password for user " + name}
 	}
 
-	user, err := getUserByName(client, name)
+	user, err := getUserByNameOrID(client, name)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			logging.Debugf("user not found: %s", err)
@@ -346,13 +347,18 @@ func updateUser(cli *CLI, name string) error {
 	return nil
 }
 
-func getUserByName(client *api.Client, name string) (*api.User, error) {
+func getUserByNameOrID(client *api.Client, name string) (*api.User, error) {
 	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
 	if users.Count == 0 {
+		if id, err := uid.Parse([]byte(name)); err == nil {
+			if u, err := client.GetUser(id); err == nil {
+				return u, nil
+			}
+		}
 		return nil, fmt.Errorf("%w: unknown user %q", ErrUserNotFound, name)
 	}
 
