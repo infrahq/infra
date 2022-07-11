@@ -13,6 +13,8 @@ type Destination struct {
 	UniqueID   string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
 	LastSeenAt time.Time
 
+	Version string
+
 	ConnectionURL string
 	ConnectionCA  string
 
@@ -42,5 +44,6 @@ func (d *Destination) ToAPI() *api.Destination {
 		Roles:     d.Roles,
 		LastSeen:  api.Time(d.LastSeenAt),
 		Connected: connected,
+		Version:   d.Version,
 	}
 }

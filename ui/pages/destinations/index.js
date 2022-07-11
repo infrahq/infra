@@ -221,6 +221,12 @@ function Details({ destination, onDelete }) {
                 : '-'}
             </div>
           </div>
+          <div className='flex flex-row items-center'>
+            <div className='w-1/3 text-2xs text-gray-400'>
+              Connector Version
+            </div>
+            <div className='text-2xs'>{destination.version || '-'}</div>
+          </div>
         </div>
       </section>
       {admin && destination.id && (
