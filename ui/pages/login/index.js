@@ -2,6 +2,8 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 
+import { providers as providersList } from '../../lib/providers'
+
 import LoginLayout from '../../components/layouts/login'
 
 function oidcLogin({ id, clientID, authURL, scopes }) {
@@ -20,31 +22,31 @@ function oidcLogin({ id, clientID, authURL, scopes }) {
   )}&state=${state}`
 }
 
-const KIND_OKTA = 'okta'
-
 function Providers({ providers }) {
   return (
     <>
       <div className='mt-2 w-full max-w-sm'>
-        {providers.map(p => (
-          <button
-            onClick={() => oidcLogin(p)}
-            key={p.id}
-            title={`${p.name} — ${p.url}`}
-            className='my-1.5 flex w-full flex-row items-center justify-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
-          >
-            <img
-              alt='identity provider icon'
-              className='h-4'
-              src={`/providers/${p.kind}.svg`}
-            />
-            {p.kind !== KIND_OKTA && (
-              <span className='relative pl-2 text-sm font-semibold leading-none'>
-                Single Sign-On
-              </span>
-            )}
-          </button>
-        ))}
+        {providers.map(
+          p =>
+            p.kind && (
+              <button
+                onClick={() => oidcLogin(p)}
+                key={p.id}
+                title={`${p.name} — ${p.url}`}
+                className='my-1.5 flex w-full flex-row items-center justify-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
+              >
+                <img
+                  alt='identity provider icon'
+                  className='h-4'
+                  src={`/providers/${p.kind}.svg`}
+                />
+                <span className='relative pl-2 text-sm font-semibold capitalize leading-none'>
+                  {providersList.filter(i => i.kind === p.kind).length === 0 &&
+                    'Single Sign-On'}
+                </span>
+              </button>
+            )
+        )}
       </div>
       <div className='relative mt-4 w-full'>
         <div className='absolute inset-0 flex items-center' aria-hidden='true'>
