@@ -26,7 +26,6 @@ type logger struct {
 }
 
 func init() {
-	zerolog.DisableSampling(true)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.CallerMarshalFunc = func(file string, line int) string {
 		short := filepath.Join(filepath.Base(filepath.Dir(file)), filepath.Base(file))
