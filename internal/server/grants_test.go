@@ -575,7 +575,7 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		  "user": "TJ",
 		  "created": "%[2]v",
 		  "updated": "%[2]v",
-		  "was_created": true
+		  "wasCreated": true
 		}`,
 			accessKey.IssuedFor,
 			time.Now().UTC().Format(time.RFC3339),
