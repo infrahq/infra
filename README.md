@@ -3,6 +3,8 @@
 </p>
 
 # Infra
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Finfrahq%2Finfra.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Finfrahq%2Finfra?ref=badge_shield)
+
 
 Infra enables you to **discover and access** infrastructure (e.g. Kubernetes, databases). We help you connect an identity provider such as Okta or Azure active directory, and map users/groups with the permissions you set to your infrastructure.
 
@@ -33,3 +35,7 @@ If you don't have an identity provider, Infra supports local users for you to ge
 ## Community
 * [Community Forum](https://github.com/infrahq/infra/discussions) Best for: help with building, discussion about infrastructure access best practices.
 * [GitHub Issues](https://github.com/infrahq/infra/issues) Best for: bugs and errors you encounter using Infra.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Finfrahq%2Finfra.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Finfrahq%2Finfra?ref=badge_large)
