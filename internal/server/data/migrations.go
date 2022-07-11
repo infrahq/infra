@@ -477,8 +477,7 @@ func migrate(db *gorm.DB) error {
 		setDestinationLastSeenAt(),
 		// delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
 		{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
-			subQuery := tx.Select("min(id)").Group("subject, resource, privilege").Model(&models.Grant{})
-			return tx.Where("id NOT in (?)", subQuery).Delete(&models.Grant{}).Error
+			return deleteDuplicates(tx, "subject, resource, privilege", &models.Grant{})
 		},
 		},
 		// next one here
@@ -631,4 +630,9 @@ func setDestinationLastSeenAt() *gormigrate.Migration {
 			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
 		},
 	}
+}
+
+func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
+	subQuery := tx.Select("min(id)").Group(group).Model(model)
+	return tx.Where("id NOT in (?)", subQuery).Delete(model).Error
 }
