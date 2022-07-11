@@ -5,7 +5,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/metrics"
 )
@@ -16,17 +15,6 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 	if rawDB, err := db.DB(); err == nil {
 		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))
 	}
-
-	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
-		Name: "build_info",
-		Help: "A metric with a constant '1' value labeled by branch, version, commit, and date from which infra was built",
-		ConstLabels: prometheus.Labels{
-			"branch":  internal.Branch,
-			"version": internal.FullVersion(),
-			"commit":  internal.Commit,
-			"date":    internal.Date,
-		},
-	}, func() float64 { return 1 }))
 
 	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",

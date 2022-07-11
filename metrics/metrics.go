@@ -8,17 +8,32 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/infrahq/infra/internal"
 )
 
-// NewRegistry creates a new prometheus.Registry and registers some common Go collectors.
+// NewRegistry creates a new prometheus.Registry and registers common collectors and metrics.
 //
-// Collectors installed by NewRegistry include:
-//   * the standard process metrics
-//   * the standard go metrics
+// NewRegistry registers:
+//   * standard process collector
+//   * standard go collector
+//   * build_info metric
 func NewRegistry() *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registry.MustRegister(collectors.NewGoCollector())
+
+	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "build_info",
+		Help: "A metric with a constant '1' value labeled by branch, version, commit, and date from which infra was built",
+		ConstLabels: prometheus.Labels{
+			"branch":  internal.Branch,
+			"version": internal.FullVersion(),
+			"commit":  internal.Commit,
+			"date":    internal.Date,
+		},
+	}, func() float64 { return 1 }))
+
 	return registry
 }
 
