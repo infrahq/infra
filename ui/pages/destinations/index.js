@@ -66,6 +66,10 @@ function Details({ destination, onDelete }) {
         ? dayjs(destination.upd?.updated).fromNow()
         : '-',
     },
+    {
+      title: 'Connector Version',
+      data: destination.version || '-',
+    },
   ]
 
   return (
