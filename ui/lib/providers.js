@@ -5,7 +5,7 @@ export const providers = [
     available: true,
   },
   {
-    name: 'Azure Active Directory',
+    name: 'Microsoft Azure',
     kind: 'azure',
     available: true,
   },

@@ -33,16 +33,17 @@ function Providers({ providers }) {
                 onClick={() => oidcLogin(p)}
                 key={p.id}
                 title={`${p.name} — ${p.url}`}
-                className='my-1.5 flex w-full flex-row items-center justify-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
+                className='my-2 flex w-full items-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
               >
                 <img
                   alt='identity provider icon'
                   className='h-4'
                   src={`/providers/${p.kind}.svg`}
                 />
-                <span className='relative pl-2 text-sm font-semibold capitalize leading-none'>
-                  {providersList.filter(i => i.kind === p.kind).length === 0 &&
-                    'Single Sign-On'}
+                <span className='items-center pl-4 text-xs capitalize text-gray-300'>
+                  {providersList.filter(i => i.kind === p.kind)
+                    ? `Login with ${p.name}`
+                    : 'Single Sign-On'}
                 </span>
               </button>
             )
