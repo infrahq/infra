@@ -16,6 +16,32 @@ import (
 	"github.com/infrahq/infra/internal/testing/patch"
 )
 
+func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			patch.ModelsSymmetricKey(t)
+			logging.PatchLogger(t)
+
+			loadSQL(t, db, "202207120000-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			settings, err := GetSettings(db)
+			assert.NilError(t, err)
+
+			assert.Equal(t, settings.LowercaseMin, 0)
+			assert.Equal(t, settings.UppercaseMin, 0)
+			assert.Equal(t, settings.NumberMin, 0)
+			assert.Equal(t, settings.SymbolMin, 1)
+			assert.Equal(t, settings.LengthMin, 8)
+		})
+	}
+}
+
 // see loadSQL for setting up your own migration test
 func TestMigration_202204111503(t *testing.T) {
 	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
