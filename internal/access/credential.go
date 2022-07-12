@@ -3,6 +3,8 @@ package access
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -18,11 +20,6 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
 		return "", HandleAuthErr(err, "user", "create", models.InfraAdminRole)
-	}
-
-	err = checkPasswordRequirements(db, "abc")
-	if err != nil {
-		return "", err
 	}
 
 	tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
@@ -55,6 +52,11 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	}
 
 	isSelf, err := isIdentitySelf(c, user.ID)
+	if err != nil {
+		return err
+	}
+
+	err = checkPasswordRequirements(db, newPassword)
 	if err != nil {
 		return err
 	}
@@ -101,13 +103,54 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	return nil
 }
 
+// list of valid special chars is from OWASP, wikipedia
+func isValidSymbol(letter rune) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){%d,}`, regexp.QuoteMeta(`/\[]`), "`", 1), string(letter))
+	return match
+}
+
+func hasMinimumCount(min int, password string, check func(rune) bool) bool {
+	var count int
+	for _, r := range password {
+		if check(r) {
+			count++
+		}
+	}
+	return count >= min
+}
+
 func checkPasswordRequirements(db *gorm.DB, password string) error {
+	var errs []string
 	settings, err := data.GetSettings(db)
 	if err != nil {
 		return err
 	}
-	if settings.LengthMin < len(password) {
-		return errors.New("nonono")
+
+	if !hasMinimumCount(settings.LowercaseMin, password, unicode.IsLower) {
+		errs = append(errs, fmt.Sprintf("needs minimum %d lower case letters", settings.LowercaseMin))
 	}
-	return errors.New("yes")
+
+	if !hasMinimumCount(settings.UppercaseMin, password, unicode.IsUpper) {
+		errs = append(errs, fmt.Sprintf("needs minimum %d upper case letters", settings.UppercaseMin))
+	}
+
+	if !hasMinimumCount(settings.NumberMin, password, unicode.IsDigit) {
+		errs = append(errs, fmt.Sprintf("needs minimum %d numbers", settings.NumberMin))
+	}
+
+	if !hasMinimumCount(settings.SymbolMin, password, isValidSymbol) {
+		errs = append(errs, fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
+	}
+
+	if len(password) > settings.LengthMin {
+		errs = append(errs, fmt.Sprintf("needs min length of %d", settings.LengthMin))
+	}
+
+	if len(errs) > 0 {
+		err := fmt.Errorf(fmt.Sprintf("%v", errs))
+		// Wrap so it is easier to parse the list of errors
+		return fmt.Errorf("cannot update password: new password does not pass requirements: %w", err)
+	}
+
+	return nil
 }
