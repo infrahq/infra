@@ -16,6 +16,7 @@ import (
 
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/golden"
@@ -52,7 +53,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 }
 
 func TestGetPostgresConnectionURL(t *testing.T) {
-	logging.PatchLogger(t)
+	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 	r := newServer(Options{})
 
