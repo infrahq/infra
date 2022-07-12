@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
@@ -120,7 +121,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
 	f(db)
 
 	patch.ModelsSymmetricKey(t)
-	logging.PatchLogger(t)
+	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 	return driver
 }
