@@ -21,11 +21,11 @@ function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
     .filter(s => s.name !== 'connector')
     .filter(s => !selectedEmailsId?.includes(s.id))
 
-  const removeSelectedEmail = email => {
+  function removeSelectedEmail(email) {
     setSelectedEmails(selectedEmails.filter(item => item.id !== email.id))
   }
 
-  const handleKeyDownEvent = key => {
+  function handleKeyDownEvent(key) {
     if (key === 'Backspace' && inputRef.current.value.length === 0) {
       removeSelectedEmail(selectedEmails[selectedEmails.length - 1])
     }

@@ -61,7 +61,23 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
               }
             }}
           />
-          <TypeaheadDropdown filtered={filtered} selected={selected} />
+          {filtered.length > 0 && (
+            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
+              {filtered?.map(f => (
+                <Combobox.Option
+                  key={f.id}
+                  value={f}
+                  className={({ active }) =>
+                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
+                      active ? 'bg-gray-700' : ''
+                    }`
+                  }
+                >
+                  <TypeaheadDropdown item={f} selected={selected} />
+                </Combobox.Option>
+              ))}
+            </Combobox.Options>
+          )}
           <Combobox.Button className='hidden' ref={button} />
         </Combobox>
         {roles?.length > 1 && (

@@ -37,7 +37,7 @@ const columns = [
     },
   },
   {
-    Header: 'Team Size',
+    Header: 'Users',
     accessor: g => g,
     width: '33%',
     Cell: ({ value: group }) => {
