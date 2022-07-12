@@ -35,24 +35,68 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
+type providerAPIOptions struct {
+	PrivateKey  string
+	ClientEmail string
+	DomainAdmin string
+}
+
+func (o providerAPIOptions) Validate(providerKind string) error {
+	if providerKind != "google" {
+		// Parameters to configure API calls are currently only applicable to Google
+		inapplicableFields := []string{}
+		if o.ClientEmail != "" {
+			inapplicableFields = append(inapplicableFields, "clientEmail")
+		}
+		if o.DomainAdmin != "" {
+			inapplicableFields = append(inapplicableFields, "domainAdmin")
+		}
+		if o.PrivateKey != "" {
+			inapplicableFields = append(inapplicableFields, "privateKey")
+		}
+
+		if len(inapplicableFields) > 0 {
+			return fmt.Errorf("field(s) %q are only applicable to Google identity providers", inapplicableFields)
+		}
+	}
+	return nil
+}
+
+type providerEditOptions struct {
+	ClientSecret       string
+	ProviderAPIOptions providerAPIOptions
+}
+
+func (o providerEditOptions) Validate(providerKind string) error {
+	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.DomainAdmin == "" {
+		return fmt.Errorf("Please specify a field to update.'\n\n%s", newProvidersEditCmd(nil).UsageString())
+	}
+
+	if providerKind != "google" && o.ClientSecret == "" {
+		return fmt.Errorf("Client secret flag must be specified when updating an identity provider that isn't of kind Google")
+	}
+
+	return o.ProviderAPIOptions.Validate(providerKind)
+}
+
 func newProvidersEditCmd(cli *CLI) *cobra.Command {
-	var secret string
+	var opts providerEditOptions
 
 	cmd := &cobra.Command{
 		Use:   "edit PROVIDER",
 		Short: "Update a provider",
 		Example: `# Set a new client secret for a connected provider
-$ infra providers edit okta --client-secret`,
+$ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if secret == "" {
-				return fmt.Errorf("Please specify a field to update.'\n\n%s", cmd.UsageString())
-			}
-			return updateProvider(cli, args[0], secret)
+			return updateProvider(cli, args[0], opts)
 		},
 	}
 
-	cmd.Flags().StringVar(&secret, "client-secret", "", "Set a new client secret")
+	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "Set a new client secret")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.PrivateKey, "private-key", "", "The private key used to make authenticated requests to Google's API")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "client-email", "", "The email assigned to the Infra service client in Google")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdmin, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
 
@@ -115,10 +159,11 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 }
 
 type providerAddOptions struct {
-	URL          string
-	ClientID     string
-	ClientSecret string
-	Kind         string
+	URL                string
+	ClientID           string
+	ClientSecret       string
+	Kind               string
+	ProviderAPIOptions providerAPIOptions
 }
 
 func (o providerAddOptions) Validate() error {
@@ -135,7 +180,7 @@ func (o providerAddOptions) Validate() error {
 	if len(missing) > 0 {
 		return fmt.Errorf("missing value for required flags: %v", strings.Join(missing, ", "))
 	}
-	return nil
+	return o.ProviderAPIOptions.Validate(o.Kind)
 }
 
 func newProvidersAddCmd(cli *CLI) *cobra.Command {
@@ -170,6 +215,11 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 				ClientID:     opts.ClientID,
 				ClientSecret: opts.ClientSecret,
 				Kind:         opts.Kind,
+				API: &api.ProviderAPICredentials{
+					PrivateKey:  api.PEM(opts.ProviderAPIOptions.PrivateKey),
+					ClientEmail: opts.ProviderAPIOptions.ClientEmail,
+					DomainAdmin: opts.ProviderAPIOptions.DomainAdmin,
+				},
 			})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
@@ -190,10 +240,13 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.PrivateKey, "private-key", "", "The private key used to make authenticated requests to Google's API")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "client-email", "", "The email assigned to the Infra service client in Google")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdmin, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
 
-func updateProvider(cli *CLI, name string, secret string) error {
+func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -211,14 +264,23 @@ func updateProvider(cli *CLI, name string, secret string) error {
 	}
 	provider := res.Items[0]
 
+	if err := opts.ProviderAPIOptions.Validate(provider.Kind); err != nil {
+		return err
+	}
+
 	logging.Debugf("call server: update provider named %q", name)
 	_, err = client.UpdateProvider(api.UpdateProviderRequest{
 		ID:           provider.ID,
 		Name:         name,
 		URL:          provider.URL,
 		ClientID:     provider.ClientID,
-		ClientSecret: secret,
+		ClientSecret: opts.ClientSecret,
 		Kind:         provider.Kind,
+		API: &api.ProviderAPICredentials{
+			PrivateKey:  api.PEM(opts.ProviderAPIOptions.PrivateKey),
+			ClientEmail: opts.ProviderAPIOptions.ClientEmail,
+			DomainAdmin: opts.ProviderAPIOptions.DomainAdmin,
+		},
 	})
 
 	if err != nil {

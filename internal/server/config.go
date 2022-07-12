@@ -30,6 +30,11 @@ type Provider struct {
 	Kind         string
 	AuthURL      string
 	Scopes       []string
+
+	// fields used to directly query an external API
+	PrivateKey  string
+	ClientEmail string
+	DomainAdmin string
 }
 
 type Grant struct {
@@ -620,6 +625,10 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			Scopes:       input.Scopes,
 			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
+
+			PrivateKey:  models.EncryptedAtRest(input.PrivateKey),
+			ClientEmail: input.ClientEmail,
+			DomainAdmin: input.DomainAdmin,
 		}
 
 		if provider.Kind != models.ProviderKindInfra {

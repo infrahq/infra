@@ -84,6 +84,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
 			Kind:         "oidc",
+			API:          &api.ProviderAPICredentials{},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
@@ -106,11 +107,84 @@ func TestProvidersAddCmd(t *testing.T) {
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
 			Kind:         "oidc",
+			API:          &api.ProviderAPICredentials{},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
 
-	t.Run("missing require flags", func(t *testing.T) {
+	t.Run("google provider with no api flags", func(t *testing.T) {
+		ch := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "add", "google",
+			"--url", "accounts.google.com",
+			"--client-id", "aaa.apps.googleusercontent.com",
+			"--client-secret", "GOCSPX-bbb",
+			"--kind", "google",
+		)
+		assert.NilError(t, err)
+
+		createProviderRequest := <-ch
+
+		expected := api.CreateProviderRequest{
+			Name:         "google",
+			URL:          "accounts.google.com",
+			ClientID:     "aaa.apps.googleusercontent.com",
+			ClientSecret: "GOCSPX-bbb",
+			Kind:         "google",
+			API:          &api.ProviderAPICredentials{},
+		}
+		assert.DeepEqual(t, createProviderRequest, expected)
+	})
+
+	t.Run("google provider with api flags", func(t *testing.T) {
+		ch := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "add", "google",
+			"--url", "accounts.google.com",
+			"--client-id", "aaa.apps.googleusercontent.com",
+			"--client-secret", "GOCSPX-bbb",
+			"--kind", "google",
+			"--private-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--client-email", "example@tenant.iam.gserviceaccount.com",
+			"--domain-admin", "admin@example.com",
+		)
+		assert.NilError(t, err)
+
+		createProviderRequest := <-ch
+
+		expected := api.CreateProviderRequest{
+			Name:         "google",
+			URL:          "accounts.google.com",
+			ClientID:     "aaa.apps.googleusercontent.com",
+			ClientSecret: "GOCSPX-bbb",
+			Kind:         "google",
+			API: &api.ProviderAPICredentials{
+				PrivateKey:  api.PEM("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
+				ClientEmail: "example@tenant.iam.gserviceaccount.com",
+				DomainAdmin: "admin@example.com",
+			},
+		}
+		assert.DeepEqual(t, createProviderRequest, expected)
+	})
+
+	t.Run("api flags cannot be specified for non-google kind", func(t *testing.T) {
+		err := Run(context.Background(),
+			"providers", "add", "okta",
+			"--url", "example.okta.com",
+			"--client-id", "aaa",
+			"--client-secret", "bbb",
+			"--kind", "okta",
+			"--private-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--client-email", "example@tenant.iam.gserviceaccount.com",
+			"--domain-admin", "admin@example.com",
+		)
+
+		assert.ErrorContains(t, err, "field(s) [\"clientEmail\" \"domainAdmin\" \"privateKey\"] are only applicable to Google identity providers")
+	})
+
+	t.Run("missing required flags", func(t *testing.T) {
 		err := Run(context.Background(), "providers", "add", "okta")
 		assert.ErrorContains(t, err, "missing value for required flags: url, client-id, client-secret")
 	})
@@ -164,6 +238,12 @@ func TestProvidersEditCmd(t *testing.T) {
 		ClientID: "okta-client-id",
 		Kind:     "oidc",
 	})
+	apiProviders = append(apiProviders, api.Provider{
+		Name:     "google",
+		URL:      "https://example.com/google",
+		ClientID: "google-client-id",
+		Kind:     "google",
+	})
 
 	setup := func(t *testing.T) chan api.UpdateProviderRequest {
 		requestCh := make(chan api.UpdateProviderRequest, 1)
@@ -186,20 +266,16 @@ func TestProvidersEditCmd(t *testing.T) {
 				return
 			case http.MethodGet:
 				name := req.URL.Query().Get("name")
+				items := []api.Provider{}
 				for _, p := range apiProviders {
 					if p.Name == name {
-						b, err := json.Marshal(api.ListResponse[api.Provider]{
-							Items: apiProviders,
-							Count: len(apiProviders),
-						})
-						assert.NilError(t, err)
-						_, _ = resp.Write(b)
-						return
+						items = append(items, p)
 					}
 				}
 
 				b, err := json.Marshal(api.ListResponse[api.Provider]{
-					Count: 0,
+					Items: items,
+					Count: len(items),
 				})
 				assert.NilError(t, err)
 				_, _ = resp.Write(b)
@@ -232,6 +308,58 @@ func TestProvidersEditCmd(t *testing.T) {
 			ClientID:     "okta-client-id",
 			ClientSecret: "okta-client-secret",
 			Kind:         "oidc",
+			API:          &api.ProviderAPICredentials{},
+		}
+		assert.DeepEqual(t, updateProviderRequest, expected)
+	})
+
+	t.Run("edit google api parameters", func(t *testing.T) {
+		ch := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "edit", "google",
+			"--client-secret", "google-client-secret-2",
+			"--private-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--client-email", "example@tenant.iam.gserviceaccount.com",
+			"--domain-admin", "admin@example.com",
+		)
+		assert.NilError(t, err)
+
+		updateProviderRequest := <-ch
+
+		expected := api.UpdateProviderRequest{
+			Name:         "google",
+			URL:          "https://example.com/google",
+			ClientID:     "google-client-id",
+			ClientSecret: "google-client-secret-2",
+			Kind:         "google",
+			API: &api.ProviderAPICredentials{
+				PrivateKey:  "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+				ClientEmail: "example@tenant.iam.gserviceaccount.com",
+				DomainAdmin: "admin@example.com",
+			},
+		}
+		assert.DeepEqual(t, updateProviderRequest, expected)
+	})
+
+	t.Run("edit google without api parameters", func(t *testing.T) {
+		ch := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "edit", "google",
+			"--client-secret", "google-client-secret-3",
+		)
+		assert.NilError(t, err)
+
+		updateProviderRequest := <-ch
+
+		expected := api.UpdateProviderRequest{
+			Name:         "google",
+			URL:          "https://example.com/google",
+			ClientID:     "google-client-id",
+			ClientSecret: "google-client-secret-3",
+			Kind:         "google",
+			API:          &api.ProviderAPICredentials{},
 		}
 		assert.DeepEqual(t, updateProviderRequest, expected)
 	})

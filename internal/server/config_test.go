@@ -407,6 +407,18 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
 				Scopes:       []string{"openid", "email"},
 			},
+			{
+				Name:         "google",
+				URL:          "accounts.google.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         models.ProviderKindGoogle.String(),
+				AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
+				Scopes:       []string{"openid", "email"},
+				PrivateKey:   "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+				ClientEmail:  "example@tenant.iam.gserviceaccount.com",
+				DomainAdmin:  "admin@example.com",
+			},
 		},
 	}
 
@@ -457,6 +469,27 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	}
 
 	assert.DeepEqual(t, azure, expected, cmpProvider)
+
+	var google models.Provider
+	err = s.db.Where("name = ?", "google").First(&google).Error
+	assert.NilError(t, err)
+
+	expected = models.Provider{
+		Model:        google.Model,     // not relevant
+		CreatedBy:    google.CreatedBy, // not relevant
+		Name:         "google",
+		URL:          "accounts.google.com",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		Kind:         models.ProviderKindGoogle,
+		AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
+		Scopes:       []string{"openid", "email"},
+		PrivateKey:   "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+		ClientEmail:  "example@tenant.iam.gserviceaccount.com",
+		DomainAdmin:  "admin@example.com",
+	}
+
+	assert.DeepEqual(t, google, expected, cmpProvider)
 }
 
 func TestLoadConfigWithUsers(t *testing.T) {
