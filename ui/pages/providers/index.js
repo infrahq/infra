@@ -11,8 +11,8 @@ import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
-import Remove from '../../components/remove'
 import Metadata from '../../components/metadata'
+import RemoveButton from '../../components/remove-button'
 
 const columns = [
   {
@@ -70,9 +70,9 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
       </section>
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <Remove
-            deleteModalOpen={deleteModalOpen}
-            setDeleteModalOpen={setDeleteModalOpen}
+          <RemoveButton
+            modalOpen={deleteModalOpen}
+            setmodalOpen={setDeleteModalOpen}
             onSubmit={() => {
               mutate(
                 '/api/providers',
@@ -88,8 +88,8 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
               setDeleteModalOpen(false)
               setSelectedProvider(null)
             }}
-            deleteModalTitle='Remove Identity Provider'
-            deleteModalMessage={
+            modalTitle='Remove Identity Provider'
+            modalMessage={
               <>
                 Are you sure you want to delete{' '}
                 <span className='font-bold text-white'>{provider?.name}</span>?

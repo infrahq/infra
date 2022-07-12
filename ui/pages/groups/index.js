@@ -13,10 +13,10 @@ import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
 import EmptyData from '../../components/empty-data'
 import IdentityList from '../../components/identity-list'
-import Remove from '../../components/remove'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
+import RemoveButton from '../../components/remove-button'
 
 const columns = [
   {
@@ -146,7 +146,11 @@ function Details({ group, admin, onDelete }) {
               Access
             </h3>
             <GrantsList grants={grants} mutate={mutateGrants} />
-            {!grants?.length && <EmptyData text='No access' />}
+            {!grants?.length && (
+              <EmptyData>
+                <div className='mt-6'>No access</div>
+              </EmptyData>
+            )}
           </section>
           <section>
             <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
@@ -169,7 +173,9 @@ function Details({ group, admin, onDelete }) {
             />
             <div className='mt-4'>
               {users?.length === 0 && (
-                <EmptyData text='No members in the group' />
+                <EmptyData>
+                  <div className='mt-6'>No members in the group</div>
+                </EmptyData>
               )}
               <IdentityList
                 list={users?.sort((a, b) =>
@@ -199,15 +205,15 @@ function Details({ group, admin, onDelete }) {
       </section>
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <Remove
-            deleteModalOpen={deleteModalOpen}
-            setDeleteModalOpen={setDeleteModalOpen}
+          <RemoveButton
+            modalOpen={deleteModalOpen}
+            setModalOpen={setDeleteModalOpen}
             onSubmit={async () => {
               setDeleteModalOpen(false)
               onDelete()
             }}
-            deleteModalTitle='Remove Group'
-            deleteModalMessage={
+            modalTitle='Remove Group'
+            modalMessage={
               <>
                 Are you sure you want to delete{' '}
                 <span className='font-bold text-white'>{name}</span>? This

@@ -15,9 +15,9 @@ import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
 import IdentityList from '../../components/identity-list'
-import Remove from '../../components/remove'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
+import RemoveButton from '../../components/remove-button'
 
 const columns = [
   {
@@ -119,7 +119,9 @@ function Details({ user, admin, onDelete }) {
               </div>
             ))}
             {!grants?.length && !inherited?.length && !loading && (
-              <EmptyData text='No access' />
+              <EmptyData>
+                <div className='mt-6'>No access</div>
+              </EmptyData>
             )}
           </section>
           <section>
@@ -127,7 +129,11 @@ function Details({ user, admin, onDelete }) {
               Groups
             </h3>
             <div className='mt-4'>
-              {groups?.length === 0 && <EmptyData text='No groups' />}
+              {groups?.length === 0 && (
+                <EmptyData>
+                  <div className='mt-6'>No groups</div>
+                </EmptyData>
+              )}
               <IdentityList
                 list={groups?.sort((a, b) =>
                   b.created?.localeCompare(a.created)
@@ -156,15 +162,15 @@ function Details({ user, admin, onDelete }) {
       </section>
       <section className='flex flex-1 flex-col items-end justify-end py-6'>
         {auth.id !== id && (
-          <Remove
-            deleteModalOpen={deleteModalOpen}
-            setDeleteModalOpen={setDeleteModalOpen}
+          <RemoveButton
+            modalOpen={deleteModalOpen}
+            setModalOpen={setDeleteModalOpen}
             onSubmit={async () => {
               setDeleteModalOpen(false)
               onDelete()
             }}
-            deleteModalTitle='Remove User'
-            deleteModalMessage={
+            modalTitle='Remove User'
+            modalMessage={
               <>
                 Are you sure you want to remove{' '}
                 <span className='font-bold text-white'>{name}?</span>

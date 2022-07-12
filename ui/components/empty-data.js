@@ -1,3 +1,3 @@
-export default function EmptyData({ text }) {
-  return <div className='mt-6 text-2xs italic text-gray-400'>{text}</div>
+export default function EmptyData({ children }) {
+  return <div className='text-2xs italic text-gray-400'>{children}</div>
 }

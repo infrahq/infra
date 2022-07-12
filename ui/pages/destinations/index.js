@@ -15,8 +15,8 @@ import Sidebar from '../../components/sidebar'
 import RoleSelect from '../../components/role-select'
 import GrantForm from '../../components/grant-form'
 import EmptyData from '../../components/empty-data'
-import Remove from '../../components/remove'
 import Metadata from '../../components/metadata'
+import RemoveButton from '../../components/remove-button'
 
 function parent(resource = '') {
   const parts = resource.split('.')
@@ -103,7 +103,11 @@ function Details({ destination, onDelete }) {
             }}
           />
           <div className='mt-4'>
-            {empty && <EmptyData text='No access' />}
+            {empty && (
+              <EmptyData>
+                <div className='mt-6'>No access</div>
+              </EmptyData>
+            )}
             {grants
               ?.sort(sortByPrivilege)
               ?.sort(sortBySubject)
@@ -215,15 +219,15 @@ function Details({ destination, onDelete }) {
       </section>
       {admin && destination.id && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <Remove
-            deleteModalOpen={deleteModalOpen}
-            setDeleteModalOpen={setDeleteModalOpen}
+          <RemoveButton
+            modalOpen={deleteModalOpen}
+            setModalOpen={setDeleteModalOpen}
             onSubmit={async () => {
               setDeleteModalOpen(false)
               onDelete()
             }}
-            deleteModalTitle='Remove Cluster'
-            deleteModalMessage={
+            modalTitle='Remove Cluster'
+            modalMessage={
               <>
                 Are you sure you want to disconnect{' '}
                 <span className='font-bold text-white'>
