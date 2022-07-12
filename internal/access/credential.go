@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
@@ -94,15 +93,4 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	}
 
 	return nil
-}
-
-func checkPasswordRequirements(db *gorm.DB, password string) error {
-	settings, err := data.GetSettings(db)
-	if err != nil {
-		return err
-	}
-	if settings.LengthMin < len(password) {
-		return errors.New("nonono")
-	}
-	return errors.New("yes")
 }
