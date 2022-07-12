@@ -1,6 +1,6 @@
 import { CheckIcon } from '@heroicons/react/solid'
 
-export default function TypeaheadDropdown({ item, selected }) {
+export default function ListRow({ item, selected }) {
   return (
     <div className='flex flex-row'>
       <div className='flex min-w-0 flex-1 flex-col'>

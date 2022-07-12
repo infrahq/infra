@@ -4,7 +4,7 @@ import { Combobox } from '@headlessui/react'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleSelect from './role-select'
-import TypeaheadDropdown from './typeahead-dropdown'
+import ListRow from './list-row'
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
@@ -73,7 +73,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
                     }`
                   }
                 >
-                  <TypeaheadDropdown item={f} selected={selected} />
+                  <ListRow item={f} selected={selected} />
                 </Combobox.Option>
               ))}
             </Combobox.Options>
