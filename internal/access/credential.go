@@ -20,11 +20,6 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 		return "", HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
-	err = checkPasswordRequirements(db, "abc")
-	if err != nil {
-		return "", err
-	}
-
 	tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
 	if err != nil {
 		return "", fmt.Errorf("generate: %w", err)
