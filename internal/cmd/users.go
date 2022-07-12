@@ -117,10 +117,6 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 		Short:   "List users",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
-			if err != nil {
-				return err
-			}
 
 			type row struct {
 				Name       string `header:"Name"`
@@ -130,33 +126,26 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
-			logging.Debugf("call server: list users")
-			users, err := client.ListUsers(api.ListUsersRequest{})
+			users, err := listAllUsers()
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot list users: missing privileges for ListUsers",
-					}
-				}
 				return err
 			}
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(users.Items)
+				jsonOutput, err := json.Marshal(users)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(jsonOutput))
 			case "yaml":
-				yamlOutput, err := yaml.Marshal(users.Items)
+				yamlOutput, err := yaml.Marshal(users)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(yamlOutput))
 			default:
-				for _, user := range users.Items {
+				for _, user := range users {
 					rows = append(rows, row{
 						Name:       user.Name,
 						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),
@@ -432,4 +421,41 @@ func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientH
 	}
 
 	return len(grants.Items) > 0, nil
+}
+
+// listAllUsers gets all users by paginating
+func listAllUsers() ([]api.User, error) {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return nil, err
+	}
+
+	logging.Debugf("call server: list users")
+	res, err := client.ListUsers(api.ListUsersRequest{PaginationRequest: api.PaginationRequest{Page: 1, Limit: 2}})
+	if err != nil {
+		return nil, handleListUserMissingPrivilige(err)
+	}
+	users := make([]api.User, 0, res.TotalCount)
+	users = append(users, res.Items...)
+	// first page done in first request
+	for page := 2; page <= res.TotalPages; page++ {
+		logging.Debugf("call server: list users")
+		res, err = client.ListUsers(api.ListUsersRequest{PaginationRequest: api.PaginationRequest{Page: page, Limit: 2}})
+		if err != nil {
+			return nil, handleListUserMissingPrivilige(err)
+		}
+		users = append(users, res.Items...)
+	}
+
+	return users, nil
+}
+
+func handleListUserMissingPrivilige(err error) error {
+	if api.ErrorStatusCode(err) == 403 {
+		logging.Debugf("%s", err.Error())
+		return Error{
+			Message: "Cannot list users: missing privileges for ListUsers",
+		}
+	}
+	return err
 }

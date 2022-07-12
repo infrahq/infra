@@ -167,7 +167,8 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return get[ListResponse[User]](c, "/api/users", Query{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids})
+	return get[ListResponse[User]](c, "/api/users", Query{"name": {req.Name}, "group": {req.Group.String()},
+		"ids": ids, "page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
