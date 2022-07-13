@@ -20,7 +20,7 @@ function AddUser({ email, onChange, onKeyDown, onSubmit, error }) {
           <input
             autoFocus
             spellCheck='false'
-            type='search'
+            type='email'
             placeholder='enter the user email here'
             value={email}
             onChange={onChange}
