@@ -33,7 +33,7 @@ function Providers({ providers }) {
                 onClick={() => oidcLogin(p)}
                 key={p.id}
                 title={`${p.name} — ${p.url}`}
-                className='my-2 flex w-full items-center rounded-md border border-gray-700 px-4 py-3 hover:hover:border-gray-600'
+                className='my-2 flex w-full items-center rounded-md border border-gray-700 px-4 py-3 hover:border-gray-600'
               >
                 <img
                   alt='identity provider icon'
