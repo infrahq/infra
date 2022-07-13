@@ -11,29 +11,22 @@ import (
 
 type Sampler struct {
 	fn       func() zerolog.Sampler
-	samplers map[string]zerolog.Sampler
-	mu       sync.Mutex
+	samplers sync.Map
 }
 
 func NewSampler(fn func() zerolog.Sampler) *Sampler {
-	return &Sampler{
-		fn:       fn,
-		samplers: make(map[string]zerolog.Sampler),
-	}
+	return &Sampler{fn: fn}
 }
 
 func (c *Sampler) Get(fields ...string) zerolog.Sampler {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	key := strings.Join(fields, "-")
-	sampler, ok := c.samplers[key]
+	raw, ok := c.samplers.Load(key)
 	if !ok {
-		sampler = c.fn()
-		c.samplers[key] = sampler
+		// Only use LoadOrStore on a failed load, to avoid creating unnecessary samplers
+		raw, _ = c.samplers.LoadOrStore(key, c.fn())
 	}
 
-	return sampler
+	return raw.(zerolog.Sampler) // nolint:forcetypeassert
 }
 
 func Middleware() gin.HandlerFunc {
