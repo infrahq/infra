@@ -26,7 +26,6 @@ type logger struct {
 }
 
 func init() {
-	zerolog.DisableSampling(true)
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnixMs
 	zerolog.CallerMarshalFunc = func(file string, line int) string {
 		short := filepath.Join(filepath.Base(filepath.Dir(file)), filepath.Base(file))
@@ -95,7 +94,6 @@ func SetLevel(levelName string) error {
 }
 
 type TestingT interface {
-	zerolog.TestingLog
 	Cleanup(func())
 }
 
@@ -103,9 +101,9 @@ type TestingT interface {
 // the global L logger is reset to the previous value.
 // PatchLogger changes a static variable, so tests that use PatchLogger can not
 // use t.Parallel.
-func PatchLogger(t TestingT) {
+func PatchLogger(t TestingT, writer io.Writer) {
 	origL := L
-	L = newLogger(zerolog.NewTestWriter(t))
+	L = newLogger(writer)
 	t.Cleanup(func() {
 		L = origL
 	})

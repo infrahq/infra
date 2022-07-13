@@ -17,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
@@ -306,6 +307,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
+		Version:       r.Version,
 	}
 
 	err := access.CreateDestination(c, destination)
@@ -327,6 +329,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
+		Version:       r.Version,
 	}
 
 	if err := access.SaveDestination(c, destination); err != nil {
@@ -444,7 +447,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	return grant.ToAPI(), nil
 }
 
-func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant, error) {
+func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.CreateGrantResponse, error) {
 	var subject uid.PolymorphicID
 
 	switch {
@@ -461,11 +464,28 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Grant
 	}
 
 	err := access.CreateGrant(c, grant)
+	var ucerr data.UniqueConstraintError
+
+	if errors.As(err, &ucerr) {
+		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, &models.Pagination{})
+
+		if err != nil {
+			return nil, err
+		}
+
+		if len(grants) == 0 {
+			return nil, fmt.Errorf("duplicate grant exists, but cannot be found")
+		}
+
+		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return grant.ToAPI(), nil
+	return &api.CreateGrantResponse{Grant: grant.ToAPI(), WasCreated: true}, nil
+
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {

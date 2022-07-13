@@ -475,6 +475,7 @@ func migrate(db *gorm.DB) error {
 		dropCertificateTables(),
 		addAuthURLAndScopeToProviders(),
 		setDestinationLastSeenAt(),
+		deleteDuplicateGrants(),
 		// next one here
 	})
 
@@ -608,6 +609,13 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 	}
 }
 
+// #2360: delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
+func deleteDuplicateGrants() *gormigrate.Migration {
+	return &gormigrate.Migration{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
+		return deleteDuplicates(tx, "subject, resource, privilege", &models.Grant{})
+	}}
+}
+
 // setDestinationLastSeenAt creates the `last_seen_at` column if it does not exist and sets it to
 // the destination's `updated_at` value. No effect if the `last_seen_at` exists
 func setDestinationLastSeenAt() *gormigrate.Migration {
@@ -625,4 +633,9 @@ func setDestinationLastSeenAt() *gormigrate.Migration {
 			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
 		},
 	}
+}
+
+func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
+	subQuery := tx.Select("min(id)").Group(group).Model(model)
+	return tx.Where("id NOT in (?)", subQuery).Delete(model).Error
 }

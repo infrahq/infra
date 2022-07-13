@@ -175,7 +175,7 @@ func Run(ctx context.Context, options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	promRegistry := setupMetrics()
+	promRegistry := metrics.NewRegistry()
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		Addr:     ":9090",
@@ -395,6 +395,7 @@ func createOrUpdateDestination(client *api.Client, local *api.Destination) error
 	request := &api.CreateDestinationRequest{
 		Name:       local.Name,
 		UniqueID:   local.UniqueID,
+		Version:    internal.FullVersion(),
 		Connection: local.Connection,
 		Resources:  local.Resources,
 		Roles:      local.Roles,
@@ -417,6 +418,7 @@ func updateDestination(client *api.Client, local *api.Destination) error {
 		ID:         local.ID,
 		Name:       local.Name,
 		UniqueID:   local.UniqueID,
+		Version:    internal.FullVersion(),
 		Connection: local.Connection,
 		Resources:  local.Resources,
 		Roles:      local.Roles,

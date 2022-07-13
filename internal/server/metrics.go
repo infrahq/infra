@@ -1,127 +1,142 @@
 package server
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/metrics"
 )
 
 func setupMetrics(db *gorm.DB) *prometheus.Registry {
-	reg := prometheus.NewRegistry()
-	factory := promauto.With(reg)
+	registry := metrics.NewRegistry()
 
-	factory.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "build",
-		Name:      "info",
-		Help:      "Build information about Infra Server.",
-	}, []string{"branch", "version", "commit", "date"}).With(prometheus.Labels{
-		"branch":  internal.Branch,
-		"version": internal.FullVersion(),
-		"commit":  internal.Commit,
-		"date":    internal.Date,
-	}).Set(1)
+	if rawDB, err := db.DB(); err == nil {
+		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))
+	}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "users",
-		Help:      "Number of users managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Identity](db)
-		if err != nil {
-			logging.Warnf("users: %s", err)
-			return 0
+		Help:      "The total number of users",
+	}, []string{}, func() []metrics.Metric {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM identities WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("users")
+			return []metrics.Metric{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metrics.Metric, 0, len(results))
+		for _, result := range results {
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "groups",
-		Help:      "Number of groups managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Group](db)
-		if err != nil {
-			logging.Warnf("groups: %s", err)
-			return 0
+		Help:      "The total number of groups",
+	}, []string{}, func() []metrics.Metric {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM groups WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("groups")
+			return []metrics.Metric{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metrics.Metric, 0, len(results))
+		for _, result := range results {
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "grants",
-		Help:      "Number of grants managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Grant](db)
-		if err != nil {
-			logging.Warnf("grants: %s", err)
-			return 0
+		Help:      "The total number of grants",
+	}, []string{}, func() []metrics.Metric {
+		var results []struct {
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT COUNT(*) as count FROM grants WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("grants")
+			return []metrics.Metric{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metrics.Metric, 0, len(results))
+		for _, result := range results {
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "providers",
-		Help:      "Number of providers managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Provider](db)
-		if err != nil {
-			logging.Warnf("providers: %s", err)
-			return 0
+		Help:      "The total number of providers",
+	}, []string{"kind"}, func() []metrics.Metric {
+		var results []struct {
+			Kind  string
+			Count int
 		}
 
-		return float64(count)
-	})
+		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("providers")
+			return []metrics.Metric{}
+		}
 
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
+		values := make([]metrics.Metric, 0, len(results))
+		for _, result := range results {
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Kind}})
+		}
+
+		return values
+	}))
+
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",
 		Name:      "destinations",
-		Help:      "Number of destinations managed by Infra.",
-	}, func() float64 {
-		count, err := data.Count[models.Destination](db)
-		if err != nil {
-			logging.Warnf("destinations: %s", err)
-			return 0
+		Help:      "The total number of destinations",
+	}, []string{"version", "status"}, func() []metrics.Metric {
+		var results []struct {
+			Version   string
+			Connected bool
+			Count     float64
 		}
 
-		return float64(count)
-	})
+		cmp := time.Now().Add(-5 * time.Minute)
 
-	factory.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: "database",
-		Name:      "info",
-		Help:      "Information about configured database.",
-	}, []string{"name"}).With(prometheus.Labels{
-		"name": db.Dialector.Name(),
-	}).Set(1)
-
-	factory.NewGaugeFunc(prometheus.GaugeOpts{
-		Namespace: "database",
-		Name:      "connected",
-		Help:      "Database connection status.",
-	}, func() float64 {
-		pinger, ok := db.ConnPool.(interface{ Ping() error })
-		if !ok {
-			logging.Warnf("ping: not supported")
-			return -1
+		if err := db.Raw("SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected, COUNT(*) AS count FROM destinations WHERE deleted_at IS NULL GROUP BY COALESCE(version, ''), last_seen_at >= ?", cmp, cmp).Scan(&results).Error; err != nil {
+			logging.L.Warn().Err(err).Msg("destinations")
+			return []metrics.Metric{}
 		}
 
-		if err := pinger.Ping(); err != nil {
-			logging.Warnf("ping: not connected")
-			return 0
+		values := make([]metrics.Metric, 0, len(results))
+		for _, result := range results {
+			status := "disconnected"
+			if result.Connected {
+				status = "connected"
+			}
+
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Version, status}})
 		}
 
-		return 1
-	})
+		return values
+	}))
 
-	return reg
+	return registry
 }

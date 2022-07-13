@@ -250,8 +250,8 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 	})
 }
 
-func (c Client) CreateGrant(req *CreateGrantRequest) (*Grant, error) {
-	return post[CreateGrantRequest, Grant](c, "/api/grants", req)
+func (c Client) CreateGrant(req *CreateGrantRequest) (*CreateGrantResponse, error) {
+	return post[CreateGrantRequest, CreateGrantResponse](c, "/api/grants", req)
 }
 
 func (c Client) DeleteGrant(id uid.ID) error {

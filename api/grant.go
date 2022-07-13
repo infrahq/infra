@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/infrahq/infra/uid"
 )
 
@@ -15,6 +17,18 @@ type Grant struct {
 	Group     uid.ID `json:"group,omitempty"`
 	Privilege string `json:"privilege" note:"a role or permission"`
 	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
+}
+
+type CreateGrantResponse struct {
+	*Grant     `json:",inline"`
+	WasCreated bool `json:"wasCreated"`
+}
+
+func (r *CreateGrantResponse) StatusCode() int {
+	if !r.WasCreated {
+		return http.StatusOK
+	}
+	return http.StatusCreated
 }
 
 type ListGrantsRequest struct {

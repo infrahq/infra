@@ -10,4 +10,5 @@
   roles: null
   uniqueID: ""
   updated: null
+  version: ""
 

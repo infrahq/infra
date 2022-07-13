@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
@@ -54,8 +55,12 @@ func TestMigration_202204111503(t *testing.T) {
 
 	ids, err := ListIdentities(db, &models.Pagination{}, ByName("steven@example.com"))
 	assert.NilError(t, err)
-
 	assert.Assert(t, len(ids) == 1)
+	// check that merged identity has unique grants
+	grants, err := ListGrants(db, &models.Pagination{}, BySubject(ids[0].PolyID()))
+	assert.NilError(t, err)
+	assert.Assert(t, len(grants) == 1)
+
 }
 
 func TestMigration_202204211705(t *testing.T) {
@@ -142,7 +147,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
 	f(db)
 
 	patch.ModelsSymmetricKey(t)
-	logging.PatchLogger(t)
+	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 	return driver
 }

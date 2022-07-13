@@ -137,12 +137,24 @@ func createComponent(schemas openapi3.Schemas, rst reflect.Type) *openapi3.Schem
 
 	for i := 0; i < rst.NumField(); i++ {
 		f := rst.Field(i)
-		if f.Type.Kind() == reflect.Struct && f.Anonymous {
-			for j := 0; j < f.Type.NumField(); j++ {
-				af := f.Type.Field(j)
-				schema.Properties[getFieldName(af, f.Type)] = buildProperty(af, af.Type, f.Type, schema)
-			}
+
+		if f.Tag.Get("json") == "-" {
 			continue
+		}
+
+		if f.Anonymous {
+			typeOrElem := f.Type
+			if f.Type.Kind() == reflect.Pointer {
+				typeOrElem = f.Type.Elem()
+			}
+
+			if typeOrElem.Kind() == reflect.Struct {
+				for j := 0; j < typeOrElem.NumField(); j++ {
+					af := typeOrElem.Field(j)
+					schema.Properties[getFieldName(af, typeOrElem)] = buildProperty(af, af.Type, typeOrElem, schema)
+				}
+				continue
+			}
 		}
 		schema.Properties[getFieldName(f, rst)] = buildProperty(f, f.Type, rst, schema)
 	}
