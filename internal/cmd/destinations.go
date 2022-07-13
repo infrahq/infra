@@ -50,7 +50,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list destinations")
-			destinations, err := listAll(client, api.ListDestinationsRequest{}, api.Client.ListDestinations, func(err error) error { return err })
+			destinations, err := listAll(client, api.ListDestinationsRequest{}, api.Client.ListDestinations, nil)
 			if err != nil {
 				return err
 			}
