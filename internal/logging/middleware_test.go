@@ -3,7 +3,6 @@ package logging
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,26 +19,20 @@ func TestMiddleware(t *testing.T) {
 		router := gin.New()
 		router.Use(Middleware())
 
-		router.GET("/good", func(c *gin.Context) {
-			assert.Equal(t, c.Request.Method, http.MethodGet)
-			assert.Equal(t, c.Request.URL.Path, "/good")
-		})
-
-		router.GET("/gooder", func(c *gin.Context) {
-			assert.Equal(t, c.Request.Method, http.MethodGet)
-			assert.Equal(t, c.Request.URL.Path, "/gooder")
-		})
-
+		router.GET("/good", func(c *gin.Context) {})
+		router.POST("/good", func(c *gin.Context) {})
+		router.GET("/gooder", func(c *gin.Context) {})
 		router.GET("/bad", func(c *gin.Context) {
-			assert.Equal(t, c.Request.Method, http.MethodGet)
-			assert.Equal(t, c.Request.URL.Path, "/bad")
-			_ = c.AbortWithError(http.StatusBadRequest, errors.New("something went wrong"))
+			c.Status(http.StatusBadRequest)
+		})
+		router.GET("/broken", func(c *gin.Context) {
+			c.Status(http.StatusBadGateway)
 		})
 
 		return router
 	}
 
-	t.Run("good", func(t *testing.T) {
+	t.Run("identical requests are sampled", func(t *testing.T) {
 		b := &bytes.Buffer{}
 		router := setup(t, b)
 		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/good", nil))
@@ -74,12 +67,13 @@ func TestMiddleware(t *testing.T) {
 		assert.Equal(t, gooder["path"], "/gooder")
 	})
 
-	t.Run("bad bad bad", func(t *testing.T) {
+	t.Run("non-200 status responses are never sampled", func(t *testing.T) {
 		b := &bytes.Buffer{}
 		router := setup(t, b)
-		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/bad", nil))
-		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/bad", nil))
-		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/bad", nil))
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, httptest.NewRequest("GET", "/bad", nil))
+		router.ServeHTTP(resp, httptest.NewRequest("GET", "/bad", nil))
+		router.ServeHTTP(resp, httptest.NewRequest("GET", "/bad", nil))
 
 		lines := bytes.Split(bytes.TrimSpace(b.Bytes()), []byte("\n"))
 		assert.Equal(t, len(lines), 3)

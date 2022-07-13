@@ -89,6 +89,9 @@ func SetLevel(levelName string) error {
 		return err
 	}
 
+	// logging middleware depends on this level. If we stop using the global level
+	// make sure to adjust the logging middleware to check the level of the
+	// logger instead of the global level.
 	zerolog.SetGlobalLevel(level)
 	return nil
 }

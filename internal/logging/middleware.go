@@ -51,25 +51,16 @@ func Middleware() gin.HandlerFunc {
 
 		c.Next()
 
-		level := zerolog.InfoLevel
-		if len(c.Errors) > 0 {
-			level = zerolog.ErrorLevel
-		}
+		status := c.Writer.Status()
 
-		errs := make([]error, 0, len(c.Errors))
-		for _, err := range c.Errors {
-			errs = append(errs, err.Err)
-		}
-
-		// attach log sampler. should not sample logs if level >= Warn
-		if level <= zerolog.InfoLevel {
+		// sample logs if the request was a success and log level is info or above
+		if status < 400 && zerolog.GlobalLevel() >= zerolog.InfoLevel {
 			log = log.Sample(sampler.Get(c.Request.Method, c.FullPath()))
 		}
 
-		log.WithLevel(level).
-			Errs("errors", errs).
+		log.Info().
 			Dur("elapsed", time.Since(begin)).
-			Int("statusCode", c.Writer.Status()).
+			Int("statusCode", status).
 			Int("size", c.Writer.Size()).
 			Msg("")
 	}
