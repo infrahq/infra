@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 var (
@@ -188,4 +190,11 @@ func (id *ID) UnmarshalText(b []byte) error {
 	var err error
 	*id, err = Parse(b)
 	return err
+}
+
+func (id ID) DescribeSchema(schema *openapi3.Schema) {
+	schema.Type = "string"
+	schema.Format = "uid"
+	schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}`
+	schema.Example = "4yJ3n3D8E2"
 }
