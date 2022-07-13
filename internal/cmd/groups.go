@@ -86,13 +86,13 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			for _, group := range groups {
-				users, err := client.ListUsers(api.ListUsersRequest{Group: group.ID})
+				users, err := listAll(client, api.ListUsersRequest{Group: group.ID}, api.Client.ListUsers, nil)
 				if err != nil {
 					return err
 				}
 
 				var userNames []string
-				for _, user := range users.Items {
+				for _, user := range users {
 					userNames = append(userNames, user.Name)
 				}
 

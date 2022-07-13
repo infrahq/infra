@@ -89,13 +89,13 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 }
 
 func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	users, err := client.ListUsers(api.ListUsersRequest{})
+	users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers, handleListUserMissingPrivilige)
 	if err != nil {
 		return 0, err
 	}
 
 	mapUsers := make(map[uid.ID]api.User)
-	for _, u := range users.Items {
+	for _, u := range users {
 		mapUsers[u.ID] = u
 	}
 
