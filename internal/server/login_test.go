@@ -10,11 +10,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/uid"
-
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestAPI_Login(t *testing.T) {
