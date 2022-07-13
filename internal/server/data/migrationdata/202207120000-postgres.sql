@@ -419,12 +419,7 @@ CREATE TABLE testing.settings (
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     private_jwk bytea,
-    testing_jwk bytea,
-    lowercase_min bigint DEFAULT 0,
-    uppercase_min bigint DEFAULT 0,
-    number_min bigint DEFAULT 0,
-    symbol_min bigint DEFAULT 1,
-    length_min bigint DEFAULT 8
+    testing_jwk bytea
 );
 
 
