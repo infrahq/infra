@@ -51,10 +51,16 @@ spec:
 {{- if (not .Values.server.config.tls) }}
             - name: tls-ca
               mountPath: /var/run/secrets/infrahq.com/tls-ca
+              readOnly: true
 {{- end }}
 {{- if .Values.server.persistence.enabled }}
             - name: data
               mountPath: /var/lib/infrahq/server
+{{- end }}
+{{- if not .Values.server.config.dbEncryptionKey }}
+            - name: encryption-key
+              mountPath: /var/run/secrets/infrahq.com/encryption-key
+              readOnly: true
 {{- end }}
 {{- if .Values.server.volumeMounts }}
 {{- toYaml .Values.server.volumeMounts | nindent 12 }}
@@ -118,6 +124,11 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "server.fullname" . }}
+{{- end }}
+{{- if not .Values.server.config.dbEncryptionKey }}
+        - name: encryption-key
+          secret:
+            secretName: {{ include "server.fullname" . }}-encryption-key
 {{- end }}
 {{- if .Values.server.volumes }}
 {{- toYaml .Values.server.volumes | nindent 8 }}
