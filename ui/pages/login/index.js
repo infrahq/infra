@@ -40,10 +40,15 @@ function Providers({ providers }) {
                   className='h-4'
                   src={`/providers/${p.kind}.svg`}
                 />
-                <span className='items-center pl-4 text-xs capitalize text-gray-300'>
-                  {providersList.filter(i => i.kind === p.kind)
-                    ? `Login with ${p.name}`
-                    : 'Single Sign-On'}
+                <span className='items-center pl-4 text-xs text-gray-300'>
+                  {providersList.filter(i => i.kind === p.kind) ? (
+                    <span>
+                      <span>Login with </span>
+                      <span className='capitalize'>{p.name}</span>
+                    </span>
+                  ) : (
+                    'Single Sign-On'
+                  )}
                 </span>
               </button>
             )
