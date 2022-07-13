@@ -135,7 +135,7 @@ export default function Login() {
           <input
             required
             autoFocus
-            name='name'
+            id='name'
             placeholder='enter your username or email'
             onChange={e => {
               setName(e.target.value)
@@ -155,8 +155,9 @@ export default function Login() {
           </label>
           <input
             required
-            name='password'
+            id='password'
             type='password'
+            data-testid='form-field-password'
             placeholder='enter your password'
             onChange={e => {
               setPassword(e.target.value)
