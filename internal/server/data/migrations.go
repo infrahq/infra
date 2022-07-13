@@ -660,11 +660,32 @@ func addOrganizations() *gormigrate.Migration {
 				&models.Settings{},
 			}
 
+			var foundOrg bool
 			for _, mod := range mods {
 				if !tx.Migrator().HasColumn(mod, "organization_id") {
 					if err := tx.Migrator().AddColumn(mod, "organization_id"); err != nil {
 						return err
 					}
+				} else {
+					foundOrg = true
+				}
+			}
+
+			if !foundOrg {
+				org := &models.Organization{Name: "Default"}
+
+				db := tx.Begin()
+
+				// create one and migrate everything
+				err := CreateOrganization(db, org)
+				if err != nil {
+					return err
+				}
+				// add the other tables
+				db.Table("identities").Update("organization_id", org.ID)
+				err = db.Commit().Error
+				if err != nil {
+					return err
 				}
 			}
 

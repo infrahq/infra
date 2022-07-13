@@ -565,7 +565,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 		r.Name = r.Email
 	}
 
-	identity, err := access.Signup(c, r.Name, r.Password)
+	identity, err := access.Signup(c, r.OrgName, r.Name, r.Password)
 	if err != nil {
 		return nil, err
 	}

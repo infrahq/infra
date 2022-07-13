@@ -45,9 +45,14 @@ func SignupEnabled(c *gin.Context) (bool, error) {
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
+func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, error) {
 	// no authorization is setup yet
 	db := getDB(c)
+
+	organization := &models.Organization{Name: orgName}
+	if err := data.CreateOrganization(db, organization); err != nil {
+		return nil, err
+	}
 
 	identity := &models.Identity{Name: name}
 
