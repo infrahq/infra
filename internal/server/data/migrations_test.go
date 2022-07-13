@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
@@ -14,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
+	"github.com/infrahq/infra/uid"
 )
 
 // see loadSQL for setting up your own migration test
@@ -49,8 +51,15 @@ func TestMigration_202204211705(t *testing.T) {
 	assert.Assert(t, settings.PrivateJWK[0] == '{') // unencrypted type is json string.
 
 	// check the storage data
+	type Model struct {
+		ID        uid.ID
+		CreatedAt time.Time `gorm:"<-:create"`
+		UpdatedAt time.Time
+		DeletedAt gorm.DeletedAt
+	}
+
 	type Settings struct {
-		models.Model
+		Model
 		PrivateJWK []byte
 	}
 	rawSettings := Settings{}
@@ -212,6 +221,20 @@ func TestMigration_SetDestinationLastSeenAt(t *testing.T) {
 			for _, destination := range destinations {
 				assert.Equal(t, destination.LastSeenAt, destination.UpdatedAt)
 			}
+		})
+	}
+}
+
+func TestMigration_AddOrganizations(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202207041724-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
 		})
 	}
 }

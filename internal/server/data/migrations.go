@@ -316,9 +316,15 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202204111503")
 
-				type Identity struct {
-					models.Model
+				type Model struct {
+					ID        uid.ID
+					CreatedAt time.Time `gorm:"<-:create"`
+					UpdatedAt time.Time
+					DeletedAt gorm.DeletedAt
+				}
 
+				type Identity struct {
+					Model
 					ProviderID uid.ID
 					Name       string `gorm:"uniqueIndex:idx_identities_name_provider_id,where:deleted_at is NULL"`
 				}
@@ -419,8 +425,15 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202204211705",
 			Migrate: func(tx *gorm.DB) error {
+				type Model struct {
+					ID        uid.ID
+					CreatedAt time.Time `gorm:"<-:create"`
+					UpdatedAt time.Time
+					DeletedAt gorm.DeletedAt
+				}
+
 				type Settings struct {
-					models.Model
+					Model
 					PrivateJWK models.EncryptedAtRestBytes
 				}
 
@@ -642,7 +655,6 @@ func addOrganizations() *gormigrate.Migration {
 				&models.Grant{},
 				&models.Group{},
 				&models.Identity{},
-				&models.Organization{},
 				&models.Provider{},
 				&models.ProviderUser{},
 				&models.Settings{},
@@ -658,6 +670,5 @@ func addOrganizations() *gormigrate.Migration {
 
 			return nil
 		},
-
 	}
 }
