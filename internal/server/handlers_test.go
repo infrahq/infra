@@ -1190,59 +1190,6 @@ func TestAPI_ListAccessKey(t *testing.T) {
 	})
 }
 
-func TestAPI_CreateDestination(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-
-	t.Run("does not trim trailing newline from CA", func(t *testing.T) {
-		createReq := &api.CreateDestinationRequest{
-			Name:     "final",
-			UniqueID: "unique-id",
-			Connection: api.DestinationConnection{
-				URL: "cluster.production.example",
-				CA:  "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n",
-			},
-			Resources: []string{"res1", "res2"},
-			Roles:     []string{"role1", "role2"},
-		}
-
-		body := jsonBody(t, createReq)
-		req := httptest.NewRequest(http.MethodPost, "/api/destinations", body)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-
-		resp := httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-
-		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
-
-		expected := jsonUnmarshal(t, fmt.Sprintf(`
-		{
-			"id": "<any-valid-uid>",
-			"name": "final",
-		  "uniqueID": "unique-id",
-		  "connection": {
-				"url": "cluster.production.example",
-				"ca": "-----BEGIN CERTIFICATE-----\nok\n-----END CERTIFICATE-----\n"
-			},
-			"connected": false,
-			"lastSeen": null,
-			"resources": ["res1", "res2"],
-			"roles": ["role1", "role2"],
-			"created": "%[1]v",
-			"updated": "%[1]v",
-			"version": ""
-		}`, time.Now().UTC().Format(time.RFC3339)))
-
-		actual := jsonUnmarshal(t, resp.Body.String())
-		assert.DeepEqual(t, actual, expected, cmpAPIDestinationJSON)
-	})
-}
-
-var cmpAPIDestinationJSON = gocmp.Options{
-	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
-	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
-}
-
 func TestAPI_LoginResponse(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())

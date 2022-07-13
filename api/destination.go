@@ -55,9 +55,9 @@ type CreateDestinationRequest struct {
 
 func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
+		validate.Required("uniqueID", r.UniqueID),
 		ValidateName(r.Name),
 		validate.Required("name", r.Name),
-		validate.Required("uniqueID", r.UniqueID),
 	}
 }
 
@@ -74,9 +74,9 @@ type UpdateDestinationRequest struct {
 
 func (r UpdateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		ValidateName(r.Name),
-		validate.Required("name", r.Name),
-		validate.Required("id", r.ID),
 		validate.Required("uniqueID", r.UniqueID),
+		validate.Required("id", r.ID),
+		validate.Required("name", r.Name),
+		ValidateName(r.Name),
 	}
 }
