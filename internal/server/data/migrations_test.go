@@ -24,7 +24,7 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 			assert.NilError(t, err)
 
 			patch.ModelsSymmetricKey(t)
-			logging.PatchLogger(t)
+			logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 			loadSQL(t, db, "202207120000-"+driver.Name())
 
