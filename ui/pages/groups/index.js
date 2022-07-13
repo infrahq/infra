@@ -144,7 +144,17 @@ function Details({ group, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            <GrantsList grants={grants} mutate={mutateGrants} />
+            <GrantsList
+              grants={grants}
+              onRemove={id =>
+                mutateGrants({ items: grants.filter(x => x.id !== id) })
+              }
+              onChange={async (res, id) => {
+                mutateGrants({
+                  items: [...grants.filter(f => f.id !== id), await res.json()],
+                })
+              }}
+            />
             {!grants?.length && (
               <EmptyData>
                 <div className='mt-6'>No access</div>

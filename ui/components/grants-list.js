@@ -2,7 +2,7 @@ import { sortByResource } from '../lib/grants'
 
 import RoleSelect from './role-select'
 
-export default function GrantsList({ grants, mutate }) {
+export default function GrantsList({ grants, onRemove, onChange }) {
   return (
     <>
       {grants?.sort(sortByResource)?.map(g => (
@@ -15,7 +15,7 @@ export default function GrantsList({ grants, mutate }) {
             direction='left'
             onRemove={async () => {
               await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-              mutate({ items: grants.filter(x => x.id !== g.id) })
+              onRemove(g.id)
             }}
             onChange={async privilege => {
               const res = await fetch('/api/grants', {
@@ -29,9 +29,7 @@ export default function GrantsList({ grants, mutate }) {
               // delete old grant
               await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
 
-              mutate({
-                items: [...grants.filter(f => f.id !== g.id), await res.json()],
-              })
+              onChange(res, g.id)
             }}
           />
         </div>

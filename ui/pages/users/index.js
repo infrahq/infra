@@ -96,7 +96,17 @@ function Details({ user, admin, onDelete }) {
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
             </h3>
-            <GrantsList grants={grants} mutate={mutate} />
+            <GrantsList
+              grants={grants}
+              onRemove={id =>
+                mutate({ items: grants.filter(x => x.id !== id) })
+              }
+              onChange={async (res, id) => {
+                mutate({
+                  items: [...grants.filter(f => f.id !== id), await res.json()],
+                })
+              }}
+            />
             {inherited?.sort(sortByResource)?.map(g => (
               <div
                 key={g.id}
