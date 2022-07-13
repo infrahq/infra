@@ -57,18 +57,12 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
+			grants, err := listAll(client, api.ListGrantsRequest{Resource: options.Destination}, api.Client.ListGrants, handleListGrantsMissingPrivilege)
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot list grants: missing privileges for ListGrants",
-					}
-				}
 				return err
 			}
 
-			numUserGrants, err := userGrants(cli, client, grants)
+			numUserGrants, err := userGrants(cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -77,7 +71,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				cli.Output("")
 			}
 
-			numGroupGrants, err := groupGrants(cli, client, grants)
+			numGroupGrants, err := groupGrants(cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -94,7 +88,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
+func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
 	users, err := client.ListUsers(api.ListUsersRequest{})
 	if err != nil {
 		return 0, err
@@ -105,7 +99,7 @@ func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant
 		mapUsers[u.ID] = u
 	}
 
-	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.User != 0 })
+	items := slice.Select(*grants, func(g api.Grant) bool { return g.User != 0 })
 
 	type row struct {
 		User     string `header:"USER"`
@@ -134,7 +128,7 @@ func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant
 	return len(rows), nil
 }
 
-func groupGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
+func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
 	groups, err := client.ListGroups(api.ListGroupsRequest{})
 	if err != nil {
 		return 0, err
@@ -145,7 +139,7 @@ func groupGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Gran
 		mapGroups[u.ID] = u
 	}
 
-	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.Group != 0 })
+	items := slice.Select(*grants, func(g api.Grant) bool { return g.Group != 0 })
 
 	type row struct {
 		Group    string `header:"GROUP"`
@@ -464,4 +458,14 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 	}
 
 	return nil
+}
+
+func handleListGrantsMissingPrivilege(err error) error {
+	if api.ErrorStatusCode(err) == 403 {
+		logging.Debugf("%s", err.Error())
+		return Error{
+			Message: "Cannot list grants: missing privileges for ListGrants",
+		}
+	}
+	return err
 }

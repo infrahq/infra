@@ -80,12 +80,12 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
-			groups, err := client.ListGroups(api.ListGroupsRequest{})
+			groups, err := listAll(client, api.ListGroupsRequest{}, api.Client.ListGroups, func(err error) error { return err })
 			if err != nil {
 				return err
 			}
 
-			for _, group := range groups.Items {
+			for _, group := range groups {
 				users, err := client.ListUsers(api.ListUsersRequest{Group: group.ID})
 				if err != nil {
 					return err

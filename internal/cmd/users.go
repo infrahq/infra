@@ -117,6 +117,10 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 		Short:   "List users",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := defaultAPIClient()
+			if err != nil {
+				return err
+			}
 
 			type row struct {
 				Name       string `header:"Name"`
@@ -126,7 +130,8 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
-			users, err := listAllUsers()
+			logging.Debugf("call server: list users")
+			users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers, handleListUserMissingPrivilige)
 			if err != nil {
 				return err
 			}
@@ -421,33 +426,6 @@ func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientH
 	}
 
 	return len(grants.Items) > 0, nil
-}
-
-// listAllUsers gets all users by paginating
-func listAllUsers() ([]api.User, error) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return nil, err
-	}
-
-	logging.Debugf("call server: list users")
-	res, err := client.ListUsers(api.ListUsersRequest{PaginationRequest: api.PaginationRequest{Page: 1, Limit: 2}})
-	if err != nil {
-		return nil, handleListUserMissingPrivilige(err)
-	}
-	users := make([]api.User, 0, res.TotalCount)
-	users = append(users, res.Items...)
-	// first page done in first request
-	for page := 2; page <= res.TotalPages; page++ {
-		logging.Debugf("call server: list users")
-		res, err = client.ListUsers(api.ListUsersRequest{PaginationRequest: api.PaginationRequest{Page: page, Limit: 2}})
-		if err != nil {
-			return nil, handleListUserMissingPrivilige(err)
-		}
-		users = append(users, res.Items...)
-	}
-
-	return users, nil
 }
 
 func handleListUserMissingPrivilige(err error) error {
