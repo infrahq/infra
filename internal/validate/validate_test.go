@@ -35,7 +35,7 @@ func (r ExampleRequest) ValidationRules() []ValidationRule {
 			Field{Name: "either", Value: r.Either},
 			Field{Name: "or", Value: r.Or},
 		),
-		RequireOneOf(
+		RequireAnyOf(
 			Field{Name: "first", Value: r.First},
 			Field{Name: "second", Value: r.Second},
 			Field{Name: "third", Value: r.Third},
@@ -225,6 +225,39 @@ func TestMutuallyExclusive_Validate(t *testing.T) {
 	})
 }
 
+type AnyOfExample struct {
+	First  string
+	Second bool
+	Third  int
+}
+
+func (m AnyOfExample) ValidationRules() []ValidationRule {
+	return []ValidationRule{
+		RequireAnyOf(
+			Field{Name: "first", Value: m.First},
+			Field{Name: "second", Value: m.Second},
+			Field{Name: "third", Value: m.Third}),
+	}
+}
+
+func TestRequireAnyOf_Validate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		e := AnyOfExample{First: "value"}
+		assert.NilError(t, Validate(e))
+
+		e = AnyOfExample{Second: true}
+		assert.NilError(t, Validate(e))
+
+		e = AnyOfExample{Third: 123}
+		assert.NilError(t, Validate(e))
+	})
+	t.Run("with failure", func(t *testing.T) {
+		e := AnyOfExample{}
+		err := Validate(e)
+		assert.Error(t, err, "validation failed: one of (first, second, third) is required")
+	})
+}
+
 type OneOfExample struct {
 	First  string
 	Second bool
@@ -251,9 +284,14 @@ func TestRequireOneOf_Validate(t *testing.T) {
 		e = OneOfExample{Third: 123}
 		assert.NilError(t, Validate(e))
 	})
-	t.Run("with failure", func(t *testing.T) {
+	t.Run("with none set", func(t *testing.T) {
 		e := OneOfExample{}
 		err := Validate(e)
 		assert.Error(t, err, "validation failed: one of (first, second, third) is required")
+	})
+	t.Run("with more than one set", func(t *testing.T) {
+		e := OneOfExample{First: "v", Third: 34}
+		err := Validate(e)
+		assert.Error(t, err, "validation failed: only one of (first, third) can be set")
 	})
 }
