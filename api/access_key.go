@@ -72,3 +72,13 @@ func ValidateName(value string) validate.ValidationRule {
 		},
 	}
 }
+
+func (req ListAccessKeysRequest) GetPaginationRequest() PaginationRequest {
+	return req.PaginationRequest
+}
+
+func (req ListAccessKeysRequest) SetPage(page int) Paginatable {
+	req.PaginationRequest.Page = page
+
+	return req
+}

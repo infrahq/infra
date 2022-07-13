@@ -167,8 +167,9 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return get[ListResponse[User]](c, "/api/users", Query{"name": {req.Name}, "group": {req.Group.String()},
-		"ids": ids, "page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
+	return get[ListResponse[User]](c, "/api/users",
+		Query{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
+			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
@@ -194,8 +195,8 @@ func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
 	return get[ListResponse[Group]](c, "/api/groups", Query{
-		"name":   {req.Name},
-		"userID": {req.UserID.String()},
+		"name": {req.Name}, "userID": {req.UserID.String()},
+		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
@@ -221,8 +222,10 @@ func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), Query{})
 }
 
-func (c Client) ListProviders(name string) (*ListResponse[Provider], error) {
-	return get[ListResponse[Provider]](c, "/api/providers", Query{"name": {name}})
+func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider], error) {
+	return get[ListResponse[Provider]](c, "/api/providers",
+		Query{"name": {req.Name},
+			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
@@ -248,6 +251,7 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 		"resource":      {req.Resource},
 		"privilege":     {req.Privilege},
 		"showInherited": {strconv.FormatBool(req.ShowInherited)},
+		"page":          {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
@@ -263,6 +267,7 @@ func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Des
 	return get[ListResponse[Destination]](c, "/api/destinations", Query{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
+		"page":      {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
@@ -283,6 +288,7 @@ func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessK
 		"user_id":      {req.UserID.String()},
 		"name":         {req.Name},
 		"show_expired": {fmt.Sprint(req.ShowExpired)},
+		"page":         {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
