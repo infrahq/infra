@@ -129,13 +129,13 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 }
 
 func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	groups, err := client.ListGroups(api.ListGroupsRequest{})
+	groups, err := listAll(client, api.ListGroupsRequest{}, api.Client.ListGroups, nil)
 	if err != nil {
 		return 0, err
 	}
 
 	mapGroups := make(map[uid.ID]api.Group)
-	for _, u := range groups.Items {
+	for _, u := range groups {
 		mapGroups[u.ID] = u
 	}
 
