@@ -168,7 +168,6 @@ func TestTrimWhitespace(t *testing.T) {
 	userID := uid.New()
 	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
 		User:      userID,
-		Group:     uid.New(),
 		Privilege: "admin   ",
 		Resource:  " kubernetes.production.*",
 	}))
@@ -178,7 +177,7 @@ func TestTrimWhitespace(t *testing.T) {
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
-	assert.Equal(t, resp.Code, http.StatusCreated)
+	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
 	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
 	assert.NilError(t, err)

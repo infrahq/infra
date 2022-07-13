@@ -192,6 +192,21 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.Equal(t, len(grants.Items), 0)
 			},
 		},
+		"bad request, user and group": {
+			urlPath: "/api/grants?group=groupa&user=userB",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{Errors: []string{"only one of (user, group) can be set"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
 		"no filters": {
 			urlPath: "/api/grants",
 			setup: func(t *testing.T, req *http.Request) {
@@ -542,7 +557,7 @@ var cmpAPIGrantJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
-func TestAPI_CreateGrant_Success(t *testing.T) {
+func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
@@ -602,6 +617,28 @@ func TestAPI_CreateGrant_Success(t *testing.T) {
 		err = json.NewDecoder(resp.Body).Decode(&getGrant)
 		assert.NilError(t, err)
 		assert.DeepEqual(t, getGrant, newGrant)
+	})
+
+	t.Run("missing required fields", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodPost, "/api/grants", strings.NewReader(`{}`))
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", "0.13.6")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+		respBody := &api.Error{}
+		err = json.Unmarshal(resp.Body.Bytes(), respBody)
+		assert.NilError(t, err)
+
+		expected := []api.FieldError{
+			{Errors: []string{"one of (user, group) is required"}},
+			{FieldName: "privilege", Errors: []string{"is required"}},
+			{FieldName: "resource", Errors: []string{"is required"}},
+		}
+		assert.DeepEqual(t, respBody.FieldErrors, expected)
 	})
 }
 
