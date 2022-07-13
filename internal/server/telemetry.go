@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,33 +12,24 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type Properties = analytics.Properties
 
 type Telemetry struct {
-	client analytics.Client
-	db     *gorm.DB
+	client  analytics.Client
+	db      *gorm.DB
+	infraID uid.ID
 }
 
-func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
-	if db == nil {
-		return nil, errors.New("db cannot be nil")
-	}
-
-	var err error
-	settings, err = data.GetSettings(db)
-	if err != nil {
-		return nil, err
-	}
-
+func NewTelemetry(db *gorm.DB, infraID uid.ID) *Telemetry {
 	return &Telemetry{
-		client: analytics.New(internal.TelemetryWriteKey),
-		db:     db,
-	}, nil
+		client:  analytics.New(internal.TelemetryWriteKey),
+		db:      db,
+		infraID: infraID,
+	}
 }
-
-var settings *models.Settings
 
 func (t *Telemetry) Enqueue(track analytics.Message) error {
 	if internal.TelemetryWriteKey == "" {
@@ -52,14 +42,14 @@ func (t *Telemetry) Enqueue(track analytics.Message) error {
 			track.Properties = analytics.Properties{}
 		}
 
-		track.Properties.Set("infraId", settings.ID)
+		track.Properties.Set("infraId", t.infraID)
 		track.Properties.Set("version", internal.Version)
 	case analytics.Page:
 		if track.Properties == nil {
 			track.Properties = analytics.Properties{}
 		}
 
-		track.Properties.Set("infraId", settings.ID)
+		track.Properties.Set("infraId", t.infraID)
 		track.Properties.Set("version", internal.Version)
 	}
 
@@ -67,9 +57,11 @@ func (t *Telemetry) Enqueue(track analytics.Message) error {
 }
 
 func (t *Telemetry) Close() {
-	if t.client != nil {
-		t.client.Close()
+	if t == nil {
+		return
 	}
+	// the only error here is "already closed"
+	_ = t.client.Close()
 }
 
 func (t *Telemetry) EnqueueHeartbeat() {

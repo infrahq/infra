@@ -13,6 +13,11 @@ import (
 )
 
 func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
+	settings, err := GetSettings(db)
+	if settings != nil {
+		return settings, err
+	}
+
 	pubkey, seckey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -39,7 +44,7 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 		return nil, err
 	}
 
-	settings := models.Settings{
+	settings = &models.Settings{
 		PrivateJWK: secs,
 		PublicJWK:  pubs,
 	}
@@ -49,7 +54,7 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 		return nil, err
 	}
 
-	return &settings, nil
+	return settings, nil
 }
 
 func GetSettings(db *gorm.DB) (*models.Settings, error) {
@@ -59,8 +64,4 @@ func GetSettings(db *gorm.DB) (*models.Settings, error) {
 	}
 
 	return &settings, nil
-}
-
-func SaveSettings(db *gorm.DB, settings *models.Settings) error {
-	return save(db, settings)
 }
