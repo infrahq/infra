@@ -59,8 +59,6 @@ function Details({ user, admin, onDelete }) {
   const { id, name } = user
   const { data: auth } = useSWR('/api/users/self')
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-
   const { data: { items } = {}, mutate } = useSWR(`/api/grants?user=${id}`)
   const { data: { items: groups } = {}, mutate: mutateGroups } = useSWR(
     `/api/groups?userID=${id}`
@@ -163,10 +161,7 @@ function Details({ user, admin, onDelete }) {
       <section className='flex flex-1 flex-col items-end justify-end py-6'>
         {auth.id !== id && (
           <RemoveButton
-            modalOpen={deleteModalOpen}
-            setModalOpen={setDeleteModalOpen}
-            onSubmit={async () => {
-              setDeleteModalOpen(false)
+            onRemove={async () => {
               onDelete()
             }}
             modalTitle='Remove User'

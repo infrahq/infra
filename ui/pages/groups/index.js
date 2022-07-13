@@ -26,7 +26,7 @@ const columns = [
     Cell: ({ value: group }) => {
       return (
         <div className='flex items-center py-2'>
-          <div className='flex h-6 w-6 select-none items-center justify-center rounded-md border border-violet-300/40'>
+          <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-violet-300/40'>
             <img alt='group icon' src='/groups.svg' className='h-3 w-3' />
           </div>
           <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>
@@ -124,7 +124,6 @@ function Details({ group, admin, onDelete }) {
     `/api/grants?group=${id}`
   )
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [emails, setEmails] = useState([])
 
   const grants = items?.filter(g => g.resource !== 'infra')
@@ -154,7 +153,7 @@ function Details({ group, admin, onDelete }) {
           </section>
           <section>
             <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Team
+              Users
             </h3>
             <EmailsSelectInput
               selectedEmails={emails}
@@ -206,10 +205,7 @@ function Details({ group, admin, onDelete }) {
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            modalOpen={deleteModalOpen}
-            setModalOpen={setDeleteModalOpen}
-            onSubmit={async () => {
-              setDeleteModalOpen(false)
+            onRemove={async () => {
               onDelete()
             }}
             modalTitle='Remove Group'

@@ -40,8 +40,6 @@ function Details({ destination, onDelete }) {
     parent(resource) ? `/api/grants?resource=${parent(resource)}` : null
   )
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-
   const showConnect = grants?.find(
     g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
   )
@@ -220,10 +218,7 @@ function Details({ destination, onDelete }) {
       {admin && destination.id && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            modalOpen={deleteModalOpen}
-            setModalOpen={setDeleteModalOpen}
-            onSubmit={async () => {
-              setDeleteModalOpen(false)
+            onRemove={async () => {
               onDelete()
             }}
             modalTitle='Remove Cluster'

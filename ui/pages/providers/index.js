@@ -42,7 +42,6 @@ const columns = [
 
 function SidebarContent({ provider, admin, setSelectedProvider }) {
   const { mutate } = useSWRConfig()
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const { name, url, clientID, created, updated } = provider
 
@@ -71,9 +70,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            modalOpen={deleteModalOpen}
-            setmodalOpen={setDeleteModalOpen}
-            onSubmit={() => {
+            onRemove={() => {
               mutate(
                 '/api/providers',
                 async ({ items: providers } = { items: [] }) => {
@@ -85,7 +82,6 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
                 }
               )
 
-              setDeleteModalOpen(false)
               setSelectedProvider(null)
             }}
             modalTitle='Remove Identity Provider'

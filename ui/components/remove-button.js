@@ -1,13 +1,15 @@
+import { useState } from 'react'
+
 import DeleteModal from './delete-modal'
 
 export default function RemoveButton({
   children = 'Remove',
-  modalOpen,
-  setModalOpen,
-  onSubmit,
+  onRemove,
   modalTitle,
   modalMessage,
 }) {
+  const [modalOpen, setModalOpen] = useState(false)
+
   return (
     <>
       <button
@@ -20,7 +22,10 @@ export default function RemoveButton({
       <DeleteModal
         open={modalOpen}
         setOpen={setModalOpen}
-        onSubmit={() => onSubmit()}
+        onSubmit={() => {
+          onRemove()
+          setModalOpen(false)
+        }}
         title={modalTitle}
         message={modalMessage}
       />
