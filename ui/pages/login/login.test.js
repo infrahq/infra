@@ -1,15 +1,15 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent } from '../../test-utils'
+// import userEvent from '@testing-library/user-event'
+
 import Login from './index'
 
 describe('Login Component', () => {
-  test('it renders', () => {
-    render(<Login />)
-
+  it('should render', () => {
     expect(() => render(<Login />)).not.toThrow()
   })
 
-  test('it renders with correct state', () => {
+  it('should render with correct state', () => {
     render(<Login />)
 
     expect(screen.getByText('Login to Infra')).toBeInTheDocument()
@@ -18,7 +18,7 @@ describe('Login Component', () => {
     expect(screen.getByText('Login').closest('button')).toBeDisabled()
   })
 
-  test('it renders with no provider', () => {
+  it('should render with no provider', () => {
     render(<Login />)
 
     expect(
@@ -30,7 +30,27 @@ describe('Login Component', () => {
   })
 
   // TODO: mock swr
-  // test('it renders with multiple providers', () => {
+  // it('it renders with multiple providers', () => {
+  //   const mockedProviders = {
+  //     data: {
+  //       item: [
+  //         {
+  //           id: 0,
+  //           name: 'Okta',
+  //           kind: 'okta',
+  //           url: 'example@okta.com',
+  //         },
+  //         {
+  //           id: 1,
+  //           name: 'Azure Active Directory',
+  //           kind: 'azure',
+  //           url: 'example@azure.com',
+  //         },
+  //       ],
+  //     },
+  //   }
+  //   jest.spyOn(global, 'fetch').mockImplementation(setupFetchStub(mockedProviders))
+
   //   render(<Login />)
 
   //   expect(
@@ -38,7 +58,7 @@ describe('Login Component', () => {
   //   ).toBeInTheDocument()
   // })
 
-  test('it enters username', () => {
+  it('should not enable the login button when enter username only', () => {
     render(<Login />)
 
     const usernameInput = screen.getByLabelText('Username or Email')
@@ -52,7 +72,7 @@ describe('Login Component', () => {
     expect(screen.getByText('Login').closest('button')).toBeDisabled()
   })
 
-  test('it enters both username and password', () => {
+  it('should enable the login button when enter both username and password', () => {
     render(<Login />)
 
     const usernameInput = screen.getByLabelText('Username or Email')
@@ -72,21 +92,31 @@ describe('Login Component', () => {
     expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
   })
 
-  // test('it redirects to the dashboard when submits a valid username and password', () => {
-  //   render(<Login />)
+  // it('should call onSubmit function when username and password are valid and the login button is clicked', () => {
+  //   const login = render(<Login />)
 
-  //   // type username and password
-  //   expect(screen.getByLabelText('Username or Email')).toHaveValue('')
-  //   expect(screen.getByLabelText('Password')).toHaveValue('')
+  //   const instance = login.instance()
+  //   const spy = jest.spyOn(instance, 'onSubmit')
+
+  //   const usernameInput = screen.getByLabelText('Username or Email')
+  //   fireEvent.change(usernameInput, {
+  //     target: { value: 'example@infrahq.com' },
+  //   })
+
+  //   const passwordInput = screen.getByLabelText('Password')
+  //   fireEvent.change(passwordInput, {
+  //     target: { value: 'password' },
+  //   })
+
+  //   expect(screen.getByLabelText('Username or Email')).toHaveValue(
+  //     'example@infrahq.com'
+  //   )
+  //   expect(screen.getByLabelText('Password')).toHaveValue('password')
   //   expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
-  // })
 
-  // test('it has error message when submit an invalid username and password', () => {
-  //   render(<Login />)
-
-  //   // type username and password
-  //   expect(screen.getByLabelText('Username or Email')).toHaveValue('')
-  //   expect(screen.getByLabelText('Password')).toHaveValue('')
-  //   expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
+  //   userEvent.click(screen.getByText('Login'))
+  //   expect(spy).toHaveBeenCalled()
   // })
 })
+
+// TEST for <Providers ... />
