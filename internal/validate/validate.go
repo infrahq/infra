@@ -40,6 +40,7 @@ func validateStruct(v reflect.Value) Error {
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
 			if v.Type().Field(i).Anonymous {
+				// validate the embedded struct
 				for k, v := range validateStruct(f) {
 					err[k] = append(err[k], v...)
 				}

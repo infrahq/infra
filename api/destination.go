@@ -40,6 +40,8 @@ type ListDestinationsRequest struct {
 }
 
 func (r ListDestinationsRequest) ValidationRules() []validate.ValidationRule {
+	// no-op ValidationRules implementation so that the rules from the
+	// embedded PaginationRequest struct are not applied twice.
 	return nil
 }
 
