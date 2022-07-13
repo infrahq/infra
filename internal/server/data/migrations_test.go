@@ -31,7 +31,8 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 			db, err = NewDB(driver, nil)
 			assert.NilError(t, err)
 
-			settings, err := GetSettings(db)
+			var settings models.Settings
+			err = db.Omit("private_jwk").First(&settings).Error
 			assert.NilError(t, err)
 
 			assert.Equal(t, settings.LowercaseMin, 0)
