@@ -28,7 +28,7 @@ func validateStruct(v reflect.Value) Error {
 	err := make(Error)
 
 	req, ok := v.Interface().(Request)
-	if ok {
+	if ok && (v.Kind() != reflect.Pointer || !v.IsNil()) {
 		for _, rule := range req.ValidationRules() {
 			if failure := rule.Validate(); failure != nil {
 				err[failure.Name] = append(err[failure.Name], failure.Problems...)
