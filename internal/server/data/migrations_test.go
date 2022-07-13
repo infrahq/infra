@@ -38,7 +38,7 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 			assert.Equal(t, settings.LowercaseMin, 0)
 			assert.Equal(t, settings.UppercaseMin, 0)
 			assert.Equal(t, settings.NumberMin, 0)
-			assert.Equal(t, settings.SymbolMin, 1)
+			assert.Equal(t, settings.SymbolMin, 0)
 			assert.Equal(t, settings.LengthMin, 8)
 		})
 	}
