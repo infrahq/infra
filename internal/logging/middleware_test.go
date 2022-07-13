@@ -51,6 +51,7 @@ func TestMiddleware(t *testing.T) {
 			{Method: "GET", Path: "/good/1", StatusCode: 200, Level: "info"},
 			{Method: "GET", Path: "/gooder/", StatusCode: 200, Level: "info"},
 			{Method: "POST", Path: "/good/1", StatusCode: 200, Level: "info"},
+			{Method: "POST", Path: "/good/2", StatusCode: 200, Level: "info"},
 		}
 		assert.DeepEqual(t, actual, expected)
 	})

@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -38,8 +39,9 @@ func Middleware() gin.HandlerFunc {
 	})
 
 	return func(c *gin.Context) {
+		method := c.Request.Method
 		log := L.With().
-			Str("method", c.Request.Method).
+			Str("method", method).
 			Str("path", c.Request.URL.Path).
 			Str("host", c.Request.Host).
 			Str("remoteAddr", c.Request.RemoteAddr).
@@ -53,8 +55,8 @@ func Middleware() gin.HandlerFunc {
 
 		status := c.Writer.Status()
 
-		// sample logs if the request was a success and log level is info or above
-		if status < 400 && zerolog.GlobalLevel() >= zerolog.InfoLevel {
+		// sample logs for successful GET request if the log level is INFO or above
+		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
 			log = log.Sample(sampler.Get(c.Request.Method, c.FullPath()))
 		}
 
