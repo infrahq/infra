@@ -233,7 +233,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.setProviderInforFromServer(c, provider); err != nil {
+	if err := a.setProviderInfoFromServer(c, provider); err != nil {
 		return nil, err
 	}
 
@@ -261,7 +261,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.setProviderInforFromServer(c, provider); err != nil {
+	if err := a.setProviderInfoFromServer(c, provider); err != nil {
 		return nil, err
 	}
 
@@ -652,7 +652,7 @@ func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirect
 }
 
 // setProviderInfoFromServer checks information provided by an OIDC server
-func (a *API) setProviderInforFromServer(c *gin.Context, provider *models.Provider) error {
+func (a *API) setProviderInfoFromServer(c *gin.Context, provider *models.Provider) error {
 	// create a provider client to validate the server and get its info
 	oidc, err := a.providerClient(c, provider, "http://localhost:8301")
 	if err != nil {
