@@ -68,10 +68,6 @@ func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {
 	}
 }
 
-func (req ListUsersRequest) GetPaginationRequest() PaginationRequest {
-	return req.PaginationRequest
-}
-
 func (req ListUsersRequest) SetPage(page int) Paginatable {
 	req.PaginationRequest.Page = page
 

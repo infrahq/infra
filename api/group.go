@@ -49,10 +49,6 @@ func (r UpdateUsersInGroupRequest) ValidationRules() []validate.ValidationRule {
 	}
 }
 
-func (req ListGroupsRequest) GetPaginationRequest() PaginationRequest {
-	return req.PaginationRequest
-}
-
 func (req ListGroupsRequest) SetPage(page int) Paginatable {
 
 	req.PaginationRequest.Page = page

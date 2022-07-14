@@ -3,7 +3,6 @@ package api
 import "github.com/infrahq/infra/internal/validate"
 
 type Paginatable interface {
-	GetPaginationRequest() PaginationRequest
 	SetPage(page int) Paginatable
 }
 
