@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"reflect"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 var pathIDReplacer = regexp.MustCompile(`:\w+`)
@@ -75,11 +77,7 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 	op.OperationID = funcName
 	op.Description = funcName
 	op.Summary = funcName
-
-	if rqt != nil {
-		buildRequest(rqt, op)
-	}
-
+	buildRequest(rqt, op, method)
 	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
 	for _, item := range funcPartialNameToTagNames {
@@ -382,7 +380,7 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 
 var apiVersion = internal.FullVersion
 
-func buildRequest(r reflect.Type, op *openapi3.Operation) {
+func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 	if r.Kind() == reflect.Pointer {
 		r = r.Elem()
 	}
@@ -417,43 +415,38 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
 			tmpOp := openapi3.NewOperation()
 
-			buildRequest(f.Type, tmpOp)
+			buildRequest(f.Type, tmpOp, method)
 			for _, param := range tmpOp.Parameters {
 				if param.Value.Name != "Infra-Version" {
 					op.AddParameter(param.Value)
 				}
 			}
+
+			if req, ok := reflect.New(f.Type).Interface().(validate.Request); ok {
+				for _, rule := range req.ValidationRules() {
+					rule.DescribeSchema(schema)
+				}
+			}
 			continue
 		}
 
-		// check first if it's a json field
-		if name, ok := f.Tag.Lookup("json"); ok {
-			jsonName := strings.Split(name, ",")[0]
-			if jsonName != "-" {
-				prop := buildProperty(f, f.Type, r, schema)
-
-				schema.Properties[jsonName] = prop
-
-				continue
-			}
+		propName := getFieldName(f, r)
+		if propName == "" { // ignored field
+			continue
+		}
+		propSchema := buildProperty(f, f.Type, r, schema)
+		// Store all property schemas so that validation rules can update them.
+		schema.Properties[propName] = propSchema
+		if name, ok := f.Tag.Lookup("json"); ok && !strings.HasPrefix(name, "-") {
+			continue
 		}
 
-		// if not, it's a query or uri parameter
-		p := &openapi3.Parameter{
-			Name:     getFieldName(f, r),
-			Schema:   buildProperty(f, f.Type, r, nil),
-			Required: false,
-			In:       "",
-		}
+		p := &openapi3.Parameter{Name: propName, Schema: propSchema}
 
-		if name, ok := f.Tag.Lookup("form"); ok {
-			p.Name = name
+		if _, ok := f.Tag.Lookup("form"); ok {
 			p.In = "query"
 		}
-
-		if name, ok := f.Tag.Lookup("uri"); ok {
-			uriName := strings.Split(name, ",")[0]
-			p.Name = uriName
+		if _, ok := f.Tag.Lookup("uri"); ok {
 			p.In = "path"
 			p.Required = true
 		}
@@ -480,15 +473,11 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 				}
 
 				if val == "email" {
-					schema.Format = "email"
+					p.Schema.Value.Format = "email"
 				}
 
 				if strings.HasPrefix(val, "min=") {
 					p.Schema.Value.MinLength = parseMinLength(val)
-				}
-
-				if strings.HasPrefix(val, "oneof=") {
-					schema.Enum = parseOneOf(val)
 				}
 			}
 		}
@@ -496,7 +485,28 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		op.AddParameter(p)
 	}
 
-	if len(schema.Properties) > 0 {
+	if req, ok := reflect.New(r).Interface().(validate.Request); ok {
+		for _, rule := range req.ValidationRules() {
+			rule.DescribeSchema(schema)
+		}
+	}
+
+	if len(schema.Properties) == 0 {
+		return
+	}
+
+	// Remove any non-body parameter from the parent schema now that the validation
+	// rules have had a chance to update them.
+	for _, param := range op.Parameters {
+		if param.Value.In != "" {
+			delete(schema.Properties, param.Value.Name)
+			schema.Required = removeString(schema.Required, param.Value.Name)
+		}
+	}
+
+	switch method {
+	// These methods accept arguments from a request body
+	case http.MethodPut, http.MethodPost, http.MethodPatch:
 		op.RequestBody = &openapi3.RequestBodyRef{
 			Value: &openapi3.RequestBody{
 				Content: openapi3.Content{
@@ -508,21 +518,37 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 				},
 			},
 		}
+
+	// Other methods accept arguments from the query and path
+	default:
 	}
 }
 
-func getFieldName(f reflect.StructField, parent reflect.Type) string {
-	if name, ok := f.Tag.Lookup("json"); ok {
-		if name != "-" {
-			return strings.Split(name, ",")[0]
+func removeString(seq []string, name string) []string {
+	for i, v := range seq {
+		if v == name {
+			return append(seq[:i], seq[i+1:]...)
 		}
 	}
+	return seq
+}
 
+func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	if name, ok := f.Tag.Lookup("form"); ok {
 		return name
 	}
 
 	if name, ok := f.Tag.Lookup("uri"); ok {
+		return name
+	}
+
+	// lookup json tag last, as a field may have a uri or form name, but a
+	// json name of "-".
+	if name, ok := f.Tag.Lookup("json"); ok {
+		name = strings.Split(name, ",")[0]
+		if name == "-" {
+			return ""
+		}
 		return name
 	}
 

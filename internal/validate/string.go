@@ -8,7 +8,7 @@ import (
 )
 
 type StringRule struct {
-	// Value to Validate
+	// Value to validate
 	Value string
 	// Name of the field in json.
 	Name string

@@ -23,6 +23,9 @@ type ExampleRequest struct {
 	TooFew    string
 	TooMany   string
 	WrongOnes string
+
+	TooLow  int
+	TooHigh int
 }
 
 func (r ExampleRequest) ValidationRules() []ValidationRule {
@@ -40,19 +43,22 @@ func (r ExampleRequest) ValidationRules() []ValidationRule {
 		Email("emailAddr", r.EmailAddr),
 		Email("emailOther", r.EmailOther),
 
-		&StringRule{
+		StringRule{
 			Name:      "tooFew",
 			Value:     r.TooFew,
 			MinLength: 5,
 		},
-		&StringRule{
+		StringRule{
 			Name:      "tooMany",
 			Value:     r.TooMany,
 			MaxLength: 5,
 		},
-		&StringRule{
+		StringRule{
 			CharacterRanges: []CharRange{AlphabetLower},
 		},
+
+		IntRule{Name: "tooLow", Value: r.TooLow, Min: Int(20)},
+		IntRule{Name: "tooHigh", Value: r.TooHigh, Max: Int(20)},
 	}
 }
 
@@ -65,6 +71,7 @@ func TestValidate_AllRules(t *testing.T) {
 			EmailOther: "other@example.com",
 			TooFew:     "abcdef",
 			WrongOnes:  "abc",
+			TooLow:     22,
 		}
 		err := Validate(r)
 		assert.NilError(t, err)
@@ -79,6 +86,8 @@ func TestValidate_AllRules(t *testing.T) {
 			TooFew:     "a",
 			TooMany:    "ababab",
 			WrongOnes:  "ah CAPS",
+			TooLow:     2,
+			TooHigh:    22,
 		}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -95,6 +104,8 @@ func TestValidate_AllRules(t *testing.T) {
 			"emailOther": {`email address must not contain display name "Display Name"`},
 			"tooFew":     {"length of string (1) must be at least 5"},
 			"tooMany":    {"length of string (6) must be no more than 5"},
+			"tooHigh":    {"value (22) must be at most 20"},
+			"tooLow":     {"value (2) must be at least 20"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})

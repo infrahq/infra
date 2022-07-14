@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -69,32 +70,32 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, authn, "/api/users", a.CreateUser)
 	get(a, authn, "/api/users/:id", a.GetUser)
 	put(a, authn, "/api/users/:id", a.UpdateUser)
-	delete(a, authn, "/api/users/:id", a.DeleteUser)
+	del(a, authn, "/api/users/:id", a.DeleteUser)
 
 	get(a, authn, "/api/access-keys", a.ListAccessKeys)
 	post(a, authn, "/api/access-keys", a.CreateAccessKey)
-	delete(a, authn, "/api/access-keys/:id", a.DeleteAccessKey)
+	del(a, authn, "/api/access-keys/:id", a.DeleteAccessKey)
 
 	get(a, authn, "/api/groups", a.ListGroups)
 	post(a, authn, "/api/groups", a.CreateGroup)
 	get(a, authn, "/api/groups/:id", a.GetGroup)
-	delete(a, authn, "/api/groups/:id", a.DeleteGroup)
+	del(a, authn, "/api/groups/:id", a.DeleteGroup)
 	patch(a, authn, "/api/groups/:id/users", a.UpdateUsersInGroup)
 
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
 	post(a, authn, "/api/grants", a.CreateGrant)
-	delete(a, authn, "/api/grants/:id", a.DeleteGrant)
+	del(a, authn, "/api/grants/:id", a.DeleteGrant)
 
 	post(a, authn, "/api/providers", a.CreateProvider)
 	put(a, authn, "/api/providers/:id", a.UpdateProvider)
-	delete(a, authn, "/api/providers/:id", a.DeleteProvider)
+	del(a, authn, "/api/providers/:id", a.DeleteProvider)
 
 	get(a, authn, "/api/destinations", a.ListDestinations)
 	get(a, authn, "/api/destinations/:id", a.GetDestination)
 	post(a, authn, "/api/destinations", a.CreateDestination)
 	put(a, authn, "/api/destinations/:id", a.UpdateDestination)
-	delete(a, authn, "/api/destinations/:id", a.DeleteDestination)
+	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
@@ -253,7 +254,7 @@ func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler Handle
 	add(a, r, route[Req, Res]{method: http.MethodPatch, path: path, handler: handler})
 }
 
-func delete[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func del[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
 }
 
@@ -272,6 +273,13 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
+	if r, ok := req.(validate.Request); ok {
+		if err := validate.Validate(r); err != nil {
+			return err
+		}
+	}
+
+	// TODO: remove once all requests use internal/validate
 	if err := pgValidate.Struct(req); err != nil {
 		return err
 	}

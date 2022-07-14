@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 func TestSendAPIError(t *testing.T) {
@@ -36,6 +37,16 @@ func TestSendAPIError(t *testing.T) {
 		{
 			err:    internal.ErrUnauthorized,
 			result: api.Error{Code: http.StatusUnauthorized, Message: "unauthorized"},
+		},
+		{
+			err: validate.Error{"fieldname": []string{"is required"}},
+			result: api.Error{
+				Code:    http.StatusBadRequest,
+				Message: "validation failed: fieldname: is required",
+				FieldErrors: []api.FieldError{
+					{FieldName: "fieldname", Errors: []string{"is required"}},
+				},
+			},
 		},
 		{
 			err:    fmt.Errorf("hide this: %w", internal.ErrUnauthorized),
