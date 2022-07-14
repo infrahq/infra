@@ -52,7 +52,7 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- if or .Values.server.labels .Values.global.labels }}
-{{ merge .Values.server.labels .Values.global.server.labels | toYaml }}
+{{ merge .Values.server.labels .Values.global.labels | toYaml }}
 {{- end }}
 {{- end }}
 
