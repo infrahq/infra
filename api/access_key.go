@@ -23,6 +23,10 @@ type ListAccessKeysRequest struct {
 	PaginationRequest
 }
 
+func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
+}
+
 type CreateAccessKeyRequest struct {
 	UserID            uid.ID   `json:"userID"`
 	Name              string   `json:"name"`
@@ -30,7 +34,7 @@ type CreateAccessKeyRequest struct {
 	ExtensionDeadline Duration `json:"extensionDeadline,omitempty" note:"How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity"`
 }
 
-func (r *CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
+func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		ValidateName(r.Name),
 		validate.Required("userID", r.UserID),

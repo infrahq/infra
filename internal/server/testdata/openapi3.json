@@ -951,6 +951,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -959,6 +960,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -1285,6 +1288,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -1293,6 +1297,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -1904,6 +1910,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -1912,6 +1919,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -2332,6 +2341,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -2340,6 +2350,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -3081,6 +3093,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -3089,6 +3102,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -3943,6 +3958,7 @@
             "name": "page",
             "schema": {
               "format": "int",
+              "minimum": 0,
               "type": "integer"
             }
           },
@@ -3951,6 +3967,8 @@
             "name": "limit",
             "schema": {
               "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
               "type": "integer"
             }
           }

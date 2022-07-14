@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -17,6 +18,10 @@ type ListGroupsRequest struct {
 	// UserID filters the results to only groups where this user is a member.
 	UserID uid.ID `form:"userID"`
 	PaginationRequest
+}
+
+func (r ListGroupsRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
 }
 
 type CreateGroupRequest struct {

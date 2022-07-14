@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -22,6 +23,10 @@ type ListUsersRequest struct {
 	Group uid.ID   `form:"group"`
 	IDs   []uid.ID `form:"ids"`
 	PaginationRequest
+}
+
+func (r ListUsersRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
 }
 
 // CreateUserRequest is only for creating users with the Infra provider

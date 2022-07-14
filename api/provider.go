@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -36,4 +37,8 @@ type UpdateProviderRequest struct {
 type ListProvidersRequest struct {
 	Name string `form:"name" example:"okta"`
 	PaginationRequest
+}
+
+func (r ListProvidersRequest) ValidationRules() []validate.ValidationRule {
+	return r.PaginationRequest.ValidationRules()
 }
