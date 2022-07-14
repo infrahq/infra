@@ -279,11 +279,6 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
-	// TODO: remove once all requests use internal/validate
-	if err := pgValidate.Struct(req); err != nil {
-		return err
-	}
-
 	return nil
 }
 

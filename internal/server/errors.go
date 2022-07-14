@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -29,7 +27,6 @@ func sendAPIError(c *gin.Context, err error) {
 		Message: "internal server error", // don't leak any info by default
 	}
 
-	pgValidationErrors := &validator.ValidationErrors{}
 	var validationError validate.Error
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
@@ -74,11 +71,6 @@ func sendAPIError(c *gin.Context, err error) {
 			return resp.FieldErrors[i].FieldName < resp.FieldErrors[j].FieldName
 		})
 
-	case errors.As(err, pgValidationErrors):
-		resp.Code = http.StatusBadRequest
-		resp.Message = err.Error()
-		parseFieldErrors(resp, pgValidationErrors)
-
 	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
@@ -89,10 +81,6 @@ func sendAPIError(c *gin.Context, err error) {
 
 	case errors.Is(err, internal.ErrBadGateway):
 		resp.Code = http.StatusBadGateway
-		resp.Message = err.Error()
-
-	case errors.Is(err, (*validator.InvalidValidationError)(nil)):
-		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 
 	case errors.Is(err, context.DeadlineExceeded):
@@ -113,36 +101,6 @@ func sendAPIError(c *gin.Context, err error) {
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
-}
-
-// TODO: remove with pgValidate
-func parseFieldErrors(resp *api.Error, validationErrors *validator.ValidationErrors) {
-	errs := map[string][]string{}
-
-	for _, field := range *validationErrors {
-		msg := ""
-		if field.Tag() == "required" {
-			msg = "is required"
-		} else {
-			msg = fmt.Sprintf("failed the %q check", field.Tag())
-		}
-
-		errs[field.Field()] = append(errs[field.Field()], msg)
-	}
-
-	for f, vals := range errs {
-		resp.FieldErrors = append(resp.FieldErrors, api.FieldError{FieldName: f, Errors: vals})
-	}
-
-	// rebuild the error message, because the default is just bad.
-	if len(resp.FieldErrors) > 0 {
-		errs := []string{}
-		for _, fe := range resp.FieldErrors {
-			errs = append(errs, fe.FieldName+": "+strings.Join(fe.Errors, ", "))
-		}
-
-		resp.Message = strings.Join(errs, ". ")
-	}
 }
 
 func removed(version string) func(c *gin.Context) {
