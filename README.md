@@ -5,17 +5,19 @@
   </picture>
 </p>
 
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
+
 ## Introduction
 
 Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more coming soon).
 
 ## Features
 
-![dashboard](https://user-images.githubusercontent.com/251292/179031621-b44bc212-dc38-42dc-b9f4-8ee6a01cbaf4.png)
+![dashboard](https://user-images.githubusercontent.com/251292/179051826-57b428fd-af37-4630-acfa-92339170d480.png)
 
 - **Discover & access** infrastructure in one place
-- **No more out of sync credentials or user configurations**
-- **Support for native RBAC**: edit, view and even support custom roles
+- **No more out of sync credentials** or user configurations: Infra automatically rotates credentials
+- **Support for native RBAC**: edit, view and even support custom roles like `exec`
 - **Onboard and offboard users via an identity provider** (Okta, Azure AD, Google or OIDC)
 - **Audit logs**: see who did what, when to stay compliant (coming soon)
 
