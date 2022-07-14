@@ -5,8 +5,10 @@ on:
     inputs:
       RELEASE_NAME:
         type: string
+        required: true
       ENVIRONMENT:
         type: string
+        required: true
     secrets:
       AWS_REGION:
         required: true

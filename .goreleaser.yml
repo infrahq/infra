@@ -64,7 +64,7 @@ archives:
 checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
-  name_template: "{{ .RawVersion }}-dev"
+  name_template: "{{ .Env.RELEASE_NAME }}"
 blobs:
   - provider: s3
     region: us-east-2
