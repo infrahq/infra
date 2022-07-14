@@ -1,22 +1,37 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/251292/179096064-322cb0df-57dc-4d37-af49-d213dc0ad481.svg">
-  <img alt="logo" src="https://user-images.githubusercontent.com/251292/179096065-7f7a9a1d-b072-4ee8-bf8a-c92c07a28e16.svg">
-</picture>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/251292/179098559-75b53555-e389-40cc-b910-0e53521efad2.svg">
+    <img alt="logo" src="https://user-images.githubusercontent.com/251292/179098561-eaa231c1-5757-40d7-9e5f-628e5d9c3e47.svg">
+  </picture>
+</div>
 
-![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) [![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green)](https://github.com/infrahq/infra/issues) [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra)](https://github.com/infrahq/infra/commits/main) [![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
+<div align="center">
+
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/infrahq/infra?color=brightgreen)](https://github.com/infrahq/infra/releases/latest) [![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green)](https://github.com/infrahq/infra/issues) [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra)](https://github.com/infrahq/infra/commits/main)
+
+[![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
+
+</div>
 
 ## Introduction
 
-Infra manages access to Kubernetes, with support for [more cloud infrastrucure](#connectors) coming soon.
+Infra manages access to Kubernetes, with support for [more cloud infrastructure](#connectors) coming soon.
 
-1. Connect your clusters, servers, databases, and other resources
-2. Add your team via Google, Okta or Azure AD or using Infra's built-in user management
-3. Assign fine-grained access (e.g. `view`, `edit` or `admin`) to any user or group
-4. **That's it!** Your team can now discover and access via `infra login`
+## Features
 
-## Get Started
+- **Discover & access** infrastructure via a single command: `infra login`
+- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
+- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding with support for built-in users
+- **Fine-grained** access to specific resources that works with existing RBAC rules
+- **API-first design** for managing access as code or via existing tooling
+- **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
+- **Audit logs** for who did what, when to stay compliant (coming soon)
 
-Deploy Infra via `helm`:
+![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
+
+## Install
+
+Install Infra via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com
@@ -30,19 +45,7 @@ Find the exposed hostname:
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
 ```
 
-Visit the hostname in your browser, or run `infra login` to get up and running via the CLI.
-
-## Features
-
-![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
-
-- **Discover & access** infrastructure via a single command: `infra login`
-- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
-- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
-- **Fine-grained** access to specific resources that works with existing RBAC rules
-- **API-first design** for managing access as code or via existing tooling
-- **Dynamic access** to coordinate access with systems like PagerDuty (coming soon)
-- **Audit logs** for who did what, when to stay compliant (coming soon)
+Visit this hostname in your browser to get started.
 
 ## Connectors
 
@@ -60,11 +63,11 @@ Visit the hostname in your browser, or run `infra login` to get up and running v
 
 ## Documentation
 
-- [Log in via Infra CLI](https://infrahq.com/docs/configuration/logging-in)
+- [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
+- [Login via Infra CLI](https://infrahq.com/docs/configuration/logging-in)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)
 - [Security](https://infrahq.com/docs/reference/security)
-- [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 
 ## Community
 
