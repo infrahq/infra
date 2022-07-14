@@ -31,16 +31,16 @@ func (*DatabaseLogger) Error(ctx context.Context, format string, v ...interface{
 
 func (l *DatabaseLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	sql, rows := fc()
-	levelName := zerolog.TraceLevel
+	level := zerolog.TraceLevel
 
 	elapsed := time.Since(begin)
 	if err != nil && !errors.Is(err, gormlogger.ErrRecordNotFound) {
-		levelName = zerolog.ErrorLevel
+		level = zerolog.ErrorLevel
 	} else if l.SlowThreshold != 0 && elapsed > l.SlowThreshold {
-		levelName = zerolog.WarnLevel
+		level = zerolog.WarnLevel
 	}
 
-	L.WithLevel(levelName).
+	L.WithLevel(level).
 		CallerSkipFrame(3).
 		Int64("rows", rows).
 		Str("query", sql).

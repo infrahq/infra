@@ -113,6 +113,7 @@ CREATE TABLE testing.destinations (
     deleted_at timestamp with time zone,
     name text,
     unique_id text,
+    last_seen_at timestamp with time zone,
     connection_url text,
     connection_ca text,
     resources text,
@@ -418,7 +419,7 @@ CREATE TABLE testing.settings (
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     private_jwk bytea,
-    public_jwk bytea
+    testing_jwk bytea
 );
 
 
@@ -531,20 +532,20 @@ ALTER TABLE ONLY testing.settings ALTER COLUMN id SET DEFAULT nextval('testing.s
 -- Data for Name: destinations; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.destinations (id, created_at, updated_at, deleted_at, name, unique_id, connection_url, connection_ca, resources, roles) VALUES (67067378731917312, '2022-07-05 00:41:49.143574+00', '2022-07-05 01:41:49.143574+00', NULL, 'docker-desktop', 'unique-id', 'localhost:123', '', '', '');
+
 
 --
 -- Data for Name: encryption_keys; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.encryption_keys (id, created_at, updated_at, deleted_at, key_id, name, encrypted, algorithm, root_key_id) VALUES (67303707122147328, '2022-07-05 17:20:54.220702+00', '2022-07-05 17:20:54.220702+00', NULL, 693382051, 'dbkey', '\x414141414d444158787243635a59594c566165725a313951324832566a386f6a547861746c494d366f4869795173657176785764526a432b4e496848647a796f3034686f73675a685a584e6e59323045343744455167414d582b364b70426e354b5246517676634d', 'aesgcm', '/root/.infra/sqlite3.db.key');
+INSERT INTO testing.encryption_keys (id, created_at, updated_at, deleted_at, key_id, name, encrypted, algorithm, root_key_id) VALUES (70166649953918976, '2022-07-13 14:57:12.982089+00', '2022-07-13 14:57:12.982089+00', NULL, 816176352, 'dbkey', '\x414141414d4657314f6b325a38435262624e61446f32757730617756324d716f515447474d2b393563685134396c344c486458744b793171514f722b573666782b5752624b775a685a584e6e59323045343744455167414d683970796a55597a384666716f727041', 'aesgcm', '/var/lib/infrahq/server/sqlite3.db.key');
 
 
 --
 -- Data for Name: grants; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.grants (id, created_at, updated_at, deleted_at, subject, privilege, resource, created_by) VALUES (67303707466080256, '2022-07-05 17:20:54.302104+00', '2022-07-05 17:20:54.302104+00', NULL, 'i:a4xYgwWVu5', 'connector', 'infra', 1);
+INSERT INTO testing.grants (id, created_at, updated_at, deleted_at, subject, privilege, resource, created_by) VALUES (70166651711332352, '2022-07-13 14:57:13.401607+00', '2022-07-13 14:57:13.401607+00', NULL, 'i:arUAXwv65u', 'connector', 'infra', 1);
 
 
 --
@@ -557,7 +558,7 @@ INSERT INTO testing.grants (id, created_at, updated_at, deleted_at, subject, pri
 -- Data for Name: identities; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.identities (id, created_at, updated_at, deleted_at, name, last_seen_at, created_by) VALUES (67303707453497344, '2022-07-05 17:20:54.29989+00', '2022-07-05 17:20:54.29989+00', NULL, 'connector', '0001-01-01 00:00:00+00', 1);
+INSERT INTO testing.identities (id, created_at, updated_at, deleted_at, name, last_seen_at, created_by) VALUES (70166651656806400, '2022-07-13 14:57:13.388184+00', '2022-07-13 14:57:13.388184+00', NULL, 'connector', '0001-01-01 00:00:00+00', 1);
 
 
 --
@@ -590,6 +591,7 @@ INSERT INTO testing.migrations (id) VALUES ('202206081027');
 INSERT INTO testing.migrations (id) VALUES ('202206151027');
 INSERT INTO testing.migrations (id) VALUES ('202206161733');
 INSERT INTO testing.migrations (id) VALUES ('202206281027');
+INSERT INTO testing.migrations (id) VALUES ('202207041724');
 
 
 --
@@ -602,14 +604,14 @@ INSERT INTO testing.migrations (id) VALUES ('202206281027');
 -- Data for Name: providers; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.providers (id, created_at, updated_at, deleted_at, name, kind, url, client_id, client_secret, auth_url, scopes, created_by) VALUES (67303707445108736, '2022-07-05 17:20:54.29773+00', '2022-07-05 17:20:54.29773+00', NULL, 'infra', 'infra', '', '', 'AAAAEL/fO4GYTiWmIebAG9xDqfoGYWVzZ2NtBEEtkvcbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DLMvi/B5vzbatFVeoA', '', '', 1);
+INSERT INTO testing.providers (id, created_at, updated_at, deleted_at, name, kind, url, client_id, client_secret, auth_url, scopes, created_by) VALUES (70166651606474752, '2022-07-13 14:57:13.376692+00', '2022-07-13 14:57:13.376692+00', NULL, 'infra', 'infra', '', '', 'AAAAELQnQf0aoqtaNHVpI843peQGYWVzZ2NtBBvPiGYmL3Zhci9saWIvaW5mcmFocS9zZXJ2ZXIvc3FsaXRlMy5kYi5rZXkMQLNWIH42YT+4R9Ih', '', '', 1);
 
 
 --
 -- Data for Name: settings; Type: TABLE DATA; Schema: testing; Owner: postgres
 --
 
-INSERT INTO testing.settings (id, created_at, updated_at, deleted_at, private_jwk, public_jwk) VALUES VALUES(36869170022129664,'2022-04-12 17:44:55.129594012+00:00','2022-04-12 17:44:55.129594012+00:00',NULL,X'7b22757365223a22736967222c226b7479223a224f4b50222c226b6964223a22706f66744a5a75365a6b617a45684a54336a5350587a7461635f49715468443470786965426d5a593834343d222c22637276223a2245643235353139222c22616c67223a2245443235353139222c2278223a22376d426b6a474b3463626b64506f6b70765465376b6a372d4e556a4434467a4b46634234737742374c3867222c2264223a227456556257634a66724b7246636e4e74396a6a55687a355935737a3947315472564948434539366b727949227d',X'7b22757365223a22736967222c226b7479223a224f4b50222c226b6964223a22706f66744a5a75365a6b617a45684a54336a5350587a7461635f49715468443470786965426d5a593834343d222c22637276223a2245643235353139222c22616c67223a2245443235353139222c2278223a22376d426b6a474b3463626b64506f6b70765465376b6a372d4e556a4434467a4b46634234737742374c3867227d',0,NULL);
+INSERT INTO testing.settings (id, created_at, updated_at, deleted_at, private_jwk, testing_jwk) VALUES (70166651577114624, '2022-07-13 14:57:13.369333+00', '2022-07-13 14:57:13.369333+00', NULL, '\x41414141346c526b61426847634e556c4739537278626e327036526a506a75714578522b7064325872722f472b384b376b52545545767844765a4f347a4759506d7a736a502b4139707857546664544e45512b7a6d69324d6836324352425830644351737a3833744b50753455596b4b434871714741332b4b576447754444656b6a7147705a6c67544d57396232794a6c544d7831377862726850394f2f66456770306b5052717954717a766264556d7464415168695a7962475531456642434b666b6a59686d412f446b79667838555376514a6942554b4f39666945626e4435744b7539385a5559725957326478387567326669435346704c614f424343613865554b6f45304f6b2b54416964584d4b4278487135535866375870787a54776f5032315837697a5a41364a35774b56524f77475957567a5a324e74424276506947596d4c335a6863693973615749766157356d636d466f6353397a5a584a325a584976633346736158526c4d79356b596935725a586b4d42537a4973784d73546d4f747859522b', '\x7b22757365223a22736967222c226b7479223a224f4b50222c226b6964223a22463374704a7441677a5839375978373831335a4e593244516c574177533958696264777034345a754a30303d222c22637276223a2245643235353139222c22616c67223a2245443235353139222c2278223a2273777161694e697a41313677544957796b446f34636678576875746170796f336d303370376e4436446c38227d');
 
 
 --

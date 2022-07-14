@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"gorm.io/gorm"
@@ -25,7 +27,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM identities").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM identities WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("users")
 			return []metrics.Metric{}
 		}
@@ -47,7 +49,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM groups").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM groups WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("groups")
 			return []metrics.Metric{}
 		}
@@ -69,7 +71,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT COUNT(*) as count FROM grants").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT COUNT(*) as count FROM grants WHERE deleted_at IS NULL").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("grants")
 			return []metrics.Metric{}
 		}
@@ -92,7 +94,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 			Count int
 		}
 
-		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers GROUP BY kind").Scan(&results).Error; err != nil {
+		if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("providers")
 			return []metrics.Metric{}
 		}
@@ -109,20 +111,28 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 		Namespace: "infra",
 		Name:      "destinations",
 		Help:      "The total number of destinations",
-	}, []string{"version"}, func() []metrics.Metric {
+	}, []string{"version", "status"}, func() []metrics.Metric {
 		var results []struct {
-			Version string
-			Count   int
+			Version   string
+			Connected bool
+			Count     float64
 		}
 
-		if err := db.Raw("SELECT version, COUNT(*) as count FROM destinations GROUP BY version").Scan(&results).Error; err != nil {
+		cmp := time.Now().Add(-5 * time.Minute)
+
+		if err := db.Raw("SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected, COUNT(*) AS count FROM destinations WHERE deleted_at IS NULL GROUP BY COALESCE(version, ''), last_seen_at >= ?", cmp, cmp).Scan(&results).Error; err != nil {
 			logging.L.Warn().Err(err).Msg("destinations")
 			return []metrics.Metric{}
 		}
 
 		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Version}})
+			status := "disconnected"
+			if result.Connected {
+				status = "connected"
+			}
+
+			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Version, status}})
 		}
 
 		return values

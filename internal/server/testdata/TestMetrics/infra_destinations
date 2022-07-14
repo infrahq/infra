@@ -1,0 +1,4 @@
+infra_destinations{status="connected",version=""} 1
+infra_destinations{status="connected",version="0.1.0"} 1
+infra_destinations{status="disconnected",version=""} 1
+infra_destinations{status="disconnected",version="0.1.0"} 2

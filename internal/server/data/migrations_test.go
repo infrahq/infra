@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
@@ -23,20 +24,21 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 			assert.NilError(t, err)
 
 			patch.ModelsSymmetricKey(t)
-			logging.PatchLogger(t)
+			logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 			loadSQL(t, db, "202207120000-"+driver.Name())
 
 			db, err = NewDB(driver, nil)
 			assert.NilError(t, err)
 
-			settings, err := GetSettings(db)
+			var settings models.Settings
+			err = db.Omit("private_jwk").First(&settings).Error
 			assert.NilError(t, err)
 
 			assert.Equal(t, settings.LowercaseMin, 0)
 			assert.Equal(t, settings.UppercaseMin, 0)
 			assert.Equal(t, settings.NumberMin, 0)
-			assert.Equal(t, settings.SymbolMin, 1)
+			assert.Equal(t, settings.SymbolMin, 0)
 			assert.Equal(t, settings.LengthMin, 8)
 		})
 	}
@@ -146,7 +148,7 @@ func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
 	f(db)
 
 	patch.ModelsSymmetricKey(t)
-	logging.PatchLogger(t)
+	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 	return driver
 }
