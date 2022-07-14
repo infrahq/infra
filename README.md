@@ -18,7 +18,7 @@ If you don't have an identity provider, Infra supports local users for you to ge
 - Workflow for dynamically requesting & granting access to users (coming soon)
 - Audit logs for who did what, when (coming soon)
 
-![dashboard](https://user-images.githubusercontent.com/251292/179028692-1d001b9c-b9c9-4398-81b0-850f8951a694.png)
+![dashboard](https://user-images.githubusercontent.com/251292/179031390-23f08bc4-96f5-4ccc-915a-da5c7c2c1256.png)
 
 ## Get Started
 
