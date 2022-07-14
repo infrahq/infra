@@ -25,7 +25,7 @@ const columns = [
     width: '67%',
     Cell: ({ value: group }) => {
       return (
-        <div className='flex items-center py-2'>
+        <div className='flex items-center py-1.5'>
           <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-violet-300/40'>
             <img alt='group icon' src='/groups.svg' className='h-3 w-3' />
           </div>
@@ -49,7 +49,7 @@ const columns = [
         <>
           {users && (
             <div className='text-gray-400'>
-              {users?.length} {users?.length > 1 ? 'members' : 'member'}
+              {users?.length} {users?.length === 1 ? 'member' : 'members'}
             </div>
           )}
           {error?.status && <div className='text-gray-400'>--</div>}
@@ -301,7 +301,7 @@ export default function Groups() {
           </div>
           {selected && (
             <Sidebar
-              handleClose={() => setSelected(null)}
+              onClose={() => setSelected(null)}
               title={selected?.name}
               iconPath='/groups.svg'
             >

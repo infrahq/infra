@@ -160,7 +160,7 @@ function Details({ user, admin, onDelete }) {
                 list={groups?.sort((a, b) =>
                   b.created?.localeCompare(a.created)
                 )}
-                actionText='Leave'
+                actionText='Remove'
                 onClick={async groupId => {
                   const usersToRemove = [id]
                   await fetch(`/api/groups/${groupId}/users`, {
