@@ -10,8 +10,8 @@ type Provider struct {
 	Name     string   `json:"name" example:"okta"`
 	Created  Time     `json:"created"`
 	Updated  Time     `json:"updated"`
-	URL      string   `json:"url" validate:"required" example:"infrahq.okta.com"`
-	ClientID string   `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
+	URL      string   `json:"url" example:"infrahq.okta.com"`
+	ClientID string   `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
 	Kind     string   `json:"kind" example:"oidc"`
 	AuthURL  string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize"`
 	Scopes   []string `json:"scopes" example:"['openid', 'email']"`
