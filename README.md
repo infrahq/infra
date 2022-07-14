@@ -15,11 +15,7 @@
 
 ## Introduction
 
-Infra manages access to Kubernetes, with support for [more connectors](#connectors) coming soon.
-
-### Features
-
-![dashboard](https://user-images.githubusercontent.com/251292/179113044-f012e719-68a1-47a5-a3fe-36fe0f51cc38.png)
+Infra manages access to infrastructure such as Kubernetes, with support for [more connectors](#connectors) coming soon.
 
 - **Discover & access** infrastructure via a single command: `infra login`
 - **No more out-of-sync credentials** for users (e.g. Kubeconfig)
@@ -28,6 +24,8 @@ Infra manages access to Kubernetes, with support for [more connectors](#connecto
 - **API-first design** for managing access as code or via existing tooling
 - **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
 - **Audit logs** for who did what, when to stay compliant (coming soon)
+
+![dashboard](https://user-images.githubusercontent.com/251292/179115227-d7bd9040-75bc-421d-87bf-4462a4fca38d.png)
 
 ## Install
 
