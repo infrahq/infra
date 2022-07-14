@@ -7,14 +7,15 @@
 
 ![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) [![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green)](https://github.com/infrahq/infra/issues) [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra)](https://github.com/infrahq/infra/commits/main) [![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
 
+## Introduction
+
 Manage access to Kubernetes, SSH, Databases, AWS and more:
 
 1. Connect your infrastructure
-2. Add your team via your identity provider (Google, Okta or Azure AD), or Infra's built-in user management
-3. Assign access (e.g. `view`, `edit` or `admin`) to any user or group
-4. Users log in via Infra's CLI with `infra login`
+2. Add your team via Google, Okta or Azure AD or using Infra's built-in user management
+3. Assign fine-grained access (e.g. `view`, `edit` or `admin`) to any user or group
 
-![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
+**That's it!** Your team has access via Infra's CLI `infra login`
 
 ## Get Started
 
@@ -26,19 +27,34 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-### Connectors
+## Features
 
-| Connector          | Status      | Documentation                                          |
-| ------------------ | ----------- | ------------------------------------------------------ |
-| Kubernetes         | ✅ Stable   | [Link](https://infrahq.com/docs/connectors/kubernetes) |
-| Postgres           | Coming soon |                                                        |
-| SSH                | Coming soon |                                                        |
-| AWS                | Coming soon |                                                        |
-| Container Registry | Coming soon |                                                        |
-| MongoDB            | Coming soon |                                                        |
-| Snowflake          | Coming soon |                                                        |
-| MySQL              | Coming soon |                                                        |
-| RDP                | Coming soon |                                                        |
+![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
+
+- **Discover & access** infrastructure via a single command: `infra login`
+- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
+- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
+- **Fine-grained** access to specific resources that works with existing RBAC rules
+- **API-first design** for managing access as code or via existing tooling
+
+Coming soon:
+
+- **Dynamic access** to coordinate access with systems like PagerDuty
+- **Audit logs** for who did what, when to stay compliant
+
+## Connectors
+
+| Connector          | Status        | Documentation                                          |
+| ------------------ | ------------- | ------------------------------------------------------ |
+| Kubernetes         | ✅ Stable     | [Link](https://infrahq.com/docs/connectors/kubernetes) |
+| Postgres           | _Coming soon_ |                                                        |
+| SSH                | _Coming soon_ |                                                        |
+| AWS                | _Coming soon_ |                                                        |
+| Container Registry | _Coming soon_ |                                                        |
+| MongoDB            | _Coming soon_ |                                                        |
+| Snowflake          | _Coming soon_ |                                                        |
+| MySQL              | _Coming soon_ |                                                        |
+| RDP                | _Coming soon_ |                                                        |
 
 ## Documentation
 
