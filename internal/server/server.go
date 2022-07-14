@@ -138,15 +138,13 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
-	_, err = data.InitializeSettings(server.db)
+	settings, err := data.InitializeSettings(server.db)
 	if err != nil {
 		return nil, fmt.Errorf("settings: %w", err)
 	}
 
 	if options.EnableTelemetry {
-		if err := configureTelemetry(server); err != nil {
-			return nil, fmt.Errorf("configuring telemetry: %w", err)
-		}
+		server.tel = NewTelemetry(server.db, settings.ID)
 	}
 
 	if err := server.loadConfig(server.options.Config); err != nil {
@@ -179,17 +177,12 @@ func (s *Server) Run(ctx context.Context) error {
 		s.routines[i].stop()
 	}
 
-	return group.Wait()
-}
-
-func configureTelemetry(server *Server) error {
-	tel, err := NewTelemetry(server.db)
-	if err != nil {
-		return err
+	err := group.Wait()
+	s.tel.Close()
+	if errors.Is(err, context.Canceled) {
+		return nil
 	}
-	server.tel = tel
-
-	return nil
+	return err
 }
 
 //go:embed all:ui/*

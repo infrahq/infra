@@ -34,6 +34,7 @@ function Layout({ children }) {
       icon: '/providers.svg',
       admin: true,
     },
+    { name: 'Groups', href: '/groups', icon: '/groups.svg', admin: true },
     { name: 'Users', href: '/users', icon: '/users.svg', admin: true },
   ]
 

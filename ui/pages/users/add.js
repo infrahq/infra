@@ -1,14 +1,13 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
+
 import ErrorMessage from '../../components/error-message'
-
 import Fullscreen from '../../components/layouts/fullscreen'
-import { validateEmail } from '../../lib/email'
 
-function AddUser({ email, onChange, onKeyDown, onAddUser, error }) {
+function AddUser({ email, onChange, onKeyDown, onSubmit, error }) {
   return (
-    <div className='flex flex-col'>
+    <form onSubmit={onSubmit} className='flex flex-col'>
       <div className='flex flex-row items-center space-x-2'>
         <img alt='users' src='/users.svg' className='h-6 w-6' />
         <div>
@@ -40,19 +39,18 @@ function AddUser({ email, onChange, onKeyDown, onAddUser, error }) {
           </a>
         </Link>
         <button
-          type='button'
-          onClick={onAddUser}
+          type='submit'
           disabled={!email}
           className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-10'
         >
           Add User
         </button>
       </div>
-    </div>
+    </form>
   )
 }
 
-function UserOneTimePassword({ password, onAddUser }) {
+function UserOneTimePassword({ password, onSubmit }) {
   return (
     <div className='flex flex-col'>
       <div className='flex flex-row items-center space-x-2'>
@@ -77,7 +75,7 @@ function UserOneTimePassword({ password, onAddUser }) {
       </div>
       <div className='mt-6 flex flex-row items-center justify-end'>
         <button
-          onClick={onAddUser}
+          onClick={onSubmit}
           className='border-0 px-4 py-2 text-4xs uppercase text-gray-400 hover:text-white'
         >
           Add Another
@@ -99,55 +97,55 @@ export default function UsersAdd() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
 
-  const handleGetOneTimePassword = async () => {
-    if (validateEmail(email)) {
-      setErrors({})
-      try {
-        const res = await fetch('/api/users', {
-          method: 'POST',
-          body: JSON.stringify({ name: email, setOneTimePassword: true }),
-        })
-        const user = await res.json()
+  async function handleUserOneTimePassword(e) {
+    e.preventDefault()
 
-        if (!res.ok) {
-          throw user
-        }
+    setErrors({})
+    setError('')
 
-        setState('password')
-        setPassword(user.oneTimePassword)
-      } catch (e) {
-        if (e.fieldErrors) {
-          const errors = {}
-          for (const error of e.fieldErrors) {
-            errors[error.fieldName.toLowerCase()] =
-              error.errors[0] || 'invalid value'
-          }
-          setErrors(errors)
-        } else {
-          setError(e.message)
-        }
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({ name: email, setOneTimePassword: true }),
+      })
+      const user = await res.json()
 
-        return false
+      if (!res.ok) {
+        throw user
       }
-    } else {
-      setErrors({ name: 'Invalid email' })
+
+      setState('password')
+      setPassword(user.oneTimePassword)
+    } catch (e) {
+      if (e.fieldErrors) {
+        const errors = {}
+        for (const error of e.fieldErrors) {
+          errors[error.fieldName.toLowerCase()] =
+            error.errors[0] || 'invalid value'
+        }
+        setErrors(errors)
+      } else {
+        setError(e.message)
+      }
+
+      return false
     }
   }
 
-  const handleInputChange = value => {
+  function handleInputChange(value) {
     setEmail(value)
     setError('')
   }
 
-  const handleAddUser = () => {
+  function handleAddUser() {
     setState('add')
     setEmail('')
     setPassword('')
   }
 
-  const handleKeyDownEvent = key => {
-    if (key === 'Enter' && email.length > 0) {
-      handleGetOneTimePassword()
+  function handleKeyDownEvent(e) {
+    if (e.key === 'Enter' && email.length > 0) {
+      handleUserOneTimePassword(e)
     }
   }
 
@@ -161,15 +159,15 @@ export default function UsersAdd() {
           <AddUser
             email={email}
             onChange={e => handleInputChange(e.target.value)}
-            onKeyDown={e => handleKeyDownEvent(e.key)}
-            onAddUser={() => handleGetOneTimePassword()}
+            onKeyDown={e => handleKeyDownEvent(e)}
+            onSubmit={handleUserOneTimePassword}
             error={errors.name}
           />
         )}
         {state === 'password' && (
           <UserOneTimePassword
             password={password}
-            onAddUser={() => handleAddUser()}
+            onSubmit={() => handleAddUser()}
           />
         )}
         {error && <ErrorMessage message={error} />}

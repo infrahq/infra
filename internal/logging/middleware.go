@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -11,29 +12,22 @@ import (
 
 type Sampler struct {
 	fn       func() zerolog.Sampler
-	samplers map[string]zerolog.Sampler
-	mu       sync.Mutex
+	samplers sync.Map
 }
 
 func NewSampler(fn func() zerolog.Sampler) *Sampler {
-	return &Sampler{
-		fn:       fn,
-		samplers: make(map[string]zerolog.Sampler),
-	}
+	return &Sampler{fn: fn}
 }
 
 func (c *Sampler) Get(fields ...string) zerolog.Sampler {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	key := strings.Join(fields, "-")
-	sampler, ok := c.samplers[key]
+	raw, ok := c.samplers.Load(key)
 	if !ok {
-		sampler = c.fn()
-		c.samplers[key] = sampler
+		// Only use LoadOrStore on a failed load, to avoid creating unnecessary samplers
+		raw, _ = c.samplers.LoadOrStore(key, c.fn())
 	}
 
-	return sampler
+	return raw.(zerolog.Sampler) // nolint:forcetypeassert
 }
 
 func Middleware() gin.HandlerFunc {
@@ -45,8 +39,9 @@ func Middleware() gin.HandlerFunc {
 	})
 
 	return func(c *gin.Context) {
+		method := c.Request.Method
 		log := L.With().
-			Str("method", c.Request.Method).
+			Str("method", method).
 			Str("path", c.Request.URL.Path).
 			Str("host", c.Request.Host).
 			Str("remoteAddr", c.Request.RemoteAddr).
@@ -58,25 +53,16 @@ func Middleware() gin.HandlerFunc {
 
 		c.Next()
 
-		level := zerolog.InfoLevel
-		if len(c.Errors) > 0 {
-			level = zerolog.ErrorLevel
-		}
+		status := c.Writer.Status()
 
-		errs := make([]error, 0, len(c.Errors))
-		for _, err := range c.Errors {
-			errs = append(errs, err.Err)
-		}
-
-		// attach log sampler. should not sample logs if level >= Warn
-		if level <= zerolog.InfoLevel {
+		// sample logs for successful GET request if the log level is INFO or above
+		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
 			log = log.Sample(sampler.Get(c.Request.Method, c.FullPath()))
 		}
 
-		log.WithLevel(level).
-			Errs("errors", errs).
+		log.Info().
 			Dur("elapsed", time.Since(begin)).
-			Int("statusCode", c.Writer.Status()).
+			Int("statusCode", status).
 			Int("size", c.Writer.Size()).
 			Msg("")
 	}

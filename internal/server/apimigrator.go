@@ -102,7 +102,7 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 	for i := 0; i < r.NumField(); i++ {
 		f := r.Field(i)
 		if fieldName, ok := t.Field(i).Tag.Lookup("form"); ok {
-			if structNameWithPkg(f.Type()) == "uid.ID" {
+			if f.Type() == reflect.TypeOf(uid.ID(0)) {
 				query.Add(fieldName, uid.ID(f.Int()).String())
 				continue
 			}
@@ -114,8 +114,8 @@ func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 				query.Add(fieldName, f.String())
 			case reflect.Slice:
 				// only type that does this is []uid.ID
-				switch structNameWithPkg(f.Type()) {
-				case "uid.ID":
+				switch f.Type() {
+				case reflect.TypeOf(uid.ID(0)):
 					for j := 0; j < f.Len(); j++ {
 						query.Add(fieldName, uid.ID(f.Index(j).Int()).String())
 					}

@@ -177,7 +177,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	s := &openapi3.Schema{}
-	setTagInfo(f, t, parent, s, parentSchema)
+	setTagInfo(f, parent, s, parentSchema)
 	setTypeInfo(t, s)
 
 	if s.Type == "array" {
@@ -228,11 +228,7 @@ func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, version string, filename strin
 	return nil
 }
 
-func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
-	if ex := getDefaultExampleForType(t); len(ex) > 0 {
-		schema.Example = ex
-	}
-
+func setTagInfo(f reflect.StructField, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
 	if example, ok := f.Tag.Lookup("example"); ok {
 		schema.Example = example
 	}
@@ -241,6 +237,7 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 		schema.Description = note
 	}
 
+	// TODO: remove with pgValidate
 	if validate, ok := f.Tag.Lookup("validate"); ok {
 		for _, val := range strings.Split(validate, ",") {
 			if val == "required" && parentSchema != nil {
@@ -262,58 +259,33 @@ func setTagInfo(f reflect.StructField, t, parent reflect.Type, schema, parentSch
 	}
 }
 
-var exampleTime = time.Date(2022, 3, 14, 9, 48, 0, 0, time.UTC).Format(time.RFC3339)
+type describeSchema interface {
+	DescribeSchema(schema *openapi3.Schema)
+}
 
 // `type` can be one of the following only: "object", "array", "string", "number", "integer", "boolean", "null".
 // `format` has a few defined types, but can be anything. https://swagger.io/docs/specification/data-models/data-types/
 func setTypeInfo(t reflect.Type, schema *openapi3.Schema) {
-	switch structNameWithPkg(t) {
-	case "api.Time", "time.Time":
-		schema.Type = "string"
-		schema.Format = "date-time" // date-time is rfc3339
-		schema.Example = exampleTime
-		if len(schema.Description) == 0 {
-			schema.Description = "formatted as an RFC3339 date-time"
-		}
+	// TODO: convert to value earlier?
+	value := reflect.New(t).Interface()
+	if ds, ok := value.(describeSchema); ok {
+		ds.DescribeSchema(schema)
 		return
+	}
 
-	case "api.Duration", "time.Duration":
-		schema.Type = "string"
-		schema.Format = "duration"
-		schema.Example = "72h3m6.5s"
-		if len(schema.Description) == 0 {
-			schema.Description = "a duration of time supporting (h)ours, (m)inutes, and (s)econds"
-		}
-		return
+	switch value.(type) {
+	case time.Time:
+		panic("field must use api.Time")
+	case time.Duration:
+		panic("field must use api.Duration")
+	}
 
-	case "uid.ID":
-		schema.Type = "string"
-		schema.Format = "uid"
-		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}`
-		schema.Example = "4yJ3n3D8E2"
-		return
-
-	case "api.IDOrSelf":
-		schema.Type = "string"
-		schema.Format = "uid|self"
-		schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}|self`
-		schema.Example = "4yJ3n3D8E2"
-		schema.Description = "a uid or the literal self"
-		return
-
-	case "uid.PolymorphicID":
-		schema.Type = "string"
-		schema.Format = "poly-uid"
-		schema.Pattern = `\w:[\da-zA-HJ-NP-Z]{1,11}`
-		schema.Example = "i:4yJ3n3D8E3"
-
-		return
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
 	}
 
 	//nolint:exhaustive
 	switch t.Kind() {
-	case reflect.Pointer:
-		setTypeInfo(t.Elem(), schema)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		schema.Type = "integer"
 		schema.Format = t.Kind().String()
@@ -491,10 +463,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 			panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, r.Name()))
 		}
 
-		if ex := getDefaultExampleForType(f.Type); len(ex) > 0 {
-			p.Example = ex
-		}
-
+		// TODO: share this with setTagInfo
 		if example, ok := f.Tag.Lookup("example"); ok {
 			p.Example = example
 		}
@@ -503,6 +472,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 			p.Description = note
 		}
 
+		// TODO: remove with pgValidate
 		if validate, ok := f.Tag.Lookup("validate"); ok {
 			for _, val := range strings.Split(validate, ",") {
 				if val == "required" {
@@ -541,35 +511,6 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 	}
 }
 
-func getDefaultExampleForType(t reflect.Type) string {
-	if t.Kind() == reflect.Pointer {
-		return getDefaultExampleForType(t.Elem())
-	}
-
-	name := structNameWithPkg(t)
-	switch name {
-	case "uid.ID":
-		return "4yJ3n3D8E2"
-	case "uid.PolymorphicID":
-		return "i:4yJ3n3D8E3"
-	case "time.Time":
-		return exampleTime
-	default:
-		return ""
-	}
-}
-
-func structNameWithPkg(t reflect.Type) string {
-	path := strings.Split(t.PkgPath(), "/")
-	p := path[len(path)-1]
-
-	if len(p) > 0 {
-		return p + "." + t.Name()
-	}
-
-	return t.Name()
-}
-
 func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	if name, ok := f.Tag.Lookup("json"); ok {
 		if name != "-" {
@@ -588,6 +529,7 @@ func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
 }
 
+// TODO: remove with pgValidate
 func parseMinLength(tag string) uint64 {
 	minLength := strings.Split(tag, "min=")
 	if len(minLength) != 2 {
@@ -602,6 +544,7 @@ func parseMinLength(tag string) uint64 {
 	return len
 }
 
+// TODO: remove with pgValidate
 func parseOneOf(tag string) []interface{} {
 	oneof := strings.Split(tag, "oneof=")
 	if len(oneof) != 2 {
