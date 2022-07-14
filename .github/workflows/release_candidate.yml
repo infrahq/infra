@@ -14,7 +14,6 @@ jobs:
       - uses: actions/checkout@v3
       - id: candidate-name
         run: |
-          apt-get update && apt-get install -y jq
           CANDIDATE_NAME=$(jq -r '.["."]' <.release-please-manifest.json)-dev
           echo "::set-output name=candidate_name::$CANDIDATE_NAME"
 
