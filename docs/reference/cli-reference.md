@@ -621,9 +621,12 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 #### Options
 
 ```
+      --client-email string    The email assigned to the Infra service client in Google
       --client-id string       OIDC client ID
       --client-secret string   OIDC client secret
+      --domain-admin string    The email of your Google workspace domain admin
       --kind string            The identity provider kind. One of 'oidc, okta, azure, or google' (default "oidc")
+      --private-key string     The private key used to make authenticated requests to Google's API
       --url string             Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
 ```
 
@@ -645,13 +648,16 @@ infra providers edit PROVIDER [flags]
 
 ```
 # Set a new client secret for a connected provider
-$ infra providers edit okta --client-secret
+$ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 ```
 
 #### Options
 
 ```
+      --client-email string    The email assigned to the Infra service client in Google
       --client-secret string   Set a new client secret
+      --domain-admin string    The email of your Google workspace domain admin
+      --private-key string     The private key used to make authenticated requests to Google's API
 ```
 
 #### Options inherited from parent commands
