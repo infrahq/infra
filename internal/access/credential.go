@@ -105,7 +105,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 
 // list of valid special chars is from OWASP, wikipedia
 func isValidSymbol(letter rune) bool {
-	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){%d,}`, regexp.QuoteMeta(`/\[]`), "`", 1), string(letter))
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){1,}`, regexp.QuoteMeta(`/\[]`), "`"), string(letter))
 	return match
 }
 
