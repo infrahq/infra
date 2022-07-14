@@ -9,7 +9,7 @@
 
 ## Introduction
 
-Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more coming soon).
+Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more).
 
 ## Features
 
