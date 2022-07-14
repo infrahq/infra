@@ -17,6 +17,18 @@
 
 Infra manages access to Kubernetes, with support for [more cloud infrastructure](#connectors) coming soon.
 
+![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
+
+### Features
+
+- **Discover & access** infrastructure via a single command: `infra login`
+- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
+- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
+- **Fine-grained** access to specific resources that works with existing RBAC rules
+- **API-first design** for managing access as code or via existing tooling
+- **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
+- **Audit logs** for who did what, when to stay compliant (coming soon)
+
 ## Install
 
 Install Infra via `helm`:
@@ -34,18 +46,6 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 ```
 
 Open this hostname in your browser to get started.
-
-## Features
-
-![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
-
-- **Discover & access** infrastructure via a single command: `infra login`
-- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
-- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
-- **Fine-grained** access to specific resources that works with existing RBAC rules
-- **API-first design** for managing access as code or via existing tooling
-- **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
-- **Audit logs** for who did what, when to stay compliant (coming soon)
 
 ## Connectors
 
