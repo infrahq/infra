@@ -9,13 +9,13 @@
 
 ## Introduction
 
-Manage access to Kubernetes, SSH, Databases, AWS and more:
+Infra manages access to Kubernetes, with support for more cloud infrastrucure coming soon:
 
 1. Connect your infrastructure
 2. Add your team via Google, Okta or Azure AD or using Infra's built-in user management
 3. Assign fine-grained access (e.g. `view`, `edit` or `admin`) to any user or group
 
-**That's it!** Your team has access via Infra's CLI `infra login`
+**That's it!** Your team can now securely get access via `infra login`
 
 ## Get Started
 
