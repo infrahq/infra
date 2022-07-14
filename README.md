@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
+![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) ![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
 
 ## Introduction
 
@@ -13,7 +13,7 @@ Infra is open-source access management for infrastructure (Kubernetes, SSH, Data
 
 ## Features
 
-![dashboard](https://user-images.githubusercontent.com/251292/179051826-57b428fd-af37-4630-acfa-92339170d480.png)
+![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
 
 - **Discover & access** infrastructure in one place
 - **No more out of sync credentials** or user configurations: Infra automatically rotates credentials
