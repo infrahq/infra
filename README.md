@@ -15,11 +15,11 @@
 
 ## Introduction
 
-Infra manages access to Kubernetes, with support for [more cloud infrastructure](#connectors) coming soon.
-
-![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
+Infra manages access to Kubernetes, with support for [more connectors](#connectors) coming soon.
 
 ### Features
+
+![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
 
 - **Discover & access** infrastructure via a single command: `infra login`
 - **No more out-of-sync credentials** for users (e.g. Kubeconfig)
