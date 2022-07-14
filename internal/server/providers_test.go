@@ -128,3 +128,214 @@ func TestAPI_DeleteProvider(t *testing.T) {
 		})
 	}
 }
+
+func TestAPI_CreateProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	type testCase struct {
+		name     string
+		body     api.CreateProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/providers", body)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				t.Skip("TODO: requires either a fake oidc client, or to authorize before validation")
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "missing required fields",
+			body: api.CreateProviderRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "clientID", Errors: []string{"is required"}},
+					{FieldName: "clientSecret", Errors: []string{"is required"}},
+					{FieldName: "name", Errors: []string{"is required"}},
+					{FieldName: "url", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid kind",
+			body: api.CreateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         "vegetable",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "kind", Errors: []string{"must be one of (oidc, okta, azure, google)"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_UpdateProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	provider := &models.Provider{
+		Name:    "private",
+		Kind:    models.ProviderKindAzure,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
+	}
+
+	err := data.CreateProvider(srv.db, provider)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		body     api.UpdateProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		id := provider.ID.String()
+		req, err := http.NewRequest(http.MethodPut, "/api/providers/"+id, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				t.Skip("TODO: requires either a fake oidc client, or to authorize before validation")
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "missing required fields",
+			body: api.UpdateProviderRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "clientID", Errors: []string{"is required"}},
+					{FieldName: "clientSecret", Errors: []string{"is required"}},
+					{FieldName: "name", Errors: []string{"is required"}},
+					{FieldName: "url", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid kind",
+			body: api.UpdateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         "vegetable",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "kind", Errors: []string{"must be one of (oidc, okta, azure, google)"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}

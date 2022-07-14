@@ -18,20 +18,43 @@ type Provider struct {
 }
 
 type CreateProviderRequest struct {
-	Name         string `json:"name" validate:"required" example:"okta"`
-	URL          string `json:"url" validate:"required" example:"infrahq.okta.com"`
-	ClientID     string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret string `json:"clientSecret" validate:"required" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	Kind         string `json:"kind" validate:"omitempty,oneof=oidc okta azure google" example:"oidc"`
+	Name         string `json:"name" example:"okta"`
+	URL          string `json:"url" example:"infrahq.okta.com"`
+	ClientID     string `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string `json:"kind" example:"oidc"`
+}
+
+var kinds = []string{"oidc", "okta", "azure", "google"}
+
+func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("name", r.Name),
+		validate.Required("url", r.URL),
+		validate.Required("clientID", r.ClientID),
+		validate.Required("clientSecret", r.ClientSecret),
+		validate.Enum("kind", r.Kind, kinds),
+	}
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID `uri:"id" json:"-" validate:"required"`
-	Name         string `json:"name" validate:"required" example:"okta"`
-	URL          string `json:"url" validate:"required" example:"infrahq.okta.com"`
-	ClientID     string `json:"clientID" validate:"required" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret string `json:"clientSecret" validate:"required" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	Kind         string `json:"kind" validate:"omitempty,oneof=oidc okta azure google" example:"oidc"`
+	ID           uid.ID `uri:"id" json:"-"`
+	Name         string `json:"name" example:"okta"`
+	URL          string `json:"url" example:"infrahq.okta.com"`
+	ClientID     string `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string `json:"kind" example:"oidc"`
+}
+
+func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+		validate.Required("name", r.Name),
+		validate.Required("url", r.URL),
+		validate.Required("clientID", r.ClientID),
+		validate.Required("clientSecret", r.ClientSecret),
+		validate.Enum("kind", r.Kind, kinds),
+	}
 }
 
 type ListProvidersRequest struct {
