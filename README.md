@@ -7,18 +7,17 @@
 
 ## Introduction
 
-Infra enables you to **discover and access** infrastructure (e.g. Kubernetes, databases). We help you connect an identity provider such as Okta or Azure active directory, and map users/groups with the permissions you set to your infrastructure.
+Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more coming soon).
 
-If you don't have an identity provider, Infra supports local users for you to get started before connecting an identity provider.
-
-- Single-command to discover & access all your infrastructure (as an example, for Kubernetes, Infra automatically creates and syncs your kubeconfig locally after `infra login` and gets out of your way so you can use your favorite tools to access it)
-- No more out-of-sync user configurations no matter where your clusters are hosted
-- Support for native RBAC (e.g. support for default Kubernetes cluster roles or mapping to your own existing cluster roles)
-- Onboard and offboard users via an identity provider (e.g. Okta)
-- Workflow for dynamically requesting & granting access to users (coming soon)
-- Audit logs for who did what, when (coming soon)
+## Features
 
 ![dashboard](https://user-images.githubusercontent.com/251292/179031621-b44bc212-dc38-42dc-b9f4-8ee6a01cbaf4.png)
+
+- **Discover & access** infrastructure in one place
+- **No more out of sync credentials or user configurations**
+- **Support for native RBAC**: edit, view and even support custom roles
+- **Onboard and offboard users via an identity provider** (Okta, Azure AD, Google or OIDC)
+- **Audit logs**: see who did what, when to stay compliant (coming soon)
 
 ## Get Started
 
