@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) ![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
+![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) ![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social) ![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
 
 ## Introduction
 
