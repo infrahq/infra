@@ -19,7 +19,7 @@ Infra manages access to Kubernetes, with support for [more connectors](#connecto
 
 ### Features
 
-![dashboard](https://user-images.githubusercontent.com/251292/179107380-2fe022e4-42d9-4d13-aae2-b82214e0ce18.png)
+![dashboard](https://user-images.githubusercontent.com/251292/179113044-f012e719-68a1-47a5-a3fe-36fe0f51cc38.png)
 
 - **Discover & access** infrastructure via a single command: `infra login`
 - **No more out-of-sync credentials** for users (e.g. Kubeconfig)
@@ -45,7 +45,7 @@ Next, find the exposed hostname:
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
 ```
 
-Open this hostname in your browser to get started.
+Open this hostname in your browser to get started
 
 ## Connectors
 
