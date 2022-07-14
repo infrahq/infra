@@ -310,18 +310,28 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 
 	if s.options.DBHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
-		fmt.Fprintf(&pgConn, "host=%s ", s.options.DBHost)
+		host, err := secrets.GetSecret(s.options.DBHost, s.secrets)
+		if err != nil {
+			return "", fmt.Errorf("postgres host: %w", err)
+		}
+
+		fmt.Fprintf(&pgConn, "host=%s ", host)
 
 		if s.options.DBUsername != "" {
-			fmt.Fprintf(&pgConn, "user=%s ", s.options.DBUsername)
+			username, err := secrets.GetSecret(s.options.DBUsername, s.secrets)
+			if err != nil {
+				return "", fmt.Errorf("postgres username: %w", err)
+			}
+
+			fmt.Fprintf(&pgConn, "user=%s ", username)
 
 			if s.options.DBPassword != "" {
-				pass, err := secrets.GetSecret(s.options.DBPassword, s.secrets)
+				password, err := secrets.GetSecret(s.options.DBPassword, s.secrets)
 				if err != nil {
-					return "", fmt.Errorf("postgres secret: %w", err)
+					return "", fmt.Errorf("postgres password: %w", err)
 				}
 
-				fmt.Fprintf(&pgConn, "password=%s ", pass)
+				fmt.Fprintf(&pgConn, "password=%s ", password)
 			}
 		}
 
@@ -330,7 +340,12 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 		}
 
 		if s.options.DBName != "" {
-			fmt.Fprintf(&pgConn, "dbname=%s ", s.options.DBName)
+			name, err := secrets.GetSecret(s.options.DBName, s.secrets)
+			if err != nil {
+				return "", fmt.Errorf("postgres name: %w", err)
+			}
+
+			fmt.Fprintf(&pgConn, "dbname=%s ", name)
 		}
 
 		if s.options.DBParameters != "" {

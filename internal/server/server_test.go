@@ -55,49 +55,72 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
-	r := newServer(Options{})
+	run := func(opts Options) string {
+		r := newServer(opts)
+		r.secrets = map[string]secrets.SecretStorage{
+			"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
+			"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
+			"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
+		}
 
-	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
-	r.secrets["plaintext"] = f
+		url, err := r.getPostgresConnectionString()
+		assert.NilError(t, err)
+		return url
+	}
 
-	url, err := r.getPostgresConnectionString()
-	assert.NilError(t, err)
+	t.Run("empty postgres config", func(t *testing.T) {
+		url := run(Options{})
+		assert.Assert(t, is.Len(url, 0))
+	})
 
-	assert.Assert(t, is.Len(url, 0))
+	t.Run("host config", func(t *testing.T) {
+		url := run(Options{DBHost: "localhost"})
+		assert.Equal(t, url, "host=localhost")
+	})
 
-	r.options.DBHost = "localhost"
+	t.Run("host secret config", func(t *testing.T) {
+		t.Setenv("POSTGRES_HOST", "localhost")
+		url := run(Options{DBHost: "env:POSTGRES_HOST"})
+		assert.Equal(t, url, "host=localhost")
+	})
 
-	url, err = r.getPostgresConnectionString()
-	assert.NilError(t, err)
+	t.Run("host port config", func(t *testing.T) {
+		url := run(Options{DBHost: "localhost", DBPort: 5432})
+		assert.Equal(t, url, "host=localhost port=5432")
+	})
 
-	assert.Equal(t, "host=localhost", url)
+	t.Run("host username config", func(t *testing.T) {
+		url := run(Options{DBHost: "localhost", DBUsername: "postgres"})
+		assert.Equal(t, url, "host=localhost user=postgres")
+	})
 
-	r.options.DBPort = 5432
+	t.Run("host username secret config", func(t *testing.T) {
+		t.Setenv("POSTGRES_USERNAME", "postgres")
+		url := run(Options{DBHost: "localhost", DBUsername: "env:POSTGRES_USERNAME"})
+		assert.Equal(t, url, "host=localhost user=postgres")
+	})
 
-	url, err = r.getPostgresConnectionString()
-	assert.NilError(t, err)
-	assert.Equal(t, "host=localhost port=5432", url)
+	t.Run("host username password config", func(t *testing.T) {
+		url := run(Options{DBHost: "localhost", DBUsername: "postgres", DBPassword: "supersecret"})
+		assert.Equal(t, url, "host=localhost user=postgres password=supersecret")
+	})
 
-	r.options.DBUsername = "user"
+	t.Run("host username password secret config", func(t *testing.T) {
+		t.Setenv("POSTGRES_PASSWORD", "supersecret")
+		url := run(Options{DBHost: "localhost", DBUsername: "postgres", DBPassword: "env:POSTGRES_PASSWORD"})
+		assert.Equal(t, url, "host=localhost user=postgres password=supersecret")
+	})
 
-	url, err = r.getPostgresConnectionString()
-	assert.NilError(t, err)
+	t.Run("host name config", func(t *testing.T) {
+		url := run(Options{DBHost: "localhost", DBName: "postgres"})
+		assert.Equal(t, url, "host=localhost dbname=postgres")
+	})
 
-	assert.Equal(t, "host=localhost user=user port=5432", url)
-
-	r.options.DBPassword = "plaintext:secret"
-
-	url, err = r.getPostgresConnectionString()
-	assert.NilError(t, err)
-
-	assert.Equal(t, "host=localhost user=user password=secret port=5432", url)
-
-	r.options.DBName = "postgres"
-
-	url, err = r.getPostgresConnectionString()
-	assert.NilError(t, err)
-
-	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
+	t.Run("host name secret config", func(t *testing.T) {
+		t.Setenv("POSTGRES_NAME", "postgres")
+		url := run(Options{DBHost: "localhost", DBName: "env:POSTGRES_NAME"})
+		assert.Equal(t, url, "host=localhost dbname=postgres")
+	})
 }
 
 func TestServer_Run(t *testing.T) {
