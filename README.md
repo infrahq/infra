@@ -9,10 +9,10 @@
 
 ## Introduction
 
-Infra is **open-source access management** for infrastructure (Kubernetes, SSH, Databases, AWS and more):
+Infra is **open-source access management** Kubernetes, SSH, Databases, AWS and more:
 
-1. Connect infrastructure (e.g. Kubernetes, SSH, Databases, AWS and more coming soon)
-2. Add an identity provider such as Google, Okta or Azure AD, or use Infra's built-in users & groups
+1. Connect infrastructure
+2. Add an identity provider (Google, Okta or Azure AD), or use Infra's built-in users & groups
 3. Assign access (e.g. `view`, `edit` or `admin`) to users & groups on the team
 4. Users log in via Infra's CLI with `infra login`
 
