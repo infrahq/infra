@@ -1,8 +1,27 @@
 import React from 'react'
-import { render, screen, fireEvent } from '../../test-utils'
-// import userEvent from '@testing-library/user-event'
+import { render, screen, fireEvent } from '@testing-library/react'
+import useSWR from 'swr'
+import '@testing-library/jest-dom'
 
 import Login from './index'
+
+function mockedProviders() {
+  return {
+    data: {
+      items: [],
+    },
+  }
+}
+
+jest.mock('swr', () => {
+  return {
+    __esModule: true,
+    default: jest.fn(mockedProviders),
+    useSWRConfig: jest.fn(() => ({
+      mutate: () => {},
+    })),
+  }
+})
 
 describe('Login Component', () => {
   it('should render', () => {
@@ -22,41 +41,43 @@ describe('Login Component', () => {
     render(<Login />)
 
     expect(
-      screen.getByText('Welcome back. Login with your credentials')
+      screen.queryByText('Welcome back. Login with your credentials')
     ).toBeInTheDocument()
     expect(
       screen.queryByText('or via your identity provider.')
     ).not.toBeInTheDocument()
   })
 
-  // TODO: mock swr
-  // it('it renders with multiple providers', () => {
-  //   const mockedProviders = {
-  //     data: {
-  //       item: [
-  //         {
-  //           id: 0,
-  //           name: 'Okta',
-  //           kind: 'okta',
-  //           url: 'example@okta.com',
-  //         },
-  //         {
-  //           id: 1,
-  //           name: 'Azure Active Directory',
-  //           kind: 'azure',
-  //           url: 'example@azure.com',
-  //         },
-  //       ],
-  //     },
-  //   }
-  //   jest.spyOn(global, 'fetch').mockImplementation(setupFetchStub(mockedProviders))
+  it('it renders with multiple providers', () => {
+    const providers = {
+      data: {
+        items: [
+          {
+            id: 0,
+            name: 'Okta',
+            kind: 'okta',
+            url: 'example@okta.com',
+          },
+          {
+            id: 1,
+            name: 'Azure Active Directory',
+            kind: 'azure',
+            url: 'example@azure.com',
+          },
+        ],
+      },
+    }
 
-  //   render(<Login />)
+    useSWR.mockReturnValue(providers)
 
-  //   expect(
-  //     screen.getByText('or via your identity provider.')
-  //   ).toBeInTheDocument()
-  // })
+    render(<Login />)
+
+    expect(
+      screen.getByText(
+        'Welcome back. Login with your credentials or via your identity provider.'
+      )
+    ).toBeInTheDocument()
+  })
 
   it('should not enable the login button when enter username only', () => {
     render(<Login />)
@@ -91,32 +112,9 @@ describe('Login Component', () => {
     expect(screen.getByLabelText('Password')).toHaveValue('password')
     expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
   })
-
-  // it('should call onSubmit function when username and password are valid and the login button is clicked', () => {
-  //   const login = render(<Login />)
-
-  //   const instance = login.instance()
-  //   const spy = jest.spyOn(instance, 'onSubmit')
-
-  //   const usernameInput = screen.getByLabelText('Username or Email')
-  //   fireEvent.change(usernameInput, {
-  //     target: { value: 'example@infrahq.com' },
-  //   })
-
-  //   const passwordInput = screen.getByLabelText('Password')
-  //   fireEvent.change(passwordInput, {
-  //     target: { value: 'password' },
-  //   })
-
-  //   expect(screen.getByLabelText('Username or Email')).toHaveValue(
-  //     'example@infrahq.com'
-  //   )
-  //   expect(screen.getByLabelText('Password')).toHaveValue('password')
-  //   expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
-
-  //   userEvent.click(screen.getByText('Login'))
-  //   expect(spy).toHaveBeenCalled()
-  // })
 })
 
 // TEST for <Providers ... />
+// describe('Providers Component', () => {
+//   it('should render when there is provider')
+// })
