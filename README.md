@@ -1,19 +1,19 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/251292/179056556-361358af-aab9-4096-a714-87184f1afb22.svg">
-    <img alt="logo" src="https://user-images.githubusercontent.com/251292/179056708-48e3c20b-22d1-4a40-9860-2f120c52a34f.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/251292/179072134-f520904a-ccb8-44aa-9ca0-cecfa4eabe11.svg">
+    <img alt="logo" src="https://user-images.githubusercontent.com/251292/179072481-45a81045-161b-4491-8578-5f5a386a9b18.svg">
   </picture>
 </p>
 
-![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) ![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra) ![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social) ![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social) ![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)
+![GitHub commit checks state](https://img.shields.io/github/checks-status/infrahq/infra/main?label=Build) [![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green)](https://github.com/infrahq/infra/issues) [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra)](https://github.com/infrahq/infra/commits/main) [![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
 
 ## Infra
 
-**Open-source access management** for Kubernetes, SSH, Databases, AWS and more:
+Manage access to Kubernetes, SSH, Databases, AWS and more:
 
 1. Connect your infrastructure
-2. Add your identity provider (Google, Okta or Azure AD), or use Infra's built-in users & groups
-3. Assign access (e.g. `view`, `edit` or `admin`) to users & groups on your team
+2. Add your team via your identity provider (Google, Okta or Azure AD), or Infra's built-in user management
+3. Assign access (e.g. `view`, `edit` or `admin`) to any user or group
 4. Users log in via Infra's CLI with `infra login`
 
 That's it!
