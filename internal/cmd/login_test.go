@@ -515,7 +515,9 @@ func TestAuthURLForProvider(t *testing.T) {
 			"openid",
 		},
 	}
-	assert.Equal(t, authURLForProvider(okta, "state"), expectedOktaAuthURL)
+	url, err := authURLForProvider(okta, "state")
+	assert.NilError(t, err)
+	assert.Equal(t, url, expectedOktaAuthURL)
 
 	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
 	azure := api.Provider{
@@ -527,7 +529,9 @@ func TestAuthURLForProvider(t *testing.T) {
 			"openid",
 		},
 	}
-	assert.Equal(t, authURLForProvider(azure, "state"), expectedAzureAuthURL)
+	url, err = authURLForProvider(azure, "state")
+	assert.NilError(t, err)
+	assert.Equal(t, url, expectedAzureAuthURL)
 
 	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=001&prompt=consent&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
 	google := api.Provider{
@@ -539,5 +543,24 @@ func TestAuthURLForProvider(t *testing.T) {
 			"openid",
 		},
 	}
-	assert.Equal(t, authURLForProvider(google, "state"), expectedGoogleAuthURL)
+	url, err = authURLForProvider(google, "state")
+	assert.NilError(t, err)
+	assert.Equal(t, url, expectedGoogleAuthURL)
+
+	// test that the client resolve the auth URL when the server does not send it
+	// this test does an external call to example.okta.com, if it fails check your network connection
+	expectedResolvedAuthURL := "https://example.okta.com/oauth2/v1/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=openid+email+offline_access+groups&state=state"
+	oldProvider := api.Provider{
+		// no AuthURL set
+		URL:      "example.okta.com",
+		ClientID: "001",
+		Kind:     "okta",
+		Scopes: []string{
+			"email",
+			"openid",
+		},
+	}
+	url, err = authURLForProvider(oldProvider, "state")
+	assert.NilError(t, err)
+	assert.Equal(t, url, expectedResolvedAuthURL)
 }

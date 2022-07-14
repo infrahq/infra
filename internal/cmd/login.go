@@ -16,6 +16,7 @@ import (
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/cli/browser"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
@@ -303,7 +304,12 @@ func oidcflow(provider *api.Provider) (string, error) {
 		return "", err
 	}
 
-	err = browser.OpenURL(authURLForProvider(*provider, state))
+	url, err := authURLForProvider(*provider, state)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse provider URL: %w", err)
+	}
+
+	err = browser.OpenURL(url)
 	if err != nil {
 		return "", err
 	}
@@ -711,7 +717,7 @@ PROMPT:
 }
 
 // authURLForProvider builds an authorization URL that will get the information we need from an identity provider
-func authURLForProvider(provider api.Provider, state string) string {
+func authURLForProvider(provider api.Provider, state string) (string, error) {
 	// build the authorization query parameters based on attributes of the provider
 	params := url.Values{}
 	params.Add("redirect_uri", "http://localhost:8301") // where to send the access codes after the user logs in with an IDP
@@ -721,8 +727,58 @@ func authURLForProvider(provider api.Provider, state string) string {
 	}
 	params.Add("client_id", provider.ClientID)
 	params.Add("response_type", "code")
-	params.Add("scope", strings.Join(provider.Scopes, " "))
 	params.Add("state", state)
 
-	return fmt.Sprintf("%s?%s", provider.AuthURL, params.Encode())
+	authURL := provider.AuthURL
+	scopes := provider.Scopes
+
+	if authURL == "" {
+		// this is an old server that doesn't populate the auth URL
+		// we can get it ourselves, along with the scopes
+		var err error
+		authURL, scopes, err = getProviderConfig(provider)
+		if err != nil {
+			return "", err
+		}
+
+	}
+
+	params.Add("scope", strings.Join(scopes, " "))
+
+	return fmt.Sprintf("%s?%s", authURL, params.Encode()), nil
+}
+
+// getProviderConfig reads info about the OIDC provider from the .well-known/openid-configuration
+// this is used for backwards compatibility with infra server earlier than 0.13.6
+func getProviderConfig(provider api.Provider) (string, []string, error) {
+	// find out what the authorization endpoint is
+	providerClient, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://%s", provider.URL))
+	if err != nil {
+		return "", []string{}, fmt.Errorf("get provider oidc info: %w", err)
+	}
+
+	// claims are the attributes of the user we want to know from the identity provider
+	var claims struct {
+		ScopesSupported []string `json:"scopes_supported"`
+	}
+
+	if err := providerClient.Claims(&claims); err != nil {
+		return "", []string{}, fmt.Errorf("parsing claims: %w", err)
+	}
+
+	scopes := []string{"openid", "email"} // openid and email are required scopes for login to work
+
+	// we want to be able to use these scopes to access groups, but they are not needed
+	wantScope := map[string]bool{
+		"groups":         true,
+		"offline_access": true,
+	}
+
+	for _, scope := range claims.ScopesSupported {
+		if wantScope[scope] {
+			scopes = append(scopes, scope)
+		}
+	}
+
+	return providerClient.Endpoint().AuthURL, scopes, nil
 }
