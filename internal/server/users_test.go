@@ -64,7 +64,8 @@ func TestAPI_GetUser(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.3")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -172,37 +173,6 @@ func TestAPI_GetUser(t *testing.T) {
 			run(t, tc)
 		})
 	}
-}
-
-func TestAPI_GetUserProviderNameResponse(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-
-	user := &models.Identity{Name: "steve"}
-	err := data.CreateIdentity(srv.db, user)
-	assert.NilError(t, err)
-
-	p := data.InfraProvider(srv.db)
-
-	_, err = data.CreateProviderUser(srv.db, p, user)
-	assert.NilError(t, err)
-
-	req, err := http.NewRequest(http.MethodGet, "/api/users/"+user.ID.String(), nil)
-	assert.NilError(t, err)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.13.3")
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	t.Log(resp.Body.String())
-	assert.Equal(t, 200, resp.Code)
-
-	u := &api.User{}
-
-	err = json.Unmarshal(resp.Body.Bytes(), u)
-	assert.NilError(t, err)
-	assert.DeepEqual(t, []string{"infra"}, u.ProviderNames)
 }
 
 var defaultPagination api.PaginationResponse
