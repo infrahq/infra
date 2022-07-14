@@ -168,3 +168,26 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 		assert.NilError(t, err)
 	})
 }
+
+func TestCountProvidersByKind(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "oidc", Kind: "oidc"}))
+		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta", Kind: "okta"}))
+		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta2", Kind: "okta"}))
+		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "azure", Kind: "azure"}))
+		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "google", Kind: "google"}))
+
+		actual, err := CountProvidersByKind(db)
+		assert.NilError(t, err)
+
+		expected := []providersCount{
+			{Kind: "azure", Count: 1},
+			{Kind: "google", Count: 1},
+			{Kind: "infra", Count: 1},
+			{Kind: "oidc", Count: 1},
+			{Kind: "okta", Count: 2},
+		}
+
+		assert.DeepEqual(t, actual, expected)
+	})
+}
