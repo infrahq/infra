@@ -55,11 +55,6 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	err = data.CreateIdentity(db, identity)
 	assert.NilError(t, err)
 
-	err = data.SaveSettings(db, &models.Settings{
-		LengthMin: 8,
-	})
-	assert.NilError(t, err)
-
 	return c, db, provider
 }
 

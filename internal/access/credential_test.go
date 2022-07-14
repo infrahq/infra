@@ -10,6 +10,55 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+func TestSettingsPasswordRequirements(t *testing.T) {
+	c, db, _ := setupAccessTestContext(t)
+
+	username := "bruce@example.com"
+	user := &models.Identity{Name: username}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+
+	_, err = CreateCredential(c, *user)
+	assert.NilError(t, err)
+
+	err = data.SaveSettings(db, &models.Settings{
+		LengthMin: 8,
+	})
+	assert.NilError(t, err)
+	t.Run("Update user credentials fails if less than min length", func(t *testing.T) {
+		err := UpdateCredential(c, user, "short")
+		assert.ErrorContains(t, err, "does not pass requirements")
+		assert.ErrorContains(t, err, "needs minimum length of 8")
+	})
+
+	// Test min length success
+	settings, err := data.GetSettings(db)
+	assert.NilError(t, err)
+	settings.LengthMin = 5
+	err = data.SaveSettings(db, settings)
+	assert.NilError(t, err)
+	t.Run("Update user credentials passes if equal than min length", func(t *testing.T) {
+		err := UpdateCredential(c, user, "short")
+		assert.NilError(t, err)
+	})
+	t.Run("Update user credentials passes if equal than min length", func(t *testing.T) {
+		err := UpdateCredential(c, user, "longer")
+		assert.NilError(t, err)
+	})
+
+	// Test multiple failures
+	settings.LengthMin = 10
+	settings.SymbolMin = 1
+	err = data.SaveSettings(db, settings)
+	assert.NilError(t, err)
+	t.Run("Update user credentials fails with multiple requirement failures", func(t *testing.T) {
+		err := UpdateCredential(c, user, "badpw")
+		assert.ErrorContains(t, err, "does not pass requirements")
+		assert.ErrorContains(t, err, "needs minimum 1 symbols")
+		assert.ErrorContains(t, err, "needs minimum length of 10")
+	})
+}
+
 func TestCreateCredential(t *testing.T) {
 	c, db, _ := setupAccessTestContext(t)
 

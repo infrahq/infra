@@ -143,11 +143,11 @@ func checkPasswordRequirements(db *gorm.DB, password string) error {
 	}
 
 	if len(password) < settings.LengthMin {
-		errs = append(errs, fmt.Sprintf("needs min length of %d", settings.LengthMin))
+		errs = append(errs, fmt.Sprintf("needs minimum length of %d", settings.LengthMin))
 	}
 
 	if len(errs) > 0 {
-		err := fmt.Errorf(fmt.Sprintf("%v", errs))
+		err := fmt.Errorf(fmt.Sprintf("%#v", errs))
 		// Wrap so it is easier to parse the list of errors
 		return fmt.Errorf("cannot update password: new password does not pass requirements: %w", err)
 	}
