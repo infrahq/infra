@@ -6,14 +6,17 @@ import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
 
 import { sortBySubject, sortByPrivilege } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
+
 import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
 import EmptyTable from '../../components/empty-table'
-import DeleteModal from '../../components/delete-modal'
 import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 import RoleSelect from '../../components/role-select'
 import GrantForm from '../../components/grant-form'
+import EmptyData from '../../components/empty-data'
+import Metadata from '../../components/metadata'
+import RemoveButton from '../../components/remove-button'
 
 function parent(resource = '') {
   const parts = resource.split('.')
@@ -40,18 +43,32 @@ function Details({ destination, onDelete }) {
   const showConnect = grants?.find(
     g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
   )
-
   const usergrants = [...(grants || []), ...(inherited || [])]?.filter(
     g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
   )
   const userroles = [
     ...new Set(usergrants?.sort(sortByPrivilege)?.map(ug => ug.privilege)),
   ]
-
   const empty =
     grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const metadata = [
+    { title: 'ID', data: destination.id || '-' },
+    { title: 'Kind', data: destination.kind || '-' },
+    {
+      title: 'Added',
+      data: destination?.created ? dayjs(destination.created).fromNow() : '-',
+    },
+    {
+      title: 'Updated',
+      data: destination?.updated
+        ? dayjs(destination.upd?.updated).fromNow()
+        : '-',
+    },
+    {
+      title: 'Connector Version',
+      data: destination.version || '-',
+    },
+  ]
 
   return (
     <div className='flex flex-1 flex-col space-y-6'>
@@ -85,9 +102,9 @@ function Details({ destination, onDelete }) {
           />
           <div className='mt-4'>
             {empty && (
-              <div className='mt-6 text-2xs italic text-gray-400'>
-                No access
-              </div>
+              <EmptyData>
+                <div className='mt-6'>No access</div>
+              </EmptyData>
             )}
             {grants
               ?.sort(sortByPrivilege)
@@ -196,57 +213,16 @@ function Details({ destination, onDelete }) {
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
         </h3>
-        <div className='flex flex-col space-y-2 pt-3'>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>ID</div>
-            <div className='text-2xs'>{destination.id || '-'}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Kind</div>
-            <div className='text-2xs'>{destination.kind || '-'}</div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Added</div>
-            <div className='text-2xs'>
-              {destination?.created
-                ? dayjs(destination.created).fromNow()
-                : '-'}
-            </div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>Updated</div>
-            <div className='text-2xs'>
-              {destination?.updated
-                ? dayjs(destination.updated).fromNow()
-                : '-'}
-            </div>
-          </div>
-          <div className='flex flex-row items-center'>
-            <div className='w-1/3 text-2xs text-gray-400'>
-              Connector Version
-            </div>
-            <div className='text-2xs'>{destination.version || '-'}</div>
-          </div>
-        </div>
+        <Metadata data={metadata} />
       </section>
       {admin && destination.id && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <button
-            type='button'
-            onClick={() => setDeleteModalOpen(true)}
-            className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'
-          >
-            Remove
-          </button>
-          <DeleteModal
-            open={deleteModalOpen}
-            setOpen={setDeleteModalOpen}
-            onSubmit={async () => {
-              setDeleteModalOpen(false)
+          <RemoveButton
+            onRemove={async () => {
               onDelete()
             }}
-            title='Remove Cluster'
-            message={
+            modalTitle='Remove Cluster'
+            modalMessage={
               <>
                 Are you sure you want to disconnect{' '}
                 <span className='font-bold text-white'>
