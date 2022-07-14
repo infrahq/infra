@@ -50,6 +50,9 @@ func TestTLSConfigFromOptions(t *testing.T) {
 	})
 
 	t.Run("generate TLS cert from CA", func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("too slow for short run")
+		}
 		opts := TLSOptions{
 			CA:           types.StringOrFile(ca),
 			CAPrivateKey: "file:testdata/pki/ca.key",

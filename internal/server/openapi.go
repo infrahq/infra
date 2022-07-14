@@ -16,6 +16,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 var pathIDReplacer = regexp.MustCompile(`:\w+`)
@@ -423,6 +424,12 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 					op.AddParameter(param.Value)
 				}
 			}
+
+			if req, ok := reflect.New(f.Type).Interface().(validate.Request); ok {
+				for _, rule := range req.ValidationRules() {
+					rule.DescribeSchema(schema)
+				}
+			}
 			continue
 		}
 
@@ -494,6 +501,12 @@ func buildRequest(r reflect.Type, op *openapi3.Operation) {
 		}
 
 		op.AddParameter(p)
+	}
+
+	if req, ok := reflect.New(r).Interface().(validate.Request); ok {
+		for _, rule := range req.ValidationRules() {
+			rule.DescribeSchema(schema)
+		}
 	}
 
 	if len(schema.Properties) > 0 {
