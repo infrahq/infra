@@ -131,8 +131,13 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			var rows []row
 
 			logging.Debugf("call server: list users")
-			users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers, handleListUserMissingPrivilige)
+			users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers)
 			if err != nil {
+				if errors.Is(err, ErrMissingPrivileges) {
+					return Error{
+						Message: fmt.Sprintf("Cannot list users: %s", err.Error()),
+					}
+				}
 				return err
 			}
 
@@ -426,14 +431,4 @@ func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientH
 	}
 
 	return len(grants.Items) > 0, nil
-}
-
-func handleListUserMissingPrivilige(err error) error {
-	if api.ErrorStatusCode(err) == 403 {
-		logging.Debugf("%s", err.Error())
-		return Error{
-			Message: "Cannot list users: missing privileges for ListUsers",
-		}
-	}
-	return err
 }

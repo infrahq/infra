@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
 const thirtyDays = 30 * (24 * time.Hour)
@@ -196,7 +198,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var keys []api.AccessKey
-
+			var userID uid.ID
 			if options.UserName != "" {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
@@ -208,18 +210,18 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					}
 					return err
 				}
+				userID = user.ID
+			}
 
-				logging.Debugf("call server: list access keys for user %s", user.ID)
-				keys, err = listAll(client, api.ListAccessKeysRequest{UserID: user.ID, ShowExpired: options.ShowExpired}, api.Client.ListAccessKeys, handleListKeysMissingPrivilege)
-				if err != nil {
-					return err
+			logging.Debugf("call server: list access keys")
+			keys, err = listAll(client, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID}, api.Client.ListAccessKeys)
+			if err != nil {
+				if errors.Is(err, ErrMissingPrivileges) {
+					return Error{
+						Message: fmt.Sprintf("Cannot list keys: %s", err.Error()),
+					}
 				}
-			} else {
-				logging.Debugf("call server: list access keys")
-				keys, err = listAll(client, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired}, api.Client.ListAccessKeys, handleListKeysMissingPrivilege)
-				if err != nil {
-					return err
-				}
+				return err
 			}
 
 			type row struct {

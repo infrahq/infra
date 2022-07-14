@@ -21,7 +21,8 @@ var (
 
 // User facing constant errors: to let user know why their command failed. Not meant for a stack trace, but a readable output of the reason for failure.
 var (
-	ErrTLSNotVerified = errors.New(`The authenticity of the host can't be established.`)
+	ErrTLSNotVerified    = errors.New(`The authenticity of the host can't be established.`)
+	ErrMissingPrivileges = errors.New("missing privileges")
 )
 
 type LoginError struct {

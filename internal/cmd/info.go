@@ -62,7 +62,7 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	userGroups, err := listAll(client, api.ListGroupsRequest{UserID: config.UserID}, api.Client.ListGroups, nil)
+	userGroups, err := listAll(client, api.ListGroupsRequest{UserID: config.UserID}, api.Client.ListGroups)
 	if err != nil {
 		return err
 	}

@@ -57,8 +57,13 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			grants, err := listAll(client, api.ListGrantsRequest{Resource: options.Destination}, api.Client.ListGrants, handleListGrantsMissingPrivilege)
+			grants, err := listAll(client, api.ListGrantsRequest{Resource: options.Destination}, api.Client.ListGrants)
 			if err != nil {
+				if errors.Is(err, ErrMissingPrivileges) {
+					return Error{
+						Message: fmt.Sprintf("Cannot list grants: %s", err.Error()),
+					}
+				}
 				return err
 			}
 
@@ -89,8 +94,13 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 }
 
 func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers, handleListUserMissingPrivilige)
+	users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers)
 	if err != nil {
+		if errors.Is(err, ErrMissingPrivileges) {
+			return 0, Error{
+				Message: fmt.Sprintf("Cannot list users for grants: %s", err.Error()),
+			}
+		}
 		return 0, err
 	}
 
@@ -129,7 +139,7 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 }
 
 func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	groups, err := listAll(client, api.ListGroupsRequest{}, api.Client.ListGroups, nil)
+	groups, err := listAll(client, api.ListGroupsRequest{}, api.Client.ListGroups)
 	if err != nil {
 		return 0, err
 	}
@@ -458,14 +468,4 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 	}
 
 	return nil
-}
-
-func handleListGrantsMissingPrivilege(err error) error {
-	if api.ErrorStatusCode(err) == 403 {
-		logging.Debugf("%s", err.Error())
-		return Error{
-			Message: "Cannot list grants: missing privileges for ListGrants",
-		}
-	}
-	return err
 }
