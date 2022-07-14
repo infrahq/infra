@@ -11,11 +11,7 @@
 
 Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more).
 
-<br />
-
 ![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
-
-<br />
 
 ### Features
 
