@@ -11,14 +11,19 @@
 
 Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more).
 
-## Features
+<br />
 
 ![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
 
-- **Discover & access** infrastructure in one place
+<br />
+
+### Features
+
+- **Discover & access** all infrastructure in one place
 - **No more out of sync credentials** or user configurations: Infra automatically rotates credentials
 - **Support for native RBAC**: edit, view and even support custom roles like `exec`
 - **Onboard and offboard users via an identity provider** (Okta, Azure AD, Google or OIDC)
+- **Management dashboard** for easy management
 - **Audit logs**: see who did what, when to stay compliant (coming soon)
 
 ## Get Started
