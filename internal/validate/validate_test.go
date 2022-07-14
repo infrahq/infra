@@ -26,6 +26,8 @@ type ExampleRequest struct {
 
 	TooLow  int
 	TooHigh int
+
+	Kind string
 }
 
 func (r ExampleRequest) ValidationRules() []ValidationRule {
@@ -56,9 +58,9 @@ func (r ExampleRequest) ValidationRules() []ValidationRule {
 		StringRule{
 			CharacterRanges: []CharRange{AlphabetLower},
 		},
-
 		IntRule{Name: "tooLow", Value: r.TooLow, Min: Int(20)},
 		IntRule{Name: "tooHigh", Value: r.TooHigh, Max: Int(20)},
+		Enum("kind", r.Kind, []string{"fruit", "legume", "grain"}),
 	}
 }
 
@@ -88,6 +90,7 @@ func TestValidate_AllRules(t *testing.T) {
 			WrongOnes:  "ah CAPS",
 			TooLow:     2,
 			TooHigh:    22,
+			Kind:       "fish",
 		}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -106,6 +109,7 @@ func TestValidate_AllRules(t *testing.T) {
 			"tooMany":    {"length of string (6) must be no more than 5"},
 			"tooHigh":    {"value (22) must be at most 20"},
 			"tooLow":     {"value (2) must be at least 20"},
+			"kind":       {"must be one of (fruit, legume, grain)"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})

@@ -3,6 +3,7 @@ package validate
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -105,4 +106,36 @@ func inRange(ranges []CharRange, c rune) bool {
 		}
 	}
 	return false
+}
+
+// Enum returns a validation rule that checks that value is one of the allowed
+// strings.
+func Enum(name string, value string, allowed []string) ValidationRule {
+	return enum{Name: name, Value: value, Allowed: allowed}
+}
+
+type enum struct {
+	Name    string
+	Value   string
+	Allowed []string
+}
+
+func (e enum) Validate() *Failure {
+	if e.Value == "" {
+		return nil
+	}
+	for _, ok := range e.Allowed {
+		if e.Value == ok {
+			return nil
+		}
+	}
+	msg := fmt.Sprintf("must be one of (%v)", strings.Join(e.Allowed, ", "))
+	return fail(e.Name, msg)
+}
+
+func (e enum) DescribeSchema(parent *openapi3.Schema) {
+	schema := schemaForProperty(parent, e.Name)
+	for _, v := range e.Allowed {
+		schema.Enum = append(schema.Enum, v)
+	}
 }
