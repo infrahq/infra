@@ -9,7 +9,14 @@
 
 ## Introduction
 
-Infra is open-source access management for infrastructure (Kubernetes, SSH, Databases, AWS and more).
+Infra is **open-source access management** for infrastructure (Kubernetes, SSH, Databases, AWS and more):
+
+1. Connect infrastructure (e.g. Kubernetes, SSH, Databases, AWS and more coming soon)
+2. Add an identity provider such as Google, Okta or Azure AD, or use Infra's built-in users & groups
+3. Assign access (e.g. `view`, `edit` or `admin`) to users & groups on the team
+4. Users log in via Infra's CLI with `infra login`
+
+That's it!
 
 ![dashboard](https://user-images.githubusercontent.com/251292/179054958-cba0e177-dd35-42ea-ad28-a6c8a79e697a.png)
 
@@ -24,7 +31,7 @@ Infra is open-source access management for infrastructure (Kubernetes, SSH, Data
 
 ## Get Started
 
-Deploy Infra:
+Deploy Infra
 
 ```
 helm repo add infrahq https://helm.infrahq.com
@@ -42,10 +49,11 @@ Next, navigate to [https://<INFRA_SERVER>](https://<INFRA_SERVER>) to open the I
 
 ## Documentation
 
-- [Quickstart](https://infrahq.com/docs/getting-started/quickstart)
+- [Log in via Infra CLI](https://infrahq.com/docs/configuration/logging-in)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)
 - [Security](https://infrahq.com/docs/reference/security)
+- [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 
 ## Community
 
