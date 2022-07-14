@@ -142,7 +142,7 @@ func checkPasswordRequirements(db *gorm.DB, password string) error {
 		errs = append(errs, fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
 	}
 
-	if len(password) > settings.LengthMin {
+	if len(password) < settings.LengthMin {
 		errs = append(errs, fmt.Sprintf("needs min length of %d", settings.LengthMin))
 	}
 
