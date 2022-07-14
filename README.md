@@ -11,9 +11,9 @@
 
 Infra is **open-source access management** Kubernetes, SSH, Databases, AWS and more:
 
-1. Connect infrastructure
-2. Add an identity provider (Google, Okta or Azure AD), or use Infra's built-in users & groups
-3. Assign access (e.g. `view`, `edit` or `admin`) to users & groups on the team
+1. Connect your infrastructure
+2. Add your identity provider (Google, Okta or Azure AD), or use Infra's built-in users & groups
+3. Assign access (e.g. `view`, `edit` or `admin`) to users & groups on your team
 4. Users log in via Infra's CLI with `infra login`
 
 That's it!
@@ -31,7 +31,7 @@ That's it!
 
 ## Get Started
 
-Deploy Infra
+Deploy Infra via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com
@@ -45,7 +45,7 @@ Next, retrieve the hostname of the Infra server:
 INFRA_SERVER=$(kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[\*]['ip', 'hostname']}" -w)
 ```
 
-Next, navigate to [https://<INFRA_SERVER>](https://<INFRA_SERVER>) to open the Infra Dashboard
+Next, navigate to [https://<INFRA_SERVER>](https://<INFRA_SERVER>) to open the Infra Dashboard and get started
 
 ## Documentation
 
