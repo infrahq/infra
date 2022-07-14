@@ -8,6 +8,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
@@ -18,7 +19,12 @@ func TestAPI_ListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
+	testProvider := &models.Provider{
+		Name:    "mokta",
+		Kind:    models.ProviderKindOkta,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
+	}
 
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
@@ -44,6 +50,8 @@ func TestAPI_ListProviders(t *testing.T) {
 
 	assert.Equal(t, len(apiProviders.Items), 1)
 	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
+	assert.Equal(t, apiProviders.Items[0].AuthURL, "https://example.com/v1/auth")
+	assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, []string{"openid", "email"}))
 }
 
 func TestAPI_DeleteProvider(t *testing.T) {
