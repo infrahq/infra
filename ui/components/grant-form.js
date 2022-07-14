@@ -4,7 +4,7 @@ import { Combobox } from '@headlessui/react'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleSelect from './role-select'
-import ListRow from './list-row'
+import ComboboxItem from './combobox-item'
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
@@ -73,7 +73,11 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
                     }`
                   }
                 >
-                  <ListRow item={f} selected={selected} />
+                  <ComboboxItem
+                    title={f.name}
+                    subtitle={f.user ? 'User' : f.group ? 'Group' : ''}
+                    selected={selected && selected.id === f.id}
+                  />
                 </Combobox.Option>
               ))}
             </Combobox.Options>

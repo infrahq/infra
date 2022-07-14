@@ -98,12 +98,26 @@ function Details({ user, admin, onDelete }) {
             </h3>
             <GrantsList
               grants={grants}
-              onRemove={id =>
+              onRemove={async id => {
+                await fetch(`/api/grants/${id}`, { method: 'DELETE' })
                 mutate({ items: grants.filter(x => x.id !== id) })
-              }
-              onChange={async (res, id) => {
+              }}
+              onChange={async (privilege, grant) => {
+                const res = await fetch('/api/grants', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    ...grant,
+                    privilege,
+                  }),
+                })
+
+                // delete old grant
+                await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
                 mutate({
-                  items: [...grants.filter(f => f.id !== id), await res.json()],
+                  items: [
+                    ...grants.filter(f => f.id !== grant.id),
+                    await res.json(),
+                  ],
                 })
               }}
             />

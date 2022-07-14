@@ -13,23 +13,9 @@ export default function GrantsList({ grants, onRemove, onChange }) {
             resource={g.resource}
             remove
             direction='left'
-            onRemove={async () => {
-              await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-              onRemove(g.id)
-            }}
-            onChange={async privilege => {
-              const res = await fetch('/api/grants', {
-                method: 'POST',
-                body: JSON.stringify({
-                  ...g,
-                  privilege,
-                }),
-              })
-
-              // delete old grant
-              await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-
-              onChange(res, g.id)
+            onRemove={onRemove(g.id)}
+            onChange={privilege => {
+              onChange(privilege, g)
             }}
           />
         </div>

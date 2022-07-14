@@ -2,7 +2,7 @@ import { Combobox } from '@headlessui/react'
 import { useRef } from 'react'
 
 import Badge from './badge'
-import ListRow from './list-row'
+import ComboboxItem from './combobox-item'
 
 export default function TypeaheadCombobox({
   selectedEmails,
@@ -55,7 +55,10 @@ export default function TypeaheadCombobox({
                 }`
               }
             >
-              <ListRow item={f} />
+              <ComboboxItem
+                title={f.name}
+                subtitle={f.user ? 'User' : f.group ? 'Group' : ''}
+              />
             </Combobox.Option>
           ))}
         </Combobox.Options>
