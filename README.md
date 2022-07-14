@@ -61,8 +61,8 @@ Open this hostname in your browser to get started
 
 ## Documentation
 
-- [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 - [Login via Infra CLI](https://infrahq.com/docs/configuration/logging-in)
+- [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)
 - [Security](https://infrahq.com/docs/reference/security)
