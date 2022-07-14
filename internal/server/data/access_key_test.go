@@ -153,6 +153,56 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 	})
 }
 
+func TestListAccessKeys(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		user := &models.Identity{Name: "tmp@infrahq.com"}
+		err := CreateIdentity(db, user)
+		assert.NilError(t, err)
+
+		token := &models.AccessKey{
+			Name:       "first",
+			Model:      models.Model{ID: 0},
+			IssuedFor:  user.ID,
+			ProviderID: InfraProvider(db).ID,
+			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
+			KeyID:      "1234567890",
+		}
+		_, err = CreateAccessKey(db, token)
+		assert.NilError(t, err)
+
+		token = &models.AccessKey{
+			Name:       "second",
+			Model:      models.Model{ID: 1},
+			IssuedFor:  user.ID,
+			ProviderID: InfraProvider(db).ID,
+			ExpiresAt:  time.Now().Add(-time.Hour).UTC(),
+			KeyID:      "1234567891",
+		}
+		_, err = CreateAccessKey(db, token)
+		assert.NilError(t, err)
+
+		token = &models.AccessKey{
+			Name:              "third",
+			Model:             models.Model{ID: 2},
+			IssuedFor:         user.ID,
+			ProviderID:        InfraProvider(db).ID,
+			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
+			ExtensionDeadline: time.Now().Add(-time.Hour).UTC(),
+			KeyID:             "1234567892",
+		}
+		_, err = CreateAccessKey(db, token)
+		assert.NilError(t, err)
+
+		keys, err := ListAccessKeys(db, &models.Pagination{}, ByNotExpiredOrExtended())
+		assert.NilError(t, err)
+		assert.Assert(t, len(keys) == 1)
+
+		keys, err = ListAccessKeys(db, &models.Pagination{})
+		assert.NilError(t, err)
+		assert.Assert(t, len(keys) == 3)
+	})
+}
+
 func createTestAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.Identity{Name: "tmp@infrahq.com"}
 	err := CreateIdentity(db, user)
