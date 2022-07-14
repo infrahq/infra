@@ -39,7 +39,14 @@ func (r ListUsersRequest) ValidationRules() []validate.ValidationRule {
 
 // CreateUserRequest is only for creating users with the Infra provider
 type CreateUserRequest struct {
-	Name string `json:"name" validate:"email,required"`
+	Name string `json:"name"`
+}
+
+func (r CreateUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("name", r.Name),
+		validate.Email("name", r.Name),
+	}
 }
 
 type CreateUserResponse struct {
@@ -49,6 +56,14 @@ type CreateUserResponse struct {
 }
 
 type UpdateUserRequest struct {
-	ID       uid.ID `uri:"id" json:"-" validate:"required"`
-	Password string `json:"password" validate:"required,min=8"`
+	ID       uid.ID `uri:"id" json:"-"`
+	Password string `json:"password"`
+}
+
+func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+		validate.Required("password", r.Password),
+		validate.StringRule{Name: "password", Value: r.Password, MinLength: 8},
+	}
 }

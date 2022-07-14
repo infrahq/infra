@@ -422,7 +422,8 @@ func TestAPI_CreateUser(t *testing.T) {
 		body := jsonBody(t, tc.body)
 		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -463,7 +464,26 @@ func TestAPI_CreateUser(t *testing.T) {
 				var apiError api.Error
 				err := json.NewDecoder(resp.Body).Decode(&apiError)
 				assert.NilError(t, err)
-				assert.Equal(t, apiError.Message, "Name: failed the \"email\" check")
+
+				expected := []api.FieldError{
+					{FieldName: "name", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, apiError.FieldErrors, expected)
+			},
+		},
+		"invalid name": {
+			body: api.CreateUserRequest{Name: "not an email"},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				var apiError api.Error
+				err := json.NewDecoder(resp.Body).Decode(&apiError)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "name", Errors: []string{"invalid email address"}},
+				}
+				assert.DeepEqual(t, apiError.FieldErrors, expected)
 			},
 		},
 		"create new unlinked user": {
@@ -693,6 +713,103 @@ func TestAPI_DeleteUser(t *testing.T) {
 			urlPath: "/api/users/" + testUser.ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_UpdateUser(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	user := &models.Identity{Name: "salsa@example.com"}
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		body     api.UpdateUserRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		id := user.ID.String()
+		req, err := http.NewRequest(http.MethodPut, "/api/users/"+id, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			body: api.UpdateUserRequest{Password: "new-password"},
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		// TODO: authorized by self
+		{
+			name: "missing required fields",
+			body: api.UpdateUserRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "password", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid password",
+			body: api.UpdateUserRequest{Password: "short"},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "password", Errors: []string{"length of string (5) must be at least 8"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
 	}
