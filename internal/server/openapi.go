@@ -189,6 +189,12 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 			f2 := t.Field(i)
 			s.Properties[getFieldName(f2, t)] = buildProperty(f2, f2.Type, t, s)
 		}
+
+		if req, ok := reflect.New(t).Interface().(validate.Request); ok {
+			for _, rule := range req.ValidationRules() {
+				rule.DescribeSchema(s)
+			}
+		}
 	}
 
 	return &openapi3.SchemaRef{Value: s}

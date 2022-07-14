@@ -21,7 +21,9 @@ type ListGroupsRequest struct {
 }
 
 func (r ListGroupsRequest) ValidationRules() []validate.ValidationRule {
-	return r.PaginationRequest.ValidationRules()
+	// no-op ValidationRules implementation so that the rules from the
+	// embedded PaginationRequest struct are not applied twice.
+	return nil
 }
 
 type CreateGroupRequest struct {
