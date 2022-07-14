@@ -665,73 +665,71 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 }
 
 func TestAPI_DeleteUser(t *testing.T) {
-	s := setupServer(t, withAdminUser)
-
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-
-	testUser := &models.Identity{Name: "test"}
-
-	err := data.CreateIdentity(s.db, testUser)
-	assert.NilError(t, err)
-
-	route := fmt.Sprintf("/api/users/%s", testUser.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
-
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
-}
-
-func TestAPI_DeleteUser_NoDeleteInternalIdentities(t *testing.T) {
-	s := setupServer(t, withAdminUser)
-
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	connector := data.InfraConnectorIdentity(s.db)
-
-	route := fmt.Sprintf("/api/users/%s", connector.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
-
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
-}
-
-func TestAPI_DeleteUser_NoDeleteSelf(t *testing.T) {
-	s := setupServer(t)
-
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	testUser := &models.Identity{Name: "test"}
-
-	err := data.CreateIdentity(s.db, testUser)
+	err := data.CreateIdentity(srv.db, testUser)
 	assert.NilError(t, err)
 
-	internalProvider := data.InfraProvider(s.db)
+	connector := data.InfraConnectorIdentity(srv.db)
 
-	testAccessKey, err := data.CreateAccessKey(s.db, &models.AccessKey{
-		Name:       "test",
-		IssuedFor:  testUser.ID,
-		ExpiresAt:  time.Now().Add(time.Hour),
-		ProviderID: internalProvider.ID,
-	})
-	assert.NilError(t, err)
+	type testCase struct {
+		name     string
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
 
-	route := fmt.Sprintf("/api/users/%s", testUser.ID)
-	req, err := http.NewRequest(http.MethodDelete, route, nil)
-	assert.NilError(t, err)
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
+		assert.NilError(t, err)
 
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", testAccessKey))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
 
-	assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		// TODO: not authenticated
+		// TODO: not authorized
+		{
+			name:    "can not delete internal users",
+			urlPath: "/api/users/" + connector.ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
+			},
+		},
+		{
+			name: "can not delete self",
+			setup: func(t *testing.T, req *http.Request) {
+				key, user := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", key))
+				req.URL.Path = "/api/users/" + user.ID.String()
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
+			},
+		},
+		{
+			name:    "success",
+			urlPath: "/api/users/" + testUser.ID.String(),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusNoContent, resp.Code, resp.Body.String())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
