@@ -6,7 +6,13 @@ import (
 )
 
 type GetUserRequest struct {
-	ID IDOrSelf `uri:"id" validate:"required"`
+	ID IDOrSelf `uri:"id"`
+}
+
+func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+	}
 }
 
 type User struct {
@@ -14,7 +20,7 @@ type User struct {
 	Created       Time     `json:"created"`
 	Updated       Time     `json:"updated"`
 	LastSeenAt    Time     `json:"lastSeenAt"`
-	Name          string   `json:"name" validate:"required"`
+	Name          string   `json:"name"`
 	ProviderNames []string `json:"providerNames,omitempty"`
 }
 
@@ -38,7 +44,7 @@ type CreateUserRequest struct {
 
 type CreateUserResponse struct {
 	ID              uid.ID `json:"id"`
-	Name            string `json:"name" validate:"required"`
+	Name            string `json:"name"`
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }
 
