@@ -214,7 +214,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list access keys")
-			keys, err = listAll(client, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID}, api.Client.ListAccessKeys)
+			keys, err = listAll(client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
 			if err != nil {
 				if errors.Is(err, ErrMissingPrivileges) {
 					return Error{

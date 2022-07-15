@@ -70,7 +70,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list providers")
-			providers, err := listAll(client, api.ListProvidersRequest{}, api.Client.ListProviders)
+			providers, err := listAll(client.ListProviders, api.ListProvidersRequest{})
 			if err != nil {
 				return err
 			}

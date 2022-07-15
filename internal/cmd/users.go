@@ -131,7 +131,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			var rows []row
 
 			logging.Debugf("call server: list users")
-			users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers)
+			users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 			if err != nil {
 				if errors.Is(err, ErrMissingPrivileges) {
 					return Error{

@@ -57,7 +57,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			grants, err := listAll(client, api.ListGrantsRequest{Resource: options.Destination}, api.Client.ListGrants)
+			grants, err := listAll(client.ListGrants, api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
 				if errors.Is(err, ErrMissingPrivileges) {
 					return Error{
@@ -94,7 +94,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 }
 
 func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	users, err := listAll(client, api.ListUsersRequest{}, api.Client.ListUsers)
+	users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 	if err != nil {
 		if errors.Is(err, ErrMissingPrivileges) {
 			return 0, Error{
@@ -139,7 +139,7 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 }
 
 func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	groups, err := listAll(client, api.ListGroupsRequest{}, api.Client.ListGroups)
+	groups, err := listAll(client.ListGroups, api.ListGroupsRequest{})
 	if err != nil {
 		return 0, err
 	}

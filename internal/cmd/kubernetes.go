@@ -57,7 +57,7 @@ func kubernetesSetContext(cluster, namespace string) error {
 }
 
 func updateKubeConfig(client *api.Client, id uid.ID) error {
-	destinations, err := listAll(client, api.ListDestinationsRequest{}, api.Client.ListDestinations)
+	destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func updateKubeConfig(client *api.Client, id uid.ID) error {
 		return err
 	}
 
-	grants, err := listAll(client, api.ListGrantsRequest{User: id, ShowInherited: true}, api.Client.ListGrants)
+	grants, err := listAll(client.ListGrants, api.ListGrantsRequest{User: id, ShowInherited: true})
 	if err != nil {
 		return err
 	}
