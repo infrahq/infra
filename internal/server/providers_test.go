@@ -1,24 +1,33 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 )
 
 func TestAPI_ListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
-	testProvider := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
+	testProvider := &models.Provider{
+		Name:    "mokta",
+		Kind:    models.ProviderKindOkta,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
+	}
 
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
@@ -44,6 +53,8 @@ func TestAPI_ListProviders(t *testing.T) {
 
 	assert.Equal(t, len(apiProviders.Items), 1)
 	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
+	assert.Equal(t, apiProviders.Items[0].AuthURL, "https://example.com/v1/auth")
+	assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, []string{"openid", "email"}))
 }
 
 func TestAPI_DeleteProvider(t *testing.T) {
@@ -119,4 +130,256 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestAPI_CreateProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	type testCase struct {
+		name     string
+		body     api.CreateProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		req, err := http.NewRequest(http.MethodPost, "/api/providers", body)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			body: api.CreateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "missing required fields",
+			body: api.CreateProviderRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "clientID", Errors: []string{"is required"}},
+					{FieldName: "clientSecret", Errors: []string{"is required"}},
+					{FieldName: "name", Errors: []string{"is required"}},
+					{FieldName: "url", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid kind",
+			body: api.CreateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         "vegetable",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "kind", Errors: []string{"must be one of (oidc, okta, azure, google)"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_UpdateProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	provider := &models.Provider{
+		Name:    "private",
+		Kind:    models.ProviderKindAzure,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
+	}
+
+	err := data.CreateProvider(srv.db, provider)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		body     api.UpdateProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		id := provider.ID.String()
+		req, err := http.NewRequest(http.MethodPut, "/api/providers/"+id, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.6")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var testCases = []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			body: api.UpdateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "missing required fields",
+			body: api.UpdateProviderRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "clientID", Errors: []string{"is required"}},
+					{FieldName: "clientSecret", Errors: []string{"is required"}},
+					{FieldName: "name", Errors: []string{"is required"}},
+					{FieldName: "url", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid kind",
+			body: api.UpdateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         "vegetable",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "kind", Errors: []string{"must be one of (oidc, okta, azure, google)"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+// mockOIDC is a fake oidc identity provider
+type fakeOIDCImplementation struct {
+}
+
+func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
+	return nil
+}
+
+func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
+	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
+}
+
+func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
+	return "acc", "ref", exp, "", nil
+}
+
+func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+	// never update
+	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
+}
+
+func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{}, nil
 }

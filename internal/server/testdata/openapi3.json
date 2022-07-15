@@ -667,10 +667,6 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "url",
-                "clientID"
-              ],
               "type": "object"
             },
             "type": "array"
@@ -834,11 +830,7 @@
             "example": "infrahq.okta.com",
             "type": "string"
           }
-        },
-        "required": [
-          "url",
-          "clientID"
-        ]
+        }
       },
       "SignupEnabledResponse": {
         "properties": {

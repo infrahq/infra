@@ -82,3 +82,60 @@ func TestStringRule_DescribeSchema(t *testing.T) {
 }
 
 var cmpSchema = cmpopts.IgnoreUnexported(openapi3.Schema{})
+
+type EnumExample struct {
+	Kind string
+}
+
+func (e EnumExample) ValidationRules() []ValidationRule {
+	return []ValidationRule{
+		Enum("kind", e.Kind, []string{"fruit", "legume", "grain"}),
+	}
+}
+
+func TestEnum_Validate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		e := EnumExample{}
+		assert.NilError(t, Validate(e))
+
+		e = EnumExample{Kind: "grain"}
+		assert.NilError(t, Validate(e))
+
+		e = EnumExample{Kind: "legume"}
+		assert.NilError(t, Validate(e))
+
+		e = EnumExample{Kind: "fruit"}
+		assert.NilError(t, Validate(e))
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		e := EnumExample{Kind: "mushroom"}
+		err := Validate(e)
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"kind": {"must be one of (fruit, legume, grain)"},
+		}
+		assert.DeepEqual(t, verr, expected)
+
+	})
+}
+
+func TestEnum_DescribeSchema(t *testing.T) {
+	e := Enum("kind", "", []string{"car", "truck", "bus"})
+
+	var schema openapi3.Schema
+	e.DescribeSchema(&schema)
+
+	expected := openapi3.Schema{
+		Properties: openapi3.Schemas{
+			"kind": &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					Enum: []interface{}{"car", "truck", "bus"},
+				},
+			},
+		},
+	}
+	assert.DeepEqual(t, schema, expected, cmpSchema)
+}
