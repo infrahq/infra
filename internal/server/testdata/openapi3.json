@@ -127,10 +127,7 @@
           "oneTimePassword": {
             "type": "string"
           }
-        },
-        "required": [
-          "name"
-        ]
+        }
       },
       "Destination": {
         "properties": {
@@ -732,9 +729,6 @@
                   "type": "string"
                 }
               },
-              "required": [
-                "name"
-              ],
               "type": "object"
             },
             "type": "array"
@@ -874,10 +868,7 @@
             "format": "date-time",
             "type": "string"
           }
-        },
-        "required": [
-          "name"
-        ]
+        }
       },
       "Version": {
         "properties": {

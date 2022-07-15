@@ -6,7 +6,13 @@ import (
 )
 
 type GetUserRequest struct {
-	ID IDOrSelf `uri:"id" validate:"required"`
+	ID IDOrSelf `uri:"id"`
+}
+
+func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+	}
 }
 
 type User struct {
@@ -14,7 +20,7 @@ type User struct {
 	Created       Time     `json:"created"`
 	Updated       Time     `json:"updated"`
 	LastSeenAt    Time     `json:"lastSeenAt"`
-	Name          string   `json:"name" validate:"required"`
+	Name          string   `json:"name"`
 	ProviderNames []string `json:"providerNames,omitempty"`
 }
 
@@ -33,16 +39,31 @@ func (r ListUsersRequest) ValidationRules() []validate.ValidationRule {
 
 // CreateUserRequest is only for creating users with the Infra provider
 type CreateUserRequest struct {
-	Name string `json:"name" validate:"email,required"`
+	Name string `json:"name"`
+}
+
+func (r CreateUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("name", r.Name),
+		validate.Email("name", r.Name),
+	}
 }
 
 type CreateUserResponse struct {
 	ID              uid.ID `json:"id"`
-	Name            string `json:"name" validate:"required"`
+	Name            string `json:"name"`
 	OneTimePassword string `json:"oneTimePassword,omitempty"`
 }
 
 type UpdateUserRequest struct {
-	ID       uid.ID `uri:"id" json:"-" validate:"required"`
-	Password string `json:"password" validate:"required,min=8"`
+	ID       uid.ID `uri:"id" json:"-"`
+	Password string `json:"password"`
+}
+
+func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.ID),
+		validate.Required("password", r.Password),
+		validate.StringRule{Name: "password", Value: r.Password, MinLength: 8},
+	}
 }
