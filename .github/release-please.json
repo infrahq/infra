@@ -17,12 +17,7 @@
         "Dockerfile",
         "helm/charts/infra/Chart.yaml",
         "internal/version.go",
-        "docs/install/upgrading.md",
-        {
-          "type": "json",
-          "path": "docs/api/openapi3.json",
-          "jsonpath": "$.info.version"
-        }
+        "docs/install/upgrading.md"
       ]
     }
   }
