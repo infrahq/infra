@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -17,11 +18,22 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
-	return data.GetGrant(db, data.ByID(id))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.GetGrant(db, orgSelector, data.ByID(id))
 }
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, pg models.Pagination) ([]models.Grant, error) {
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
 	selectors := []data.SelectorFunc{
+		orgSelector,
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
 		data.ByPagination(pg),
@@ -77,7 +89,13 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 
 	creator := AuthenticatedIdentity(c)
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+
 	grant.CreatedBy = creator.ID
+	grant.OrganizationID = orgID
 
 	return data.CreateGrant(db, grant)
 }
@@ -88,5 +106,10 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteGrants(db, data.ByID(id))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.DeleteGrants(db, orgSelector, data.ByID(id))
 }
