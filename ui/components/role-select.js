@@ -58,7 +58,7 @@ export default function RoleSelect({
             direction === 'right' ? '' : 'right-0'
           } mt-2 overflow-auto rounded-md border border-gray-700 bg-gray-800 text-2xs text-white ring-1 ring-black ring-opacity-5 focus:outline-none`}
         >
-          <div className={`max-h-64 overflow-scroll ${remove ? 'mb-9' : ''}`}>
+          <div className={`max-h-64 overflow-auto ${remove ? 'mb-9' : ''}`}>
             {roles?.map(r => (
               <Listbox.Option
                 key={r}
