@@ -107,8 +107,3 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteIdentity(c, r.ID)
 }
-
-// TODO: remove after deprecation period
-func (a *API) deprecatedListUserGroups(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Group], error) {
-	return a.ListGroups(c, &api.ListGroupsRequest{UserID: r.ID})
-}

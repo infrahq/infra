@@ -153,63 +153,6 @@ func TestAPI_ListGroups(t *testing.T) {
 				assert.Equal(t, len(actual.Items), 2)
 			},
 		},
-		"version 0.12.2 - list groups": {
-			urlPath: "/v1/groups?name=humans",
-			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Infra-Version", "0.12.2")
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-
-				expected := jsonUnmarshal(t, fmt.Sprintf(`
-[
-	{
-		"id": "%[1]v",
-		"name": "humans",
-		"created": "%[2]v",
-		"updated": "%[2]v"
-	}
-]`,
-					humans.ID.String(),
-					time.Now().UTC().Format(time.RFC3339),
-				))
-				actual := jsonUnmarshal(t, resp.Body.String())
-				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
-			},
-		},
-		"version 0.13.0 - list user groups": {
-			urlPath: fmt.Sprintf("/api/users/%v/groups", idInGroup.ID),
-			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Add("Infra-Version", "0.13.0")
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-
-				expected := jsonUnmarshal(t, fmt.Sprintf(`
-{
-	"count": 2,
-	"items": [{
-		"id": "%[1]v",
-		"name": "humans",
-		"created": "%[3]v",
-		"updated": "%[3]v"
-	},
-	{
-		"id": "%[2]v",
-		"name": "second",
-		"created": "%[3]v",
-		"updated": "%[3]v"
-	}]
-}`,
-					humans.ID,
-					second.ID,
-					time.Now().UTC().Format(time.RFC3339),
-				))
-				actual := jsonUnmarshal(t, resp.Body.String())
-				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
-			},
-		},
 		"full JSON response": {
 			urlPath: "/api/groups?name=humans",
 			setup: func(t *testing.T, req *http.Request) {

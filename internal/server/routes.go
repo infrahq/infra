@@ -14,7 +14,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/square/go-jose.v2"
 
-	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -113,36 +112,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
 
 	get(a, noAuthn, "/api/version", a.Version)
-
-	// Deprecated in 0.12
-	// TODO: remove after a couple versions
-	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
-		method:       http.MethodGet,
-		path:         "/v1/users/:id/grants",
-		handler:      a.deprecatedListUserGrants,
-		omitFromDocs: true,
-	})
-	add(a, authn, route[api.Resource, *api.ListResponse[api.Grant]]{
-		method:       http.MethodGet,
-		path:         "/v1/groups/:id/grants",
-		handler:      a.deprecatedListGroupGrants,
-		omitFromDocs: true,
-	})
-	// Deprecated in 0.13.1
-	add(a, authn, route[api.Resource, *api.ListResponse[api.Group]]{
-		method:       http.MethodGet,
-		path:         "/api/users/:id/groups",
-		handler:      a.deprecatedListUserGroups,
-		omitFromDocs: true,
-	})
-
-	noAuthn.GET("/v1/machines", removed("v0.9.0"))
-	noAuthn.POST("/v1/machines", removed("v0.9.0"))
-	noAuthn.GET("/v1/machines/:id", removed("v0.9.0"))
-	noAuthn.DELETE("/v1/machines/:id", removed("v0.9.0"))
-	noAuthn.GET("/v1/machines/:id/grants", removed("v0.9.0"))
-	noAuthn.GET("/v1/setup", removed("v0.11.0"))
-	noAuthn.GET("/v1/introspect", removed("v0.12.0"))
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
