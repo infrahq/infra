@@ -13,7 +13,7 @@ export default function GrantsList({ grants, onRemove, onChange }) {
             resource={g.resource}
             remove
             direction='left'
-            onRemove={onRemove(g.id)}
+            onRemove={() => onRemove(g.id)}
             onChange={privilege => {
               onChange(privilege, g)
             }}
