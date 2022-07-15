@@ -122,20 +122,11 @@ func ByUserID(userID uid.ID) SelectorFunc {
 	}
 }
 
-func ByNotExpired() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.
-			Where("expires_at > ?", time.Now().UTC()).
-			Or("expires_at is ?", time.Time{}).
-			Or("expires_at is null")
-	}
-}
-
 func ByNotExpiredOrExtended() SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		query := strings.Builder{}
-		query.WriteString("(expires_at > ? OR expires_at is ? OR expires_at is null) AND ")
-		query.WriteString("(extension_deadline > ? OR extension_deadline is ? OR extension_deadline is null)")
+		query.WriteString("(expires_at > ? OR expires_at = ? OR expires_at is null) AND ")
+		query.WriteString("(extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)")
 		return db.Where(query.String(), time.Now().UTC(), time.Time{}, time.Now().UTC(), time.Time{})
 	}
 }
