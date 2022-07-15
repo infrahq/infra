@@ -168,7 +168,7 @@ func (m mutuallyExclusive) Validate() *Failure {
 	}
 
 	if len(nonZero) > 1 {
-		return fail("", fmt.Sprintf("only one of (%v) can be set", strings.Join(nonZero, ", ")))
+		return fail("", fmt.Sprintf("only one of (%v) can have a value", strings.Join(nonZero, ", ")))
 	}
 	return nil
 }
@@ -227,7 +227,7 @@ func (m requireOneOf) Validate() *Failure {
 	}
 
 	if len(nonZero) > 1 {
-		return fail("", fmt.Sprintf("only one of (%v) can be set", strings.Join(nonZero, ", ")))
+		return fail("", fmt.Sprintf("only one of (%v) can have a value", strings.Join(nonZero, ", ")))
 	}
 	if len(zero) == len(m) {
 		return fail("", fmt.Sprintf("one of (%v) is required", strings.Join(zero, ", ")))

@@ -53,8 +53,8 @@ func TestIntRule_Validate(t *testing.T) {
 		var vErr Error
 		assert.Assert(t, errors.As(err, &vErr), "wrong type %T", err)
 		expected := Error{
-			"start": {"value (-22) must be at least -2"},
-			"end":   {"value (60) must be at most 55"},
+			"start": {"value -22 must be at least -2"},
+			"end":   {"value 60 must be at most 55"},
 		}
 		assert.DeepEqual(t, vErr, expected)
 	})

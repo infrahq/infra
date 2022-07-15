@@ -102,16 +102,16 @@ func TestValidate_AllRules(t *testing.T) {
 		expected := Error{
 			"id": {"is required"},
 			"": {
-				"only one of (either, or) can be set",
+				"only one of (either, or) can have a value",
 				"one of (first, second, third) is required",
 			},
 			"emailAddr":  {"invalid email address"},
 			"emailOther": {`email address must not contain display name "Display Name"`},
-			"tooFew":     {"length of string (1) must be at least 5"},
-			"tooMany":    {"length of string (6) must be no more than 5"},
+			"tooFew":     {"length of string is 1, must be at least 5"},
+			"tooMany":    {"length of string is 6, must be no more than 5"},
 			"wrongOnes":  {"character C at position 2 is not allowed"},
-			"tooHigh":    {"value (22) must be at most 20"},
-			"tooLow":     {"value (2) must be at least 20"},
+			"tooHigh":    {"value 22 must be at most 20"},
+			"tooLow":     {"value 2 must be at least 20"},
 			"kind":       {"must be one of (fruit, legume, grain)"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
@@ -174,14 +174,14 @@ func TestValidate_Nested(t *testing.T) {
 		assert.Assert(t, errors.As(err, &fieldError))
 		expected := Error{
 			"":    {"one of (first, second, third) is required"},
-			"any": {"length of string (6) must be no more than 3"},
+			"any": {"length of string is 6, must be no more than 3"},
 			"sub.nested": {
-				"only one of (either, or) can be set",
+				"only one of (either, or) can have a value",
 				"one of (first, second, third) is required",
 			},
 			"sub.nested.id": {"is required"},
 			"sub.ok":        {"is required"},
-			"tooFew":        {"length of string (1) must be at least 5"},
+			"tooFew":        {"length of string is 1, must be at least 5"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})
@@ -219,7 +219,7 @@ func TestMutuallyExclusive_Validate(t *testing.T) {
 	t.Run("with failure two set", func(t *testing.T) {
 		e := MutualExample{First: "value", Second: true}
 		err := Validate(e)
-		assert.Error(t, err, "validation failed: only one of (first, second) can be set")
+		assert.Error(t, err, "validation failed: only one of (first, second) can have a value")
 	})
 	t.Run("with failure three set", func(t *testing.T) {
 		e := MutualExample{
@@ -228,7 +228,7 @@ func TestMutuallyExclusive_Validate(t *testing.T) {
 			Third:  123,
 		}
 		err := Validate(e)
-		assert.Error(t, err, "validation failed: only one of (first, second, third) can be set")
+		assert.Error(t, err, "validation failed: only one of (first, second, third) can have a value")
 	})
 }
 
@@ -299,6 +299,6 @@ func TestRequireOneOf_Validate(t *testing.T) {
 	t.Run("with more than one set", func(t *testing.T) {
 		e := OneOfExample{First: "v", Third: 34}
 		err := Validate(e)
-		assert.Error(t, err, "validation failed: only one of (first, third) can be set")
+		assert.Error(t, err, "validation failed: only one of (first, third) can have a value")
 	})
 }
