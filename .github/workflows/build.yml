@@ -5,6 +5,7 @@ on:
     inputs:
       RELEASE_NAME:
         type: string
+        required: true
 
 jobs:
   binaries:
@@ -29,7 +30,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --skip-publish
+          args: release --rm-dist --skip-publish --snapshot
       - uses: actions/upload-artifact@v3
         with:
           name: binaries
