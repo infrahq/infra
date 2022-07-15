@@ -275,22 +275,4 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
 		assert.Equal(t, errMsg.Code, int32(400))
 	})
-
-	t.Run("old version upgrades", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
-		assert.NilError(t, err)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.12.2")
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		resp2 := []api.AccessKey{}
-		err = json.Unmarshal(resp.Body.Bytes(), &resp2)
-		t.Log(resp.Body.String())
-		assert.NilError(t, err)
-
-		assert.Assert(t, len(resp2) > 0)
-	})
 }

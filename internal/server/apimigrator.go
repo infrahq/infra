@@ -46,16 +46,18 @@ func addRedirect(a *API, method, path, newPath, version string, optMiddleware ..
 	})
 }
 
-func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version string, f func(oldReq) newReq) {
+// addRequestRewrite adds a request migration to the list of api.migrations.
+// version is the last version that supports the old request structure.
+func addRequestRewrite[oldReq any, newReq any](api *API, method, path, version string, f func(oldReq) newReq) {
 	migrationVersion, err := semver.NewVersion(version)
 	if err != nil {
 		panic(err) // dev mistake
 	}
-	a.migrations = append(a.migrations, apiMigration{
+	api.migrations = append(api.migrations, apiMigration{
 		method:  method,
 		path:    path,
 		version: version,
-		index:   len(a.migrations),
+		index:   len(api.migrations),
 		requestRewrite: func(c *gin.Context) {
 			if !rewriteRequired(c, migrationVersion) {
 				c.Next()
