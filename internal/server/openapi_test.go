@@ -16,7 +16,7 @@ import (
 // To update the expected value, run:
 //     go test ./internal/server -update
 func TestWriteOpenAPIDocToFile(t *testing.T) {
-	patchAPIVersion(t, "0.0.0")
+	patchProductVersion(t, "0.0.0")
 	s := Server{}
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
@@ -29,13 +29,13 @@ func TestWriteOpenAPIDocToFile(t *testing.T) {
 	golden.Assert(t, string(actual), "openapi3.json")
 }
 
-func patchAPIVersion(t *testing.T, version string) {
-	orig := apiVersion
-	apiVersion = func() string {
+func patchProductVersion(t *testing.T, version string) {
+	orig := productVersion
+	productVersion = func() string {
 		return version
 	}
 	t.Cleanup(func() {
-		apiVersion = orig
+		productVersion = orig
 	})
 
 }

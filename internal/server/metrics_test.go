@@ -18,7 +18,7 @@ import (
 
 func TestMetrics(t *testing.T) {
 	run := func(db *gorm.DB, s string) []byte {
-		patchAPIVersion(t, "9.9.9")
+		patchProductVersion(t, "9.9.9")
 		registry := setupMetrics(db)
 
 		tempfile, err := ioutil.TempFile(t.TempDir(), t.Name())

@@ -384,7 +384,9 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 	return resp
 }
 
-var apiVersion = internal.FullVersion
+// productVersion is a shim for testing. It allows us to patch the variable
+// so that tests expect a consistent value that does not change with every release.
+var productVersion = internal.FullVersion
 
 func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 	if r.Kind() == reflect.Pointer {
@@ -403,7 +405,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 		Required: true,
 		Schema: &openapi3.SchemaRef{
 			Value: &openapi3.Schema{
-				Example:     apiVersion(),
+				Example:     productVersion(),
 				Format:      `\d+\.\d+\(.\d+)?(-.\w(+\w)?)?`,
 				Type:        "string",
 				Description: "Version of the API being requested",
