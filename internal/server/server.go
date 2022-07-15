@@ -174,7 +174,6 @@ func (s *Server) Run(ctx context.Context) error {
 }
 
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
-	// Proxy requests to an upstream ui server
 	if opts.ProxyURL.Host != "" {
 		remote := opts.ProxyURL.Value()
 		proxy := httputil.NewSingleHostReverseProxy(remote)
@@ -183,6 +182,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 			req.URL.Scheme = remote.Scheme
 			req.URL.Host = remote.Host
 		}
+		proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
 
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
