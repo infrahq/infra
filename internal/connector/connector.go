@@ -175,7 +175,7 @@ func Run(ctx context.Context, options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	promRegistry := metrics.NewRegistry()
+	promRegistry := metrics.NewRegistry(internal.FullVersion())
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		Addr:     ":9090",
