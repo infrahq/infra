@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/goware/urlx"
 	"k8s.io/client-go/tools/clientcmd"
@@ -193,26 +193,42 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		}
 	}
 
-	configPath := defaultConfig.ConfigAccess().GetDefaultFilename()
+	configFile := defaultConfig.ConfigAccess().GetDefaultFilename()
 
-	configDir := filepath.Dir(configPath)
+	return safelyWriteConfigToFile(kubeConfig, configFile)
+}
+
+// safelyWriteConfigToFile creates a temp file, then overwrites the target
+func safelyWriteConfigToFile(kubeConfig clientcmdapi.Config, fileToWrite string) error {
+	// get the directory of the file we're writing to avoid cross-filesystem moves
+	configDir := filepath.Dir(fileToWrite)
 	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
 		return err
 	}
 
-	// write the new config to a temporary file then move it in an atomic operation
-	// this ensures we don't wipe the kube config in the case of an interrupt
-	tmpFile, err := ioutil.TempFile(configDir, "infra-kube-config-")
+	temp, err := os.Create(fmt.Sprintf("%s/infra-kube-config-%d", configDir, time.Now().Unix()))
 	if err != nil {
-		return fmt.Errorf("cannot create temporary config file: %w", err)
+		return fmt.Errorf("failed to create temp kube config file: %w", err)
 	}
 
-	if err := clientcmd.WriteToFile(kubeConfig, tmpFile.Name()); err != nil {
-		return err
+	// write the new config to a temporary file then move it in an atomic operation
+	// this ensures we don't wipe the kube config in the case of an interrupt
+	if err := clientcmd.WriteToFile(kubeConfig, temp.Name()); err != nil {
+		if nestedErr := temp.Close(); err != nil {
+			logging.L.Debug().Err(nestedErr).Msg("failed to close temp config file on write error")
+		}
+		if nestedErr := os.Remove(temp.Name()); err != nil {
+			logging.L.Debug().Err(nestedErr).Msg("failed to delete temp config file on write error")
+		}
+		return fmt.Errorf("could not write kube config to temp file: %w", err)
+	}
+
+	if err := temp.Close(); err != nil {
+		return fmt.Errorf("failed to close temp kube config file: %w", err)
 	}
 
 	// move the temp file to overwrite the kube config
-	err = os.Rename(tmpFile.Name(), configPath)
+	err = os.Rename(temp.Name(), fileToWrite)
 	if err != nil {
 		return fmt.Errorf("could not overwrite kube config: %w", err)
 	}
