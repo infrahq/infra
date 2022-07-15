@@ -131,7 +131,7 @@ func migrate(db *gorm.DB) error {
 					models.Model
 
 					Identity        string `gorm:"<-;uniqueIndex:,where:deleted_at is NULL"`
-					PasswordHash    []byte `validate:"required"`
+					PasswordHash    []byte
 					OneTimePassword bool
 				}
 
