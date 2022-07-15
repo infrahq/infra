@@ -191,6 +191,18 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 	}
 
 	handler := func(c *gin.Context) {
+		reqVer, err := requestVersion(c.Request)
+		if err != nil && !route.infraVersionHeaderOptional {
+			sendAPIError(c, err)
+			return
+		}
+
+		versions := a.versions[routeID]
+		if versionedHandler := handlerForVersion(versions, reqVer); versionedHandler != nil {
+			versionedHandler(c)
+			return
+		}
+
 		if err := wrapRoute(a, routeID, route)(c); err != nil {
 			sendAPIError(c, err)
 		}
@@ -211,12 +223,6 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		ctx, cancel := context.WithTimeout(origRequestContext, a.server.options.API.RequestTimeout)
 		defer cancel()
 		c.Request = c.Request.WithContext(ctx)
-
-		if !route.infraVersionHeaderOptional {
-			if _, err := requestVersion(c.Request); err != nil {
-				return err
-			}
-		}
 
 		authned, err := authenticateRequest(c, route.routeSettings, a.server)
 		if err != nil {
@@ -310,6 +316,21 @@ func requestVersion(req *http.Request) (*semver.Version, error) {
 		return nil, fmt.Errorf("%w: invalid Infra-Version header: %v. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion())
 	}
 	return reqVer, nil
+}
+
+func handlerForVersion(versions []routeVersion, reqVer *semver.Version) func(c *gin.Context) {
+	if reqVer == nil {
+		return nil
+	}
+
+	// TODO: iterate in reverse order to benefit newer versions over older versions
+	for _, v := range versions {
+		if reqVer.GreaterThan(v.version) {
+			continue
+		}
+		return v.handler
+	}
+	return nil
 }
 
 var reflectTypeString = reflect.TypeOf("")
