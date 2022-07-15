@@ -9,9 +9,11 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -36,8 +38,6 @@ type Routes struct {
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes() Routes {
 	a := &API{t: s.tel, server: s}
-	a.addRewrites()
-	a.addRedirects()
 
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
@@ -195,7 +195,7 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 			sendAPIError(c, err)
 		}
 	}
-	bindRoute(a, group.RouterGroup, routeID, handler)
+	group.RouterGroup.Handle(routeID.method, routeID.path, handler)
 }
 
 // wrapRoute builds a gin.HandlerFunc from a route. The returned function
@@ -298,6 +298,18 @@ type statusCoder interface {
 
 type isBlockingRequest interface {
 	IsBlockingRequest() bool
+}
+
+func requestVersion(req *http.Request) (*semver.Version, error) {
+	headerVer := req.Header.Get("Infra-Version")
+	if headerVer == "" {
+		return nil, fmt.Errorf("%w: Infra-Version header is required. The current version is %s", internal.ErrBadRequest, internal.FullVersion())
+	}
+	reqVer, err := semver.NewVersion(headerVer)
+	if err != nil {
+		return nil, fmt.Errorf("%w: invalid Infra-Version header: %v. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion())
+	}
+	return reqVer, nil
 }
 
 var reflectTypeString = reflect.TypeOf("")
@@ -404,4 +416,22 @@ func (a *API) notFoundHandler(c *gin.Context) {
 	if err != nil {
 		logging.Errorf("%s", err.Error())
 	}
+}
+
+func (a *API) deprecatedRoutes(noAuthnNoOrg *routeGroup) {
+	// CLI clients before v0.14.4 rely on sign-up being false to continue with login
+	type SignupEnabledResponse struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	add(a, noAuthnNoOrg, http.MethodGet, "/api/signup", route[api.EmptyRequest, *SignupEnabledResponse]{
+		handler: func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
+			return &SignupEnabledResponse{Enabled: false}, nil
+		},
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+			omitFromDocs:      true,
+			txnOptions:        &sql.TxOptions{ReadOnly: true},
+		},
+	})
 }

@@ -210,7 +210,7 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), "POST", "/do", r)
+	add(api, newRouterGroup(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
@@ -243,13 +243,17 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), "POST", "/do", r)
+	add(api, newRouterGroup(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+}
+
+func newRouterGroup(g *gin.RouterGroup) *routeGroup {
+	return &routeGroup{RouterGroup: g, noAuthentication: true, noOrgRequired: true}
 }
 
 func TestInfraVersionHeader(t *testing.T) {
