@@ -125,7 +125,7 @@ func TestAzure_GetUserInfo(t *testing.T) {
 				"picture": "https://graph.microsoft.com/v1.0/me/photo/$value"
 			}`,
 			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
-				assert.ErrorContains(t, err, "failed on the 'required_without' tag")
+				assert.ErrorContains(t, err, "must include either a name or email")
 				assert.Assert(t, info == nil)
 			},
 		},

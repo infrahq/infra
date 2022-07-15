@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/go-playground/validator/v10"
 	"golang.org/x/oauth2"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -20,9 +19,9 @@ const oidcProviderRequestTimeout = time.Second * 10
 
 // UserInfoClaims captures the claims fields from a user-info response that we care about
 type UserInfoClaims struct {
-	Email  string   `json:"email" validate:"required_without=Name"` // returned by default for Okta user info
+	Email  string   `json:"email"` // returned by default for Okta user info
 	Groups []string `json:"groups"`
-	Name   string   `json:"name" validate:"required_without=Email"` // returned by default for Azure user info
+	Name   string   `json:"name"` // returned by default for Azure user info
 }
 
 type AuthServerInfo struct {
@@ -200,16 +199,21 @@ func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context
 	}
 
 	var claims struct {
-		Email string `json:"email" validate:"required,excludesall=' "`
+		Email string `json:"email"`
 	}
 
 	if err := idToken.Claims(&claims); err != nil {
 		return "", "", time.Time{}, "", fmt.Errorf("id token claims: %w", err)
 	}
 
-	if err := validator.New().Struct(claims); err != nil {
-		logging.Errorf("%s provider incorrectly configured, email claim in ID token of authenticated user is missing or invalid: %s", o.Domain, err)
-		return "", "", time.Time{}, "", fmt.Errorf("failed to validate ID token claims: %w", err)
+	if claims.Email == "" {
+		err := fmt.Errorf("ID token claim is missing an email address")
+		return "", "", time.Time{}, "", err
+	}
+
+	if strings.ContainsAny(claims.Email, ` '`) {
+		err := fmt.Errorf("ID token claim has invalid email address")
+		return "", "", time.Time{}, "", err
 	}
 
 	return rawAccessToken, rawRefreshToken, exchanged.Expiry, claims.Email, nil
@@ -267,10 +271,8 @@ func (o *oidcClientImplementation) GetUserInfo(ctx context.Context, providerUser
 		return nil, fmt.Errorf("user info claims: %w", err)
 	}
 
-	// in the case of azure a deleted user's info will still resolve
-	// guard against this by validating the info in the response is what we expect
-	if err := validator.New().Struct(claims); err != nil {
-		return nil, err
+	if claims.Name == "" && claims.Email == "" {
+		return nil, fmt.Errorf("claim must include either a name or email")
 	}
 
 	return claims, nil
