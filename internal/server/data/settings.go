@@ -65,3 +65,7 @@ func GetSettings(db *gorm.DB) (*models.Settings, error) {
 
 	return &settings, nil
 }
+
+func SaveSettings(db *gorm.DB, settings *models.Settings) error {
+	return save(db, settings)
+}
