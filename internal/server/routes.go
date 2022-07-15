@@ -171,6 +171,11 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 	}
 
 	wrappedHandler := func(c *gin.Context) {
+		if _, err := requestVersion(c.Request); err != nil {
+			sendAPIError(c, err)
+			return
+		}
+
 		req := new(Req)
 		if err := bind(c, req); err != nil {
 			sendAPIError(c, err)

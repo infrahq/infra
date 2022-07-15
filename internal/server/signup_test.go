@@ -27,6 +27,7 @@ func TestAPI_Signup(t *testing.T) {
 
 		req, err := http.NewRequest(http.MethodPost, "/api/signup", jsonBody(t, body))
 		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

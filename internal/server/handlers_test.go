@@ -139,9 +139,9 @@ func TestListKeys(t *testing.T) {
 
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/v1/access-keys", nil)
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusBadRequest)
@@ -150,7 +150,7 @@ func TestListKeys(t *testing.T) {
 		err = json.Unmarshal(resp.Body.Bytes(), &errMsg)
 		assert.NilError(t, err)
 
-		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header required"))
+		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
 		assert.Equal(t, errMsg.Code, int32(400))
 	})
 
@@ -313,7 +313,8 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 
 		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -397,7 +398,8 @@ func TestAPI_ListAccessKey(t *testing.T) {
 
 	run := func() api.ListResponse[api.AccessKey] {
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(srv)))
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(srv)))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

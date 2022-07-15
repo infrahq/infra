@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -112,8 +114,10 @@ func TestGetRoute(t *testing.T) {
 	c, e := gin.CreateTestContext(w)
 	uri, _ := url.Parse("/")
 	c.Request = &http.Request{
-		URL: uri,
+		URL:    uri,
+		Header: map[string][]string{},
 	}
+	c.Request.Header.Set("Infra-Version", apiVersionLatest)
 	r := e.Group("/")
 
 	get(&API{}, r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
@@ -200,3 +204,26 @@ func TestTrimWhitespace(t *testing.T) {
 	}
 	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
 }
+
+func TestInfraVersionHeader(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	body := jsonBody(t, api.CreateUserRequest{Name: "usera@example.com"})
+	req, err := http.NewRequest(http.MethodPost, "/api/users", body)
+	assert.NilError(t, err)
+	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+	respBody := &api.Error{}
+	err = json.Unmarshal(resp.Body.Bytes(), respBody)
+	assert.NilError(t, err)
+
+	assert.Assert(t, strings.Contains(respBody.Message, "Infra-Version header is required"), respBody.Message)
+}
+
+var apiVersionLatest = internal.FullVersion()

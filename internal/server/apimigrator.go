@@ -79,18 +79,24 @@ func addRequestRewrite[oldReq any, newReq any](a *API, method, path, version str
 	})
 }
 
-func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
-	headerVer := c.Request.Header.Get("Infra-Version")
+func requestVersion(req *http.Request) (*semver.Version, error) {
+	headerVer := req.Header.Get("Infra-Version")
 	if headerVer == "" {
-		sendAPIError(c, fmt.Errorf("%w: Infra-Version header required. Current version is %s", internal.ErrBadRequest, internal.FullVersion()))
-		return false
+		return nil, fmt.Errorf("%w: Infra-Version header is required. The current version is %s", internal.ErrBadRequest, internal.FullVersion())
 	}
 	reqVer, err := semver.NewVersion(headerVer)
 	if err != nil {
-		sendAPIError(c, fmt.Errorf("%w: invalid Infra-Version header: %q. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion()))
+		return nil, fmt.Errorf("%w: invalid Infra-Version header: %v. Current version is %s", internal.ErrBadRequest, err, internal.FullVersion())
+	}
+	return reqVer, nil
+}
+
+func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
+	reqVer, err := requestVersion(c.Request)
+	if err != nil {
+		// should be impossible, header was already validated earlier
 		return false
 	}
-
 	return reqVer.LessThan(migrationVersion) || reqVer.Equal(migrationVersion)
 }
 

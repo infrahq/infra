@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -424,38 +423,6 @@ func TestStackedResponseRewrites(t *testing.T) {
 	err := json.Unmarshal(resp.Body.Bytes(), r)
 	assert.NilError(t, err)
 	assert.Equal(t, r.Shoes, 16)
-}
-
-func TestEmptyVersionHeader(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-
-	a := &API{server: srv}
-	router := gin.New()
-
-	addResponseRewrite(a, "get", "/test", "0.1.0", func(n upgradedResponse) legacyResponse {
-		return legacyResponse{
-			Shoes: n.Loafers + n.Sneakers,
-		}
-	})
-
-	get(a, router.Group("/"), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
-		return &upgradedResponse{
-			Loafers:  3,
-			Sneakers: 5,
-		}, nil
-	})
-
-	resp := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	req.Header.Add("Infra-Version", "")
-	router.ServeHTTP(resp, req)
-
-	assert.Equal(t, resp.Result().StatusCode, http.StatusBadRequest, "Request should fail: Client must provide Infra-Version")
-
-	apiErr := &api.Error{}
-	err := json.Unmarshal(resp.Body.Bytes(), apiErr)
-	assert.NilError(t, err)
-	assert.Assert(t, strings.Contains(apiErr.Message, "Infra-Version header required"))
 }
 
 func TestRedirectWithARequestRewriteToQueryParameter(t *testing.T) {
