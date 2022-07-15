@@ -27,11 +27,12 @@ type Identity struct {
 
 func (i *Identity) ToAPI() *api.User {
 	return &api.User{
-		ID:         i.ID,
-		Created:    api.Time(i.CreatedAt),
-		Updated:    api.Time(i.UpdatedAt),
-		LastSeenAt: api.Time(i.LastSeenAt),
-		Name:       i.Name,
+		ID:             i.ID,
+		OrganizationID: i.OrganizationID,
+		Created:        api.Time(i.CreatedAt),
+		Updated:        api.Time(i.UpdatedAt),
+		LastSeenAt:     api.Time(i.LastSeenAt),
+		Name:           i.Name,
 		ProviderNames: slice.Map[Provider, string](i.Providers, func(p Provider) string {
 			return p.Name
 		}),

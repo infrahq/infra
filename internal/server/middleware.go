@@ -136,7 +136,14 @@ func RequireAccessKey(c *gin.Context) error {
 
 	c.Set("key", accessKey)
 
-	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
+	logging.Debugf("getting org %s", accessKey.OrganizationID)
+	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	if err != nil {
+		return fmt.Errorf("organization for token: %w", err)
+	}
+	c.Set("organization", org)
+
+	identity, err := data.GetIdentity(db, data.ByOrg(org.ID), data.ByID(accessKey.IssuedFor))
 	if err != nil {
 		return fmt.Errorf("identity for token: %w", err)
 	}

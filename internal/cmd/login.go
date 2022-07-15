@@ -364,14 +364,17 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 	}
 
 	logging.Debugf("call server: signup for user %q", email)
-	_, err = client.Signup(&api.SignupRequest{OrgName: orgName, Name: email, Password: password})
+	signupResp, err := client.Signup(&api.SignupRequest{OrgName: orgName, Name: email, Password: password})
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Fprintf(cli.Stderr, " OrgID = %s\n", signupResp.OrganizationID)
+
 	return &api.LoginRequestPasswordCredentials{
-		Name:     email,
-		Password: password,
+		OrganizationID: signupResp.OrganizationID,
+		Name:           email,
+		Password:       password,
 	}, nil
 }
 

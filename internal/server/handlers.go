@@ -589,7 +589,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			// #1825: remove, this is for migration
 			r.PasswordCredentials.Name = r.PasswordCredentials.Email
 		}
-		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
+		loginMethod = authn.NewPasswordCredentialAuthentication(
+			r.PasswordCredentials.OrganizationID,
+			r.PasswordCredentials.Name,
+			r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
 		if err != nil {

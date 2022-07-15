@@ -12,6 +12,12 @@ import (
 
 type SelectorFunc func(db *gorm.DB) *gorm.DB
 
+func ByOrg(id uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("organization_id = ?", id)
+	}
+}
+
 func ByID(id uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("id = ?", id)

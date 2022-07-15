@@ -9,12 +9,13 @@ type GetUserRequest struct {
 }
 
 type User struct {
-	ID            uid.ID   `json:"id"`
-	Created       Time     `json:"created"`
-	Updated       Time     `json:"updated"`
-	LastSeenAt    Time     `json:"lastSeenAt"`
-	Name          string   `json:"name" validate:"required"`
-	ProviderNames []string `json:"providerNames,omitempty"`
+	ID             uid.ID   `json:"id"`
+	OrganizationID uid.ID   `json:"organizationID"`
+	Created        Time     `json:"created"`
+	Updated        Time     `json:"updated"`
+	LastSeenAt     Time     `json:"lastSeenAt"`
+	Name           string   `json:"name" validate:"required"`
+	ProviderNames  []string `json:"providerNames,omitempty"`
 }
 
 type ListUsersRequest struct {

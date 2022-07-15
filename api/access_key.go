@@ -31,6 +31,7 @@ type CreateAccessKeyRequest struct {
 
 type CreateAccessKeyResponse struct {
 	ID                uid.ID `json:"id"`
+	OrganizationID    uid.ID `json:"organizationID"`
 	Created           Time   `json:"created"`
 	Name              string `json:"name"`
 	IssuedFor         uid.ID `json:"issuedFor"`

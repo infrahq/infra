@@ -55,6 +55,7 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 	}
 
 	identity := &models.Identity{Name: name}
+	identity.OrganizationID = organization.ID
 
 	if err := data.CreateIdentity(db, identity); err != nil {
 		return nil, err
