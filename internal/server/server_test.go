@@ -249,6 +249,74 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 }
 
+func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
+	type testCase struct {
+		name     string
+		path     string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	s := setupServer(t)
+	router := s.GenerateRoutes(prometheus.NewRegistry())
+
+	run := func(t *testing.T, tc testCase) {
+		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusNotFound)
+		if tc.expected != nil {
+			tc.expected(t, resp)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			name: "Using application/json",
+			path: "/api/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Accept", "application/json; charset=utf-8")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				contentType := resp.Header().Get("Content-Type")
+				expected := "application/json; charset=utf-8"
+				assert.Equal(t, contentType, expected)
+			},
+		},
+		{
+			name: "Other type",
+			path: "/not/found",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Accept", "*/*")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should be plaintext
+				assert.Equal(t, "404 not found", resp.Body.String())
+			},
+		},
+		{
+			name: "No header",
+			path: "/not/found/again",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// response should be plaintext
+				assert.Equal(t, "404 not found", resp.Body.String())
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 func TestServer_PersistSignupUser(t *testing.T) {
 	s := setupServer(t, func(_ *testing.T, opts *Options) {
 		opts.EnableSignup = true
