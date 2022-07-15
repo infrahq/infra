@@ -122,6 +122,7 @@ type NestedExample struct {
 	Anything string
 	Sub      SubExample `json:"sub"`
 	ExampleRequest
+	Many []ExampleRequest
 }
 
 func (n NestedExample) ValidationRules() []ValidationRule {
@@ -141,7 +142,7 @@ func (s SubExample) ValidationRules() []ValidationRule {
 	}
 }
 
-func TestValidate_Nested(t *testing.T) {
+func TestValidate_Traversal(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		n := NestedExample{
 			Sub: SubExample{
@@ -167,6 +168,9 @@ func TestValidate_Nested(t *testing.T) {
 				ID:     "ok",
 				TooFew: "a",
 			},
+			Many: []ExampleRequest{
+				{},
+			},
 		}
 		err := Validate(n)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -182,6 +186,8 @@ func TestValidate_Nested(t *testing.T) {
 			"sub.nested.id": {"is required"},
 			"sub.ok":        {"is required"},
 			"tooFew":        {"length of string is 1, must be at least 5"},
+			"many":          {"one of (first, second, third) is required"},
+			"many.id":       {"is required"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})

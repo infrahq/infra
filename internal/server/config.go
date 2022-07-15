@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -19,44 +18,86 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
 type Provider struct {
-	Name         string `validate:"required"`
-	URL          string `validate:"required"`
-	ClientID     string `validate:"required"`
-	ClientSecret string `validate:"required"`
+	Name         string
+	URL          string
+	ClientID     string
+	ClientSecret string
 	Kind         string
 	AuthURL      string
 	Scopes       []string
 }
 
+func (p Provider) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		// TODO: api.ValidateName
+		validate.Required("name", p.Name),
+		validate.Required("url", p.URL),
+		validate.Required("clientID", p.ClientID),
+		validate.Required("clientSecret", p.ClientSecret),
+	}
+}
+
 type Grant struct {
-	User     string `validate:"excluded_with=Group,excluded_with=Machine"`
-	Group    string `validate:"excluded_with=User,excluded_with=Machine"`
-	Machine  string `validate:"excluded_with=User,excluded_with=Group"` // deprecated
-	Resource string `validate:"required"`
+	User     string
+	Group    string
+	Machine  string // deprecated
+	Resource string
 	Role     string
 }
 
+func (g Grant) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.RequireOneOf(
+			validate.Field{Name: "user", Value: g.User},
+			validate.Field{Name: "group", Value: g.Group},
+			validate.Field{Name: "machine", Value: g.Machine},
+		),
+		validate.Required("resource", g.Resource),
+	}
+}
+
 type User struct {
-	Name      string `validate:"excluded_with=Email"`
+	Name      string
 	AccessKey string
 	Password  string
 
-	Email string `validate:"excluded_with=Name"` // deprecated
+	Email string // deprecated
+}
+
+func (u User) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.RequireOneOf(
+			validate.Field{Name: "name", Value: u.Name},
+			validate.Field{Name: "email", Value: u.Email},
+		),
+	}
 }
 
 type Config struct {
-	Providers []Provider `validate:"dive"`
-	Grants    []Grant    `validate:"dive"`
-	Users     []User     `validate:"dive"`
+	Providers []Provider
+	Grants    []Grant
+	Users     []User
+}
+
+func (c Config) ValidationRules() []validate.ValidationRule {
+	// no-op implement to satisfy the interface
+	return nil
 }
 
 type KeyProvider struct {
-	Kind   string      `validate:"required"`
+	Kind   string
 	Config interface{} // contains secret-provider-specific config
+}
+
+func (kp KeyProvider) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("kind", kp.Kind),
+	}
 }
 
 type nativeKeyProviderConfig struct {
@@ -64,10 +105,19 @@ type nativeKeyProviderConfig struct {
 }
 
 type AWSConfig struct {
-	Endpoint        string `validate:"required"`
-	Region          string `validate:"required"`
-	AccessKeyID     string `validate:"required"`
-	SecretAccessKey string `validate:"required"`
+	Endpoint        string
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
+}
+
+func (c AWSConfig) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("endpoint", c.Endpoint),
+		validate.Required("region", c.Region),
+		validate.Required("accessKeyID", c.AccessKeyID),
+		validate.Required("secretAccessKey", c.SecretAccessKey),
+	}
 }
 
 type AWSKMSConfig struct {
@@ -83,7 +133,13 @@ type AWSSecretsManagerConfig struct {
 
 type AWSSSMConfig struct {
 	AWSConfig
-	KeyID string `validate:"required"` // KMS key to use for decryption
+	KeyID string // KMS key to use for decryption
+}
+
+func (c AWSSSMConfig) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("keyID", c.KeyID),
+	}
 }
 
 type GenericConfig struct {
@@ -94,7 +150,13 @@ type GenericConfig struct {
 
 type FileConfig struct {
 	GenericConfig
-	Path string `validate:"required"`
+	Path string
+}
+
+func (c FileConfig) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("path", c.Path),
+	}
 }
 
 type KubernetesConfig struct {
@@ -104,9 +166,16 @@ type KubernetesConfig struct {
 type VaultConfig struct {
 	TransitMount string // mounting point. defaults to /transit
 	SecretMount  string // mounting point. defaults to /secret
-	Token        string `validate:"required"`
+	Token        string
 	Namespace    string
-	Address      string `validate:"required"`
+	Address      string
+}
+
+func (c VaultConfig) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("token", c.Token),
+		validate.Required("address", c.Address),
+	}
 }
 
 func importKeyProviders(
@@ -530,7 +599,7 @@ func getKindFromUnstructured(data interface{}) string {
 }
 
 func (s Server) loadConfig(config Config) error {
-	if err := validator.New().Struct(config); err != nil {
+	if err := validate.Validate(config); err != nil {
 		return err
 	}
 

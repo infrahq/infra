@@ -36,7 +36,8 @@ func validateStruct(v reflect.Value) Error {
 		}
 	}
 
-	if v.Kind() == reflect.Struct {
+	switch v.Kind() { // nolint:exhaustive
+	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
 			if v.Type().Field(i).Anonymous {
@@ -53,6 +54,12 @@ func validateStruct(v reflect.Value) Error {
 					n = name + "." + k
 				}
 				err[n] = append(err[n], v...)
+			}
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			for k, v := range validateStruct(v.Index(i)) {
+				err[k] = append(err[k], v...)
 			}
 		}
 	}
@@ -272,5 +279,9 @@ func fieldName(f reflect.StructField) string {
 		return name
 	}
 
-	return ""
+	if f.Name == "" {
+		return ""
+	}
+
+	return strings.ToLower(f.Name[:1]) + f.Name[1:]
 }
