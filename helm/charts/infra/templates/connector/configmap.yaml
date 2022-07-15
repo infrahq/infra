@@ -29,6 +29,10 @@ data:
       url: {{ . }}
 {{- end }}
 
+{{- with .Values.connector.config.skipTLSVerify }}
+      skipTLSVerify: {{ . }}
+{{- end }}
+
 {{- if include "server.enabled" . | eq "true" }}
       url: {{ .Release.Name }}-server.{{ .Release.Namespace }}
 
