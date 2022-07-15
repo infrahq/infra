@@ -28,7 +28,7 @@ func validateStruct(v reflect.Value) Error {
 	err := make(Error)
 
 	req, ok := v.Interface().(Request)
-	if ok {
+	if ok && (v.Kind() != reflect.Pointer || !v.IsNil()) {
 		for _, rule := range req.ValidationRules() {
 			if failure := rule.Validate(); failure != nil {
 				err[failure.Name] = append(err[failure.Name], failure.Problems...)
@@ -172,15 +172,15 @@ func (m mutuallyExclusive) Validate() *Failure {
 // TODO: use oneOf to DescribeSchema
 func (m mutuallyExclusive) DescribeSchema(_ *openapi3.Schema) {}
 
-// RequireOneOf returns a validation rule that checks that at least one of the
+// RequireAnyOf returns a validation rule that checks that at least one of the
 // fields is set to a non-zero value.
-func RequireOneOf(fields ...Field) ValidationRule {
-	return requireOneOf(fields)
+func RequireAnyOf(fields ...Field) ValidationRule {
+	return requireAnyOf(fields)
 }
 
-type requireOneOf []Field
+type requireAnyOf []Field
 
-func (m requireOneOf) Validate() *Failure {
+func (m requireAnyOf) Validate() *Failure {
 	var zero []string
 	for _, field := range m {
 		if reflect.ValueOf(field.Value).IsZero() {
@@ -195,6 +195,37 @@ func (m requireOneOf) Validate() *Failure {
 }
 
 // TODO: use anyOf to DescribeSchema
+func (m requireAnyOf) DescribeSchema(_ *openapi3.Schema) {}
+
+// RequireOneOf returns a validation rule that checks that exactly one of the
+// fields is set to a non-zero value.
+func RequireOneOf(fields ...Field) ValidationRule {
+	return requireOneOf(fields)
+}
+
+type requireOneOf []Field
+
+func (m requireOneOf) Validate() *Failure {
+	var zero []string
+	var nonZero []string
+	for _, field := range m {
+		if reflect.ValueOf(field.Value).IsZero() {
+			zero = append(zero, field.Name)
+		} else {
+			nonZero = append(nonZero, field.Name)
+		}
+	}
+
+	if len(nonZero) > 1 {
+		return fail("", fmt.Sprintf("only one of (%v) can be set", strings.Join(nonZero, ", ")))
+	}
+	if len(zero) == len(m) {
+		return fail("", fmt.Sprintf("one of (%v) is required", strings.Join(zero, ", ")))
+	}
+	return nil
+}
+
+// TODO: use oneOf to DescribeSchema
 func (m requireOneOf) DescribeSchema(_ *openapi3.Schema) {}
 
 func schemaForProperty(parent *openapi3.Schema, prop string) *openapi3.Schema {

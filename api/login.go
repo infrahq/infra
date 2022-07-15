@@ -1,23 +1,54 @@
 package api
 
-import "github.com/infrahq/infra/uid"
+import (
+	"github.com/infrahq/infra/internal/validate"
+	"github.com/infrahq/infra/uid"
+)
 
 type LoginRequestOIDC struct {
-	ProviderID  uid.ID `json:"providerID" validate:"required"`
-	RedirectURL string `json:"redirectURL" validate:"required"`
-	Code        string `json:"code" validate:"required"`
+	ProviderID  uid.ID `json:"providerID"`
+	RedirectURL string `json:"redirectURL"`
+	Code        string `json:"code"`
+}
+
+func (r LoginRequestOIDC) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("providerID", r.ProviderID),
+		validate.Required("redirectURL", r.RedirectURL),
+		validate.Required("code", r.Code),
+	}
 }
 
 type LoginRequestPasswordCredentials struct {
-	Name     string `json:"name" validate:"required_without=Email"`
-	Email    string `json:"email" validate:"required_without=Name"` // #1825: remove, this is for migration
-	Password string `json:"password" validate:"required"`
+	Name     string `json:"name"`
+	Email    string `json:"email"` // #1825: remove, this is for migration
+	Password string `json:"password"`
+}
+
+func (r LoginRequestPasswordCredentials) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.RequireOneOf(
+			validate.Field{Name: "name", Value: r.Name},
+			validate.Field{Name: "email", Value: r.Email},
+		),
+		validate.Required("password", r.Password),
+	}
 }
 
 type LoginRequest struct {
-	AccessKey           string                           `json:"accessKey" validate:"excluded_with=OIDC,excluded_with=PasswordCredentials"`
-	PasswordCredentials *LoginRequestPasswordCredentials `json:"passwordCredentials" validate:"excluded_with=OIDC,excluded_with=AccessKey"`
-	OIDC                *LoginRequestOIDC                `json:"oidc" validate:"excluded_with=KeyExchange,excluded_with=PasswordCredentials"`
+	AccessKey           string                           `json:"accessKey"`
+	PasswordCredentials *LoginRequestPasswordCredentials `json:"passwordCredentials"`
+	OIDC                *LoginRequestOIDC                `json:"oidc"`
+}
+
+func (r LoginRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.RequireOneOf(
+			validate.Field{Name: "accessKey", Value: r.AccessKey},
+			validate.Field{Name: "passwordCredentials", Value: r.PasswordCredentials},
+			validate.Field{Name: "oidc", Value: r.OIDC},
+		),
+	}
 }
 
 type LoginResponse struct {

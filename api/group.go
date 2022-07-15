@@ -27,11 +27,24 @@ func (r ListGroupsRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateGroupRequest struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name"`
+}
+
+func (r CreateGroupRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		ValidateName(r.Name),
+		validate.Required("name", r.Name),
+	}
 }
 
 type UpdateUsersInGroupRequest struct {
-	GroupID         uid.ID   `uri:"id" json:"-" validate:"required"`
+	GroupID         uid.ID   `uri:"id" json:"-"`
 	UserIDsToAdd    []uid.ID `json:"usersToAdd"`
 	UserIDsToRemove []uid.ID `json:"usersToRemove"`
+}
+
+func (r UpdateUsersInGroupRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("id", r.GroupID),
+	}
 }

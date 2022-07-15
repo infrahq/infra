@@ -248,7 +248,6 @@ func TestAPI_CreateGroup(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	type testCase struct {
-		urlPath  string
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 		body     api.CreateGroupRequest
@@ -268,7 +267,7 @@ func TestAPI_CreateGroup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
-		req, err := http.NewRequest(http.MethodPost, tc.urlPath, body)
+		req, err := http.NewRequest(http.MethodPost, "/api/groups", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
 		req.Header.Add("Infra-Version", "0.13.0")
@@ -285,16 +284,14 @@ func TestAPI_CreateGroup(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"not authenticated": {
-			urlPath: "/api/groups",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Del("Authorization")
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
 			},
 		},
 		"authorized by grant": {
-			urlPath: "/api/groups",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -302,7 +299,22 @@ func TestAPI_CreateGroup(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 			},
 			body: api.CreateGroupRequest{
-				Name: "Awesome group",
+				Name: "AwesomeGroup",
+			},
+		},
+		"missing required fields": {
+			body: api.CreateGroupRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "name", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
 	}
