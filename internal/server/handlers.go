@@ -635,11 +635,10 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	return access.UpdateIdentityInfoFromProvider(c, oidc)
 }
 
-func (a *API) providerClient(c *gin.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
-	if val, ok := c.Get("oidc"); ok {
+func (a *API) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
+	if c := providers.OIDCClientFromContext(ctx); c != nil {
 		// oidc is added to the context during unit tests
-		oidc, _ := val.(providers.OIDCClient)
-		return oidc, nil
+		return c, nil
 	}
 
 	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)

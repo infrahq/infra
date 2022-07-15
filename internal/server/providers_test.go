@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
@@ -13,6 +15,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 )
 
 func TestAPI_ListProviders(t *testing.T) {
@@ -170,12 +173,20 @@ func TestAPI_CreateProvider(t *testing.T) {
 		},
 		{
 			name: "not authorized",
+			body: api.CreateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
 			setup: func(t *testing.T, req *http.Request) {
 				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
 				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				t.Skip("TODO: requires either a fake oidc client, or to authorize before validation")
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
@@ -281,12 +292,20 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		},
 		{
 			name: "not authorized",
+			body: api.UpdateProviderRequest{
+				Name:         "olive",
+				URL:          "https://example.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+			},
 			setup: func(t *testing.T, req *http.Request) {
 				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
 				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				t.Skip("TODO: requires either a fake oidc client, or to authorize before validation")
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
 			},
 		},
@@ -338,4 +357,29 @@ func TestAPI_UpdateProvider(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+// mockOIDC is a fake oidc identity provider
+type fakeOIDCImplementation struct {
+}
+
+func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
+	return nil
+}
+
+func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.AuthServerInfo, error) {
+	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
+}
+
+func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
+	return "acc", "ref", exp, "", nil
+}
+
+func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
+	// never update
+	return string(providerUser.AccessToken), &providerUser.ExpiresAt, nil
+}
+
+func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	return &providers.UserInfoClaims{}, nil
 }

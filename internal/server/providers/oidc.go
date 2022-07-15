@@ -38,6 +38,21 @@ type OIDCClient interface {
 	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error)
 }
 
+type key struct{}
+
+var ctxKey = key{}
+
+func OIDCClientFromContext(ctx context.Context) OIDCClient {
+	if raw := ctx.Value(ctxKey); raw != nil {
+		return raw.(OIDCClient) // nolint:forcetypeassert
+	}
+	return nil
+}
+
+func WithOIDCClient(ctx context.Context, client OIDCClient) context.Context {
+	return context.WithValue(ctx, ctxKey, client)
+}
+
 type oidcClientImplementation struct {
 	ProviderID   uid.ID
 	Domain       string
