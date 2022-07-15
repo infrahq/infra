@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -19,6 +20,21 @@ func getDB(c *gin.Context) *gorm.DB {
 	}
 
 	return db
+}
+
+func GetCurrentOrgID(c *gin.Context) (uid.ID, error) {
+	if org, ok := c.Get("organization"); ok {
+		return org.(*models.Organization).ID, nil
+	}
+	return 0, fmt.Errorf("couldn't find org for current user")
+}
+
+func GetCurrentOrgSelector(c *gin.Context) (data.SelectorFunc, error) {
+	id, err := GetCurrentOrgID(c)
+	if err != nil {
+		return nil, err
+	}
+	return data.ByOrg(id), nil
 }
 
 // hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it

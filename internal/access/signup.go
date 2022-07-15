@@ -86,6 +86,7 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 		Resource:  "infra",
 		CreatedBy: identity.ID,
 	}
+	grant.OrganizationID = organization.ID
 
 	if err := data.CreateGrant(db, grant); err != nil {
 		return nil, err
