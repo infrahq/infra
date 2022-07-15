@@ -173,7 +173,8 @@ func (m mutuallyExclusive) Validate() *Failure {
 	return nil
 }
 
-// TODO: use oneOf to DescribeSchema
+// DescribeSchema does nothing. There is currently no way clean way to express
+// "not set" in the OpenAPI spec.
 func (m mutuallyExclusive) DescribeSchema(_ *openapi3.Schema) {}
 
 // RequireAnyOf returns a validation rule that checks that at least one of the
@@ -198,8 +199,13 @@ func (m requireAnyOf) Validate() *Failure {
 	return nil
 }
 
-// TODO: use anyOf to DescribeSchema
-func (m requireAnyOf) DescribeSchema(_ *openapi3.Schema) {}
+func (m requireAnyOf) DescribeSchema(schema *openapi3.Schema) {
+	for _, f := range m {
+		schema.AnyOf = append(schema.AnyOf, &openapi3.SchemaRef{
+			Value: &openapi3.Schema{Required: []string{f.Name}},
+		})
+	}
+}
 
 // RequireOneOf returns a validation rule that checks that exactly one of the
 // fields is set to a non-zero value.
@@ -229,8 +235,13 @@ func (m requireOneOf) Validate() *Failure {
 	return nil
 }
 
-// TODO: use oneOf to DescribeSchema
-func (m requireOneOf) DescribeSchema(_ *openapi3.Schema) {}
+func (m requireOneOf) DescribeSchema(schema *openapi3.Schema) {
+	for _, f := range m {
+		schema.OneOf = append(schema.OneOf, &openapi3.SchemaRef{
+			Value: &openapi3.Schema{Required: []string{f.Name}},
+		})
+	}
+}
 
 func schemaForProperty(parent *openapi3.Schema, prop string) *openapi3.Schema {
 	if parent.Properties == nil {
