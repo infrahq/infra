@@ -46,6 +46,7 @@ var (
 	Dash          = CharRange{Low: '-', High: '-'}
 	Underscore    = CharRange{Low: '_', High: '_'}
 	Dot           = CharRange{Low: '.', High: '.'}
+	AtSign        = CharRange{Low: '@', High: '@'}
 )
 
 func (s StringRule) DescribeSchema(parent *openapi3.Schema) {

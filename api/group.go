@@ -32,9 +32,15 @@ type CreateGroupRequest struct {
 
 func (r CreateGroupRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		ValidateName(r.Name),
+		validateGroupName(r.Name),
 		validate.Required("name", r.Name),
 	}
+}
+
+func validateGroupName(value string) validate.StringRule {
+	nameRule := validateName(value)
+	nameRule.CharacterRanges = append(nameRule.CharacterRanges, validate.AtSign)
+	return nameRule
 }
 
 type UpdateUsersInGroupRequest struct {
