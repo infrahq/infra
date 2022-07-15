@@ -61,6 +61,10 @@ func validateStruct(v reflect.Value) Error {
 
 // ValidationRule performs validation on one or more struct fields and can
 // describe the validation for public API documentation.
+//
+// Validation rules should all default to optional. If the field has a zero value
+// then the validation rule will do nothing. Use Required, or RequireOneOf to
+// make something a required field.
 type ValidationRule interface {
 	// Validate should return nil if the validation passes. If the validation
 	// fails the Failure should contain the name of the field and the list of
