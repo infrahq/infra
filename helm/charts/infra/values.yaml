@@ -432,7 +432,7 @@ server:
     # enableTelemetry: true
 
     ## Server UI configurations
-    # ui:
+    ui: {}
     #   ## Enable server UI and proxy ui requests to this UI service
     #   proxyURL: ""
 
