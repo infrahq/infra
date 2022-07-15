@@ -18,6 +18,7 @@ import (
 
 func TestMetrics(t *testing.T) {
 	run := func(db *gorm.DB, s string) []byte {
+		patchAPIVersion(t, "9.9.9")
 		registry := setupMetrics(db)
 
 		tempfile, err := ioutil.TempFile(t.TempDir(), t.Name())
@@ -36,7 +37,8 @@ func TestMetrics(t *testing.T) {
 
 	t.Run("build info", func(t *testing.T) {
 		actual := run(setupDB(t), `build_info({.*})? \d+`)
-		golden.Assert(t, string(actual), t.Name())
+		expected := `build_info{branch="main",commit="",date="",version="9.9.9"} 1`
+		assert.Equal(t, string(actual), expected)
 	})
 
 	t.Run("infra users", func(t *testing.T) {

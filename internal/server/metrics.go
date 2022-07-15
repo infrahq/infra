@@ -12,7 +12,7 @@ import (
 )
 
 func setupMetrics(db *gorm.DB) *prometheus.Registry {
-	registry := metrics.NewRegistry()
+	registry := metrics.NewRegistry(apiVersion())
 
 	if rawDB, err := db.DB(); err == nil {
 		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))

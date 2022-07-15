@@ -18,7 +18,7 @@ import (
 //   * standard process collector
 //   * standard go collector
 //   * build_info metric
-func NewRegistry() *prometheus.Registry {
+func NewRegistry(version string) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registry.MustRegister(collectors.NewGoCollector())
@@ -28,7 +28,7 @@ func NewRegistry() *prometheus.Registry {
 		Help: "A metric with a constant '1' value labeled by branch, version, commit, and date from which infra was built",
 		ConstLabels: prometheus.Labels{
 			"branch":  internal.Branch,
-			"version": internal.FullVersion(),
+			"version": version,
 			"commit":  internal.Commit,
 			"date":    internal.Date,
 		},
