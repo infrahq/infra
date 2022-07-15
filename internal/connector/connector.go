@@ -55,17 +55,14 @@ type ListenerOptions struct {
 func Run(ctx context.Context, options Options) error {
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
 
-	chksm, err := k8s.Checksum()
-	if err != nil {
-		logging.Errorf("k8s checksum error: %s", err)
-		return err
-	}
+	checkSum := k8s.Checksum()
+	logging.L.Debug().Str("uniqueID", checkSum).Msg("Cluster uniqueID")
 
 	if options.Name == "" {
-		autoname, err := k8s.Name(chksm)
+		autoname, err := k8s.Name(checkSum)
 		if err != nil {
 			logging.Errorf("k8s name error: %s", err)
 			return err
@@ -103,7 +100,7 @@ func Run(ctx context.Context, options Options) error {
 
 	destination := &api.Destination{
 		Name:     options.Name,
-		UniqueID: chksm,
+		UniqueID: checkSum,
 	}
 
 	// clone the default http transport which sets reasonable defaults
@@ -133,7 +130,7 @@ func Run(ctx context.Context, options Options) error {
 			Transport: httpTransportFromOptions(options.Server),
 		},
 		Headers: http.Header{
-			"Infra-Destination": {chksm},
+			"Infra-Destination": {checkSum},
 		},
 		OnUnauthorized: func() {
 			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
@@ -172,14 +169,8 @@ func Run(ctx context.Context, options Options) error {
 		return fmt.Errorf("parsing host config: %w", err)
 	}
 
-	clusterCACert, err := kubernetes.CA()
-	if err != nil {
-		return fmt.Errorf("reading CA file: %w", err)
-	}
-
 	certPool := x509.NewCertPool()
-
-	if ok := certPool.AppendCertsFromPEM(clusterCACert); !ok {
+	if ok := certPool.AppendCertsFromPEM(k8s.Config.CAData); !ok {
 		return errors.New("could not append CA to client cert bundle")
 	}
 
