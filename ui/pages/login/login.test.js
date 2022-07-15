@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import useSWR from 'swr'
 import '@testing-library/jest-dom'
 
-import Login from './index'
+import Login, { Providers } from './index'
 
 function mockedProviders() {
   return {
@@ -22,6 +22,25 @@ jest.mock('swr', () => {
     })),
   }
 })
+
+const providers = {
+  data: {
+    items: [
+      {
+        id: 0,
+        name: 'Okta',
+        kind: 'okta',
+        url: 'example@okta.com',
+      },
+      {
+        id: 1,
+        name: 'Azure Active Directory',
+        kind: 'azure',
+        url: 'example@azure.com',
+      },
+    ],
+  },
+}
 
 describe('Login Component', () => {
   it('should render', () => {
@@ -49,25 +68,6 @@ describe('Login Component', () => {
   })
 
   it('it renders with multiple providers', () => {
-    const providers = {
-      data: {
-        items: [
-          {
-            id: 0,
-            name: 'Okta',
-            kind: 'okta',
-            url: 'example@okta.com',
-          },
-          {
-            id: 1,
-            name: 'Azure Active Directory',
-            kind: 'azure',
-            url: 'example@azure.com',
-          },
-        ],
-      },
-    }
-
     useSWR.mockReturnValue(providers)
 
     render(<Login />)
@@ -114,7 +114,27 @@ describe('Login Component', () => {
   })
 })
 
-// TEST for <Providers ... />
-// describe('Providers Component', () => {
-//   it('should render when there is provider')
-// })
+describe('Providers Component', () => {
+  it('should render', () => {
+    expect(() =>
+      render(<Providers providers={providers.data.items} />)
+    ).not.toThrow()
+  })
+
+  it('should render the correct images based on the kind of the provider', () => {
+    const { items } = providers.data
+    const { getAllByAltText } = render(<Providers providers={items} />)
+
+    const image = getAllByAltText('identity provider icon')
+
+    expect(image[0]).toHaveAttribute('src', `/providers/${items[0].kind}.svg`)
+    expect(image[1]).toHaveAttribute('src', `/providers/${items[1].kind}.svg`)
+  })
+
+  it('should not render Single Sign-On as the button title', () => {
+    const { items } = providers.data
+    render(<Providers providers={items} />)
+
+    expect(screen.queryByText('Single Sign-On')).not.toBeInTheDocument()
+  })
+})

@@ -22,7 +22,7 @@ function oidcLogin({ id, clientID, authURL, scopes }) {
   )}&state=${state}`
 }
 
-function Providers({ providers }) {
+export function Providers({ providers }) {
   return (
     <>
       <div className='mt-2 w-full max-w-sm'>
@@ -53,14 +53,6 @@ function Providers({ providers }) {
               </button>
             )
         )}
-      </div>
-      <div className='relative mt-4 w-full'>
-        <div className='absolute inset-0 flex items-center' aria-hidden='true'>
-          <div className='w-full border-t border-gray-800' />
-        </div>
-        <div className='relative flex justify-center text-sm'>
-          <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
-        </div>
       </div>
     </>
   )
@@ -124,6 +116,14 @@ export default function Login() {
         {providers?.length > 0 && 'or via your identity provider.'}
       </h2>
       {providers?.length > 0 && <Providers providers={providers || []} />}
+      <div className='relative mt-4 w-full'>
+        <div className='absolute inset-0 flex items-center' aria-hidden='true'>
+          <div className='w-full border-t border-gray-800' />
+        </div>
+        <div className='relative flex justify-center text-sm'>
+          <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
+        </div>
+      </div>
       <form
         onSubmit={onSubmit}
         className='relative flex w-full max-w-sm flex-col'
