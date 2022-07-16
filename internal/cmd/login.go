@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/mail"
 	"net/url"
@@ -426,13 +427,21 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 			return c, err
 		}
 		pool.AddCert(uaErr.Cert)
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				// set min version to the same as default to make gosec linter happy
-				MinVersion: tls.VersionTLS12,
-				RootCAs:    pool,
-			},
+
+		tlsConfig := &tls.Config{
+			// set min version to the same as default to make gosec linter happy
+			MinVersion: tls.VersionTLS12,
+			RootCAs:    pool,
 		}
+
+		if ip := net.ParseIP(options.Server); ip != nil {
+			tlsConfig.ServerName = "infra.internal"
+		}
+
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+
 		c.APIClient = apiClient(options.Server, "", transport)
 		c.TrustedCertificate = string(certs.PEMEncodeCertificate(uaErr.Cert.Raw))
 	}
@@ -490,10 +499,19 @@ func attemptTLSRequest(options loginCmdOptions) error {
 		pool.AppendCertsFromPEM([]byte(options.TrustedCertificate))
 	}
 
+	tlsConfig := &tls.Config{
+		RootCAs:    pool,
+		MinVersion: tls.VersionTLS12,
+	}
+
+	if ip := net.ParseIP(options.Server); ip != nil {
+		tlsConfig.ServerName = "infra.internal"
+	}
+
 	httpClient = http.Client{
 		Timeout: 60 * time.Second,
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+			TLSClientConfig: tlsConfig,
 		},
 	}
 

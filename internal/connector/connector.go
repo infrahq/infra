@@ -219,13 +219,24 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 		}
 	}
 
-	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{
+	tlsConfig := &tls.Config{
 		//nolint:gosec // We may purposely set InsecureSkipVerify via a flag
 		InsecureSkipVerify: opts.SkipTLSVerify,
 		RootCAs:            roots,
 	}
+
+	u, err := urlx.Parse(opts.URL)
+	if err != nil {
+		logging.L.Warn().Err(err).Msgf("failed parse host from server URL")
+	} else {
+		if ip := net.ParseIP(u.Host); ip != nil {
+			tlsConfig.ServerName = "infra.internal"
+		}
+	}
+
+	// nolint:forcetypeassert // http.DefaultTransport is always http.Transport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = tlsConfig
 	return transport
 }
 

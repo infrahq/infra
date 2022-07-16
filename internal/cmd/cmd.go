@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -124,12 +125,18 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 		}
 	}
 
+	tlsConfig := &tls.Config{
+		//nolint:gosec // We may purposely set insecureskipverify via a flag
+		InsecureSkipVerify: config.SkipTLSVerify,
+		RootCAs:            pool,
+	}
+
+	if ip := net.ParseIP(config.Host); ip != nil {
+		tlsConfig.ServerName = "infra.internal"
+	}
+
 	return &http.Transport{
-		TLSClientConfig: &tls.Config{
-			//nolint:gosec // We may purposely set insecureskipverify via a flag
-			InsecureSkipVerify: config.SkipTLSVerify,
-			RootCAs:            pool,
-		},
+		TLSClientConfig: tlsConfig,
 	}
 }
 
