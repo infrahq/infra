@@ -93,6 +93,9 @@ jobs:
           go-version: "1.18"
           cache: true
       - uses: golangci/golangci-lint-action@v3.2.0
+        with:
+          version: v1.46.2
+          args: --verbose
 
   helm-lint:
     runs-on: ubuntu-latest
