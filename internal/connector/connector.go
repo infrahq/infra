@@ -178,9 +178,11 @@ func Run(ctx context.Context, options Options) error {
 	promRegistry := setupMetrics()
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
-		Addr:     ":9090",
-		Handler:  metrics.NewHandler(promRegistry),
-		ErrorLog: httpErrorLog,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              ":9090",
+		Handler:           metrics.NewHandler(promRegistry),
+		ErrorLog:          httpErrorLog,
 	}
 
 	go func() {
@@ -195,10 +197,12 @@ func Run(ctx context.Context, options Options) error {
 		proxyMiddleware(proxy, authn, k8s.Config.BearerToken),
 	)
 	tlsServer := &http.Server{
-		Addr:      ":443",
-		TLSConfig: tlsConfig,
-		Handler:   router,
-		ErrorLog:  httpErrorLog,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              ":443",
+		TLSConfig:         tlsConfig,
+		Handler:           router,
+		ErrorLog:          httpErrorLog,
 	}
 
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)

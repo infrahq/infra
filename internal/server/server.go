@@ -228,9 +228,11 @@ func (s *Server) listen() error {
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
-		Addr:     s.options.Addr.Metrics,
-		Handler:  metrics.NewHandler(promRegistry),
-		ErrorLog: httpErrorLog,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              s.options.Addr.Metrics,
+		Handler:           metrics.NewHandler(promRegistry),
+		ErrorLog:          httpErrorLog,
 	}
 
 	var err error
@@ -240,9 +242,11 @@ func (s *Server) listen() error {
 	}
 
 	plaintextServer := &http.Server{
-		Addr:     s.options.Addr.HTTP,
-		Handler:  router,
-		ErrorLog: httpErrorLog,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              s.options.Addr.HTTP,
+		Handler:           router,
+		ErrorLog:          httpErrorLog,
 	}
 	s.Addrs.HTTP, err = s.setupServer(plaintextServer)
 	if err != nil {
@@ -255,10 +259,12 @@ func (s *Server) listen() error {
 	}
 
 	tlsServer := &http.Server{
-		Addr:      s.options.Addr.HTTPS,
-		TLSConfig: tlsConfig,
-		Handler:   router,
-		ErrorLog:  httpErrorLog,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              s.options.Addr.HTTPS,
+		TLSConfig:         tlsConfig,
+		Handler:           router,
+		ErrorLog:          httpErrorLog,
 	}
 	s.Addrs.HTTPS, err = s.setupServer(tlsServer)
 	if err != nil {
