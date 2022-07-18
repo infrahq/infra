@@ -202,7 +202,7 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{Errors: []string{"only one of (user, group) can be set"}},
+					{Errors: []string{"only one of (user, group) can have a value"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

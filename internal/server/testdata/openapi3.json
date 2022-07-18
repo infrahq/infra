@@ -2001,6 +2001,18 @@
           "content": {
             "application/json": {
               "schema": {
+                "oneOf": [
+                  {
+                    "required": [
+                      "user"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "group"
+                    ]
+                  }
+                ],
                 "properties": {
                   "group": {
                     "example": "4yJ3n3D8E2",
@@ -2434,7 +2446,7 @@
               "schema": {
                 "properties": {
                   "name": {
-                    "format": "[a-zA-Z0-9\\-_.]",
+                    "format": "[a-zA-Z0-9\\-_.@]",
                     "maxLength": 256,
                     "minLength": 3,
                     "type": "string"
@@ -2853,6 +2865,23 @@
           "content": {
             "application/json": {
               "schema": {
+                "oneOf": [
+                  {
+                    "required": [
+                      "accessKey"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "passwordCredentials"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "oidc"
+                    ]
+                  }
+                ],
                 "properties": {
                   "accessKey": {
                     "type": "string"
@@ -2880,6 +2909,18 @@
                     "type": "object"
                   },
                   "passwordCredentials": {
+                    "oneOf": [
+                      {
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "email"
+                        ]
+                      }
+                    ],
                     "properties": {
                       "email": {
                         "type": "string"
@@ -3725,6 +3766,18 @@
           "content": {
             "application/json": {
               "schema": {
+                "oneOf": [
+                  {
+                    "required": [
+                      "name"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "email"
+                    ]
+                  }
+                ],
                 "properties": {
                   "email": {
                     "format": "email",

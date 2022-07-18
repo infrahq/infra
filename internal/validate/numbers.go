@@ -29,10 +29,10 @@ func (i IntRule) Validate() *Failure {
 	}
 
 	if i.Min != nil && i.Value < *i.Min {
-		add("value (%d) must be at least %d", i.Value, *i.Min)
+		add("value %d must be at least %d", i.Value, *i.Min)
 	}
 	if i.Max != nil && i.Value > *i.Max {
-		add("value (%d) must be at most %d", i.Value, *i.Max)
+		add("value %d must be at most %d", i.Value, *i.Max)
 	}
 
 	if len(problems) > 0 {

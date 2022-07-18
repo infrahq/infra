@@ -370,7 +370,7 @@ func TestAPI_ListUsers(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "limit", Errors: []string{"value (1001) must be at most 1000"}},
+					{FieldName: "limit", Errors: []string{"value 1001 must be at most 1000"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -385,7 +385,7 @@ func TestAPI_ListUsers(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "page", Errors: []string{"value (-1) must be at least 0"}},
+					{FieldName: "page", Errors: []string{"value -1 must be at least 0"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -807,7 +807,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "password", Errors: []string{"length of string (5) must be at least 8"}},
+					{FieldName: "password", Errors: []string{"length of string is 5, must be at least 8"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

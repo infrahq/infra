@@ -61,6 +61,10 @@ func validateStruct(v reflect.Value) Error {
 
 // ValidationRule performs validation on one or more struct fields and can
 // describe the validation for public API documentation.
+//
+// Validation rules should all default to optional. If the field has a zero value
+// then the validation rule will do nothing. Use Required, or RequireOneOf to
+// make something a required field.
 type ValidationRule interface {
 	// Validate should return nil if the validation passes. If the validation
 	// fails the Failure should contain the name of the field and the list of
@@ -164,12 +168,13 @@ func (m mutuallyExclusive) Validate() *Failure {
 	}
 
 	if len(nonZero) > 1 {
-		return fail("", fmt.Sprintf("only one of (%v) can be set", strings.Join(nonZero, ", ")))
+		return fail("", fmt.Sprintf("only one of (%v) can have a value", strings.Join(nonZero, ", ")))
 	}
 	return nil
 }
 
-// TODO: use oneOf to DescribeSchema
+// DescribeSchema does nothing. There is currently no way clean way to express
+// "not set" in the OpenAPI spec.
 func (m mutuallyExclusive) DescribeSchema(_ *openapi3.Schema) {}
 
 // RequireAnyOf returns a validation rule that checks that at least one of the
@@ -194,8 +199,13 @@ func (m requireAnyOf) Validate() *Failure {
 	return nil
 }
 
-// TODO: use anyOf to DescribeSchema
-func (m requireAnyOf) DescribeSchema(_ *openapi3.Schema) {}
+func (m requireAnyOf) DescribeSchema(schema *openapi3.Schema) {
+	for _, f := range m {
+		schema.AnyOf = append(schema.AnyOf, &openapi3.SchemaRef{
+			Value: &openapi3.Schema{Required: []string{f.Name}},
+		})
+	}
+}
 
 // RequireOneOf returns a validation rule that checks that exactly one of the
 // fields is set to a non-zero value.
@@ -217,7 +227,7 @@ func (m requireOneOf) Validate() *Failure {
 	}
 
 	if len(nonZero) > 1 {
-		return fail("", fmt.Sprintf("only one of (%v) can be set", strings.Join(nonZero, ", ")))
+		return fail("", fmt.Sprintf("only one of (%v) can have a value", strings.Join(nonZero, ", ")))
 	}
 	if len(zero) == len(m) {
 		return fail("", fmt.Sprintf("one of (%v) is required", strings.Join(zero, ", ")))
@@ -225,8 +235,13 @@ func (m requireOneOf) Validate() *Failure {
 	return nil
 }
 
-// TODO: use oneOf to DescribeSchema
-func (m requireOneOf) DescribeSchema(_ *openapi3.Schema) {}
+func (m requireOneOf) DescribeSchema(schema *openapi3.Schema) {
+	for _, f := range m {
+		schema.OneOf = append(schema.OneOf, &openapi3.SchemaRef{
+			Value: &openapi3.Schema{Required: []string{f.Name}},
+		})
+	}
+}
 
 func schemaForProperty(parent *openapi3.Schema, prop string) *openapi3.Schema {
 	if parent.Properties == nil {

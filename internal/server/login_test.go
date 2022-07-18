@@ -131,7 +131,7 @@ func TestAPI_Login(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{Errors: []string{"only one of (passwordCredentials, oidc) can be set"}},
+					{Errors: []string{"only one of (passwordCredentials, oidc) can have a value"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

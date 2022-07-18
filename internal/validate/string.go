@@ -46,6 +46,7 @@ var (
 	Dash          = CharRange{Low: '-', High: '-'}
 	Underscore    = CharRange{Low: '_', High: '_'}
 	Dot           = CharRange{Low: '.', High: '.'}
+	AtSign        = CharRange{Low: '@', High: '@'}
 )
 
 func (s StringRule) DescribeSchema(parent *openapi3.Schema) {
@@ -77,11 +78,11 @@ func (s StringRule) Validate() *Failure {
 		problems = append(problems, fmt.Sprintf(format, args...))
 	}
 	if s.MinLength > 0 && len(value) < s.MinLength {
-		add("length of string (%d) must be at least %d", len(value), s.MinLength)
+		add("length of string is %d, must be at least %d", len(value), s.MinLength)
 	}
 
 	if s.MaxLength > 0 && len(value) > s.MaxLength {
-		add("length of string (%d) must be no more than %d", len(value), s.MaxLength)
+		add("length of string is %d, must be no more than %d", len(value), s.MaxLength)
 	}
 
 	if len(s.CharacterRanges) > 0 {
