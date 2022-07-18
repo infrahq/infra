@@ -37,11 +37,11 @@ infra grants remove user@example.com staging --role edit
 
 ```
 infra grants list
-  USER                 ACCESS   DESTINATION
+  USER                 ROLE     DESTINATION
   jeff@infrahq.com     edit     development
   michael@infrahq.com  view     production
 
-  GROUP          ACCESS    DESTINATION
+  GROUP          ROLE      DESTINATION
   Engineering    edit      development.monitoring
   Engineering    view      production
   Design         edit      development.web

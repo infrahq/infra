@@ -172,12 +172,12 @@ Admins can inspect access in a single place, for all users & groups across all d
 
 ```
 $ infra grants list
-  USER (6)            ACCESS     DESTINATION
+  USER (6)            ROLE       DESTINATION
   jeff@infrahq.com    view       development-72f9584e
   mike@infrahq.com    edit       development-72f9584e.infrahq
   eva@infrahq.com     admin      digital_ocean_toronto
 
-  GROUP (5)    ACCESS  DESTINATION
+  GROUP (5)    ROLE    DESTINATION
   Everyone     view    development-72f9584e
   Engineering  edit    development-72f9584e.infrahq
   Design       edit    development-72f9584e.web

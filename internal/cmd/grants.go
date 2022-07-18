@@ -103,7 +103,7 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 
 	type row struct {
 		User     string `header:"USER"`
-		Access   string `header:"ACCESS"`
+		Role     string `header:"ROLE"`
 		Resource string `header:"DESTINATION"`
 	}
 
@@ -116,7 +116,7 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 
 		rows = append(rows, row{
 			User:     user.Name,
-			Access:   item.Privilege,
+			Role:     item.Privilege,
 			Resource: item.Resource,
 		})
 	}
@@ -143,7 +143,7 @@ func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error)
 
 	type row struct {
 		Group    string `header:"GROUP"`
-		Access   string `header:"ACCESS"`
+		Role     string `header:"ROLE"`
 		Resource string `header:"DESTINATION"`
 	}
 
@@ -156,7 +156,7 @@ func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error)
 
 		rows = append(rows, row{
 			Group:    group.Name,
-			Access:   item.Privilege,
+			Role:     item.Privilege,
 			Resource: item.Resource,
 		})
 	}
