@@ -46,6 +46,16 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 Note: it may take a few minutes for the LoadBalancer to be provisioned.
 
+If your load balancer does not have a hostname (often true for GKE and AKS clusters), Infra will not be able to automatically
+create a TLS certificate for the server. On GKE you can use the hostname `<LoadBalancer IP>.bc.googleusercontent.com` instad
+of `localhost`.
+
+
+Otherwise you'll need to configure the LoadBalancer with a static IP and hostname (see
+[GKE docs](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip), or
+[AKS docs](https://docs.microsoft.com/en-us/azure/aks/static-ip#create-a-static-ip-address)).
+Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup your own TLS certificates for Infra.
+
 {% /callout %}
 
 ## Connect a Kubernetes cluster
