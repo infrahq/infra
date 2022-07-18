@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/api" // nolint
 	"gotest.tools/v3/assert"
 )
 
