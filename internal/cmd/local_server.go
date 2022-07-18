@@ -36,7 +36,10 @@ const defaultTimeout = 300000 * time.Millisecond
 var pages embed.FS
 
 func newLocalServer() (*LocalServer, error) {
-	ls := &LocalServer{ResultChan: make(chan CodeResponse, 1), srv: &http.Server{Addr: "127.0.0.1:8301"}}
+	ls := &LocalServer{
+		ResultChan: make(chan CodeResponse, 1),
+		srv:        &http.Server{ReadHeaderTimeout: 30 * time.Second, ReadTimeout: 60 * time.Second, Addr: "127.0.0.1:8301"},
+	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		params := r.URL.Query()
