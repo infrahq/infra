@@ -13,8 +13,6 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 const (
@@ -38,11 +36,14 @@ var (
 type NativeCertificateProvider struct {
 	NativeCertificateProviderConfig
 
-	db *gorm.DB
+	db DB
 
 	activeKeypair   KeyPair
 	previousKeypair KeyPair
 }
+
+// DB is a placeholder for data persistence that is not implemented.
+type DB interface{}
 
 type NativeCertificateProviderConfig struct {
 	FullKeyRotationDurationInDays int
@@ -53,7 +54,7 @@ type NativeCertificateProviderConfig struct {
 	InitialRootCAPrivateKey       []byte
 }
 
-func NewNativeCertificateProvider(db *gorm.DB, cfg NativeCertificateProviderConfig) (*NativeCertificateProvider, error) {
+func NewNativeCertificateProvider(db DB, cfg NativeCertificateProviderConfig) (*NativeCertificateProvider, error) {
 	if cfg.FullKeyRotationDurationInDays == 0 {
 		cfg.FullKeyRotationDurationInDays = 365
 	}
