@@ -2,20 +2,20 @@ package kubernetes
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/infrahq/secrets"
 	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
@@ -269,8 +269,107 @@ func (k *Kubernetes) Namespaces() ([]string, error) {
 	return results, nil
 }
 
+func ec2InstanceMetadata(metadata string) ([]byte, error) {
+	req, err	:= http.NewRequestWithContext(context.Background(), http.MethodGet, fmt.Sprintf("http://169.254.169.254/latest/meta-data/%s", metadata), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New("received non-OK code from metadata service")
+	}
+
+	return ioutil.ReadAll(res.Body)
+}
+
+func ec2Sign(key, message []byte) []byte {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(message)
+	return mac.Sum(nil)
+}
+
+func ec2SigningKey(secretAccessKey, date, region, service string) []byte {
+	key := []byte(fmt.Sprintf("AWS4%s", secretAccessKey))
+	key = ec2Sign(key, []byte(date))
+	key = ec2Sign(key, []byte(region))
+	key = ec2Sign(key, []byte(service))
+	return ec2Sign(key, []byte("aws4_request"))
+}
+
 func (k *Kubernetes) ec2ClusterName() (string, error) {
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
+	// gather metadata needed to construct the request
+	instanceID, err := ec2InstanceMetadata("/instance-id")
+	if err != nil {
+		return "", err
+	}
+
+	region, err := ec2InstanceMetadata("/placement/region")
+	if err != nil {
+		return "", err
+	}
+
+	roleName, err := ec2InstanceMetadata("/iam/security-credentials")
+	if err != nil {
+		return "", err
+	}
+
+	bts, err := ec2InstanceMetadata(fmt.Sprintf("/iam/security-credentials/%s", roleName))
+	if err != nil {
+		return "", err
+	}
+
+	var credentials struct {
+		AccessKeyID string `json:"AccessKeyId"`
+		SecretAccessKey string `json:"SecretAccessKey"`
+		SecurityToken string `json:"Token"`
+	}
+
+	if err := json.Unmarshal(bts, &credentials); err != nil {
+		return "", errors.New("unmarshal security credentials")
+	}
+
+	ts := time.Now().UTC()
+	datetime := ts.Format("20060102T150405Z")
+	date := ts.Format("20060102")
+	host := fmt.Sprintf("ec2.%s.amazonaws.com", region)
+
+	// construct the request: https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
+	credentialScope := strings.Join([]string{date, string(region), "ec2", "aws4_request",}, "/")
+
+	canonicalQueryString := strings.Join([]string{
+		"Action=DescribeInstances",
+		fmt.Sprintf("InstanceId.1=%s", instanceID),
+		"Version=2016-11-15",
+		"X-Amz-Algorithm=AWS4-HMAC-SHA256",
+		fmt.Sprintf("X-Amz-Credential=%s", url.QueryEscape(strings.Join([]string{credentials.AccessKeyID, credentialScope}, "/"))),
+		fmt.Sprintf("X-Amz-Date=%s", datetime),
+		fmt.Sprintf("X-Amz-Security-Token=%s", url.QueryEscape(credentials.SecurityToken)),
+		fmt.Sprintf("X-Amz-SignedHeaders=host"),
+	}, "&")
+
+	// DescribeInstances has no payload
+	payloadChecksum := fmt.Sprintf("%x", sha256.Sum256([]byte("")))
+
+	canonicalRequest := strings.Join([]string{
+		http.MethodGet, "/", canonicalQueryString, fmt.Sprintf("host:%s\n", host), "host", payloadChecksum,
+	}, "\n")
+
+	requestChecksum := fmt.Sprintf("%x", sha256.Sum256([]byte(canonicalRequest)))
+
+	message := strings.Join([]string{"AWS4-HMAC-SHA256", datetime, credentialScope, requestChecksum}, "\n")
+
+	signingKey := ec2SigningKey(credentials.SecretAccessKey, date, string(region), "ec2")
+	signature := ec2Sign(signingKey, []byte(message))
+
+	fullRequest := fmt.Sprintf("https://%s?%s&X-Amz-Signature=%x", host, canonicalQueryString, string(signature))
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, fullRequest, nil)
 	if err != nil {
 		return "", err
 	}
@@ -282,71 +381,35 @@ func (k *Kubernetes) ec2ClusterName() (string, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return "", errors.New("received non-OK code from metadata service")
+		return "", errors.New("received non-OK code")
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	raw, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var identity struct {
-		Region     string
-		InstanceID string
+	type tag struct {
+		Key string `xml:"key"`
+		value string `xml:"value"`
 	}
 
-	err = json.Unmarshal(body, &identity)
-	if err != nil {
+	var describeInstancesResponse struct {
+		XMLName xml.Name `xml."DescribeInstancesResponse"`
+		Tags []tag `xml:"reservationSet>item>instancesSet>item>tagSet>item"`
+	}
+
+	if err := xml.Unmarshal(raw, &describeInstancesResponse); err != nil {
 		return "", err
 	}
 
-	awsSess, err := session.NewSession(&aws.Config{Region: aws.String(identity.Region)})
-	if err != nil {
-		return "", err
-	}
-
-	connection := ec2.New(awsSess)
-	name := "instance-id"
-	value := identity.InstanceID
-
-	describeInstancesOutput, err := connection.DescribeInstances(&ec2.DescribeInstancesInput{Filters: []*ec2.Filter{{Name: &name, Values: []*string{&value}}}})
-	if err != nil {
-		return "", err
-	}
-
-	reservations := describeInstancesOutput.Reservations
-	if len(reservations) == 0 {
-		return "", errors.New("could not fetch ec2 instance reservations")
-	}
-
-	ec2Instances := reservations[0].Instances
-	if len(ec2Instances) == 0 {
-		return "", errors.New("could not fetch ec2 instances")
-	}
-
-	instance := ec2Instances[0]
-
-	tags := []string{}
-	for _, tag := range instance.Tags {
-		tags = append(tags, fmt.Sprintf("%s:%s", *tag.Key, *tag.Value))
-	}
-
-	var clusterName string
-
-	for _, tag := range tags {
-		if strings.HasPrefix(tag, "kubernetes.io/cluster/") { // tag key format: kubernetes.io/cluster/clustername"
-			key := strings.Split(tag, ":")[0]
-			clusterName = strings.Split(key, "/")[2] // rely on ec2 tag format to extract clustername
-
-			break
+	for _, tag := range describeInstancesResponse.Tags {
+		if strings.HasPrefix(tag.Key, "kubernetes.io/cluster/") {
+			return strings.SplitN(tag.Key, "/", 3)[2], nil
 		}
 	}
 
-	if clusterName == "" {
-		return "", errors.New("unable to parse cluster name from EC2 tags")
-	}
-
-	return clusterName, nil
+	return "", errors.New("could not get aws cluster name")
 }
 
 func (k *Kubernetes) gkeClusterName() (string, error) {
