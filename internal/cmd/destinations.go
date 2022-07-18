@@ -50,20 +50,20 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list destinations")
-			destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
+			destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
 			if err != nil {
 				return err
 			}
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(destinations.Items)
+				jsonOutput, err := json.Marshal(destinations)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(jsonOutput))
 			case "yaml":
-				yamlOutput, err := yaml.Marshal(destinations.Items)
+				yamlOutput, err := yaml.Marshal(destinations)
 				if err != nil {
 					return err
 				}
@@ -77,7 +77,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				}
 
 				var rows []row
-				for _, d := range destinations.Items {
+				for _, d := range destinations {
 					status := DestinationStatusDisconnected
 					if d.Connected {
 						status = DestinationStatusConnected

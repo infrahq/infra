@@ -542,7 +542,7 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
 	logging.Debugf("call server: list providers")
-	providers, err := client.ListProviders("")
+	providers, err := client.ListProviders(api.ListProvidersRequest{})
 	if err != nil {
 		return nil, err
 	}

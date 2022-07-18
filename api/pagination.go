@@ -2,6 +2,10 @@ package api
 
 import "github.com/infrahq/infra/internal/validate"
 
+type Paginatable interface {
+	SetPage(page int) Paginatable
+}
+
 type PaginationRequest struct {
 	Page  int `form:"page"`
 	Limit int `form:"limit"`

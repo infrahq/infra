@@ -80,19 +80,19 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 
 			var rows []row
 
-			groups, err := client.ListGroups(api.ListGroupsRequest{})
+			groups, err := listAll(client.ListGroups, api.ListGroupsRequest{})
 			if err != nil {
 				return err
 			}
 
-			for _, group := range groups.Items {
-				users, err := client.ListUsers(api.ListUsersRequest{Group: group.ID})
+			for _, group := range groups {
+				users, err := listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
 				if err != nil {
 					return err
 				}
 
 				var userNames []string
-				for _, user := range users.Items {
+				for _, user := range users {
 					userNames = append(userNames, user.Name)
 				}
 

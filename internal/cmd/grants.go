@@ -57,18 +57,12 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			grants, err := client.ListGrants(api.ListGrantsRequest{Resource: options.Destination})
+			grants, err := listAll(client.ListGrants, api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot list grants: missing privileges for ListGrants",
-					}
-				}
 				return err
 			}
 
-			numUserGrants, err := userGrants(cli, client, grants)
+			numUserGrants, err := userGrants(cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -77,7 +71,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				cli.Output("")
 			}
 
-			numGroupGrants, err := groupGrants(cli, client, grants)
+			numGroupGrants, err := groupGrants(cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -94,18 +88,18 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
-	users, err := client.ListUsers(api.ListUsersRequest{})
+func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
+	users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 	if err != nil {
 		return 0, err
 	}
 
 	mapUsers := make(map[uid.ID]api.User)
-	for _, u := range users.Items {
+	for _, u := range users {
 		mapUsers[u.ID] = u
 	}
 
-	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.User != 0 })
+	items := slice.Select(*grants, func(g api.Grant) bool { return g.User != 0 })
 
 	type row struct {
 		User     string `header:"USER"`
@@ -134,18 +128,18 @@ func userGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant
 	return len(rows), nil
 }
 
-func groupGrants(cli *CLI, client *api.Client, grants *api.ListResponse[api.Grant]) (int, error) {
-	groups, err := client.ListGroups(api.ListGroupsRequest{})
+func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
+	groups, err := listAll(client.ListGroups, api.ListGroupsRequest{})
 	if err != nil {
 		return 0, err
 	}
 
 	mapGroups := make(map[uid.ID]api.Group)
-	for _, u := range groups.Items {
+	for _, u := range groups {
 		mapGroups[u.ID] = u
 	}
 
-	items := slice.Select(grants.Items, func(g api.Grant) bool { return g.Group != 0 })
+	items := slice.Select(*grants, func(g api.Grant) bool { return g.Group != 0 })
 
 	type row struct {
 		Group    string `header:"GROUP"`

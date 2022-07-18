@@ -67,3 +67,9 @@ func (r CreateGrantRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("resource", r.Resource),
 	}
 }
+
+func (req ListGrantsRequest) SetPage(page int) Paginatable {
+	req.PaginationRequest.Page = page
+
+	return req
+}

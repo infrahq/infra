@@ -131,32 +131,26 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			var rows []row
 
 			logging.Debugf("call server: list users")
-			users, err := client.ListUsers(api.ListUsersRequest{})
+			users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot list users: missing privileges for ListUsers",
-					}
-				}
 				return err
 			}
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(users.Items)
+				jsonOutput, err := json.Marshal(users)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(jsonOutput))
 			case "yaml":
-				yamlOutput, err := yaml.Marshal(users.Items)
+				yamlOutput, err := yaml.Marshal(users)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(yamlOutput))
 			default:
-				for _, user := range users.Items {
+				for _, user := range users {
 					rows = append(rows, row{
 						Name:       user.Name,
 						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),

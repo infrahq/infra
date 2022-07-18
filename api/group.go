@@ -54,3 +54,10 @@ func (r UpdateUsersInGroupRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("id", r.GroupID),
 	}
 }
+
+func (req ListGroupsRequest) SetPage(page int) Paginatable {
+
+	req.PaginationRequest.Page = page
+
+	return req
+}

@@ -82,3 +82,9 @@ func (r UpdateDestinationRequest) ValidationRules() []validate.ValidationRule {
 		validateName(r.Name),
 	}
 }
+
+func (req ListDestinationsRequest) SetPage(page int) Paginatable {
+	req.PaginationRequest.Page = page
+
+	return req
+}

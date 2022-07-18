@@ -67,3 +67,9 @@ func (r ListProvidersRequest) ValidationRules() []validate.ValidationRule {
 	// embedded PaginationRequest struct are not applied twice.
 	return nil
 }
+
+func (req ListProvidersRequest) SetPage(page int) Paginatable {
+	req.PaginationRequest.Page = page
+
+	return req
+}

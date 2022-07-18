@@ -62,16 +62,16 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	userGroups, err := client.ListGroups(api.ListGroupsRequest{UserID: config.UserID})
+	userGroups, err := listAll(client.ListGroups, api.ListGroupsRequest{UserID: config.UserID})
 	if err != nil {
 		return err
 	}
 
 	groups := "(none)"
 
-	if userGroups.Count > 0 {
-		g := make([]string, 0, userGroups.Count)
-		for _, userGroup := range userGroups.Items {
+	if len(userGroups) > 0 {
+		g := make([]string, 0, len(userGroups))
+		for _, userGroup := range userGroups {
 			g = append(g, userGroup.Name)
 		}
 

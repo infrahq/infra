@@ -67,3 +67,9 @@ func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {
 		validate.StringRule{Name: "password", Value: r.Password, MinLength: 8},
 	}
 }
+
+func (req ListUsersRequest) SetPage(page int) Paginatable {
+	req.PaginationRequest.Page = page
+
+	return req
+}

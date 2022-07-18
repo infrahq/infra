@@ -70,20 +70,20 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list providers")
-			providers, err := client.ListProviders("")
+			providers, err := listAll(client.ListProviders, api.ListProvidersRequest{})
 			if err != nil {
 				return err
 			}
 
 			switch format {
 			case "json":
-				jsonOutput, err := json.Marshal(providers.Items)
+				jsonOutput, err := json.Marshal(providers)
 				if err != nil {
 					return err
 				}
 				cli.Output(string(jsonOutput))
 			case "yaml":
-				yamlOutput, err := yaml.Marshal(providers.Items)
+				yamlOutput, err := yaml.Marshal(providers)
 				if err != nil {
 					return err
 				}
@@ -96,7 +96,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				}
 
 				var rows []row
-				for _, p := range providers.Items {
+				for _, p := range providers {
 					rows = append(rows, row{Name: p.Name, URL: p.URL, Kind: p.Kind})
 				}
 
@@ -199,7 +199,7 @@ func updateProvider(cli *CLI, name string, secret string) error {
 		return err
 	}
 
-	res, err := client.ListProviders(name)
+	res, err := client.ListProviders(api.ListProvidersRequest{Name: name})
 	if err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list providers named %q", args[0])
-			providers, err := client.ListProviders(args[0])
+			providers, err := client.ListProviders(api.ListProvidersRequest{Name: args[0]})
 			if err != nil {
 				return err
 			}
@@ -286,7 +286,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 
 func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
 	logging.Debugf("call server: list providers named %q", name)
-	providers, err := client.ListProviders(name)
+	providers, err := client.ListProviders(api.ListProvidersRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}

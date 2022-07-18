@@ -9,6 +9,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
 const thirtyDays = 30 * (24 * time.Hour)
@@ -138,13 +139,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("call server: list access keys named %q", args[0])
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot delete key: missing privileges for ListKeys",
-					}
-				}
-				return err
+				return handleListKeysMissingPrivilege(err)
 			}
 
 			if keys.Count == 0 && !force {
@@ -201,8 +196,8 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			var keys *api.ListResponse[api.AccessKey]
-
+			var keys []api.AccessKey
+			var userID uid.ID
 			if options.UserName != "" {
 				user, err := getUserByName(client, options.UserName)
 				if err != nil {
@@ -214,30 +209,13 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					}
 					return err
 				}
+				userID = user.ID
+			}
 
-				logging.Debugf("call server: list access keys for user %s", user.ID)
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: user.ID, ShowExpired: options.ShowExpired})
-				if err != nil {
-					if api.ErrorStatusCode(err) == 403 {
-						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot list keys: missing privileges for ListKeys",
-						}
-					}
-					return err
-				}
-			} else {
-				logging.Debugf("call server: list access keys")
-				keys, err = client.ListAccessKeys(api.ListAccessKeysRequest{ShowExpired: options.ShowExpired})
-				if err != nil {
-					if api.ErrorStatusCode(err) == 403 {
-						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot list keys: missing privileges for ListKeys",
-						}
-					}
-					return err
-				}
+			logging.Debugf("call server: list access keys")
+			keys, err = listAll(client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
+			if err != nil {
+				return err
 			}
 
 			type row struct {
@@ -249,7 +227,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			var rows []row
-			for _, k := range keys.Items {
+			for _, k := range keys {
 				name := k.IssuedFor.String()
 				if k.IssuedForName != "" {
 					name = k.IssuedForName
@@ -276,4 +254,14 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
 	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd
+}
+
+func handleListKeysMissingPrivilege(err error) error {
+	if api.ErrorStatusCode(err) == 403 {
+		logging.Debugf("%s", err.Error())
+		return Error{
+			Message: "Cannot list keys: missing privileges for ListKeys",
+		}
+	}
+	return err
 }
