@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/infrahq/infra/api" // nolint
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/api"
 )
 
 func TestListAll(t *testing.T) {
