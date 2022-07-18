@@ -23,7 +23,7 @@ const columns = [
         <div className='flex h-7 w-7 flex-none items-center justify-center rounded-md border border-gray-800'>
           <img
             alt='provider icon'
-            className='h-2'
+            className='h-3'
             src={`/providers/${provider.kind}.svg`}
           />
         </div>
