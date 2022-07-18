@@ -44,9 +44,9 @@ func TestListAll(t *testing.T) {
 		})
 	})
 
-	t.Run("403", func(t *testing.T) {
-		_, err := listAll(mockListUsers, api.ListUsersRequest{Name: "403"})
-		assert.ErrorIs(t, err, ErrMissingPrivileges)
+	t.Run("error", func(t *testing.T) {
+		_, err := listAll(mockListUsers, api.ListUsersRequest{Name: "error"})
+		assert.Error(t, err, "default error")
 	})
 
 }

@@ -59,11 +59,6 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 
 			grants, err := listAll(client.ListGrants, api.ListGrantsRequest{Resource: options.Destination})
 			if err != nil {
-				if errors.Is(err, ErrMissingPrivileges) {
-					return Error{
-						Message: fmt.Sprintf("Cannot list grants: %s", err.Error()),
-					}
-				}
 				return err
 			}
 
@@ -96,11 +91,6 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
 	users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 	if err != nil {
-		if errors.Is(err, ErrMissingPrivileges) {
-			return 0, Error{
-				Message: fmt.Sprintf("Cannot list users for grants: %s", err.Error()),
-			}
-		}
 		return 0, err
 	}
 

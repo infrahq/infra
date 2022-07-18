@@ -19,10 +19,6 @@ func listAll[Item any, Req api.Paginatable](listItems func(Req) (*api.ListRespon
 
 	res, err := listItems(req)
 	if err != nil {
-		if api.ErrorStatusCode(err) == 403 {
-			logging.Debugf("%s", err.Error())
-			return nil, ErrMissingPrivileges
-		}
 		return nil, err
 	}
 	users := make([]Item, 0, res.TotalCount)
@@ -37,10 +33,6 @@ func listAll[Item any, Req api.Paginatable](listItems func(Req) (*api.ListRespon
 		logging.Debugf("call server: page %d", page)
 		res, err = listItems(req)
 		if err != nil {
-			if api.ErrorStatusCode(err) == 403 {
-				logging.Debugf("%s", err.Error())
-				return nil, ErrMissingPrivileges
-			}
 			return nil, err
 		}
 		users = append(users, res.Items...)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -216,11 +215,6 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("call server: list access keys")
 			keys, err = listAll(client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
 			if err != nil {
-				if errors.Is(err, ErrMissingPrivileges) {
-					return Error{
-						Message: fmt.Sprintf("Cannot list keys: %s", err.Error()),
-					}
-				}
 				return err
 			}
 

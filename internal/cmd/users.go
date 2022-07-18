@@ -133,11 +133,6 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("call server: list users")
 			users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 			if err != nil {
-				if errors.Is(err, ErrMissingPrivileges) {
-					return Error{
-						Message: fmt.Sprintf("Cannot list users: %s", err.Error()),
-					}
-				}
 				return err
 			}
 
