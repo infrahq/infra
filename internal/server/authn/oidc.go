@@ -31,7 +31,7 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 }
 
 func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Identity, *models.Provider, AuthScope, error) {
-	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
+	provider, err := data.GetProvider(db, data.ByIDQ(a.ProviderID))
 	if err != nil {
 		return nil, nil, AuthScope{}, err
 	}

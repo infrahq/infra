@@ -670,7 +670,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 		return nil, fmt.Errorf("could not parse provider in config load: %w", err)
 	}
 
-	provider, err := data.GetProvider(db, data.ByName(input.Name))
+	provider, err := data.GetProvider(db, data.ByNameQ(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err

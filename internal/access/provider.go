@@ -23,7 +23,7 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	db := getDB(c)
 
-	return data.GetProvider(db, data.ByID(id))
+	return data.GetProvider(db, data.ByIDQ(id))
 }
 
 func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *models.Pagination) ([]models.Provider, error) {

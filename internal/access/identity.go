@@ -134,7 +134,7 @@ func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error
 		return nil, "", err
 	}
 
-	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	provider, err := data.GetProvider(db, data.ByIDQ(providerUser.ProviderID))
 	if err != nil {
 		return nil, "", fmt.Errorf("user info provider: %w", err)
 	}
@@ -157,7 +157,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) e
 
 	accessKey := currentAccessKey(c)
 
-	provider, err := data.GetProvider(db, data.ByID(accessKey.ProviderID))
+	provider, err := data.GetProvider(db, data.ByIDQ(accessKey.ProviderID))
 	if err != nil {
 		return fmt.Errorf("user info provider: %w", err)
 	}

@@ -204,7 +204,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.Assert(t, user != nil)
 				assert.Assert(t, len(user.Groups) == 2)
 
-				p, err := data.GetProvider(db, data.ByName("mockoidc"))
+				p, err := data.GetProvider(db, data.ByNameQ("mockoidc"))
 				assert.NilError(t, err)
 
 				pu, err := data.CreateProviderUser(db, p, user)

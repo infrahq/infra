@@ -111,11 +111,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 
 	result := new(T)
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-
-		return nil, err
+		return nil, handleReadError(err)
 	}
 
 	return result, nil
@@ -175,6 +171,18 @@ func (e UniqueConstraintError) Error() string {
 		return fmt.Sprintf("value already exists for %v", e.Table)
 	}
 	return fmt.Sprintf("value for %v already exists for %v", e.Column, e.Table)
+}
+
+func handleReadError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return internal.ErrNotFound
+	}
+	return err
 }
 
 // handleError looks for well known DB errors. If the error is recognized it

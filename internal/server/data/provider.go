@@ -15,8 +15,22 @@ func CreateProvider(db *gorm.DB, provider *models.Provider) error {
 	return add(db, provider)
 }
 
-func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, error) {
-	return get[models.Provider](db, selectors...)
+func GetProvider(db *gorm.DB, opt IDOrNameQuery) (*models.Provider, error) {
+	q := Query(`SELECT * from providers`)
+	switch {
+	case opt.ID != 0:
+		q.B(`WHERE id = $1`, opt.ID)
+	case opt.Name != "":
+		q.B(`WHERE name = $1`, opt.Name)
+	default:
+		return nil, fmt.Errorf("query requires either an ID or Name")
+	}
+	q.B("AND deleted_at is null")
+	q.B("LIMIT 1")
+
+	var p models.Provider
+	result := db.Raw(q.String(), q.Args...).First(&p)
+	return &p, handleReadError(result.Error)
 }
 
 func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {

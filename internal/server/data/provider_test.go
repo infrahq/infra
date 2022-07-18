@@ -8,9 +8,11 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+// TODO: combine this test case with TestListProvider
 func TestProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		providerDevelop := models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta}
@@ -25,9 +27,9 @@ func TestProvider(t *testing.T) {
 	})
 }
 
-func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
+func createProviders(t *testing.T, db *gorm.DB, providers ...*models.Provider) {
 	for i := range providers {
-		err := CreateProvider(db, &providers[i])
+		err := CreateProvider(db, providers[i])
 		assert.NilError(t, err)
 	}
 }
@@ -39,8 +41,9 @@ func TestCreateProviderDuplicate(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
+		providerDevelop.ID = 0
 		err := CreateProvider(db, &providerDevelop)
 
 		var uniqueConstraintErr UniqueConstraintError
@@ -57,12 +60,27 @@ func TestGetProvider(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
-		provider, err := GetProvider(db, ByName("okta-development"))
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != provider.ID)
-		assert.Equal(t, providerDevelop.URL, provider.URL)
+		t.Run("by ID", func(t *testing.T) {
+			provider, err := GetProvider(db, ByIDQ(providerProduction.ID))
+			assert.NilError(t, err)
+			assert.Equal(t, providerProduction.ID, provider.ID)
+			assert.Equal(t, providerProduction.URL, provider.URL)
+		})
+
+		t.Run("by name", func(t *testing.T) {
+			provider, err := GetProvider(db, ByNameQ("okta-development"))
+			assert.NilError(t, err)
+			assert.Equal(t, providerDevelop.ID, provider.ID)
+			assert.Equal(t, providerDevelop.URL, provider.URL)
+		})
+
+		t.Run("does not exist", func(t *testing.T) {
+			_, err := GetProvider(db, ByNameQ("does-not-exist"))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
 	})
 }
 
@@ -73,7 +91,7 @@ func TestListProviders(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
 		providers, err := ListProviders(db, &models.Pagination{}, NotName(models.InternalInfraProviderName))
 		assert.NilError(t, err)
@@ -120,7 +138,7 @@ func TestDeleteProviders(t *testing.T) {
 			err := DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetProvider(db, ByOptionalName(providerDevelop.Name))
+			_, err = GetProvider(db, ByNameQ(providerDevelop.Name))
 			assert.Error(t, err, "record not found")
 
 			t.Run("provider users are removed", func(t *testing.T) {
@@ -157,7 +175,7 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
 		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
 			return db.Where(&models.Provider{Name: "okta-development", URL: "dev.okta.com", Kind: models.ProviderKindOkta})
