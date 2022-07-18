@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-import EmptyData from './empty-data'
+import EmptyData from '../../components/empty-data'
 
 describe('Badge Component', () => {
   it('should render', () => {

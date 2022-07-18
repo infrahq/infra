@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 
-import Badge from './badge'
+import Badge from '../../components/badge'
 
 describe('Badge Component', () => {
   it('should render', () => {

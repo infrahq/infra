@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import ComboboxItem from './combobox-item'
+import ComboboxItem from '../../components/combobox-item'
 
 const title = 'test title'
 const subtitle = 'test subtitle'

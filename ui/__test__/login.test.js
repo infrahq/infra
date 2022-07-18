@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import useSWR from 'swr'
 import '@testing-library/jest-dom'
 
-import Login, { Providers } from './index'
+import Login, { Providers } from '../pages/login/index'
 
 function mockedProviders() {
   return {
