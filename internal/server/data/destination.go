@@ -1,6 +1,8 @@
 package data
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -44,4 +46,20 @@ func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
 	}
 
 	return internal.ErrNotFound
+}
+
+type destinationsCount struct {
+	Connected bool
+	Version   string
+	Count     float64
+}
+
+func CountDestinationsByConnectedVersion(db *gorm.DB) ([]destinationsCount, error) {
+	var results []destinationsCount
+	timeout := time.Now().Add(-5 * time.Minute)
+	if err := db.Raw("SELECT *, COUNT(*) AS count FROM (SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected FROM destinations WHERE deleted_at IS NULL) AS d GROUP BY version, connected", timeout).Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
