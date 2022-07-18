@@ -45,9 +45,11 @@ const columns = [
         `/api/users?group=${group.id}`
       )
 
+      const loading = !users && !error
+
       return (
         <>
-          {users && (
+          {!loading && (
             <div className='text-gray-400'>
               {users?.length} {users?.length === 1 ? 'member' : 'members'}
             </div>
