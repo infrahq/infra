@@ -16,6 +16,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/infrahq/secrets"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/gorm"
@@ -116,7 +117,7 @@ func newServer(options Options) *Server {
 func New(options Options) (*Server, error) {
 	server := newServer(options)
 
-	if err := pgValidate.Struct(options); err != nil {
+	if err := validator.New().Struct(options); err != nil {
 		return nil, fmt.Errorf("invalid options: %w", err)
 	}
 

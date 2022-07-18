@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -175,7 +174,7 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	s := &openapi3.Schema{}
-	setTagInfo(f, parent, s, parentSchema)
+	updateSchemaFromStructTags(f, s)
 	setTypeInfo(t, s)
 
 	if s.Type == "array" {
@@ -232,34 +231,13 @@ func WriteOpenAPIDocToFile(openAPIDoc openapi3.T, version string, filename strin
 	return nil
 }
 
-func setTagInfo(f reflect.StructField, parent reflect.Type, schema, parentSchema *openapi3.Schema) {
-	if example, ok := f.Tag.Lookup("example"); ok {
+func updateSchemaFromStructTags(field reflect.StructField, schema *openapi3.Schema) {
+	if example, ok := field.Tag.Lookup("example"); ok {
 		schema.Example = example
 	}
 
-	if note, ok := f.Tag.Lookup("note"); ok {
+	if note, ok := field.Tag.Lookup("note"); ok {
 		schema.Description = note
-	}
-
-	// TODO: remove with pgValidate
-	if validate, ok := f.Tag.Lookup("validate"); ok {
-		for _, val := range strings.Split(validate, ",") {
-			if val == "required" && parentSchema != nil {
-				parentSchema.Required = append(parentSchema.Required, getFieldName(f, parent))
-			}
-
-			if val == "email" {
-				schema.Format = "email"
-			}
-
-			if strings.HasPrefix(val, "min=") {
-				schema.MinLength = parseMinLength(val)
-			}
-
-			if strings.HasPrefix(val, "oneof=") {
-				schema.Enum = parseOneOf(val)
-			}
-		}
 	}
 }
 
@@ -464,30 +442,12 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, r.Name()))
 		}
 
-		// TODO: share this with setTagInfo
+		// TODO: share this with updateSchemaFromStructTags
 		if example, ok := f.Tag.Lookup("example"); ok {
 			p.Example = example
 		}
-
 		if note, ok := f.Tag.Lookup("note"); ok {
 			p.Description = note
-		}
-
-		// TODO: remove with pgValidate
-		if validate, ok := f.Tag.Lookup("validate"); ok {
-			for _, val := range strings.Split(validate, ",") {
-				if val == "required" {
-					p.Required = true
-				}
-
-				if val == "email" {
-					p.Schema.Value.Format = "email"
-				}
-
-				if strings.HasPrefix(val, "min=") {
-					p.Schema.Value.MinLength = parseMinLength(val)
-				}
-			}
 		}
 
 		op.AddParameter(p)
@@ -561,37 +521,4 @@ func getFieldName(f reflect.StructField, parent reflect.Type) string {
 	}
 
 	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
-}
-
-// TODO: remove with pgValidate
-func parseMinLength(tag string) uint64 {
-	minLength := strings.Split(tag, "min=")
-	if len(minLength) != 2 {
-		panic("min length tag does not match expected format")
-	}
-
-	len, err := strconv.ParseUint(minLength[1], 10, 64)
-	if err != nil {
-		panic("unexpected min length: " + err.Error())
-	}
-
-	return len
-}
-
-// TODO: remove with pgValidate
-func parseOneOf(tag string) []interface{} {
-	oneof := strings.Split(tag, "oneof=")
-	if len(oneof) != 2 {
-		panic("oneof tag does not match expected format")
-	}
-
-	values := strings.Split(oneof[1], " ")
-
-	// convert to a slice of interfaces to assign to the schema
-	enumInterface := make([]interface{}, len(values))
-	for i := range values {
-		enumInterface[i] = values[i]
-	}
-
-	return enumInterface
 }
