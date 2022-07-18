@@ -88,6 +88,42 @@ export default function ProvidersAddDetails() {
     return false
   }
 
+  const parseGoogleCredentialFile = e => {
+    setErrors({})
+
+    const fileReader = new FileReader()
+    fileReader.readAsText(e.target.files[0], 'UTF-8')
+    fileReader.onload = e => {
+      let errMsg = ''
+      try {
+        let contents = JSON.parse(e.target.result)
+
+        if (contents.private_key === undefined) {
+          errMsg = 'invalid service account key file, no private_key found'
+        } else {
+          setPrivateKey(contents.private_key)
+        }
+
+        if (contents.client_email === undefined) {
+          errMsg = 'invalid service account key file, no client_email found'
+        } else {
+          setClientEmail(contents.client_email)
+        }
+      } catch (e) {
+        errMsg = e.ErrorMessage
+        if (e instanceof SyntaxError) {
+          errMsg = 'invalid service account key file, must be json'
+        }
+      }
+
+      if (errMsg !== '') {
+        const errors = {}
+        errors['privatekey'] = errMsg
+        setErrors(errors)
+      }
+    }
+  }
+
   return (
     <div className='px-3 pt-8 pb-3'>
       <Head>
@@ -129,22 +165,24 @@ export default function ProvidersAddDetails() {
             learn more
           </a>
         </label>
-        <div className='mt-4'>
-          <label className='text-3xs uppercase text-gray-400'>
-            URL (Domain)
-          </label>
-          <input
-            required
-            autoFocus
-            placeholder='domain or URL'
-            value={url}
-            onChange={e => setURL(e.target.value)}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-              errors.url ? 'border-pink-500/60' : ''
-            }`}
-          />
-          {errors.url && <ErrorMessage message={errors.url} />}
-        </div>
+        {kind !== 'google' && (
+          <div className='mt-4'>
+            <label className='text-3xs uppercase text-gray-400'>
+              URL (Domain)
+            </label>
+            <input
+              required
+              autoFocus
+              placeholder='domain or URL'
+              value={url}
+              onChange={e => setURL(e.target.value)}
+              className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+                errors.url ? 'border-pink-500/60' : ''
+              }`}
+            />
+            {errors.url && <ErrorMessage message={errors.url} />}
+          </div>
+        )}
         <div className='mt-4'>
           <label className='text-3xs uppercase text-gray-400'>Client ID</label>
           <input
@@ -195,30 +233,15 @@ export default function ProvidersAddDetails() {
                 Private Key
               </label>
               <input
-                type='password'
-                placeholder='service account private key'
-                value={privateKey}
-                onChange={e => setPrivateKey(e.target.value)}
+                type='file'
+                onChange={parseGoogleCredentialFile}
                 className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                  errors.url ? 'border-pink-500/60' : ''
+                  errors.privatekey ? 'border-pink-500/60' : ''
                 }`}
               />
-              {errors.url && <ErrorMessage message={errors.url} />}
-            </div>
-            <div className='mt-4'>
-              <label className='text-3xs uppercase text-gray-400'>
-                Client Email
-              </label>
-              <input
-                placeholder='client email'
-                type='search'
-                value={clientEmail}
-                onChange={e => setClientEmail(e.target.value)}
-                className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                  errors.clientid ? 'border-pink-500/60' : ''
-                }`}
-              />
-              {errors.clientid && <ErrorMessage message={errors.clientid} />}
+              {errors.privatekey && (
+                <ErrorMessage message={errors.privatekey} />
+              )}
             </div>
             <div className='mt-4'>
               <label className='text-3xs uppercase text-gray-400'>
@@ -226,14 +249,16 @@ export default function ProvidersAddDetails() {
               </label>
               <input
                 placeholder='domain admin email'
+                spellCheck='false'
+                type='email'
                 value={domainAdmin}
                 onChange={e => setDomainAdmin(e.target.value)}
                 className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                  errors.clientsecret ? 'border-pink-500/60' : ''
+                  errors.domainadmin ? 'border-pink-500/60' : ''
                 }`}
               />
-              {errors.clientsecret && (
-                <ErrorMessage message={errors.clientsecret} />
+              {errors.domainadmin && (
+                <ErrorMessage message={errors.domainadmin} />
               )}
             </div>
           </div>

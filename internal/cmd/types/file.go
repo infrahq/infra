@@ -3,6 +3,8 @@ package types
 import (
 	"io"
 	"os"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 // StringOrFile is a pflag.Value type that can be used to read a value either
@@ -21,6 +23,7 @@ func (s *StringOrFile) String() string {
 func (s *StringOrFile) Set(raw string) error {
 	fh, err := os.Open(raw)
 	if err != nil {
+		logging.L.Debug().Err(err).Msg("failed to open file")
 		*s = StringOrFile(raw)
 		return nil
 	}

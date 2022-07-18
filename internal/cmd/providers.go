@@ -86,7 +86,11 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 		Use:   "edit PROVIDER",
 		Short: "Update a provider",
 		Example: `# Set a new client secret for a connected provider
-$ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN`,
+$ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
+
+# Connect Google to Infra with group sync
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --private-key ~/client-123.json --client-email hello@example.com --domain-admin admin@example.com --kind google
+`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return updateProvider(cli, args[0], opts)
@@ -191,8 +195,11 @@ func newProvidersAddCmd(cli *CLI) *cobra.Command {
 		Short: "Connect an identity provider",
 		Long: `Add an identity provider for users to authenticate.
 PROVIDER is a short unique name of the identity provider being added (eg. okta)`,
-		Example: `# Connect okta to infra
-$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta`,
+		Example: `# Connect Okta to Infra
+$ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
+
+# Connect Google to Infra with group sync
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --private-key ~/client-123.json --client-email hello@example.com --domain-admin admin@example.com --kind google`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {

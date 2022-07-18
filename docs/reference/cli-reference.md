@@ -614,8 +614,11 @@ infra providers add PROVIDER [flags]
 #### Examples
 
 ```
-# Connect okta to infra
+# Connect Okta to Infra
 $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
+
+# Connect Google to Infra with group sync
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --private-key ~/client-123.json --client-email hello@example.com --domain-admin admin@example.com --kind google
 ```
 
 #### Options
@@ -649,6 +652,10 @@ infra providers edit PROVIDER [flags]
 ```
 # Set a new client secret for a connected provider
 $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
+
+# Connect Google to Infra with group sync
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --private-key ~/client-123.json --client-email hello@example.com --domain-admin admin@example.com --kind google
+
 ```
 
 #### Options
