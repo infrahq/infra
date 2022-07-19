@@ -13,6 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -34,7 +35,7 @@ type Provider struct {
 
 func (p Provider) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		// TODO: api.ValidateName
+		api.ValidateName(p.Name),
 		validate.Required("name", p.Name),
 		validate.Required("url", p.URL),
 		validate.Required("clientID", p.ClientID),

@@ -38,7 +38,7 @@ type CreateAccessKeyRequest struct {
 
 func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validateName(r.Name),
+		ValidateName(r.Name),
 		validate.Required("userID", r.UserID),
 		validate.Required("ttl", r.TTL),
 		validate.Required("extensionDeadline", r.ExtensionDeadline),
@@ -56,9 +56,9 @@ type CreateAccessKeyResponse struct {
 	AccessKey         string `json:"accessKey"`
 }
 
-// validateName returns a standard validation rule for all name fields. The
+// ValidateName returns a standard validation rule for all name fields. The
 // field name must always be "name".
-func validateName(value string) validate.StringRule {
+func ValidateName(value string) validate.StringRule {
 	return validate.StringRule{
 		Value:     value,
 		Name:      "name",

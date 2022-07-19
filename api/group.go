@@ -38,7 +38,7 @@ func (r CreateGroupRequest) ValidationRules() []validate.ValidationRule {
 }
 
 func validateGroupName(value string) validate.StringRule {
-	nameRule := validateName(value)
+	nameRule := ValidateName(value)
 	nameRule.CharacterRanges = append(nameRule.CharacterRanges, validate.AtSign)
 	return nameRule
 }
