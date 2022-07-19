@@ -103,7 +103,7 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password, or if admin, set a temporary password for the user")
 
 	return cmd
 }
