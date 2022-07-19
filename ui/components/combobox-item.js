@@ -9,7 +9,11 @@ export default function ComboboxItem({ title, subtitle, selected = false }) {
             {title}
           </span>
           {selected && (
-            <CheckIcon className='h-3 w-3 stroke-1' aria-hidden='true' />
+            <CheckIcon
+              data-testid='selectedIcon'
+              className='h-3 w-3 stroke-1'
+              aria-hidden='true'
+            />
           )}
         </div>
         <div className='text-3xs text-gray-400'>{subtitle}</div>
