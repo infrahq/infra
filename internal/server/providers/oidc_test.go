@@ -413,7 +413,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 				}
 			},
 			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
-				assert.ErrorContains(t, err, "validation for 'Email' failed")
+				assert.ErrorContains(t, err, "missing an email address")
 				assert.Equal(t, accessToken, "")
 				assert.Equal(t, refreshToken, "")
 				assert.Assert(t, accessTokenExpiry.IsZero())
@@ -444,7 +444,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 				}
 			},
 			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
-				assert.ErrorContains(t, err, "'Email' failed on the 'excludesall' tag")
+				assert.ErrorContains(t, err, "claim has invalid email address")
 				assert.Equal(t, accessToken, "")
 				assert.Equal(t, refreshToken, "")
 				assert.Assert(t, accessTokenExpiry.IsZero())
@@ -591,7 +591,7 @@ func TestOIDC_GetUserInfo(t *testing.T) {
 					"groups": []
 				}`,
 			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
-				assert.ErrorContains(t, err, "required_without")
+				assert.ErrorContains(t, err, "must include either a name or email")
 				assert.Assert(t, info == nil)
 			},
 		},
