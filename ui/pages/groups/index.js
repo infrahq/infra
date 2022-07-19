@@ -234,7 +234,11 @@ function Details({ group, admin, onDelete }) {
 export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
-  const { data: { items: groups, totalPages, totalCount } = {}, error, mutate } = useSWR(`/api/groups?page=${page}&limit=13`)
+  const {
+    data: { items: groups, totalPages, totalCount } = {},
+    error,
+    mutate,
+  } = useSWR(`/api/groups?page=${page}&limit=13`)
   const { admin, loading: adminLoading } = useAdmin()
 
   const [selected, setSelected] = useState(null)
@@ -260,8 +264,7 @@ export default function Groups() {
               <div className='flex min-h-0 flex-1 flex-col overflow-y-auto px-6'>
                 <Table
                   columns={columns}
-                  data={groups || []
-                  }
+                  data={groups || []}
                   getRowProps={row => ({
                     onClick: () => setSelected(row.original),
                     className:
@@ -281,7 +284,11 @@ export default function Groups() {
                 )}
               </div>
             )}
-             <Pagination curr={page} totalPages={totalPages} totalCount={totalCount} ></Pagination>
+            <Pagination
+              curr={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+            ></Pagination>
           </div>
           {selected && (
             <Sidebar

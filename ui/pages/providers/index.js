@@ -104,7 +104,8 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
 export default function Providers() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
-  const { data: { items: providers, totalPages, totalCount } = {}, error } = useSWR(`/api/providers?page=${page}&limit=13`)
+  const { data: { items: providers, totalPages, totalCount } = {}, error } =
+    useSWR(`/api/providers?page=${page}&limit=13`)
   console.log(page, totalPages, totalCount)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
@@ -161,7 +162,11 @@ export default function Providers() {
                 )}
               </div>
             )}
-            <Pagination curr={page} totalPages={totalPages} totalCount={totalCount}></Pagination>
+            <Pagination
+              curr={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+            ></Pagination>
           </div>
           {selected && (
             <Sidebar

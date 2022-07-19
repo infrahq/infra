@@ -332,20 +332,19 @@ export default function Destinations() {
   const [selected, setSelected] = useState(null)
 
   const data =
-    destinations
-      ?.map(d => ({
-        ...d,
-        kind: 'cluster',
-        resource: d.name,
+    destinations?.map(d => ({
+      ...d,
+      kind: 'cluster',
+      resource: d.name,
 
-        // Create "fake" destinations as subrows from resources
-        subRows: d.resources?.map(r => ({
-          name: r,
-          resource: `${d.name}.${r}`,
-          kind: 'namespace',
-          roles: d.roles?.filter(r => r !== 'cluster-admin'),
-        })),
-      })) || []
+      // Create "fake" destinations as subrows from resources
+      subRows: d.resources?.map(r => ({
+        name: r,
+        resource: `${d.name}.${r}`,
+        kind: 'namespace',
+        roles: d.roles?.filter(r => r !== 'cluster-admin'),
+      })),
+    })) || []
 
   const loading = adminLoading || !destinations
 
@@ -390,7 +389,11 @@ export default function Destinations() {
                 )}
               </div>
             )}
-            <Pagination curr={page} totalPages={totalPages} totalCount={totalCount}></Pagination>
+            <Pagination
+              curr={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+            ></Pagination>
           </div>
           {selected && (
             <Sidebar
