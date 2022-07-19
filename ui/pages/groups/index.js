@@ -17,6 +17,8 @@ import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
+import { useRouter } from 'next/router'
 
 const columns = [
   {
@@ -230,7 +232,9 @@ function Details({ group, admin, onDelete }) {
 }
 
 export default function Groups() {
-  const { data: { items: groups } = {}, error, mutate } = useSWR('/api/groups')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const { data: { items: groups, totalPages, totalCount } = {}, error, mutate } = useSWR(`/api/groups?page=${page}&limit=13`)
   const { admin, loading: adminLoading } = useAdmin()
 
   const [selected, setSelected] = useState(null)
@@ -280,6 +284,7 @@ export default function Groups() {
                 )}
               </div>
             )}
+             <Pagination curr={page} totalPages={totalPages} totalCount={totalCount} ></Pagination>
           </div>
           {selected && (
             <Sidebar

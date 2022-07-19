@@ -3,6 +3,7 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import dayjs from 'dayjs'
 import { PlusSmIcon, MinusSmIcon } from '@heroicons/react/outline'
+import { useRouter } from 'next/router'
 
 import { sortBySubject, sortByPrivilege } from '../../lib/grants'
 import { useAdmin } from '../../lib/admin'
@@ -17,6 +18,7 @@ import GrantForm from '../../components/grant-form'
 import EmptyData from '../../components/empty-data'
 import Metadata from '../../components/metadata'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
 
 function parent(resource = '') {
   const parts = resource.split('.')
@@ -318,11 +320,14 @@ const columns = [
 ]
 
 export default function Destinations() {
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+
   const {
-    data: { items: destinations } = {},
+    data: { items: destinations, totalPages, totalCount } = {},
     error,
     mutate,
-  } = useSWR('/api/destinations')
+  } = useSWR(`/api/destinations?page=${page}&limit=13`)
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
@@ -386,6 +391,7 @@ export default function Destinations() {
                 )}
               </div>
             )}
+            <Pagination curr={page} totalPages={totalPages} totalCount={totalCount}></Pagination>
           </div>
           {selected && (
             <Sidebar

@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useTable } from 'react-table'
 import useSWR from 'swr'
@@ -18,6 +19,7 @@ import IdentityList from '../../components/identity-list'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
 
 const columns = [
   {
@@ -202,7 +204,9 @@ function Details({ user, admin, onDelete }) {
 }
 
 export default function Users() {
-  const { data: { items } = {}, error, mutate } = useSWR('/api/users')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const { data: { items, totalPages, totalCount} = {}, error, mutate } = useSWR(`/api/users?page=${page}&limit=13`)
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({
@@ -242,7 +246,7 @@ export default function Users() {
                         : 'cursor-pointer',
                   })}
                 />
-                {users?.length === 0 && (
+                {(users?.length === 0 && page === 1) && (
                   <EmptyTable
                     title='There are no users'
                     subtitle='Invite users to Infra and manage their access.'
@@ -253,6 +257,7 @@ export default function Users() {
                 )}
               </div>
             )}
+            <Pagination curr={page} totalPages={totalPages} totalCount={totalCount}></Pagination>
           </div>
           {selected && (
             <Sidebar
