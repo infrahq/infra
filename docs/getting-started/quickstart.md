@@ -82,7 +82,7 @@ helm upgrade --install infra-connector infrahq/infra \
   --set connector.config.name=example-cluster \
   --set connector.config.server=localhost \
   --set connector.config.accessKey=<CONNECTOR_KEY> \
-  --set connector.config.serverTrustedCertificate="$(cat infra.ca)"
+  --set-file connector.config.serverTrustedCertificate=infra.ca
 ```
 
 {% callout type="info" %}
