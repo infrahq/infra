@@ -26,7 +26,7 @@ spec:
       securityContext:
 {{- toYaml .Values.server.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ .Values.server.componentName }}
           securityContext:
 {{- toYaml .Values.server.securityContext | nindent 12 }}
           image: "{{ include "server.image.repository" . }}:{{ include "server.image.tag" . }}"
