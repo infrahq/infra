@@ -201,10 +201,7 @@ function Details({ group, admin, onDelete }) {
                 </EmptyData>
               )}
               <IdentityList
-                list={users?.sort((a, b) =>
-                  b.created?.localeCompare(a.created)
-                )}
-                actionText='Remove'
+                list={users}
                 onClick={async userId => {
                   const usersToRemove = [userId]
                   await fetch(`/api/groups/${id}/users`, {
