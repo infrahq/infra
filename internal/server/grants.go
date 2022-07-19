@@ -36,16 +36,6 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 	return result, nil
 }
 
-// TODO: remove after deprecation period
-func (a *API) deprecatedListUserGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
-	return a.ListGrants(c, &api.ListGrantsRequest{User: r.ID})
-}
-
-// TODO: remove after deprecation period
-func (a *API) deprecatedListGroupGrants(c *gin.Context, r *api.Resource) (*api.ListResponse[api.Grant], error) {
-	return a.ListGrants(c, &api.ListGrantsRequest{Group: r.ID})
-}
-
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	grant, err := access.GetGrant(c, r.ID)
 	if err != nil {

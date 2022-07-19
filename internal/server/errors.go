@@ -102,12 +102,3 @@ func sendAPIError(c *gin.Context, err error) {
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
 }
-
-func removed(version string) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		msg := fmt.Sprintf("This API endpoint was removed in version %v. Please upgrade your client.", version)
-		resp := &api.Error{Code: http.StatusGone, Message: msg}
-		c.JSON(int(resp.Code), resp)
-		c.Abort()
-	}
-}
