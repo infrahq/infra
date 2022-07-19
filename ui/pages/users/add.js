@@ -1,3 +1,4 @@
+import axios from 'axios'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -104,15 +105,10 @@ export default function UsersAdd() {
     setError('')
 
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ name: email, setOneTimePassword: true }),
+      const { data: user } = await axios.post('/api/users', {
+        name: email,
+        setOneTimePassword: true,
       })
-      const user = await res.json()
-
-      if (!res.ok) {
-        throw user
-      }
 
       setState('password')
       setPassword(user.oneTimePassword)

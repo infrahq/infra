@@ -1,3 +1,4 @@
+import axios from 'axios'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
@@ -16,8 +17,9 @@ export default function DestinationsAdd() {
   useEffect(() => {
     const interval = setInterval(async () => {
       if (accessKey && name.length > 0) {
-        const res = await fetch(`/api/destinations?name=${name}`)
-        const { items: destinations } = await res.json()
+        const {
+          data: { items: destinations },
+        } = await axios.get(`/api/destinations?name=${name}`)
         if (destinations?.length > 0) {
           setConnected(true)
         }
@@ -38,8 +40,9 @@ export default function DestinationsAdd() {
 
     setConnected(false)
 
-    let res = await fetch('/api/users?name=connector')
-    const { items: connectors } = await res.json()
+    const {
+      data: { items: connectors },
+    } = await axios.get('/api/users?name=connector')
 
     // TODO (https://github.com/infrahq/infra/issues/2056): handle the case where connector does not exist
     if (!connectors.length) {
@@ -52,7 +55,7 @@ export default function DestinationsAdd() {
       name +
       '-' +
       [...Array(10)].map(() => (~~(Math.random() * 36)).toString(36)).join('')
-    res = await fetch('/api/access-keys', {
+    const { data: key } = await axios.get('/api/access-keys', {
       method: 'POST',
       body: JSON.stringify({
         userID: id,
@@ -61,7 +64,6 @@ export default function DestinationsAdd() {
         extensionDeadline: '720h',
       }),
     })
-    const key = await res.json()
     setAccessKey(key.accessKey)
     setSubmitted(true)
   }

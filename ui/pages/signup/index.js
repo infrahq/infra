@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 
 import Login from '../../components/layouts/login'
 import ErrorMessage from '../../components/error-message'
+import axios from 'axios'
 
 export default function Signup() {
   const { mutate } = useSWRConfig()
@@ -27,32 +28,18 @@ export default function Signup() {
 
     try {
       // signup
-      let res = await fetch('/api/signup', {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          password,
-        }),
+      await axios.post('/api/signup', {
+        name,
+        password,
       })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
 
       // login
-      res = await fetch('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          passwordCredentials: {
-            name,
-            password,
-          },
-        }),
+      await axios.post('/api/login', {
+        passwordCredentials: {
+          name,
+          password,
+        },
       })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
 
       await mutate('/api/signup')
       await mutate('/api/users/self')

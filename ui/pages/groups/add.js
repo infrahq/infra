@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import ErrorMessage from '../../components/error-message'
 import Fullscreen from '../../components/layouts/fullscreen'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
+import axios from 'axios'
 
 function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
   const { data: { items: users } = { items: [] } } = useSWR('/api/users')
@@ -65,19 +66,8 @@ export default function GroupsAdd() {
     const usersToAdd = emails.map(email => email.id)
 
     try {
-      const res = await fetch(`/api/groups/${groupId}/users`, {
-        method: 'PATCH',
-        body: JSON.stringify({ usersToAdd }),
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw data
-      }
-
+      await axios.patch(`/api/groups/${groupId}/users`, usersToAdd)
       await mutate('/api/groups')
-
       router.replace('/groups')
     } catch (e) {
       if (e.fieldErrors) {
@@ -98,18 +88,11 @@ export default function GroupsAdd() {
     setError('')
 
     try {
-      const res = await fetch('/api/groups', {
-        method: 'POST',
-        body: JSON.stringify({ name: groupName }),
+      const { data: group } = await axios.post('/api/groups', {
+        name: groupName,
       })
 
-      const group = await res.json()
-
-      if (!res.ok) {
-        throw group
-      } else {
-        addUsersToGroup(group.id)
-      }
+      addUsersToGroup(group.id)
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}

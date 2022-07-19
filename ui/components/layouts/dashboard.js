@@ -1,3 +1,4 @@
+import axios from 'axios'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
@@ -19,9 +20,7 @@ function Layout({ children }) {
   }
 
   async function logout() {
-    await fetch('/api/logout', {
-      method: 'POST',
-    })
+    axios.post('/api/logout')
     await mutate('/api/users/self', async () => undefined)
     router.replace('/login')
   }

@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import useSWR from 'swr'
+import axios from 'axios'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
@@ -150,11 +151,7 @@ function Details({ group, admin, onDelete }) {
 
   const handleRemoveUserFromGroup = async userId => {
     const usersToRemove = [userId]
-    await fetch(`/api/groups/${id}/users`, {
-      method: 'PATCH',
-      body: JSON.stringify({ usersToRemove }),
-    })
-
+    await axios.patch(`/api/groups/${id}/users`, { usersToRemove })
     mutateUsers({
       items: users.filter(i => i.id !== userId),
     })
@@ -172,20 +169,17 @@ function Details({ group, admin, onDelete }) {
               <GrantsList
                 grants={grants}
                 onRemove={async id => {
-                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
+                  await axios.delete(`/api/grants/${id}`)
                   mutateGrants({ items: grants.filter(x => x.id !== id) })
                 }}
                 onChange={async (privilege, grant) => {
-                  const res = await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      ...grant,
-                      privilege,
-                    }),
+                  const res = await axios.post('/api/grants', {
+                    ...grant,
+                    privilege,
                   })
 
                   // delete old grant
-                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
+                  await axios.delete(`/api/grants/${grant.id}`)
                   mutateGrants({
                     items: [
                       ...grants.filter(f => f.id !== grant.id),
@@ -210,11 +204,7 @@ function Details({ group, admin, onDelete }) {
                 existMembers={existMembers}
                 onClick={async () => {
                   const usersToAdd = emails.map(email => email.id)
-                  await fetch(`/api/groups/${id}/users`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ usersToAdd }),
-                  })
-
+                  await axios.patch(`/api/groups/${id}/users`, { usersToAdd })
                   mutateUsers({ items: [...users, ...emails] })
                   setEmails([])
                 }}
@@ -366,10 +356,7 @@ export default function Groups() {
                 admin={admin}
                 onDelete={() => {
                   mutate(async ({ items: groups } = { items: [] }) => {
-                    await fetch(`/api/groups/${selected.id}`, {
-                      method: 'DELETE',
-                    })
-
+                    await axios.delete(`/api/groups/${selected.id}`)
                     return {
                       items: groups?.filter(g => g?.id !== selected.id),
                     }

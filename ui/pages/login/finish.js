@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
@@ -33,17 +34,8 @@ export default function Finish() {
     }
 
     try {
-      const res = await fetch(`/api/users/${user}`, {
-        method: 'PUT',
-        body: JSON.stringify({ password }),
-      })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
-
+      await axios.put(`/api/users/${user}`, { password })
       await mutate('/api/users/self')
-
       await router.replace('/')
     } catch (e) {
       if (e.fieldErrors) {

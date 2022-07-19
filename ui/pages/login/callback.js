@@ -1,21 +1,19 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
+import axios from 'axios'
 
 export default function Callback() {
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
   async function login({ providerID, code, redirectURL }) {
-    await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        oidc: {
-          providerID,
-          code,
-          redirectURL,
-        },
-      }),
+    await axios.post('/api/login', {
+      oidc: {
+        providerID,
+        code,
+        redirectURL,
+      },
     })
 
     await mutate('/api/users/self')

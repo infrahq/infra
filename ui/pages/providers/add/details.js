@@ -6,6 +6,7 @@ import { useSWRConfig } from 'swr'
 
 import Fullscreen from '../../../components/layouts/fullscreen'
 import ErrorMessage from '../../../components/error-message'
+import axios from 'axios'
 
 export default function ProvidersAddDetails() {
   const router = useRouter()
@@ -47,25 +48,16 @@ export default function ProvidersAddDetails() {
       await mutate(
         '/api/providers',
         async ({ items: providers } = { items: [] }) => {
-          const res = await fetch('/api/providers', {
-            method: 'POST',
-            body: JSON.stringify({
-              name,
-              url,
-              clientID,
-              clientSecret,
-              kind,
-              api,
-            }),
+          const { data: provider } = await axios.post('/api/providers', {
+            name,
+            url,
+            clientID,
+            clientSecret,
+            kind,
+            api,
           })
 
-          const data = await res.json()
-
-          if (!res.ok) {
-            throw data
-          }
-
-          return { items: [...providers, data] }
+          return { items: [...providers, provider] }
         }
       )
     } catch (e) {

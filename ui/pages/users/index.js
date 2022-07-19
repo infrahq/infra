@@ -1,3 +1,4 @@
+import axios from 'axios'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
@@ -67,7 +68,7 @@ function Details({ user, admin, onDelete }) {
   )
   const { data: groupGrantDatas } = useSWR(
     () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
-    (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
+    (...urls) => Promise.all(urls.map(url => axios.get(url).then(r => r.data)))
   )
   const { data: { items: infraAdmins } = {} } = useSWR(
     '/api/grants?resource=infra&privilege=admin'
@@ -98,11 +99,7 @@ function Details({ user, admin, onDelete }) {
   ].some(x => !x)
 
   const handleRemoveGroupFromUser = async groupId => {
-    const usersToRemove = [id]
-    await fetch(`/api/groups/${groupId}/users`, {
-      method: 'PATCH',
-      body: JSON.stringify({ usersToRemove }),
-    })
+    await axios.patch(`/api/groups/${groupId}/users`, { usersToRemove: [id] })
     mutateGroups({
       items: groups.filter(i => i.id !== groupId),
     })
@@ -120,20 +117,17 @@ function Details({ user, admin, onDelete }) {
               <GrantsList
                 grants={grants}
                 onRemove={async id => {
-                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
+                  await axios.delete(`/api/grants/${id}`)
                   mutate({ items: grants.filter(x => x.id !== id) })
                 }}
                 onChange={async (privilege, grant) => {
-                  const res = await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      ...grant,
-                      privilege,
-                    }),
+                  const res = await axios.post('/api/grants', {
+                    ...grant,
+                    privilege,
                   })
 
                   // delete old grant
-                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
+                  await axios.delete(`/api/grants/${grant.id}`)
                   mutate({
                     items: [
                       ...grants.filter(f => f.id !== grant.id),
@@ -321,10 +315,7 @@ export default function Users() {
                 admin={admin}
                 onDelete={() => {
                   mutate(async ({ items: users } = { items: [] }) => {
-                    await fetch(`/api/users/${selected.id}`, {
-                      method: 'DELETE',
-                    })
-
+                    await axios.delete(`/api/users/${selected.id}`)
                     return {
                       items: users?.filter(u => u?.id !== selected.id),
                     }

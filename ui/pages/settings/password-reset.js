@@ -6,6 +6,7 @@ import Link from 'next/link'
 
 import Fullscreen from '../../components/layouts/fullscreen'
 import ErrorMessage from '../../components/error-message'
+import axios from 'axios'
 
 export default function PasswordReset() {
   const router = useRouter()
@@ -28,19 +29,10 @@ export default function PasswordReset() {
     }
 
     try {
-      const rest = await fetch(`/api/users/${auth?.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          ...auth,
-          password: confirmPassword,
-        }),
+      await axios.put(`/api/users/${auth?.id}`, {
+        ...auth,
+        password: confirmPassword,
       })
-
-      const data = await rest.json()
-
-      if (!rest.ok) {
-        throw data
-      }
 
       router.replace('/settings?resetPassword=success')
     } catch (e) {

@@ -1,24 +1,27 @@
+import axios from 'axios'
 import Head from 'next/head'
 import useSWR, { SWRConfig } from 'swr'
 import { useRouter } from 'next/router'
 
-import '../lib/fetch'
 import '../lib/dayjs'
 import '../styles/globals.css'
 
-async function fetcher(resource, init) {
-  const res = await fetch(resource, init)
-  const data = await res.json()
+// Add the Infra-Version header to requests
+axios.interceptors.request.use(
+  config => {
+    if (config.url.startsWith('/')) {
+      config.headers['Infra-Version'] = '0.13.0'
+    }
 
-  if (!res.ok) {
-    throw data
+    return config
+  },
+  error => {
+    return Promise.reject(error)
   }
-
-  return data
-}
+)
 
 const swrConfig = {
-  fetcher,
+  fetcher: url => axios.get(url).then(res => res.data),
   revalidateOnFocus: false,
   revalidateOnReconnect: false,
 }

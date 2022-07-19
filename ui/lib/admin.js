@@ -1,3 +1,4 @@
+import axios from 'axios'
 import useSWR from 'swr'
 
 const INFRA_ADMIN_ROLE = 'admin'
@@ -17,7 +18,7 @@ export function useAdmin() {
   // multiple fetches (/api/grants for each group)
   const { data: groupGrantDatas } = useSWR(
     () => groups.map(g => `/api/grants?group=${g.id}`) || null,
-    (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json()))),
+    (...urls) => Promise.all(urls.map(url => axios.get(url).then(r => r.data))),
     { revalidateIfStale: false }
   )
 

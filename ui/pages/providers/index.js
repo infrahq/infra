@@ -1,3 +1,4 @@
+import axios from 'axios'
 import useSWR from 'swr'
 import Head from 'next/head'
 import dayjs from 'dayjs'
@@ -173,9 +174,7 @@ export default function Providers() {
                 admin={admin}
                 onDelete={() => {
                   mutate(async ({ items: providers } = { items: [] }) => {
-                    await fetch(`/api/providers/${selected.id}`, {
-                      method: 'DELETE',
-                    })
+                    await axios.delete(`/api/providers/${selected.id}`)
 
                     return {
                       items: providers.filter(p => p?.id !== selected.id),

@@ -11,6 +11,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
 import Notification from '../../components/notification'
 import GrantForm from '../../components/grant-form'
+import axios from 'axios'
 
 function AdminGrant({ name, showRemove, onRemove, message = '' }) {
   const [open, setOpen] = useState(false)
@@ -135,17 +136,14 @@ export default function Settings() {
                 return false
               }
 
-              const res = await fetch('/api/grants', {
-                method: 'POST',
-                body: JSON.stringify({
-                  user,
-                  group,
-                  privilege: 'admin',
-                  resource: 'infra',
-                }),
+              const { data: grant } = await axios.post('/api/grants', {
+                user,
+                group,
+                privilege: 'admin',
+                resource: 'infra',
               })
 
-              mutate({ items: [...grants, await res.json()] })
+              mutate({ items: [...grants, grant] })
             }}
           />
           <div className='mt-6'>
@@ -179,7 +177,7 @@ export default function Settings() {
                   showRemove={grants.length > 1}
                   message={g.message}
                   onRemove={async () => {
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                    await axios.delete(`/api/grants/${g.id}`)
                     mutate({ items: grants.filter(x => x.id !== g.id) })
                   }}
                 />

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { providers as providersList } from '../../lib/providers'
 
 import LoginLayout from '../../components/layouts/login'
+import axios from 'axios'
 
 function oidcLogin({ id, clientID, authURL, scopes }) {
   window.localStorage.setItem('providerID', id)
@@ -74,26 +75,19 @@ export default function Login() {
     e.preventDefault()
 
     try {
-      const res = await fetch('/api/login', {
-        method: 'post',
-        body: JSON.stringify({
-          passwordCredentials: {
-            name,
-            password,
-          },
-        }),
+      const {
+        data: { userID, passwordUpdateRequired },
+      } = await axios.post('/api/login', {
+        passwordCredentials: {
+          name,
+          password,
+        },
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      const data = await res.json()
-
-      if (data.passwordUpdateRequired) {
+      if (passwordUpdateRequired) {
         router.replace({
           pathname: '/login/finish',
-          query: { user: data.userID },
+          query: { user: userID },
         })
 
         return false
