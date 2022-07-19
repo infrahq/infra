@@ -63,12 +63,15 @@ export default function Settings() {
 
   const hasInfraProvider = auth?.providerNames.includes('infra')
 
+  const loading = [auth, users, groups, grants].some(x => !x)
+
   return (
     <>
       <Head>
         <title>Settings - Infra</title>
       </Head>
-      {auth && (
+
+      {!loading && auth && (
         <div className='mt-6 mb-4 flex flex-1 flex-col space-y-8'>
           <h1 className='mb-6 text-xs font-bold'>Settings</h1>
           {hasInfraProvider && (
@@ -110,7 +113,7 @@ export default function Settings() {
           )}
         </div>
       )}
-      {admin && (
+      {!loading && admin && (
         <div className='max-w-md'>
           <div className='border-b border-gray-800 pb-6 text-2xs uppercase leading-none text-gray-400'>
             Admins
