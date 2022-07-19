@@ -79,7 +79,7 @@ func TestGoogle_GetUserInfo(t *testing.T) {
 			}`,
 			groupsResponse: []string{},
 			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
-				assert.ErrorContains(t, err, "failed on the 'required_without' tag")
+				assert.ErrorContains(t, err, "could not get user info from provider: claim must include either a name or email")
 				assert.Assert(t, info == nil)
 			},
 		},
