@@ -63,6 +63,13 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
+	if r.API != nil {
+		// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
+		provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.API.PrivateKey), "\\n", "\n"))
+		provider.ClientEmail = r.API.ClientEmail
+		provider.DomainAdmin = r.API.DomainAdmin
+	}
+
 	kind, err := models.ParseProviderKind(r.Kind)
 	if err != nil {
 		return nil, err
@@ -89,6 +96,13 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		URL:          cleanupURL(r.URL),
 		ClientID:     r.ClientID,
 		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
+	}
+
+	if r.API != nil {
+		// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
+		provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.API.PrivateKey), "\\n", "\n"))
+		provider.ClientEmail = r.API.ClientEmail
+		provider.DomainAdmin = r.API.DomainAdmin
 	}
 
 	kind, err := models.ParseProviderKind(r.Kind)
