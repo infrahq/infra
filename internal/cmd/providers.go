@@ -382,7 +382,9 @@ func parsePrivateKey(key string) (string, error) {
 	if json.Valid([]byte(key)) {
 		// this is the google service account key file
 		jsonContents := map[string]string{}
-		json.Unmarshal([]byte(key), &jsonContents)
+		if err := json.Unmarshal([]byte(key), &jsonContents); err != nil {
+			return "", err
+		}
 
 		if jsonContents["private_key"] == "" {
 			return "", fmt.Errorf("invalid service account json file provided")
