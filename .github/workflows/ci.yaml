@@ -2,6 +2,10 @@ name: ci
 
 on:
   pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '13 2 * * *'
 
 jobs:
   test:
@@ -139,7 +143,7 @@ jobs:
           git diff --exit-code
 
   commit-lint:
-    if: ${{ ! startsWith(github.head_ref, 'dependabot/') }}
+    if: ${{ github.event_name == 'pull_request' && ! startsWith(github.head_ref, 'dependabot/') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
