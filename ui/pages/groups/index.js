@@ -36,27 +36,6 @@ const columns = [
       )
     },
   },
-  {
-    Header: 'Users',
-    accessor: g => g,
-    width: '33%',
-    Cell: ({ value: group }) => {
-      const { data: { items: users } = {}, error } = useSWR(
-        `/api/users?group=${group.id}`
-      )
-
-      return (
-        <>
-          {users && (
-            <div className='text-gray-400'>
-              {users?.length} {users?.length === 1 ? 'member' : 'members'}
-            </div>
-          )}
-          {error?.status && <div className='text-gray-400'>--</div>}
-        </>
-      )
-    },
-  },
 ]
 
 function EmailsSelectInput({
@@ -177,7 +156,7 @@ function Details({ group, admin, onDelete }) {
           </section>
           <section>
             <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Users
+              Users{users?.length > 0 && <span> ({users.length})</span>}
             </h3>
             <EmailsSelectInput
               selectedEmails={emails}
