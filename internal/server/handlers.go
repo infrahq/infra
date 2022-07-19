@@ -122,6 +122,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	}
 
 	a.t.User(identity.ID.String(), r.Name)
+	a.t.Alias(identity.ID.String())
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
 	return identity.ToAPI(), nil
