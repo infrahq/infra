@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -173,4 +175,49 @@ func TestWriteKubeconfig_UserNamespaceOverrideResetNamespacedContext(t *testing.
 	actual, err := clientConfig().RawConfig()
 	assert.NilError(t, err)
 	assert.Equal(t, actual.Contexts["infra:cluster:default"].Namespace, "default")
+}
+
+func TestSafelyWriteConfigToFile(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	kubeconfig := filepath.Join(home, "kubeconfig")
+	t.Setenv("KUBECONFIG", kubeconfig)
+
+	expected := clientcmdapi.Config{
+		Clusters: map[string]*clientcmdapi.Cluster{
+			"infra:cluster:default": {
+				Server:                   "https://cluster.example.com",
+				CertificateAuthorityData: []byte(destinationCA),
+			},
+		},
+		Contexts: map[string]*clientcmdapi.Context{
+			"infra:cluster:default": {
+				AuthInfo:  "user",
+				Cluster:   "infra:cluster",
+				Namespace: "default",
+			},
+		},
+		AuthInfos: map[string]*clientcmdapi.AuthInfo{
+			"user": {},
+		},
+	}
+
+	err := safelyWriteConfigToFile(expected, kubeconfig)
+	assert.NilError(t, err)
+
+	// check that the file is written to
+	actual, err := clientConfig().RawConfig()
+	assert.NilError(t, err)
+	assert.Equal(t, actual.Contexts["infra:cluster:default"].Namespace, "default")
+
+	// check that the temp file is gone
+	files, err := ioutil.ReadDir(home)
+	assert.NilError(t, err)
+
+	for _, file := range files {
+		// if the file name contains this string it was the temp file
+		assert.Assert(t, !strings.Contains(file.Name(), "infra-kube-config"))
+	}
 }
