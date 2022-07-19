@@ -43,7 +43,7 @@ func Middleware() gin.HandlerFunc {
 		log := L.With().
 			Str("method", method).
 			Str("path", c.Request.URL.Path).
-			Str("host", c.Request.Host).
+			Str("localAddr", c.Request.Host).
 			Str("remoteAddr", c.Request.RemoteAddr).
 			Str("userAgent", c.Request.UserAgent()).
 			Int64("contentLength", c.Request.ContentLength).
