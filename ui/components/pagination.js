@@ -83,11 +83,7 @@ export default function Pagination({ curr, totalPages, totalCount }) {
   let lowerItem = totalCount === 0 ? 0 : 1+(curr-1)*limit
   let upperItem = Math.min(1+(curr-1)*limit + limit, totalCount)
 
-  return (
-  <nav className='flex justify-end px-4'>  
-    <div className='pr-16'><h3 className='py-4 px-4 text-xs text-gray-400'>
-    Displaying {lowerItem}–{upperItem} out of {totalCount}
-    </h3></div>
-    <div>{pages}</div>
-</nav>)
+  return (  
+    [
+    <nav key='paginator'className='flex justify-end px-4'>{pages}</nav>,<h3 key='results' className='flex justify-end pb-4 px-4 text-3xs text-gray-400'> Displaying {lowerItem}–{upperItem} out of {totalCount}</h3>])
 }
