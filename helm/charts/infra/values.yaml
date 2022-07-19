@@ -354,7 +354,7 @@ server:
   #     cpu: 500m
   #     memory: 512Mi
 
-  ## Infra server autoscaling configurations
+  ## Infra server autoscaling configurations. Enabling autoscaling requires setting resources.
   autoscaling:
 
     ## Enable server autoscaling
@@ -367,10 +367,10 @@ server:
     maxReplicas: 3
 
     ## Target average CPU utilization percentage
-    targetCPUUtilizationPercentage: 50
+    # targetCPUUtilizationPercentage: 50
 
     ## Target average memory utilization percentage
-    targetMemoryUtilizationPercentage: 50
+    # targetMemoryUtilizationPercentage: 50
 
   ## Infra server node selector configurations
   nodeSelector: {}
