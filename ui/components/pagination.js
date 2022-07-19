@@ -66,10 +66,11 @@ export default function Pagination({ curr, totalPages, totalCount }) {
   totalCount = totalCount === undefined ? 0 : parseInt(totalCount)
 
   let pages = [LeftArrow(path, curr)]
-
+  
+  let beginOffset = Math.max(3, 6 + curr - totalPages)
   for (
-    let page = Math.max(1, curr - 3);
-    pages.length < 7 && page <= totalPages;
+    let page = Math.max(1, curr - beginOffset);
+    pages.length <= 7 && page <= totalPages;
     page++
   ) {
     if (page === curr) {
