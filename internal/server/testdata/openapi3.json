@@ -3232,11 +3232,9 @@
                   "api": {
                     "properties": {
                       "clientEmail": {
-                        "format": "email",
                         "type": "string"
                       },
                       "domainAdmin": {
-                        "format": "email",
                         "type": "string"
                       },
                       "privateKey": {
@@ -3576,11 +3574,9 @@
                   "api": {
                     "properties": {
                       "clientEmail": {
-                        "format": "email",
                         "type": "string"
                       },
                       "domainAdmin": {
-                        "format": "email",
                         "type": "string"
                       },
                       "privateKey": {

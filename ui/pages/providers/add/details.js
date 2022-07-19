@@ -197,7 +197,7 @@ export default function ProvidersAddDetails() {
           />
           {errors.clientid && <ErrorMessage message={errors.clientid} />}
         </div>
-        <div className='mt-4'>
+        <div className='my-4'>
           <label className='text-3xs uppercase text-gray-400'>
             Client Secret
           </label>
@@ -245,7 +245,7 @@ export default function ProvidersAddDetails() {
             </div>
             <div className='mt-4'>
               <label className='text-3xs uppercase text-gray-400'>
-                Domain Admin
+                Workspace Domain Admin
               </label>
               <input
                 placeholder='domain admin email'
