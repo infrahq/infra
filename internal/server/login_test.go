@@ -152,8 +152,8 @@ func TestAPI_Login(t *testing.T) {
 
 				expected := []api.FieldError{
 					{
-						FieldName: "passwordCredentials",
-						Errors:    []string{"one of (name, email) is required"},
+						FieldName: "passwordCredentials.name",
+						Errors:    []string{"is required"},
 					},
 					{
 						FieldName: "passwordCredentials.password",
@@ -199,5 +199,4 @@ func TestAPI_Login(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }

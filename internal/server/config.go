@@ -66,16 +66,11 @@ type User struct {
 	Name      string
 	AccessKey string
 	Password  string
-
-	Email string // deprecated
 }
 
 func (u User) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.RequireOneOf(
-			validate.Field{Name: "name", Value: u.Name},
-			validate.Field{Name: "email", Value: u.Email},
-		),
+		validate.Required("name", u.Name),
 	}
 }
 
@@ -851,29 +846,21 @@ func (s Server) loadUsers(db *gorm.DB, users []User) error {
 }
 
 func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
-	name := input.Name
-	if name == "" {
-		if input.Email != "" {
-			logging.Warnf("please update 'email' config identity to 'name', the 'email' identity label is deprecated and will be removed in a future release")
-			name = input.Email
-		}
-	}
-
-	identity, err := data.GetIdentity(db, data.ByName(name))
+	identity, err := data.GetIdentity(db, data.ByName(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
 		}
 
-		if name != models.InternalInfraConnectorIdentityName {
-			_, err := mail.ParseAddress(name)
+		if input.Name != models.InternalInfraConnectorIdentityName {
+			_, err := mail.ParseAddress(input.Name)
 			if err != nil {
-				logging.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", name)
+				logging.Warnf("user name %q in server configuration is not a valid email, please update this name to a valid email", input.Name)
 			}
 		}
 
 		identity = &models.Identity{
-			Name:      name,
+			Name:      input.Name,
 			CreatedBy: models.CreatedBySystem,
 		}
 
