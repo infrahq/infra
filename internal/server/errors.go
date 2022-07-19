@@ -97,7 +97,7 @@ func sendAPIError(c *gin.Context, err error) {
 		Str("path", c.Request.URL.Path).
 		Int32("statusCode", resp.Code).
 		Str("remoteAddr", c.Request.RemoteAddr).
-		Msg("api request error")
+		Msg("")
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
