@@ -31,7 +31,7 @@ function LeftArrow(path, page) {
   return (
     <a
       href={path + '?p=' + (page > 1 ? page - 1 : 1)}
-      className=' inline-flex items-center py-2 pr-1 text-sm font-medium text-gray-500 hover:text-violet-300 '
+      className=' inline-flex items-center pr-1 text-sm font-medium text-gray-500 hover:text-violet-300 '
     >
       <ChevronLeftIcon
         className=' h-5 w-5 text-gray-400 hover:text-violet-300'
@@ -46,7 +46,7 @@ function RightArrow(path, page, maxPage) {
   return (
     <a
       href={path + '?p=' + (page < maxPage ? page + 1 : Math.max(1, maxPage))}
-      className='inline-flex items-center py-2 pl-1 text-sm font-medium text-gray-500 hover:text-violet-300 '
+      className='inline-flex items-center pl-1 text-sm font-medium text-gray-500 hover:text-violet-300 '
     >
       <ChevronRightIcon
         className='ml-3 h-5 w-5 text-gray-400 hover:text-violet-300'
@@ -59,6 +59,7 @@ function RightArrow(path, page, maxPage) {
 export default function Pagination({ curr, totalPages, totalCount }) {
   const router = useRouter()
   const path = router.pathname
+  const limit = 13
 
   curr = curr === undefined ? 1 : parseInt(curr)
   totalPages = totalPages === undefined ? 1 : parseInt(totalPages)
@@ -79,5 +80,14 @@ export default function Pagination({ curr, totalPages, totalCount }) {
   }
   pages.push(RightArrow(path, curr, totalPages))
 
-  return (<nav className='flex justify-end px-4 pb-4'>{pages}</nav>)
+  let lowerItem = totalCount === 0 ? 0 : 1+(curr-1)*limit
+  let upperItem = Math.min(1+(curr-1)*limit + limit, totalCount)
+
+  return (
+  <nav className='flex justify-end px-4'>  
+    <div className='pr-16'><h3 className='py-4 px-4 text-xs text-gray-400'>
+    Displaying {lowerItem}–{upperItem} out of {totalCount}
+    </h3></div>
+    <div>{pages}</div>
+</nav>)
 }
