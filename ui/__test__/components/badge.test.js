@@ -15,7 +15,7 @@ describe('Badge Component', () => {
     expect(screen.getByText(children)).toBeInTheDocument()
   })
 
-  it('should render with correct remove button', () => {
+  it('should fires onRemove when clicks remove button', () => {
     const children = 'badge test children'
     const handleOnRemove = jest.fn()
     render(<Badge onRemove={handleOnRemove}>{children}</Badge>)

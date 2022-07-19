@@ -73,9 +73,7 @@ describe('Login Component', () => {
     render(<Login />)
 
     expect(
-      screen.getByText(
-        'Welcome back. Login with your credentials or via your identity provider.'
-      )
+      screen.getByText('or via your identity provider.')
     ).toBeInTheDocument()
   })
 
