@@ -130,12 +130,20 @@ func TestServer_Run(t *testing.T) {
 
 	t.Run("metrics server started", func(t *testing.T) {
 		// perform one API call to populate metrics
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/api/version")
+		req, err := http.NewRequest("GET", "http://"+srv.Addrs.HTTP.String()+"/api/version", nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		resp, err := http.DefaultClient.Do(req)
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
-		resp, err = http.Get("http://" + srv.Addrs.Metrics.String() + "/metrics")
+		req, err = http.NewRequest("GET", "http://"+srv.Addrs.Metrics.String()+"/metrics", nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		resp, err = http.DefaultClient.Do(req)
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -226,7 +234,11 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
-		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/api/signup")
+		req, err := http.NewRequest("GET", "http://"+srv.Addrs.HTTP.String()+"/api/signup", nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		resp, err := http.DefaultClient.Do(req)
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -447,6 +459,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	assert.NilError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", &buf)
+	req.Header.Set("Infra-Version", apiVersionLatest)
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -461,6 +474,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	assert.NilError(t, err)
 
 	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
+	req.Header.Set("Infra-Version", apiVersionLatest)
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -472,6 +486,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	checkAuthenticated := func() {
 		req = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
+		req.Header.Set("Infra-Version", apiVersionLatest)
 		resp = httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)

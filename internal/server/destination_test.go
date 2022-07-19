@@ -30,6 +30,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 		body := jsonBody(t, &createReq)
 		req := httptest.NewRequest(http.MethodPost, "/api/destinations", body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)

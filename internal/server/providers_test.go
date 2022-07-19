@@ -80,7 +80,8 @@ func TestAPI_DeleteProvider(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -149,7 +150,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/api/providers", body)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.6")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -268,7 +269,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPut, "/api/providers/"+id, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.6")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)

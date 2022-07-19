@@ -33,7 +33,8 @@ func TestAPI_GetUser(t *testing.T) {
 
 		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -65,7 +66,7 @@ func TestAPI_GetUser(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.3")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -423,7 +424,7 @@ func TestAPI_CreateUser(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.6")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -676,7 +677,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 		assert.NilError(t, err)
 
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.6")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -746,7 +747,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPut, "/api/users/"+id, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.13.6")
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
