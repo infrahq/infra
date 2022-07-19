@@ -214,8 +214,9 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 	lc.APIClient.AccessKey = loginRes.AccessKey
 
 	if loginRes.PasswordUpdateRequired {
-		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password (min. length 8).\n")
+		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
 
+	PROMPT:
 		password, err := promptSetPassword(cli, loginReq.PasswordCredentials.Password)
 		if err != nil {
 			return err
@@ -223,10 +224,13 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
 		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+			if passwordError(cli, err) {
+				goto PROMPT
+			}
 			return err
 		}
 
-		fmt.Fprintf(os.Stderr, "  Updated password.\n")
+		fmt.Fprintf(os.Stderr, "  Updated password\n")
 	}
 
 	if err := updateInfraConfig(lc, loginReq, loginRes); err != nil {

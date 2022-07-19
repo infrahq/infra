@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
@@ -120,36 +121,34 @@ func hasMinimumCount(min int, password string, check func(rune) bool) bool {
 }
 
 func checkPasswordRequirements(db *gorm.DB, password string) error {
-	var errs []string
 	settings, err := data.GetSettings(db)
 	if err != nil {
 		return err
 	}
+	errs := make(validate.Error)
 
 	if !hasMinimumCount(settings.LowercaseMin, password, unicode.IsLower) {
-		errs = append(errs, fmt.Sprintf("needs minimum %d lower case letters", settings.LowercaseMin))
+		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d lower case letters", settings.LowercaseMin))
 	}
 
 	if !hasMinimumCount(settings.UppercaseMin, password, unicode.IsUpper) {
-		errs = append(errs, fmt.Sprintf("needs minimum %d upper case letters", settings.UppercaseMin))
+		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d upper case letters", settings.UppercaseMin))
 	}
 
 	if !hasMinimumCount(settings.NumberMin, password, unicode.IsDigit) {
-		errs = append(errs, fmt.Sprintf("needs minimum %d numbers", settings.NumberMin))
+		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d numbers", settings.NumberMin))
 	}
 
 	if !hasMinimumCount(settings.SymbolMin, password, isValidSymbol) {
-		errs = append(errs, fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
+		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum %d symbols", settings.SymbolMin))
 	}
 
 	if len(password) < settings.LengthMin {
-		errs = append(errs, fmt.Sprintf("needs minimum length of %d", settings.LengthMin))
+		errs["password"] = append(errs["password"], fmt.Sprintf("needs minimum length of %d", settings.LengthMin))
 	}
 
-	if len(errs) > 0 {
-		err := fmt.Errorf(fmt.Sprintf("%#v", errs))
-		// Wrap so it is easier to parse the list of errors
-		return fmt.Errorf("cannot update password: new password does not pass requirements: %w", err)
+	if len(errs["password"]) > 0 {
+		return errs
 	}
 
 	return nil
