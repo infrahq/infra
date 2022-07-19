@@ -333,7 +333,6 @@ export default function Destinations() {
 
   const data =
     destinations
-      ?.sort((a, b) => b?.created?.localeCompare(a.created))
       ?.map(d => ({
         ...d,
         kind: 'cluster',

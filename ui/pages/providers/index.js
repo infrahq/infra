@@ -109,7 +109,7 @@ export default function Providers() {
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
     columns,
-    data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+    data: providers || [],
   })
 
   const [selected, setSelected] = useState(null)

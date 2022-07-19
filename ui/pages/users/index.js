@@ -211,7 +211,7 @@ export default function Users() {
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({
     columns,
-    data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+    data: users || [],
   })
   const [selected, setSelected] = useState(null)
 

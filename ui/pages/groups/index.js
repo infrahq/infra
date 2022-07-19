@@ -260,10 +260,7 @@ export default function Groups() {
               <div className='flex min-h-0 flex-1 flex-col overflow-y-auto px-6'>
                 <Table
                   columns={columns}
-                  data={
-                    groups?.sort((a, b) =>
-                      b.created?.localeCompare(a.created)
-                    ) || []
+                  data={groups || []
                   }
                   getRowProps={row => ({
                     onClick: () => setSelected(row.original),

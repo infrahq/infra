@@ -59,7 +59,7 @@ function RightArrow(path, page, maxPage) {
 export default function Pagination({ curr, totalPages, totalCount }) {
   const router = useRouter()
   const path = router.pathname
-  const limit = 13
+  const limit = 13 // TODO: dynamic limit
 
   curr = curr === undefined ? 1 : parseInt(curr)
   totalPages = totalPages === undefined ? 1 : parseInt(totalPages)
