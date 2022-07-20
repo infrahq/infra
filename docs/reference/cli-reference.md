@@ -331,7 +331,7 @@ $ infra users edit janedoe@example.com --password
 #### Options
 
 ```
-      --password   Set a new password
+      --password   Set a new password, or if admin, set a temporary password for the user
 ```
 
 #### Options inherited from parent commands
