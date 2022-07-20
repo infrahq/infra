@@ -513,6 +513,7 @@ func initializeSchema(db *gorm.DB) error {
 		&models.Credential{},
 		&models.ProviderUser{},
 		&models.Organization{},
+		&models.PasswordResetToken{},
 	}
 
 	for _, table := range tables {
