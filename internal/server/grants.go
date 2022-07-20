@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -61,29 +59,25 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 		Privilege: r.Privilege,
 	}
 
-	err := access.CreateGrant(c, grant)
-	var ucerr data.UniqueConstraintError
-
-	if errors.As(err, &ucerr) {
-		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, &models.Pagination{})
-
-		if err != nil {
-			return nil, err
-		}
-
-		if len(grants) == 0 {
-			return nil, fmt.Errorf("duplicate grant exists, but cannot be found")
-		}
-
-		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
+	// check if grant already exists
+	grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, &models.Pagination{})
+	if err != nil {
+		return nil, err
 	}
 
+	if len(grants) == 1 {
+		// this grant already exists
+		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
+	} else if len(grants) > 1 {
+		return nil, fmt.Errorf("multiple duplicate grants exists")
+	}
+
+	err = access.CreateGrant(c, grant)
 	if err != nil {
 		return nil, err
 	}
 
 	return &api.CreateGrantResponse{Grant: grant.ToAPI(), WasCreated: true}, nil
-
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {

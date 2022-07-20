@@ -185,6 +185,8 @@ func handleError(err error) error {
 		return nil
 	}
 
+	logging.L.Debug().Err(err).Msg("database query failed")
+
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
