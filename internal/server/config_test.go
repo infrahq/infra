@@ -703,10 +703,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
 			},
 			{
-				Email: "john@email.com",
-			},
-			{
-				Email:    "sarah@email.com",
+				Name:     "sarah@email.com",
 				Password: "supersecret",
 			},
 		},
@@ -754,7 +751,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	identities, err := data.ListIdentities(s.db, &models.Pagination{})
 	assert.NilError(t, err)
-	assert.Equal(t, 6, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
+	assert.Equal(t, 5, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
 
 	err = s.db.Model(&models.Group{}).Count(&groups).Error
 	assert.NilError(t, err)

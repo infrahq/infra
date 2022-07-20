@@ -116,11 +116,6 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	if r.Name == "" {
-		// #1825: remove, this is for migration
-		r.Name = r.Email
-	}
-
 	identity, err := access.Signup(c, r.Name, r.Password)
 	if err != nil {
 		return nil, err
@@ -141,10 +136,6 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey, expires)
 	case r.PasswordCredentials != nil:
-		if r.PasswordCredentials.Name == "" {
-			// #1825: remove, this is for migration
-			r.PasswordCredentials.Name = r.PasswordCredentials.Email
-		}
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)

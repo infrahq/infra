@@ -35,7 +35,7 @@ func TestAPI_Signup(t *testing.T) {
 		tc.expected(t, resp)
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "missing name and password",
 			setup: func(t *testing.T) api.SignupRequest {
@@ -49,7 +49,7 @@ func TestAPI_Signup(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{Errors: []string{"one of (name, email) is required"}},
+					{FieldName: "name", Errors: []string{"is required"}},
 					{FieldName: "password", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)

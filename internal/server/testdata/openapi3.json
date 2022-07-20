@@ -2909,22 +2909,7 @@
                     "type": "object"
                   },
                   "passwordCredentials": {
-                    "oneOf": [
-                      {
-                        "required": [
-                          "name"
-                        ]
-                      },
-                      {
-                        "required": [
-                          "email"
-                        ]
-                      }
-                    ],
                     "properties": {
-                      "email": {
-                        "type": "string"
-                      },
                       "name": {
                         "type": "string"
                       },
@@ -2933,6 +2918,7 @@
                       }
                     },
                     "required": [
+                      "name",
                       "password"
                     ],
                     "type": "object"
@@ -3766,23 +3752,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "required": [
-                      "name"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "email"
-                    ]
-                  }
-                ],
                 "properties": {
-                  "email": {
-                    "format": "email",
-                    "type": "string"
-                  },
                   "name": {
                     "format": "email",
                     "type": "string"
@@ -3792,6 +3762,7 @@
                   }
                 },
                 "required": [
+                  "name",
                   "password"
                 ],
                 "type": "object"
