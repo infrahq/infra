@@ -4410,7 +4410,6 @@
               "schema": {
                 "properties": {
                   "password": {
-                    "minLength": 8,
                     "type": "string"
                   }
                 },
