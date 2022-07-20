@@ -8,7 +8,7 @@ import (
 )
 
 type OptionsDiffV0dot1 struct {
-	Identities []User `validate:"dive"`
+	Identities []User
 }
 
 // ToV0dot2 applies the 0.1 options to the 0.2 version
