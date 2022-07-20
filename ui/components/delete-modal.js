@@ -17,7 +17,10 @@ export default function DeleteModal({
       onClose={() => setOpen && setOpen(false)}
     >
       <Dialog.Overlay className='fixed inset-0 bg-black bg-opacity-80 transition-opacity' />
-      <aside className='relative inline-block w-full max-w-md transform overflow-hidden rounded-lg border border-gray-800 bg-black p-5 text-left align-middle transition-all'>
+      <aside
+        data-testid='delete-modal'
+        className='relative inline-block w-full max-w-md transform overflow-hidden rounded-lg border border-gray-800 bg-black p-5 text-left align-middle transition-all'
+      >
         <header className='my-2 flex items-center text-left'>
           <ExclamationIcon
             className='mr-2 h-6 w-6 stroke-[1.5] text-pink-400'
@@ -34,6 +37,7 @@ export default function DeleteModal({
           <button
             type='button'
             className='rounded-md border border-violet-300 px-8 text-2xs leading-none text-violet-100 outline-offset-0 focus:text-white focus:outline-violet-100'
+            data-testid='delete-modal-primary-button'
             onClick={() => onSubmit()}
           >
             {primaryButtonText}
@@ -41,6 +45,7 @@ export default function DeleteModal({
           <button
             type='button'
             className='px-8 py-2 text-4xs uppercase text-gray-400 focus:text-gray-100 focus:outline-none'
+            data-testid='delete-modal-cancel-button'
             onClick={() => setOpen && setOpen(false)}
           >
             Cancel
