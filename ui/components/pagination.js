@@ -2,8 +2,8 @@ import { useRouter } from 'next/router'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid'
 
 function getPageNums(selected, count, totalPages) {
-  let pageNums = []
-  let beginOffset = Math.max(3, 6 + selected - totalPages)
+  const pageNums = []
+  const beginOffset = Math.max(3, 6 + selected - totalPages)
   for (
     let i = Math.max(1, selected - beginOffset);
     pageNums.length <= count && i <= totalPages;
