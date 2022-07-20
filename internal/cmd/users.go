@@ -103,9 +103,28 @@ $ infra users edit janedoe@example.com --password`,
 		},
 	}
 
-	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password")
+	cmd.Flags().BoolVar(&editPassword, "password", false, "Set a new password, or if admin, set a temporary password for the user")
 
 	return cmd
+}
+
+// Parses the error to see if it is a password requirements error (and prints it)
+func passwordError(cli *CLI, err error) bool {
+	if api.ErrorStatusCode(err) == 400 {
+		var apiError api.Error
+		if errors.As(err, &apiError) {
+			for _, fe := range apiError.FieldErrors {
+				if fe.FieldName == "password" {
+					fmt.Fprintln(cli.Stdout, "  New password does not meet the following requirements:")
+					for _, pwe := range fe.Errors {
+						fmt.Fprintf(cli.Stdout, "  - %s\n", pwe)
+					}
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func newUsersListCmd(cli *CLI) *cobra.Command {
@@ -267,18 +286,23 @@ func updateUser(cli *CLI, name string) error {
 	if isSelf {
 		req := &api.UpdateUserRequest{ID: config.UserID}
 
-		fmt.Fprintf(cli.Stderr, "  Enter a new password (min. length 8):\n")
+		fmt.Fprintf(cli.Stderr, "  Enter a new password:\n")
+
+	PROMPT:
 		req.Password, err = promptSetPassword(cli, "")
 		if err != nil {
 			return err
 		}
 
+		logging.Debugf("call server: update user %s", req.ID)
 		if _, err := client.UpdateUser(req); err != nil {
+			if passwordError(cli, err) {
+				goto PROMPT
+			}
 			return err
 		}
 
 		cli.Output("  Updated password")
-
 		return nil
 	}
 
@@ -373,14 +397,15 @@ PROMPT:
 }
 
 func checkPasswordRequirements(oldPassword string) survey.Validator {
+	// To do: move the old password check to the api level #2642
 	return func(val interface{}) error {
 		newPassword, ok := val.(string)
 		if !ok {
 			return fmt.Errorf("unexpected type for password: %T", val)
 		}
 
-		if len(newPassword) < 8 {
-			return fmt.Errorf("input must be at least 8 characters long")
+		if len(newPassword) == 0 {
+			return fmt.Errorf("Value is required")
 		}
 
 		if newPassword == oldPassword {

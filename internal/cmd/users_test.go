@@ -20,8 +20,11 @@ func TestCheckPasswordRequirements(t *testing.T) {
 	err := checkPasswordRequirements("")("password")
 	assert.NilError(t, err)
 
-	err = checkPasswordRequirements("")("passwor")
-	assert.ErrorContains(t, err, "input must be at least 8 characters long")
+	err = checkPasswordRequirements("")("short")
+	assert.NilError(t, err)
+
+	err = checkPasswordRequirements("")("")
+	assert.ErrorContains(t, err, "Value is required")
 
 	err = checkPasswordRequirements("password")("password")
 	assert.ErrorContains(t, err, "input must be different than the current password")
