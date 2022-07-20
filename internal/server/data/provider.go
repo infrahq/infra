@@ -16,12 +16,12 @@ func CreateProvider(db *gorm.DB, provider *models.Provider) error {
 }
 
 func GetProvider(db *gorm.DB, opt IDOrNameQuery) (*models.Provider, error) {
-	q := Query(`SELECT * from providers`)
+	q := Query(`SELECT * from providers WHERE`)
 	switch {
 	case opt.ID != 0:
-		q.B(`WHERE id = $1`, opt.ID)
+		q.B(`id = $1`, opt.ID)
 	case opt.Name != "":
-		q.B(`WHERE name = $1`, opt.Name)
+		q.B(`name = $1`, opt.Name)
 	default:
 		return nil, fmt.Errorf("query requires either an ID or Name")
 	}
@@ -84,7 +84,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 			return fmt.Errorf("delete provider users: %w", err)
 		}
 
-		if err := DeleteAccessKeys(db, ByProviderID(p.ID)); err != nil {
+		if err := DeleteAccessKeys(db, DeleteAccessKeysQuery{ProviderID: p.ID}); err != nil {
 			return fmt.Errorf("delete access keys: %w", err)
 		}
 	}

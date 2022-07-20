@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -117,25 +118,68 @@ func TestCheckAccessKeySecret(t *testing.T) {
 	})
 }
 
-func TestDeleteAccessKey(t *testing.T) {
+func TestDeleteAccessKeys(t *testing.T) {
+	setup := func(t *testing.T, db *gorm.DB, user *models.Identity) *models.AccessKey {
+		key := &models.AccessKey{
+			IssuedFor:  user.ID,
+			ProviderID: InfraProvider(db).ID,
+			ExpiresAt:  time.Now().Add(10 * time.Second),
+		}
+
+		_, err := CreateAccessKey(db, key)
+		assert.NilError(t, err)
+
+		_, err = GetAccessKey(db, ByID(key.ID))
+		assert.NilError(t, err)
+
+		return key
+	}
+
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		_, token := createTestAccessKey(t, db, time.Minute*5)
-
-		_, err := GetAccessKey(db, ByID(token.ID))
+		user := &models.Identity{Name: "tmp@example.com"}
+		err := CreateIdentity(db, user)
 		assert.NilError(t, err)
 
-		err = DeleteAccessKey(db, token.ID)
-		assert.NilError(t, err)
+		t.Run("delete by ID", func(t *testing.T) {
+			key := setup(t, db, user)
+			err := DeleteAccessKeys(db, DeleteAccessKeysQuery{ID: key.ID})
+			assert.NilError(t, err)
 
-		_, err = GetAccessKey(db, ByID(token.ID))
-		assert.Error(t, err, "record not found")
+			_, err = GetAccessKey(db, ByID(key.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 
-		err = DeleteAccessKeys(db, ByID(token.ID))
-		assert.NilError(t, err)
+		t.Run("delete by IssuedFor", func(t *testing.T) {
+			key := setup(t, db, user)
+			err := DeleteAccessKeys(db, DeleteAccessKeysQuery{IssuedFor: key.IssuedFor})
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, ByID(key.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
+		t.Run("delete by ProviderID", func(t *testing.T) {
+			key := setup(t, db, user)
+			err := DeleteAccessKeys(db, DeleteAccessKeysQuery{ProviderID: key.ProviderID})
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, ByID(key.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
+		t.Run("delete missing an ID", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysQuery{})
+			assert.Error(t, err, "delete requires an ID")
+		})
+
+		t.Run("delete non-existent", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysQuery{ID: 12345})
+			assert.NilError(t, err)
+		})
 	})
 }
 
-func TestCheckAccessKeyExpired(t *testing.T) {
+func TestValidateAccessKey_Expired(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		body, _ := createTestAccessKey(t, db, -1*time.Hour)
 
@@ -144,7 +188,7 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 	})
 }
 
-func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
+func TestValidateAccessKey_PastExtensionDeadline(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
 

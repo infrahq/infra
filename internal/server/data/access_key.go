@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -90,21 +89,29 @@ func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, er
 	return get[models.AccessKey](db, selectors...)
 }
 
-func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
-	return delete[models.AccessKey](db, id)
+// DeleteAccessKeysQuery identifies the access keys to delete. All fields are
+// mutually exclusive, only one will be used.
+type DeleteAccessKeysQuery struct {
+	ID         uid.ID
+	IssuedFor  uid.ID
+	ProviderID uid.ID
 }
 
-func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, &models.Pagination{}, selectors...)
-	if err != nil {
-		return err
+func DeleteAccessKeys(db *gorm.DB, opt DeleteAccessKeysQuery) error {
+	q := Query(`DELETE FROM access_keys WHERE`)
+	switch {
+	case opt.ID != 0:
+		q.B(`id = $1`, opt.ID)
+	case opt.IssuedFor != 0:
+		q.B(`issued_for = $1`, opt.IssuedFor)
+	case opt.ProviderID != 0:
+		q.B(`provider_id = $1`, opt.ProviderID)
+	default:
+		return fmt.Errorf("delete requires an ID")
 	}
+	q.B("AND deleted_at is null")
 
-	ids := slice.Map[models.AccessKey, uid.ID](toDelete, func(k models.AccessKey) uid.ID {
-		return k.ID
-	})
-
-	return deleteAll[models.AccessKey](db, ByIDs(ids))
+	return db.Exec(q.String(), q.Args...).Error
 }
 
 func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {

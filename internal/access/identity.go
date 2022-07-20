@@ -76,7 +76,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
-	if err := data.DeleteAccessKeys(db, data.ByIssuedFor(id)); err != nil {
+	if err := data.DeleteAccessKeys(db, data.DeleteAccessKeysQuery{IssuedFor: id}); err != nil {
 		return fmt.Errorf("delete identity access keys: %w", err)
 	}
 
@@ -169,7 +169,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) e
 			return err
 		}
 
-		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
+		if nestedErr := data.DeleteAccessKeys(db, data.DeleteAccessKeysQuery{IssuedFor: identity.ID}); nestedErr != nil {
 			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
 		}
 
