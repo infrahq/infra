@@ -27,7 +27,7 @@ func TestSettingsPasswordRequirements(t *testing.T) {
 	assert.NilError(t, err)
 	t.Run("Update user credentials fails if less than min length", func(t *testing.T) {
 		err := UpdateCredential(c, user, "short")
-		assert.ErrorContains(t, err, "does not pass requirements")
+		assert.ErrorContains(t, err, "validation failed: password")
 		assert.ErrorContains(t, err, "needs minimum length of 8")
 	})
 
@@ -53,7 +53,7 @@ func TestSettingsPasswordRequirements(t *testing.T) {
 	assert.NilError(t, err)
 	t.Run("Update user credentials fails with multiple requirement failures", func(t *testing.T) {
 		err := UpdateCredential(c, user, "badpw")
-		assert.ErrorContains(t, err, "does not pass requirements")
+		assert.ErrorContains(t, err, "validation failed: password:")
 		assert.ErrorContains(t, err, "needs minimum 1 symbols")
 		assert.ErrorContains(t, err, "needs minimum length of 10")
 	})
