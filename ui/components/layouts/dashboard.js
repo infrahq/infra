@@ -19,7 +19,7 @@ function Layout({ children }) {
   }
 
   async function logout() {
-    fetch('/api/logout', {
+    await fetch('/api/logout', {
       method: 'POST',
     })
     await mutate('/api/users/self', async () => undefined)
