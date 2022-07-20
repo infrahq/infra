@@ -26,6 +26,13 @@ func secretChecksum(secret string) []byte {
 }
 
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
+	switch {
+	case accessKey.IssuedFor == 0:
+		return "", fmt.Errorf("issusedFor is required")
+	case accessKey.ProviderID == 0:
+		return "", fmt.Errorf("providerID is required")
+	}
+
 	if accessKey.KeyID == "" {
 		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
 	}

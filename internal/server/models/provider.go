@@ -45,8 +45,8 @@ func ParseProviderKind(kind string) (ProviderKind, error) {
 type Provider struct {
 	Model
 
-	Name         string       `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL" validate:"required"`
-	Kind         ProviderKind `validate:"required"`
+	Name         string `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL"`
+	Kind         ProviderKind
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest

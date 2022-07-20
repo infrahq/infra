@@ -10,12 +10,12 @@ import (
 type ProviderUser struct {
 	Model
 
-	ProviderID uid.ID `validate:"required"`
-	IdentityID uid.ID `validate:"required"`
+	ProviderID uid.ID
+	IdentityID uid.ID
 
-	Email      string `validate:"required"`
+	Email      string
 	Groups     CommaSeparatedStrings
-	LastUpdate time.Time `validate:"required"`
+	LastUpdate time.Time
 
 	RedirectURL string // needs to match the redirect URL specified when the token was issued for refreshing
 

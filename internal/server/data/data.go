@@ -11,7 +11,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/driver/postgres"
@@ -144,21 +143,11 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 }
 
 func save[T models.Modelable](db *gorm.DB, model *T) error {
-	v := validator.New()
-	if err := v.Struct(model); err != nil {
-		return err
-	}
-
 	err := db.Save(model).Error
 	return handleError(err)
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
-	v := validator.New()
-	if err := v.Struct(model); err != nil {
-		return err
-	}
-
 	err := db.Create(model).Error
 	return handleError(err)
 }

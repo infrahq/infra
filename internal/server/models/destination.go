@@ -9,7 +9,7 @@ import (
 type Destination struct {
 	Model
 
-	Name       string `validate:"required"`
+	Name       string
 	UniqueID   string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
 	LastSeenAt time.Time
 

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -10,16 +11,25 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func validateDestination(dest *models.Destination) error {
+	if dest.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	return nil
+}
+
 func CreateDestination(db *gorm.DB, destination *models.Destination) error {
+	if err := validateDestination(destination); err != nil {
+		return err
+	}
 	return add(db, destination)
 }
 
 func SaveDestination(db *gorm.DB, destination *models.Destination) error {
-	if err := save(db, destination); err != nil {
+	if err := validateDestination(destination); err != nil {
 		return err
 	}
-
-	return nil
+	return save(db, destination)
 }
 
 func GetDestination(db *gorm.DB, selectors ...SelectorFunc) (*models.Destination, error) {
