@@ -290,7 +290,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202204061643")
 				if tx.Migrator().HasTable("access_keys") {
-					keys, err := ListAccessKeys(db, &models.Pagination{})
+					keys, err := ListAccessKeys(db, ListAccessKeysQuery{})
 					if err != nil {
 						return err
 					}

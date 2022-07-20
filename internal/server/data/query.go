@@ -27,6 +27,19 @@ func (q *queryBuilder) B(clause string, args ...interface{}) {
 	q.Args = append(q.Args, args...)
 }
 
+// Where adds a new where clause. If there is no WHERE statement in the
+// query string then WHERE is added before the clause. If there is a WHERE
+// statement then AND is added before the clause.
+func (q *queryBuilder) Where(clause string, args ...interface{}) {
+	if strings.Contains(q.String(), "WHERE") {
+		q.B("AND")
+		q.B(clause, args...)
+		return
+	}
+	q.B("WHERE")
+	q.B(clause, args...)
+}
+
 // String returns the query string, which is used as the first parameter to
 // Tx.Exec, or Tx.Query. You must also pass q.Args as the varargs.
 func (q *queryBuilder) String() string {

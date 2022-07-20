@@ -139,6 +139,17 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 	return result, nil
 }
 
+func ByPagination(p models.Pagination) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+
+		if p.Page == 0 && p.Limit == 0 {
+			return db
+		}
+		resultsForPage := p.Limit * (p.Page - 1)
+		return db.Offset(resultsForPage).Limit(p.Limit)
+	}
+}
+
 func save[T models.Modelable](db *gorm.DB, model *T) error {
 	v := validator.New()
 	if err := v.Struct(model); err != nil {

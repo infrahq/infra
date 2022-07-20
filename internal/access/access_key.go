@@ -26,12 +26,13 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 		return nil, HandleAuthErr(err, "access keys", "list", roles...)
 	}
 
-	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name)}
-	if !showExpired {
-		s = append(s, data.ByNotExpiredOrExtended())
+	query := data.ListAccessKeysQuery{
+		IssuedFor:      identityID,
+		Name:           name,
+		IncludeExpired: showExpired,
+		Pagination:     p,
 	}
-
-	return data.ListAccessKeys(db.Preload("IssuedForIdentity"), p, s...)
+	return data.ListAccessKeys(db, query)
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {

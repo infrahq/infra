@@ -120,7 +120,7 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	run := func() api.ListResponse[api.AccessKey] {
+	run := func(t *testing.T) api.ListResponse[api.AccessKey] {
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", adminAccessKey(srv)))
 		req.Header.Set("Infra-Version", apiVersionLatest)
@@ -137,7 +137,7 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	}
 
 	t.Run("OK", func(t *testing.T) {
-		accessKeys := run()
+		accessKeys := run(t)
 		// non-zero since there's an access key for the admin user
 		assert.Assert(t, accessKeys.Count != 0)
 		assert.Assert(t, accessKeys.Items != nil)
@@ -147,7 +147,7 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 		err := srv.db.Create(&models.AccessKey{Name: "testing"}).Error
 		assert.NilError(t, err)
 
-		accessKeys := run()
+		accessKeys := run(t)
 		assert.Assert(t, accessKeys.Count != 0)
 		assert.Assert(t, accessKeys.Items != nil)
 

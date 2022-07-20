@@ -7,6 +7,7 @@ import (
 )
 
 // Internal Pagination Data
+// TODO: move to data package
 type Pagination struct {
 	Page       int
 	Limit      int

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -203,11 +204,13 @@ func TestListAccessKeys(t *testing.T) {
 		err := CreateIdentity(db, user)
 		assert.NilError(t, err)
 
+		infraProvider := InfraProvider(db)
+
 		token := &models.AccessKey{
 			Name:       "first",
 			Model:      models.Model{ID: 0},
 			IssuedFor:  user.ID,
-			ProviderID: InfraProvider(db).ID,
+			ProviderID: infraProvider.ID,
 			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
 			KeyID:      "1234567890",
 		}
@@ -218,7 +221,7 @@ func TestListAccessKeys(t *testing.T) {
 			Name:       "second",
 			Model:      models.Model{ID: 1},
 			IssuedFor:  user.ID,
-			ProviderID: InfraProvider(db).ID,
+			ProviderID: infraProvider.ID,
 			ExpiresAt:  time.Now().Add(-time.Hour).UTC(),
 			KeyID:      "1234567891",
 		}
@@ -229,7 +232,7 @@ func TestListAccessKeys(t *testing.T) {
 			Name:              "third",
 			Model:             models.Model{ID: 2},
 			IssuedFor:         user.ID,
-			ProviderID:        InfraProvider(db).ID,
+			ProviderID:        infraProvider.ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
 			ExtensionDeadline: time.Now().Add(-time.Hour).UTC(),
 			KeyID:             "1234567892",
@@ -237,15 +240,26 @@ func TestListAccessKeys(t *testing.T) {
 		_, err = CreateAccessKey(db, token)
 		assert.NilError(t, err)
 
-		keys, err := ListAccessKeys(db, &models.Pagination{}, ByNotExpiredOrExtended())
-		assert.NilError(t, err)
-		assert.Assert(t, len(keys) == 1)
+		t.Run("defaults", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeysQuery{})
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Name: "first", IssuedForName: user.Name},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
 
-		keys, err = ListAccessKeys(db, &models.Pagination{})
-		assert.NilError(t, err)
-		assert.Assert(t, len(keys) == 3)
+		// TODO: test by issuedFor
+		// TODO: test by name
+		// TODO: test with expired
+		// TODO: test pagination total count is set
+		// TODO: test combinations
 	})
 }
+
+var cmpAccessKeyShallow = gocmp.Comparer(func(x, y models.AccessKey) bool {
+	return x.Name == y.Name && x.IssuedForName == y.IssuedForName
+})
 
 func createTestAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.Identity{Name: "tmp@infrahq.com"}

@@ -32,7 +32,7 @@ func Login(ctx context.Context, db *gorm.DB, loginMethod LoginMethod, keyExpires
 
 	accessKey := &models.AccessKey{
 		IssuedFor:         identity.ID,
-		IssuedForIdentity: identity,
+		IssuedForName:     identity.Name,
 		ProviderID:        provider.ID,
 		ExpiresAt:         keyExpiresAt,
 		ExtensionDeadline: time.Now().UTC().Add(keyExtension),

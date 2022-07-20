@@ -81,8 +81,77 @@ func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
-	return list[models.AccessKey](db, p, selectors...)
+// ListAccessKeysQuery defines the fields used to list access keys. All fields
+// are optional.  If multiple fields have non-zero values the conditions will be
+// combined with AND operators.
+type ListAccessKeysQuery struct {
+	IssuedFor      uid.ID
+	Name           string
+	IncludeExpired bool
+	Pagination     *models.Pagination
+}
+
+func ListAccessKeys(db *gorm.DB, opts ListAccessKeysQuery) ([]models.AccessKey, error) {
+	q := Query(`
+SELECT k.*, u.name
+FROM access_keys as k
+LEFT JOIN identities as u
+ON k.issued_for = u.id
+WHERE k.deleted_at is null
+`)
+
+	if opts.IssuedFor != 0 {
+		q.Where(`k.issued_for = ?`, opts.IssuedFor)
+	}
+	if opts.Name != "" {
+		q.Where(`k.name = ?`, opts.Name)
+	}
+	if !opts.IncludeExpired {
+		now, zero := time.Now().UTC(), time.Time{}
+		// TODO: expiresAt should be required. Do we really need to query for null and zero?
+		q.Where("(expires_at > ? OR expires_at = ? OR expires_at is null)", now, zero)
+		q.Where("(extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
+	}
+	// TODO: extract this to a function
+	if opts.Pagination != nil {
+		if opts.Pagination.Limit != 0 {
+			q.B("LIMIT ?", opts.Pagination.Limit)
+		}
+		if opts.Pagination.Page != 0 {
+			offset := opts.Pagination.Limit * (opts.Pagination.Page - 1)
+			q.B("OFFSET ?", offset)
+		}
+	}
+	q.B("ORDER BY k.name ASC")
+
+	// TODO: restore setting total count
+
+	var result []models.AccessKey
+	rows, err := db.Raw(q.String(), q.Args...).Rows()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var k models.AccessKey
+		err := rows.Scan(
+			&k.ID, &k.CreatedAt, &k.UpdatedAt, &k.DeletedAt,
+			&k.Name,
+			&k.IssuedFor,
+			&k.ProviderID,
+			&k.Scopes,
+			&k.ExpiresAt,
+			&k.Extension, // TODO: omit this
+			&k.ExtensionDeadline,
+			&k.KeyID,
+			&k.SecretChecksum, // TODO: omit this
+			&k.IssuedForName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, k)
+	}
+	return result, rows.Close()
 }
 
 func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {

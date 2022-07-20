@@ -1,9 +1,6 @@
 package data
 
 import (
-	"strings"
-	"time"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -107,26 +104,6 @@ func ByOptionalIssuedFor(id uid.ID) SelectorFunc {
 func ByIdentityID(identityID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("identity_id = ?", identityID)
-	}
-}
-
-func ByNotExpiredOrExtended() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		query := strings.Builder{}
-		query.WriteString("(expires_at > ? OR expires_at = ? OR expires_at is null) AND ")
-		query.WriteString("(extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)")
-		return db.Where(query.String(), time.Now().UTC(), time.Time{}, time.Now().UTC(), time.Time{})
-	}
-}
-
-func ByPagination(p models.Pagination) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-
-		if p.Page == 0 && p.Limit == 0 {
-			return db
-		}
-		resultsForPage := p.Limit * (p.Page - 1)
-		return db.Offset(resultsForPage).Limit(p.Limit)
 	}
 }
 
