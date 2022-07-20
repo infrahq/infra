@@ -216,7 +216,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 	if loginRes.PasswordUpdateRequired {
 		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
 
-	PROMPT:
+	PROMPTLOGIN:
 		password, err := promptSetPassword(cli, loginReq.PasswordCredentials.Password)
 		if err != nil {
 			return err
@@ -225,7 +225,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
 		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			if passwordError(cli, err) {
-				goto PROMPT
+				goto PROMPTLOGIN
 			}
 			return err
 		}
@@ -363,6 +363,7 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 		return nil, err
 	}
 
+PROMPTSIGNUP:
 	password, err := promptSetPassword(cli, "")
 	if err != nil {
 		return nil, err
@@ -371,6 +372,9 @@ func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordC
 	logging.Debugf("call server: signup for user %q", email)
 	_, err = client.Signup(&api.SignupRequest{Name: email, Password: password})
 	if err != nil {
+		if passwordError(cli, err) {
+			goto PROMPTSIGNUP
+		}
 		return nil, err
 	}
 

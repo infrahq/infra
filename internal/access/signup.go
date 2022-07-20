@@ -49,6 +49,11 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
+	err := checkPasswordRequirements(db, password)
+	if err != nil {
+		return nil, err
+	}
+
 	identity := &models.Identity{Name: name}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
