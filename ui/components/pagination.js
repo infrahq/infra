@@ -43,7 +43,7 @@ function LeftArrow({ path, page }) {
   )
 }
 
-function RightArrow(path, page, maxPage) {
+function RightArrow({ path, page, maxPage }) {
   return (
     <a
       href={path + '?p=' + (page < maxPage ? page + 1 : Math.max(1, maxPage))}
