@@ -176,8 +176,6 @@ func TestAPI_GetUser(t *testing.T) {
 	}
 }
 
-var defaultPagination api.PaginationResponse
-
 func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
@@ -244,7 +242,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"count":0,"items":[]}`)
+				assert.Equal(t, resp.Body.String(), `{"page":1,"limit":100,"count":0,"items":[]}`)
 			},
 		},
 		"name match": {
@@ -260,7 +258,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: "me@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 1},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -280,7 +278,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 3},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -304,7 +302,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 7},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -356,7 +354,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: anotherID.Name},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 1},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},

@@ -117,7 +117,7 @@ func TestDatabaseSelectors(t *testing.T) {
 		t.Logf("DB pointer: %p", tx)
 
 		// query using one of our helpers and selectors
-		_, err := ListGrants(tx, &models.Pagination{}, ByID(534))
+		_, err := ListGrants(tx, nil, ByID(534))
 		assert.NilError(t, err)
 
 		// query with Model and Where
@@ -136,7 +136,7 @@ func TestDatabaseSelectors(t *testing.T) {
 	assert.NilError(t, err)
 
 	// query using one of our helpers and selectors
-	_, err = ListGrants(db, &models.Pagination{}, ByID(534))
+	_, err = ListGrants(db, nil, ByID(534))
 	assert.NilError(t, err)
 
 	// query with Model and Where

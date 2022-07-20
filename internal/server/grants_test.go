@@ -333,6 +333,10 @@ func TestAPI_ListGrants(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 					{
 						"count": 1,
+						"limit": 100,
+						"page": 1,
+						"totalPages": 1,
+						"totalCount": 1,
 						"items": [{
 							"id": "<any-valid-uid>",
 							"created_by": "%[1]v",
@@ -652,7 +656,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
-		infraAdminGrants, err := data.ListGrants(srv.db, &models.Pagination{}, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		infraAdminGrants, err := data.ListGrants(srv.db, nil, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
 

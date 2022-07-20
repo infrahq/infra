@@ -54,11 +54,11 @@ func TestMigration_202204111503(t *testing.T) {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	ids, err := ListIdentities(db, &models.Pagination{}, ByName("steven@example.com"))
+	ids, err := ListIdentities(db, nil, ByName("steven@example.com"))
 	assert.NilError(t, err)
 	assert.Assert(t, len(ids) == 1)
 	// check that merged identity has unique grants
-	grants, err := ListGrants(db, &models.Pagination{}, BySubject(ids[0].PolyID()))
+	grants, err := ListGrants(db, nil, BySubject(ids[0].PolyID()))
 	assert.NilError(t, err)
 	assert.Assert(t, len(grants) == 1)
 

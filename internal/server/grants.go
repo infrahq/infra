@@ -65,7 +65,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
-		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, &models.Pagination{})
+		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, nil)
 
 		if err != nil {
 			return nil, err
@@ -93,7 +93,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, &models.Pagination{})
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, nil)
 		if err != nil {
 			return nil, err
 		}
