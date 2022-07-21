@@ -149,7 +149,8 @@ export default function Settings() {
                   groups?.find(group => g.group === group.id)?.name ||
                   ''
                 }
-                showRemove={g?.user !== auth?.id}
+                // showRemove={g?.user !== auth?.id}
+                showRemove={grants.length > 1}
                 onRemove={async () => {
                   await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
                   mutate({ items: grants.filter(x => x.id !== g.id) })
