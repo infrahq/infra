@@ -102,7 +102,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "name", Errors: []string{"character / at position 34 is not allowed"}},
+					{FieldName: "name", Errors: []string{"character '/' at position 34 is not allowed"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

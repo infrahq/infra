@@ -45,7 +45,21 @@ func TestStringRule_Validate(t *testing.T) {
 		expected := Error{
 			"strField": {
 				"length of string is 12, must be no more than 10",
-				"character ~ at position 6 is not allowed",
+				"character '~' at position 6 is not allowed",
+			},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
+	t.Run("character ranges whitespace", func(t *testing.T) {
+		r := StringExample{Field: "almost valid"}
+		err := Validate(r)
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"strField": {
+				"length of string is 12, must be no more than 10",
+				`character ' ' at position 6 is not allowed`,
 			},
 		}
 		assert.DeepEqual(t, verr, expected)
