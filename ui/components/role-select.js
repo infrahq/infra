@@ -41,7 +41,18 @@ export default function RoleSelect({
   return (
     <Listbox
       value={role}
-      onChange={v => (v === OPTION_REMOVE ? onRemove() : onChange(v))}
+      onChange={v => {
+        if (v === role) {
+          return
+        }
+
+        if (v === OPTION_REMOVE) {
+          onRemove()
+          return
+        }
+
+        onChange(v)
+      }}
     >
       <div className='relative'>
         <Listbox.Button className='relative w-32 cursor-default bg-black py-2 pl-3 pr-8 text-left text-2xs focus:outline-none'>
