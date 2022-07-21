@@ -14,7 +14,6 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/internal/validate"
 )
 
@@ -75,7 +74,7 @@ func sendAPIError(c *gin.Context, err error) {
 			return resp.FieldErrors[i].FieldName < resp.FieldErrors[j].FieldName
 		})
 
-	case errors.Is(err, internal.ErrBadRequest), errors.Is(err, providers.ErrValidation):
+	case errors.Is(err, internal.ErrBadRequest):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
 

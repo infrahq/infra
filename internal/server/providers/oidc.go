@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -92,27 +93,33 @@ func (o *oidcClientImplementation) Validate(ctx context.Context) error {
 	conf, _, err := o.clientConfig(ctx)
 	if err != nil {
 		logging.Debugf("error validating oidc provider: %s", err)
-		return ErrInvalidProviderURL
+		return newValidationError("url")
 	}
 
-	_, err = conf.Exchange(ctx, "test-code") // 'test-code' is a placeholder for a valid authorization code, it will always fail
+	_, err = conf.Exchange(ctx, "test-code")
 	if err != nil {
 		var errRetrieve *oauth2.RetrieveError
 		if errors.As(err, &errRetrieve) {
 			if strings.Contains(string(errRetrieve.Body), "client_id") || strings.Contains(string(errRetrieve.Body), "client id") {
 				logging.Debugf("error validating oidc provider client: %s", err)
-				return ErrInvalidProviderClientID
+				return newValidationError("clientID")
 			}
 
 			if strings.Contains(string(errRetrieve.Body), "secret") {
 				logging.Debugf("error validating oidc provider client: %s", err)
-				return ErrInvalidProviderClientSecret
+				return newValidationError("clientSecret")
 			}
 		}
 		logging.Debugf("%s", err.Error())
 	}
 
+	// return nil for all other errors, because the request was made with an
+	// invalid code, which will always fail
 	return nil
+}
+
+func newValidationError(field string) error {
+	return validate.Error{field: {"invalid provider " + field}}
 }
 
 // AuthServerInfo returns details about the oidc server auth URL, and the scopes it supports

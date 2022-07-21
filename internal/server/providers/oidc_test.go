@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 type tokenResponse struct {
@@ -198,7 +200,10 @@ func TestValidate(t *testing.T) {
 			name:     "invalid URL",
 			provider: NewOIDCClient(models.Provider{Kind: models.ProviderKindOIDC, URL: "example.com"}, "some_client_secret", "http://localhost:8301"),
 			verifyFunc: func(t *testing.T, err error) {
-				assert.ErrorIs(t, err, ErrInvalidProviderURL)
+				var vErr validate.Error
+				assert.Assert(t, errors.As(err, &vErr), "expected validation error")
+				expected := validate.Error{"url": {"invalid provider url"}}
+				assert.DeepEqual(t, err, expected)
 			},
 		},
 		{
@@ -209,7 +214,10 @@ func TestValidate(t *testing.T) {
 				body: oktaInvalidClientIDResp,
 			},
 			verifyFunc: func(t *testing.T, err error) {
-				assert.ErrorIs(t, err, ErrInvalidProviderClientID)
+				var vErr validate.Error
+				assert.Assert(t, errors.As(err, &vErr), "expected validation error")
+				expected := validate.Error{"clientID": {"invalid provider clientID"}}
+				assert.DeepEqual(t, err, expected)
 			},
 		},
 		{
@@ -220,7 +228,10 @@ func TestValidate(t *testing.T) {
 				body: oktaInvalidClientSecretResp,
 			},
 			verifyFunc: func(t *testing.T, err error) {
-				assert.ErrorIs(t, err, ErrInvalidProviderClientSecret)
+				var vErr validate.Error
+				assert.Assert(t, errors.As(err, &vErr), "expected validation error")
+				expected := validate.Error{"clientSecret": {"invalid provider clientSecret"}}
+				assert.DeepEqual(t, err, expected)
 			},
 		},
 
