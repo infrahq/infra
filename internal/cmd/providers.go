@@ -90,7 +90,7 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 
 # Connect Google to Infra with group sync
-$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account--key ~/client-123.json --service-account--email hello@example.com --domain-admin admin@example.com
+$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com
 `,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -99,8 +99,8 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 	}
 
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "Set a new client secret")
-	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account--key", "The private key used to make authenticated requests to Google's API")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account--email", "", "The email assigned to the Infra service client in Google")
+	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
@@ -200,7 +200,7 @@ PROVIDER is a short unique name of the identity provider being added (eg. okta)`
 $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
 
 # Connect Google to Infra with group sync
-$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account--key ~/client-123.json --service-account--email hello@example.com --domain-admin admin@example.com --kind google`,
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com --kind google`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
@@ -253,8 +253,8 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
-	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account--key", "The private key used to make authenticated requests to Google's API")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account--email", "", "The email assigned to the Infra service client in Google")
+	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }

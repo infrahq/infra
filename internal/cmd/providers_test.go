@@ -146,8 +146,8 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--client-id", "aaa.apps.googleusercontent.com",
 			"--client-secret", "GOCSPX-bbb",
 			"--kind", "google",
-			"--service-account--key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-			"--service-account--email", "example@tenant.iam.gserviceaccount.com",
+			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
 			"--domain-admin", "admin@example.com",
 		)
 		assert.NilError(t, err)
@@ -176,8 +176,8 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--client-id", "aaa",
 			"--client-secret", "bbb",
 			"--kind", "okta",
-			"--service-account--key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-			"--service-account--email", "example@tenant.iam.gserviceaccount.com",
+			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
 			"--domain-admin", "admin@example.com",
 		)
 
@@ -319,8 +319,8 @@ func TestProvidersEditCmd(t *testing.T) {
 		err := Run(context.Background(),
 			"providers", "edit", "google",
 			"--client-secret", "google-client-secret-2",
-			"--service-account--key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-			"--service-account--email", "example@tenant.iam.gserviceaccount.com",
+			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
 			"--domain-admin", "admin@example.com",
 		)
 		assert.NilError(t, err)

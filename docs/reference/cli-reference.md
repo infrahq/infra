@@ -618,19 +618,19 @@ infra providers add PROVIDER [flags]
 $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
 
 # Connect Google to Infra with group sync
-$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account--key ~/client-123.json --service-account--email hello@example.com --domain-admin admin@example.com --kind google
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com --kind google
 ```
 
 #### Options
 
 ```
-      --client-id string                OIDC client ID
-      --client-secret string            OIDC client secret
-      --domain-admin string             The email of your Google workspace domain admin
-      --kind string                     The identity provider kind. One of 'oidc, okta, azure, or google' (default "oidc")
-      --service-account--email string   The email assigned to the Infra service client in Google
-      --service-account--key filepath   The private key used to make authenticated requests to Google's API
-      --url string                      Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
+      --client-id string               OIDC client ID
+      --client-secret string           OIDC client secret
+      --domain-admin string            The email of your Google workspace domain admin
+      --kind string                    The identity provider kind. One of 'oidc, okta, azure, or google' (default "oidc")
+      --service-account-email string   The email assigned to the Infra service client in Google
+      --service-account-key filepath   The private key used to make authenticated requests to Google's API
+      --url string                     Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
 ```
 
 #### Options inherited from parent commands
@@ -654,17 +654,17 @@ infra providers edit PROVIDER [flags]
 $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 
 # Connect Google to Infra with group sync
-$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account--key ~/client-123.json --service-account--email hello@example.com --domain-admin admin@example.com
+$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com
 
 ```
 
 #### Options
 
 ```
-      --client-secret string            Set a new client secret
-      --domain-admin string             The email of your Google workspace domain admin
-      --service-account--email string   The email assigned to the Infra service client in Google
-      --service-account--key filepath   The private key used to make authenticated requests to Google's API
+      --client-secret string           Set a new client secret
+      --domain-admin string            The email of your Google workspace domain admin
+      --service-account-email string   The email assigned to the Infra service client in Google
+      --service-account-key filepath   The private key used to make authenticated requests to Google's API
 ```
 
 #### Options inherited from parent commands
