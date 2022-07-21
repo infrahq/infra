@@ -98,17 +98,23 @@ function EmailsSelectInput({
 function Details({ group, admin, onDelete }) {
   const { id, name } = group
 
+  const { data: auth } = useSWR('/api/users/self')
   const { data: { items: users } = {}, mutate: mutateUsers } = useSWR(
     `/api/users?group=${group.id}`
   )
   const { data: { items } = {}, mutate: mutateGrants } = useSWR(
     `/api/grants?group=${id}`
   )
+  const { data: { items: infraAdmin } = {} } = useSWR(
+    '/api/grants?resource=infra&privilege=admin'
+  )
 
   const [emails, setEmails] = useState([])
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const existMembers = users?.map(m => m.id)
+  const adminGroups = infraAdmin?.map(admin => admin.group)
+
   const metadata = [
     { title: 'ID', data: id },
     {
@@ -116,8 +122,28 @@ function Details({ group, admin, onDelete }) {
       data: group?.created ? dayjs(group.created).fromNow() : '-',
     },
   ]
+  const deleteModalInfo = {
+    message:
+      'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
+    title: 'Remove User',
+    btnText: 'Remove',
+  }
+  const loading = [auth, users, grants, infraAdmin].some(x => !x)
 
-  const loading = [users, grants].some(x => !x)
+  const hideRemoveGroupBtn =
+    !admin || (infraAdmin.length === 1 && adminGroups.includes(id))
+
+  const handleRemoveUserFromGroup = async userId => {
+    const usersToRemove = [userId]
+    await fetch(`/api/groups/${id}/users`, {
+      method: 'PATCH',
+      body: JSON.stringify({ usersToRemove }),
+    })
+
+    mutateUsers({
+      items: users.filter(i => i.id !== userId),
+    })
+  }
 
   return (
     !loading && (
@@ -186,17 +212,9 @@ function Details({ group, admin, onDelete }) {
                 )}
                 <IdentityList
                   list={users}
-                  onClick={async userId => {
-                    const usersToRemove = [userId]
-                    await fetch(`/api/groups/${id}/users`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ usersToRemove }),
-                    })
-
-                    mutateUsers({
-                      items: users.filter(i => i.id !== userId),
-                    })
-                  }}
+                  authId={auth?.id}
+                  deleteModal={deleteModalInfo}
+                  onClick={userId => handleRemoveUserFromGroup(userId)}
                 />
               </div>
             </section>
@@ -208,7 +226,7 @@ function Details({ group, admin, onDelete }) {
           </h3>
           <Metadata data={metadata} />
         </section>
-        {admin && (
+        {!hideRemoveGroupBtn && (
           <section className='flex flex-1 flex-col items-end justify-end py-6'>
             <RemoveButton
               onRemove={async () => {
