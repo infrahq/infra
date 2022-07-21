@@ -115,7 +115,7 @@ func (t *Telemetry) Event(event string, userId string, properties ...map[string]
 		return
 	}
 	track := analytics.Track{
-		AnonymousId: "system",
+		AnonymousId: t.infraID.String(),
 		UserId:      userId,
 		Timestamp:   time.Now().UTC(),
 		Event:       "server:" + event,
@@ -129,6 +129,20 @@ func (t *Telemetry) Event(event string, userId string, properties ...map[string]
 	}
 
 	if err := t.Enqueue(track); err != nil {
+		logging.Debugf("%s", err.Error())
+	}
+}
+
+func (t *Telemetry) Alias(id string) {
+	if t == nil {
+		return
+	}
+	err := t.Enqueue(analytics.Alias{
+		PreviousId: t.infraID.String(),
+		UserId:     id,
+		Timestamp:  time.Now().UTC(),
+	})
+	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 }
