@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/infrahq/infra/api"
 	"gotest.tools/v3/assert"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/infrahq/infra/api"
 )
 
 type testFields struct {
@@ -122,6 +123,15 @@ func TestLogout(t *testing.T) {
 					SkipTLSVerify: true,
 					Current:       true,
 					Expires:       api.Time(time.Now().Add(time.Hour * 2).UTC().Truncate(time.Second)),
+				},
+				{
+					Name:          "user2",
+					Host:          srv.Listener.Addr().String(),
+					AccessKey:     "the-access-key",
+					UserID:        2,
+					SkipTLSVerify: true,
+					Current:       true,
+					Expires:       api.Time(time.Now().Add(-(time.Hour * 2)).UTC().Truncate(time.Second)),
 				},
 			},
 		}
@@ -320,5 +330,13 @@ func TestLogout(t *testing.T) {
 		err := Run(context.Background(), "logout", "too", "many")
 		assert.ErrorContains(t, err, `"infra logout" accepts at most 1 argument`)
 		assert.ErrorContains(t, err, `Usage:  infra logout [SERVER]`)
+	})
+
+	t.Run("expired session fails", func(t *testing.T) {
+		testFields := setupError(t, "keep:non-infra")
+		err := Run(context.Background(), "logout", "--all")
+
+		assert.NilError(t, err)
+		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
 	})
 }
