@@ -13,6 +13,9 @@ infra providers add google \
   --url accounts.google.com \
   --client-id <your google client id> \
   --client-secret <your google client secret> \
+  --service-account-key <your google service account's private key> \
+  --service-account-email <your google service account's email> \
+  --domain-admin <your google workspace domain admin's email> \
   --kind google
 ```
 
@@ -43,4 +46,22 @@ infra providers add google \
     ![OAuth credentials create](../images/google-setup/connect-users-google-5.png)
 6. Note the **Client ID** and **Client Secret** fields.
     ![OAuth client details](../images/google-setup/connect-users-google-6.png)
-
+7. Remaining on the **APIs and Services > Credentials** dashboard and click **Create credentials > Service account**.
+    ![Create service account](../images/google-setup/connect-users-google-7.png)
+    - Enter a **Service account ID** and note the service account's email. Click **Done** and finish creating the service account.
+8. Navigate to **APIs and Services > Enabled APIs & services**.
+  - Click **ENABLE APIS AND SERVICES**.
+  - Search for **Admin SDK API**.
+  - Click **Admin SDK API** in the results.
+  - Click **ENABLE**.
+  ![Enabled Admin SDK API](../images/google-setup/connect-users-google-8.png)
+9. Navigate to **IAM & Admin > Service Accounts** click on the service account you just created and navigate to the **KEYS** tab.
+    - Click **ADD KEY > Create new key**.
+    - Select the **JSON** key type and click **CREATE**.
+    - A private key JSON file will automatically download, note the **private_key** in this file. This will be the `service-account-key` in the `providers add` command.
+  ![Service account key](../images/google-setup/connect-users-google-9.png)
+10. You are now finished with configuration in the Google Cloud admin console. Open the Google Workspace admin console and navigate to **Security > API Controls > Domain-wide Delegation**.
+  ![API controls](../images/google-setup/connect-users-google-10.png)
+  - Click **Add new**.
+  - For **Client ID** enter the client ID noted in step 6.
+  - For **OAuth scopes** enter **https://www.googleapis.com/auth/admin.directory.group.readonly**.

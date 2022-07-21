@@ -30,8 +30,8 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	if access.AuthenticatedIdentity(c) != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
-			// TODO: why would this fail? seems like this should be a 5xx error
-			return nil, fmt.Errorf("update ident info from provider: %w", err)
+			// this will fail if the user was removed from the IDP, which means they no longer are a valid user
+			return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 		}
 
 		token, err := access.CreateToken(c)

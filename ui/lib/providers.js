@@ -10,13 +10,14 @@ export const providers = [
     available: true,
   },
   {
-    name: 'OpenID',
-    kind: 'oidc',
+    name: 'Google',
+    kind: 'google',
     available: true,
   },
   {
-    name: 'Google',
-    kind: 'google',
+    name: 'OpenID',
+    kind: 'oidc',
+    available: true,
   },
   {
     name: 'GitHub',

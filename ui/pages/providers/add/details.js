@@ -13,9 +13,12 @@ export default function ProvidersAddDetails() {
 
   const { mutate } = useSWRConfig()
 
-  const [url, setURL] = useState('')
+  const [url, setURL] = useState(kind === 'google' ? 'accounts.google.com' : '')
   const [clientID, setClientID] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const [privateKey, setPrivateKey] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
+  const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState(kind)
@@ -34,6 +37,12 @@ export default function ProvidersAddDetails() {
     setErrors({})
     setError('')
 
+    const api = {
+      privateKey,
+      clientEmail,
+      domainAdminEmail: domainAdminEmail,
+    }
+
     try {
       await mutate(
         '/api/providers',
@@ -46,6 +55,7 @@ export default function ProvidersAddDetails() {
               clientID,
               clientSecret,
               kind,
+              api,
             }),
           })
 
@@ -76,6 +86,42 @@ export default function ProvidersAddDetails() {
     router.replace('/providers')
 
     return false
+  }
+
+  const parseGoogleCredentialFile = e => {
+    setErrors({})
+
+    const fileReader = new FileReader()
+    fileReader.readAsText(e.target.files[0], 'UTF-8')
+    fileReader.onload = e => {
+      let errMsg = ''
+      try {
+        let contents = JSON.parse(e.target.result)
+
+        if (contents.private_key === undefined) {
+          errMsg = 'invalid service account key file, no private_key found'
+        } else {
+          setPrivateKey(contents.private_key)
+        }
+
+        if (contents.client_email === undefined) {
+          errMsg = 'invalid service account key file, no client_email found'
+        } else {
+          setClientEmail(contents.client_email)
+        }
+      } catch (e) {
+        errMsg = e.ErrorMessage
+        if (e instanceof SyntaxError) {
+          errMsg = 'invalid service account key file, must be json'
+        }
+      }
+
+      if (errMsg !== '') {
+        const errors = {}
+        errors['privatekey'] = errMsg
+        setErrors(errors)
+      }
+    }
   }
 
   return (
@@ -119,22 +165,24 @@ export default function ProvidersAddDetails() {
             learn more
           </a>
         </label>
-        <div className='mt-4'>
-          <label className='text-3xs uppercase text-gray-400'>
-            URL (Domain)
-          </label>
-          <input
-            required
-            autoFocus
-            placeholder='domain or URL'
-            value={url}
-            onChange={e => setURL(e.target.value)}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-              errors.url ? 'border-pink-500/60' : ''
-            }`}
-          />
-          {errors.url && <ErrorMessage message={errors.url} />}
-        </div>
+        {kind !== 'google' && (
+          <div className='mt-4'>
+            <label className='text-3xs uppercase text-gray-400'>
+              URL (Domain)
+            </label>
+            <input
+              required
+              autoFocus
+              placeholder='domain or URL'
+              value={url}
+              onChange={e => setURL(e.target.value)}
+              className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+                errors.url ? 'border-pink-500/60' : ''
+              }`}
+            />
+            {errors.url && <ErrorMessage message={errors.url} />}
+          </div>
+        )}
         <div className='mt-4'>
           <label className='text-3xs uppercase text-gray-400'>Client ID</label>
           <input
@@ -149,7 +197,7 @@ export default function ProvidersAddDetails() {
           />
           {errors.clientid && <ErrorMessage message={errors.clientid} />}
         </div>
-        <div className='mt-4'>
+        <div className='my-4'>
           <label className='text-3xs uppercase text-gray-400'>
             Client Secret
           </label>
@@ -167,6 +215,54 @@ export default function ProvidersAddDetails() {
             <ErrorMessage message={errors.clientsecret} />
           )}
         </div>
+        {kind === 'google' && (
+          <div>
+            <label className='text-2xs text-white/90'>
+              Optional details{' '}
+              <a
+                className='text-violet-100 underline'
+                target='_blank'
+                href='https://infrahq.com/docs/identity-providers/google#groups' /* TODO: make sure this link works*/
+                rel='noreferrer'
+              >
+                learn more
+              </a>
+            </label>
+            <div className='mt-4'>
+              <label className='text-3xs uppercase text-gray-400'>
+                Private Key
+              </label>
+              <input
+                type='file'
+                onChange={parseGoogleCredentialFile}
+                className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+                  errors.privatekey ? 'border-pink-500/60' : ''
+                }`}
+              />
+              {errors.privatekey && (
+                <ErrorMessage message={errors.privatekey} />
+              )}
+            </div>
+            <div className='mt-4'>
+              <label className='text-3xs uppercase text-gray-400'>
+                Workspace Domain Admin
+              </label>
+              <input
+                placeholder='domain admin email'
+                spellCheck='false'
+                type='email'
+                value={domainAdminEmail}
+                onChange={e => setDomainAdminEmail(e.target.value)}
+                className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+                  errors.domainadminemail ? 'border-pink-500/60' : ''
+                }`}
+              />
+              {errors.domainadminemail && (
+                <ErrorMessage message={errors.domainadminemail} />
+              )}
+            </div>
+          </div>
+        )}
         <div className='mt-6 flex flex-row items-center justify-end'>
           <Link href='/providers'>
             <a className='border-0 px-6 py-3 text-2xs uppercase text-gray-400 hover:text-white focus:text-white focus:outline-none'>

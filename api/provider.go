@@ -5,6 +5,13 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// ProviderAPICredentials contain sensitive fields, it should not be sent on a response
+type ProviderAPICredentials struct {
+	PrivateKey       PEM    `json:"privateKey" example:"-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n"`
+	ClientEmail      string `json:"clientEmail" validate:"omitempty,email"`
+	DomainAdminEmail string `json:"domainAdminEmail" validate:"omitempty,email"`
+}
+
 type Provider struct {
 	ID       uid.ID   `json:"id"`
 	Name     string   `json:"name" example:"okta"`
@@ -18,11 +25,12 @@ type Provider struct {
 }
 
 type CreateProviderRequest struct {
-	Name         string `json:"name" example:"okta"`
-	URL          string `json:"url" example:"infrahq.okta.com"`
-	ClientID     string `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret string `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	Kind         string `json:"kind" example:"oidc"`
+	Name         string                  `json:"name" example:"okta"`
+	URL          string                  `json:"url" example:"infrahq.okta.com"`
+	ClientID     string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string                  `json:"kind" example:"oidc"`
+	API          *ProviderAPICredentials `json:"api"`
 }
 
 var kinds = []string{"oidc", "okta", "azure", "google"}
@@ -38,12 +46,13 @@ func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type UpdateProviderRequest struct {
-	ID           uid.ID `uri:"id" json:"-"`
-	Name         string `json:"name" example:"okta"`
-	URL          string `json:"url" example:"infrahq.okta.com"`
-	ClientID     string `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret string `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	Kind         string `json:"kind" example:"oidc"`
+	ID           uid.ID                  `uri:"id" json:"-"`
+	Name         string                  `json:"name" example:"okta"`
+	URL          string                  `json:"url" example:"infrahq.okta.com"`
+	ClientID     string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string                  `json:"kind" example:"oidc"`
+	API          *ProviderAPICredentials `json:"api"`
 }
 
 func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {

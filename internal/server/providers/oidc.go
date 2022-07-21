@@ -73,6 +73,15 @@ func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) O
 	switch provider.Kind {
 	case models.ProviderKindAzure:
 		return &azure{OIDCClient: oidcClient}
+	case models.ProviderKindGoogle:
+		return &google{
+			OIDCClient: oidcClient,
+			GoogleCredentials: googleCredentials{
+				PrivateKey:       string(provider.PrivateKey),
+				ClientEmail:      provider.ClientEmail,
+				DomainAdminEmail: provider.DomainAdminEmail,
+			},
+		}
 	default:
 		return oidcClient
 	}

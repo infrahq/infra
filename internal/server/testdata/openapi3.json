@@ -3215,6 +3215,21 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "api": {
+                    "properties": {
+                      "clientEmail": {
+                        "type": "string"
+                      },
+                      "domainAdminEmail": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
                   "clientID": {
                     "example": "0oapn0qwiQPiMIyR35d6",
                     "type": "string"
@@ -3542,6 +3557,21 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "api": {
+                    "properties": {
+                      "clientEmail": {
+                        "type": "string"
+                      },
+                      "domainAdminEmail": {
+                        "type": "string"
+                      },
+                      "privateKey": {
+                        "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
                   "clientID": {
                     "example": "0oapn0qwiQPiMIyR35d6",
                     "type": "string"

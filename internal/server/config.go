@@ -31,6 +31,11 @@ type Provider struct {
 	Kind         string
 	AuthURL      string
 	Scopes       []string
+
+	// fields used to directly query an external API
+	PrivateKey       string
+	ClientEmail      string
+	DomainAdminEmail string
 }
 
 func (p Provider) ValidationRules() []validate.ValidationRule {
@@ -685,6 +690,10 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 			Scopes:       input.Scopes,
 			Kind:         kind,
 			CreatedBy:    models.CreatedBySystem,
+
+			PrivateKey:       models.EncryptedAtRest(input.PrivateKey),
+			ClientEmail:      input.ClientEmail,
+			DomainAdminEmail: input.DomainAdminEmail,
 		}
 
 		if provider.Kind != models.ProviderKindInfra {
