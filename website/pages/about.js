@@ -221,33 +221,16 @@ export default function About() {
       </section>
 
       {/* Work with us */}
-      <section className='my-16 flex flex-col lg:my-32 lg:flex-row'>
-        <h2 className='mb-6 flex-none text-5xl tracking-tight md:mb-24 md:mr-24 md:text-6xl'>
+      <section className='lg:my-54 my-16 flex flex-col text-center'>
+        <h2 className='mb-6 flex-none text-5xl tracking-tight md:mb-12 md:text-6xl'>
           Work with us
         </h2>
-        <div className='flex flex-1 flex-col'>
-          {Object.keys(teams).map(t => (
-            <div key={t} className='grid grid-cols-1 md:grid-cols-4 md:gap-12'>
-              <h3 className='col-span-1 mt-7 text-2xl text-gray-400 md:ml-6 md:text-right'>
-                {t}
-              </h3>
-              <div className='col-span-3 flex-col'>
-                {teams[t].map(r => (
-                  <a key={r.id} href={r.hostedUrl}>
-                    <div className='group my-3 flex flex-col rounded-lg py-4'>
-                      <h4 className='text-2xl leading-tight group-hover:underline'>
-                        {r.text}
-                      </h4>
-                      <h5 className='text-lg leading-tight text-gray-400'>
-                        {r.categories.location}
-                      </h5>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <a
+          className='flex flex-1 flex-col text-xl text-gray-300 hover:underline'
+          href='https://www.ycombinator.com/companies/infra/jobs'
+        >
+          See open roles ›
+        </a>
       </section>
     </main>
   )
