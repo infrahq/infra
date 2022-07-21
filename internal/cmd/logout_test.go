@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/infrahq/infra/api"
 	"gotest.tools/v3/assert"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -55,6 +57,7 @@ func TestLogout(t *testing.T) {
 					UserID:        1,
 					SkipTLSVerify: true,
 					Current:       true,
+					Expires:       api.Time(time.Now().Add(time.Hour * 2).UTC().Truncate(time.Second)),
 				},
 				{
 					Name:          "user2",
@@ -62,6 +65,7 @@ func TestLogout(t *testing.T) {
 					AccessKey:     "the-access-key",
 					UserID:        2,
 					SkipTLSVerify: true,
+					Expires:       api.Time(time.Now().Add(time.Hour * 2).UTC().Truncate(time.Second)),
 				},
 			},
 		}
@@ -117,6 +121,7 @@ func TestLogout(t *testing.T) {
 					UserID:        1,
 					SkipTLSVerify: true,
 					Current:       true,
+					Expires:       api.Time(time.Now().Add(time.Hour * 2).UTC().Truncate(time.Second)),
 				},
 			},
 		}
