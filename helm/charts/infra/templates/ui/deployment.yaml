@@ -29,7 +29,7 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
 {{- toYaml .Values.ui.securityContext | nindent 12 }}
-          image: "{{ include "ui.image.repository" . }}:{{ include "ui.image.tag" . }}"
+          image: "{{ .Values.ui.image.repository }}:{{ include "ui.image.tag" . }}"
           imagePullPolicy: {{ include "ui.image.pullPolicy" . }}
           env:
 {{- include "ui.env" . | nindent 12 }}
