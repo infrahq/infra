@@ -34,6 +34,7 @@ INSERT INTO migrations VALUES('202206161733');
 INSERT INTO migrations VALUES('202206281027');
 INSERT INTO migrations VALUES('202207041724');
 INSERT INTO migrations VALUES('202207081217');
+INSERT INTO migrations VALUES('202207211828');
 CREATE UNIQUE INDEX `idx_identities_name` ON `identities`(`name`) WHERE deleted_at is NULL;
 CREATE UNIQUE INDEX `idx_providers_name` ON `providers`(`name`) WHERE deleted_at is NULL;
 CREATE UNIQUE INDEX `idx_groups_name` ON `groups`(`name`) WHERE deleted_at is NULL;
