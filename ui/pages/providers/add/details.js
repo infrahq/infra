@@ -18,7 +18,7 @@ export default function ProvidersAddDetails() {
   const [clientSecret, setClientSecret] = useState('')
   const [privateKey, setPrivateKey] = useState('')
   const [clientEmail, setClientEmail] = useState('')
-  const [domainAdmin, setDomainAdmin] = useState('')
+  const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState(kind)
@@ -40,7 +40,7 @@ export default function ProvidersAddDetails() {
     const api = {
       privateKey,
       clientEmail,
-      domainAdmin,
+      domainAdminEmail: domainAdminEmail,
     }
 
     try {
@@ -251,14 +251,14 @@ export default function ProvidersAddDetails() {
                 placeholder='domain admin email'
                 spellCheck='false'
                 type='email'
-                value={domainAdmin}
-                onChange={e => setDomainAdmin(e.target.value)}
+                value={domainAdminEmail}
+                onChange={e => setDomainAdminEmail(e.target.value)}
                 className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                  errors.domainadmin ? 'border-pink-500/60' : ''
+                  errors.domainadminemail ? 'border-pink-500/60' : ''
                 }`}
               />
-              {errors.domainadmin && (
-                <ErrorMessage message={errors.domainadmin} />
+              {errors.domainadminemail && (
+                <ErrorMessage message={errors.domainadminemail} />
               )}
             </div>
           </div>

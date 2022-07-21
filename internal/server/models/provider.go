@@ -55,9 +55,9 @@ type Provider struct {
 	CreatedBy    uid.ID
 
 	// fields used to directly query an external API
-	PrivateKey  EncryptedAtRest
-	ClientEmail string
-	DomainAdmin string
+	PrivateKey       EncryptedAtRest
+	ClientEmail      string
+	DomainAdminEmail string
 }
 
 func (p *Provider) ToAPI() *api.Provider {

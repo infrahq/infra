@@ -37,9 +37,9 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 }
 
 type providerAPIOptions struct {
-	PrivateKey  string
-	ClientEmail string
-	DomainAdmin string
+	PrivateKey       string
+	ClientEmail      string
+	DomainAdminEmail string
 }
 
 func (o providerAPIOptions) Validate(providerKind string) error {
@@ -49,8 +49,8 @@ func (o providerAPIOptions) Validate(providerKind string) error {
 		if o.ClientEmail != "" {
 			inapplicableFields = append(inapplicableFields, "clientEmail")
 		}
-		if o.DomainAdmin != "" {
-			inapplicableFields = append(inapplicableFields, "domainAdmin")
+		if o.DomainAdminEmail != "" {
+			inapplicableFields = append(inapplicableFields, "domainAdminEmail")
 		}
 		if o.PrivateKey != "" {
 			inapplicableFields = append(inapplicableFields, "privateKey")
@@ -69,7 +69,7 @@ type providerEditOptions struct {
 }
 
 func (o providerEditOptions) Validate(providerKind string) error {
-	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.DomainAdmin == "" {
+	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.DomainAdminEmail == "" {
 		return fmt.Errorf("Please specify a field to update.'\n\n%s", newProvidersEditCmd(nil).UsageString())
 	}
 
@@ -101,7 +101,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "Set a new client secret")
 	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account--key", "The private key used to make authenticated requests to Google's API")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account--email", "", "The email assigned to the Infra service client in Google")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdmin, "domain-admin", "", "The email of your Google workspace domain admin")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
 
@@ -229,9 +229,9 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 				ClientSecret: opts.ClientSecret,
 				Kind:         opts.Kind,
 				API: &api.ProviderAPICredentials{
-					PrivateKey:  api.PEM(privateKey),
-					ClientEmail: opts.ProviderAPIOptions.ClientEmail,
-					DomainAdmin: opts.ProviderAPIOptions.DomainAdmin,
+					PrivateKey:       api.PEM(privateKey),
+					ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
+					DomainAdminEmail: opts.ProviderAPIOptions.DomainAdminEmail,
 				},
 			})
 			if err != nil {
@@ -255,7 +255,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
 	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account--key", "The private key used to make authenticated requests to Google's API")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account--email", "", "The email assigned to the Infra service client in Google")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdmin, "domain-admin", "", "The email of your Google workspace domain admin")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
 
@@ -295,9 +295,9 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		ClientSecret: opts.ClientSecret,
 		Kind:         provider.Kind,
 		API: &api.ProviderAPICredentials{
-			PrivateKey:  api.PEM(privateKey),
-			ClientEmail: opts.ProviderAPIOptions.ClientEmail,
-			DomainAdmin: opts.ProviderAPIOptions.DomainAdmin,
+			PrivateKey:       api.PEM(privateKey),
+			ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
+			DomainAdminEmail: opts.ProviderAPIOptions.DomainAdminEmail,
 		},
 	})
 

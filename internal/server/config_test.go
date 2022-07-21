@@ -408,16 +408,16 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				Scopes:       []string{"openid", "email"},
 			},
 			{
-				Name:         "google",
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         models.ProviderKindGoogle.String(),
-				AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
-				Scopes:       []string{"openid", "email"},
-				PrivateKey:   "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-				ClientEmail:  "example@tenant.iam.gserviceaccount.com",
-				DomainAdmin:  "admin@example.com",
+				Name:             "google",
+				URL:              "accounts.google.com",
+				ClientID:         "client-id",
+				ClientSecret:     "client-secret",
+				Kind:             models.ProviderKindGoogle.String(),
+				AuthURL:          "https://accounts.google.com/o/oauth2/v2/auth",
+				Scopes:           []string{"openid", "email"},
+				PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+				DomainAdminEmail: "admin@example.com",
 			},
 		},
 	}
@@ -475,18 +475,18 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	expected = models.Provider{
-		Model:        google.Model,     // not relevant
-		CreatedBy:    google.CreatedBy, // not relevant
-		Name:         "google",
-		URL:          "accounts.google.com",
-		ClientID:     "client-id",
-		ClientSecret: "client-secret",
-		Kind:         models.ProviderKindGoogle,
-		AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
-		Scopes:       []string{"openid", "email"},
-		PrivateKey:   "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-		ClientEmail:  "example@tenant.iam.gserviceaccount.com",
-		DomainAdmin:  "admin@example.com",
+		Model:            google.Model,     // not relevant
+		CreatedBy:        google.CreatedBy, // not relevant
+		Name:             "google",
+		URL:              "accounts.google.com",
+		ClientID:         "client-id",
+		ClientSecret:     "client-secret",
+		Kind:             models.ProviderKindGoogle,
+		AuthURL:          "https://accounts.google.com/o/oauth2/v2/auth",
+		Scopes:           []string{"openid", "email"},
+		PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+		ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+		DomainAdminEmail: "admin@example.com",
 	}
 
 	assert.DeepEqual(t, google, expected, cmpProvider)

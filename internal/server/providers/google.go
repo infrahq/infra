@@ -23,9 +23,9 @@ var ErrGoogleClientNotConfigured = fmt.Errorf("google provider api client not co
 var googleAPIScopes = []string{"https://www.googleapis.com/auth/admin.directory.group.readonly"}
 
 type googleCredentials struct {
-	PrivateKey  string
-	ClientEmail string
-	DomainAdmin string
+	PrivateKey       string
+	ClientEmail      string
+	DomainAdminEmail string
 }
 
 type google struct {
@@ -84,14 +84,14 @@ func (g *google) GetUserInfo(ctx context.Context, providerUser *models.ProviderU
 }
 
 func (g *google) checkGoogleWorkspaceGroups(ctx context.Context, providerUser *models.ProviderUser) ([]string, error) {
-	if g.GoogleCredentials.ClientEmail == "" || g.GoogleCredentials.DomainAdmin == "" || g.GoogleCredentials.PrivateKey == "" {
+	if g.GoogleCredentials.ClientEmail == "" || g.GoogleCredentials.DomainAdminEmail == "" || g.GoogleCredentials.PrivateKey == "" {
 		// not configured for groups, skip
 		return []string{}, ErrGoogleClientNotConfigured
 	}
 
 	params := googleOAuth.CredentialsParams{
 		Scopes:  googleAPIScopes,
-		Subject: g.GoogleCredentials.DomainAdmin, // delegated admin permissions scopes to the groups endpoint are required by the client
+		Subject: g.GoogleCredentials.DomainAdminEmail, // delegated admin permissions scopes to the groups endpoint are required by the client
 	}
 
 	// credentialsFile emulates the format of a Google credentials file

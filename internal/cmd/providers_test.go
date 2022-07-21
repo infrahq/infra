@@ -161,9 +161,9 @@ func TestProvidersAddCmd(t *testing.T) {
 			ClientSecret: "GOCSPX-bbb",
 			Kind:         "google",
 			API: &api.ProviderAPICredentials{
-				PrivateKey:  api.PEM("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
-				ClientEmail: "example@tenant.iam.gserviceaccount.com",
-				DomainAdmin: "admin@example.com",
+				PrivateKey:       api.PEM("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
+				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+				DomainAdminEmail: "admin@example.com",
 			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
@@ -181,7 +181,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--domain-admin", "admin@example.com",
 		)
 
-		assert.ErrorContains(t, err, "field(s) [\"clientEmail\" \"domainAdmin\" \"privateKey\"] are only applicable to Google identity providers")
+		assert.ErrorContains(t, err, "field(s) [\"clientEmail\" \"domainAdminEmail\" \"privateKey\"] are only applicable to Google identity providers")
 	})
 
 	t.Run("missing required flags", func(t *testing.T) {
@@ -334,9 +334,9 @@ func TestProvidersEditCmd(t *testing.T) {
 			ClientSecret: "google-client-secret-2",
 			Kind:         "google",
 			API: &api.ProviderAPICredentials{
-				PrivateKey:  "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-				ClientEmail: "example@tenant.iam.gserviceaccount.com",
-				DomainAdmin: "admin@example.com",
+				PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+				DomainAdminEmail: "admin@example.com",
 			},
 		}
 		assert.DeepEqual(t, updateProviderRequest, expected)

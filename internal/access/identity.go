@@ -162,7 +162,7 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) e
 		return fmt.Errorf("user info provider: %w", err)
 	}
 
-	// get current identity provider groups
+	// get current identity provider groups and account status
 	err = data.SyncProviderUser(ctx, db, identity, provider, oidc)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
@@ -171,6 +171,10 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) e
 
 		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
 			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
+		}
+
+		if nestedErr := data.DeleteProviderUsers(db, data.ByIdentityID(identity.ID), data.ByProviderID(provider.ID)); nestedErr != nil {
+			logging.Errorf("failed to delete provider user: %s", nestedErr)
 		}
 
 		return fmt.Errorf("sync user: %w", err)

@@ -7,9 +7,9 @@ import (
 
 // ProviderAPICredentials contain sensitive fields, it should not be sent on a response
 type ProviderAPICredentials struct {
-	PrivateKey  PEM    `json:"privateKey" example:"-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n"`
-	ClientEmail string `json:"clientEmail" validate:"omitempty,email"`
-	DomainAdmin string `json:"domainAdmin" validate:"omitempty,email"`
+	PrivateKey       PEM    `json:"privateKey" example:"-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n"`
+	ClientEmail      string `json:"clientEmail" validate:"omitempty,email"`
+	DomainAdminEmail string `json:"domainAdminEmail" validate:"omitempty,email"`
 }
 
 type Provider struct {

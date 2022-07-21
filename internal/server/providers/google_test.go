@@ -106,12 +106,12 @@ func TestGoogle_GetUserInfo(t *testing.T) {
 			server, ctx := setupOIDCTest(t, test.infoResponse)
 			serverURL := server.run(t, googleHandlers)
 			provider := models.Provider{
-				Kind:        models.ProviderKindGoogle,
-				URL:         serverURL,
-				ClientID:    "invalid",
-				PrivateKey:  models.EncryptedAtRest("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
-				ClientEmail: "something",
-				DomainAdmin: "admin",
+				Kind:             models.ProviderKindGoogle,
+				URL:              serverURL,
+				ClientID:         "invalid",
+				PrivateKey:       models.EncryptedAtRest("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
+				ClientEmail:      "something",
+				DomainAdminEmail: "admin",
 			}
 			oidcClient := NewOIDCClient(provider, "invalid", "http://localhost:8301")
 			info, err := oidcClient.GetUserInfo(context.WithValue(ctx, testGroupsKey{}, test.groupsResponse), &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})

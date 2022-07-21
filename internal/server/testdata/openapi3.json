@@ -3234,7 +3234,7 @@
                       "clientEmail": {
                         "type": "string"
                       },
-                      "domainAdmin": {
+                      "domainAdminEmail": {
                         "type": "string"
                       },
                       "privateKey": {
@@ -3576,7 +3576,7 @@
                       "clientEmail": {
                         "type": "string"
                       },
-                      "domainAdmin": {
+                      "domainAdminEmail": {
                         "type": "string"
                       },
                       "privateKey": {

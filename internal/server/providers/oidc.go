@@ -77,9 +77,9 @@ func NewOIDCClient(provider models.Provider, clientSecret, redirectURL string) O
 		return &google{
 			OIDCClient: oidcClient,
 			GoogleCredentials: googleCredentials{
-				PrivateKey:  string(provider.PrivateKey),
-				ClientEmail: provider.ClientEmail,
-				DomainAdmin: provider.DomainAdmin,
+				PrivateKey:       string(provider.PrivateKey),
+				ClientEmail:      provider.ClientEmail,
+				DomainAdminEmail: provider.DomainAdminEmail,
 			},
 		}
 	default:

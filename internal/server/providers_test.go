@@ -241,9 +241,9 @@ func TestAPI_CreateProvider(t *testing.T) {
 				ClientSecret: "client-secret",
 				Kind:         string(models.ProviderKindGoogle),
 				API: &api.ProviderAPICredentials{
-					PrivateKey:  "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail: "example@tenant.iam.gserviceaccount.com",
-					DomainAdmin: "admin@example.com",
+					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
@@ -399,9 +399,9 @@ func TestAPI_UpdateProvider(t *testing.T) {
 				ClientSecret: "client-secret",
 				Kind:         string(models.ProviderKindGoogle),
 				API: &api.ProviderAPICredentials{
-					PrivateKey:  "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail: "example@tenant.iam.gserviceaccount.com",
-					DomainAdmin: "admin@example.com",
+					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
