@@ -40,7 +40,7 @@ function Arrow({ path, direction }) {
     >
       {direction === 'RIGHT' && (
         <ChevronRightIcon
-          className='ml-3 h-5 w-5 text-gray-400 hover:text-violet-300'
+          className='h-5 w-5 text-gray-400 hover:text-violet-300'
           aria-hidden='true'
         />
       )}
@@ -72,8 +72,14 @@ export default function Pagination({
 
   return (
     totalPages > 1 && (
-      <div>
-        <nav key='paginator' className='flex justify-end px-4 pb-2'>
+      <div className='flex items-center justify-between'>
+        <h3
+          key='results'
+          className='px-4 pb-2 text-2xs text-gray-400'
+        >
+          Displaying {lowerItem}–{upperItem} out of {totalCount}
+        </h3>
+        <div className='px-4 pb-6 items-center'>
           <Arrow direction='LEFT' path={path + '?p=' + (curr > 1 ? curr - 1 : 1)}></Arrow>
           <Pages
             path={path}
@@ -82,13 +88,7 @@ export default function Pagination({
             selected={curr}
           ></Pages>
           <Arrow direction='RIGHT' path={path + '?p=' + (curr < totalPages ? curr + 1 : Math.max(1, totalPages))} ></Arrow>
-        </nav>
-        <h3
-          key='results'
-          className='flex justify-end px-4 pb-4 text-3xs text-gray-400'
-        >
-          Displaying {lowerItem}–{upperItem} out of {totalCount}
-        </h3>
+        </div>
       </div>
     )
   )
