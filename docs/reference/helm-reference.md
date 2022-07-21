@@ -66,19 +66,19 @@ server:
       # 2. Grant user(s) or group(s) access to a resources
       # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
       - user: admin
-        role: cluster-admin                  # cluster_roles required
-        resource: example-cluster            # limit access to the `example-cluster` Kubernetes cluster
+        role: cluster-admin # cluster_roles required
+        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
 
       # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
       # In this case, Infra will automatically scope the access to a namespace.
       - user: admin
-        role: edit                            # cluster_roles required
-        resource: example-cluster.web         # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+        role: edit # cluster_roles required
+        resource: example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
 
       # Example of granting access to a group the `view` role.
       - group: Everyone
-        role: view                           # cluster_roles required
-        resource: example-cluster            # limit access to the `example-cluster` Kubernetes cluster
+        role: view # cluster_roles required
+        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
 ```
 
 ## Postgres Database
@@ -100,7 +100,6 @@ server:
     dbUsername: myuser
     dbPassword: env:POSTGRES_DB_PASSWORD # populated from my-postgres-secret environment
 ```
-
 
 ## Services
 
@@ -135,8 +134,8 @@ server:
       service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: /healthz
 
       # If using Azure AKS
-      service.beta.kubernetes.io/azure-load-balancer-health-probe-protocol: https        # Kubernetes 1.20+
-      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: healthz  # Kubernetes 1.20+
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-protocol: https # Kubernetes 1.20+
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: healthz # Kubernetes 1.20+
 
       # If using Digital Ocean
       service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: https
@@ -145,7 +144,7 @@ server:
 
 ## Ingress
 
-Infra server can be configured exposes port 80 (HTTP) and 443 (HTTPS). Use the following Ingress controller specific examples to configure Infra server Ingress.
+Infra server can be configured exposes port 80 (HTTP) and 443 (HTTPS). Use the following Ingress controller specific examples to configure Infra Server Ingress.
 
 ### Ambassador (Service Annotations)
 
@@ -178,14 +177,14 @@ server:
       - infra.example.com # edit me
     className: alb
     paths:
-      - '/*'
+      - "/*"
     annotations:
-      alb.ingress.kubernetes.io/scheme: internet-facing         # (optional: use "internal" for non-internet facing)
+      alb.ingress.kubernetes.io/scheme: internet-facing # (optional: use "internal" for non-internet facing)
       alb.ingress.kubernetes.io/backend-protocol: HTTP
       alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
       alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
       alb.ingress.kubernetes.io/target-type: ip
-      alb.ingress.kubernetes.io/group.name: infra               # (optional: edit me to use an existing shared load balanacer)
+      alb.ingress.kubernetes.io/group.name: infra # (optional: edit me to use an existing shared load balanacer)
 ```
 
 ### NGINX Ingress Controller
@@ -207,8 +206,8 @@ server:
       cert-manager.io/issuer: "letsencrypt-prod" # edit me
     tls:
       - hosts:
-          - infra.example.com          # edit me
-        secretName: com-example-infra  # edit me
+          - infra.example.com # edit me
+        secretName: com-example-infra # edit me
 ```
 
 ## Secrets
