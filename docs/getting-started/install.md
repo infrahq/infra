@@ -1,6 +1,6 @@
 ---
-title: Quickstart
-position: 2
+title: Install Infra
+position: 3
 ---
 
 # Quickstart
@@ -30,23 +30,23 @@ Note: it may take a few minutes for the LoadBalancer to be provisioned.
 
 ## Setting up certificates
 
+It is recommended to always run the Infra Server with a valid TLS certificate.
+
+```md
 {% tabs %}
 
-{% tab label="Ingress (recommended)" %}
+{% tab label="Ingress" %}
 Infra can be configured behind an ingress controller
-
 {% /tab %}
 
 {% tab label="Self-signed" %}
-For dev & test setups, self-signed certificates can be used
-
-### Logging in via the CLI
-
-### Infra Connector
-
+Windows instructions
 {% /tab %}
 
 {% /tabs %}
+```
+
+## Logging in via the CLI
 
 ## Next Steps
 
