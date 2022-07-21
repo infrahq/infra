@@ -109,7 +109,7 @@ func TestValidate_AllRules(t *testing.T) {
 			"emailOther": {`email address must not contain display name "Display Name"`},
 			"tooFew":     {"length of string is 1, must be at least 5"},
 			"tooMany":    {"length of string is 6, must be no more than 5"},
-			"wrongOnes":  {"character C at position 2 is not allowed"},
+			"wrongOnes":  {"character 'C' at position 2 is not allowed"},
 			"tooHigh":    {"value 22 must be at most 20"},
 			"tooLow":     {"value 2 must be at least 20"},
 			"kind":       {"must be one of (fruit, legume, grain)"},

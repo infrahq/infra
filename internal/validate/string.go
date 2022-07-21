@@ -88,7 +88,7 @@ func (s StringRule) Validate() *Failure {
 	if len(s.CharacterRanges) > 0 {
 		for i, c := range value {
 			if !inRange(s.CharacterRanges, c) {
-				add("character %c at position %v is not allowed", c, i)
+				add("character %q at position %v is not allowed", c, i)
 				break
 			}
 		}
