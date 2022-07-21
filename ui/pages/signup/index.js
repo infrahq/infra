@@ -9,7 +9,7 @@ export default function Signup() {
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -30,7 +30,7 @@ export default function Signup() {
       let res = await fetch('/api/signup', {
         method: 'POST',
         body: JSON.stringify({
-          email,
+          name,
           password,
         }),
       })
@@ -44,7 +44,7 @@ export default function Signup() {
         method: 'POST',
         body: JSON.stringify({
           passwordCredentials: {
-            email,
+            name,
             password,
           },
         }),
@@ -93,15 +93,15 @@ export default function Signup() {
             type='email'
             placeholder='email@address.com'
             onChange={e => {
-              setEmail(e.target.value)
+              setName(e.target.value)
               setErrors({})
               setError('')
             }}
             className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.email ? 'border-pink-500/60' : ''
+              errors.name ? 'border-pink-500/60' : ''
             }`}
           />
-          {errors.email && <ErrorMessage message={errors.email} />}
+          {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -150,7 +150,7 @@ export default function Signup() {
           )}
         </div>
         <button
-          disabled={!email || !password || !confirmPassword}
+          disabled={!name || !password || !confirmPassword}
           className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
         >
           Get Started
