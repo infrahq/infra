@@ -37,6 +37,7 @@ var kinds = []string{"oidc", "okta", "azure", "google"}
 
 func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
+		ValidateName(r.Name),
 		validate.Required("name", r.Name),
 		validate.Required("url", r.URL),
 		validate.Required("clientID", r.ClientID),
@@ -57,6 +58,7 @@ type UpdateProviderRequest struct {
 
 func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
+		ValidateName(r.Name),
 		validate.Required("id", r.ID),
 		validate.Required("name", r.Name),
 		validate.Required("url", r.URL),
