@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
@@ -479,49 +480,32 @@ func migrate(db *gorm.DB) error {
 		// next one here
 	})
 
-	// migrate should work even if you didn't call preMigrate before calling migrate(), so register the premigration.
-	m.InitSchema(preMigrate)
-
-	if err := m.Migrate(); err != nil {
-		return err
-	}
-
-	// initializeSchema so that for simple things like adding db fields
-	// we don't necessarily need to do a migration.
-	// TODO: why not do this before migrate in all cases?
-	return initializeSchema(db)
+	return m.Migrate()
 }
 
-func preMigrate(db *gorm.DB) error {
-	if db.Migrator().HasTable("providers") {
+//go:embed schema-postgres.sql
+var schemaSQLPostgres string
+
+//go:embed schema-sqlite.sql
+var schemaSQLLite string
+
+func initializeSchema(db *gorm.DB) error {
+	if db.Migrator().HasTable("migrations") {
 		// don't initialize the schema if tables already exist.
 		return nil
 	}
 
-	return initializeSchema(db)
-}
-
-func initializeSchema(db *gorm.DB) error {
-	tables := []interface{}{
-		&models.Identity{},
-		&models.Group{},
-		&models.Grant{},
-		&models.Provider{},
-		&models.Destination{},
-		&models.AccessKey{},
-		&models.Settings{},
-		&models.EncryptionKey{},
-		&models.Credential{},
-		&models.ProviderUser{},
+	var schema string
+	switch name := db.Dialector.Name(); name {
+	case "postgres":
+		schema = schemaSQLPostgres
+	case "sqlite":
+		schema = schemaSQLLite
+	default:
+		panic(fmt.Sprintf("unsupported database %v", name))
 	}
 
-	for _, table := range tables {
-		if err := db.AutoMigrate(table); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return db.Exec(schema).Error
 }
 
 // #2294: set the provider kind on existing providers

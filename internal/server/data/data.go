@@ -33,8 +33,8 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err := preMigrate(db); err != nil {
-		return nil, err
+	if err := initializeSchema(db); err != nil {
+		return nil, fmt.Errorf("failed to initialize schema: %w", err)
 	}
 
 	if loadDBKey != nil {
