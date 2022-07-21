@@ -5,15 +5,16 @@ nameOverride: ""
 fullnameOverride: ""
 
 global:
-  ## The image repository to use for all deployments
-  # repository: infrahq/infra
+  image:
+    ## The image repository to use for all deployments
+    repository: infrahq/infra
 
-  ## The image tag to use instead of the default {{ .Chart.AppVersion }}
-  tag: ""
+    ## The image tag to use instead of the default {{ .Chart.AppVersion }}
+    tag: ""
 
-  ## The pull policy to use when pulling (downloading) the image
-  ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
-  pullPolicy: IfNotPresent
+    ## The pull policy to use when pulling (downloading) the image
+    ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+    pullPolicy: IfNotPresent
 
   ## One or more Secret to use when pulling images
   ## Global values will be merged into local values

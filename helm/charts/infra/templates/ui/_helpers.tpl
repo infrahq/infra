@@ -95,18 +95,6 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-UI image repository.
-If global value is present, use global value. Otherwise, use local value.
-*/}}
-{{- define "ui.image.repository" -}}
-{{- if .Values.global.image }}
-{{- .Values.global.image.repository | default .Values.ui.image.repository }}
-{{- else }}
-{{- .Values.ui.image.repository }}
-{{- end }}
-{{- end }}
-
-{{/*
 UI image tag.
 If a local override exists, use the local override. Otherwise, if a global
 override exists, use the global override.  If `image.tag` does not exist,
