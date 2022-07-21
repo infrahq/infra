@@ -207,7 +207,11 @@ export default function Users() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const {
-    data: { items, totalPages, totalCount } = {},
+    data: { items, totalPages, totalCount } = {
+      items: [],
+      totalCount: 0,
+      totalPages: 0,
+    },
     error,
     mutate,
   } = useSWR(`/api/users?page=${page}&limit=13`)
@@ -261,11 +265,13 @@ export default function Users() {
                 )}
               </div>
             )}
-            <Pagination
-              curr={page}
-              totalPages={totalPages}
-              totalCount={totalCount}
-            ></Pagination>
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              ></Pagination>
+            )}
           </div>
           {selected && (
             <Sidebar

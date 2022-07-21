@@ -324,7 +324,11 @@ export default function Destinations() {
   const page = router.query.p === undefined ? 1 : router.query.p
 
   const {
-    data: { items: destinations, totalPages, totalCount } = {},
+    data: { items: destinations, totalPages, totalCount } = {
+      items: [],
+      totalPages: 0,
+      totalCount: 0,
+    },
     error,
     mutate,
   } = useSWR(`/api/destinations?page=${page}&limit=13`)
@@ -389,11 +393,13 @@ export default function Destinations() {
                 )}
               </div>
             )}
-            <Pagination
-              curr={page}
-              totalPages={totalPages}
-              totalCount={totalCount}
-            ></Pagination>
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              ></Pagination>
+            )}
           </div>
           {selected && (
             <Sidebar

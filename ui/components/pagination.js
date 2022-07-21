@@ -1,15 +1,16 @@
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid'
 
 function getPageNums(selected, count, totalPages) {
   const pageNums = []
   const beginOffset = Math.max(
     Math.floor(count / 2),
-    count + selected - totalPages
+    count - 1 + selected - totalPages
   )
   for (
     let i = Math.max(1, selected - beginOffset);
-    pageNums.length <= count && i <= totalPages;
+    pageNums.length < count && i <= totalPages;
     i++
   ) {
     pageNums.push(i)
@@ -19,38 +20,60 @@ function getPageNums(selected, count, totalPages) {
 }
 
 function Pages({ path, selected, count, totalPages }) {
-  return getPageNums(selected, count, totalPages).map(page => (
+  const pages = []
+  const beginOffset = Math.max(
+    Math.floor(count / 2),
+    count - 1 + selected - totalPages
+  )
+  for (
+    let page = Math.max(1, selected - beginOffset);
+    pages.length < count && page <= totalPages;
+    page++
+  ) {
+    pages.push(<Link key={page} href={path + '?p=' + page}>
     <a
-      href={path + '?p=' + page}
-      className={`inline-flex items-center py-2 px-4 text-sm font-medium text-gray-500 hover:text-violet-300 ${
-        selected === page ? 'rounded-md bg-gray-700' : ''
+      className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
+        selected === page ? 'rounded-md text-violet-300' : ''
       }`}
-      key={page}
     >
       {page}
     </a>
+  </Link>)
+
+  return pages
+  }
+
+  return getPageNums(selected, count, totalPages).map(page => (
+    <Link key={page} href={path + '?p=' + page}>
+      <a
+        className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
+          selected === page ? 'rounded-md text-violet-300' : ''
+        }`}
+      >
+        {page}
+      </a>
+    </Link>
   ))
 }
 
 function Arrow({ path, direction }) {
   return (
-    <a
-      href={path}
-      className='inline-flex items-center pl-1 text-sm font-medium text-gray-500 hover:text-violet-300 '
-    >
-      {direction === 'RIGHT' && (
-        <ChevronRightIcon
-          className='h-5 w-5 text-gray-400 hover:text-violet-300'
-          aria-hidden='true'
-        />
-      )}
-      {direction === 'LEFT' && (
-        <ChevronLeftIcon
-          className='ml-3 h-5 w-5 text-gray-400 hover:text-violet-300'
-          aria-hidden='true'
-        />
-      )}
-    </a>
+    <Link href={path}>
+      <a className='inline-flex items-center text-sm font-medium text-gray-500 hover:text-violet-300 '>
+        {direction === 'RIGHT' && (
+          <ChevronRightIcon
+            className='h-5 w-5 text-gray-400 hover:text-violet-300'
+            aria-hidden='true'
+          />
+        )}
+        {direction === 'LEFT' && (
+          <ChevronLeftIcon
+            className='mr-3 h-5 w-5 text-gray-400 hover:text-violet-300'
+            aria-hidden='true'
+          />
+        )}
+      </a>
+    </Link>
   )
 }
 
@@ -71,25 +94,30 @@ export default function Pagination({
   const upperItem = Math.min(1 + (curr - 1) * limit + limit, totalCount)
 
   return (
-    totalPages > 1 && (
-      <div className='flex items-center justify-between'>
-        <h3
-          key='results'
-          className='px-4 pb-2 text-2xs text-gray-400'
-        >
-          Displaying {lowerItem}–{upperItem} out of {totalCount}
-        </h3>
-        <div className='px-4 pb-6 items-center'>
-          <Arrow direction='LEFT' path={path + '?p=' + (curr > 1 ? curr - 1 : 1)}></Arrow>
-          <Pages
-            path={path}
-            count={7}
-            totalPages={totalPages}
-            selected={curr}
-          ></Pages>
-          <Arrow direction='RIGHT' path={path + '?p=' + (curr < totalPages ? curr + 1 : Math.max(1, totalPages))} ></Arrow>
-        </div>
+    <div className='box-border flex items-center justify-between pb-[16.5px]'>
+      <h3 key='results' className='px-4 pb-2 text-2xs text-gray-400'>
+        Displaying {lowerItem}–{upperItem} out of {totalCount}
+      </h3>
+      <div className='flex items-center px-4 pb-2'>
+        <Arrow
+          direction='LEFT'
+          path={path + '?p=' + (curr > 1 ? curr - 1 : 1)}
+        ></Arrow>
+        <Pages
+          path={path}
+          count={7}
+          totalPages={totalPages}
+          selected={curr}
+        ></Pages>
+        <Arrow
+          direction='RIGHT'
+          path={
+            path +
+            '?p=' +
+            (curr < totalPages ? curr + 1 : Math.max(1, totalPages))
+          }
+        ></Arrow>
       </div>
-    )
+    </div>
   )
 }

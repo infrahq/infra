@@ -235,7 +235,11 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const {
-    data: { items: groups, totalPages, totalCount } = {},
+    data: { items: groups, totalPages, totalCount } = {
+      items: [],
+      totalPages: 1,
+      totalCount: 1,
+    },
     error,
     mutate,
   } = useSWR(`/api/groups?page=${page}&limit=13`)
@@ -284,11 +288,13 @@ export default function Groups() {
                 )}
               </div>
             )}
-            <Pagination
-              curr={page}
-              totalPages={totalPages}
-              totalCount={totalCount}
-            ></Pagination>
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              ></Pagination>
+            )}
           </div>
           {selected && (
             <Sidebar
