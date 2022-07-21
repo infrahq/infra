@@ -42,8 +42,13 @@ func GetPasswordResetTokenByToken(db *gorm.DB, token string) (*models.PasswordRe
 	}
 
 	if prts[0].ExpiresAt.Before(time.Now()) {
+		_ = DeletePasswordResetToken(db, &prts[0])
 		return nil, internal.ErrNotFound
 	}
 
 	return &prts[0], nil
+}
+
+func DeletePasswordResetToken(db *gorm.DB, prt *models.PasswordResetToken) error {
+	return delete[models.PasswordResetToken](db, prt.ID)
 }

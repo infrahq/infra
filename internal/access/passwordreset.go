@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -45,6 +46,10 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 
 	if err := updateCredential(c, user, newPassword, true); err != nil {
 		return nil, err
+	}
+
+	if err := data.DeletePasswordResetToken(db, prt); err != nil {
+		logging.Errorf("deleting password reset token: %s", err)
 	}
 
 	return user, nil

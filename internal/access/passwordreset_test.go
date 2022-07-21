@@ -41,4 +41,8 @@ func TestPasswordResetFlow(t *testing.T) {
 
 	err = bcrypt.CompareHashAndPassword(cred.PasswordHash, []byte("my New PassWord@$1"))
 	assert.NilError(t, err)
+
+	// check I can't use the token again
+	_, err = VerifiedPasswordReset(c, token, "another password")
+	assert.Error(t, err, "record not found")
 }
