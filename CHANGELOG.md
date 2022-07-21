@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.14.0](https://github.com/infrahq/infra/compare/v0.13.6...v0.14.0) (2022-07-21)
+
+
+### Features
+
+* add destination status as metric label ([ceb570f](https://github.com/infrahq/infra/commit/ceb570f9d98a2d59e98fd3b13ebb522e2c10855b))
+* add password settings columns ([#2563](https://github.com/infrahq/infra/issues/2563)) ([fdc354c](https://github.com/infrahq/infra/commit/fdc354c40aafc5cb45555ebf6d75197c247ae8c5))
+* adding more unit testings for components ([#2656](https://github.com/infrahq/infra/issues/2656)) ([0253eb7](https://github.com/infrahq/infra/commit/0253eb77284286e9f5f72ce7bd36e13f1414236d))
+* google group sync ([#2592](https://github.com/infrahq/infra/issues/2592)) ([a0d5f83](https://github.com/infrahq/infra/commit/a0d5f8361f6e26e2af181bdb88ba3616e355d8eb))
+* groups ([#2510](https://github.com/infrahq/infra/issues/2510)) ([dd1f835](https://github.com/infrahq/infra/commit/dd1f835d940611e785597ca91fd2b669264e5d7a))
+* Login provider buttons ([#2562](https://github.com/infrahq/infra/issues/2562)) ([bdae00f](https://github.com/infrahq/infra/commit/bdae00fc1ade3b5eeca2920d8010e23ec27a183a))
+* pagination in cli ([#2569](https://github.com/infrahq/infra/issues/2569)) ([631a5f5](https://github.com/infrahq/infra/commit/631a5f59a153b5a8e1908a35fa4cce1693c185b6))
+* password requirements - api  ([#2577](https://github.com/infrahq/infra/issues/2577)) ([78688e3](https://github.com/infrahq/infra/commit/78688e3c2be1a1822f33b0667575f5b4b0fcc204))
+* password requirements - cli (admin signup, user edit) ([#2651](https://github.com/infrahq/infra/issues/2651)) ([802ea27](https://github.com/infrahq/infra/commit/802ea27f161c1bb8a27ea3c0fac24b306b094a06))
+* report version in destinations API ([9963d90](https://github.com/infrahq/infra/commit/9963d908d71a37493acef1ef223f4f108738b136))
+* sample api request logs based on fields ([eca0969](https://github.com/infrahq/infra/commit/eca0969b42b150c77c8943a9f7e4e8809b9e09da))
+* update prom resource metrics with labels ([10f52b8](https://github.com/infrahq/infra/commit/10f52b8331929118f13f4732e57a1617cbe4b031))
+
+
+### Bug Fixes
+
+* anonymousId behavior for heartbeat ([#2641](https://github.com/infrahq/infra/issues/2641)) ([6c25d55](https://github.com/infrahq/infra/commit/6c25d550c3f2400fefd45e5cebf192a41cf16f18))
+* bugs on groups page ([#2573](https://github.com/infrahq/infra/issues/2573)) ([949c465](https://github.com/infrahq/infra/commit/949c465a013ea683acfaa503e3cfbb7657fd8316))
+* **build:** jq already exists in the runner ([24f7b50](https://github.com/infrahq/infra/commit/24f7b503b118cdf35dd60aa2e39521ad55bfabaf))
+* **build:** latest tag on dev docker image ([4d96aa1](https://github.com/infrahq/infra/commit/4d96aa1fd81e1e7b5d673cf1bfb24805d2d583be))
+* change field name ([#2670](https://github.com/infrahq/infra/issues/2670)) ([9939e44](https://github.com/infrahq/infra/commit/9939e4433980a090249e11071cef7d9c230be0f2))
+* coalesce provider.kind and destinations.version ([7243b0d](https://github.com/infrahq/infra/commit/7243b0d9d44c1641bcd35f33d3c986a9d8c6e7bf))
+* destinations query errors in postgres ([c4dbb1a](https://github.com/infrahq/infra/commit/c4dbb1afad0e7d8f9f7023debc8c3e0dda46d06f))
+* **docs:** remove bash syntax highlighting ([#2457](https://github.com/infrahq/infra/issues/2457)) ([7b0dde7](https://github.com/infrahq/infra/commit/7b0dde787b69c1ac5b37cd414623575c57476790))
+* filter deleted items in db.Raw queries ([cf0a48e](https://github.com/infrahq/infra/commit/cf0a48edad236d97a2a729d2c802f2cfae8db800))
+* fix the flashes when adding user to a group on sidebar ([#2643](https://github.com/infrahq/infra/issues/2643)) ([9cdfb99](https://github.com/infrahq/infra/commit/9cdfb99eaebef83f1012969603c8e912506c7810))
+* force release version in goreleaser ([36216dc](https://github.com/infrahq/infra/commit/36216dc3f94270a6748be74ae883c1d720489f88))
+* handle temp file ([#2610](https://github.com/infrahq/infra/issues/2610)) ([e48fc7f](https://github.com/infrahq/infra/commit/e48fc7f23befc6c798a2f6569571c7fd88aaf658))
+* inconsistencies between role and access ([fb37a48](https://github.com/infrahq/infra/commit/fb37a48e505be311b6b759caa4d47bae407cae34))
+* infra keys list works with postgres ([99a56ab](https://github.com/infrahq/infra/commit/99a56ab49d3533b6ccadaddbbe20701a6383f506))
+* labels applied to the server in the helm chart ([#2574](https://github.com/infrahq/infra/issues/2574)) ([865be28](https://github.com/infrahq/infra/commit/865be288b52cc21bbd311c5b99be1f6accc4d432))
+* linter: add read-header timeouts for all servers ([#2637](https://github.com/infrahq/infra/issues/2637)) ([1c62906](https://github.com/infrahq/infra/commit/1c62906678c50f32cae79dc767acfb81f6eaa67a))
+* load env var RELEASE_NAME into goreleaser ([8b6308e](https://github.com/infrahq/infra/commit/8b6308e7e14776a9ac1dbab14da03533178f11ef))
+* loading groups table ([#2633](https://github.com/infrahq/infra/issues/2633)) ([df1abf7](https://github.com/infrahq/infra/commit/df1abf72f4c8fa956ef49ca5a7992bc8ad0c5a27))
+* make infra version header required ([c763f3d](https://github.com/infrahq/infra/commit/c763f3db247195dd939368b21350c3a95fd25444))
+* notifies user when adding duplicate grant ([#2360](https://github.com/infrahq/infra/issues/2360)) ([f70a1fe](https://github.com/infrahq/infra/commit/f70a1fe5cefc4a6ff58d75617b6cd94dfb56fab6))
+* possible panic on server restart ([03cfb33](https://github.com/infrahq/infra/commit/03cfb33c40b2f5c90e5d3486ece65fc27a76e983))
+* remove email validation lib ([#2565](https://github.com/infrahq/infra/issues/2565)) ([ed97980](https://github.com/infrahq/infra/commit/ed9798066f85a51a1032770e0d2154f8e2158caa))
+* remove group name validation ([b1d8b26](https://github.com/infrahq/infra/commit/b1d8b26f47184d07c4e058662ce51c5326c5a850))
+* resize provider icon on table ([#2632](https://github.com/infrahq/infra/issues/2632)) ([51a224e](https://github.com/infrahq/infra/commit/51a224efb7d9e68396a27bc8c9f90adeef35c3c8))
+* resolve the provider url when not provided ([#2554](https://github.com/infrahq/infra/issues/2554)) ([54e2956](https://github.com/infrahq/infra/commit/54e2956b2079e51b2386ace8b12a851243385946))
+* restore skipTLSVerify for connector helm template ([8dd57c0](https://github.com/infrahq/infra/commit/8dd57c0e2a817528cfe240af846a38a4ee338822))
+* sidebar and setting page flashes bug ([#2655](https://github.com/infrahq/infra/issues/2655)) ([b3f331b](https://github.com/infrahq/infra/commit/b3f331be528d297eb9273ef44d30002c9734c1c9))
+* **ui:** fix issue where grant would be deleted ([#2597](https://github.com/infrahq/infra/issues/2597)) ([766419d](https://github.com/infrahq/infra/commit/766419d254f4a59f89b324aa0eca3b73a207e7e8))
+* **ui:** fix issue where grant would be deleted incorrectly in the dropdown ([#2671](https://github.com/infrahq/infra/issues/2671)) ([6c4b529](https://github.com/infrahq/infra/commit/6c4b529f8da98214c28447175d7c9b752e3e6922))
+* **ui:** fix scrollbar rendering showing gray gutters on macOS ([#2599](https://github.com/infrahq/infra/issues/2599)) ([9af0571](https://github.com/infrahq/infra/commit/9af0571e4e1534ba8cbb8cbb91ecb4d6bf40bd4f))
+* wait for logout to complete ([#2660](https://github.com/infrahq/infra/issues/2660)) ([13540fb](https://github.com/infrahq/infra/commit/13540fb4945666035a1408497e8f71df157ba63f))
+
+
+### Maintenance
+
+* release 0.14.0 ([3f933fa](https://github.com/infrahq/infra/commit/3f933fa41cdb38a3f4af10bd0db0473af1387a23))
+
 ## [0.13.6](https://github.com/infrahq/infra/compare/v0.13.5...v0.13.6) (2022-07-07)
 
 
