@@ -28,30 +28,11 @@ Next, visit the Infra Dashboard. To retrieve the hostname, run:
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
 ```
 
-{% callout type="info" %}
+Next, visit this hostname in your browser to get started:
 
-Note: it may take a few minutes for the LoadBalancer to be provisioned.
-
-{% /callout %}
-
-## Login via Infra CLI
-
-```
-infra login <infra hostname>
-```
+![welcome](../images/welcome.png)
 
 {% callout type="info" %}
-You may be prompted to verify the fingerprint of the server's TLS certificate. The fingerprint can be found in the server logs:
-
-```
-kubectl logs --tail=-1 -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
-```
-
-If you're not using Docker Desktop, you'll be need to specify a different endpoint than `localhost`. This endpoint can be found via the following `kubectl` command:
-
-```
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
-```
 
 Note: it may take a few minutes for the LoadBalancer to be provisioned.
 
@@ -64,7 +45,28 @@ Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup y
 
 {% /callout %}
 
-## Connect a Kubernetes cluster
+## Logging in via Infra CLI
+
+Install the Infra CLI:
+
+{% partial file="../partials/cli-install.md" /%}
+
+Log in to Infra as the admin user you created earlier:
+
+```
+infra login <load balancer hostname>
+```
+
+{% callout type="info" %}
+You may be prompted to verify the fingerprint of the server's TLS certificate. The fingerprint can be found in the server logs:
+
+```
+kubectl logs --tail=-1 -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
+```
+
+{% /callout %}
+
+## Connecting a Kubernetes cluster
 
 Download the CA certificate that was generated for Infra and save it to a file. This certificate will be used by the CLI and by connectors to establish secure TLS communication:
 
@@ -82,13 +84,14 @@ Next, use this access key to connect your cluster via `helm`:
 
 ```
 helm upgrade --install infra-connector infrahq/infra \
-  --set connector.config.name=example-cluster \
-  --set connector.config.server=localhost \
-  --set connector.config.accessKey=<CONNECTOR_KEY> \
+  --set connector.config.name=<cluster name> \
+  --set connector.config.server=<load balancer hostname> \
+  --set connector.config.accessKey=<connector key> \
   --set-file connector.config.serverTrustedCertificate=infra.ca
 ```
 
 {% callout type="info" %}
+
 It may take a few minutes for the cluster to connect. You can verify the connection by running `infra destinations list` and by looking at the connector logs:
 
 ```
@@ -99,6 +102,5 @@ kubectl logs -l 'app.kubernetes.io/name=infra-connector'
 
 ## Next Steps
 
-- [Connect Okta](../identity-providers/okta.md) to onboard & offboard your team automatically
-- [Manage & revoke access](../configuration/granting-access.md) to users or groups
 - [Customize](../reference/helm-reference.md) your install with `helm`
+- [Connect Okta](../identity-providers/okta.md) (or another identity provider) to onboard & offboard your team automatically
