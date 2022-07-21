@@ -84,14 +84,13 @@ export default function Signup() {
       </h2>
       <form onSubmit={onSubmit} className='flex w-full max-w-sm flex-col'>
         <div className='my-2 w-full'>
-          <label htmlFor='email' className='text-3xs uppercase text-gray-500'>
-            Email
+          <label htmlFor='name' className='text-3xs uppercase text-gray-500'>
+            Username or Email
           </label>
           <input
             autoFocus
-            name='email'
-            type='email'
-            placeholder='email@address.com'
+            name='name'
+            placeholder='enter your username or email'
             onChange={e => {
               setName(e.target.value)
               setErrors({})
