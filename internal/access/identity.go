@@ -40,7 +40,12 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		return nil, HandleAuthErr(err, "user", "get", roles...)
 	}
 
-	return data.GetIdentity(db.Preload("Providers"), data.ByID(id))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.GetIdentity(db.Preload("Providers"), orgSelector, data.ByID(id))
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -49,10 +54,17 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 		return HandleAuthErr(err, "user", "create", models.InfraAdminRole)
 	}
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+	identity.OrganizationID = orgID
+
 	return data.CreateIdentity(db, identity)
 }
 
 func InfraConnectorIdentity(c *gin.Context) *models.Identity {
+	// XXX - should this be per org?
 	return data.InfraConnectorIdentity(getDB(c))
 }
 
@@ -76,28 +88,35 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
-	if err := data.DeleteAccessKeys(db, data.ByIssuedFor(id)); err != nil {
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
+	if err := data.DeleteAccessKeys(db, orgSelector, data.ByIssuedFor(id)); err != nil {
 		return fmt.Errorf("delete identity access keys: %w", err)
 	}
 
 	// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
-	credential, err := data.GetCredential(db, data.ByIdentityID(id))
+	credential, err := data.GetCredential(db, orgSelector, data.ByIdentityID(id))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return fmt.Errorf("get delete identity creds: %w", err)
 	}
 
 	if credential != nil {
+		// XXX - include the org
 		err := data.DeleteCredential(db, credential.ID)
 		if err != nil {
 			return fmt.Errorf("delete identity creds: %w", err)
 		}
 	}
 
-	err = data.DeleteGrants(db, data.BySubject(uid.NewIdentityPolymorphicID(id)))
+	err = data.DeleteGrants(db, orgSelector, data.BySubject(uid.NewIdentityPolymorphicID(id)))
 	if err != nil {
 		return fmt.Errorf("delete identity creds: %w", err)
 	}
 
+	// XXX - include the org
 	return data.DeleteIdentity(db, id)
 }
 
@@ -108,7 +127,13 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 		return nil, HandleAuthErr(err, "users", "list", roles...)
 	}
 
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
 	selectors := []data.SelectorFunc{
+		orgSelector,
 		data.ByOptionalName(name),
 		data.ByOptionalIDs(ids),
 		data.ByOptionalIdentityGroupID(groupID),

@@ -1,6 +1,8 @@
 package access
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -15,6 +17,12 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 		return HandleAuthErr(err, "destination", "create", roles...)
 	}
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+	destination.OrganizationID = orgID
+
 	return data.CreateDestination(db, destination)
 }
 
@@ -25,17 +33,35 @@ func SaveDestination(c *gin.Context, destination *models.Destination) error {
 		return HandleAuthErr(err, "destination", "update", roles...)
 	}
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+	destination.OrganizationID = orgID
+
 	return data.SaveDestination(db, destination)
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	db := getDB(c)
-	return data.GetDestination(db, data.ByID(id))
+
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.GetDestination(db, orgSelector, data.ByID(id))
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string, pg models.Pagination) ([]models.Destination, error) {
 	db := getDB(c)
-	return data.ListDestinations(db, data.ByOptionalUniqueID(uniqueID),
+
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.ListDestinations(db, orgSelector, data.ByOptionalUniqueID(uniqueID),
 		data.ByOptionalName(name), data.ByPagination(pg))
 }
 
@@ -45,5 +71,10 @@ func DeleteDestination(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "destination", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteDestinations(db, data.ByID(id))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.DeleteDestinations(db, orgSelector, data.ByID(id))
 }

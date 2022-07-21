@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
@@ -52,7 +53,8 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 	return &settings, nil
 }
 
-func GetSettings(db *gorm.DB) (*models.Settings, error) {
+func GetSettings(db *gorm.DB, orgID uid.ID) (*models.Settings, error) {
+	// XXX - this needs to work per org
 	var settings models.Settings
 	if err := db.First(&settings).Error; err != nil {
 		return nil, err

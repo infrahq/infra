@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/uid"
 )
 
 type loginCmdOptions struct {
@@ -152,7 +153,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys; run 'infra login SERVER --non-interactive --key KEY"}
 		}
-		loginMethod, provider, err := promptLoginOptions(cli, lc.APIClient)
+		loginMethod, provider, orgID, err := promptLoginOptions(cli, lc.APIClient)
 		if err != nil {
 			return err
 		}
@@ -168,6 +169,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 			if err != nil {
 				return err
 			}
+			loginReq.PasswordCredentials.OrganizationID = orgID
 		case oidcLogin:
 			loginReq.OIDC, err = loginToProvider(provider)
 			if err != nil {
@@ -552,9 +554,9 @@ func promptAccessKeyLogin(cli *CLI) (string, error) {
 	return accessKey, err
 }
 
-func listProviders(client *api.Client) ([]api.Provider, error) {
+func listProviders(client *api.Client, orgID uid.ID) ([]api.Provider, error) {
 	logging.Debugf("call server: list providers")
-	providers, err := client.ListProviders("")
+	providers, err := client.ListProviders("", orgID)
 	if err != nil {
 		return nil, err
 	}
@@ -562,10 +564,15 @@ func listProviders(client *api.Client) ([]api.Provider, error) {
 	return providers.Items, nil
 }
 
-func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, provider *api.Provider, err error) {
-	providers, err := listProviders(client)
+func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, provider *api.Provider, orgID uid.ID, err error) {
+	orgID, err = promptSetOrgID(cli)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, 0, fmt.Errorf("Couldn't get org ID")
+	}
+
+	providers, err := listProviders(client, orgID)
+	if err != nil {
+		return 0, nil, 0, err
 	}
 
 	var options []string
@@ -583,16 +590,16 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 	err = survey.AskOne(selectPrompt, &i, cli.surveyIO)
 	if errors.Is(err, terminal.InterruptErr) {
-		return 0, nil, err
+		return 0, nil, 0, err
 	}
 
 	switch i {
 	case len(options) - 1: // last option: accessKeyLogin
-		return accessKeyLogin, nil, nil
+		return accessKeyLogin, nil, orgID, nil
 	case len(options) - 2: // second last option: localLogin
-		return localLogin, nil, nil
+		return localLogin, nil, orgID, nil
 	default:
-		return oidcLogin, &providers[i], nil
+		return oidcLogin, &providers[i], orgID, nil
 	}
 }
 
@@ -746,4 +753,24 @@ func promptSetOrgName(cli *CLI) (string, error) {
 	}
 
 	return orgName, nil
+}
+
+func promptSetOrgID(cli *CLI) (uid.ID, error) {
+	var org string
+
+	if err := survey.AskOne(
+		&survey.Input{Message: "Organization ID:"},
+		&org,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	); err != nil {
+		return 0, err
+	}
+
+	orgID, err := uid.Parse([]byte(org))
+	if err != nil {
+		return 0, fmt.Errorf("invalid org id")
+	}
+
+	return orgID, nil
 }

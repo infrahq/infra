@@ -18,5 +18,10 @@ func CreateToken(c *gin.Context) (token *models.Token, err error) {
 	// does not need authorization check, limited to calling identity
 	db := getDB(c)
 
-	return data.CreateIdentityToken(db, identity.ID)
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return data.CreateIdentityToken(db, orgID, identity.ID)
 }

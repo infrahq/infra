@@ -27,7 +27,7 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 	}
 }
 
-func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteGroups(db *gorm.DB, orgID uid.ID, selectors ...SelectorFunc) error {
 	toDelete, err := ListGroups(db, selectors...)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 		for _, id := range identities {
 			uidsToRemove = append(uidsToRemove, id.ID)
 		}
-		err = RemoveUsersFromGroup(db, g.ID, uidsToRemove)
+		err = RemoveUsersFromGroup(db, orgID, g.ID, uidsToRemove)
 		if err != nil {
 			return err
 		}
@@ -60,11 +60,11 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Group](db, ByIDs(ids))
 }
 
-func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
+func AddUsersToGroup(db *gorm.DB, orgID, groupID uid.ID, idsToAdd []uid.ID) error {
 	for _, id := range idsToAdd {
 		// This is effectively an "INSERT OR IGNORE" or "INSERT ... ON CONFLICT ... DO NOTHING" statement which
 		// works across both sqlite and postgres
-		err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id).Error
+		err := db.Exec("INSERT INTO identities_groups (organization_id, group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE organization_id = ? AND group_id = ? AND identity_id = ?)", orgID, groupID, id, orgID, groupID, id).Error
 		if err != nil {
 			return err
 		}
@@ -72,9 +72,9 @@ func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
 	return nil
 }
 
-func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) error {
+func RemoveUsersFromGroup(db *gorm.DB, orgID, groupID uid.ID, idsToRemove []uid.ID) error {
 	for _, id := range idsToRemove {
-		err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID).Error
+		err := db.Exec("DELETE FROM identities_groups WHERE organization_id = ? AND identity_id = ? AND group_id = ?", orgID, id, groupID).Error
 		if err != nil {
 			return err
 		}

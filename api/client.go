@@ -239,8 +239,8 @@ func (c Client) DeleteOrganization(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/organizations/%s", id))
 }
 
-func (c Client) ListProviders(name string) (*ListResponse[Provider], error) {
-	return get[ListResponse[Provider]](c, "/api/providers", Query{"name": {name}})
+func (c Client) ListProviders(name string, orgID uid.ID) (*ListResponse[Provider], error) {
+	return get[ListResponse[Provider]](c, "/api/providers", Query{"name": {name}, "org": {orgID.String()}})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {

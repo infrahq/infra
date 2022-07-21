@@ -34,6 +34,7 @@ type UpdateProviderRequest struct {
 }
 
 type ListProvidersRequest struct {
-	Name string `form:"name" example:"okta"`
+	Name           string `form:"name" example:"okta"`
+	OrganizationID uid.ID `form:"org"`
 	PaginationRequest
 }

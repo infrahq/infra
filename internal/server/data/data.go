@@ -258,12 +258,14 @@ var infraProviderCache *models.Provider
 // InfraProvider is a lazy-loaded cached reference to the infra provider. The
 // cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraProvider must call InvalidateCache to clean up.
-func InfraProvider(db *gorm.DB) *models.Provider {
+func InfraProvider(db *gorm.DB, orgID uid.ID) *models.Provider {
+	// XXX - this will need to work per org
 	if infraProviderCache == nil {
-		infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra))
+		infra, err := get[models.Provider](db, ByOrg(orgID), ByProviderKind(models.ProviderKindInfra))
 		if err != nil {
 			if errors.Is(err, internal.ErrNotFound) {
 				p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra}
+				p.OrganizationID = orgID
 				if err := add(db, p); err != nil {
 					logging.L.Panic().Err(err).Msg("failed to create infra provider")
 				}

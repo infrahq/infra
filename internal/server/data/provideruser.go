@@ -16,7 +16,7 @@ import (
 )
 
 func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
-	pu, err := get[models.ProviderUser](db, ByIdentityID(ident.ID), ByProviderID(provider.ID))
+	pu, err := get[models.ProviderUser](db, ByOrg(ident.OrganizationID), ByIdentityID(ident.ID), ByProviderID(provider.ID))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return nil, err
 	}
@@ -28,6 +28,7 @@ func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Id
 			Email:      ident.Name,
 			LastUpdate: time.Now().UTC(),
 		}
+		pu.OrganizationID = ident.OrganizationID
 		if err := add(db, pu); err != nil {
 			return nil, err
 		}

@@ -16,7 +16,8 @@ const (
 type Identity struct {
 	Model
 
-	Name       string    `gorm:"uniqueIndex:idx_identities_name,where:deleted_at is NULL"`
+	//Name       string    `gorm:"uniqueIndex:idx_identities_name,where:deleted_at is NULL"`
+	Name       string
 	LastSeenAt time.Time // updated on when an identity uses a session token
 	CreatedBy  uid.ID
 

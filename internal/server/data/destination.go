@@ -28,8 +28,8 @@ func ListDestinations(db *gorm.DB, selectors ...SelectorFunc) ([]models.Destinat
 	return list[models.Destination](db, selectors...)
 }
 
-func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
-	toDelete, err := ListDestinations(db, selector)
+func DeleteDestinations(db *gorm.DB, selectors ...SelectorFunc) error {
+	toDelete, err := ListDestinations(db, selectors...)
 	if err != nil {
 		return err
 	}

@@ -27,11 +27,15 @@ func NewTelemetry(db *gorm.DB) (*Telemetry, error) {
 		return nil, errors.New("db cannot be nil")
 	}
 
+	/*
 	var err error
 	settings, err = data.GetSettings(db)
 	if err != nil {
 		return nil, err
 	}
+	*/
+
+	// XXX - This needs to be for the entire infra server, not just a specific Org
 
 	return &Telemetry{
 		client: analytics.New(internal.TelemetryWriteKey),

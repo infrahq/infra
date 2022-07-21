@@ -26,7 +26,12 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 		return nil, HandleAuthErr(err, "access keys", "list", roles...)
 	}
 
-	s := []data.SelectorFunc{data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(pg)}
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	s := []data.SelectorFunc{orgSelector, data.ByOptionalIssuedFor(identityID), data.ByOptionalName(name), data.ByPagination(pg)}
 	if !showExpired {
 		s = append(s, data.ByNotExpiredOrExtended())
 	}

@@ -29,11 +29,17 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 		return "", fmt.Errorf("hash: %w", err)
 	}
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return "", err
+	}
+
 	userCredential := &models.Credential{
 		IdentityID:      user.ID,
 		PasswordHash:    hash,
 		OneTimePassword: true,
 	}
+	userCredential.OrganizationID = orgID
 
 	if err := data.CreateCredential(db, userCredential); err != nil {
 		return "", err
@@ -58,7 +64,12 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return fmt.Errorf("hash: %w", err)
 	}
 
-	userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
+	userCredential, err := data.GetCredential(db, orgSelector, data.ByIdentityID(user.ID))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) && !isSelf {
 			if err := data.CreateCredential(db, &models.Credential{

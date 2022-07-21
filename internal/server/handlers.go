@@ -228,7 +228,7 @@ func (a *API) UpdateUsersInGroup(c *gin.Context, r *api.UpdateUsersInGroupReques
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []models.ProviderKind{models.ProviderKindInfra}
 	pg := models.RequestToPagination(r.PaginationRequest)
-	providers, err := access.ListProviders(c, r.Name, exclude, pg)
+	providers, err := access.ListProviders(c, r.Name, r.OrganizationID, exclude, pg)
 	if err != nil {
 		return nil, err
 	}
@@ -547,18 +547,20 @@ func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEna
 }
 
 func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
-	if !a.server.options.EnableSignup {
-		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
-	}
+	/*
+		if !a.server.options.EnableSignup {
+			return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
+		}
 
-	signupEnabled, err := access.SignupEnabled(c)
-	if err != nil {
-		return nil, err
-	}
+		signupEnabled, err := access.SignupEnabled(c)
+		if err != nil {
+			return nil, err
+		}
 
-	if !signupEnabled {
-		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
-	}
+		if !signupEnabled {
+			return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
+		}
+	*/
 
 	if r.Name == "" {
 		// #1825: remove, this is for migration

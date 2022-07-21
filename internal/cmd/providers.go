@@ -47,7 +47,7 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list providers")
-			providers, err := client.ListProviders("")
+			providers, err := client.ListProviders("", 0)
 			if err != nil {
 				return err
 			}
@@ -180,7 +180,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list providers named %q", args[0])
-			providers, err := client.ListProviders(args[0])
+			providers, err := client.ListProviders(args[0], 0)
 			if err != nil {
 				return err
 			}
@@ -216,7 +216,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 
 func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
 	logging.Debugf("call server: list providers named %q", name)
-	providers, err := client.ListProviders(name)
+	providers, err := client.ListProviders(name, 0)
 	if err != nil {
 		return nil, err
 	}

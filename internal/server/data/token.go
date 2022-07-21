@@ -18,8 +18,8 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires time.Time) (string, error) {
-	settings, err := GetSettings(db)
+func createJWT(db *gorm.DB, orgID uid.ID, identity *models.Identity, groups []string, expires time.Time) (string, error) {
+	settings, err := GetSettings(db, orgID)
 	if err != nil {
 		return "", err
 	}
@@ -64,13 +64,13 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 	return raw, nil
 }
 
-func CreateIdentityToken(db *gorm.DB, identityID uid.ID) (token *models.Token, err error) {
-	identity, err := GetIdentity(db, ByID(identityID))
+func CreateIdentityToken(db *gorm.DB, orgID, identityID uid.ID) (token *models.Token, err error) {
+	identity, err := GetIdentity(db, ByOrg(orgID), ByID(identityID))
 	if err != nil {
 		return nil, err
 	}
 
-	identityGroups, err := ListGroups(db, ByGroupMember(identityID))
+	identityGroups, err := ListGroups(db, ByOrg(orgID), ByGroupMember(identityID))
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func CreateIdentityToken(db *gorm.DB, identityID uid.ID) (token *models.Token, e
 
 	expires := time.Now().Add(time.Minute * 5).UTC()
 
-	jwt, err := createJWT(db, identity, groups, expires)
+	jwt, err := createJWT(db, orgID, identity, groups, expires)
 	if err != nil {
 		return nil, err
 	}

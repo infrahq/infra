@@ -35,7 +35,7 @@ func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB) (
 		return nil, nil, nil, scope, fmt.Errorf("could not get org: '%s' %w", a.OrganizationID, err)
 	}
 
-	identity, err := data.GetIdentity(db, data.ByName(a.Username))
+	identity, err := data.GetIdentity(db, data.ByOrg(org.ID), data.ByName(a.Username))
 	if err != nil {
 		return nil, nil, nil, scope, fmt.Errorf("could not get identity for username: %w", err)
 	}
@@ -59,7 +59,7 @@ func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB) (
 	}
 
 	// authentication was a success
-	return org, identity, data.InfraProvider(db), scope, nil // password login is always for infra users
+	return org, identity, data.InfraProvider(db, org.ID), scope, nil // password login is always for infra users
 }
 
 func (a *passwordCredentialAuthn) Name() string {

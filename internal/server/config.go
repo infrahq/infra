@@ -853,7 +853,7 @@ func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, password 
 			return err
 		}
 
-		if _, err := data.CreateProviderUser(db, data.InfraProvider(db), identity); err != nil {
+		if _, err := data.CreateProviderUser(db, data.InfraProvider(db, identity.OrganizationID), identity); err != nil {
 			return err
 		}
 
@@ -895,14 +895,14 @@ func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, key string
 			ExpiresAt:  time.Now().AddDate(10, 0, 0),
 			KeyID:      keyID,
 			Secret:     secret,
-			ProviderID: data.InfraProvider(db).ID,
+			ProviderID: data.InfraProvider(db, identity.OrganizationID).ID,
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {
 			return err
 		}
 
-		if _, err := data.CreateProviderUser(db, data.InfraProvider(db), identity); err != nil {
+		if _, err := data.CreateProviderUser(db, data.InfraProvider(db, identity.OrganizationID), identity); err != nil {
 			return err
 		}
 

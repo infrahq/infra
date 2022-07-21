@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -53,6 +54,8 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 	if err := data.CreateOrganization(db, organization); err != nil {
 		return nil, err
 	}
+	c.Set("organization", organization)
+	logging.Infof("Org ID -> %s", organization.ID)
 
 	identity := &models.Identity{Name: name}
 	identity.OrganizationID = organization.ID
@@ -75,6 +78,7 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 		IdentityID:   identity.ID,
 		PasswordHash: hash,
 	}
+	credential.OrganizationID = organization.ID
 
 	if err := data.CreateCredential(db, credential); err != nil {
 		return nil, err

@@ -26,7 +26,16 @@ func isUserInGroup(c *gin.Context, requestedResourceID uid.ID) (bool, error) {
 }
 
 func ListGroups(c *gin.Context, name string, userID uid.ID, pg models.Pagination) ([]models.Group, error) {
-	var selectors = []data.SelectorFunc{data.ByPagination(pg)}
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	var selectors = []data.SelectorFunc{
+		orgSelector,
+		data.ByPagination(pg),
+	}
+
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -62,6 +71,12 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 		return HandleAuthErr(err, "group", "create", models.InfraAdminRole)
 	}
 
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+	group.OrganizationID = orgID
+
 	return data.CreateGroup(db, group)
 }
 
@@ -72,7 +87,12 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 		return nil, HandleAuthErr(err, "group", "get", roles...)
 	}
 
-	return data.GetGroup(db, data.ByID(id))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't get org for user")
+	}
+
+	return data.GetGroup(db, orgSelector, data.ByID(id))
 }
 
 func DeleteGroup(c *gin.Context, id uid.ID) error {
@@ -81,15 +101,26 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "group", "delete", models.InfraAdminRole)
 	}
 
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
 	selectors := []data.SelectorFunc{
+		orgSelector,
 		data.ByID(id),
 	}
 
-	return data.DeleteGroups(db, selectors...)
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+
+	return data.DeleteGroups(db, orgID, selectors...)
 }
 
-func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
-	identities, err := data.ListIdentities(db, data.ByIDs(ids))
+func checkIdentitiesInList(db *gorm.DB, orgSelector data.SelectorFunc, ids []uid.ID) ([]uid.ID, error) {
+	identities, err := data.ListIdentities(db, orgSelector, data.ByIDs(ids))
 	if err != nil {
 		return nil, err
 	}
@@ -121,24 +152,35 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	_, err = data.GetGroup(db, data.ByID(groupID))
+	orgSelector, err := GetCurrentOrgSelector(c)
+	if err != nil {
+		return fmt.Errorf("Couldn't get org for user")
+	}
+
+	// Make sure the group exists before attempting to add/remove users
+	_, err = data.GetGroup(db, orgSelector, data.ByID(groupID))
 	if err != nil {
 		return err
 	}
 
-	addIDList, err := checkIdentitiesInList(db, uidsToAdd)
+	addIDList, err := checkIdentitiesInList(db, orgSelector, uidsToAdd)
 	if err != nil {
 		return err
 	}
 
-	rmIDList, err := checkIdentitiesInList(db, uidsToRemove)
+	rmIDList, err := checkIdentitiesInList(db, orgSelector, uidsToRemove)
 	if err != nil {
 		return err
 	}
 
-	err = data.AddUsersToGroup(db, groupID, addIDList)
+	orgID, err := GetCurrentOrgID(c)
 	if err != nil {
 		return err
 	}
-	return data.RemoveUsersFromGroup(db, groupID, rmIDList)
+
+	err = data.AddUsersToGroup(db, orgID, groupID, addIDList)
+	if err != nil {
+		return err
+	}
+	return data.RemoveUsersFromGroup(db, orgID, groupID, rmIDList)
 }

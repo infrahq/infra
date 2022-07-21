@@ -122,6 +122,7 @@ func RequireAccessKey(c *gin.Context) error {
 		return fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
 	}
 
+	logging.Infof("validating access key")
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
@@ -136,13 +137,15 @@ func RequireAccessKey(c *gin.Context) error {
 
 	c.Set("key", accessKey)
 
-	logging.Debugf("getting org %s", accessKey.OrganizationID)
+	logging.Infof("getting org %s", accessKey.OrganizationID)
 	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
 	if err != nil {
 		return fmt.Errorf("organization for token: %w", err)
 	}
 	c.Set("organization", org)
 
+	logging.Infof("Org is %s", org.ID)
+	logging.Infof("Issued for %s", accessKey.IssuedFor)
 	identity, err := data.GetIdentity(db, data.ByOrg(org.ID), data.ByID(accessKey.IssuedFor))
 	if err != nil {
 		return fmt.Errorf("identity for token: %w", err)

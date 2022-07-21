@@ -40,12 +40,12 @@ func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models
 		return nil, nil, nil, AuthScope{}, fmt.Errorf("org is not valid: %w", err)
 	}
 
-	identity, err := data.GetIdentity(db, data.ByID(validatedRequestKey.IssuedFor))
+	identity, err := data.GetIdentity(db, data.ByOrg(org.ID), data.ByID(validatedRequestKey.IssuedFor))
 	if err != nil {
 		return nil, nil, nil, AuthScope{}, fmt.Errorf("user is not valid: %w", err) // the user was probably deleted
 	}
 
-	return org, identity, data.InfraProvider(db), AuthScope{}, nil
+	return org, identity, data.InfraProvider(db, org.ID), AuthScope{}, nil
 }
 
 func (a *keyExchangeAuthn) Name() string {

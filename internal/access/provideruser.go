@@ -11,6 +11,14 @@ func CreateProviderUser(c *gin.Context, provider *models.Provider, ident *models
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
 
+	if ident.OrganizationID == 0 {
+		orgID, err := GetCurrentOrgID(c)
+		if err != nil {
+			return nil, err
+		}
+		ident.OrganizationID = orgID
+	}
+
 	return data.CreateProviderUser(db, provider, ident)
 }
 
@@ -18,6 +26,12 @@ func CreateProviderUser(c *gin.Context, provider *models.Provider, ident *models
 func UpdateProviderUser(c *gin.Context, providerToken *models.ProviderUser) error {
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
+
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+	providerToken.OrganizationID = orgID
 
 	return data.UpdateProviderUser(db, providerToken)
 }
