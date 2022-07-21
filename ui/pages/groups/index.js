@@ -115,111 +115,117 @@ function Details({ group, admin, onDelete }) {
     },
   ]
 
+  const loading = [users, grants].some(x => !x)
+
   return (
-    <div className='flex flex-1 flex-col space-y-6'>
-      {admin && (
-        <>
-          <section>
-            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Access
-            </h3>
-            <GrantsList
-              grants={grants}
-              onRemove={async id => {
-                await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-                mutateGrants({ items: grants.filter(x => x.id !== id) })
-              }}
-              onChange={async (privilege, grant) => {
-                const res = await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    ...grant,
-                    privilege,
-                  }),
-                })
-
-                // delete old grant
-                await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
-                mutateGrants({
-                  items: [
-                    ...grants.filter(f => f.id !== grant.id),
-                    await res.json(),
-                  ],
-                })
-              }}
-            />
-            {!grants?.length && (
-              <EmptyData>
-                <div className='mt-6'>No access</div>
-              </EmptyData>
-            )}
-          </section>
-          <section>
-            <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Users{users?.length > 0 && <span> ({users.length})</span>}
-            </h3>
-            <EmailsSelectInput
-              selectedEmails={emails}
-              setSelectedEmails={setEmails}
-              existMembers={existMembers}
-              onClick={async () => {
-                const usersToAdd = emails.map(email => email.id)
-                await fetch(`/api/groups/${id}/users`, {
-                  method: 'PATCH',
-                  body: JSON.stringify({ usersToAdd }),
-                })
-
-                await mutateUsers(`/api/users?group=${group.id}`)
-                setEmails([])
-              }}
-            />
-            <div className='mt-4'>
-              {users?.length === 0 && (
-                <EmptyData>
-                  <div className='mt-6'>No members in the group</div>
-                </EmptyData>
-              )}
-              <IdentityList
-                list={users}
-                onClick={async userId => {
-                  const usersToRemove = [userId]
-                  await fetch(`/api/groups/${id}/users`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ usersToRemove }),
+    !loading && (
+      <div className='flex flex-1 flex-col space-y-6'>
+        {admin && (
+          <>
+            <section>
+              <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+                Access
+              </h3>
+              <GrantsList
+                grants={grants}
+                onRemove={async id => {
+                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
+                  mutateGrants({ items: grants.filter(x => x.id !== id) })
+                }}
+                onChange={async (privilege, grant) => {
+                  const res = await fetch('/api/grants', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      ...grant,
+                      privilege,
+                    }),
                   })
-                  mutateUsers({
-                    items: users.filter(i => i.id !== userId),
+
+                  // delete old grant
+                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
+                  mutateGrants({
+                    items: [
+                      ...grants.filter(f => f.id !== grant.id),
+                      await res.json(),
+                    ],
                   })
                 }}
               />
-            </div>
-          </section>
-        </>
-      )}
-      <section>
-        <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-          Metadata
-        </h3>
-        <Metadata data={metadata} />
-      </section>
-      {admin && (
-        <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <RemoveButton
-            onRemove={async () => {
-              onDelete()
-            }}
-            modalTitle='Remove Group'
-            modalMessage={
-              <>
-                Are you sure you want to delete{' '}
-                <span className='font-bold text-white'>{name}</span>? This
-                action cannot be undone.
-              </>
-            }
-          />
+              {!grants?.length && (
+                <EmptyData>
+                  <div className='mt-6'>No access</div>
+                </EmptyData>
+              )}
+            </section>
+            <section>
+              <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+                Users{users?.length > 0 && <span> ({users.length})</span>}
+              </h3>
+              <EmailsSelectInput
+                selectedEmails={emails}
+                setSelectedEmails={setEmails}
+                existMembers={existMembers}
+                onClick={async () => {
+                  const usersToAdd = emails.map(email => email.id)
+                  console.log(emails)
+                  await fetch(`/api/groups/${id}/users`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ usersToAdd }),
+                  })
+
+                  mutateUsers({ items: [...users, ...emails] })
+                  setEmails([])
+                }}
+              />
+              <div className='mt-4'>
+                {users?.length === 0 && (
+                  <EmptyData>
+                    <div className='mt-6'>No members in the group</div>
+                  </EmptyData>
+                )}
+                <IdentityList
+                  list={users}
+                  onClick={async userId => {
+                    const usersToRemove = [userId]
+                    await fetch(`/api/groups/${id}/users`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ usersToRemove }),
+                    })
+
+                    mutateUsers({
+                      items: users.filter(i => i.id !== userId),
+                    })
+                  }}
+                />
+              </div>
+            </section>
+          </>
+        )}
+        <section>
+          <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+            Metadata
+          </h3>
+          <Metadata data={metadata} />
         </section>
-      )}
-    </div>
+        {admin && (
+          <section className='flex flex-1 flex-col items-end justify-end py-6'>
+            <RemoveButton
+              onRemove={async () => {
+                onDelete()
+              }}
+              modalTitle='Remove Group'
+              modalMessage={
+                <>
+                  Are you sure you want to delete{' '}
+                  <span className='font-bold text-white'>{name}</span>? This
+                  action cannot be undone.
+                </>
+              }
+            />
+          </section>
+        )}
+      </div>
+    )
   )
 }
 

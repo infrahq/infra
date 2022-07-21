@@ -89,113 +89,115 @@ function Details({ user, admin, onDelete }) {
   ].some(x => !x)
 
   return (
-    <div className='flex flex-1 flex-col space-y-6'>
-      {admin && (
-        <>
-          <section>
-            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Access
-            </h3>
-            <GrantsList
-              grants={grants}
-              onRemove={async id => {
-                await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-                mutate({ items: grants.filter(x => x.id !== id) })
-              }}
-              onChange={async (privilege, grant) => {
-                const res = await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    ...grant,
-                    privilege,
-                  }),
-                })
-
-                // delete old grant
-                await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
-                mutate({
-                  items: [
-                    ...grants.filter(f => f.id !== grant.id),
-                    await res.json(),
-                  ],
-                })
-              }}
-            />
-            {inherited?.sort(sortByResource)?.map(g => (
-              <div
-                key={g.id}
-                className='flex items-center justify-between text-2xs'
-              >
-                <div>{g.resource}</div>
-                <div className='flex flex-none'>
-                  <div
-                    title='This access is inherited by a group and cannot be edited here'
-                    className='relative mx-1 self-center rounded border border-gray-800 bg-gray-800 px-2 pt-px text-2xs text-gray-400'
-                  >
-                    inherited
-                  </div>
-                  <div className='relative w-32 flex-none py-2 pl-3 pr-8 text-left text-2xs text-gray-400'>
-                    {g.privilege}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {!grants?.length && !inherited?.length && !loading && (
-              <EmptyData>
-                <div className='mt-6'>No access</div>
-              </EmptyData>
-            )}
-          </section>
-          <section>
-            <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-              Groups
-            </h3>
-            <div className='mt-4'>
-              {groups?.length === 0 && (
-                <EmptyData>
-                  <div className='mt-6'>No groups</div>
-                </EmptyData>
-              )}
-              <IdentityList
-                list={groups}
-                onClick={async groupId => {
-                  const usersToRemove = [id]
-                  await fetch(`/api/groups/${groupId}/users`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ usersToRemove }),
+    !loading && (
+      <div className='flex flex-1 flex-col space-y-6'>
+        {admin && (
+          <>
+            <section>
+              <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+                Access
+              </h3>
+              <GrantsList
+                grants={grants}
+                onRemove={async id => {
+                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
+                  mutate({ items: grants.filter(x => x.id !== id) })
+                }}
+                onChange={async (privilege, grant) => {
+                  const res = await fetch('/api/grants', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      ...grant,
+                      privilege,
+                    }),
                   })
-                  mutateGroups({
-                    items: groups.filter(i => i.id !== groupId),
+
+                  // delete old grant
+                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
+                  mutate({
+                    items: [
+                      ...grants.filter(f => f.id !== grant.id),
+                      await res.json(),
+                    ],
                   })
                 }}
               />
-            </div>
-          </section>
-        </>
-      )}
-      <section>
-        <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-          Metadata
-        </h3>
-        <Metadata data={metadata} />
-      </section>
-      <section className='flex flex-1 flex-col items-end justify-end py-6'>
-        {auth.id !== id && (
-          <RemoveButton
-            onRemove={async () => {
-              onDelete()
-            }}
-            modalTitle='Remove User'
-            modalMessage={
-              <>
-                Are you sure you want to remove{' '}
-                <span className='font-bold text-white'>{name}?</span>
-              </>
-            }
-          />
+              {inherited?.sort(sortByResource)?.map(g => (
+                <div
+                  key={g.id}
+                  className='flex items-center justify-between text-2xs'
+                >
+                  <div>{g.resource}</div>
+                  <div className='flex flex-none'>
+                    <div
+                      title='This access is inherited by a group and cannot be edited here'
+                      className='relative mx-1 self-center rounded border border-gray-800 bg-gray-800 px-2 pt-px text-2xs text-gray-400'
+                    >
+                      inherited
+                    </div>
+                    <div className='relative w-32 flex-none py-2 pl-3 pr-8 text-left text-2xs text-gray-400'>
+                      {g.privilege}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {!grants?.length && !inherited?.length && !loading && (
+                <EmptyData>
+                  <div className='mt-6'>No access</div>
+                </EmptyData>
+              )}
+            </section>
+            <section>
+              <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+                Groups
+              </h3>
+              <div className='mt-4'>
+                {groups?.length === 0 && (
+                  <EmptyData>
+                    <div className='mt-6'>No groups</div>
+                  </EmptyData>
+                )}
+                <IdentityList
+                  list={groups}
+                  onClick={async groupId => {
+                    const usersToRemove = [id]
+                    await fetch(`/api/groups/${groupId}/users`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ usersToRemove }),
+                    })
+                    mutateGroups({
+                      items: groups.filter(i => i.id !== groupId),
+                    })
+                  }}
+                />
+              </div>
+            </section>
+          </>
         )}
-      </section>
-    </div>
+        <section>
+          <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+            Metadata
+          </h3>
+          <Metadata data={metadata} />
+        </section>
+        <section className='flex flex-1 flex-col items-end justify-end py-6'>
+          {auth.id !== id && (
+            <RemoveButton
+              onRemove={async () => {
+                onDelete()
+              }}
+              modalTitle='Remove User'
+              modalMessage={
+                <>
+                  Are you sure you want to remove{' '}
+                  <span className='font-bold text-white'>{name}?</span>
+                </>
+              }
+            />
+          )}
+        </section>
+      </div>
+    )
   )
 }
 
