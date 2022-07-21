@@ -50,7 +50,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 		b := bond
 		b.ID = 0
 		err := CreateIdentity(db, &b)
-		assert.ErrorContains(t, err, "value for name already exists for identities")
+		assert.ErrorContains(t, err, "a user with that name already exists")
 	})
 }
 

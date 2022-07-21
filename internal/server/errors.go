@@ -53,6 +53,10 @@ func sendAPIError(c *gin.Context, err error) {
 	case errors.As(err, &uniqueConstraintError):
 		resp.Code = http.StatusConflict
 		resp.Message = err.Error()
+		resp.FieldErrors = append(resp.FieldErrors, api.FieldError{
+			FieldName: uniqueConstraintError.Column,
+			Errors:    []string{err.Error()},
+		})
 
 	case errors.Is(err, internal.ErrNotFound):
 		resp.Code = http.StatusNotFound
