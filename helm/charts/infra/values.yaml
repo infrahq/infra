@@ -5,7 +5,6 @@ nameOverride: ""
 fullnameOverride: ""
 
 global:
-
   image:
     ## The image repository to use for all deployments
     repository: infrahq/infra
