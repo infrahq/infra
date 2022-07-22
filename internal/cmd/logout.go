@@ -63,6 +63,7 @@ $ infra logout --all --clear`,
 }
 
 func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
+
 	if !hostConfig.isLoggedIn() {
 		logging.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
 		return false

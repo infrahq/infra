@@ -338,5 +338,10 @@ func TestLogout(t *testing.T) {
 
 		assert.NilError(t, err)
 		assert.Equal(t, int32(1), atomic.LoadInt32(testFields.count), "calls to API")
+
+		updatedKubeCfg, err := clientConfig().RawConfig()
+		expectedKubeCfg.CurrentContext = "keep:non-infra"
+		assert.NilError(t, err)
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
 	})
 }
