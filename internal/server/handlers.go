@@ -180,8 +180,7 @@ func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteAuthCookie(c)
-
+	deleteAuthCookie(c.Writer)
 	return nil, nil
 }
 
