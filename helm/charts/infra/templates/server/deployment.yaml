@@ -89,6 +89,22 @@ spec:
             timeoutSeconds: {{ .Values.server.readinessProbe.timeoutSeconds }}
           resources:
 {{- toYaml .Values.server.resources | nindent 12 }}
+{{- if .Values.server.persistence.enabled }}
+      initContainers:
+        - name: chown-sqlite3
+          image: alpine:latest
+          command: [sh, -c]
+          args:
+            - 'find /var/lib/infrahq/server -type f -name "sqlite3.*" -exec chown $RUN_AS_USER:$RUN_AS_GROUP {} \;'
+          env:
+            - name: RUN_AS_USER
+              value: "{{ .Values.server.securityContext.runAsUser | default .Values.server.podSecurityContext.runAsUser | default 1000 }}"
+            - name: RUN_AS_GROUP
+              value: "{{ .Values.server.securityContext.runAsGroup | default .Values.server.podSecurityContext.runAsGroup | default 1000 }}"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/infrahq/server
+{{- end }}
       volumes:
         - name: conf
           configMap:
