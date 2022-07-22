@@ -120,8 +120,9 @@ server:
   #   fsGroup: 2000
 
   ## Security context for the server container
-  securityContext: 
+  securityContext:
     readOnlyRootFilesystem: true
+    # runAsUser: 1000
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
@@ -613,8 +614,9 @@ connector:
   #   fsGroup: 2000
 
   ## Security context for the connector container
-  securityContext: 
+  securityContext:
     readOnlyRootFilesystem: true
+    # runAsUser: 1000
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
