@@ -135,6 +135,17 @@ func authenticatedMiddleware(secrets map[string]secrets.SecretStorage) gin.Handl
 	}
 }
 
+func unauthenticatedMiddleware(secrets map[string]secrets.SecretStorage) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rCtx := RequestContext{
+			Request:       c.Request,
+			DBTxn:         getDB(c),
+			secretStorage: secrets,
+		}
+		c.Set("requestContext", rCtx)
+	}
+}
+
 func getRequestContext(c *gin.Context) RequestContext {
 	raw, ok := c.Get("requestContext")
 	if !ok {

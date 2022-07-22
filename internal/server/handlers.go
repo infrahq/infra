@@ -108,6 +108,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	return identity.ToAPI(), nil
 }
 
+// TODO: remove method receiver
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	rCtx := getRequestContext(c)
 	var loginMethod authn.LoginMethod
@@ -136,8 +137,12 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)
 	}
 
-	// do the actual login now that we know the method selected
-	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	key, bearer, err := authn.Login(
+		rCtx.Request.Context(),
+		rCtx.DBTxn,
+		loginMethod,
+		expires,
+		a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
@@ -148,11 +153,25 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
 
+	// In the case of username/password credentials,
+	// the login may fail if the password presented was a one-time password that has been used.
+	// This can be removed when #1441 is resolved
+	requiresUpdate, err := loginMethod.RequiresUpdate(rCtx.DBTxn)
+	if err != nil {
+		return nil, err
+	}
+
 	setAuthCookie(c, bearer, expires)
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
-	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
+	return &api.LoginResponse{
+		UserID:                 key.IssuedFor,
+		Name:                   key.IssuedForIdentity.Name,
+		AccessKey:              bearer,
+		Expires:                api.Time(expires),
+		PasswordUpdateRequired: requiresUpdate,
+	}, nil
 }
 
 func Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {

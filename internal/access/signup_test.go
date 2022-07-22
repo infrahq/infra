@@ -113,10 +113,18 @@ func TestSignupEnabled(t *testing.T) {
 
 		// check "admin" user can login
 		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)
-		key, _, requiresUpdate, err := Login(c, userPassLogin, time.Now().Add(time.Hour), time.Hour)
+		key, _, err := authn.Login(
+			c.Request.Context(),
+			db,
+			userPassLogin,
+			time.Now().Add(time.Hour),
+			time.Hour)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.ID, key.IssuedFor)
-		assert.Equal(t, requiresUpdate, false)
+
+		requiresUpdate, err := userPassLogin.RequiresUpdate(db)
+		assert.NilError(t, err)
+		assert.Assert(t, !requiresUpdate)
 
 		c.Set("identity", identity)
 
