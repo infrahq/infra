@@ -12,10 +12,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
@@ -58,7 +56,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
-	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
+	apiGroup.GET("/.well-known/jwks.json", wellKnownJWKsHandler)
 
 	authn := apiGroup.Group("/", authenticatedMiddleware(s.secrets))
 
@@ -255,22 +253,6 @@ func bind(c *gin.Context, req interface{}) error {
 
 func init() {
 	gin.DisableBindValidation()
-}
-
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
-}
-
-func (a *API) wellKnownJWKsHandler(c *gin.Context) {
-	keys, err := access.GetPublicJWK(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, WellKnownJWKResponse{
-		Keys: keys,
-	})
 }
 
 func healthHandler(c *gin.Context) {

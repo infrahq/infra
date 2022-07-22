@@ -3,8 +3,11 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gopkg.in/square/go-jose.v2"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -12,6 +15,35 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
+
+type WellKnownJWKResponse struct {
+	Keys []jose.JSONWebKey `json:"keys"`
+}
+
+func wellKnownJWKsHandler(c *gin.Context) {
+	db := getDB(c)
+	keys, err := getPublicJWK(db)
+	if err != nil {
+		sendAPIError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, WellKnownJWKResponse{Keys: keys})
+}
+
+func getPublicJWK(db *gorm.DB) ([]jose.JSONWebKey, error) {
+	settings, err := data.GetSettings(db)
+	if err != nil {
+		return nil, fmt.Errorf("could not get JWKs: %w", err)
+	}
+
+	var pubKey jose.JSONWebKey
+	if err := pubKey.UnmarshalJSON(settings.PublicJWK); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal public JWK: %w", err)
+	}
+
+	return []jose.JSONWebKey{pubKey}, nil
+}
 
 func CreateToken(c *gin.Context, _ *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	rCtx := getRequestContext(c)
