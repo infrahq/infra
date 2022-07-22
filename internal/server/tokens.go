@@ -11,7 +11,6 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 )
 
 // TODO: remove method receiver
@@ -35,52 +34,34 @@ func (a *API) CreateToken(c *gin.Context, _ *api.EmptyRequest) (*api.CreateToken
 	return &api.CreateTokenResponse{Token: token.Token, Expires: api.Time(token.Expires)}, nil
 }
 
-// updateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
+// updateIdentityInfoFromProvider calls the identity provider used to authenticate
+// this user session to update their current information.
 func (a *API) updateIdentityInfoFromProvider(rCtx RequestContext) error {
-	provider, redirectURL, err := getContextProviderIdentity(rCtx)
+	db := rCtx.DBTxn
+
+	providerUser, err := data.GetProviderUser(
+		db,
+		rCtx.Authenticated.AccessKey.ProviderID,
+		rCtx.Authenticated.User.ID)
 	if err != nil {
 		return err
+	}
+
+	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	if err != nil {
+		return fmt.Errorf("user info provider: %w", err)
 	}
 
 	if provider.Name == models.InternalInfraProviderName || provider.Kind == models.ProviderKindInfra {
 		return nil
 	}
 
-	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)
+	oidc, err := a.providerClient(rCtx.Request.Context(), provider, providerUser.RedirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
 
-	return updateIdentityInfoFromProvider(rCtx, oidc)
-}
-
-func getContextProviderIdentity(rCtx RequestContext) (*models.Provider, string, error) {
-	providerUser, err := data.GetProviderUser(
-		rCtx.DBTxn,
-		rCtx.Authenticated.AccessKey.ProviderID,
-		rCtx.Authenticated.User.ID)
-	if err != nil {
-		return nil, "", err
-	}
-
-	provider, err := data.GetProvider(rCtx.DBTxn, data.ByID(providerUser.ProviderID))
-	if err != nil {
-		return nil, "", fmt.Errorf("user info provider: %w", err)
-	}
-
-	return provider, providerUser.RedirectURL, nil
-}
-
-// updateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func updateIdentityInfoFromProvider(rCtx RequestContext, oidc providers.OIDCClient) error {
 	ctx := rCtx.Request.Context()
-	db := rCtx.DBTxn
-
-	provider, err := data.GetProvider(db, data.ByID(rCtx.Authenticated.AccessKey.ProviderID))
-	if err != nil {
-		return fmt.Errorf("user info provider: %w", err)
-	}
-
 	user := rCtx.Authenticated.User
 	// get current identity provider groups and account status
 	err = data.SyncProviderUser(ctx, db, user, provider, oidc)
