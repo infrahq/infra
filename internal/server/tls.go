@@ -7,7 +7,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"net"
-	"os"
 	"sync"
 
 	"github.com/infrahq/secrets"
@@ -17,20 +16,35 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
+// MapCache is a simple in-memory caching mechanism, it is not thread safe
+type MapCache map[string][]byte
+
+func (m MapCache) Get(_ context.Context, name string) ([]byte, error) {
+	data, cached := m[name]
+	if !cached {
+		return nil, autocert.ErrCacheMiss
+	}
+	return data, nil
+}
+
+func (m MapCache) Put(_ context.Context, name string, data []byte) error {
+	m[name] = data
+	return nil
+}
+
+func (m MapCache) Delete(_ context.Context, name string) error {
+	delete(m, name)
+	return nil
+}
+
 func tlsConfigFromOptions(
 	storage map[string]secrets.SecretStorage,
-	tlsCacheDir string,
 	opts TLSOptions,
 ) (*tls.Config, error) {
 	// TODO: how can we test this?
 	if opts.ACME {
-		if err := os.MkdirAll(tlsCacheDir, 0o700); err != nil {
-			return nil, fmt.Errorf("create tls cache: %w", err)
-		}
-
 		manager := &autocert.Manager{
 			Prompt: autocert.AcceptTOS,
-			Cache:  autocert.DirCache(tlsCacheDir),
 			// TODO: according to the docs HostPolicy should be set to prevent
 			// a DoS attack on certificate requests.
 			// See https://github.com/infrahq/infra/issues/2484
@@ -91,7 +105,9 @@ func tlsConfigFromOptions(
 	}
 
 	ca := keyPair{cert: []byte(opts.CA), key: []byte(key)}
-	cfg.GetCertificate = getCertificate(autocert.DirCache(tlsCacheDir), ca)
+	certCache := make(MapCache)
+
+	cfg.GetCertificate = getCertificate(certCache, ca)
 	return cfg, nil
 }
 
@@ -103,9 +119,9 @@ type keyPair struct {
 func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	var lock sync.RWMutex
 
-	getKeyPair := func(ctx context.Context, serverName string) (cert, key []byte) {
-		certBytes, _ := cache.Get(ctx, serverName+".crt")
-		keyBytes, _ := cache.Get(ctx, serverName+".key")
+	getKeyPair := func(serverName string) (cert, key []byte) {
+		certBytes, _ := cache.Get(context.TODO(), serverName+".crt")
+		keyBytes, _ := cache.Get(context.TODO(), serverName+".key")
 		if certBytes == nil || keyBytes == nil {
 			logging.Infof("no cached TLS cert for %v", serverName)
 		}
@@ -113,7 +129,6 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 	}
 
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-		ctx := hello.Context()
 		serverName := hello.ServerName
 
 		if serverName == "" {
@@ -125,7 +140,7 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 		}
 
 		lock.RLock()
-		certBytes, keyBytes := getKeyPair(ctx, serverName)
+		certBytes, keyBytes := getKeyPair(serverName)
 		lock.RUnlock()
 		if certBytes != nil && keyBytes != nil {
 			return tlsCertFromKeyPair(certBytes, keyBytes)
@@ -133,7 +148,7 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 
 		lock.Lock()
 		// must check again after write lock is acquired
-		certBytes, keyBytes = getKeyPair(ctx, serverName)
+		certBytes, keyBytes = getKeyPair(serverName)
 		defer lock.Unlock()
 		if certBytes != nil && keyBytes != nil {
 			return tlsCertFromKeyPair(certBytes, keyBytes)
@@ -161,11 +176,11 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 		// CLI can prompt the user to trust the CA.
 		certBytes = append(certBytes, ca.cert...)
 
-		if err := cache.Put(ctx, serverName+".crt", certBytes); err != nil {
+		if err := cache.Put(context.TODO(), serverName+".crt", certBytes); err != nil {
 			return nil, err
 		}
 
-		if err := cache.Put(ctx, serverName+".key", keyBytes); err != nil {
+		if err := cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
 			return nil, err
 		}
 

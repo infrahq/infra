@@ -28,7 +28,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 			Certificate: types.StringOrFile(golden.Get(t, "pki/localhost.crt")),
 			PrivateKey:  "file:testdata/pki/localhost.key",
 		}
-		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
+		config, err := tlsConfigFromOptions(storage, opts)
 		assert.NilError(t, err)
 
 		srv := httptest.NewUnstartedServer(noopHandler)
@@ -57,7 +57,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 			CA:           types.StringOrFile(ca),
 			CAPrivateKey: "file:testdata/pki/ca.key",
 		}
-		config, err := tlsConfigFromOptions(storage, t.TempDir(), opts)
+		config, err := tlsConfigFromOptions(storage, opts)
 		assert.NilError(t, err)
 
 		l, err := net.Listen("tcp", "127.0.0.1:0")

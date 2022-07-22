@@ -57,6 +57,15 @@ func infraHomeDir() (string, error) {
 
 	infraDir := filepath.Join(homeDir, ".infra")
 
+	return infraDir, nil
+}
+
+func initInfraHomeDir() (string, error) {
+	infraDir, err := infraHomeDir()
+	if err != nil {
+		return "", err
+	}
+
 	if err := os.MkdirAll(infraDir, os.ModePerm); err != nil {
 		return "", err
 	}
@@ -65,7 +74,7 @@ func infraHomeDir() (string, error) {
 }
 
 func readConfig() (*ClientConfig, error) {
-	infraDir, err := infraHomeDir()
+	infraDir, err := initInfraHomeDir()
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +129,7 @@ func readConfig() (*ClientConfig, error) {
 }
 
 func writeConfig(config *ClientConfig) error {
-	infraDir, err := infraHomeDir()
+	infraDir, err := initInfraHomeDir()
 	if err != nil {
 		return err
 	}
