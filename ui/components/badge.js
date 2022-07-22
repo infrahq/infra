@@ -9,7 +9,7 @@ export default function Badge({ children, onRemove }) {
       <div className='flex flex-auto flex-row-reverse pl-1'>
         <XIcon
           className='h-2 w-2 hover:cursor-pointer'
-          data-testid='badgeRemoveIcon'
+          data-testid='badge-remove-icon'
           aria-hidden='true'
           onClick={onRemove}
         />

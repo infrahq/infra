@@ -13,6 +13,7 @@ export default function RemoveButton({
   return (
     <>
       <button
+        data-testid='remove-button'
         type='button'
         onClick={() => setModalOpen(true)}
         className='flex items-center rounded-md border border-violet-300 px-6 py-3 text-2xs text-violet-100'

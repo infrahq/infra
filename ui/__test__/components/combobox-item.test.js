@@ -15,12 +15,12 @@ describe('Combobx Item Component', () => {
 
     expect(screen.getByText(title)).toBeInTheDocument()
     expect(screen.getByText(subtitle)).toBeInTheDocument()
-    expect(screen.queryByTestId('selectedIcon')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('selected-icon')).not.toBeInTheDocument()
   })
 
   it('should render check icon', () => {
     render(<ComboboxItem title={title} subtitle={subtitle} selected />)
 
-    expect(screen.queryByTestId('selectedIcon')).toBeInTheDocument()
+    expect(screen.queryByTestId('selected-icon')).toBeInTheDocument()
   })
 })
