@@ -93,7 +93,6 @@ func getDB(c *gin.Context) *gorm.DB {
 	if !ok {
 		return nil
 	}
-
 	return db
 }
 
@@ -126,6 +125,18 @@ func authenticatedMiddleware() gin.HandlerFunc {
 		}
 		c.Next()
 	}
+}
+
+func getRequestContext(c *gin.Context) RequestContext {
+	raw, ok := c.Get("requestContext")
+	if !ok {
+		return RequestContext{}
+	}
+	rCtx, ok := raw.(RequestContext)
+	if !ok {
+		return RequestContext{}
+	}
+	return rCtx
 }
 
 type Authenticated struct {

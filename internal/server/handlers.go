@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 )
@@ -175,13 +176,13 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 }
 
 func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteRequestAccessKey(c)
-	if err != nil {
+	rCtx := getRequestContext(c)
+
+	if err := data.DeleteAccessKey(rCtx.DBTxn, rCtx.Authenticated.AccessKey.ID); err != nil {
 		return nil, err
 	}
 
 	deleteAuthCookie(c)
-
 	return nil, nil
 }
 

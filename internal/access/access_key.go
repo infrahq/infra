@@ -56,12 +56,3 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 
 	return data.DeleteAccessKeys(db, data.ByID(id))
 }
-
-func DeleteRequestAccessKey(c *gin.Context) error {
-	// does not need authorization check, this action is limited to the calling key
-	key := currentAccessKey(c)
-
-	db := getDB(c)
-
-	return data.DeleteAccessKey(db, key.ID)
-}
