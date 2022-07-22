@@ -2,23 +2,6 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid'
 
-function getPageNums(selected, count, totalPages) {
-  const pageNums = []
-  const beginOffset = Math.max(
-    Math.floor(count / 2),
-    count - 1 + selected - totalPages
-  )
-  for (
-    let i = Math.max(1, selected - beginOffset);
-    pageNums.length < count && i <= totalPages;
-    i++
-  ) {
-    pageNums.push(i)
-  }
-
-  return pageNums
-}
-
 function Pages({ path, selected, count, totalPages }) {
   const pages = []
   const beginOffset = Math.max(
@@ -39,20 +22,10 @@ function Pages({ path, selected, count, totalPages }) {
       {page}
     </a>
   </Link>)
-
-  return pages
   }
 
-  return getPageNums(selected, count, totalPages).map(page => (
-    <Link key={page} href={path + '?p=' + page}>
-      <a
-        className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
-          selected === page ? 'rounded-md text-violet-300' : ''
-        }`}
-      >
-        {page}
-      </a>
-    </Link>
+  return pages.map(page => (
+    page
   ))
 }
 
