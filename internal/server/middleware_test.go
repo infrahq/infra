@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
@@ -260,16 +261,11 @@ func TestRequireAuthentication(t *testing.T) {
 }
 
 func TestDestinationMiddleware(t *testing.T) {
-	db := setupDB(t)
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	db := srv.db
 
-	router := gin.New()
-	router.Use(
-		DatabaseMiddleware(db),
-		AuthenticationMiddleware(),
-		DestinationMiddleware(),
-	)
-
-	connector := models.Identity{Name: "connector"}
+	connector := models.Identity{Name: "connectorA"}
 	err := data.CreateIdentity(db, &connector)
 	assert.NilError(t, err)
 
@@ -289,21 +285,16 @@ func TestDestinationMiddleware(t *testing.T) {
 	secret, err := data.CreateAccessKey(db, &token)
 	assert.NilError(t, err)
 
-	router.GET("/good", func(c *gin.Context) {
-		assert.Equal(t, c.Request.Method, http.MethodGet)
-		assert.Equal(t, c.Request.URL.Path, "/good")
-	})
-
 	t.Run("good", func(t *testing.T) {
 		destination := &models.Destination{Name: t.Name(), UniqueID: t.Name()}
 		err := data.CreateDestination(db, destination)
 		assert.NilError(t, err)
 
-		r := httptest.NewRequest("GET", "/good", nil)
+		r := httptest.NewRequest("GET", "/api/grants", nil)
 		r.Header.Add("Infra-Destination", destination.UniqueID)
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, r)
+		routes.ServeHTTP(w, r)
 
 		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
 		assert.NilError(t, err)
@@ -318,7 +309,7 @@ func TestDestinationMiddleware(t *testing.T) {
 		r := httptest.NewRequest("GET", "/good", nil)
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, r)
+		routes.ServeHTTP(w, r)
 
 		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
 		assert.NilError(t, err)
@@ -330,7 +321,7 @@ func TestDestinationMiddleware(t *testing.T) {
 		r.Header.Add("Infra-Destination", "nonexistent")
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
 		w := httptest.NewRecorder()
-		router.ServeHTTP(w, r)
+		routes.ServeHTTP(w, r)
 
 		_, err := data.GetDestination(db, data.ByOptionalUniqueID("nonexistent"))
 		assert.ErrorIs(t, err, internal.ErrNotFound)
