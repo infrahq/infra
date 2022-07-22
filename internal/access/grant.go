@@ -72,7 +72,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 }
 
 func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
-	groups, err := data.ListGroups(db, nil, data.ByGroupMember(authnUserID), data.ByID(groupID))
+	groups, err := data.ListGroups(db, &models.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
 	if err != nil {
 		return false
 	}

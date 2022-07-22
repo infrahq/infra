@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -127,7 +128,7 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
 func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := data.ListGrants(db, nil, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
+	grants, err := data.ListGrants(db, &models.Pagination{Limit: 1}, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)
 	}
