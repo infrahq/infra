@@ -220,14 +220,12 @@ func TestRequireAccessKey(t *testing.T) {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 
 				r.AddCookie(&http.Cookie{
-					Name:     CookieAuthorizationName,
-					Value:    "",
+					Name:     cookieAuthorizationName,
 					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
-					Path:     CookiePath,
-					Domain:   CookieDomain,
+					Path:     cookiePath,
 					SameSite: http.SameSiteStrictMode,
-					Secure:   CookieSecureHTTPSOnly,
-					HttpOnly: CookieHTTPOnlyNotJavascriptAccessible,
+					Secure:   true,
+					HttpOnly: true,
 				})
 
 				r.Header.Add("Authorization", " ")

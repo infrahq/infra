@@ -156,7 +156,7 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (Authenticated, error) {
 		bearer = parts[1]
 	} else {
 		// Fall back to checking cookies
-		cookie, err := getCookie(req, CookieAuthorizationName)
+		cookie, err := getCookie(req, cookieAuthorizationName)
 		if err != nil {
 			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
 		}
