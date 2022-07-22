@@ -206,6 +206,7 @@ function Details({ user, admin, onDelete }) {
 export default function Users() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
   const {
     data: { items, totalPages, totalCount } = {
       items: [],
@@ -214,7 +215,7 @@ export default function Users() {
     },
     error,
     mutate,
-  } = useSWR(`/api/users?page=${page}&limit=13`)
+  } = useSWR(`/api/users?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({
@@ -270,6 +271,7 @@ export default function Users() {
                 curr={page}
                 totalPages={totalPages}
                 totalCount={totalCount}
+                limit={limit}
               ></Pagination>
             )}
           </div>

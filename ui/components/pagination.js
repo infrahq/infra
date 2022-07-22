@@ -13,20 +13,20 @@ function Pages({ path, selected, count, totalPages }) {
     pages.length < count && page <= totalPages;
     page++
   ) {
-    pages.push(<Link key={page} href={path + '?p=' + page}>
-    <a
-      className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
-        selected === page ? 'rounded-md text-violet-300' : ''
-      }`}
-    >
-      {page}
-    </a>
-  </Link>)
+    pages.push(
+      <Link key={page} href={path + '?p=' + page}>
+        <a
+          className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
+            selected === page ? 'rounded-md text-violet-300' : ''
+          }`}
+        >
+          {page}
+        </a>
+      </Link>
+    )
   }
 
-  return pages.map(page => (
-    page
-  ))
+  return pages.map(page => page)
 }
 
 function Arrow({ path, direction }) {

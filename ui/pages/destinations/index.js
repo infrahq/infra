@@ -322,6 +322,7 @@ const columns = [
 export default function Destinations() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13 // TODO: make limit dynamic
 
   const {
     data: { items: destinations, totalPages, totalCount } = {
@@ -331,7 +332,7 @@ export default function Destinations() {
     },
     error,
     mutate,
-  } = useSWR(`/api/destinations?page=${page}&limit=13`)
+  } = useSWR(`/api/destinations?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
@@ -398,6 +399,7 @@ export default function Destinations() {
                 curr={page}
                 totalPages={totalPages}
                 totalCount={totalCount}
+                limit={limit}
               ></Pagination>
             )}
           </div>

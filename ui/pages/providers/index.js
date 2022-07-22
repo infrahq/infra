@@ -104,6 +104,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
 export default function Providers() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
   const {
     data: { items: providers, totalPages, totalCount } = {
       items: [],
@@ -111,7 +112,7 @@ export default function Providers() {
       totalPages: 0,
     },
     error,
-  } = useSWR(`/api/providers?page=${page}&limit=13`)
+  } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
   console.log(page, totalPages, totalCount)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
@@ -173,6 +174,7 @@ export default function Providers() {
                 curr={page}
                 totalPages={totalPages}
                 totalCount={totalCount}
+                limit={limit}
               ></Pagination>
             )}
           </div>
