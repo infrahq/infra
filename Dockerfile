@@ -48,9 +48,5 @@ FROM alpine
 COPY --from=builder /go/src/github.com/infrahq/infra/infra /bin/infra
 EXPOSE 80
 EXPOSE 443
-ARG USER=infra
-ARG GROUP=infra
-RUN addgroup -g 1000 $GROUP && adduser -u 1000 -DG $GROUP $USER
-USER $USER:$GROUP
 ENTRYPOINT ["/bin/infra"]
 CMD ["server"]
