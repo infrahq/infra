@@ -60,7 +60,6 @@ func tlsConfigFromOptions(
 	if opts.ACME {
 		manager := &autocert.Manager{
 			Prompt: autocert.AcceptTOS,
-			// Cache:  autocert.DirCache(tlsCacheDir),
 			// TODO: according to the docs HostPolicy should be set to prevent
 			// a DoS attack on certificate requests.
 			// See https://github.com/infrahq/infra/issues/2484
