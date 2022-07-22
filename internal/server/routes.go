@@ -38,6 +38,9 @@ type Routes struct {
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	a := &API{t: s.tel, server: s}
+	a.addRewrites()
+	a.addRedirects()
+
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
 
@@ -50,9 +53,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		TimeoutMiddleware(1*time.Minute),
 	)
 
-	a.addRewrites()
-	a.addRedirects()
-
 	// This group of middleware only applies to non-ui routes
 	apiGroup := router.Group("/",
 		metrics.Middleware(promRegistry),
@@ -60,10 +60,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/",
-		AuthenticationMiddleware(),
-		DestinationMiddleware(),
-	)
+	authn := apiGroup.Group("/", authenticatedMiddleware())
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
