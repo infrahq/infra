@@ -130,13 +130,13 @@ export default function Login() {
       >
         <div className='my-2 w-full'>
           <label htmlFor='name' className='text-3xs uppercase text-gray-500'>
-            Username or Email
+            Email
           </label>
           <input
             required
             autoFocus
             id='name'
-            placeholder='enter your username or email'
+            placeholder='enter your email'
             onChange={e => {
               setName(e.target.value)
               setError('')
