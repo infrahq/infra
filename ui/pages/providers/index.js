@@ -113,7 +113,6 @@ export default function Providers() {
     },
     error,
   } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
-  console.log(page, totalPages, totalCount)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
     columns,

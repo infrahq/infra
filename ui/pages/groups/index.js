@@ -169,7 +169,6 @@ function Details({ group, admin, onDelete }) {
                 existMembers={existMembers}
                 onClick={async () => {
                   const usersToAdd = emails.map(email => email.id)
-                  console.log(emails)
                   await fetch(`/api/groups/${id}/users`, {
                     method: 'PATCH',
                     body: JSON.stringify({ usersToAdd }),
