@@ -7,10 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -115,70 +113,4 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 	}
 
 	return data.ListIdentities(db.Preload("Providers"), p, selectors...)
-}
-
-func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error) {
-	// added by the authentication middleware
-	identity := AuthenticatedIdentity(c)
-	if identity == nil {
-		return nil, "", errors.New("user does not have session with an identity provider")
-	}
-
-	// does not need authorization check, this action is limited to the calling user
-	db := getDB(c)
-
-	accessKey := currentAccessKey(c)
-
-	providerUser, err := data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
-	if err != nil {
-		return nil, "", err
-	}
-
-	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
-	if err != nil {
-		return nil, "", fmt.Errorf("user info provider: %w", err)
-	}
-
-	return provider, providerUser.RedirectURL, nil
-}
-
-// UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) error {
-	ctx := c.Request.Context()
-
-	// added by the authentication middleware
-	identity := AuthenticatedIdentity(c)
-	if identity == nil {
-		return errors.New("user does not have session with an identity provider")
-	}
-
-	// does not need authorization check, this action is limited to the calling user
-	db := getDB(c)
-
-	accessKey := currentAccessKey(c)
-
-	provider, err := data.GetProvider(db, data.ByID(accessKey.ProviderID))
-	if err != nil {
-		return fmt.Errorf("user info provider: %w", err)
-	}
-
-	// get current identity provider groups and account status
-	err = data.SyncProviderUser(ctx, db, identity, provider, oidc)
-	if err != nil {
-		if errors.Is(err, internal.ErrBadGateway) {
-			return err
-		}
-
-		if nestedErr := data.DeleteAccessKeys(db, data.ByIssuedFor(identity.ID)); nestedErr != nil {
-			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
-		}
-
-		if nestedErr := data.DeleteProviderUsers(db, data.ByIdentityID(identity.ID), data.ByProviderID(provider.ID)); nestedErr != nil {
-			logging.Errorf("failed to delete provider user: %s", nestedErr)
-		}
-
-		return fmt.Errorf("sync user: %w", err)
-	}
-
-	return nil
 }

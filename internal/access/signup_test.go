@@ -97,7 +97,7 @@ func TestSignupEnabled(t *testing.T) {
 	pass := "password"
 
 	t.Run("SignupUser", func(t *testing.T) {
-		c, _ := setup(t)
+		c, db := setup(t)
 
 		enabled, err := SignupEnabled(c)
 		assert.NilError(t, err)
@@ -121,7 +121,7 @@ func TestSignupEnabled(t *testing.T) {
 		c.Set("identity", identity)
 
 		// check "admin" can create token
-		_, err = CreateToken(c)
+		_, err = data.CreateIdentityToken(db, identity.ID)
 		assert.NilError(t, err)
 	})
 }

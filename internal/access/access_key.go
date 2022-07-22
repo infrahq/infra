@@ -10,15 +10,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func currentAccessKey(c *gin.Context) *models.AccessKey {
-	accessKey, ok := c.MustGet("key").(*models.AccessKey)
-	if !ok {
-		return nil
-	}
-
-	return accessKey
-}
-
 func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p *models.Pagination) ([]models.AccessKey, error) {
 	roles := []string{models.InfraAdminRole, models.InfraViewRole}
 	db, err := RequireInfraRole(c, roles...)
