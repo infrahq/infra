@@ -13,15 +13,13 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-// TODO: remove method receiver
-func (a *API) CreateToken(c *gin.Context, _ *api.EmptyRequest) (*api.CreateTokenResponse, error) {
+func CreateToken(c *gin.Context, _ *api.EmptyRequest) (*api.CreateTokenResponse, error) {
 	rCtx := getRequestContext(c)
 	if rCtx.Authenticated.User == nil {
 		return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
 	}
 
-	err := a.updateIdentityInfoFromProvider(rCtx)
-	if err != nil {
+	if err := updateIdentityInfoFromProvider(rCtx); err != nil {
 		// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 		return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 	}
@@ -36,7 +34,7 @@ func (a *API) CreateToken(c *gin.Context, _ *api.EmptyRequest) (*api.CreateToken
 
 // updateIdentityInfoFromProvider calls the identity provider used to authenticate
 // this user session to update their current information.
-func (a *API) updateIdentityInfoFromProvider(rCtx RequestContext) error {
+func updateIdentityInfoFromProvider(rCtx RequestContext) error {
 	db := rCtx.DBTxn
 
 	providerUser, err := data.GetProviderUser(
@@ -56,7 +54,7 @@ func (a *API) updateIdentityInfoFromProvider(rCtx RequestContext) error {
 		return nil
 	}
 
-	oidc, err := a.providerClient(rCtx.Request.Context(), provider, providerUser.RedirectURL)
+	oidc, err := newProviderOIDCClient(rCtx, provider, providerUser.RedirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}

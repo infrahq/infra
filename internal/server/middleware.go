@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/infrahq/secrets"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -40,6 +41,12 @@ type RequestContext struct {
 	Request       *http.Request
 	DBTxn         *gorm.DB
 	Authenticated Authenticated
+
+	secretStorage map[string]secrets.SecretStorage
+}
+
+func (r RequestContext) GetSecret(key string) (string, error) {
+	return secrets.GetSecret(key, r.secretStorage)
 }
 
 // DatabaseMiddleware injects a `db` object into the Gin context.
@@ -99,7 +106,7 @@ func getDB(c *gin.Context) *gorm.DB {
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware() gin.HandlerFunc {
+func authenticatedMiddleware(secrets map[string]secrets.SecretStorage) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := getDB(c)
 		authned, err := requireAccessKey(db, c.Request)
@@ -112,6 +119,7 @@ func authenticatedMiddleware() gin.HandlerFunc {
 			Request:       c.Request,
 			DBTxn:         db,
 			Authenticated: authned,
+			secretStorage: secrets,
 		}
 		c.Set("requestContext", rCtx)
 

@@ -1,14 +1,12 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/secrets"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -111,6 +109,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
+	rCtx := getRequestContext(c)
 	var loginMethod authn.LoginMethod
 
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
@@ -126,7 +125,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			return nil, fmt.Errorf("invalid identity provider: %w", err)
 		}
 
-		providerClient, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
+		providerClient, err := newProviderOIDCClient(rCtx, provider, r.OIDC.RedirectURL)
 		if err != nil {
 			return nil, fmt.Errorf("update provider client: %w", err)
 		}
@@ -171,13 +170,13 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 	return &api.Version{Version: internal.FullVersion()}, nil
 }
 
-func (a *API) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
-	if c := providers.OIDCClientFromContext(ctx); c != nil {
+func newProviderOIDCClient(rCtx RequestContext, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {
+	if c := providers.OIDCClientFromContext(rCtx.Request.Context()); c != nil {
 		// oidc is added to the context during unit tests
 		return c, nil
 	}
 
-	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
+	clientSecret, err := rCtx.GetSecret(string(provider.ClientSecret))
 	if err != nil {
 		logging.Debugf("could not get client secret: %s", err)
 		return nil, fmt.Errorf("client secret not found")

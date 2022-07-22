@@ -60,7 +60,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/", authenticatedMiddleware())
+	authn := apiGroup.Group("/", authenticatedMiddleware(s.secrets))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -93,7 +93,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	put(a, authn, "/api/destinations/:id", a.UpdateDestination)
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
-	post(a, authn, "/api/tokens", a.CreateToken)
+	post(a, authn, "/api/tokens", CreateToken)
 	post(a, authn, "/api/logout", Logout)
 
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
