@@ -9,6 +9,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -44,6 +45,7 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
+	rCtx := getRequestContext(c)
 	user := &models.Identity{Name: r.Name}
 	infraProvider := access.InfraProvider(c)
 
@@ -70,7 +72,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		Name: user.Name,
 	}
 
-	_, err = access.CreateProviderUser(c, infraProvider, user)
+	_, err = data.CreateProviderUser(rCtx.DBTxn, infraProvider, user)
 	if err != nil {
 		return nil, fmt.Errorf("creating provider user: %w", err)
 	}
@@ -87,6 +89,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
+	rCtx := getRequestContext(c)
 	// right now this endpoint can only update a user's credentials, so get the user identity
 	identity, err := access.GetIdentity(c, r.ID)
 	if err != nil {
@@ -99,7 +102,7 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 	}
 
 	// if the user is an admin, we could be required to create the infra user, so create the provider_user if it's missing.
-	_, _ = access.CreateProviderUser(c, access.InfraProvider(c), identity)
+	_, _ = data.CreateProviderUser(rCtx.DBTxn, access.InfraProvider(c), identity)
 
 	return identity.ToAPI(), nil
 }

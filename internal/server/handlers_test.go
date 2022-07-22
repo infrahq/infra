@@ -70,6 +70,7 @@ func loginAs(db *gorm.DB, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
 	ctx.Set("db", db)
 	ctx.Set("identity", user)
+	ctx.Set("requestContext", RequestContext{DBTxn: db})
 	return ctx
 }
 

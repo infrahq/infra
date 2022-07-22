@@ -65,8 +65,7 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 		return nil, err
 	}
 
-	_, err = CreateProviderUser(c, InfraProvider(c), identity)
-	if err != nil {
+	if _, err = data.CreateProviderUser(db, InfraProvider(c), identity); err != nil {
 		return nil, fmt.Errorf("create provider user")
 	}
 
