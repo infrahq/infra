@@ -36,6 +36,12 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
+type RequestContext struct {
+	Request       *http.Request
+	DBTxn         *gorm.DB
+	Authenticated Authenticated
+}
+
 // DatabaseMiddleware injects a `db` object into the Gin context.
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -97,15 +103,22 @@ func getDB(c *gin.Context) *gorm.DB {
 func authenticatedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := getDB(c)
-		authnUser, err := requireAccessKey(db, c.Request)
+		authned, err := requireAccessKey(db, c.Request)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
-		// TODO: save authnUser in a single key
-		c.Set("key", authnUser.AccessKey)
-		c.Set("identity", authnUser.User)
+		rCtx := RequestContext{
+			Request:       c.Request,
+			DBTxn:         db,
+			Authenticated: authned,
+		}
+		c.Set("requestContext", rCtx)
+
+		// TODO: remove
+		c.Set("key", authned.AccessKey)
+		c.Set("identity", authned.User)
 
 		if err := updateDestinationLastSeenAt(c); err != nil {
 			sendAPIError(c, err)
@@ -115,14 +128,14 @@ func authenticatedMiddleware() gin.HandlerFunc {
 	}
 }
 
-type authenticatedUser struct {
+type Authenticated struct {
 	AccessKey *models.AccessKey
 	User      *models.Identity
 }
 
 // requireAccessKey checks the bearer token is present and valid
-func requireAccessKey(db *gorm.DB, req *http.Request) (authenticatedUser, error) {
-	var u authenticatedUser
+func requireAccessKey(db *gorm.DB, req *http.Request) (Authenticated, error) {
+	var u Authenticated
 	header := req.Header.Get("Authorization")
 
 	bearer := ""
