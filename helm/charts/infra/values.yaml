@@ -122,7 +122,7 @@ server:
   ## Security context for the server container
   securityContext:
     readOnlyRootFilesystem: true
-    # runAsUser: 1000
+    # runAsUser: 999
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
@@ -616,7 +616,7 @@ connector:
   ## Security context for the connector container
   securityContext:
     readOnlyRootFilesystem: true
-    # runAsUser: 1000
+    # runAsUser: 999
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
