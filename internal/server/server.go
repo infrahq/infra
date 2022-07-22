@@ -242,7 +242,7 @@ func (s *Server) listen() error {
 		return err
 	}
 
-	tlsConfig, err := tlsConfigFromOptions(s.secrets, s.options.TLSCache, s.options.TLS)
+	tlsConfig, err := tlsConfigFromOptions(s.secrets, s.options.TLS)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}

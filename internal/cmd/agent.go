@@ -27,7 +27,7 @@ func newAgentCmd() *cobra.Command {
 		Args:   NoArgs,
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			infraDir, err := infraHomeDir()
+			infraDir, err := initInfraHomeDir()
 			if err != nil {
 				panic(err)
 			}
@@ -101,7 +101,7 @@ func execAgent() error {
 }
 
 func readStoredAgentProcessID() (int, error) {
-	infraDir, err := infraHomeDir()
+	infraDir, err := initInfraHomeDir()
 	if err != nil {
 		return 0, err
 	}
@@ -124,7 +124,7 @@ func readStoredAgentProcessID() (int, error) {
 
 // writeAgentProcessConfig saves details about the agent to config
 func writeAgentConfig(pid int) error {
-	infraDir, err := infraHomeDir()
+	infraDir, err := initInfraHomeDir()
 	if err != nil {
 		return err
 	}
