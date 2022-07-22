@@ -19,7 +19,7 @@ import (
 // MapCache is a simple in-memory caching mechanism, it is not thread safe
 type MapCache map[string][]byte
 
-func (m MapCache) Get(ctx context.Context, name string) ([]byte, error) {
+func (m MapCache) Get(_ context.Context, name string) ([]byte, error) {
 	data, cached := m[name]
 	if !cached {
 		return nil, autocert.ErrCacheMiss
@@ -27,30 +27,15 @@ func (m MapCache) Get(ctx context.Context, name string) ([]byte, error) {
 	return data, nil
 }
 
-func (m MapCache) Put(ctx context.Context, name string, data []byte) error {
+func (m MapCache) Put(_ context.Context, name string, data []byte) error {
 	m[name] = data
 	return nil
 }
 
-func (m MapCache) Delete(ctx context.Context, name string) error {
+func (m MapCache) Delete(_ context.Context, name string) error {
 	delete(m, name)
 	return nil
 }
-
-func (m MapCache) getKeyPair(ctx context.Context, serverName string) (cert, key []byte) {
-	certBytes, _ := m.Get(ctx, serverName+".crt")
-	keyBytes, _ := m.Get(ctx, serverName+".key")
-	if certBytes == nil || keyBytes == nil {
-		logging.Infof("no cached TLS cert for %v", serverName)
-	}
-	return certBytes, keyBytes
-}
-
-var certCache = make(MapCache)
-
-var ca keyPair
-
-var cacheLock sync.RWMutex
 
 func tlsConfigFromOptions(
 	storage map[string]secrets.SecretStorage,
@@ -119,8 +104,10 @@ func tlsConfigFromOptions(
 		return nil, fmt.Errorf("failed to load TLS CA private key: %w", err)
 	}
 
-	ca = keyPair{cert: []byte(opts.CA), key: []byte(key)}
-	cfg.GetCertificate = getCertificate
+	ca := keyPair{cert: []byte(opts.CA), key: []byte(key)}
+	certCache := make(MapCache)
+
+	cfg.GetCertificate = getCertificate(certCache, ca)
 	return cfg, nil
 }
 
@@ -129,74 +116,86 @@ type keyPair struct {
 	key  []byte
 }
 
-func getCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	ctx := hello.Context()
-	serverName := hello.ServerName
+func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+	var lock sync.RWMutex
 
-	if serverName == "" {
-		var err error
-		serverName, _, err = net.SplitHostPort(hello.Conn.LocalAddr().String())
+	getKeyPair := func(serverName string) (cert, key []byte) {
+		certBytes, _ := cache.Get(context.TODO(), serverName+".crt")
+		keyBytes, _ := cache.Get(context.TODO(), serverName+".key")
+		if certBytes == nil || keyBytes == nil {
+			logging.Infof("no cached TLS cert for %v", serverName)
+		}
+		return certBytes, keyBytes
+	}
+
+	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		serverName := hello.ServerName
+
+		if serverName == "" {
+			var err error
+			serverName, _, err = net.SplitHostPort(hello.Conn.LocalAddr().String())
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		lock.RLock()
+		certBytes, keyBytes := getKeyPair(serverName)
+		lock.RUnlock()
+		if certBytes != nil && keyBytes != nil {
+			return tlsCertFromKeyPair(certBytes, keyBytes)
+		}
+
+		lock.Lock()
+		// must check again after write lock is acquired
+		certBytes, keyBytes = getKeyPair(serverName)
+		defer lock.Unlock()
+		if certBytes != nil && keyBytes != nil {
+			return tlsCertFromKeyPair(certBytes, keyBytes)
+		}
+
+		// if either cert or key is missing, create it
+		caTLSCert, err := tls.X509KeyPair(ca.cert, ca.key)
 		if err != nil {
 			return nil, err
 		}
+
+		caCert, err := x509.ParseCertificate(caTLSCert.Certificate[0])
+		if err != nil {
+			return nil, err
+		}
+
+		hosts := []string{"127.0.0.1", "::1", serverName}
+		certBytes, keyBytes, err = certs.GenerateCertificate(hosts, caCert, caTLSCert.PrivateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		// append the CA PEM to the cert PEM so that the full chain is available
+		// to clients. Not strictly required by TLS, but we do this so that the
+		// CLI can prompt the user to trust the CA.
+		certBytes = append(certBytes, ca.cert...)
+
+		if err := cache.Put(context.TODO(), serverName+".crt", certBytes); err != nil {
+			return nil, err
+		}
+
+		if err := cache.Put(context.TODO(), serverName+".key", keyBytes); err != nil {
+			return nil, err
+		}
+
+		logging.L.Info().
+			Str("Server name", serverName).
+			Str("SHA256 fingerprint", certs.Fingerprint(pemDecode(certBytes))).
+			Msg("new server certificate")
+
+		keypair, err := tls.X509KeyPair(certBytes, keyBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		return &keypair, nil
 	}
-
-	cacheLock.RLock()
-	certBytes, keyBytes := certCache.getKeyPair(ctx, serverName)
-	cacheLock.RUnlock()
-	if certBytes != nil && keyBytes != nil {
-		return tlsCertFromKeyPair(certBytes, keyBytes)
-	}
-
-	cacheLock.Lock()
-	// must check again after write lock is acquired
-	certBytes, keyBytes = certCache.getKeyPair(ctx, serverName)
-	defer cacheLock.Unlock()
-	if certBytes != nil && keyBytes != nil {
-		return tlsCertFromKeyPair(certBytes, keyBytes)
-	}
-
-	// if either cert or key is missing, create it
-	caTLSCert, err := tls.X509KeyPair(ca.cert, ca.key)
-	if err != nil {
-		return nil, err
-	}
-
-	caCert, err := x509.ParseCertificate(caTLSCert.Certificate[0])
-	if err != nil {
-		return nil, err
-	}
-
-	hosts := []string{"127.0.0.1", "::1", serverName}
-	certBytes, keyBytes, err = certs.GenerateCertificate(hosts, caCert, caTLSCert.PrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// append the CA PEM to the cert PEM so that the full chain is available
-	// to clients. Not strictly required by TLS, but we do this so that the
-	// CLI can prompt the user to trust the CA.
-	certBytes = append(certBytes, ca.cert...)
-
-	if err := certCache.Put(ctx, serverName+".crt", certBytes); err != nil {
-		return nil, err
-	}
-
-	if err := certCache.Put(ctx, serverName+".key", keyBytes); err != nil {
-		return nil, err
-	}
-
-	logging.L.Info().
-		Str("Server name", serverName).
-		Str("SHA256 fingerprint", certs.Fingerprint(pemDecode(certBytes))).
-		Msg("new server certificate")
-
-	keypair, err := tls.X509KeyPair(certBytes, keyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &keypair, nil
 }
 
 func pemDecode(raw []byte) []byte {
