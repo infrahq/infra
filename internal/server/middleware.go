@@ -50,35 +50,34 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func DestinationMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		uniqueID := c.GetHeader("Infra-Destination")
-		if uniqueID != "" {
-			destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{})
-			if err != nil {
-				return
-			}
+func updateDestinationLastSeenAt(c *gin.Context) error {
+	uniqueID := c.Request.Header.Get("Infra-Destination")
+	if uniqueID == "" {
+		return nil
+	}
 
-			switch len(destinations) {
-			case 0:
-				// destination does not exist yet, noop
-			case 1:
-				destination := destinations[0]
-				// only save if there's significant difference between LastSeenAt and Now
-				if time.Since(destination.LastSeenAt) > time.Second {
-					destination.LastSeenAt = time.Now()
-					if err := access.SaveDestination(c, &destination); err != nil {
-						sendAPIError(c, err)
-						return
-					}
-				}
-			default:
-				sendAPIError(c, fmt.Errorf("multiple destinations found for unique ID %q", uniqueID))
-				return
+	// TODO: use GetDestination(ByUniqueID())
+	destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{})
+	if err != nil {
+		return err
+	}
+
+	switch len(destinations) {
+	case 0:
+		// destination does not exist yet, noop
+		return nil
+	case 1:
+		destination := destinations[0]
+		// only save if there's significant difference between LastSeenAt and Now
+		if time.Since(destination.LastSeenAt) > time.Second {
+			destination.LastSeenAt = time.Now()
+			if err := access.SaveDestination(c, &destination); err != nil {
+				return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
 			}
 		}
-
-		c.Next()
+		return nil
+	default:
+		return fmt.Errorf("multiple destinations found for unique ID %q", uniqueID)
 	}
 }
 
@@ -92,8 +91,10 @@ func getDB(c *gin.Context) *gorm.DB {
 	return db
 }
 
-// AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware() gin.HandlerFunc {
+// authenticatedMiddleware is applied to all routes that require authentication.
+// It validates the access key, and updates the lastSeenAt of the user, and
+// possibly also of the destination.
+func authenticatedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := getDB(c)
 		authnUser, err := requireAccessKey(db, c.Request)
@@ -105,6 +106,11 @@ func AuthenticationMiddleware() gin.HandlerFunc {
 		// TODO: save authnUser in a single key
 		c.Set("key", authnUser.AccessKey)
 		c.Set("identity", authnUser.User)
+
+		if err := updateDestinationLastSeenAt(c); err != nil {
+			sendAPIError(c, err)
+			return
+		}
 		c.Next()
 	}
 }

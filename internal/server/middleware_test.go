@@ -260,7 +260,7 @@ func TestRequireAccessKey(t *testing.T) {
 	}
 }
 
-func TestDestinationMiddleware(t *testing.T) {
+func TestUpdateDestinationLastSeenAt(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 	db := srv.db
