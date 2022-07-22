@@ -15,11 +15,11 @@ import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
-import IdentityList from '../../components/identity-list'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
 import Pagination from '../../components/pagination'
+import IdentityItem from '../../components/identity-item'
 
 const columns = [
   {
@@ -69,12 +69,16 @@ function Details({ user, admin, onDelete }) {
     () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
     (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
   )
+  const { data: { items: infraAdmin } = {} } = useSWR(
+    '/api/grants?resource=infra&privilege=admin'
+  )
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const inherited = groupGrantDatas
     ?.map(g => g?.items || [])
     ?.flat()
     ?.filter(g => g.resource !== 'infra')
+  const adminGroups = infraAdmin?.map(admin => admin.group)
   const metadata = [
     { title: 'ID', data: user?.id },
     {
@@ -82,6 +86,12 @@ function Details({ user, admin, onDelete }) {
       data: user?.created ? dayjs(user.created).fromNow() : '-',
     },
   ]
+  const deleteModalInfo = {
+    message:
+      'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
+    title: 'Remove Group',
+    btnText: 'Remove',
+  }
 
   const loading = [
     auth,
@@ -159,19 +169,32 @@ function Details({ user, admin, onDelete }) {
                     <div className='mt-6'>No groups</div>
                   </EmptyData>
                 )}
-                <IdentityList
-                  list={groups}
-                  onClick={async groupId => {
-                    const usersToRemove = [id]
-                    await fetch(`/api/groups/${groupId}/users`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ usersToRemove }),
-                    })
-                    mutateGroups({
-                      items: groups.filter(i => i.id !== groupId),
-                    })
-                  }}
-                />
+                {groups
+                  .map(group => {
+                    const showDeleteModal =
+                      auth?.id === id && adminGroups?.includes(group.id)
+
+                    return { ...group, showDeleteModal }
+                  })
+                  .map(g => (
+                    <IdentityItem
+                      key={g.id}
+                      item={g}
+                      deleteModalInfo={
+                        g.showDeleteModal ? deleteModalInfo : undefined
+                      }
+                      onClick={async () => {
+                        const usersToRemove = [id]
+                        await fetch(`/api/groups/${g.id}/users`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ usersToRemove }),
+                        })
+                        mutateGroups({
+                          items: groups.filter(i => i.id !== g.id),
+                        })
+                      }}
+                    />
+                  ))}
               </div>
             </section>
           </>

@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { PlusIcon } from '@heroicons/react/outline'
 
@@ -12,13 +13,12 @@ import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
 import EmptyData from '../../components/empty-data'
-import IdentityList from '../../components/identity-list'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
 import Pagination from '../../components/pagination'
-import { useRouter } from 'next/router'
+import IdentityItem from '../../components/identity-item'
 
 const columns = [
   {
@@ -131,7 +131,7 @@ function Details({ group, admin, onDelete }) {
   const loading = [auth, users, grants, infraAdmin].some(x => !x)
 
   const hideRemoveGroupBtn =
-    !admin || (infraAdmin.length === 1 && adminGroups.includes(id))
+    !admin || (infraAdmin?.length === 1 && adminGroups.includes(id))
 
   const handleRemoveUserFromGroup = async userId => {
     const usersToRemove = [userId]
@@ -210,12 +210,22 @@ function Details({ group, admin, onDelete }) {
                     <div className='mt-6'>No members in the group</div>
                   </EmptyData>
                 )}
-                <IdentityList
-                  list={users}
-                  authId={auth?.id}
-                  deleteModal={deleteModalInfo}
-                  onClick={userId => handleRemoveUserFromGroup(userId)}
-                />
+                {users
+                  .map(user => {
+                    const showDeleteModal = user.id === auth.id
+
+                    return { ...user, showDeleteModal }
+                  })
+                  .map(u => (
+                    <IdentityItem
+                      key={u.id}
+                      item={u}
+                      deleteModalInfo={
+                        u.showDeleteModal ? deleteModalInfo : undefined
+                      }
+                      onClick={() => handleRemoveUserFromGroup(u.id)}
+                    />
+                  ))}
               </div>
             </section>
           </>
