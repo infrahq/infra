@@ -94,7 +94,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
 	post(a, authn, "/api/tokens", a.CreateToken)
-	post(a, authn, "/api/logout", a.Logout)
+	post(a, authn, "/api/logout", Logout)
 
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
