@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"testing/fstest"
 	"time"
 
 	"github.com/infrahq/secrets"
@@ -204,7 +203,6 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		DBFile:                  filepath.Join(dir, "sqlite3.db"),
-		UI:                      UIOptions{Enabled: true},
 		EnableSignup:            true,
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
@@ -259,12 +257,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	fs := fstest.MapFS{
-		"ui/static/404.html": {
-			Data: []byte("<html>404 - example</html>"),
-		},
-	}
-	s := &Server{options: Options{UI: UIOptions{Enabled: true, FS: fs}}}
+	s := setupServer(t)
 	router := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
@@ -297,35 +290,6 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			},
 		},
 		{
-			name: "text/html",
-			path: "/not/found",
-			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Accept", "text/html")
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				// response should have an html body
-				assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
-
-			},
-		},
-		{
-			name: "browser text/html",
-			path: "/not/found",
-			setup: func(t *testing.T, req *http.Request) {
-				browserAccept := []string{"text/html", "application/xhtml+xml",
-					"application/xml;q=0.9", "image/webp", "image/apng", "*/*;q=0.8"}
-				// this order is used in Safari/Chrome
-				for _, ah := range browserAccept {
-					req.Header.Add("Accept", ah)
-				}
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				// response should have an html body
-				assert.Assert(t, is.Contains(resp.Body.String(), "404 - example"))
-
-			},
-		},
-		{
 			name: "Other type",
 			path: "/not/found",
 			setup: func(t *testing.T, req *http.Request) {
@@ -342,94 +306,6 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				// response should be plaintext
 				assert.Equal(t, "404 not found", resp.Body.String())
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
-
-func TestServer_GenerateRoutes_UI(t *testing.T) {
-	type testCase struct {
-		name         string
-		path         string
-		expectedCode int
-		expected     func(t *testing.T, resp *httptest.ResponseRecorder)
-	}
-
-	fs := fstest.MapFS{
-		"ui/static/index.html": {
-			Data: []byte("<html>infra home</html>"),
-		},
-		"ui/static/providers/add/details.html": {
-			Data: []byte("<html>mokta provider</html>"),
-		},
-		"ui/static/icon.svg": {
-			Data: []byte("<svg>image</svg>"),
-		},
-	}
-	s := &Server{options: Options{UI: UIOptions{Enabled: true, FS: fs}}}
-	router := s.GenerateRoutes(prometheus.NewRegistry())
-
-	run := func(t *testing.T, tc testCase) {
-		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
-
-		assert.Check(t, is.Equal(resp.Code, tc.expectedCode))
-		if tc.expected != nil {
-			tc.expected(t, resp)
-		}
-	}
-
-	testCases := []testCase{
-		{
-			name:         "default index",
-			path:         "/",
-			expectedCode: http.StatusOK,
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				actual := resp.Header().Get("Content-Type")
-				assert.Equal(t, actual, "text/html; charset=utf-8")
-			},
-		},
-		{
-			name:         "index page redirects",
-			path:         "/index.html",
-			expectedCode: http.StatusMovedPermanently,
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				actual := resp.Header().Get("Location")
-				assert.Equal(t, actual, "./")
-			},
-		},
-		{
-			name:         "page with a path",
-			path:         "/providers/add/details.html",
-			expectedCode: http.StatusOK,
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				actual := resp.Header().Get("Content-Type")
-				assert.Equal(t, actual, "text/html; charset=utf-8")
-			},
-		},
-		{
-			name:         "image",
-			path:         "/icon.svg",
-			expectedCode: http.StatusOK,
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				actual := resp.Header().Get("Content-Type")
-				assert.Equal(t, actual, "image/svg+xml")
-			},
-		},
-		{
-			name:         "page without .html suffix",
-			path:         "/providers/add/details",
-			expectedCode: http.StatusOK,
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				actual := resp.Header().Get("Content-Type")
-				assert.Equal(t, actual, "text/html; charset=utf-8")
 			},
 		},
 	}

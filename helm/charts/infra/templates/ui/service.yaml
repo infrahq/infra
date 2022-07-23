@@ -1,0 +1,38 @@
+{{- if include "ui.enabled" . | eq "true" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ui.fullname" . }}
+  labels:
+{{- include "ui.labels" . | nindent 4 }}
+{{- if .Values.ui.service.labels }}
+{{- toYaml .Values.ui.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.ui.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.ui.service.type }}
+{{- if eq .Values.ui.service.type "LoadBalancer" }}
+  loadBalancerIP: {{ .Values.ui.service.loadBalancerIP }}
+  loadBalancerSourceRanges:
+{{- toYaml .Values.ui.service.loadBalancerSourceRanges | nindent 4 }}
+{{- end }}
+  externalIPs:
+{{- toYaml .Values.ui.service.externalIPs | nindent 4 }}
+{{- if .Values.ui.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.ui.service.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.ui.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.ui.service.sessionAffinity }}
+{{- end }}
+  ports:
+    - port: {{ .Values.ui.service.port }}
+      name: {{ .Values.ui.service.portName }}
+      targetPort: http
+      protocol: TCP
+{{- if eq .Values.ui.service.type "NodePort" }}
+      nodePort: {{ .Values.ui.service.nodePort }}
+{{- end }}
+  selector:
+{{- include "ui.selectorLabels" . | nindent 4 }}
+{{- end }}
