@@ -64,6 +64,15 @@ data:
 {{- $users = append $users (dict "name" "connector" "accessKey" $accessKey) }}
 {{- end }}
 
+{{- if and (include "ui.enabled" . | eq "true") (not $proxyURL) }}
+http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000
+{{ $proxyURL = "http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000"}}
+{{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}
+{{- if and (include "ui.enabled" . | eq "true") (not .Values.server.config.ui "proxyURL") }}
+    ui:
+      proxyURL: {{ default "http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000" .Values.ui.config.proxyURL }}
+{{- end }}
+
 {{- $users | uniq | toYaml | nindent 6 }}
 
     secrets:

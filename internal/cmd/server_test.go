@@ -100,7 +100,6 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				content := `
                   ui:
-                    enabled: true
                     proxyURL: https://127.0.1.2:34567
 `
 				dir := fs.NewDir(t, t.Name(),
@@ -113,7 +112,6 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 					Scheme: "https",
 					Host:   "127.0.1.2:34567",
 				}
-				expected.UI.Enabled = true
 				return expected
 			},
 		},
