@@ -18,12 +18,14 @@ npm install
 npm run dev
 ```
 
-## Build and run
+## Build
 
 ```
 npm run build
-npm start
+npm run export -- -o ../internal/server/ui/static
 ```
+
+Now building the Infra Server will include the Infra Dashboard.
 
 ## Linting
 

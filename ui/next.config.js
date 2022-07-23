@@ -7,5 +7,4 @@ module.exports = {
 
     return null
   },
-  output: 'standalone',
 }

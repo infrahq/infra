@@ -2,8 +2,10 @@ package server
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -11,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
 	"golang.org/x/sync/errgroup"
@@ -61,7 +65,10 @@ type ListenerOptions struct {
 }
 
 type UIOptions struct {
+	Enabled  bool
 	ProxyURL types.URL
+	// FS is the filesystem which contains the static files for the UI.
+	FS fs.FS `config:"-"`
 }
 
 type TLSOptions struct {
@@ -97,6 +104,7 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
+	options.UI.FS = uiFS
 	return &Server{
 		options: options,
 		secrets: map[string]secrets.SecretStorage{},
@@ -173,7 +181,15 @@ func (s *Server) Run(ctx context.Context) error {
 	return err
 }
 
+//go:embed all:ui/*
+var uiFS embed.FS
+
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
+	if !opts.Enabled {
+		return
+	}
+
+	// Proxy requests to an upstream ui server
 	if opts.ProxyURL.Host != "" {
 		remote := opts.ProxyURL.Value()
 		proxy := httputil.NewSingleHostReverseProxy(remote)
@@ -182,7 +198,6 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 			req.URL.Scheme = remote.Scheme
 			req.URL.Host = remote.Host
 		}
-		proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
 
 		router.Use(func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
@@ -190,6 +205,9 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 		})
 		return
 	}
+
+	staticFS := &StaticFileSystem{base: http.FS(opts.FS)}
+	router.Use(gzip.Gzip(gzip.DefaultCompression), static.Serve("/", staticFS))
 }
 
 func (s *Server) listen() error {

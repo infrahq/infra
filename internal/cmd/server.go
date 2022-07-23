@@ -80,7 +80,8 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().String("db-encryption-key", "", "Database encryption key")
 	cmd.Flags().String("db-encryption-key-provider", "", "Database encryption key provider")
 	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
-	cmd.Flags().Var(&types.URL{}, "ui-proxy-url", "Enable UI and proxy requests to this url")
+	cmd.Flags().Bool("ui-enabled", false, "Enable Infra server UI")
+	cmd.Flags().Var(&types.URL{}, "ui-proxy-url", "Proxy upstream UI requests to this url")
 	cmd.Flags().Duration("session-duration", 0, "Maximum session duration per user login")
 	cmd.Flags().Duration("session-extension-deadline", 0, "A user must interact with Infra at least once within this amount of time for their session to remain valid")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
@@ -104,6 +105,10 @@ func defaultServerOptions(infraDir string) server.Options {
 			HTTP:    ":80",
 			HTTPS:   ":443",
 			Metrics: ":9090",
+		},
+
+		UI: server.UIOptions{
+			Enabled: true,
 		},
 	}
 }

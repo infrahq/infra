@@ -38,6 +38,8 @@ require (
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.97.0
+	github.com/gin-contrib/gzip v0.0.6
+	github.com/gin-contrib/static v0.0.1
 	github.com/go-gormigrate/gormigrate/v2 v2.0.2
 	github.com/google/go-cmp v0.5.8
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
@@ -67,7 +69,6 @@ require (
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
