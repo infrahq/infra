@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 	"path"
 	"reflect"
@@ -288,7 +289,22 @@ func (a *API) notFoundHandler(c *gin.Context) {
 
 	c.Status(http.StatusNotFound)
 
-	_, err := c.Writer.Write([]byte("404 not found"))
+	buf := []byte("404 not found")
+
+	if strings.HasPrefix(accept, "text/html") {
+
+		const filePath404 = "ui/static/404.html"
+		uiFS := a.server.options.UI.FS
+		if _, err := fs.Stat(uiFS, filePath404); err == nil {
+			buf, err = fs.ReadFile(uiFS, filePath404)
+			if err != nil {
+				logging.Errorf("%s", err.Error())
+			}
+		}
+	}
+	// If there's any other Accept header or an error in reading,
+	// the response will default to "404 not found"
+	_, err := c.Writer.Write(buf)
 	if err != nil {
 		logging.Errorf("%s", err.Error())
 	}

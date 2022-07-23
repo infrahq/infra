@@ -1,3 +1,11 @@
+FROM --platform=$BUILDPLATFORM node:18 AS ui-builder
+WORKDIR /ui
+COPY ui/package.json .
+RUN npm install
+COPY ui .
+RUN npm run build
+RUN npm run export
+
 FROM --platform=$BUILDPLATFORM golang:1.18 AS builder
 RUN apt-get update && \
     apt-get install -y gcc-aarch64-linux-gnu gcc-x86-64-linux-gnu && \
@@ -24,6 +32,9 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     go mod download
 
 COPY . .
+
+# copy static ui files
+COPY --from=ui-builder /ui/out /go/src/github.com/infrahq/infra/internal/server/ui/static
 
 RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
