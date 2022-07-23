@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently 'npm run dev:ui' 'npm run dev:server'",
+    "dev:ui": "next dev",
+    "dev:server": "INFRA_SERVER_TLS_CA=../internal/server/testdata/pki/ca.crt INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:../internal/server/testdata/pki/ca.key go run .. server --ui-proxy-url http://localhost:3000",
     "test": "jest --ci --passWithNoTests",
     "build": "next build",
     "start": "next start",
