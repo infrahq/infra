@@ -5,6 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      args:
+        BUILDVERSION_METADATA: dev
     environment:
       - INFRA_SERVER_TLS_CA=internal/server/testdata/pki/ca.crt
       - INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:internal/server/testdata/pki/ca.key
