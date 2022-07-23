@@ -5,17 +5,15 @@ nameOverride: ""
 fullnameOverride: ""
 
 global:
+  ## The image repository to use for all deployments
+  # repository: infrahq/infra
 
-  image:
-    ## The image repository to use for all deployments
-    repository: infrahq/infra
+  ## The image tag to use instead of the default {{ .Chart.AppVersion }}
+  tag: ""
 
-    ## The image tag to use instead of the default {{ .Chart.AppVersion }}
-    tag: ""
-
-    ## The pull policy to use when pulling (downloading) the image
-    ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
-    pullPolicy: IfNotPresent
+  ## The pull policy to use when pulling (downloading) the image
+  ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+  pullPolicy: IfNotPresent
 
   ## One or more Secret to use when pulling images
   ## Global values will be merged into local values
@@ -51,7 +49,6 @@ global:
 
 # Default server configurations
 server:
-
   ## Deploy the server
   enabled: true
   componentName: server
@@ -96,7 +93,6 @@ server:
 
   ## Infra server service account configurations
   serviceAccount:
-
     ## Create the service account
     create: true
 
@@ -127,7 +123,6 @@ server:
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-
     ## Minimum number of consecutive successes before the probe is considered successful
     successThreshold: 1
 
@@ -146,7 +141,6 @@ server:
   ## Readiness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   readinessProbe:
-
     ## Minimum number of consecutive successes before the probe is considered successful
     successThreshold: 1
 
@@ -181,7 +175,6 @@ server:
 
   ## Infra server service configurations
   service:
-
     ## Service type
     ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
     type: LoadBalancer
@@ -232,13 +225,11 @@ server:
 
   ## Metrics configurations
   metrics:
-
     ## Enable server metrics
     enabled: false
 
     ## Metrics service configurations
     service:
-
       ## Metrics service labels
       labels: {}
 
@@ -253,7 +244,6 @@ server:
 
     ## Service monitor configurations
     serviceMonitor:
-
       ## Enable service monitor
       enabled: false
 
@@ -274,7 +264,6 @@ server:
 
   ## Infra server ingress configurations
   ingress:
-
     ## Enable server ingress resource
     enabled: false
 
@@ -324,7 +313,6 @@ server:
 
   ## Infra server persistence configurations
   persistence:
-
     ## Enable server persistence
     enabled: true
 
@@ -355,7 +343,6 @@ server:
 
   ## Infra server autoscaling configurations. Enabling autoscaling requires setting resources.
   autoscaling:
-
     ## Enable server autoscaling
     enabled: false
 
@@ -410,8 +397,8 @@ server:
 
     ## Server UI configurations
     # ui:
-      ## Enable UI
-      # enabled: true
+    #   ## Enable server UI and proxy ui requests to this UI service
+    #   proxyURL: ""
 
     ## Duration of a user session
     # sessionDuration: 720h0m0s # 30 days
@@ -542,10 +529,210 @@ server:
     # certificate: /path/to/server.crt
     # privateKey: file:/path/to/server.key
 
+# Default ui configurations
+ui:
+  ## Deploy the ui
+  enabled: true
+  componentName: ui
+
+  ## Number of ui pods to run
+  ## No effect unless `autoscaling.enabled` is `false`
+  replicas: 1
+
+  ## Infra ui image configurations
+  image:
+    ## The image repository to use for the ui deployment
+    repository: infrahq/ui
+
+    ## The image tag to use instead of the default {{ .Chart.AppVersion }}
+    tag: ""
+
+    ## The pull policy to use when pulling (downloading) the ui image
+    ## Ref: https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+    pullPolicy: IfNotPresent
+
+  ## One or more Secret to use when pulling the ui image
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  imagePullSecrets: []
+  # - name: "image-pull-secret"
+
+  ## Additional labels to apply to all resources
+  ## Global values will be merged into local values
+  labels: {}
+
+  ## Environment variables to pass to the ui container
+  env: []
+  # - name: "NODE_ENV"
+  #   value: "production"
+
+  ## ConfigMap or Secret references containing environment variables to pass to the ui container
+  ## Ref: https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/
+  envFrom: []
+  # - configMapRef:
+  #     name: configmap-name
+  # - secretRef:
+  #     name: secret-name
+
+  ## Infra ui service account configurations
+  serviceAccount:
+    ## Create the service account
+    create: true
+
+    ## Name of the service account to use instead of the default templated fullname
+    name: ""
+
+    ## Annotations to apply to the service account
+    annotations: {}
+
+    ## Automount service account API credentials
+    automountServiceAccountToken: true
+
+  ## Labels to apply to the ui pod
+  podLabels: {}
+
+  ## Annotations to apply to the ui pod
+  podAnnotations: {}
+
+  ## Security context for the ui pod
+  podSecurityContext: {}
+  #   fsGroup: 2000
+
+  ## Security context for the ui container
+  securityContext: {}
+  #   runAsUser: 999
+  #   runAsGroup: 999
+  #   readOnlyRootFilesystem: true
+
+  ## Liveness probe for the default backend
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  livenessProbe:
+    ## Minimum number of consecutive successes before the probe is considered successful
+    successThreshold: 1
+
+    ## Minimum number of consecutive failures before the probe is considered failed
+    failureThreshold: 3
+
+    ## Seconds after container starts before the probe is initialized
+    initialDelaySeconds: 2
+
+    ## Seconds between consecutive probes
+    periodSeconds: 5
+
+    ## Seconds before the probe times out
+    timeoutSeconds: 1
+
+  ## Readiness probe for the default backend
+  ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+  readinessProbe:
+    ## Minimum number of consecutive successes before the probe is considered successful
+    successThreshold: 1
+
+    ## Minimum number of consecutive failures before the probe is considered failed
+    failureThreshold: 3
+
+    ## Seconds after container starts before the probe is initialized
+    initialDelaySeconds: 2
+
+    ## Seconds between consecutive probes
+    periodSeconds: 5
+
+    ## Seconds before the probe times out
+    timeoutSeconds: 1
+
+  ## Additional volumes to attach to the ui pod
+  volumes: []
+  # - name: configmap-volume
+  #   configMap:
+  #     name: configmap-name
+  # - name: secret-volume
+  #   secret:
+  #     secretName: secret-name
+
+  ## Additioanl volume mounts to attach to the ui container
+  volumeMounts: []
+  # - name: configmap-volume
+  #   mountPath: /mnt/configmap
+  # - name: secret-volume
+  #   mountPath: /mnt/secret
+  #   readOnly: true
+
+  ## Infra server service configurations
+  service:
+    ## Service type
+    ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+    type: ClusterIP
+
+    ## Service labels
+    labels: {}
+
+    ## Service annotations
+    annotations: {}
+
+    ## HTTP service port
+    port: 3000
+
+    ## HTTP service port name
+    portName: http
+
+    ## HTTP service node port
+    ## No effect unless `ui.service.type` is `NodePort`
+    nodePort: 30080
+
+    ## IP of the load balancer to create
+    ## No effect unless `ui.service.type` is `LoadBalancer`
+    loadBalancerIP: ""
+
+    ## Source IP ranges that can access the service
+    loadBalancerSourceRanges: []
+
+    ## External IPs that can be used to access the service
+    externalIPs: []
+
+    ## Control how traffic from external sources are routed
+    ## Supports `Cluster` or `Local`
+    externalTrafficPolicy: ""
+
+    ## Control session-based routing of client connections
+    ## Supports `ClientIP` or `None`
+    sessionAffinity: ""
+
+  ## Resource requests and limits for the ui pod
+  resources: {}
+  #   requests:
+  #     cpu: 250m
+  #     memory: 256Mi
+  #   limits:
+  #     cpu: 500m
+  #     memory: 512Mi
+
+  ## Infra ui autoscaling configurations
+  autoscaling:
+    ## Enable ui autoscaling
+    enabled: false
+
+    ## Minimum number of ui pods to run
+    minReplicas: 1
+
+    ## Maximum number of ui pods to run
+    maxReplicas: 3
+
+    ## Target average CPU utilization percentage
+    targetCPUUtilizationPercentage: 50
+
+    ## Target average memory utilization percentage
+    targetMemoryUtilizationPercentage: 50
+
+  ## Infra ui node selector configurations
+  nodeSelector: {}
+
+  ## Infra ui tolerations configurations
+  tolerations: []
+
+  ## Infra ui affinity configurations
+  affinity: {}
 
 ## Default connector configurations
 connector:
-
   ## Deploy the connector
   enabled: false
   componentName: connector
@@ -590,7 +777,6 @@ connector:
 
   ## Infra connector service account configurations
   serviceAccount:
-
     ## Create the service account
     create: true
 
@@ -621,7 +807,6 @@ connector:
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   livenessProbe:
-
     ## Minimum number of consecutive successes before the probe is considered successful
     successThreshold: 1
 
@@ -640,7 +825,6 @@ connector:
   ## Readiness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
   readinessProbe:
-
     ## Minimum number of consecutive successes before the probe is considered successful
     successThreshold: 1
 
@@ -675,7 +859,6 @@ connector:
 
   ## Infra connector service configurations
   service:
-
     ## Service type
     ## Ref: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
     type: LoadBalancer
@@ -726,13 +909,11 @@ connector:
 
   ## Metrics configurations
   metrics:
-
     ## Enable connector metrics
     enabled: false
 
     ## Metrics service configurations
     service:
-
       ## Metrics service labels
       labels: {}
 
@@ -747,7 +928,6 @@ connector:
 
     ## Service monitor configurations
     serviceMonitor:
-
       ## Enable service monitor
       enabled: false
 
@@ -777,7 +957,6 @@ connector:
 
   ## Infra connector autoscaling configurations
   autoscaling:
-
     ## Enable connector autoscaling
     enabled: false
 

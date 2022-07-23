@@ -35,6 +35,10 @@ spec:
             - server
             - -f
             - /etc/infrahq/infra.yaml
+{{ if .Values.ui.enabled }}
+            - --ui-proxy-url
+            - http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000
+{{- end}}
 # set log level through command line parameters since its not possible to set using configuration file values
 {{- with .Values.server.config.logLevel }}
             - --log-level
