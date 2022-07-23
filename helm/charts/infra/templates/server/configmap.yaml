@@ -69,9 +69,7 @@ data:
 {{- if .Values.server.config.ui.proxyURL }}
     ui:
       proxyURL: {{ .Values.connector.config.ui.proxyURL }}
-{{- end }}
-
-{{- if and (include "ui.enabled" . | eq "true") (not .Values.server.config.ui.proxyURL ) }}
+{{- else if include "ui.enabled" . | eq 'true' }}
     ui:
       proxyURL: http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000
 {{- end }}
