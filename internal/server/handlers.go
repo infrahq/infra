@@ -128,6 +128,14 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	return identity.ToAPI(), nil
 }
 
+func (a *API) GetPasswordSettings(c *gin.Context, r *api.EmptyRequest) (*api.PasswordResponse, error) {
+	pwSettings, err := access.GetPasswordSettings(c)
+	if err != nil {
+		return nil, err
+	}
+	return &pwSettings, nil
+}
+
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	var loginMethod authn.LoginMethod
 
