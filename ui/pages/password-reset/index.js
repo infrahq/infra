@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
+import { useSWRConfig } from 'swr'
 
 
 import LoginLayout from '../../components/layouts/login'
@@ -31,7 +31,7 @@ export default function PasswordReset() {
         throw await res.json()
       }
 
-      const data = await res.json()
+      await res.json()
 
       await mutate('/api/users/self')
       router.replace('/')
@@ -57,7 +57,7 @@ export default function PasswordReset() {
         throw await res.json()
       }
 
-      const data = await res.json()
+      await res.json()
       setSubmitted(true)
 
     } catch (e) {
