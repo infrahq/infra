@@ -43,6 +43,9 @@ type Migrator struct {
 // DefaultOptions can be used if you don't want to think about options.
 var DefaultOptions = Options{
 	UseTransaction: false,
+	InitSchema: func(db *gorm.DB) error {
+		return nil
+	},
 }
 
 // New returns a new Migrator.
@@ -67,22 +70,19 @@ func (g *Migrator) Migrate() error {
 	rollback := g.begin()
 	defer rollback()
 
-	// TODO: do this in shouldInitializeSchema instead
 	if err := g.createMigrationTableIfNotExists(); err != nil {
 		return err
 	}
 
-	if g.options.InitSchema != nil { // TODO: remove this if
-		canInitializeSchema, err := g.shouldInitializeSchema()
-		if err != nil {
+	canInitializeSchema, err := g.shouldInitializeSchema()
+	if err != nil {
+		return err
+	}
+	if canInitializeSchema {
+		if err := g.runInitSchema(); err != nil {
 			return err
 		}
-		if canInitializeSchema {
-			if err := g.runInitSchema(); err != nil {
-				return err
-			}
-			return g.commit()
-		}
+		return g.commit()
 	}
 
 	for _, migration := range g.migrations {
