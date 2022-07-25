@@ -81,3 +81,14 @@ func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) err
 	}
 	return nil
 }
+
+func GetUserCountFromGroup(db *gorm.DB, groupID uid.ID) (int64, error) {
+	// select count(*) from identities_groups where identities_groups.group_id = ?
+	var count int64
+	err := db.Count(&count).Table("identities_groups").Where("group_id = ?", groupID).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
