@@ -272,6 +272,34 @@ server:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
+    ## Prometheus rule configurations
+    prometheusRule:
+
+      ## Enable Prometheus rule
+      enabled: false
+
+      ## Prometheus rule labels
+      labels: {}
+
+      ## Prometheus rule annotations
+      annotations: {}
+
+      ## Additional labels for default rules
+      additionalRuleLabels: {}
+
+      ## Additional annotations for default rules
+      additionalRuleAnnotations: {}
+
+      ## Additional alerting or recording rules
+      additionalRules: []
+        # - alert: InstanceDown
+        #   expr: absent(up == 1)
+        #   labels: {}
+        #   annotations: {}
+        #   for: 5m
+        # - record: count:up1
+        #   expr: count(up == 1)
+
   ## Infra server ingress configurations
   ingress:
 
@@ -765,6 +793,34 @@ connector:
 
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
+
+    ## Prometheus rule configurations
+    prometheusRule:
+
+      ## Enable Prometheus rule
+      enabled: false
+
+      ## Prometheus rule labels
+      labels: {}
+
+      ## Prometheus rule annotations
+      annotations: {}
+
+      ## Additional labels for default rules
+      additionalRuleLabels: {}
+
+      ## Additional annotations for default rules
+      additionalRuleAnnotations: {}
+
+      ## Additional alerting or recording rules
+      additionalRules: []
+        # - alert: InstanceDown
+        #   expr: absent(up == 1)
+        #   labels: {}
+        #   annotations: {}
+        #   for: 5m
+        # - record: count:up1
+        #   expr: count(up == 1)
 
   ## Resource requests and limits for the connector pod
   resources: {}
