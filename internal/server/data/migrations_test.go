@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,10 +13,145 @@ import (
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
+	"github.com/infrahq/infra/internal/server/data/migrator"
+
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
 )
+
+func TestMigrations(t *testing.T) {
+	patch.ModelsSymmetricKey(t)
+	allMigrations := migrations()
+
+	type testCase struct {
+		id       string
+		setup    func(t *testing.T, db *gorm.DB)
+		expected func(t *testing.T, db *gorm.DB)
+		cleanup  func(t *testing.T, db *gorm.DB)
+	}
+
+	run := func(t *testing.T, index int, tc testCase, db *gorm.DB) {
+		logging.PatchLogger(t, zerolog.NewTestWriter(t))
+		if index >= len(allMigrations) {
+			t.Fatalf("there are more test cases than migrations")
+		}
+		mgs := allMigrations[:index+1]
+		assert.Equal(t, mgs[len(mgs)-1].ID, tc.id) // test integrity check
+
+		if index == 0 {
+			filename := fmt.Sprintf("testdata/migrations/%v-%v.sql", tc.id, db.Dialector.Name())
+			raw, err := ioutil.ReadFile(filename)
+			assert.NilError(t, err)
+
+			assert.NilError(t, db.Exec(string(raw)).Error)
+		}
+
+		if tc.setup != nil {
+			tc.setup(t, db)
+		}
+		if tc.cleanup != nil {
+			defer tc.cleanup(t, db)
+		}
+
+		opts := migrator.Options{
+			InitSchema: func(db *gorm.DB) error {
+				return fmt.Errorf("unexpected call to init schema")
+			},
+		}
+
+		m := migrator.New(db, opts, mgs)
+		err := m.Migrate()
+		assert.NilError(t, err)
+
+		// TODO: make expected required, not optional
+		if tc.expected != nil {
+			tc.expected(t, db)
+		}
+	}
+
+	testCases := []testCase{
+		{
+			id: "202204281130",
+			expected: func(t *testing.T, tx *gorm.DB) {
+				hasCol := tx.Migrator().HasColumn("settings", "signup_enabled")
+				assert.Assert(t, !hasCol)
+			},
+		},
+		{id: "202204291613"},
+		{
+			id: "202206081027",
+		},
+		{
+			id: "202206151027",
+			setup: func(t *testing.T, db *gorm.DB) {
+				sql := `INSERT INTO providers(name) VALUES ('infra'), ('okta');`
+				err := db.Exec(sql).Error
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				sql := `DELETE FROM providers`
+				err := db.Exec(sql).Error
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				type provider struct {
+					Name string
+					Kind models.ProviderKind
+				}
+
+				query := `SELECT name, kind FROM providers where deleted_at is null`
+				var actual []provider
+				rows, err := db.Raw(query).Rows()
+				assert.NilError(t, err)
+
+				for rows.Next() {
+					var p provider
+					err := rows.Scan(&p.Name, &p.Kind)
+					assert.NilError(t, err)
+					actual = append(actual, p)
+				}
+
+				expected := []provider{
+					{Name: "infra", Kind: models.ProviderKindInfra},
+					{Name: "okta", Kind: models.ProviderKindOkta},
+				}
+				assert.DeepEqual(t, actual, expected)
+			},
+		},
+		{id: "202206161733"},
+		{id: "202206281027"},
+		{id: "202207041724"},
+		{id: "202207081217"},
+		{id: "202207211828"},
+	}
+
+	ids := make(map[string]struct{}, len(testCases))
+	for _, tc := range testCases {
+		ids[tc.id] = struct{}{}
+	}
+	// all migrations should be covered by a test
+	for _, m := range allMigrations {
+		if _, exists := ids[m.ID]; !exists {
+			t.Fatalf("migration ID %v is missing test coverage! Add a test case to this test.", m.ID)
+		}
+	}
+
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			for i, tc := range testCases {
+				runStep(t, tc.id, func(t *testing.T) {
+					run(t, i, tc, db)
+				})
+			}
+
+			// TODO: compare final migrated schema to static schema
+		})
+	}
+}
 
 func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 	for _, driver := range dbDrivers(t) {
@@ -123,29 +259,6 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 	err := db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", name).Row().Scan(&count)
 	assert.NilError(t, err)
 	return count > 0
-}
-
-func TestMigration_AddKindToProvider(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			loadSQL(t, db, "202206151027-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			var providers []models.Provider
-			err = db.Omit("client_secret").Find(&providers).Error
-			assert.NilError(t, err)
-			expected := []models.Provider{
-				{Name: "infra", Kind: models.ProviderKindInfra},
-				{Name: "okta", Kind: models.ProviderKindOkta, URL: "dev.okta.com"},
-			}
-			assert.DeepEqual(t, providers, expected, cmpProviderShallow)
-		})
-	}
 }
 
 // this test does an external call to example.okta.com, if it fails check your network connection

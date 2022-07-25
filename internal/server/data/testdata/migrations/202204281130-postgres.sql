@@ -10,7 +10,7 @@ SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', 'testing', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
@@ -20,11 +20,13 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
+
+
 --
 -- Name: access_keys; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.access_keys (
+CREATE TABLE access_keys (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -40,13 +42,13 @@ CREATE TABLE public.access_keys (
 );
 
 
-ALTER TABLE public.access_keys OWNER TO postgres;
+ALTER TABLE access_keys OWNER TO postgres;
 
 --
 -- Name: access_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.access_keys_id_seq
+CREATE SEQUENCE access_keys_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -54,20 +56,20 @@ CREATE SEQUENCE public.access_keys_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.access_keys_id_seq OWNER TO postgres;
+ALTER TABLE access_keys_id_seq OWNER TO postgres;
 
 --
 -- Name: access_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.access_keys_id_seq OWNED BY public.access_keys.id;
+ALTER SEQUENCE access_keys_id_seq OWNED BY access_keys.id;
 
 
 --
 -- Name: credentials; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.credentials (
+CREATE TABLE credentials (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -79,13 +81,13 @@ CREATE TABLE public.credentials (
 );
 
 
-ALTER TABLE public.credentials OWNER TO postgres;
+ALTER TABLE credentials OWNER TO postgres;
 
 --
 -- Name: credentials_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.credentials_id_seq
+CREATE SEQUENCE credentials_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -93,20 +95,20 @@ CREATE SEQUENCE public.credentials_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.credentials_id_seq OWNER TO postgres;
+ALTER TABLE credentials_id_seq OWNER TO postgres;
 
 --
 -- Name: credentials_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.credentials_id_seq OWNED BY public.credentials.id;
+ALTER SEQUENCE credentials_id_seq OWNED BY credentials.id;
 
 
 --
 -- Name: destinations; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.destinations (
+CREATE TABLE destinations (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -118,13 +120,13 @@ CREATE TABLE public.destinations (
 );
 
 
-ALTER TABLE public.destinations OWNER TO postgres;
+ALTER TABLE destinations OWNER TO postgres;
 
 --
 -- Name: destinations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.destinations_id_seq
+CREATE SEQUENCE destinations_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -132,20 +134,20 @@ CREATE SEQUENCE public.destinations_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.destinations_id_seq OWNER TO postgres;
+ALTER TABLE destinations_id_seq OWNER TO postgres;
 
 --
 -- Name: destinations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.destinations_id_seq OWNED BY public.destinations.id;
+ALTER SEQUENCE destinations_id_seq OWNED BY destinations.id;
 
 
 --
 -- Name: encryption_keys; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.encryption_keys (
+CREATE TABLE encryption_keys (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -158,13 +160,13 @@ CREATE TABLE public.encryption_keys (
 );
 
 
-ALTER TABLE public.encryption_keys OWNER TO postgres;
+ALTER TABLE encryption_keys OWNER TO postgres;
 
 --
 -- Name: encryption_keys_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.encryption_keys_id_seq
+CREATE SEQUENCE encryption_keys_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -172,20 +174,20 @@ CREATE SEQUENCE public.encryption_keys_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.encryption_keys_id_seq OWNER TO postgres;
+ALTER TABLE encryption_keys_id_seq OWNER TO postgres;
 
 --
 -- Name: encryption_keys_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.encryption_keys_id_seq OWNED BY public.encryption_keys.id;
+ALTER SEQUENCE encryption_keys_id_seq OWNED BY encryption_keys.id;
 
 
 --
 -- Name: grants; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.grants (
+CREATE TABLE grants (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -197,13 +199,13 @@ CREATE TABLE public.grants (
 );
 
 
-ALTER TABLE public.grants OWNER TO postgres;
+ALTER TABLE grants OWNER TO postgres;
 
 --
 -- Name: grants_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.grants_id_seq
+CREATE SEQUENCE grants_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -211,20 +213,20 @@ CREATE SEQUENCE public.grants_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.grants_id_seq OWNER TO postgres;
+ALTER TABLE grants_id_seq OWNER TO postgres;
 
 --
 -- Name: grants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.grants_id_seq OWNED BY public.grants.id;
+ALTER SEQUENCE grants_id_seq OWNED BY grants.id;
 
 
 --
 -- Name: groups; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.groups (
+CREATE TABLE groups (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -234,13 +236,13 @@ CREATE TABLE public.groups (
 );
 
 
-ALTER TABLE public.groups OWNER TO postgres;
+ALTER TABLE groups OWNER TO postgres;
 
 --
 -- Name: groups_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.groups_id_seq
+CREATE SEQUENCE groups_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -248,20 +250,20 @@ CREATE SEQUENCE public.groups_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.groups_id_seq OWNER TO postgres;
+ALTER TABLE groups_id_seq OWNER TO postgres;
 
 --
 -- Name: groups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.groups_id_seq OWNED BY public.groups.id;
+ALTER SEQUENCE groups_id_seq OWNED BY groups.id;
 
 
 --
 -- Name: identities; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.identities (
+CREATE TABLE identities (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -273,25 +275,25 @@ CREATE TABLE public.identities (
 );
 
 
-ALTER TABLE public.identities OWNER TO postgres;
+ALTER TABLE identities OWNER TO postgres;
 
 --
 -- Name: identities_groups; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.identities_groups (
+CREATE TABLE identities_groups (
     group_id bigint NOT NULL,
     identity_id bigint NOT NULL
 );
 
 
-ALTER TABLE public.identities_groups OWNER TO postgres;
+ALTER TABLE identities_groups OWNER TO postgres;
 
 --
 -- Name: identities_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.identities_id_seq
+CREATE SEQUENCE identities_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -299,31 +301,31 @@ CREATE SEQUENCE public.identities_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.identities_id_seq OWNER TO postgres;
+ALTER TABLE identities_id_seq OWNER TO postgres;
 
 --
 -- Name: identities_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.identities_id_seq OWNED BY public.identities.id;
+ALTER SEQUENCE identities_id_seq OWNED BY identities.id;
 
 
 --
 -- Name: migrations; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.migrations (
+CREATE TABLE migrations (
     id character varying(255) NOT NULL
 );
 
 
-ALTER TABLE public.migrations OWNER TO postgres;
+ALTER TABLE migrations OWNER TO postgres;
 
 --
 -- Name: provider_users; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.provider_users (
+CREATE TABLE provider_users (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -340,13 +342,13 @@ CREATE TABLE public.provider_users (
 );
 
 
-ALTER TABLE public.provider_users OWNER TO postgres;
+ALTER TABLE provider_users OWNER TO postgres;
 
 --
 -- Name: provider_users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.provider_users_id_seq
+CREATE SEQUENCE provider_users_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -354,20 +356,20 @@ CREATE SEQUENCE public.provider_users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.provider_users_id_seq OWNER TO postgres;
+ALTER TABLE provider_users_id_seq OWNER TO postgres;
 
 --
 -- Name: provider_users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.provider_users_id_seq OWNED BY public.provider_users.id;
+ALTER SEQUENCE provider_users_id_seq OWNED BY provider_users.id;
 
 
 --
 -- Name: providers; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.providers (
+CREATE TABLE providers (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -380,13 +382,13 @@ CREATE TABLE public.providers (
 );
 
 
-ALTER TABLE public.providers OWNER TO postgres;
+ALTER TABLE providers OWNER TO postgres;
 
 --
 -- Name: providers_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.providers_id_seq
+CREATE SEQUENCE providers_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -394,20 +396,20 @@ CREATE SEQUENCE public.providers_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.providers_id_seq OWNER TO postgres;
+ALTER TABLE providers_id_seq OWNER TO postgres;
 
 --
 -- Name: providers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.providers_id_seq OWNED BY public.providers.id;
+ALTER SEQUENCE providers_id_seq OWNED BY providers.id;
 
 
 --
 -- Name: root_certificates; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.root_certificates (
+CREATE TABLE root_certificates (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -421,13 +423,13 @@ CREATE TABLE public.root_certificates (
 );
 
 
-ALTER TABLE public.root_certificates OWNER TO postgres;
+ALTER TABLE root_certificates OWNER TO postgres;
 
 --
 -- Name: root_certificates_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.root_certificates_id_seq
+CREATE SEQUENCE root_certificates_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -435,20 +437,20 @@ CREATE SEQUENCE public.root_certificates_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.root_certificates_id_seq OWNER TO postgres;
+ALTER TABLE root_certificates_id_seq OWNER TO postgres;
 
 --
 -- Name: root_certificates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.root_certificates_id_seq OWNED BY public.root_certificates.id;
+ALTER SEQUENCE root_certificates_id_seq OWNED BY root_certificates.id;
 
 
 --
 -- Name: settings; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.settings (
+CREATE TABLE settings (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -459,13 +461,13 @@ CREATE TABLE public.settings (
 );
 
 
-ALTER TABLE public.settings OWNER TO postgres;
+ALTER TABLE settings OWNER TO postgres;
 
 --
 -- Name: settings_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.settings_id_seq
+CREATE SEQUENCE settings_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -473,20 +475,20 @@ CREATE SEQUENCE public.settings_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.settings_id_seq OWNER TO postgres;
+ALTER TABLE settings_id_seq OWNER TO postgres;
 
 --
 -- Name: settings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.settings_id_seq OWNED BY public.settings.id;
+ALTER SEQUENCE settings_id_seq OWNED BY settings.id;
 
 
 --
 -- Name: trusted_certificates; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.trusted_certificates (
+CREATE TABLE trusted_certificates (
     id bigint NOT NULL,
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
@@ -501,13 +503,13 @@ CREATE TABLE public.trusted_certificates (
 );
 
 
-ALTER TABLE public.trusted_certificates OWNER TO postgres;
+ALTER TABLE trusted_certificates OWNER TO postgres;
 
 --
 -- Name: trusted_certificates_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
-CREATE SEQUENCE public.trusted_certificates_id_seq
+CREATE SEQUENCE trusted_certificates_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -515,315 +517,120 @@ CREATE SEQUENCE public.trusted_certificates_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.trusted_certificates_id_seq OWNER TO postgres;
+ALTER TABLE trusted_certificates_id_seq OWNER TO postgres;
 
 --
 -- Name: trusted_certificates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.trusted_certificates_id_seq OWNED BY public.trusted_certificates.id;
+ALTER SEQUENCE trusted_certificates_id_seq OWNED BY trusted_certificates.id;
 
 
 --
 -- Name: access_keys id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.access_keys ALTER COLUMN id SET DEFAULT nextval('public.access_keys_id_seq'::regclass);
+ALTER TABLE ONLY access_keys ALTER COLUMN id SET DEFAULT nextval('access_keys_id_seq'::regclass);
 
 
 --
 -- Name: credentials id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.credentials ALTER COLUMN id SET DEFAULT nextval('public.credentials_id_seq'::regclass);
+ALTER TABLE ONLY credentials ALTER COLUMN id SET DEFAULT nextval('credentials_id_seq'::regclass);
 
 
 --
 -- Name: destinations id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.destinations ALTER COLUMN id SET DEFAULT nextval('public.destinations_id_seq'::regclass);
+ALTER TABLE ONLY destinations ALTER COLUMN id SET DEFAULT nextval('destinations_id_seq'::regclass);
 
 
 --
 -- Name: encryption_keys id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.encryption_keys ALTER COLUMN id SET DEFAULT nextval('public.encryption_keys_id_seq'::regclass);
+ALTER TABLE ONLY encryption_keys ALTER COLUMN id SET DEFAULT nextval('encryption_keys_id_seq'::regclass);
 
 
 --
 -- Name: grants id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.grants ALTER COLUMN id SET DEFAULT nextval('public.grants_id_seq'::regclass);
+ALTER TABLE ONLY grants ALTER COLUMN id SET DEFAULT nextval('grants_id_seq'::regclass);
 
 
 --
 -- Name: groups id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.groups ALTER COLUMN id SET DEFAULT nextval('public.groups_id_seq'::regclass);
+ALTER TABLE ONLY groups ALTER COLUMN id SET DEFAULT nextval('groups_id_seq'::regclass);
 
 
 --
 -- Name: identities id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.identities ALTER COLUMN id SET DEFAULT nextval('public.identities_id_seq'::regclass);
+ALTER TABLE ONLY identities ALTER COLUMN id SET DEFAULT nextval('identities_id_seq'::regclass);
 
 
 --
 -- Name: provider_users id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.provider_users ALTER COLUMN id SET DEFAULT nextval('public.provider_users_id_seq'::regclass);
+ALTER TABLE ONLY provider_users ALTER COLUMN id SET DEFAULT nextval('provider_users_id_seq'::regclass);
 
 
 --
 -- Name: providers id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.providers ALTER COLUMN id SET DEFAULT nextval('public.providers_id_seq'::regclass);
+ALTER TABLE ONLY providers ALTER COLUMN id SET DEFAULT nextval('providers_id_seq'::regclass);
 
 
 --
 -- Name: root_certificates id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.root_certificates ALTER COLUMN id SET DEFAULT nextval('public.root_certificates_id_seq'::regclass);
+ALTER TABLE ONLY root_certificates ALTER COLUMN id SET DEFAULT nextval('root_certificates_id_seq'::regclass);
 
 
 --
 -- Name: settings id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.settings ALTER COLUMN id SET DEFAULT nextval('public.settings_id_seq'::regclass);
+ALTER TABLE ONLY settings ALTER COLUMN id SET DEFAULT nextval('settings_id_seq'::regclass);
 
 
 --
 -- Name: trusted_certificates id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.trusted_certificates ALTER COLUMN id SET DEFAULT nextval('public.trusted_certificates_id_seq'::regclass);
-
-
---
--- Data for Name: access_keys; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.access_keys (id, created_at, updated_at, deleted_at, name, issued_for, provider_id, expires_at, extension, extension_deadline, key_id, secret_checksum) FROM stdin;
-\.
-
-
---
--- Data for Name: credentials; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.credentials (id, created_at, updated_at, deleted_at, identity_id, password_hash, one_time_password, one_time_password_used) FROM stdin;
-\.
-
-
---
--- Data for Name: destinations; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.destinations (id, created_at, updated_at, deleted_at, name, unique_id, connection_url, connection_ca) FROM stdin;
-\.
-
-
---
--- Data for Name: encryption_keys; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.encryption_keys (id, created_at, updated_at, deleted_at, key_id, name, encrypted, algorithm, root_key_id) FROM stdin;
-\.
-
-
---
--- Data for Name: grants; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.grants (id, created_at, updated_at, deleted_at, subject, privilege, resource, created_by) FROM stdin;
-\.
-
-
---
--- Data for Name: groups; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.groups (id, created_at, updated_at, deleted_at, name, created_by) FROM stdin;
-\.
-
-
---
--- Data for Name: identities; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.identities (id, created_at, updated_at, deleted_at, kind, name, last_seen_at, created_by) FROM stdin;
-\.
-
-
---
--- Data for Name: identities_groups; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.identities_groups (group_id, identity_id) FROM stdin;
-\.
-
-
---
--- Data for Name: migrations; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.migrations (id) FROM stdin;
-SCHEMA_INIT
-202203231621
-202203241643
-202203301642
-202203301652
-202203301643
-202203301644
-202203301645
-202203301646
-202203301647
-202203301648
-202204061643
-202204111503
-202204181613
-202204211705
-\.
-
-
---
--- Data for Name: provider_users; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.provider_users (id, created_at, updated_at, deleted_at, provider_id, identity_id, email, groups, last_update, redirect_url, access_token, refresh_token, expires_at) FROM stdin;
-\.
-
-
---
--- Data for Name: providers; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, created_by) FROM stdin;
-\.
-
-
---
--- Data for Name: root_certificates; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.root_certificates (id, created_at, updated_at, deleted_at, key_algorithm, signing_algorithm, public_key, private_key, signed_cert, expires_at) FROM stdin;
-\.
-
-
---
--- Data for Name: settings; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.settings (id, created_at, updated_at, deleted_at, private_jwk, public_jwk, signup_enabled) FROM stdin;
-\.
-
-
---
--- Data for Name: trusted_certificates; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.trusted_certificates (id, created_at, updated_at, deleted_at, key_algorithm, signing_algorithm, public_key, cert_pem, identity, expires_at, one_time_use) FROM stdin;
-\.
-
-
---
--- Name: access_keys_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.access_keys_id_seq', 1, false);
-
-
---
--- Name: credentials_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.credentials_id_seq', 1, false);
-
-
---
--- Name: destinations_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.destinations_id_seq', 1, false);
-
-
---
--- Name: encryption_keys_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.encryption_keys_id_seq', 1, false);
-
-
---
--- Name: grants_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.grants_id_seq', 1, false);
-
-
---
--- Name: groups_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.groups_id_seq', 1, false);
-
-
---
--- Name: identities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.identities_id_seq', 1, false);
-
-
---
--- Name: provider_users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.provider_users_id_seq', 1, false);
-
-
---
--- Name: providers_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.providers_id_seq', 1, false);
-
-
---
--- Name: root_certificates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.root_certificates_id_seq', 1, false);
-
-
---
--- Name: settings_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.settings_id_seq', 1, false);
-
-
---
--- Name: trusted_certificates_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.trusted_certificates_id_seq', 1, false);
-
+ALTER TABLE ONLY trusted_certificates ALTER COLUMN id SET DEFAULT nextval('trusted_certificates_id_seq'::regclass);
+
+INSERT INTO migrations (id) VALUES
+('SCHEMA_INIT'),
+('202203231621'),
+('202203241643'),
+('202203301642'),
+('202203301652'),
+('202203301643'),
+('202203301644'),
+('202203301645'),
+('202203301646'),
+('202203301647'),
+('202203301648'),
+('202204061643'),
+('202204111503'),
+('202204181613'),
+('202204211705');
 
 --
 -- Name: access_keys access_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.access_keys
+ALTER TABLE ONLY access_keys
     ADD CONSTRAINT access_keys_pkey PRIMARY KEY (id);
 
 
@@ -831,7 +638,7 @@ ALTER TABLE ONLY public.access_keys
 -- Name: credentials credentials_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.credentials
+ALTER TABLE ONLY credentials
     ADD CONSTRAINT credentials_pkey PRIMARY KEY (id);
 
 
@@ -839,7 +646,7 @@ ALTER TABLE ONLY public.credentials
 -- Name: destinations destinations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.destinations
+ALTER TABLE ONLY destinations
     ADD CONSTRAINT destinations_pkey PRIMARY KEY (id);
 
 
@@ -847,7 +654,7 @@ ALTER TABLE ONLY public.destinations
 -- Name: encryption_keys encryption_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.encryption_keys
+ALTER TABLE ONLY encryption_keys
     ADD CONSTRAINT encryption_keys_pkey PRIMARY KEY (id);
 
 
@@ -855,7 +662,7 @@ ALTER TABLE ONLY public.encryption_keys
 -- Name: grants grants_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.grants
+ALTER TABLE ONLY grants
     ADD CONSTRAINT grants_pkey PRIMARY KEY (id);
 
 
@@ -863,7 +670,7 @@ ALTER TABLE ONLY public.grants
 -- Name: groups groups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.groups
+ALTER TABLE ONLY groups
     ADD CONSTRAINT groups_pkey PRIMARY KEY (id);
 
 
@@ -871,7 +678,7 @@ ALTER TABLE ONLY public.groups
 -- Name: identities_groups identities_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.identities_groups
+ALTER TABLE ONLY identities_groups
     ADD CONSTRAINT identities_groups_pkey PRIMARY KEY (group_id, identity_id);
 
 
@@ -879,7 +686,7 @@ ALTER TABLE ONLY public.identities_groups
 -- Name: identities identities_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.identities
+ALTER TABLE ONLY identities
     ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
 
 
@@ -887,7 +694,7 @@ ALTER TABLE ONLY public.identities
 -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.migrations
+ALTER TABLE ONLY migrations
     ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
 
 
@@ -895,7 +702,7 @@ ALTER TABLE ONLY public.migrations
 -- Name: provider_users provider_users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.provider_users
+ALTER TABLE ONLY provider_users
     ADD CONSTRAINT provider_users_pkey PRIMARY KEY (id);
 
 
@@ -903,7 +710,7 @@ ALTER TABLE ONLY public.provider_users
 -- Name: providers providers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.providers
+ALTER TABLE ONLY providers
     ADD CONSTRAINT providers_pkey PRIMARY KEY (id);
 
 
@@ -911,7 +718,7 @@ ALTER TABLE ONLY public.providers
 -- Name: root_certificates root_certificates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.root_certificates
+ALTER TABLE ONLY root_certificates
     ADD CONSTRAINT root_certificates_pkey PRIMARY KEY (id);
 
 
@@ -919,7 +726,7 @@ ALTER TABLE ONLY public.root_certificates
 -- Name: settings settings_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.settings
+ALTER TABLE ONLY settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
 
@@ -927,7 +734,7 @@ ALTER TABLE ONLY public.settings
 -- Name: trusted_certificates trusted_certificates_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.trusted_certificates
+ALTER TABLE ONLY trusted_certificates
     ADD CONSTRAINT trusted_certificates_pkey PRIMARY KEY (id);
 
 
@@ -935,80 +742,80 @@ ALTER TABLE ONLY public.trusted_certificates
 -- Name: idx_access_keys_key_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_access_keys_key_id ON public.access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_access_keys_name; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_access_keys_name ON public.access_keys USING btree (name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (name) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_credentials_identity_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_credentials_identity_id ON public.credentials USING btree (identity_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (identity_id) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_destinations_unique_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_destinations_unique_id ON public.destinations USING btree (unique_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations USING btree (unique_id) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_encryption_keys_key_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_encryption_keys_key_id ON public.encryption_keys USING btree (key_id);
+CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);
 
 
 --
 -- Name: idx_groups_name_provider_id; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_groups_name_provider_id ON public.groups USING btree (name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_groups_name_provider_id ON groups USING btree (name) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_identities_name; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_identities_name ON public.identities USING btree (name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (name) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: idx_providers_name; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE UNIQUE INDEX idx_providers_name ON public.providers USING btree (name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (name) WHERE (deleted_at IS NULL);
 
 
 --
 -- Name: access_keys fk_access_keys_issued_for_identity; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.access_keys
-    ADD CONSTRAINT fk_access_keys_issued_for_identity FOREIGN KEY (issued_for) REFERENCES public.identities(id);
+ALTER TABLE ONLY access_keys
+    ADD CONSTRAINT fk_access_keys_issued_for_identity FOREIGN KEY (issued_for) REFERENCES identities(id);
 
 
 --
 -- Name: identities_groups fk_identities_groups_group; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.identities_groups
-    ADD CONSTRAINT fk_identities_groups_group FOREIGN KEY (group_id) REFERENCES public.groups(id);
+ALTER TABLE ONLY identities_groups
+    ADD CONSTRAINT fk_identities_groups_group FOREIGN KEY (group_id) REFERENCES groups(id);
 
 
 --
 -- Name: identities_groups fk_identities_groups_identity; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.identities_groups
-    ADD CONSTRAINT fk_identities_groups_identity FOREIGN KEY (identity_id) REFERENCES public.identities(id);
+ALTER TABLE ONLY identities_groups
+    ADD CONSTRAINT fk_identities_groups_identity FOREIGN KEY (identity_id) REFERENCES identities(id);
 
 
 --
