@@ -51,7 +51,7 @@ describe('Login Component', () => {
     render(<Login />)
 
     expect(screen.getByText('Login to Infra')).toBeInTheDocument()
-    expect(screen.getByLabelText('Username or Email')).toHaveValue('')
+    expect(screen.getByLabelText('Email')).toHaveValue('')
     expect(screen.getByLabelText('Password')).toHaveValue('')
     expect(screen.getByText('Login').closest('button')).toBeDisabled()
   })
@@ -82,13 +82,11 @@ describe('Login Component', () => {
   it('should not enable the login button when enter username only', () => {
     render(<Login />)
 
-    const usernameInput = screen.getByLabelText('Username or Email')
+    const usernameInput = screen.getByLabelText('Email')
     fireEvent.change(usernameInput, {
       target: { value: 'example@infrahq.com' },
     })
-    expect(screen.getByLabelText('Username or Email')).toHaveValue(
-      'example@infrahq.com'
-    )
+    expect(screen.getByLabelText('Email')).toHaveValue('example@infrahq.com')
     expect(screen.getByLabelText('Password')).toHaveValue('')
     expect(screen.getByText('Login').closest('button')).toBeDisabled()
   })
@@ -96,7 +94,7 @@ describe('Login Component', () => {
   it('should enable the login button when enter both username and password', () => {
     render(<Login />)
 
-    const usernameInput = screen.getByLabelText('Username or Email')
+    const usernameInput = screen.getByLabelText('Email')
     fireEvent.change(usernameInput, {
       target: { value: 'example@infrahq.com' },
     })
@@ -106,9 +104,7 @@ describe('Login Component', () => {
       target: { value: 'password' },
     })
 
-    expect(screen.getByLabelText('Username or Email')).toHaveValue(
-      'example@infrahq.com'
-    )
+    expect(screen.getByLabelText('Email')).toHaveValue('example@infrahq.com')
     expect(screen.getByLabelText('Password')).toHaveValue('password')
     expect(screen.getByText('Login').closest('button')).not.toBeDisabled()
   })
