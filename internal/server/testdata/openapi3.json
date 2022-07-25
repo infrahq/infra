@@ -3586,9 +3586,16 @@
                     "type": "string"
                   },
                   "token": {
+                    "format": "[a-zA-Z0-9]",
+                    "maxLength": 10,
+                    "minLength": 10,
                     "type": "string"
                   }
                 },
+                "required": [
+                  "token",
+                  "password"
+                ],
                 "type": "object"
               }
             }
@@ -3685,9 +3692,13 @@
               "schema": {
                 "properties": {
                   "email": {
+                    "format": "email",
                     "type": "string"
                   }
                 },
+                "required": [
+                  "email"
+                ],
                 "type": "object"
               }
             }
