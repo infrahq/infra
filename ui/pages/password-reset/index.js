@@ -2,7 +2,6 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
 
-
 import LoginLayout from '../../components/layouts/login'
 
 export default function PasswordReset() {
@@ -59,7 +58,6 @@ export default function PasswordReset() {
 
       await res.json()
       setSubmitted(true)
-
     } catch (e) {
       console.error(e)
     }
@@ -75,7 +73,10 @@ export default function PasswordReset() {
             Please set your password
           </h2>
           <div className='relative mt-4 w-full'>
-            <div className='absolute inset-0 flex items-center' aria-hidden='true'>
+            <div
+              className='absolute inset-0 flex items-center'
+              aria-hidden='true'
+            >
               <div className='w-full border-t border-gray-800' />
             </div>
           </div>
@@ -100,8 +101,9 @@ export default function PasswordReset() {
                   setPassword(e.target.value)
                   setError('')
                 }}
-                className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${error ? 'border-pink-500/60' : ''
-                  }`}
+                className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+                  error ? 'border-pink-500/60' : ''
+                }`}
               />
             </div>
             <button
@@ -120,59 +122,62 @@ export default function PasswordReset() {
       ) : (
         <>
           <h1 className='text-base font-bold leading-snug'>Password Reset</h1>
-          {
-            submitted ? (
-              <p>Please check your email for the reset link</p>
-            ) : (
-              <>
-                <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-                  Please enter your email
-                </h2>
-                <div className='relative mt-4 w-full'>
-                  <div className='absolute inset-0 flex items-center' aria-hidden='true'>
-                    <div className='w-full border-t border-gray-800' />
-                  </div>
-                </div>
-                <form
-                  onSubmit={onSubmit}
-                  className='relative flex w-full max-w-sm flex-col'
+          {submitted ? (
+            <p>Please check your email for the reset link</p>
+          ) : (
+            <>
+              <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
+                Please enter your email
+              </h2>
+              <div className='relative mt-4 w-full'>
+                <div
+                  className='absolute inset-0 flex items-center'
+                  aria-hidden='true'
                 >
-                  <div className='my-2 w-full'>
-                    <label htmlFor='email' className='text-3xs uppercase text-gray-500'>
-                      Email
-                    </label>
-                    <input
-                      required
-                      autoFocus
-                      id='email'
-                      placeholder='enter your email'
-                      onChange={e => {
-                        setEmail(e.target.value)
-                        setError('')
-                      }}
-                      className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${error ? 'border-pink-500/60' : ''
-                        }`}
-                    />
-                  </div>
-                  <button
-                    disabled={!email}
-                    className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+                  <div className='w-full border-t border-gray-800' />
+                </div>
+              </div>
+              <form
+                onSubmit={onSubmit}
+                className='relative flex w-full max-w-sm flex-col'
+              >
+                <div className='my-2 w-full'>
+                  <label
+                    htmlFor='email'
+                    className='text-3xs uppercase text-gray-500'
                   >
-                    Submit
-                  </button>
-                  {error && (
-                    <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
-                      {error}
-                    </p>
-                  )}
-                </form>
-              </>
-            )
-          }
-
+                    Email
+                  </label>
+                  <input
+                    required
+                    autoFocus
+                    id='email'
+                    placeholder='enter your email'
+                    onChange={e => {
+                      setEmail(e.target.value)
+                      setError('')
+                    }}
+                    className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
+                      error ? 'border-pink-500/60' : ''
+                    }`}
+                  />
+                </div>
+                <button
+                  disabled={!email}
+                  className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+                >
+                  Submit
+                </button>
+                {error && (
+                  <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
+                    {error}
+                  </p>
+                )}
+              </form>
+            </>
+          )}
         </>
-      )
-      }
+      )}
     </>
   )
 }
