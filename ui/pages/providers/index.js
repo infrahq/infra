@@ -48,10 +48,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
   const metadata = [
     { title: 'Name', data: name },
     { title: 'URL', data: url },
-    {
-      title: 'Client ID',
-      data: clientID,
-    },
+    { title: 'Client ID', data: clientID },
     {
       title: 'Added',
       data: created ? dayjs(created).fromNow() : '-',
