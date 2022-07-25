@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.14.1](https://github.com/infrahq/infra/compare/v0.14.0...v0.14.1) (2022-07-25)
+
+
+### Features
+
+* make infra server read-only at runtime ([#2692](https://github.com/infrahq/infra/issues/2692)) ([5d928cf](https://github.com/infrahq/infra/commit/5d928cf59e26a1813e1b35fcb805cbf2e1e24b15))
+
+
+### Bug Fixes
+
+* migrate sqlite3 db owner if changing security contexts ([cfd684b](https://github.com/infrahq/infra/commit/cfd684b92635e26225174ab57dc99575668229b5))
+* rename input label ([#2691](https://github.com/infrahq/infra/issues/2691)) ([7cb04cf](https://github.com/infrahq/infra/commit/7cb04cf222f4bb47b5d1d33682e5f3848ccc2107))
+* run as non-root user by default ([c21623d](https://github.com/infrahq/infra/commit/c21623d27875815b5d749a744912121ccb7a8486))
+
 ## [0.14.0](https://github.com/infrahq/infra/compare/v0.13.6...v0.14.0) (2022-07-21)
 
 
