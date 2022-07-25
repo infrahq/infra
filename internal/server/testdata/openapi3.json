@@ -1046,7 +1046,7 @@
                   "name": {
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
-                    "minLength": 3,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "ttl": {
@@ -1393,7 +1393,7 @@
                   "name": {
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
-                    "minLength": 3,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "resources": {
@@ -1732,7 +1732,7 @@
                   "name": {
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
-                    "minLength": 3,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "resources": {
