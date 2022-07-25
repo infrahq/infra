@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import { useTable } from 'react-table'
 import dayjs from 'dayjs'
+import { useRouter } from 'next/router'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -13,6 +14,7 @@ import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 import Metadata from '../../components/metadata'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
 
 const columns = [
   {
@@ -100,11 +102,21 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
 }
 
 export default function Providers() {
-  const { data: { items: providers } = {}, error } = useSWR('/api/providers')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
+  const {
+    data: { items: providers, totalPages, totalCount } = {
+      items: [],
+      totalCount: 0,
+      totalPages: 0,
+    },
+    error,
+  } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
     columns,
-    data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+    data: providers || [],
   })
 
   const [selected, setSelected] = useState(null)
@@ -155,6 +167,14 @@ export default function Providers() {
                   />
                 )}
               </div>
+            )}
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                limit={limit}
+              ></Pagination>
             )}
           </div>
           {selected && (
