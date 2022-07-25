@@ -325,10 +325,6 @@ func (c Client) GetServerVersion() (*Version, error) {
 	return get[Version](c, "/api/version", Query{})
 }
 
-func (c Client) GetPasswordSettings() (*PasswordResponse, error) {
-	return get[PasswordResponse](c, "/api/password", Query{})
-}
-
 func partialText(body []byte, limit int) string {
 	if len(body) <= limit {
 		return string(body)
