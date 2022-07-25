@@ -44,53 +44,6 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 	}
 }
 
-// see loadSQL for setting up your own migration test
-func TestMigration_202204111503(t *testing.T) {
-	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
-		loadSQL(t, db, "202204111503")
-	})
-
-	// migration runs as part of NewDB
-	db, err := NewDB(driver, nil)
-	assert.NilError(t, err)
-
-	ids, err := ListIdentities(db, nil, ByName("steven@example.com"))
-	assert.NilError(t, err)
-	assert.Assert(t, len(ids) == 1)
-	// check that merged identity has unique grants
-	grants, err := ListGrants(db, nil, BySubject(ids[0].PolyID()))
-	assert.NilError(t, err)
-	assert.Assert(t, len(grants) == 1)
-}
-
-func TestMigration_202204211705(t *testing.T) {
-	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
-		loadSQL(t, db, "202204211705")
-	})
-
-	// migration runs as part of NewDB
-	db, err := NewDB(driver, nil)
-	assert.NilError(t, err)
-
-	// check it still works
-	settings, err := GetSettings(db)
-	assert.NilError(t, err)
-
-	assert.Assert(t, settings != nil)
-	assert.Assert(t, settings.PrivateJWK[0] == '{') // unencrypted type is json string.
-
-	// check the storage data
-	type Settings struct {
-		models.Model
-		PrivateJWK []byte
-	}
-	rawSettings := Settings{}
-	err = db.Model(rawSettings).Where("id = ?", settings.ID).First(&rawSettings).Error
-	assert.NilError(t, err)
-
-	assert.Assert(t, rawSettings.PrivateJWK[0] != '{')
-}
-
 var cmpProviderShallow = gocmp.Comparer(func(x, y models.Provider) bool {
 	return x.Name == y.Name && x.Kind == y.Kind && x.URL == y.URL
 })
