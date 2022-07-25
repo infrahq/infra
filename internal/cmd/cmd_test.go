@@ -306,7 +306,24 @@ func newExpiredTestClientConfig(srv *httptest.Server, user api.User) ClientConfi
 	}
 }
 
-func TestMustBeLoggedInCmdCondition(t *testing.T) {
+func newClearedTestClientConfig(srv *httptest.Server) ClientConfig {
+	return ClientConfig{
+		ClientConfigVersion: clientConfigVersion,
+		Hosts: []ClientHostConfig{
+			{
+				UserID:             0,
+				Name:               "",
+				Host:               srv.Listener.Addr().String(),
+				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
+				AccessKey:          "",
+				Expires:            api.Time(time.Now().Add(time.Hour)),
+				Current:            true,
+			},
+		},
+	}
+}
+
+func TestInvalidSessions(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home) // Windows
@@ -314,20 +331,32 @@ func TestMustBeLoggedInCmdCondition(t *testing.T) {
 	// k8s.io/tools/clientcmd reads HOME at import time, so this must be patched too
 	t.Setenv("KUBECONFIG", filepath.Join(home, "config"))
 
-	userID := uid.New()
-
 	srv := httptest.NewTLSServer(http.HandlerFunc(nil))
 	t.Cleanup(srv.Close)
 
-	cfg := newExpiredTestClientConfig(srv, api.User{ID: userID})
-	err := writeConfig(&cfg)
-	assert.NilError(t, err)
+	t.Run("Expired session", func(t *testing.T) {
+		cfg := newExpiredTestClientConfig(srv, api.User{ID: uid.New()})
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
 
-	err = clearKubeconfig()
-	assert.NilError(t, err)
+		err = clearKubeconfig()
+		assert.NilError(t, err)
 
-	err = Run(context.Background(), "destinations", "list")
-	assert.ErrorContains(t, err, "Session expired")
+		err = Run(context.Background(), "destinations", "list")
+		assert.ErrorContains(t, err, "Session expired")
+	})
+
+	t.Run("Logged out session", func(t *testing.T) {
+		cfg := newClearedTestClientConfig(srv)
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+		err = clearKubeconfig()
+		assert.NilError(t, err)
+
+		err = Run(context.Background(), "destinations", "list")
+		assert.ErrorContains(t, err, "Not logged in")
+	})
 }
 
 func TestConnectorCmd(t *testing.T) {
