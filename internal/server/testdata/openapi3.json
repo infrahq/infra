@@ -776,6 +776,30 @@
           }
         }
       },
+      "PasswordResponse": {
+        "properties": {
+          "lengthMin": {
+            "format": "int",
+            "type": "integer"
+          },
+          "lowercaseMin": {
+            "format": "int",
+            "type": "integer"
+          },
+          "numberMin": {
+            "format": "int",
+            "type": "integer"
+          },
+          "symbolMin": {
+            "format": "int",
+            "type": "integer"
+          },
+          "uppercaseMin": {
+            "format": "int",
+            "type": "integer"
+          }
+        }
+      },
       "Provider": {
         "properties": {
           "authURL": {
@@ -3076,6 +3100,91 @@
         "summary": "Logout",
         "tags": [
           "Authentication"
+        ]
+      }
+    },
+    "/api/password": {
+      "get": {
+        "description": "GetPasswordSettings",
+        "operationId": "GetPasswordSettings",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "GetPasswordSettings",
+        "tags": [
+          "Misc"
         ]
       }
     },

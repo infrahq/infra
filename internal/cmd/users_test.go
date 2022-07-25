@@ -17,19 +17,19 @@ import (
 )
 
 func TestCheckPasswordRequirements(t *testing.T) {
-	err := checkPasswordRequirements("")("password")
+	err := checkDefaultPasswordRequirements("")("password")
 	assert.NilError(t, err)
 
-	err = checkPasswordRequirements("")("short")
+	err = checkDefaultPasswordRequirements("")("short")
 	assert.NilError(t, err)
 
-	err = checkPasswordRequirements("")("")
+	err = checkDefaultPasswordRequirements("")("")
 	assert.ErrorContains(t, err, "Value is required")
 
-	err = checkPasswordRequirements("password")("password")
+	err = checkDefaultPasswordRequirements("password")("password")
 	assert.ErrorContains(t, err, "input must be different than the current password")
 
-	err = checkPasswordRequirements("password")(nil)
+	err = checkDefaultPasswordRequirements("password")(nil)
 	assert.ErrorContains(t, err, "unexpected type for password")
 }
 

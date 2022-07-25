@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"regexp"
 	"strings"
+	"unicode"
 
 	survey "github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -329,7 +331,7 @@ func updateUser(cli *CLI, name string) error {
 		return err
 	}
 
-	tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
+	tmpPassword, err := generateTemporaryPassword(client)
 	if err != nil {
 		return err
 	}
@@ -344,6 +346,25 @@ func updateUser(cli *CLI, name string) error {
 	cli.Output("  Temporary password for user %q set to: %s", name, tmpPassword)
 
 	return nil
+}
+
+func generateTemporaryPassword(client *api.Client) (string, error) {
+	logging.Debugf("call server: get password settings")
+	settings, err := client.GetPasswordSettings()
+	if err != nil {
+		return "", err
+	}
+
+GENERATE:
+	tmpPassword, err := generate.CryptoRandom(settings.LengthMin, generate.CharsetPassword)
+	if err != nil {
+		return "", err
+	}
+	if err := checkServerPasswordRequirements(settings, tmpPassword); err != nil {
+		goto GENERATE
+	}
+
+	return tmpPassword, nil
 }
 
 func getUserByName(client *api.Client, name string) (*api.User, error) {
@@ -375,7 +396,7 @@ PROMPT:
 		{
 			Name:     "Password",
 			Prompt:   &survey.Password{Message: "Password:"},
-			Validate: checkPasswordRequirements(oldPassword),
+			Validate: checkDefaultPasswordRequirements(oldPassword),
 		},
 		{
 			Name:     "Confirm",
@@ -396,7 +417,7 @@ PROMPT:
 	return passwordConfirm.Password, nil
 }
 
-func checkPasswordRequirements(oldPassword string) survey.Validator {
+func checkDefaultPasswordRequirements(oldPassword string) survey.Validator {
 	// To do: move the old password check to the api level #2642
 	return func(val interface{}) error {
 		newPassword, ok := val.(string)
@@ -414,6 +435,40 @@ func checkPasswordRequirements(oldPassword string) survey.Validator {
 
 		return nil
 	}
+}
+
+func checkServerPasswordRequirements(settings *api.PasswordResponse, password string) error {
+	var errs []string
+
+	if !hasMinimumCount(settings.LowercaseMin, password, unicode.IsLower) {
+		errs = append(errs, fmt.Sprintf("- needs minimum %d lower case letters", settings.LowercaseMin))
+	}
+
+	if !hasMinimumCount(settings.UppercaseMin, password, unicode.IsUpper) {
+		errs = append(errs, fmt.Sprintf("- needs minimum %d upper case letters", settings.UppercaseMin))
+	}
+
+	if !hasMinimumCount(settings.NumberMin, password, unicode.IsDigit) {
+		errs = append(errs, fmt.Sprintf("- needs minimum %d numbers", settings.NumberMin))
+	}
+
+	if !hasMinimumCount(settings.SymbolMin, password, isValidSymbol) {
+		errs = append(errs, fmt.Sprintf("- needs minimum %d symbols", settings.SymbolMin))
+	}
+
+	if len(password) < settings.LengthMin {
+		errs = append(errs, fmt.Sprintf("- needs minimum length of %d", settings.LengthMin))
+	}
+
+	if len(errs) == 0 {
+		return nil
+	}
+
+	errMsg := "New password does not meet the following requirements: "
+	for _, err := range errs {
+		errMsg += errMsg + err
+	}
+	return fmt.Errorf(errMsg)
 }
 
 // isUserSelf checks if the caller is updating their current local user
@@ -451,4 +506,20 @@ func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientH
 	}
 
 	return len(grants.Items) > 0, nil
+}
+
+func hasMinimumCount(min int, password string, check func(rune) bool) bool {
+	var count int
+	for _, r := range password {
+		if check(r) {
+			count++
+		}
+	}
+	return count >= min
+}
+
+// list of valid special chars is from OWASP, wikipedia
+func isValidSymbol(letter rune) bool {
+	match, _ := regexp.MatchString(fmt.Sprintf(`(.*[ !"#$%%&'()*+,-./\:;<=>?@^_{}|~%s%s]){1,}`, regexp.QuoteMeta(`/\[]`), "`"), string(letter))
+	return match
 }
