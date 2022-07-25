@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/goware/urlx"
 	"k8s.io/client-go/tools/clientcmd"
@@ -206,7 +206,7 @@ func safelyWriteConfigToFile(kubeConfig clientcmdapi.Config, fileToWrite string)
 		return err
 	}
 
-	temp, err := os.Create(fmt.Sprintf("%s/infra-kube-config-%d", configDir, time.Now().Unix()))
+	temp, err := ioutil.TempFile(configDir, "infra-kube-config-")
 	if err != nil {
 		return fmt.Errorf("failed to create temp kube config file: %w", err)
 	}
