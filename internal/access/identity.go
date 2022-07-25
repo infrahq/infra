@@ -63,9 +63,8 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	return data.CreateIdentity(db, identity)
 }
 
-func InfraConnectorIdentity(c *gin.Context) *models.Identity {
-	// XXX - should this be per org?
-	return data.InfraConnectorIdentity(getDB(c))
+func InfraConnectorIdentity(c *gin.Context, orgID uid.ID) *models.Identity {
+	return data.InfraConnectorIdentity(getDB(c), orgID)
 }
 
 // TODO (https://github.com/infrahq/infra/issues/2318) remove provider user, not user.
@@ -79,7 +78,12 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
 	}
 
-	if InfraConnectorIdentity(c).ID == id {
+	orgID, err := GetCurrentOrgID(c)
+	if err != nil {
+		return err
+	}
+
+	if InfraConnectorIdentity(c, orgID).ID == id {
 		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
 	}
 

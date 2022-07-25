@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -57,10 +58,10 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 	c.Set("organization", organization)
 	logging.Infof("Org ID -> %s", organization.ID)
 
-	identity := &models.Identity{Name: name}
-	identity.OrganizationID = organization.ID
+	// TODO: add connector user and grant permission
 
-	if err := data.CreateIdentity(db, identity); err != nil {
+	identity, err := createInitialUser(c, db, name, models.InfraAdminRole, organization.ID, 0)
+	if err != nil {
 		return nil, err
 	}
 
@@ -69,19 +70,35 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 		return nil, err
 	}
 
-	_, err = CreateProviderUser(c, InfraProvider(c), identity)
-	if err != nil {
-		return nil, fmt.Errorf("create provider user")
-	}
-
 	credential := &models.Credential{
 		IdentityID:   identity.ID,
 		PasswordHash: hash,
 	}
 	credential.OrganizationID = organization.ID
 
-	if err := data.CreateCredential(db, credential); err != nil {
+	if err = data.CreateCredential(db, credential); err != nil {
 		return nil, err
+	}
+
+	_, err = createInitialUser(c, db, "connector", models.InfraConnectorRole, organization.ID, identity.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return identity, nil
+}
+
+func createInitialUser(c *gin.Context, db *gorm.DB, name, grantType string, orgID, createdBy uid.ID) (*models.Identity, error) {
+	identity := &models.Identity{Name: name}
+	identity.OrganizationID = orgID
+
+	if err := data.CreateIdentity(db, identity); err != nil {
+		return nil, err
+	}
+
+	_, err := CreateProviderUser(c, InfraProvider(c), identity)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create provider user")
 	}
 
 	grant := &models.Grant{
@@ -90,7 +107,10 @@ func Signup(c *gin.Context, orgName, name, password string) (*models.Identity, e
 		Resource:  "infra",
 		CreatedBy: identity.ID,
 	}
-	grant.OrganizationID = organization.ID
+	if createdBy > 0 {
+		grant.CreatedBy = createdBy
+	}
+	grant.OrganizationID = orgID
 
 	if err := data.CreateGrant(db, grant); err != nil {
 		return nil, err

@@ -286,9 +286,9 @@ var infraConnectorCache *models.Identity
 // InfraConnectorIdentity is a lazy-loaded reference to the connector identity.
 // The cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
-func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
+func InfraConnectorIdentity(db *gorm.DB, orgID uid.ID) *models.Identity {
 	if infraConnectorCache == nil {
-		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
+		connector, err := GetIdentity(db, ByOrg(orgID), ByName(models.InternalInfraConnectorIdentityName))
 		if err != nil {
 			logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 			return nil // unreachable, the line above panics
