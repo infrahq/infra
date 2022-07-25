@@ -95,7 +95,6 @@ func (g *Migrator) Migrate() error {
 
 func (g *Migrator) validate() error {
 	lookup := make(map[string]struct{}, len(g.migrations))
-	ids := make([]string, len(g.migrations))
 
 	for _, m := range g.migrations {
 		switch m.ID {
@@ -108,7 +107,6 @@ func (g *Migrator) validate() error {
 			return fmt.Errorf("duplicate migration ID: %v", m.ID)
 		}
 		lookup[m.ID] = struct{}{}
-		ids = append(ids, m.ID)
 	}
 	return nil
 }
