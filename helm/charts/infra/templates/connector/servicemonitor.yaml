@@ -13,6 +13,7 @@ metadata:
   annotations:
 {{- toYaml .Values.connector.metrics.serviceMonitor.annotations | nindent 4 }}
 spec:
+  jobLabel: app.kubernetes.io/name
   endpoints:
     - path: /metrics
       port: {{ .Values.connector.metrics.service.portName }}
