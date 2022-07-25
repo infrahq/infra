@@ -28,6 +28,7 @@ var (
 	AppDomain          = "https://infrahq.com"
 	FromAddress        = "noreply@infrahq.com"
 	FromName           = "Infra"
+	SendgridAPIKey     = os.Getenv("SENDGRID_API_KEY")
 	TestMode           = false
 	TestDataSent       = []map[string]interface{}{}
 	ErrUnknownTemplate = errors.New("unknown template")
@@ -35,8 +36,7 @@ var (
 )
 
 func IsConfigured() bool {
-	key := os.Getenv("SENDGRID_API_KEY")
-	return len(key) > 0
+	return len(SendgridAPIKey) > 0
 }
 
 func SendTemplate(name, address string, template EmailTemplate, data map[string]interface{}) error {
@@ -46,8 +46,7 @@ func SendTemplate(name, address string, template EmailTemplate, data map[string]
 		return nil // quietly return
 	}
 
-	key := os.Getenv("SENDGRID_API_KEY")
-	if len(key) == 0 {
+	if len(SendgridAPIKey) == 0 {
 		return ErrNotConfigured
 	}
 
@@ -71,7 +70,7 @@ func SendTemplate(name, address string, template EmailTemplate, data map[string]
 
 	m.AddPersonalizations(p)
 
-	request := sendgrid.GetRequest(key, "/v3/mail/send", "https://api.sendgrid.com")
+	request := sendgrid.GetRequest(SendgridAPIKey, "/v3/mail/send", "https://api.sendgrid.com")
 	request.Method = "POST"
 	var Body = mail.GetRequestBody(m)
 	request.Body = Body

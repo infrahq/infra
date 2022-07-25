@@ -181,12 +181,12 @@ export default function Login() {
         >
           Login
         </button>
-        <a
+        <link
           href="/password-reset"
           className='text-3xs text-violet-100 hover:border-violet-100 '
         >
           I forgot my password
-        </a>
+        </link>
         {error && (
           <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
             {error}
