@@ -11,10 +11,6 @@ const initSchemaMigrationID = "SCHEMA_INIT"
 
 // Options define options for all migrations.
 type Options struct {
-	// IDColumnName is the name of column where the migration id will be stored.
-	IDColumnName string
-	// IDColumnSize is the length of the migration id column
-	IDColumnSize int
 	// UseTransaction makes Migrator execute migrations inside a single transaction.
 	// Keep in mind that not all databases support DDL commands inside transactions.
 	UseTransaction bool
@@ -46,19 +42,11 @@ type Migrator struct {
 
 // DefaultOptions can be used if you don't want to think about options.
 var DefaultOptions = Options{
-	IDColumnName:   "id",
-	IDColumnSize:   255,
 	UseTransaction: false,
 }
 
 // New returns a new Migrator.
 func New(db *gorm.DB, options Options, migrations []*Migration) *Migrator {
-	if options.IDColumnName == "" {
-		options.IDColumnName = DefaultOptions.IDColumnName
-	}
-	if options.IDColumnSize == 0 {
-		options.IDColumnSize = DefaultOptions.IDColumnSize
-	}
 	return &Migrator{
 		db:         db,
 		options:    options,
@@ -176,9 +164,7 @@ func (g *Migrator) rollbackMigration(m *Migration) error {
 	if err := m.Rollback(g.tx); err != nil {
 		return err
 	}
-
-	sql := fmt.Sprintf("DELETE FROM migrations WHERE %s = ?", g.options.IDColumnName)
-	return g.tx.Exec(sql, m.ID).Error
+	return g.tx.Exec("DELETE FROM migrations WHERE id = ?", m.ID).Error
 }
 
 func (g *Migrator) runInitSchema() error {
@@ -216,20 +202,14 @@ func (g *Migrator) createMigrationTableIfNotExists() error {
 		return nil
 	}
 
-	// TODO: use queryBuilder or hardcode table and column names
-	sql := fmt.Sprintf("CREATE TABLE migrations (%s VARCHAR(%d) PRIMARY KEY)", g.options.IDColumnName, g.options.IDColumnSize)
-	return g.tx.Exec(sql).Error
+	return g.tx.Exec("CREATE TABLE migrations (id VARCHAR(255) PRIMARY KEY)").Error
 }
 
 // TODO: select all values from the table once, instead of selecting each
 // individually
 func (g *Migrator) migrationRan(m *Migration) (bool, error) {
 	var count int64
-	err := g.tx.
-		Table("migrations").
-		Where(fmt.Sprintf("%s = ?", g.options.IDColumnName), m.ID).
-		Count(&count).
-		Error
+	err := g.tx.Raw(`select count(id) from migrations where id = ?`, m.ID).Scan(&count).Error
 	return count > 0, err
 }
 
@@ -244,17 +224,12 @@ func (g *Migrator) shouldInitializeSchema() (bool, error) {
 
 	// If the ID doesn't exist, we also want the list of migrations to be empty
 	var count int64
-	err = g.tx.
-		Table("migrations").
-		Count(&count).
-		Error
+	err = g.tx.Raw(`SELECT count(id) from migrations`).Scan(&count).Error
 	return count == 0, err
 }
 
 func (g *Migrator) insertMigration(id string) error {
-	// TODO: use queryBuilder, or hardcode table and column name
-	sql := fmt.Sprintf("INSERT INTO migrations (%s) VALUES (?)", g.options.IDColumnName)
-	return g.tx.Exec(sql, id).Error
+	return g.tx.Exec("INSERT INTO migrations (id) VALUES (?)", id).Error
 }
 
 func (g *Migrator) begin() func() {
