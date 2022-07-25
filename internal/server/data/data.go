@@ -19,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -32,20 +33,14 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err := preMigrate(db); err != nil {
-		return nil, err
+	opts := migrator.Options{
+		InitSchema: initializeSchema,
+		LoadKey:    loadDBKey,
 	}
-
-	if loadDBKey != nil {
-		if err := loadDBKey(db); err != nil {
-			return nil, fmt.Errorf("load DB key failed: %w", err)
-		}
-	}
-
-	if err = migrate(db); err != nil {
+	m := migrator.New(db, opts, migrations())
+	if err := m.Migrate(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
-
 	return db, nil
 }
 
