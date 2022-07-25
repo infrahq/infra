@@ -564,6 +564,10 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 		return 0, nil, err
 	}
 
+	if len(providers) == 0 {
+		return localLogin, nil, nil
+	}
+
 	var options []string
 	for _, p := range providers {
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
