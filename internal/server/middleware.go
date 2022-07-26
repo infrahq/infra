@@ -110,7 +110,6 @@ func authenticatedMiddleware() gin.HandlerFunc {
 		c.Set(access.RequestContextKey, rCtx)
 
 		// TODO: remove
-		c.Set("key", authned.AccessKey)
 		c.Set("identity", authned.User)
 
 		if err := handleInfraDestinationHeader(c); err != nil {

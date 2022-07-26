@@ -24,6 +24,9 @@ func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
 // that was used to authenticate the request.
 // Returns nil if there is no identity in the context, which likely means the
 // request was not authenticated.
+//
+// TODO: remove once all callers use RequestContext.Authenticated.User
+// See https://github.com/infrahq/infra/issues/2796
 func AuthenticatedIdentity(c *gin.Context) *models.Identity {
 	if raw, ok := c.Get("identity"); ok {
 		if identity, ok := raw.(*models.Identity); ok {
@@ -117,24 +120,19 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 	return data.ListIdentities(db.Preload("Providers"), p, selectors...)
 }
 
-func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error) {
-	// added by the authentication middleware
-	identity := AuthenticatedIdentity(c)
+func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {
+	// does not need authorization check, this action is limited to the calling user
+	identity := c.Authenticated.User
 	if identity == nil {
 		return nil, "", errors.New("user does not have session with an identity provider")
 	}
 
-	// does not need authorization check, this action is limited to the calling user
-	db := getDB(c)
-
-	accessKey := currentAccessKey(c)
-
-	providerUser, err := data.GetProviderUser(db, accessKey.ProviderID, identity.ID)
+	providerUser, err := data.GetProviderUser(c.DBTxn, c.Authenticated.AccessKey.ProviderID, identity.ID)
 	if err != nil {
 		return nil, "", err
 	}
 
-	provider, err := data.GetProvider(db, data.ByID(providerUser.ProviderID))
+	provider, err := data.GetProvider(c.DBTxn, data.ByID(providerUser.ProviderID))
 	if err != nil {
 		return nil, "", fmt.Errorf("user info provider: %w", err)
 	}
@@ -143,21 +141,18 @@ func GetContextProviderIdentity(c *gin.Context) (*models.Provider, string, error
 }
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) error {
+func UpdateIdentityInfoFromProvider(c RequestContext, oidc providers.OIDCClient) error {
+	// does not need authorization check, this action is limited to the calling user
 	ctx := c.Request.Context()
 
 	// added by the authentication middleware
-	identity := AuthenticatedIdentity(c)
+	identity := c.Authenticated.User
 	if identity == nil {
 		return errors.New("user does not have session with an identity provider")
 	}
 
-	// does not need authorization check, this action is limited to the calling user
-	db := getDB(c)
-
-	accessKey := currentAccessKey(c)
-
-	provider, err := data.GetProvider(db, data.ByID(accessKey.ProviderID))
+	db := c.DBTxn
+	provider, err := data.GetProvider(db, data.ByID(c.Authenticated.AccessKey.ProviderID))
 	if err != nil {
 		return fmt.Errorf("user info provider: %w", err)
 	}

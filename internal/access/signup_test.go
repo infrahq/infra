@@ -97,7 +97,7 @@ func TestSignupEnabled(t *testing.T) {
 	pass := "password"
 
 	t.Run("SignupUser", func(t *testing.T) {
-		c, _ := setup(t)
+		c, db := setup(t)
 
 		enabled, err := SignupEnabled(c)
 		assert.NilError(t, err)
@@ -118,10 +118,13 @@ func TestSignupEnabled(t *testing.T) {
 		assert.Equal(t, identity.ID, key.IssuedFor)
 		assert.Equal(t, requiresUpdate, false)
 
-		c.Set("identity", identity)
+		rCtx := RequestContext{
+			Authenticated: Authenticated{User: identity},
+			DBTxn:         db,
+		}
 
 		// check "admin" can create token
-		_, err = CreateToken(c)
+		_, err = CreateToken(rCtx)
 		assert.NilError(t, err)
 	})
 }

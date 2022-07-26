@@ -18,6 +18,8 @@ type RequestContext struct {
 	Authenticated Authenticated
 }
 
+// Authenticated stores data about the authenticated user. If the AccessKey or
+// User are nil, it indicates that no user was authenticated.
 type Authenticated struct {
 	AccessKey *models.AccessKey
 	User      *models.Identity
