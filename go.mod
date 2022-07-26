@@ -40,7 +40,6 @@ require (
 	github.com/getkin/kin-openapi v0.97.0
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-contrib/static v0.0.1
-	github.com/go-gormigrate/gormigrate/v2 v2.0.2
 	github.com/google/go-cmp v0.5.8
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
 	github.com/iancoleman/strcase v0.2.0
