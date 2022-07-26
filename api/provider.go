@@ -8,8 +8,15 @@ import (
 // ProviderAPICredentials contain sensitive fields, it should not be sent on a response
 type ProviderAPICredentials struct {
 	PrivateKey       PEM    `json:"privateKey" example:"-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n"`
-	ClientEmail      string `json:"clientEmail" validate:"omitempty,email"`
-	DomainAdminEmail string `json:"domainAdminEmail" validate:"omitempty,email"`
+	ClientEmail      string `json:"clientEmail"`
+	DomainAdminEmail string `json:"domainAdminEmail"`
+}
+
+func (r ProviderAPICredentials) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Email("clientEmail", r.ClientEmail),
+		validate.Email("domainAdminEmail", r.DomainAdminEmail),
+	}
 }
 
 type Provider struct {
@@ -37,6 +44,7 @@ var kinds = []string{"oidc", "okta", "azure", "google"}
 
 func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
+		ValidateName(r.Name),
 		validate.Required("name", r.Name),
 		validate.Required("url", r.URL),
 		validate.Required("clientID", r.ClientID),
@@ -57,6 +65,7 @@ type UpdateProviderRequest struct {
 
 func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
+		ValidateName(r.Name),
 		validate.Required("id", r.ID),
 		validate.Required("name", r.Name),
 		validate.Required("url", r.URL),

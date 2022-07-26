@@ -211,6 +211,37 @@ func TestAPI_CreateProvider(t *testing.T) {
 			},
 		},
 		{
+			name: "api credential invalid emails",
+			body: api.CreateProviderRequest{
+				Name:         "google",
+				URL:          "accounts.google.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         string(models.ProviderKindGoogle),
+				API: &api.ProviderAPICredentials{
+					ClientEmail:      "notanemail",
+					DomainAdminEmail: "domainadmin",
+				},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "api.clientEmail", Errors: []string{"invalid email address"}},
+					{FieldName: "api.domainAdminEmail", Errors: []string{"invalid email address"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
 			name: "invalid kind",
 			body: api.CreateProviderRequest{
 				Name:         "olive",

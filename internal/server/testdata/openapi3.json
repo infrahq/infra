@@ -3215,9 +3215,11 @@
                   "api": {
                     "properties": {
                       "clientEmail": {
+                        "format": "email",
                         "type": "string"
                       },
                       "domainAdminEmail": {
+                        "format": "email",
                         "type": "string"
                       },
                       "privateKey": {
@@ -3247,6 +3249,9 @@
                   },
                   "name": {
                     "example": "okta",
+                    "format": "[a-zA-Z0-9\\-_.]",
+                    "maxLength": 256,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "url": {
@@ -3557,9 +3562,11 @@
                   "api": {
                     "properties": {
                       "clientEmail": {
+                        "format": "email",
                         "type": "string"
                       },
                       "domainAdminEmail": {
+                        "format": "email",
                         "type": "string"
                       },
                       "privateKey": {
@@ -3589,6 +3596,9 @@
                   },
                   "name": {
                     "example": "okta",
+                    "format": "[a-zA-Z0-9\\-_.]",
+                    "maxLength": 256,
+                    "minLength": 2,
                     "type": "string"
                   },
                   "url": {
