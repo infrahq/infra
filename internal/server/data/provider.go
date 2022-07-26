@@ -11,7 +11,21 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func validateProvider(p *models.Provider) error {
+	switch {
+	case p.Name == "":
+		return fmt.Errorf("name is required")
+	case p.Kind == "":
+		return fmt.Errorf("kind is required")
+	default:
+		return nil
+	}
+}
+
 func CreateProvider(db *gorm.DB, provider *models.Provider) error {
+	if err := validateProvider(provider); err != nil {
+		return err
+	}
 	return add(db, provider)
 }
 
@@ -24,6 +38,9 @@ func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc)
 }
 
 func SaveProvider(db *gorm.DB, provider *models.Provider) error {
+	if err := validateProvider(provider); err != nil {
+		return err
+	}
 	return save(db, provider)
 }
 

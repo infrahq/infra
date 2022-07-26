@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.61
 	github.com/cli/browser v1.1.0
 	github.com/gin-gonic/gin v1.8.1
-	github.com/go-playground/validator/v10 v10.11.0
+	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/goware/urlx v0.3.2
 	github.com/hashicorp/vault/api v1.5.0 // indirect
 	github.com/jackc/pgconn v1.12.1
