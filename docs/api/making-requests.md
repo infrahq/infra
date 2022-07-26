@@ -9,3 +9,15 @@ A valid version header looks like this:
 
     Infra-Version: 0.13.0
 
+## Pagination
+
+Every List Response in the Infra API is paginated (split into pages). If the page number and limit (page size) aren't specified, then the response will contain the first page of 100 records.
+
+To get the full list of responses, you will need to make multiple requests, specifying the page and limit in the query parameters like so:
+
+* `GET /api/grants?page=2` returns the second page of 100 grants.
+* `GET /api/users?page=1&limit=10` returns the first page of 10 users
+* `GET /api/users?page=2&limit=10` returns the second page of 10 users
+
+
+You can use the `totalPages` field to determine the number of pages you will need to request to get all records with the given limit. The maximum limit/page size is 1000.
