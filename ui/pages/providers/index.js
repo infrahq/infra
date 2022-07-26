@@ -62,7 +62,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
   ]
 
   return (
-    <div className='flex flex-1 flex-col space-y-6'>
+    <div className='flex flex-1 flex-col space-y-6 overflow-x-hidden'>
       <section>
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
