@@ -412,10 +412,16 @@ export default function Destinations() {
               <Details
                 destination={selected}
                 onDelete={() => {
-                  fetch(`/api/destinations/${selected.id}`, {
-                    method: 'DELETE',
+                  mutate(async ({ items: destinations } = { items: [] }) => {
+                    await fetch(`/api/destinations/${selected.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    return {
+                      items: destinations?.filter(d => d?.id !== selected.id),
+                    }
                   })
-                  mutate(destinations.filter(d => d?.id !== selected.id))
+
                   setSelected(null)
                 }}
               />
