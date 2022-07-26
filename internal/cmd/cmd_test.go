@@ -385,6 +385,10 @@ caKey: /path/to/key
 
 	expected := connector.Options{
 		Name: "the-name",
+		Addr: connector.ListenerOptions{
+			HTTPS:   ":443",
+			Metrics: ":9090",
+		},
 		Server: connector.ServerOptions{
 			URL:                "the-server",
 			AccessKey:          "/var/run/secrets/key",
