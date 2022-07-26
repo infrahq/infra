@@ -15,16 +15,6 @@ import GrantForm from '../../components/grant-form'
 function AdminGrant({ name, showRemove, onRemove, message = undefined }) {
   const [open, setOpen] = useState(false)
 
-  const deleteModalMessage =
-    message === undefined ? (
-      <>
-        Are you sure you want to revoke admin access for{' '}
-        <span className='font-bold text-white'>{name}</span>?
-      </>
-    ) : (
-      message
-    )
-
   return (
     <div className='group flex items-center justify-between py-1 text-2xs'>
       <div className='py-1.5'>{name}</div>
@@ -42,7 +32,16 @@ function AdminGrant({ name, showRemove, onRemove, message = undefined }) {
             primaryButtonText='Revoke'
             onSubmit={onRemove}
             title='Revoke Admin'
-            message={deleteModalMessage}
+            message={
+              !message ? (
+                <>
+                  Are you sure you want to revoke admin access for{' '}
+                  <span className='font-bold text-white'>{name}</span>?
+                </>
+              ) : (
+                message
+              )
+            }
           />
         </div>
       )}
@@ -73,13 +72,6 @@ export default function Settings() {
   const listSelfGroupsId = selfGroups?.map(g => g.id)
 
   const loading = [auth, users, groups, grants].some(x => !x)
-
-  const deleteModalMessage = {
-    deleteSelfUser:
-      'Are you sure you want to revoke your own admin permission?',
-    deleteSelfGroup:
-      'Are you sure you want to revoke this group? You will lose any access to Infra that this group grants.',
-  }
 
   return (
     <>
@@ -160,6 +152,13 @@ export default function Settings() {
             {grants
               ?.sort(sortBySubject)
               ?.map(grant => {
+                const deleteModalMessage = {
+                  deleteSelfUser:
+                    'Are you sure you want to revoke your own admin permission?',
+                  deleteSelfGroup:
+                    'Are you sure you want to revoke this group? You will lose any access to Infra that this group grants.',
+                }
+
                 const message =
                   grant?.user === auth?.id
                     ? deleteModalMessage.deleteSelfUser

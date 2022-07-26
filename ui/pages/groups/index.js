@@ -122,12 +122,6 @@ function Details({ group, admin, onDelete }) {
       data: group?.created ? dayjs(group.created).fromNow() : '-',
     },
   ]
-  const deleteModalInfo = {
-    message:
-      'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
-    title: 'Remove User',
-    btnText: 'Remove',
-  }
   const loading = [auth, users, grants, infraAdmin].some(x => !x)
 
   const hideRemoveGroupBtn =
@@ -210,22 +204,27 @@ function Details({ group, admin, onDelete }) {
                     <div className='mt-6'>No members in the group</div>
                   </EmptyData>
                 )}
-                {users
-                  .map(user => {
-                    const showDeleteModal = user.id === auth.id
-
-                    return { ...user, showDeleteModal }
-                  })
-                  .map(u => (
+                {users.map(user => {
+                  const showDeleteModal = user.id === auth.id
+                  return (
                     <IdentityItem
-                      key={u.id}
-                      item={u}
+                      key={user.id}
+                      userOrGroup={user}
+                      showDeleteModal={showDeleteModal}
                       deleteModalInfo={
-                        u.showDeleteModal ? deleteModalInfo : undefined
+                        showDeleteModal
+                          ? {
+                              message:
+                                'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
+                              title: 'Remove User',
+                              btnText: 'Remove',
+                            }
+                          : undefined
                       }
-                      onClick={() => handleRemoveUserFromGroup(u.id)}
+                      onClick={() => handleRemoveUserFromGroup(user.id)}
                     />
-                  ))}
+                  )
+                })}
               </div>
             </section>
           </>

@@ -86,12 +86,6 @@ function Details({ user, admin, onDelete }) {
       data: user?.created ? dayjs(user.created).fromNow() : '-',
     },
   ]
-  const deleteModalInfo = {
-    message:
-      'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
-    title: 'Remove Group',
-    btnText: 'Remove',
-  }
 
   const loading = [
     auth,
@@ -169,32 +163,37 @@ function Details({ user, admin, onDelete }) {
                     <div className='mt-6'>No groups</div>
                   </EmptyData>
                 )}
-                {groups
-                  .map(group => {
-                    const showDeleteModal =
-                      auth?.id === id && adminGroups?.includes(group.id)
-
-                    return { ...group, showDeleteModal }
-                  })
-                  .map(g => (
+                {groups.map(group => {
+                  const showDeleteModal =
+                    auth?.id === id && adminGroups?.includes(group.id)
+                  return (
                     <IdentityItem
-                      key={g.id}
-                      item={g}
+                      key={group.id}
+                      userOrGroup={group}
+                      showDeleteModal={showDeleteModal}
                       deleteModalInfo={
-                        g.showDeleteModal ? deleteModalInfo : undefined
+                        showDeleteModal
+                          ? {
+                              message:
+                                'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
+                              title: 'Remove Group',
+                              btnText: 'Remove',
+                            }
+                          : undefined
                       }
                       onClick={async () => {
                         const usersToRemove = [id]
-                        await fetch(`/api/groups/${g.id}/users`, {
+                        await fetch(`/api/groups/${group.id}/users`, {
                           method: 'PATCH',
                           body: JSON.stringify({ usersToRemove }),
                         })
                         mutateGroups({
-                          items: groups.filter(i => i.id !== g.id),
+                          items: groups.filter(i => i.id !== group.id),
                         })
                       }}
                     />
-                  ))}
+                  )
+                })}
               </div>
             </section>
           </>
