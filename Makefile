@@ -32,6 +32,17 @@ tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/goreleaser/goreleaser@latest
 
+postgres:
+	docker run -d --name=postgres-dev --rm \
+		-e POSTGRES_PASSWORD=password123 \
+		--tmpfs=/var/lib/postgresql/data \
+		-p 5432:5432 \
+		postgres:14-alpine -c fsync=off -c full_page_writes=off
+	@echo
+	@echo Copy the line below into the shell used to run tests
+	@echo 'export POSTGRESQL_CONNECTION="host=localhost port=5432 user=postgres dbname=postgres password=password123"'
+
+
 lint:
 	golangci-lint run --fix
 
