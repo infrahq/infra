@@ -13,14 +13,17 @@ type Group struct {
 	CreatedByProvider uid.ID
 
 	Identities []Identity `gorm:"many2many:identities_groups"`
+
+	TotalUsers int `gorm:"-:all"`
 }
 
 func (g *Group) ToAPI() *api.Group {
 	return &api.Group{
-		ID:      g.ID,
-		Created: api.Time(g.CreatedAt),
-		Updated: api.Time(g.UpdatedAt),
-		Name:    g.Name,
+		ID:         g.ID,
+		Created:    api.Time(g.CreatedAt),
+		Updated:    api.Time(g.UpdatedAt),
+		Name:       g.Name,
+		TotalUsers: g.TotalUsers,
 	}
 }
 

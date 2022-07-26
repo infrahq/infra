@@ -168,7 +168,8 @@ func TestAPI_ListGroups(t *testing.T) {
 		"id": "%[1]v",
 		"name": "humans",
 		"created": "%[2]v",
-		"updated": "%[2]v"
+		"updated": "%[2]v",
+		"totalUsers": 1
 	}]
 }`,
 					humans.ID.String(),
