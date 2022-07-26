@@ -42,7 +42,7 @@ type ClientHostConfig struct {
 
 // checks if user is logged in to the given session (ClientHostConfig)
 func (c *ClientHostConfig) isLoggedIn() bool {
-	return c.AccessKey != "" && c.Name != "" && c.UserID != 0
+	return c.AccessKey != "" && c.Name != "" && c.UserID != 0 && !c.isExpired()
 }
 
 func (c *ClientHostConfig) isExpired() bool {
