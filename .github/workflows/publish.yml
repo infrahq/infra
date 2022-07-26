@@ -60,7 +60,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: helm
-      - run: aws s3 sync . s3://${{ secrets.HELM_BUCKET }} --exclude '*' --include 'index.yaml' --include '*.tgz' --acl public-read
+      - run: |
+          # download the previous index.yaml so we can amend it
+          aws s3 sync s3://${{ secrets.HELM_BUCKET }} . --exclude '*' --include 'index.yaml'
+          helm repo index --merge index.yaml .
+          aws s3 sync . s3://${{ secrets.HELM_BUCKET }} --exclude '*' --include 'index.yaml' --include '*.tgz' --acl public-read
       - run: |
           git config --global user.name infrahq-ci
           git config --global user.email contact@infrahq.com
