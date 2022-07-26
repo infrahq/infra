@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/solid'
 
-function Pages({ path, selected, count, totalPages }) {
+export function Pages({ path, selected, count, totalPages }) {
   const pages = []
   const beginOffset = Math.max(
     Math.floor(count / 2),
@@ -14,7 +14,11 @@ function Pages({ path, selected, count, totalPages }) {
     page++
   ) {
     pages.push(
-      <Link key={page} href={path + '?p=' + page}>
+      <Link
+        key={page}
+        data-testid='pages-button-link'
+        href={path + '?p=' + page}
+      >
         <a
           className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
             selected === page ? 'rounded-md text-violet-300' : ''
@@ -29,18 +33,20 @@ function Pages({ path, selected, count, totalPages }) {
   return pages.map(page => page)
 }
 
-function Arrow({ path, direction }) {
+export function Arrow({ path, direction }) {
   return (
-    <Link href={path}>
+    <Link href={path} data-testid={`${direction}-arrow-button-link`}>
       <a className='inline-flex items-center text-sm font-medium text-gray-500 hover:text-violet-300 '>
         {direction === 'RIGHT' && (
           <ChevronRightIcon
+            data-testid='right-arrow'
             className='h-5 w-5 text-gray-400 hover:text-violet-300'
             aria-hidden='true'
           />
         )}
         {direction === 'LEFT' && (
           <ChevronLeftIcon
+            data-testid='left-arrow'
             className='mr-3 h-5 w-5 text-gray-400 hover:text-violet-300'
             aria-hidden='true'
           />
