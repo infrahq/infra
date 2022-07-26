@@ -66,6 +66,16 @@ module.exports = {
         destination: '/docs/reference/how-infra-works',
         permanent: true,
       },
+      {
+        source: '/docs/reference/api-reference',
+        destination: '/docs/reference/api-reference/latest',
+        permanent: true,
+      },
+      {
+        source: '/docs/reference/api-reference/latest',
+        destination: '/docs/reference/api-reference/v0.14.1',
+        permanent: true,
+      },
     ]
   },
 }

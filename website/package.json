@@ -16,6 +16,7 @@
     "@heroicons/react": "^1.0.6",
     "@markdoc/markdoc": "^0.1.2",
     "@segment/snippet": "^4.15.3",
+    "@stoplight/elements": "^7.6.1",
     "copy-to-clipboard": "^3.3.1",
     "image-size": "^1.0.1",
     "js-yaml": "^4.1.0",
