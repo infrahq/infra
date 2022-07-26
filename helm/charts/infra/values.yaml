@@ -116,13 +116,14 @@ server:
   podAnnotations: {}
 
   ## Security context for the server pod
-  podSecurityContext: {}
-  #   fsGroup: 2000
+  podSecurityContext:
+    fsGroup: 1000
 
   ## Security context for the server container
   securityContext:
     readOnlyRootFilesystem: true
-    # runAsUser: 999
+    runAsUser: 1000
+    runAsGroup: 1000
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
