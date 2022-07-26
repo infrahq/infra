@@ -64,7 +64,7 @@ export default function Pagination({
   totalCount = parseInt(totalCount)
 
   const lowerItem = totalCount === 0 ? 0 : 1 + (curr - 1) * limit
-  const upperItem = Math.min(1 + (curr - 1) * limit + limit, totalCount)
+  const upperItem = Math.min(curr * limit, totalCount)
 
   return (
     <div className='box-border flex items-center justify-between pb-[16.5px]'>
