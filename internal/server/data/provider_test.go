@@ -75,11 +75,11 @@ func TestListProviders(t *testing.T) {
 
 		createProviders(t, db, providerDevelop, providerProduction)
 
-		providers, err := ListProviders(db, &models.Pagination{}, NotName(models.InternalInfraProviderName))
+		providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
 		assert.NilError(t, err)
 		assert.Equal(t, 2, len(providers))
 
-		providers, err = ListProviders(db, &models.Pagination{}, ByOptionalName("okta-development"))
+		providers, err = ListProviders(db, nil, ByOptionalName("okta-development"))
 		assert.NilError(t, err)
 		assert.Equal(t, 1, len(providers))
 	})
@@ -104,7 +104,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = CreateProvider(db, &providerProduction)
 			assert.NilError(t, err)
 
-			providers, err := ListProviders(db, &models.Pagination{}, NotName(models.InternalInfraProviderName))
+			providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
 			assert.NilError(t, err)
 			assert.Assert(t, len(providers) >= 2)
 

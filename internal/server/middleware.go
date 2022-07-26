@@ -53,7 +53,7 @@ func DestinationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		uniqueID := c.GetHeader("Infra-Destination")
 		if uniqueID != "" {
-			destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{})
+			destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{Limit: 1})
 			if err != nil {
 				return
 			}

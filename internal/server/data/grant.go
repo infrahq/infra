@@ -31,7 +31,7 @@ func ListGrants(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([
 }
 
 func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.Grant](db, &models.Pagination{}, selectors...)
+	toDelete, err := list[models.Grant](db, nil, selectors...)
 	if err != nil {
 		return err
 	}

@@ -41,7 +41,7 @@ func ListDestinations(db *gorm.DB, p *models.Pagination, selectors ...SelectorFu
 }
 
 func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
-	toDelete, err := ListDestinations(db, &models.Pagination{}, selector)
+	toDelete, err := ListDestinations(db, nil, selector)
 	if err != nil {
 		return err
 	}

@@ -89,7 +89,7 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 }
 
 func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
-	identities, err := data.ListIdentities(db, &models.Pagination{}, data.ByIDs(ids))
+	identities, err := data.ListIdentities(db, nil, data.ByIDs(ids))
 	if err != nil {
 		return nil, err
 	}

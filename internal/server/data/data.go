@@ -126,13 +126,15 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 		db = selector(db)
 	}
 
-	var count int64
-	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
-		return nil, err
-	}
-	p.SetTotalCount(int(count))
+	if p != nil {
+		var count int64
+		if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
+			return nil, err
+		}
+		p.SetTotalCount(int(count))
 
-	db = ByPagination(*p)(db)
+		db = ByPagination(*p)(db)
+	}
 
 	result := make([]T, 0)
 	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {

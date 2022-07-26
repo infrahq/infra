@@ -111,7 +111,7 @@ func DeleteIdentity(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListIdentities(db.Select("id"), &models.Pagination{}, selectors...)
+	toDelete, err := ListIdentities(db.Select("id"), nil, selectors...)
 	if err != nil {
 		return err
 	}

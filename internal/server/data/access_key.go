@@ -102,7 +102,7 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, &models.Pagination{}, selectors...)
+	toDelete, err := list[models.AccessKey](db, nil, selectors...)
 	if err != nil {
 		return err
 	}

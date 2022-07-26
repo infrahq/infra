@@ -193,11 +193,11 @@ func TestListAccessKeys(t *testing.T) {
 		_, err = CreateAccessKey(db, token)
 		assert.NilError(t, err)
 
-		keys, err := ListAccessKeys(db, &models.Pagination{}, ByNotExpiredOrExtended())
+		keys, err := ListAccessKeys(db, nil, ByNotExpiredOrExtended())
 		assert.NilError(t, err)
 		assert.Assert(t, len(keys) == 1)
 
-		keys, err = ListAccessKeys(db, &models.Pagination{})
+		keys, err = ListAccessKeys(db, nil)
 		assert.NilError(t, err)
 		assert.Assert(t, len(keys) == 3)
 	})

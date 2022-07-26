@@ -28,7 +28,7 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 }
 
 func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListGroups(db, &models.Pagination{}, selectors...)
+	toDelete, err := ListGroups(db, nil, selectors...)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 			return err
 		}
 
-		identities, err := ListIdentities(db, &models.Pagination{}, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
+		identities, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
 		if err != nil {
 			return err
 		}

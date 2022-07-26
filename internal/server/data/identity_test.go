@@ -96,35 +96,35 @@ func TestListIdentities(t *testing.T) {
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
 		t.Run("list all", func(t *testing.T) {
-			identities, err := ListIdentities(db, &models.Pagination{})
+			identities, err := ListIdentities(db, nil)
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			identities, err := ListIdentities(db, &models.Pagination{}, ByName(bourne.Name))
+			identities, err := ListIdentities(db, nil, ByName(bourne.Name))
 			assert.NilError(t, err)
 			expected := []models.Identity{bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group", func(t *testing.T) {
-			actual, err := ListIdentities(db, &models.Pagination{}, ByOptionalIdentityGroupID(everyone.ID))
+			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by different group", func(t *testing.T) {
-			actual, err := ListIdentities(db, &models.Pagination{}, ByOptionalIdentityGroupID(engineers.ID))
+			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(engineers.ID))
 			assert.NilError(t, err)
 			expected := []models.Identity{bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group and name", func(t *testing.T) {
-			actual, err := ListIdentities(db, &models.Pagination{}, ByOptionalIdentityGroupID(everyone.ID), ByName(bauer.Name))
+			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID), ByName(bauer.Name))
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
