@@ -63,7 +63,7 @@ func TestWriteKubeconfig(t *testing.T) {
 	assert.NilError(t, err)
 
 	permissions := configFileStats.Mode().Perm()
-	assert.Assert(t, permissions == 0o600) // kube config should not be world or group readable, only user read/write
+	assert.Equal(t, int(permissions), 0o600) // kube config should not be world or group readable, only user read/write
 
 	actual, err := clientConfig().RawConfig()
 	assert.NilError(t, err)
