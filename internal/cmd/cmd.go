@@ -233,10 +233,13 @@ func newConnectorCmd() *cobra.Command {
 // runConnector is a shim for testing
 var runConnector = connector.Run
 
-// defaultConnectorOptions is empty for now. It exists so that it can be
-// referenced by a test.
 func defaultConnectorOptions() connector.Options {
-	return connector.Options{}
+	return connector.Options{
+		Addr: connector.ListenerOptions{
+			HTTPS:   ":443",
+			Metrics: ":9090",
+		},
+	}
 }
 
 func NewRootCmd(cli *CLI) *cobra.Command {
