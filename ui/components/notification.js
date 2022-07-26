@@ -34,6 +34,7 @@ export default function Notification({ show, setShow, text }) {
                 </div>
                 <div className='ml-4 flex flex-shrink-0'>
                   <button
+                    data-testid='notification-remove-button'
                     type='button'
                     className='inline-flex rounded-md text-gray-400 hover:text-gray-500 focus:outline-none'
                     onClick={() => setShow(false)}

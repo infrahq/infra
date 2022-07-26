@@ -10,7 +10,7 @@ export default function ComboboxItem({ title, subtitle, selected = false }) {
           </span>
           {selected && (
             <CheckIcon
-              data-testid='selectedIcon'
+              data-testid='selected-icon'
               className='h-3 w-3 stroke-1'
               aria-hidden='true'
             />
