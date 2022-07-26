@@ -58,7 +58,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 		createGroups(t, db, &everyone, &engineers, &product)
 
 		err := CreateGroup(db, &models.Group{Name: "Everyone"})
-		assert.ErrorContains(t, err, "value for name already exists for groups")
+		assert.ErrorContains(t, err, "a group with that name already exists")
 	})
 }
 

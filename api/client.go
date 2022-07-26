@@ -43,16 +43,12 @@ type Client struct {
 //
 // 3xx codes are considered an error because redirects should have already
 // been followed before calling checkError.
-func checkError(req *http.Request, resp *http.Response, body []byte) error {
+func checkError(resp *http.Response, body []byte) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
 
-	apiError := Error{
-		Method: req.Method,
-		Path:   req.URL.Path,
-		Code:   int32(resp.StatusCode),
-	}
+	apiError := Error{Code: int32(resp.StatusCode)}
 
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
@@ -128,7 +124,7 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	if err := checkError(req, resp, body); err != nil {
+	if err := checkError(resp, body); err != nil {
 		return nil, err
 	}
 

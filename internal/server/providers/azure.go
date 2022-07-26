@@ -67,7 +67,7 @@ func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUs
 			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
-		if !errors.Is(err, ErrUnauthorized) {
+		if !errors.Is(err, errAzureAuthzFailed) {
 			return nil, fmt.Errorf("could not check azure user groups: %w", err)
 		}
 
@@ -81,6 +81,8 @@ func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUs
 
 	return info, nil
 }
+
+var errAzureAuthzFailed = fmt.Errorf("authorization with azure api failed")
 
 // checkMemberOfGraphGroups calls the Microsoft Graph API to find out what groups a user belongs to
 func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string, error) {
@@ -109,7 +111,7 @@ func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string
 	}
 
 	if resp.StatusCode == http.StatusForbidden {
-		return nil, ErrUnauthorized
+		return nil, errAzureAuthzFailed
 	}
 
 	defer resp.Body.Close()

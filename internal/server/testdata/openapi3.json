@@ -224,12 +224,6 @@
           },
           "message": {
             "type": "string"
-          },
-          "method": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
           }
         }
       },

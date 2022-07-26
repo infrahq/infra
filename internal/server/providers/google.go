@@ -68,7 +68,7 @@ func (g *google) GetUserInfo(ctx context.Context, providerUser *models.ProviderU
 		}
 
 		// these errors just mean that the groups API client was not configured, we can continue
-		if !errors.Is(err, ErrUnauthorized) && !errors.Is(err, ErrGoogleClientNotConfigured) {
+		if !errors.Is(err, ErrGoogleClientNotConfigured) {
 			return nil, fmt.Errorf("could not check google user groups: %w", err)
 		}
 
