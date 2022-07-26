@@ -299,6 +299,10 @@
           "name": {
             "type": "string"
           },
+          "totalUsers": {
+            "format": "int",
+            "type": "integer"
+          },
           "updated": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
@@ -578,6 +582,10 @@
                 },
                 "name": {
                   "type": "string"
+                },
+                "totalUsers": {
+                  "format": "int",
+                  "type": "integer"
                 },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
