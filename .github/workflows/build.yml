@@ -45,7 +45,6 @@ jobs:
       - uses: azure/setup-helm@v1
       - run: |
           helm package -d helm helm/charts/* --version ${{ inputs.RELEASE_NAME }} --app-version ${{ inputs.RELEASE_NAME }}
-          helm repo index helm
       - uses: actions/upload-artifact@v3
         with:
           name: helm
