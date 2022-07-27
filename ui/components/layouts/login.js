@@ -7,7 +7,7 @@ export default function Login({ children }) {
   const { next } = router.query
 
   if (!auth && !error) {
-    return false
+    return null
   }
 
   if (auth?.id) {

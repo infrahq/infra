@@ -8,7 +8,7 @@ export default function AuthRequired({ children }) {
   const logout = window.localStorage.getItem('logout')
 
   if (!auth && !error) {
-    return false
+    return null
   }
 
   if (!auth?.id) {
