@@ -173,10 +173,6 @@ func UpdateIdentityInfoFromProvider(c *gin.Context, oidc providers.OIDCClient) e
 			logging.Errorf("failed to revoke invalid user session: %s", nestedErr)
 		}
 
-		if nestedErr := data.DeleteProviderUsers(db, data.ByIdentityID(identity.ID), data.ByProviderID(provider.ID)); nestedErr != nil {
-			logging.Errorf("failed to delete provider user: %s", nestedErr)
-		}
-
 		return fmt.Errorf("sync user: %w", err)
 	}
 
