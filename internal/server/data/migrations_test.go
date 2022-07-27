@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
-	gocmp "github.com/google/go-cmp/cmp"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -25,7 +25,7 @@ func TestMigrations(t *testing.T) {
 	allMigrations := migrations()
 
 	type testCase struct {
-		id       string
+		label    testCaseLabel
 		setup    func(t *testing.T, db *gorm.DB)
 		expected func(t *testing.T, db *gorm.DB)
 		cleanup  func(t *testing.T, db *gorm.DB)
@@ -37,10 +37,10 @@ func TestMigrations(t *testing.T) {
 			t.Fatalf("there are more test cases than migrations")
 		}
 		mgs := allMigrations[:index+1]
-		assert.Equal(t, mgs[len(mgs)-1].ID, tc.id) // test integrity check
+		assert.Equal(t, mgs[len(mgs)-1].ID, tc.label.Name) // test integrity check
 
 		if index == 0 {
-			filename := fmt.Sprintf("testdata/migrations/%v-%v.sql", tc.id, db.Dialector.Name())
+			filename := fmt.Sprintf("testdata/migrations/%v-%v.sql", tc.label.Name, db.Dialector.Name())
 			raw, err := ioutil.ReadFile(filename)
 			assert.NilError(t, err)
 
@@ -72,18 +72,22 @@ func TestMigrations(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			id: "202204281130",
+			label: testCaseLine("202204281130"),
 			expected: func(t *testing.T, tx *gorm.DB) {
 				hasCol := tx.Migrator().HasColumn("settings", "signup_enabled")
 				assert.Assert(t, !hasCol)
 			},
 		},
-		{id: "202204291613"},
 		{
-			id: "202206081027",
+			label: testCaseLine("202204291613"),
+			expected: func(t *testing.T, db *gorm.DB) {
+			},
 		},
 		{
-			id: "202206151027",
+			label: testCaseLine("202206081027"),
+		},
+		{
+			label: testCaseLine("202206151027"),
 			setup: func(t *testing.T, db *gorm.DB) {
 				sql := `INSERT INTO providers(name) VALUES ('infra'), ('okta');`
 				err := db.Exec(sql).Error
@@ -119,16 +123,17 @@ func TestMigrations(t *testing.T) {
 				assert.DeepEqual(t, actual, expected)
 			},
 		},
-		{id: "202206161733"},
-		{id: "202206281027"},
-		{id: "202207041724"},
-		{id: "202207081217"},
-		{id: "202207211828"},
+		// TODO:
+		{label: testCaseLine("202206161733")},
+		{label: testCaseLine("202206281027")},
+		{label: testCaseLine("202207041724")},
+		{label: testCaseLine("202207081217")},
+		{label: testCaseLine("202207211828")},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
 	for _, tc := range testCases {
-		ids[tc.id] = struct{}{}
+		ids[tc.label.Name] = struct{}{}
 	}
 	// all migrations should be covered by a test
 	for _, m := range allMigrations {
@@ -143,7 +148,8 @@ func TestMigrations(t *testing.T) {
 			assert.NilError(t, err)
 
 			for i, tc := range testCases {
-				runStep(t, tc.id, func(t *testing.T) {
+				runStep(t, tc.label.Name, func(t *testing.T) {
+					fmt.Printf("    %v: test case %v\n", tc.label.Line, tc.label.Name)
 					run(t, i, tc, db)
 				})
 			}
@@ -151,6 +157,24 @@ func TestMigrations(t *testing.T) {
 			// TODO: compare final migrated schema to static schema
 		})
 	}
+}
+
+// testCaseLine is motivated by this Go proposal https://github.com/golang/go/issues/52751.
+// That issue has additional context about the problem this solves.
+func testCaseLine(name string) testCaseLabel {
+	_, file, line, ok := runtime.Caller(1)
+	if !ok {
+		return testCaseLabel{Name: name, Line: "unknown"}
+	}
+	return testCaseLabel{
+		Name: name,
+		Line: fmt.Sprintf("%v:%v", filepath.Base(file), line),
+	}
+}
+
+type testCaseLabel struct {
+	Name string
+	Line string
 }
 
 func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
@@ -179,10 +203,6 @@ func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
 		})
 	}
 }
-
-var cmpProviderShallow = gocmp.Comparer(func(x, y models.Provider) bool {
-	return x.Name == y.Name && x.Kind == y.Kind && x.URL == y.URL
-})
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
 // To create a new file for testing a migration:
