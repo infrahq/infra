@@ -102,7 +102,6 @@ func TestSyncProviderUser(t *testing.T) {
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
-						Model:        pu.Model, // not relevant
 						Email:        "hello@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,
@@ -167,7 +166,6 @@ func TestSyncProviderUser(t *testing.T) {
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
-						Model:        pu.Model, // not relevant
 						Email:        "sync@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,

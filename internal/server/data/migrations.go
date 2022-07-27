@@ -637,9 +637,18 @@ func setDestinationLastSeenAt() *migrator.Migration {
 
 // dropDeletedProviderUsers removes soft-deleted provider users so they do not cause conflicts
 func dropDeletedProviderUsers() *migrator.Migration {
-	return &migrator.Migration{ID: "202207270000", Migrate: func(tx *gorm.DB) error {
-		return tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error
-	}}
+	return &migrator.Migration{
+		ID: "202207270000",
+		Migrate: func(tx *gorm.DB) error {
+			if tx.Migrator().HasColumn(&models.ProviderUser{}, "deleted_at") {
+				if err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error; err != nil {
+					return fmt.Errorf("could not remove soft deleted provider users: %w", err)
+				}
+				return tx.Migrator().DropColumn(&models.ProviderUser{}, "deleted_at")
+			}
+			return nil
+		},
+	}
 }
 
 func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
