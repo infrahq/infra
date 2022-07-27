@@ -80,13 +80,13 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	}
 
 	grants := []*models.Grant{
-		&models.Grant{
+		{
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraAdminRole,
 			Resource:  "infra",
 			CreatedBy: identity.ID,
 		},
-		&models.Grant{
+		{
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraSupportAdminRole,
 			Resource:  "infra",
