@@ -383,6 +383,13 @@ server:
 
   ## Primary server configuration
   config:
+
+    ## Server container service ports
+    addr:
+      http: 8080
+      https: 8443
+      metrics: 9090
+
     ## Database name
     # dbName: ""
 
@@ -804,7 +811,13 @@ connector:
   affinity: {}
 
   ## Primary connector configuration
-  config: {}
+  config:
+
+    ## Connector container service ports
+    addr:
+      https: 9443
+      metrics: 9091
+
   ## Infra server access key
   #   accessKey: ""
 

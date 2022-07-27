@@ -61,13 +61,13 @@ spec:
 {{- end }}
           ports:
             - name: http
-              containerPort: 80
+              containerPort: {{ .Values.server.config.addr.http }}
               protocol: TCP
             - name: https
-              containerPort: 443
+              containerPort: {{ .Values.server.config.addr.https }}
               protocol: TCP
             - name: metrics
-              containerPort: 9090
+              containerPort: {{ .Values.server.config.addr.metrics }}
               protocol: TCP
           livenessProbe:
             httpGet:

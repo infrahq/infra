@@ -12,6 +12,11 @@ data:
     name: {{ . }}
 {{- end }}
 
+    addr:
+{{- range $key, $val := .Values.connector.config.addr }}
+      {{ $key }}: ':{{ $val }}'
+{{- end }}
+
     server:
 {{- $accessKey := default "" .Values.connector.config.accessKey }}
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
