@@ -6,7 +6,7 @@ export default function Callback() {
   const { mutate } = useSWRConfig()
   const router = useRouter()
 
-  async function login({ providerID, code, redirectURL }) {
+  async function login({ providerID, code, redirectURL, next }) {
     await fetch('/api/login', {
       method: 'POST',
       body: JSON.stringify({
@@ -19,7 +19,11 @@ export default function Callback() {
     })
 
     await mutate('/api/users/self')
-    router.replace('/')
+
+    next ? router.replace(`/${next}`) : router.replace('/')
+    window.localStorage.removeItem('next')
+
+    return
   }
 
   useEffect(() => {
@@ -29,8 +33,12 @@ export default function Callback() {
     const providerID = window.localStorage.getItem('providerID')
     const redirectURL = window.localStorage.getItem('redirectURL')
 
+    const next = window.localStorage.getItem('next')
+
+    console.log('next:', next)
+
     if (!params.code || !providerID || !redirectURL) {
-      router.replace('/login')
+      next ? router.replace(`/login?next=${next}`) : router.replace('/login')
       return
     }
 
@@ -39,6 +47,7 @@ export default function Callback() {
         providerID,
         code: params.code,
         redirectURL,
+        next,
       })
       window.localStorage.removeItem('providerID')
       window.localStorage.removeItem('state')

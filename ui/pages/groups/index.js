@@ -290,7 +290,9 @@ export default function Groups() {
 
   return (
     <>
-      <Head>Groups - Infra</Head>
+      <Head>
+        <title>Groups - Infra</title>
+      </Head>
       {!loading && (
         <div className='flex h-full flex-1'>
           <div className='flex flex-1 flex-col space-y-4'>

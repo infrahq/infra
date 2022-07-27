@@ -6,15 +6,19 @@ import { providers as providersList } from '../../lib/providers'
 
 import LoginLayout from '../../components/layouts/login'
 
-function oidcLogin({ id, clientID, authURL, scopes }) {
+function oidcLogin({ id, clientID, authURL, scopes }, next) {
+  console.log(next)
   window.localStorage.setItem('providerID', id)
+  if (next) {
+    window.localStorage.setItem('next', next)
+  }
 
   const state = [...Array(10)]
     .map(() => (~~(Math.random() * 36)).toString(36))
     .join('')
   window.localStorage.setItem('state', state)
 
-  const redirectURL = window.location.origin + '/login/callback'
+  const redirectURL = window.location.origin + `/login/callback`
   window.localStorage.setItem('redirectURL', redirectURL)
 
   document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join(
@@ -23,6 +27,9 @@ function oidcLogin({ id, clientID, authURL, scopes }) {
 }
 
 export function Providers({ providers }) {
+  const router = useRouter()
+  const { next } = router.query
+
   return (
     <>
       <div className='mt-2 w-full max-w-sm'>
@@ -30,7 +37,7 @@ export function Providers({ providers }) {
           p =>
             p.kind && (
               <button
-                onClick={() => oidcLogin(p)}
+                onClick={() => oidcLogin({ ...p }, next)}
                 key={p.id}
                 title={`${p.name} — ${p.url}`}
                 className='my-2 flex w-full items-center rounded-md border border-gray-700 px-4 py-3 hover:border-gray-600'
@@ -64,6 +71,7 @@ export default function Login() {
   })
   const { mutate } = useSWRConfig()
   const router = useRouter()
+  const { next } = router.query
 
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -90,16 +98,24 @@ export default function Login() {
       const data = await res.json()
 
       if (data.passwordUpdateRequired) {
+        const query = next ? { user: data.userID, next } : { user: data.userID }
+
         router.replace({
           pathname: '/login/finish',
-          query: { user: data.userID },
+          query,
         })
 
         return false
       }
 
       await mutate('/api/users/self')
-      router.replace('/')
+
+      if (next) {
+        router.replace(`/${next}`)
+      } else {
+        router.replace('/')
+      }
+      return false
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')
@@ -164,6 +180,7 @@ export default function Login() {
             required
             id='password'
             type='password'
+            autoComplete='off'
             data-testid='form-field-password'
             placeholder='enter your password'
             onChange={e => {

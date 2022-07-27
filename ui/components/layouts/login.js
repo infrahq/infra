@@ -4,18 +4,22 @@ import { useRouter } from 'next/router'
 export default function Login({ children }) {
   const { data: auth, error } = useSWR('/api/users/self')
   const router = useRouter()
+  const { next } = router.query
 
   if (!auth && !error) {
-    return null
+    return false
   }
 
   if (auth?.id) {
-    // TODO (https://github.com/infrahq/infra/issues/1441): remove me when
-    // using an OTP doesn't trigger authentication
-    if (router.pathname !== '/login/finish') {
+    if (next) {
+      router.replace(`/${next}`)
+    } else if (router.pathname !== '/login/finish') {
+      // TODO (https://github.com/infrahq/infra/issues/1441): remove me when
+      // using an OTP doesn't trigger authentication
       router.replace('/')
-      return null
     }
+
+    return false
   }
 
   return (

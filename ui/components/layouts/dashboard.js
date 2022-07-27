@@ -23,7 +23,15 @@ function Layout({ children }) {
       method: 'POST',
     })
     await mutate('/api/users/self', async () => undefined)
-    router.replace('/login')
+
+    console.log('click logout')
+    console.log(router)
+    window.localStorage.setItem('logout', true)
+    await router.replace('/login')
+    window.localStorage.removeItem('logout')
+    console.log(router)
+
+    return false
   }
 
   const navigation = [
@@ -45,13 +53,13 @@ function Layout({ children }) {
   // redirect non-admin routes if user isn't admin
   if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
     router.replace('/')
-    return null
+    return false
   }
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
       router.replace('/')
-      return null
+      return false
     }
   }
 

@@ -28,12 +28,12 @@ export default function App({ Component, pageProps }) {
   const router = useRouter()
 
   if (!signup) {
-    return null
+    return false
   }
 
   if (signup.enabled && router.pathname !== '/signup') {
     router.replace('/signup')
-    return null
+    return false
   }
 
   const layout = Component.layout || (page => page)
