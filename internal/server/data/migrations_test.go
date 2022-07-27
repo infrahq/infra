@@ -61,7 +61,6 @@ func TestMigration_202204111503(t *testing.T) {
 	grants, err := ListGrants(db, nil, BySubject(ids[0].PolyID()))
 	assert.NilError(t, err)
 	assert.Assert(t, len(grants) == 1)
-
 }
 
 func TestMigration_202204211705(t *testing.T) {
@@ -245,6 +244,35 @@ func TestMigration_SetDestinationLastSeenAt(t *testing.T) {
 			for _, destination := range destinations {
 				assert.Equal(t, destination.LastSeenAt, destination.UpdatedAt)
 			}
+		})
+	}
+}
+
+func TestMigration_RemoveDeletedProviderUsers(t *testing.T) {
+	for _, driver := range dbDrivers(t) {
+		t.Run(driver.Name(), func(t *testing.T) {
+			db, err := newRawDB(driver)
+			assert.NilError(t, err)
+
+			loadSQL(t, db, "202207270000-"+driver.Name())
+
+			db, err = NewDB(driver, nil)
+			assert.NilError(t, err)
+
+			// there should only be one provider user from the infra provider
+			// the other user has a deleted_at time and was cleared
+			type providerUserDetails struct {
+				Email      string
+				ProviderID string
+			}
+
+			var puDetails []providerUserDetails
+			err = db.Raw("SELECT email, provider_id FROM provider_users").Scan(&puDetails).Error
+			assert.NilError(t, err)
+
+			assert.Equal(t, len(puDetails), 1)
+			assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
+			assert.Equal(t, puDetails[0].ProviderID, "75225930151567361")
 		})
 	}
 }
