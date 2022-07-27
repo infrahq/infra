@@ -24,7 +24,7 @@ func (r ListOrganizationsRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name"`
 }
 
 func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {

@@ -14,12 +14,11 @@ func ListOrganizations(c *gin.Context, name string, pg *models.Pagination) ([]mo
 		selectors = append(selectors, data.ByName(name))
 	}
 
-	roles := []string{models.InfraAdminRole}
-	db, err := RequireInfraRole(c, roles...)
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err == nil {
 		return data.ListOrganizations(db, pg, selectors...)
 	}
-	err = HandleAuthErr(err, "organizations", "list", roles...)
+	err = HandleAuthErr(err, "organizations", "list", models.InfraAdminRole)
 
 	// TODO:
 	//    * Consider allowing a user to list their own organization
@@ -54,9 +53,5 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "organizations", "delete", roles...)
 	}
 
-	selectors := []data.SelectorFunc{
-		data.ByID(id),
-	}
-
-	return data.DeleteOrganizations(db, selectors...)
+	return data.DeleteOrganizations(db, data.ByID(id))
 }

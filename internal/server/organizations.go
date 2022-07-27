@@ -36,6 +36,7 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 		Name: r.Name,
 	}
 
+	// TODO: This should be removed in the future in favour of setting CreatedBy automatically
 	authIdent := access.AuthenticatedIdentity(c)
 	if authIdent != nil {
 		org.CreatedBy = authIdent.ID
