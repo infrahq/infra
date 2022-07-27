@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.2](https://github.com/infrahq/infra/compare/v0.14.1...v0.14.2) (2022-07-27)
+
+
+### Features
+
+* **helm:** bind services to non-privileged port ranges ([b63db21](https://github.com/infrahq/infra/commit/b63db21ba4e4abdf75da9d924c355243c944abaf))
+
+
+### Bug Fixes
+
+* amend helm index.yaml instead of overriding ([13be800](https://github.com/infrahq/infra/commit/13be80087ca6a909754febd1469134b8d46d97f5))
+* hard delete provider users on removal ([#2750](https://github.com/infrahq/infra/issues/2750)) ([ce7588f](https://github.com/infrahq/infra/commit/ce7588f91fd31a2ac30f4ea002e16d437045abc7))
+* **helm:** Change default podSecurityContext & securityContext ([#2741](https://github.com/infrahq/infra/issues/2741)) ([614ce0a](https://github.com/infrahq/infra/commit/614ce0aa4845c7d09ea586607fb6034d81099dd1))
+* validation accepts names of length 2 ([#2719](https://github.com/infrahq/infra/issues/2719)) ([a2f34de](https://github.com/infrahq/infra/commit/a2f34de19b60c5d72c65856af7ac0008c39e053d))
+
 ## [0.14.1](https://github.com/infrahq/infra/compare/v0.14.0...v0.14.1) (2022-07-25)
 
 
