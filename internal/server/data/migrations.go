@@ -511,6 +511,7 @@ func initializeSchema(db *gorm.DB) error {
 		&models.EncryptionKey{},
 		&models.Credential{},
 		&models.ProviderUser{},
+		&models.Organization{},
 	}
 
 	for _, table := range tables {
