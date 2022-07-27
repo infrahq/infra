@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
@@ -25,7 +24,7 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 }
 
 func TestAPI_ListOrganizations(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var (
@@ -36,23 +35,6 @@ func TestAPI_ListOrganizations(t *testing.T) {
 
 	createOrgs(t, srv.db, &first, &second, &third)
 
-	var (
-		adminUser = models.Identity{
-			Name: "another@example.com",
-		}
-	)
-
-	createIdentities(t, srv.db, &adminUser)
-
-	token := &models.AccessKey{
-		IssuedFor:  adminUser.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
-	}
-
-	accessKey, err := data.CreateAccessKey(srv.db, token)
-	assert.NilError(t, err)
-
 	type testCase struct {
 		urlPath  string
 		setup    func(t *testing.T, req *http.Request)
@@ -62,8 +44,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -123,7 +104,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 }
 
 func TestAPI_CreateOrganization(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	type testCase struct {
@@ -132,23 +113,10 @@ func TestAPI_CreateOrganization(t *testing.T) {
 		body     api.CreateOrganizationRequest
 	}
 
-	meUser := models.Identity{Name: "me@example.com"}
-	createIdentities(t, srv.db, &meUser)
-
-	token := &models.AccessKey{
-		IssuedFor:  meUser.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
-	}
-
-	accessKey, err := data.CreateAccessKey(srv.db, token)
-	assert.NilError(t, err)
-
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		req, err := http.NewRequest(http.MethodPost, "/api/organizations", body)
 		assert.NilError(t, err)
-		req.Header.Set("Authorization", "Bearer "+accessKey)
 		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {
@@ -208,19 +176,11 @@ func TestAPI_CreateOrganization(t *testing.T) {
 }
 
 func TestAPI_DeleteOrganization(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var first = models.Organization{Name: "first"}
 	createOrgs(t, srv.db, &first)
-
-	var (
-		adminUser = models.Identity{
-			Name: "awesome@example.com",
-		}
-	)
-
-	createIdentities(t, srv.db, &adminUser)
 
 	type testCase struct {
 		urlPath  string
@@ -228,20 +188,10 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	token := &models.AccessKey{
-		IssuedFor:  adminUser.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
-		ExpiresAt:  time.Now().Add(10 * time.Second),
-	}
-
-	accessKey, err := data.CreateAccessKey(srv.db, token)
-	assert.NilError(t, err)
-
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
-		req.Header.Set("Authorization", "Bearer "+accessKey)
-		req.Header.Add("Infra-Version", "0.13.0")
+		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {
 			tc.setup(t, req)

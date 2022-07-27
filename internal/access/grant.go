@@ -86,13 +86,21 @@ func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
-		return HandleAuthErr(err, "grant", "create", models.InfraAdminRole)
+	var db *gorm.DB
+	var err error
+
+	if grant.Privilege == models.InfraSupportAdminRole {
+		db, err = RequireInfraRole(c, models.InfraSupportAdminRole)
+	} else {
+		db, err = RequireInfraRole(c, models.InfraAdminRole)
 	}
 
-	creator := AuthenticatedIdentity(c)
+	if err != nil {
+		return HandleAuthErr(err, "grant", "create", grant.Privilege)
+	}
 
+	// TODO: CreatedBy should be set automatically
+	creator := AuthenticatedIdentity(c)
 	grant.CreatedBy = creator.ID
 
 	return data.CreateGrant(db, grant)

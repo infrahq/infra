@@ -49,6 +49,14 @@ func withAdminUser(_ *testing.T, opts *Options) {
 	})
 }
 
+func withSupportAdminGrant(_ *testing.T, opts *Options) {
+	opts.Grants = append(opts.Grants, Grant{
+		User:     "admin@example.com",
+		Role:     "support-admin",
+		Resource: "infra",
+	})
+}
+
 func createAdmin(t *testing.T, db *gorm.DB) *models.Identity {
 	user := &models.Identity{
 		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),

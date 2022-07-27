@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	InfraAdminRole     = "admin"
-	InfraViewRole      = "view"
-	InfraConnectorRole = "connector"
+	InfraSupportAdminRole = "support-admin"
+	InfraAdminRole        = "admin"
+	InfraViewRole         = "view"
+	InfraConnectorRole    = "connector"
 )
 
 // BasePermissionConnect is the first-principle permission that all other permissions are defined from.
