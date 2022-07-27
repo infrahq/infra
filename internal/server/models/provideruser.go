@@ -8,10 +8,8 @@ import (
 
 // ProviderUser is a cache of the provider's user and their groups, plus any authentication-specific information for that provider.
 type ProviderUser struct {
-	Model
-
-	ProviderID uid.ID `validate:"required"`
-	IdentityID uid.ID `validate:"required"`
+	ProviderID uid.ID `validate:"required" gorm:"primaryKey"`
+	IdentityID uid.ID `validate:"required" gorm:"primaryKey"`
 
 	Email      string `validate:"required"`
 	Groups     CommaSeparatedStrings
@@ -23,3 +21,5 @@ type ProviderUser struct {
 	RefreshToken EncryptedAtRest
 	ExpiresAt    time.Time
 }
+
+func (ProviderUser) IsAModel() {}

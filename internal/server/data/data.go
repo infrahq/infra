@@ -101,6 +101,11 @@ func getDefaultSortFromType(t interface{}) string {
 		return "name ASC"
 	}
 
+	if _, ok := ty.FieldByName("Email"); ok {
+		// foreign key relations, such as provider users in this case, may not have the default ID
+		return "email ASC"
+	}
+
 	return "id ASC"
 }
 
