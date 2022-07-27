@@ -147,7 +147,11 @@ export default function ProvidersAddDetails() {
             type='search'
             placeholder='choose a name for your identity provider'
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => {
+              setName(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
               errors.name ? 'border-pink-500/60' : ''
             }`}
@@ -175,7 +179,11 @@ export default function ProvidersAddDetails() {
               autoFocus
               placeholder='domain or URL'
               value={url}
-              onChange={e => setURL(e.target.value)}
+              onChange={e => {
+                setURL(e.target.value)
+                setErrors({})
+                setError('')
+              }}
               className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
                 errors.url ? 'border-pink-500/60' : ''
               }`}
@@ -190,7 +198,11 @@ export default function ProvidersAddDetails() {
             placeholder='client ID'
             type='search'
             value={clientID}
-            onChange={e => setClientID(e.target.value)}
+            onChange={e => {
+              setClientID(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
               errors.clientid ? 'border-pink-500/60' : ''
             }`}
@@ -206,7 +218,11 @@ export default function ProvidersAddDetails() {
             type='password'
             placeholder='client secret'
             value={clientSecret}
-            onChange={e => setClientSecret(e.target.value)}
+            onChange={e => {
+              setClientSecret(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
               errors.clientsecret ? 'border-pink-500/60' : ''
             }`}
@@ -252,7 +268,11 @@ export default function ProvidersAddDetails() {
                 spellCheck='false'
                 type='email'
                 value={domainAdminEmail}
-                onChange={e => setDomainAdminEmail(e.target.value)}
+                onChange={e => {
+                  setDomainAdminEmail(e.target.value)
+                  setErrors({})
+                  setError('')
+                }}
                 className={`w-full border-b border-gray-800 bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
                   errors.domainadminemail ? 'border-pink-500/60' : ''
                 }`}
