@@ -35,8 +35,6 @@ export default function Callback() {
 
     const next = window.localStorage.getItem('next')
 
-    console.log('next:', next)
-
     if (!params.code || !providerID || !redirectURL) {
       next ? router.replace(`/login?next=${next}`) : router.replace('/login')
       return

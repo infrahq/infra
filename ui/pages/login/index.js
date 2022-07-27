@@ -7,7 +7,6 @@ import { providers as providersList } from '../../lib/providers'
 import LoginLayout from '../../components/layouts/login'
 
 function oidcLogin({ id, clientID, authURL, scopes }, next) {
-  console.log(next)
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)

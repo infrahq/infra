@@ -24,12 +24,9 @@ function Layout({ children }) {
     })
     await mutate('/api/users/self', async () => undefined)
 
-    console.log('click logout')
-    console.log(router)
     window.localStorage.setItem('logout', true)
     await router.replace('/login')
     window.localStorage.removeItem('logout')
-    console.log(router)
 
     return false
   }
