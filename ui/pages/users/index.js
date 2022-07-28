@@ -80,7 +80,7 @@ function Details({ user, admin, onDelete }) {
     ?.map(g => g?.items || [])
     ?.flat()
     ?.filter(g => g.resource !== 'infra')
-  const adminGroups = infraAdmin?.map(admin => admin.group)
+  const adminGroups = infraAdmins?.map(admin => admin.group)
   const metadata = [
     { title: 'ID', data: user?.id },
     {
