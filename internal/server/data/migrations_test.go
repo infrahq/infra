@@ -4,19 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
-	"github.com/infrahq/infra/internal/server/data/migrator"
-
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
 )
@@ -187,10 +186,136 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 				assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
 			},
 		},
-		// TODO:
-		{label: testCaseLine("202207041724")},
-		{label: testCaseLine("202207081217")},
-		{label: testCaseLine("202207270000")},
+		{
+			label: testCaseLine("202207041724"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+INSERT INTO destinations (id, created_at, updated_at, name, unique_id)
+VALUES (12345, '2022-07-05 00:41:49.143574+00', '2022-07-05 01:41:49.143574+00', 'the-destination', 'unique-id');`
+				err := db.Exec(stmt).Error
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				assert.NilError(t, db.Exec(`DELETE FROM destinations`).Error)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				stmt := `SELECT id, name, updated_at, last_seen_at from destinations`
+				rows, err := db.Raw(stmt).Rows()
+				assert.NilError(t, err)
+				defer rows.Close()
+
+				var actual []models.Destination
+				for rows.Next() {
+					var d models.Destination
+					err := rows.Scan(&d.ID, &d.Name, &d.UpdatedAt, &d.LastSeenAt)
+					assert.NilError(t, err)
+					actual = append(actual, d)
+				}
+
+				updated := parseTime(t, "2022-07-05T01:41:49.143574Z")
+				expected := []models.Destination{
+					{
+						Model: models.Model{
+							ID:        12345,
+							UpdatedAt: updated,
+						},
+						Name:       "the-destination",
+						LastSeenAt: updated,
+					},
+				}
+				assert.DeepEqual(t, actual, expected)
+			},
+		},
+		{
+			label: testCaseLine("202207081217"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+					INSERT INTO grants(id, subject, resource, privilege)
+					VALUES (10100, 'i:aaa', 'infra', 'admin'),
+					       (10101, 'i:aaa', 'infra', 'admin'),
+					       (10102, 'i:aaa', 'other', 'admin'),
+					       (10103, 'i:aaa', 'infra', 'view'),
+						   (10104, 'i:aab', 'infra', 'admin');
+				`
+				err := db.Exec(stmt).Error
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				err := db.Exec(`DELETE FROM grants`).Error
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				stmt := `SELECT id, subject, resource, privilege FROM grants`
+				rows, err := db.Raw(stmt).Rows()
+				assert.NilError(t, err)
+				defer rows.Close()
+
+				var actual []models.Grant
+				for rows.Next() {
+					var g models.Grant
+					err := rows.Scan(&g.ID, &g.Subject, &g.Resource, &g.Privilege)
+					assert.NilError(t, err)
+					actual = append(actual, g)
+				}
+
+				expected := []models.Grant{
+					{
+						Model:     models.Model{ID: 10100},
+						Subject:   "i:aaa",
+						Resource:  "infra",
+						Privilege: "admin",
+					},
+					{
+						Model:     models.Model{ID: 10102},
+						Subject:   "i:aaa",
+						Resource:  "other",
+						Privilege: "admin",
+					},
+					{
+						Model:     models.Model{ID: 10103},
+						Subject:   "i:aaa",
+						Resource:  "infra",
+						Privilege: "view",
+					},
+					{
+						Model:     models.Model{ID: 10104},
+						Subject:   "i:aab",
+						Resource:  "infra",
+						Privilege: "admin",
+					},
+				}
+				assert.DeepEqual(t, actual, expected)
+			},
+		},
+		{
+			label: testCaseLine("202207270000"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at, deleted_at, email, groups, last_update, redirect_url, access_token, refresh_token, expires_at) VALUES(75225930155761664,75225930151567361,75226263837810687,'2022-07-27 14:02:18.934641547+00:00','2022-07-27 14:02:19.547474589+00:00',NULL,'example@infrahq.com','','2022-07-27 14:02:19.54741888+00:00','http://localhost:8301','aaa','bbb','2022-07-27 15:02:18.420551838+00:00');
+INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at, deleted_at, email, groups, last_update, redirect_url, access_token, refresh_token, expires_at) VALUES(75225930155761664,75225930151567360,75226263837810688,'2022-07-27 14:02:18.934641547+00:00','2022-07-27 14:02:19.547474589+00:00','2022-07-27 14:00:59.448457344+00:00','example@infrahq.com','','2022-07-27 14:02:19.54741888+00:00','http://localhost:8301','aaa','bbb','2022-07-27 15:02:18.420551838+00:00');
+`
+				assert.NilError(t, db.Exec(stmt).Error)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				assert.NilError(t, db.Exec(`DELETE FROM provider_users;`).Error)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				// there should only be one provider user from the infra provider
+				// the other user has a deleted_at time and was cleared
+				type providerUserDetails struct {
+					Email      string
+					ProviderID string
+				}
+
+				var puDetails []providerUserDetails
+				err := db.Raw("SELECT email, provider_id FROM provider_users").Scan(&puDetails).Error
+				assert.NilError(t, err)
+
+				assert.Equal(t, len(puDetails), 1)
+				assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
+				assert.Equal(t, puDetails[0].ProviderID, "75225930151567361")
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -205,6 +330,9 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 	}
 
 	for _, driver := range dbDrivers(t) {
+		if driver.Name() != "postgres" {
+			continue
+		}
 		t.Run(driver.Name(), func(t *testing.T) {
 			db, err := newRawDB(driver)
 			assert.NilError(t, err)
@@ -219,6 +347,13 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 			// TODO: compare final migrated schema to static schema
 		})
 	}
+}
+
+func parseTime(t *testing.T, s string) time.Time {
+	t.Helper()
+	v, err := time.Parse(time.RFC3339Nano, s)
+	assert.NilError(t, err)
+	return v
 }
 
 // testCaseLine is motivated by this Go proposal https://github.com/golang/go/issues/52751.
@@ -239,47 +374,6 @@ type testCaseLabel struct {
 	Line string
 }
 
-// loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
-// To create a new file for testing a migration:
-//
-// 1. Start an infra server and perform operations with the CLI or API to
-//    get the db in the state you want to test. You should capture the db state
-//    before writing your migration. Make sure there are some relevant records
-//    in the affected tables. Do not use a production server! Any sensitive data
-//    should be throw away development credentials because they will be checked
-//    into git.
-//
-// 2. Connect up to the db to dump the data. If you're running sqlite in
-//    kubernetes:
-//
-//   kubectl exec -it deployment/infra-server -- apk add sqlite
-//   kubectl exec -it deployment/infra-server -- /usr/bin/sqlite3 /var/lib/infrahq/server/sqlite3.db
-//
-//   at the prompt, do:
-//     .dump
-//   Copy to output to a file with the same name of the migration and a .sql
-//   extension in the migrationdata/ folder.
-//
-//   Or from a local db:
-//
-//   echo -e ".output dump.sql\n.dump" | sqlite3 sqlite3.db
-//
-// 3. Write the migration and test that it does what you expect. It can be helpful
-//    to put any necessary guards in place to make sure the database is in the state
-//    you expect. Sometimes failed migrations leave it in a broken state, and might
-//    run when you don't expect, so defensive programming is helpful here.
-//
-func loadSQL(t *testing.T, db *gorm.DB, filename string) {
-	f, err := os.Open("migrationdata/" + filename + ".sql")
-	assert.NilError(t, err)
-
-	b, err := ioutil.ReadAll(f)
-	assert.NilError(t, err)
-
-	err = db.Exec(string(b)).Error
-	assert.NilError(t, err)
-}
-
 func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 	t.Helper()
 	var count int
@@ -288,55 +382,4 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 		t.Logf("table exists error: %v", err)
 	}
 	return err == nil
-}
-
-func TestMigration_SetDestinationLastSeenAt(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			loadSQL(t, db, "202207041724-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			var destinations []models.Destination
-			err = db.Find(&destinations).Error
-			assert.NilError(t, err)
-
-			for _, destination := range destinations {
-				assert.Equal(t, destination.LastSeenAt, destination.UpdatedAt)
-			}
-		})
-	}
-}
-
-func TestMigration_RemoveDeletedProviderUsers(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			loadSQL(t, db, "202207270000-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			// there should only be one provider user from the infra provider
-			// the other user has a deleted_at time and was cleared
-			type providerUserDetails struct {
-				Email      string
-				ProviderID string
-			}
-
-			var puDetails []providerUserDetails
-			err = db.Raw("SELECT email, provider_id FROM provider_users").Scan(&puDetails).Error
-			assert.NilError(t, err)
-
-			assert.Equal(t, len(puDetails), 1)
-			assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
-			assert.Equal(t, puDetails[0].ProviderID, "75225930151567361")
-		})
-	}
 }
