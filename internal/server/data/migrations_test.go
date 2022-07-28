@@ -1,6 +1,7 @@
 package data
 
 import (
+	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -85,10 +86,14 @@ func TestMigrations(t *testing.T) {
 		{
 			label: testCaseLine("202204291613"),
 			expected: func(t *testing.T, db *gorm.DB) {
+				// dropped columns are tested by schema comparison
 			},
 		},
 		{
 			label: testCaseLine("202206081027"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// dropped constraints are tested by schema comparison
+			},
 		},
 		{
 			label: testCaseLine("202206151027"),
@@ -139,8 +144,50 @@ func TestMigrations(t *testing.T) {
 				assert.Assert(t, !tableExists(t, db, "root_certificates"))
 			},
 		},
+		{
+			// this test does an external call to example.okta.com, if it fails check your network connection
+			label: testCaseLine("202206281027"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980736, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'infra', '', '', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'infra', 1);
+INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980737, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'okta', 'example.okta.com', 'client-id', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'okta', 1);
+`
+				err := db.Exec(stmt).Error
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				err := db.Exec(`DELETE FROM providers;`).Error
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				var providers []models.Provider
+
+				rows, err := db.Raw(`SELECT name, auth_url, scopes FROM providers ORDER BY name`).Rows()
+				assert.NilError(t, err)
+
+				for rows.Next() {
+					p := models.Provider{}
+					var authURL sql.NullString
+					err := rows.Scan(&p.Name, &authURL, &p.Scopes)
+					assert.NilError(t, err)
+					p.AuthURL = authURL.String
+					providers = append(providers, p)
+				}
+
+				assert.Equal(t, len(providers), 2)
+				authUrls := make(map[string]string)
+				scopes := make(map[string][]string)
+				for _, p := range providers {
+					authUrls[p.Name] = p.AuthURL
+					scopes[p.Name] = p.Scopes
+				}
+				assert.Equal(t, authUrls["infra"], "")
+				assert.Equal(t, len(scopes["infra"]), 0)
+				assert.Equal(t, authUrls["okta"], "https://example.okta.com/oauth2/v1/authorize")
+				assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
+			},
+		},
 		// TODO:
-		{label: testCaseLine("202206281027")},
 		{label: testCaseLine("202207041724")},
 		{label: testCaseLine("202207081217")},
 		{label: testCaseLine("202207270000")},
@@ -241,37 +288,6 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 		t.Logf("table exists error: %v", err)
 	}
 	return err == nil
-}
-
-// this test does an external call to example.okta.com, if it fails check your network connection
-func TestMigration_AddAuthURLAndScopesToProvider(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			loadSQL(t, db, "202206281027-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			var providers []models.Provider
-			err = db.Omit("client_secret").Find(&providers).Error
-			assert.NilError(t, err)
-
-			assert.Equal(t, len(providers), 2)
-			authUrls := make(map[string]string)
-			scopes := make(map[string][]string)
-			for _, p := range providers {
-				authUrls[p.Name] = p.AuthURL
-				scopes[p.Name] = p.Scopes
-			}
-			assert.Equal(t, authUrls["infra"], "")
-			assert.Equal(t, len(scopes["infra"]), 0)
-			assert.Equal(t, authUrls["okta"], "https://example.okta.com/oauth2/v1/authorize")
-			assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
-		})
-	}
 }
 
 func TestMigration_SetDestinationLastSeenAt(t *testing.T) {

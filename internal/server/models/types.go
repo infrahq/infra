@@ -37,6 +37,9 @@ func (s CommaSeparatedStrings) Value() (driver.Value, error) {
 }
 
 func (s *CommaSeparatedStrings) Scan(v interface{}) error {
+	if v == nil {
+		return nil
+	}
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("expected string type for %v", v)
