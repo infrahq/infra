@@ -37,7 +37,11 @@ func TestMigrations(t *testing.T) {
 			t.Fatalf("there are more test cases than migrations")
 		}
 		mgs := allMigrations[:index+1]
-		assert.Equal(t, mgs[len(mgs)-1].ID, tc.label.Name) // test integrity check
+
+		if mID := mgs[len(mgs)-1].ID; mID != tc.label.Name {
+			t.Error("the list of test cases is not in the same order as the list of migrations")
+			t.Fatalf("test case %v was run with migration ID %v", tc.label.Name, mID)
+		}
 
 		if index == 0 {
 			filename := fmt.Sprintf("testdata/migrations/%v-%v.sql", tc.label.Name, db.Dialector.Name())
@@ -128,7 +132,7 @@ func TestMigrations(t *testing.T) {
 		{label: testCaseLine("202206281027")},
 		{label: testCaseLine("202207041724")},
 		{label: testCaseLine("202207081217")},
-		{label: testCaseLine("202207211828")},
+		{label: testCaseLine("202207270000")},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -175,33 +179,6 @@ func testCaseLine(name string) testCaseLabel {
 type testCaseLabel struct {
 	Name string
 	Line string
-}
-
-func TestMigration_SettingsPopulatePasswordDefaults(t *testing.T) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			patch.ModelsSymmetricKey(t)
-			logging.PatchLogger(t, zerolog.NewTestWriter(t))
-
-			loadSQL(t, db, "202207120000-"+driver.Name())
-
-			db, err = NewDB(driver, nil)
-			assert.NilError(t, err)
-
-			var settings models.Settings
-			err = db.Omit("private_jwk").First(&settings).Error
-			assert.NilError(t, err)
-
-			assert.Equal(t, settings.LowercaseMin, 0)
-			assert.Equal(t, settings.UppercaseMin, 0)
-			assert.Equal(t, settings.NumberMin, 0)
-			assert.Equal(t, settings.SymbolMin, 0)
-			assert.Equal(t, settings.LengthMin, 8)
-		})
-	}
 }
 
 // loadSQL loads a sql file from disk by a file name matching the migration it's meant to test.
