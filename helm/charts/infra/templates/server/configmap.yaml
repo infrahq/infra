@@ -66,6 +66,14 @@ data:
 
 {{- $users | uniq | toYaml | nindent 6 }}
 
+{{- if .Values.server.config.ui.proxyURL }}
+    ui:
+      proxyURL: {{ .Values.connector.config.ui.proxyURL }}
+{{- else if (include "ui.enabled" . | eq "true") }}
+    ui:
+      proxyURL: http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000
+{{- end }}
+
     secrets:
 {{- .Values.server.additionalSecrets | default list | concat .Values.server.config.secrets | uniq | toYaml | nindent 6 }}
 {{- end }}
