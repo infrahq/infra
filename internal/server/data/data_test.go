@@ -216,7 +216,7 @@ func TestCreateTransactionError(t *testing.T) {
 
 		// attempt to re-create, which results in a conflict
 		err = add(tx, g)
-		assert.ErrorContains(t, err, "a grant with that id already exists")
+		assert.ErrorContains(t, err, "already exists")
 
 		// the same transaction should still be usable
 		_, err = get[models.Grant](tx, ByID(g.ID))
