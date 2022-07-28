@@ -81,6 +81,7 @@ function Details({ user, admin, onDelete }) {
       title: 'Created',
       data: user?.created ? dayjs(user.created).fromNow() : '-',
     },
+    { title: 'Providers', data: user?.providerNames.join(', ') },
   ]
 
   const loading = [
