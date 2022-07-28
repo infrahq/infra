@@ -62,6 +62,7 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 }
 
 func newGroupsListCmd(cli *CLI) *cobra.Command {
+	var noTruncate bool
 	const truncateCount int = 8
 	cmd := &cobra.Command{
 		Use:     "list",
@@ -88,20 +89,29 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			for _, group := range groups {
-				users, err := client.ListUsers(api.ListUsersRequest{
-					PaginationRequest: api.PaginationRequest{Limit: truncateCount},
-					Group:             group.ID,
-				})
-				if err != nil {
-					return err
+				var users []api.User
+				if noTruncate {
+					users, err = listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
+					if err != nil {
+						return err
+					}
+				} else {
+					userRes, err := client.ListUsers(api.ListUsersRequest{
+						PaginationRequest: api.PaginationRequest{Limit: truncateCount},
+						Group:             group.ID,
+					})
+					if err != nil {
+						return err
+					}
+					users = userRes.Items
 				}
 
 				var userNames []string
-				for _, user := range users.Items {
+				for _, user := range users {
 					userNames = append(userNames, user.Name)
 				}
 
-				if group.TotalUsers > truncateCount {
+				if !noTruncate && group.TotalUsers > truncateCount {
 					userNames = append(userNames, "...")
 				}
 
@@ -121,6 +131,7 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&noTruncate, "no-truncate", false, "Do not truncate the list of users for each group")
 	return cmd
 }
 
