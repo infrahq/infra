@@ -125,6 +125,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
             type=match,pattern=.*-(.*),group=1,value=${{ inputs.RELEASE_NAME }}
       - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-qemu-action@v2
       - uses: docker/build-push-action@v3
         with:
           context: ${{ matrix.images.context }}
