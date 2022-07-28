@@ -50,6 +50,7 @@ func migrations() []*migrator.Migration {
 		setDestinationLastSeenAt(),
 		deleteDuplicateGrants(),
 		dropDeletedProviderUsers(),
+		removeDeletedIdentitiesFromGroups(),
 		// next one here
 	}
 }
@@ -210,6 +211,17 @@ func dropDeletedProviderUsers() *migrator.Migration {
 				return tx.Migrator().DropColumn(&models.ProviderUser{}, "deleted_at")
 			}
 			return nil
+		},
+	}
+}
+<<<<<<< HEAD
+=======
+
+func removeDeletedIdentitiesFromGroups() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-07-28T12:46",
+		Migrate: func(tx *gorm.DB) error {
+			return tx.Exec("DELETE FROM identities_groups WHERE identity_id in (SELECT id FROM identities WHERE deleted_at IS NOT NULL)").Error
 		},
 	}
 }
