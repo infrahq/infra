@@ -127,8 +127,19 @@ func TestMigrations(t *testing.T) {
 				assert.DeepEqual(t, actual, expected)
 			},
 		},
+		{
+			label: testCaseLine("202206161733"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				// integrity check
+				assert.Assert(t, tableExists(t, db, "trusted_certificates"))
+				assert.Assert(t, tableExists(t, db, "root_certificates"))
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				assert.Assert(t, !tableExists(t, db, "trusted_certificates"))
+				assert.Assert(t, !tableExists(t, db, "root_certificates"))
+			},
+		},
 		// TODO:
-		{label: testCaseLine("202206161733")},
 		{label: testCaseLine("202206281027")},
 		{label: testCaseLine("202207041724")},
 		{label: testCaseLine("202207081217")},
@@ -222,40 +233,14 @@ func loadSQL(t *testing.T, db *gorm.DB, filename string) {
 	assert.NilError(t, err)
 }
 
-func setupWithNoMigrations(t *testing.T, f func(db *gorm.DB)) gorm.Dialector {
-	dir := t.TempDir()
-	driver, err := NewSQLiteDriver(filepath.Join(dir, "sqlite3.db"))
-	assert.NilError(t, err)
-
-	db, err := newRawDB(driver)
-	assert.NilError(t, err)
-
-	f(db)
-
-	patch.ModelsSymmetricKey(t)
-	logging.PatchLogger(t, zerolog.NewTestWriter(t))
-
-	return driver
-}
-
-func TestMigration_DropCertificateTables(t *testing.T) {
-	driver := setupWithNoMigrations(t, func(db *gorm.DB) {
-		loadSQL(t, db, "202206161733")
-	})
-
-	db, err := NewDB(driver, nil)
-	assert.NilError(t, err)
-
-	assert.Assert(t, !tableExists(t, db, "trusted_certificates"))
-	assert.Assert(t, !tableExists(t, db, "root_certificates"))
-}
-
 func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 	t.Helper()
 	var count int
-	err := db.Raw("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", name).Row().Scan(&count)
-	assert.NilError(t, err)
-	return count > 0
+	err := db.Raw("SELECT count(id) FROM " + name).Row().Scan(&count)
+	if err != nil {
+		t.Logf("table exists error: %v", err)
+	}
+	return err == nil
 }
 
 // this test does an external call to example.okta.com, if it fails check your network connection
