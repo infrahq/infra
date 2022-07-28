@@ -21,6 +21,9 @@ import (
 )
 
 func TestMigrations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for -short run")
+	}
 	patch.ModelsSymmetricKey(t)
 	allMigrations := migrations()
 
@@ -68,10 +71,7 @@ func TestMigrations(t *testing.T) {
 		err := m.Migrate()
 		assert.NilError(t, err)
 
-		// TODO: make expected required, not optional
-		if tc.expected != nil {
-			tc.expected(t, db)
-		}
+		tc.expected(t, db)
 	}
 
 	testCases := []testCase{
@@ -97,13 +97,13 @@ func TestMigrations(t *testing.T) {
 		{
 			label: testCaseLine("202206151027"),
 			setup: func(t *testing.T, db *gorm.DB) {
-				sql := `INSERT INTO providers(name) VALUES ('infra'), ('okta');`
-				err := db.Exec(sql).Error
+				stmt := `INSERT INTO providers(name) VALUES ('infra'), ('okta');`
+				err := db.Exec(stmt).Error
 				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, db *gorm.DB) {
-				sql := `DELETE FROM providers`
-				err := db.Exec(sql).Error
+				stmt := `DELETE FROM providers`
+				err := db.Exec(stmt).Error
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, db *gorm.DB) {
