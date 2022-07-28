@@ -7,6 +7,7 @@ import { PlusIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
 
+import DeleteModal from '../../components/delete-modal'
 import Dashboard from '../../components/layouts/dashboard'
 import PageHeader from '../../components/page-header'
 import EmptyTable from '../../components/empty-table'
@@ -18,7 +19,6 @@ import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
 import Pagination from '../../components/pagination'
-import IdentityItem from '../../components/identity-item'
 
 const columns = [
   {
@@ -110,6 +110,7 @@ function Details({ group, admin, onDelete }) {
   )
 
   const [emails, setEmails] = useState([])
+  const [open, setOpen] = useState(false)
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const existMembers = users?.map(m => m.id)
@@ -205,24 +206,36 @@ function Details({ group, admin, onDelete }) {
                   </EmptyData>
                 )}
                 {users.map(user => {
-                  const showDeleteModal = user.id === auth.id
                   return (
-                    <IdentityItem
+                    <div
                       key={user.id}
-                      userOrGroup={user}
-                      showDeleteModal={showDeleteModal}
-                      deleteModalInfo={
-                        showDeleteModal
-                          ? {
-                              message:
-                                'Are you sure you want to remove yourself from this group? You will lose any access that this group grants.',
-                              title: 'Remove User',
-                              btnText: 'Remove',
-                            }
-                          : undefined
+                      className='group flex items-center justify-between truncate text-2xs'
+                    >
+                      <div className='py-2'>{user.name}</div>
+                      {
+                        <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
+                          <button
+                            onClick={() => {
+                              console.log(user.id === auth.id)
+                              user.id === auth.id
+                                ? setOpen(true)
+                                : handleRemoveUserFromGroup(user.id)
+                            }}
+                            className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
+                          >
+                            Remove
+                          </button>
+                          <DeleteModal
+                            open={open}
+                            setOpen={setOpen}
+                            primaryButtonText='Remove'
+                            onSubmit={() => handleRemoveUserFromGroup(user.id)}
+                            title='Remove User'
+                            message='Are you sure you want to remove yourself from this group? You will lose any access that this group grants.'
+                          />
+                        </div>
                       }
-                      onClick={() => handleRemoveUserFromGroup(user.id)}
-                    />
+                    </div>
                   )
                 })}
               </div>
