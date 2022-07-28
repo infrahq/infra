@@ -6,10 +6,11 @@ import (
 )
 
 type Group struct {
-	ID      uid.ID `json:"id"`
-	Name    string `json:"name"`
-	Created Time   `json:"created"`
-	Updated Time   `json:"updated"`
+	ID         uid.ID `json:"id"`
+	Name       string `json:"name"`
+	Created    Time   `json:"created"`
+	Updated    Time   `json:"updated"`
+	TotalUsers int    `json:"totalUsers"`
 }
 
 type ListGroupsRequest struct {
