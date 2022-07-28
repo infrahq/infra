@@ -80,6 +80,9 @@ func (u User) ValidationRules() []validate.ValidationRule {
 }
 
 type Config struct {
+	OrganizationName   string
+	OrganizationDomain string
+
 	Providers []Provider
 	Grants    []Grant
 	Users     []User
@@ -600,6 +603,12 @@ func getKindFromUnstructured(data interface{}) string {
 }
 
 func (s Server) loadConfig(config Config) error {
+	if config.OrganizationName == "" {
+		config.OrganizationName = "Default"
+	}
+	if config.OrganizationDomain == "" {
+		config.OrganizationDomain = "localhost"
+	}
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
@@ -620,6 +629,11 @@ func (s Server) loadConfig(config Config) error {
 			Role:     models.InfraConnectorRole,
 			Resource: "infra",
 		})
+
+		_, err := s.setupDefaultOrg(tx, config.OrganizationName, config.OrganizationDomain)
+		if err != nil {
+			return fmt.Errorf("loading org: %w", err)
+		}
 
 		if err := s.loadProviders(tx, config.Providers); err != nil {
 			return fmt.Errorf("load providers: %w", err)
@@ -646,6 +660,16 @@ func (s Server) loadConfig(config Config) error {
 
 		return nil
 	})
+}
+
+func (s Server) setupDefaultOrg(tx *gorm.DB, name, domain string) (*models.Organization, error) {
+	org, err := data.GetOrganization(tx, data.ByNameOrDomain(name, domain))
+	if errors.Is(err, internal.ErrNotFound) {
+		org = &models.Organization{Name: name, Domain: domain}
+		err = data.CreateOrganization(tx, org)
+	}
+
+	return org, err
 }
 
 func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {

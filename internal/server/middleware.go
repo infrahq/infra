@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -141,6 +142,14 @@ func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization
 	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
 		return data.GetOrganization(dataDB.DB, data.ByName(orgName))
 	}
+	org, err := getOrgFromHost(req, dataDB)
+	switch {
+	case err != nil:
+		logging.L.Warn().Err(err).Msg("unknown host header")
+	case org != nil:
+		return org, nil
+	}
+
 	return dataDB.DefaultOrg, nil
 }
 
@@ -224,4 +233,27 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 		return access.RequestContext{}
 	}
 	return rCtx
+}
+
+func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+	host := req.Header.Get("Host")
+
+	if host == "" {
+		return nil, nil
+	}
+
+hostLookup:
+	org, err := data.GetOrganization(dataDB.DB, data.ByDomain(host))
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			// first, remove port and try again
+			h, p, err := net.SplitHostPort(host)
+			if len(p) > 0 && err == nil {
+				host = h
+				goto hostLookup
+			}
+		}
+		return nil, err
+	}
+	return org, nil
 }
