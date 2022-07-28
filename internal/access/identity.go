@@ -83,6 +83,16 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return fmt.Errorf("delete identity access keys: %w", err)
 	}
 
+	groups, err := data.ListGroups(db, nil, data.ByGroupMember(id))
+	if err != nil {
+		return fmt.Errorf("delete identity from groups: %w", err)
+	}
+	for _, group := range groups {
+		err = data.RemoveUsersFromGroup(db, group.ID, []uid.ID{id})
+		if err != nil {
+			return fmt.Errorf("delete identity from groups: %w", err)
+		}
+	}
 	// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
 	credential, err := data.GetCredential(db, data.ByIdentityID(id))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
