@@ -83,13 +83,13 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 		{
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraAdminRole,
-			Resource:  "infra",
+			Resource:  ResourceInfraAPI,
 			CreatedBy: identity.ID,
 		},
 		{
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraSupportAdminRole,
-			Resource:  "infra",
+			Resource:  ResourceInfraAPI,
 			CreatedBy: identity.ID,
 		},
 	}

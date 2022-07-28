@@ -89,7 +89,7 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	var db *gorm.DB
 	var err error
 
-	if grant.Privilege == models.InfraSupportAdminRole {
+	if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
 		db, err = RequireInfraRole(c, models.InfraSupportAdminRole)
 	} else {
 		db, err = RequireInfraRole(c, models.InfraAdminRole)
