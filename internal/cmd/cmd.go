@@ -48,14 +48,14 @@ func mustBeLoggedIn() error {
 		return fmt.Errorf("getting host config: %w", err)
 	}
 
-	if !config.isLoggedIn() {
-		return Error{Message: "Not logged in; run 'infra login' before running this command"}
-	}
-
+	// Check expired before checking isLoggedin, since if we check isLoggedIn first, we will never know if it's expired
 	if config.isExpired() {
 		return Error{Message: "Session expired; run 'infra login' to start a new session"}
 	}
 
+	if !config.isLoggedIn() {
+		return Error{Message: "Not logged in; run 'infra login' before running this command"}
+	}
 	return nil
 }
 
@@ -233,10 +233,13 @@ func newConnectorCmd() *cobra.Command {
 // runConnector is a shim for testing
 var runConnector = connector.Run
 
-// defaultConnectorOptions is empty for now. It exists so that it can be
-// referenced by a test.
 func defaultConnectorOptions() connector.Options {
-	return connector.Options{}
+	return connector.Options{
+		Addr: connector.ListenerOptions{
+			HTTPS:   ":443",
+			Metrics: ":9090",
+		},
+	}
 }
 
 func NewRootCmd(cli *CLI) *cobra.Command {

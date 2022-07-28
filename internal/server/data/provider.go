@@ -11,7 +11,21 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func validateProvider(p *models.Provider) error {
+	switch {
+	case p.Name == "":
+		return fmt.Errorf("name is required")
+	case p.Kind == "":
+		return fmt.Errorf("kind is required")
+	default:
+		return nil
+	}
+}
+
 func CreateProvider(db *gorm.DB, provider *models.Provider) error {
+	if err := validateProvider(provider); err != nil {
+		return err
+	}
 	return add(db, provider)
 }
 
@@ -24,12 +38,14 @@ func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc)
 }
 
 func SaveProvider(db *gorm.DB, provider *models.Provider) error {
+	if err := validateProvider(provider); err != nil {
+		return err
+	}
 	return save(db, provider)
 }
 
 func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
-	// Better solution here needed when Pagination becomes mandatory, Replace with a multiple-page "ListAll" function?
-	toDelete, err := ListProviders(db, &models.Pagination{}, selectors...)
+	toDelete, err := ListProviders(db, nil, selectors...)
 	if err != nil {
 		return fmt.Errorf("listing providers: %w", err)
 	}
@@ -38,8 +54,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		// Same as toDelete
-		providerUsers, err := ListProviderUsers(db, &models.Pagination{}, ByProviderID(p.ID))
+		providerUsers, err := ListProviderUsers(db, nil, ByProviderID(p.ID))
 		if err != nil {
 			return fmt.Errorf("listing provider users: %w", err)
 		}

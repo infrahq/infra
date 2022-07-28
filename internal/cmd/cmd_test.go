@@ -283,6 +283,82 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 	}
 }
 
+func newExpiredTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
+	if user.Name == "" {
+		user.Name = "testuser@example.com"
+	}
+	if user.ID == 0 {
+		user.ID = uid.New()
+	}
+	return ClientConfig{
+		ClientConfigVersion: clientConfigVersion,
+		Hosts: []ClientHostConfig{
+			{
+				UserID:             user.ID,
+				Name:               user.Name,
+				Host:               srv.Listener.Addr().String(),
+				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
+				AccessKey:          "the-access-key",
+				Expires:            api.Time(time.Now().Add(-1 * time.Hour)),
+				Current:            true,
+			},
+		},
+	}
+}
+
+func newClearedTestClientConfig(srv *httptest.Server) ClientConfig {
+	return ClientConfig{
+		ClientConfigVersion: clientConfigVersion,
+		Hosts: []ClientHostConfig{
+			{
+				UserID:             0,
+				Name:               "",
+				Host:               srv.Listener.Addr().String(),
+				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
+				AccessKey:          "",
+				Expires:            api.Time(time.Now().Add(time.Hour)),
+				Current:            true,
+			},
+		},
+	}
+}
+
+func TestInvalidSessions(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // Windows
+
+	// k8s.io/tools/clientcmd reads HOME at import time, so this must be patched too
+	t.Setenv("KUBECONFIG", filepath.Join(home, "config"))
+
+	srv := httptest.NewTLSServer(http.HandlerFunc(nil))
+	t.Cleanup(srv.Close)
+
+	t.Run("Expired session", func(t *testing.T) {
+		cfg := newExpiredTestClientConfig(srv, api.User{ID: uid.New()})
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+		err = clearKubeconfig()
+		assert.NilError(t, err)
+
+		err = Run(context.Background(), "destinations", "list")
+		assert.ErrorContains(t, err, "Session expired")
+	})
+
+	t.Run("Logged out session", func(t *testing.T) {
+		cfg := newClearedTestClientConfig(srv)
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+		err = clearKubeconfig()
+		assert.NilError(t, err)
+
+		err = Run(context.Background(), "destinations", "list")
+		assert.ErrorContains(t, err, "Not logged in")
+	})
+}
+
 func TestConnectorCmd(t *testing.T) {
 	var actual connector.Options
 	patchRunConnector(t, func(ctx context.Context, options connector.Options) error {
@@ -309,6 +385,10 @@ caKey: /path/to/key
 
 	expected := connector.Options{
 		Name: "the-name",
+		Addr: connector.ListenerOptions{
+			HTTPS:   ":443",
+			Metrics: ":9090",
+		},
 		Server: connector.ServerOptions{
 			URL:                "the-server",
 			AccessKey:          "/var/run/secrets/key",

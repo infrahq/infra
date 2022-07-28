@@ -7,18 +7,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-gormigrate/gormigrate/v2"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
 func migrate(db *gorm.DB) error {
-	m := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{
+	opts := migrator.DefaultOptions
+	opts.InitSchema = preMigrate
+	m := migrator.New(db, opts, []*migrator.Migration{
 		// rename grants.identity -> grants.subject
 		{
 			ID: "202203231621", // date the migration was created
@@ -249,7 +251,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202203301647")
 				if tx.Migrator().HasTable("machines") {
-					grants, err := ListGrants(db, &models.Pagination{})
+					grants, err := ListGrants(db, nil)
 					if err != nil {
 						return err
 					}
@@ -290,7 +292,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202204061643")
 				if tx.Migrator().HasTable("access_keys") {
-					keys, err := ListAccessKeys(db, &models.Pagination{})
+					keys, err := ListAccessKeys(db, nil)
 					if err != nil {
 						return err
 					}
@@ -344,7 +346,7 @@ func migrate(db *gorm.DB) error {
 
 					infraProviderID := providerIDs["infra"]
 
-					users, err := ListIdentities(db, &models.Pagination{}, func(db *gorm.DB) *gorm.DB {
+					users, err := ListIdentities(db, nil, func(db *gorm.DB) *gorm.DB {
 						return db.Where("provider_id != ?", infraProviderID)
 					})
 					if err != nil {
@@ -476,12 +478,9 @@ func migrate(db *gorm.DB) error {
 		addAuthURLAndScopeToProviders(),
 		setDestinationLastSeenAt(),
 		deleteDuplicateGrants(),
+		dropDeletedProviderUsers(),
 		// next one here
 	})
-
-	// migrate should work even if you didn't call preMigrate before calling migrate(), so register the premigration.
-	m.InitSchema(preMigrate)
-
 	if err := m.Migrate(); err != nil {
 		return err
 	}
@@ -513,6 +512,7 @@ func initializeSchema(db *gorm.DB) error {
 		&models.EncryptionKey{},
 		&models.Credential{},
 		&models.ProviderUser{},
+		&models.Organization{},
 	}
 
 	for _, table := range tables {
@@ -525,8 +525,8 @@ func initializeSchema(db *gorm.DB) error {
 }
 
 // #2294: set the provider kind on existing providers
-func addKindToProviders() *gormigrate.Migration {
-	return &gormigrate.Migration{
+func addKindToProviders() *migrator.Migration {
+	return &migrator.Migration{
 		ID: "202206151027",
 		Migrate: func(tx *gorm.DB) error {
 			if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
@@ -546,8 +546,8 @@ func addKindToProviders() *gormigrate.Migration {
 }
 
 // #2276: drop unused certificate tables
-func dropCertificateTables() *gormigrate.Migration {
-	return &gormigrate.Migration{
+func dropCertificateTables() *migrator.Migration {
+	return &migrator.Migration{
 		ID: "202206161733",
 		Migrate: func(tx *gorm.DB) error {
 			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
@@ -556,8 +556,8 @@ func dropCertificateTables() *gormigrate.Migration {
 }
 
 // #2353: store auth URL and scopes to provider
-func addAuthURLAndScopeToProviders() *gormigrate.Migration {
-	return &gormigrate.Migration{
+func addAuthURLAndScopeToProviders() *migrator.Migration {
+	return &migrator.Migration{
 		ID: "202206281027",
 		Migrate: func(tx *gorm.DB) error {
 			if !tx.Migrator().HasColumn(&models.Provider{}, "scopes") {
@@ -610,16 +610,16 @@ func addAuthURLAndScopeToProviders() *gormigrate.Migration {
 }
 
 // #2360: delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
-func deleteDuplicateGrants() *gormigrate.Migration {
-	return &gormigrate.Migration{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
+func deleteDuplicateGrants() *migrator.Migration {
+	return &migrator.Migration{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
 		return deleteDuplicates(tx, "subject, resource, privilege", &models.Grant{})
 	}}
 }
 
 // setDestinationLastSeenAt creates the `last_seen_at` column if it does not exist and sets it to
 // the destination's `updated_at` value. No effect if the `last_seen_at` exists
-func setDestinationLastSeenAt() *gormigrate.Migration {
-	return &gormigrate.Migration{
+func setDestinationLastSeenAt() *migrator.Migration {
+	return &migrator.Migration{
 		ID: "202207041724",
 		Migrate: func(tx *gorm.DB) error {
 			if tx.Migrator().HasColumn(&models.Destination{}, "last_seen_at") {
@@ -631,6 +631,22 @@ func setDestinationLastSeenAt() *gormigrate.Migration {
 			}
 
 			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
+		},
+	}
+}
+
+// dropDeletedProviderUsers removes soft-deleted provider users so they do not cause conflicts
+func dropDeletedProviderUsers() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "202207270000",
+		Migrate: func(tx *gorm.DB) error {
+			if tx.Migrator().HasColumn(&models.ProviderUser{}, "deleted_at") {
+				if err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error; err != nil {
+					return fmt.Errorf("could not remove soft deleted provider users: %w", err)
+				}
+				return tx.Migrator().DropColumn(&models.ProviderUser{}, "deleted_at")
+			}
+			return nil
 		},
 	}
 }

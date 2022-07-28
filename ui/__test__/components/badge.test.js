@@ -15,12 +15,12 @@ describe('Badge Component', () => {
     expect(screen.getByText(children)).toBeInTheDocument()
   })
 
-  it('should fires onRemove when clicks remove button', () => {
+  it('should fire onRemove when clicks remove button', () => {
     const children = 'badge test children'
     const handleOnRemove = jest.fn()
     render(<Badge onRemove={handleOnRemove}>{children}</Badge>)
 
-    fireEvent.click(screen.getByTestId('badgeRemoveIcon'))
+    fireEvent.click(screen.getByTestId('badge-remove-icon'))
     expect(handleOnRemove).toHaveBeenCalledTimes(1)
   })
 })

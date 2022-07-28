@@ -17,6 +17,8 @@ import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
+import { useRouter } from 'next/router'
 
 const columns = [
   {
@@ -167,7 +169,6 @@ function Details({ group, admin, onDelete }) {
                 existMembers={existMembers}
                 onClick={async () => {
                   const usersToAdd = emails.map(email => email.id)
-                  console.log(emails)
                   await fetch(`/api/groups/${id}/users`, {
                     method: 'PATCH',
                     body: JSON.stringify({ usersToAdd }),
@@ -230,7 +231,18 @@ function Details({ group, admin, onDelete }) {
 }
 
 export default function Groups() {
-  const { data: { items: groups } = {}, error, mutate } = useSWR('/api/groups')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
+  const {
+    data: { items: groups, totalPages, totalCount } = {
+      items: [],
+      totalPages: 1,
+      totalCount: 1,
+    },
+    error,
+    mutate,
+  } = useSWR(`/api/groups?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
 
   const [selected, setSelected] = useState(null)
@@ -256,11 +268,7 @@ export default function Groups() {
               <div className='flex min-h-0 flex-1 flex-col overflow-y-auto px-6'>
                 <Table
                   columns={columns}
-                  data={
-                    groups?.sort((a, b) =>
-                      b.created?.localeCompare(a.created)
-                    ) || []
-                  }
+                  data={groups || []}
                   getRowProps={row => ({
                     onClick: () => setSelected(row.original),
                     className:
@@ -279,6 +287,13 @@ export default function Groups() {
                   />
                 )}
               </div>
+            )}
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              ></Pagination>
             )}
           </div>
           {selected && (

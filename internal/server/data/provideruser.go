@@ -15,30 +15,47 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func validateProviderUser(u *models.ProviderUser) error {
+	switch {
+	case u.ProviderID == 0:
+		return fmt.Errorf("providerID is required")
+	case u.IdentityID == 0:
+		return fmt.Errorf("identityID is required")
+	case u.Email == "":
+		return fmt.Errorf("email is required")
+	case u.LastUpdate.IsZero():
+		return fmt.Errorf("lastUpdated is required")
+	default:
+		return nil
+	}
+}
+
 func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
 	pu, err := get[models.ProviderUser](db, ByIdentityID(ident.ID), ByProviderID(provider.ID))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return nil, err
 	}
 
-	if pu == nil {
-		pu = &models.ProviderUser{
-			ProviderID: provider.ID,
-			IdentityID: ident.ID,
-			Email:      ident.Name,
-			LastUpdate: time.Now().UTC(),
-		}
-		if err := add(db, pu); err != nil {
-			return nil, err
-		}
+	if pu != nil {
+		return pu, nil
 	}
 
-	// If there were other attributes to update, I guess they should be updated here.
-
-	return pu, nil
+	pu = &models.ProviderUser{
+		ProviderID: provider.ID,
+		IdentityID: ident.ID,
+		Email:      ident.Name,
+		LastUpdate: time.Now().UTC(),
+	}
+	if err := validateProviderUser(pu); err != nil {
+		return nil, err
+	}
+	return pu, add(db, pu)
 }
 
 func UpdateProviderUser(db *gorm.DB, providerUser *models.ProviderUser) error {
+	if err := validateProviderUser(providerUser); err != nil {
+		return err
+	}
 	return save(db, providerUser)
 }
 

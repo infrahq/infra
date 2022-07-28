@@ -13,7 +13,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/server/providers"
 )
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
@@ -136,9 +135,6 @@ func (a *API) setProviderInfoFromServer(c *gin.Context, provider *models.Provide
 
 	err = oidc.Validate(c)
 	if err != nil {
-		if errors.Is(err, providers.ErrValidation) {
-			return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
-		}
 		return err
 	}
 

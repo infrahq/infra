@@ -13,7 +13,10 @@ export default function Metadata({ data }) {
           >
             {item.title}
           </div>
-          <div data-testid='metadata-data' className='col-span-2 text-2xs'>
+          <div
+            data-testid='metadata-data'
+            className='col-span-2 break-words text-2xs'
+          >
             {item.data}
           </div>
         </div>

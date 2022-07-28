@@ -4,10 +4,10 @@ go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.5
-	github.com/aws/aws-sdk-go v1.44.61
+	github.com/aws/aws-sdk-go v1.44.63
 	github.com/cli/browser v1.1.0
 	github.com/gin-gonic/gin v1.8.1
-	github.com/go-playground/validator/v10 v10.11.0
+	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/goware/urlx v0.3.2
 	github.com/hashicorp/vault/api v1.5.0 // indirect
 	github.com/jackc/pgconn v1.12.1
@@ -40,7 +40,6 @@ require (
 	github.com/getkin/kin-openapi v0.97.0
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-contrib/static v0.0.1
-	github.com/go-gormigrate/gormigrate/v2 v2.0.2
 	github.com/google/go-cmp v0.5.8
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
 	github.com/iancoleman/strcase v0.2.0
@@ -53,7 +52,7 @@ require (
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	golang.org/x/text v0.3.7
-	google.golang.org/api v0.88.0
+	google.golang.org/api v0.89.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gotest.tools/v3 v3.3.0
 )

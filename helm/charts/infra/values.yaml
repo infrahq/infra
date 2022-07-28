@@ -116,13 +116,14 @@ server:
   podAnnotations: {}
 
   ## Security context for the server pod
-  podSecurityContext: {}
-  #   fsGroup: 2000
+  podSecurityContext:
+    fsGroup: 1000
 
   ## Security context for the server container
   securityContext:
     readOnlyRootFilesystem: true
-    # runAsUser: 999
+    runAsUser: 1000
+    runAsGroup: 1000
 
   ## Liveness probe for the default backend
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
@@ -272,6 +273,34 @@ server:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
+    ## Prometheus rule configurations
+    prometheusRule:
+
+      ## Enable Prometheus rule
+      enabled: false
+
+      ## Prometheus rule labels
+      labels: {}
+
+      ## Prometheus rule annotations
+      annotations: {}
+
+      ## Additional labels for default rules
+      additionalRuleLabels: {}
+
+      ## Additional annotations for default rules
+      additionalRuleAnnotations: {}
+
+      ## Additional alerting or recording rules
+      additionalRules: []
+        # - alert: InstanceDown
+        #   expr: absent(up == 1)
+        #   labels: {}
+        #   annotations: {}
+        #   for: 5m
+        # - record: count:up1
+        #   expr: count(up == 1)
+
   ## Infra server ingress configurations
   ingress:
 
@@ -382,6 +411,13 @@ server:
 
   ## Primary server configuration
   config:
+
+    ## Server container service ports
+    addr:
+      http: 8080
+      https: 8443
+      metrics: 9090
+
     ## Database name
     # dbName: ""
 
@@ -766,6 +802,34 @@ connector:
       ## Prometheus metric relabel configs to apply to samples before ingesting
       metricRelabelings: []
 
+    ## Prometheus rule configurations
+    prometheusRule:
+
+      ## Enable Prometheus rule
+      enabled: false
+
+      ## Prometheus rule labels
+      labels: {}
+
+      ## Prometheus rule annotations
+      annotations: {}
+
+      ## Additional labels for default rules
+      additionalRuleLabels: {}
+
+      ## Additional annotations for default rules
+      additionalRuleAnnotations: {}
+
+      ## Additional alerting or recording rules
+      additionalRules: []
+        # - alert: InstanceDown
+        #   expr: absent(up == 1)
+        #   labels: {}
+        #   annotations: {}
+        #   for: 5m
+        # - record: count:up1
+        #   expr: count(up == 1)
+
   ## Resource requests and limits for the connector pod
   resources: {}
   #   requests:
@@ -803,7 +867,13 @@ connector:
   affinity: {}
 
   ## Primary connector configuration
-  config: {}
+  config:
+
+    ## Connector container service ports
+    addr:
+      https: 9443
+      metrics: 9091
+
   ## Infra server access key
   #   accessKey: ""
 

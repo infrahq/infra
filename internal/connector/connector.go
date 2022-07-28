@@ -35,6 +35,8 @@ type Options struct {
 	Name   string
 	CACert string
 	CAKey  string
+
+	Addr ListenerOptions
 }
 
 type ServerOptions struct {
@@ -42,6 +44,11 @@ type ServerOptions struct {
 	AccessKey          string
 	SkipTLSVerify      bool
 	TrustedCertificate types.StringOrFile
+}
+
+type ListenerOptions struct {
+	HTTPS   string
+	Metrics string
 }
 
 func Run(ctx context.Context, options Options) error {
@@ -180,7 +187,7 @@ func Run(ctx context.Context, options Options) error {
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
-		Addr:              ":9090",
+		Addr:              options.Addr.Metrics,
 		Handler:           metrics.NewHandler(promRegistry),
 		ErrorLog:          httpErrorLog,
 	}
@@ -199,7 +206,7 @@ func Run(ctx context.Context, options Options) error {
 	tlsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
-		Addr:              ":443",
+		Addr:              options.Addr.HTTPS,
 		TLSConfig:         tlsConfig,
 		Handler:           router,
 		ErrorLog:          httpErrorLog,

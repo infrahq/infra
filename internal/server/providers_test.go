@@ -32,7 +32,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	err := data.CreateProvider(s.db, testProvider)
 	assert.NilError(t, err)
 
-	dbProviders, err := data.ListProviders(s.db, &models.Pagination{})
+	dbProviders, err := data.ListProviders(s.db, nil)
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 
@@ -206,6 +206,37 @@ func TestAPI_CreateProvider(t *testing.T) {
 					{FieldName: "clientSecret", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
 					{FieldName: "url", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "api credential invalid emails",
+			body: api.CreateProviderRequest{
+				Name:         "google",
+				URL:          "accounts.google.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         string(models.ProviderKindGoogle),
+				API: &api.ProviderAPICredentials{
+					ClientEmail:      "notanemail",
+					DomainAdminEmail: "domainadmin",
+				},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "api.clientEmail", Errors: []string{"invalid email address"}},
+					{FieldName: "api.domainAdminEmail", Errors: []string{"invalid email address"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},

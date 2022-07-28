@@ -1,6 +1,8 @@
 package data
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -9,6 +11,14 @@ import (
 )
 
 func CreateGrant(db *gorm.DB, grant *models.Grant) error {
+	switch {
+	case grant.Subject == "":
+		return fmt.Errorf("subject is required")
+	case grant.Privilege == "":
+		return fmt.Errorf("privilege is required")
+	case grant.Resource == "":
+		return fmt.Errorf("resource is required")
+	}
 	return add(db, grant)
 }
 
@@ -21,7 +31,7 @@ func ListGrants(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([
 }
 
 func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.Grant](db, &models.Pagination{}, selectors...)
+	toDelete, err := list[models.Grant](db, nil, selectors...)
 	if err != nil {
 		return err
 	}

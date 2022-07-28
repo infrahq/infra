@@ -102,7 +102,6 @@ func TestSyncProviderUser(t *testing.T) {
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
-						Model:        pu.Model, // not relevant
 						Email:        "hello@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,
@@ -167,7 +166,6 @@ func TestSyncProviderUser(t *testing.T) {
 					assert.NilError(t, err)
 
 					expected := models.ProviderUser{
-						Model:        pu.Model, // not relevant
 						Email:        "sync@example.com",
 						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,
@@ -204,7 +202,7 @@ func TestSyncProviderUser(t *testing.T) {
 					assert.Assert(t, puGroups["Developers"])
 
 					// check that the direct user-to-group relation was updated
-					storedGroups, err := ListGroups(db, &models.Pagination{}, ByGroupMember(pu.IdentityID))
+					storedGroups, err := ListGroups(db, nil, ByGroupMember(pu.IdentityID))
 					assert.NilError(t, err)
 
 					userGroups := make(map[string]bool)
@@ -226,5 +224,42 @@ func TestSyncProviderUser(t *testing.T) {
 				test.verifyFunc(t, err, user)
 			})
 		}
+	})
+}
+
+func TestDeleteProviderUser(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		provider := &models.Provider{
+			Name: "mockta",
+			Kind: models.ProviderKindOkta,
+		}
+
+		err := CreateProvider(db, provider)
+		assert.NilError(t, err)
+
+		user := &models.Identity{
+			Name: "alice@example.com",
+		}
+		err = CreateIdentity(db, user)
+		assert.NilError(t, err)
+
+		_, err = CreateProviderUser(db, provider, user)
+		assert.NilError(t, err)
+
+		// check the provider user exists
+		_, err = GetProviderUser(db, provider.ID, user.ID)
+		assert.NilError(t, err)
+
+		// hard delete the provider user
+		err = DeleteProviderUsers(db, ByIdentityID(user.ID), ByProviderID(provider.ID))
+		assert.NilError(t, err)
+
+		// provider user no longer exists
+		_, err = GetProviderUser(db, provider.ID, user.ID)
+		assert.ErrorContains(t, err, "not found")
+
+		// but they can be re-created
+		_, err = CreateProviderUser(db, provider, user)
+		assert.NilError(t, err)
 	})
 }

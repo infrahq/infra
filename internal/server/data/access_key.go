@@ -26,6 +26,13 @@ func secretChecksum(secret string) []byte {
 }
 
 func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
+	switch {
+	case accessKey.IssuedFor == 0:
+		return "", fmt.Errorf("issusedFor is required")
+	case accessKey.ProviderID == 0:
+		return "", fmt.Errorf("providerID is required")
+	}
+
 	if accessKey.KeyID == "" {
 		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
 	}
@@ -95,7 +102,7 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 }
 
 func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, &models.Pagination{}, selectors...)
+	toDelete, err := list[models.AccessKey](db, nil, selectors...)
 	if err != nil {
 		return err
 	}

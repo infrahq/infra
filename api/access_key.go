@@ -62,7 +62,7 @@ func ValidateName(value string) validate.StringRule {
 	return validate.StringRule{
 		Value:     value,
 		Name:      "name",
-		MinLength: 3,
+		MinLength: 2,
 		MaxLength: 256,
 		CharacterRanges: []validate.CharRange{
 			validate.AlphabetLower,

@@ -43,16 +43,12 @@ type Client struct {
 //
 // 3xx codes are considered an error because redirects should have already
 // been followed before calling checkError.
-func checkError(req *http.Request, resp *http.Response, body []byte) error {
+func checkError(resp *http.Response, body []byte) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil
 	}
 
-	apiError := Error{
-		Method: req.Method,
-		Path:   req.URL.Path,
-		Code:   int32(resp.StatusCode),
-	}
+	apiError := Error{Code: int32(resp.StatusCode)}
 
 	err := json.Unmarshal(body, &apiError)
 	if err != nil {
@@ -128,7 +124,7 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 
-	if err := checkError(req, resp, body); err != nil {
+	if err := checkError(resp, body); err != nil {
 		return nil, err
 	}
 
@@ -226,6 +222,24 @@ func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider]
 	return get[ListResponse[Provider]](c, "/api/providers",
 		Query{"name": {req.Name},
 			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
+}
+
+func (c Client) ListOrganizations(req ListOrganizationsRequest) (*ListResponse[Organization], error) {
+	return get[ListResponse[Organization]](c, "/api/organizations", Query{
+		"name": {req.Name},
+	})
+}
+
+func (c Client) GetOrganization(id uid.ID) (*Organization, error) {
+	return get[Organization](c, fmt.Sprintf("/api/organizations/%s", id), Query{})
+}
+
+func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organization, error) {
+	return post[CreateOrganizationRequest, Organization](c, "/api/organizations", req)
+}
+
+func (c Client) DeleteOrganization(id uid.ID) error {
+	return delete(c, fmt.Sprintf("/api/organizations/%s", id))
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {

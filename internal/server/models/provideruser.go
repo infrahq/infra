@@ -8,14 +8,12 @@ import (
 
 // ProviderUser is a cache of the provider's user and their groups, plus any authentication-specific information for that provider.
 type ProviderUser struct {
-	Model
+	ProviderID uid.ID `gorm:"primaryKey"`
+	IdentityID uid.ID `gorm:"primaryKey"`
 
-	ProviderID uid.ID `validate:"required"`
-	IdentityID uid.ID `validate:"required"`
-
-	Email      string `validate:"required"`
+	Email      string
 	Groups     CommaSeparatedStrings
-	LastUpdate time.Time `validate:"required"`
+	LastUpdate time.Time
 
 	RedirectURL string // needs to match the redirect URL specified when the token was issued for refreshing
 
@@ -23,3 +21,5 @@ type ProviderUser struct {
 	RefreshToken EncryptedAtRest
 	ExpiresAt    time.Time
 }
+
+func (ProviderUser) IsAModel() {}

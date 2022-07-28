@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -18,7 +19,8 @@ func TestWriteKubeconfig(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
-	t.Setenv("KUBECONFIG", filepath.Join(home, "nonexistent", "kubeconfig"))
+	kubeConfigPath := filepath.Join(home, "nonexistent", "kubeconfig")
+	t.Setenv("KUBECONFIG", kubeConfigPath)
 
 	user := api.User{Name: "user"}
 	destinations := []api.Destination{
@@ -56,6 +58,12 @@ func TestWriteKubeconfig(t *testing.T) {
 			"user": {},
 		},
 	}
+
+	configFileStats, err := os.Stat(kubeConfigPath)
+	assert.NilError(t, err)
+
+	permissions := configFileStats.Mode().Perm()
+	assert.Equal(t, int(permissions), 0o600) // kube config should not be world or group readable, only user read/write
 
 	actual, err := clientConfig().RawConfig()
 	assert.NilError(t, err)
