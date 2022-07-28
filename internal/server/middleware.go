@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -181,4 +182,90 @@ func getCookie(req *http.Request, name string) (string, error) {
 		return "", err
 	}
 	return url.QueryUnescape(cookie.Value)
+}
+
+func OrganizationFromDomain(defaultOrgName, defaultOrgDomain string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		org, host, err := getOrgFromRequest(c, defaultOrgName, defaultOrgDomain)
+		if err != nil {
+			sendAPIError(c, err)
+			return
+		}
+		if org != nil {
+			c.Set("host", host)
+			c.Set("org", org)
+			logging.Debugf("organization set to %s for host %s", org.Name, host)
+		}
+		c.Next()
+	}
+}
+
+// returns org, host
+func getOrgFromRequest(c *gin.Context, defaultOrgName, defaultOrgDomain string) (*models.Organization, string, error) {
+	db := getDB(c)
+	host := c.Request.Header.Get("Host")
+
+	if len(host) == 0 {
+		// tests are lazy and don't set Host
+		host = defaultOrgDomain
+	}
+
+	if len(host) > 0 {
+	hostLookup:
+		org, err := data.GetOrganization(db, data.ByDomain(host))
+		if err != nil {
+			if errors.Is(err, internal.ErrNotFound) {
+				// first, remove port and try again
+				h, p, err := net.SplitHostPort(host)
+				if len(p) > 0 && err == nil {
+					host = h
+					goto hostLookup
+				}
+
+				org, err = getDefaultOrg(db, defaultOrgName, defaultOrgDomain)
+				if err != nil {
+					return nil, "", fmt.Errorf("creating default organization: %w", err)
+				}
+				return org, host, nil
+			}
+			logging.Errorf("fetching org: %s", err)
+			return nil, "", nil
+		}
+		return org, host, nil
+	}
+	return nil, "", nil
+}
+
+func OrganizationRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		o, ok := c.Get("org")
+		if !ok {
+			sendAPIError(c, internal.ErrBadRequest)
+			return
+		}
+		if _, ok = o.(*models.Organization); !ok {
+			sendAPIError(c, internal.ErrBadRequest)
+			return
+		}
+		c.Next()
+	}
+}
+
+var defaultOrgCache *models.Organization
+
+// check for configured default org
+func getDefaultOrg(db *gorm.DB, defaultOrgName, defaultOrgDomain string) (*models.Organization, error) {
+	if defaultOrgCache != nil {
+		return defaultOrgCache, nil
+	}
+	if len(defaultOrgName) == 0 {
+		return nil, errors.New("organization not configured")
+	}
+	org, err := data.GetOrganization(db, data.ByName(defaultOrgName))
+	if err != nil {
+		return nil, err
+	}
+
+	defaultOrgCache = org
+	return org, nil
 }

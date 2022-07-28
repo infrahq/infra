@@ -266,7 +266,6 @@ server:
 
     ## Prometheus rule configurations
     prometheusRule:
-
       ## Enable Prometheus rule
       enabled: false
 
@@ -283,7 +282,8 @@ server:
       additionalRuleAnnotations: {}
 
       ## Additional alerting or recording rules
-      additionalRules: []
+      additionalRules:
+        []
         # - alert: InstanceDown
         #   expr: absent(up == 1)
         #   labels: {}
@@ -399,7 +399,6 @@ server:
 
   ## Primary server configuration
   config:
-
     ## Server container service ports
     addr:
       http: 8080
@@ -428,6 +427,9 @@ server:
 
     ## Path on the filesystem to store the database encryption key
     # dbEncryptionKey: ""
+
+    # defaultOrganizationName: "Acme"
+    # defaultOrganizationDomain: "localhost"
 
     ## Enable service telemetry
     # enableTelemetry: true
@@ -985,7 +987,6 @@ connector:
 
     ## Prometheus rule configurations
     prometheusRule:
-
       ## Enable Prometheus rule
       enabled: false
 
@@ -1002,7 +1003,8 @@ connector:
       additionalRuleAnnotations: {}
 
       ## Additional alerting or recording rules
-      additionalRules: []
+      additionalRules:
+        []
         # - alert: InstanceDown
         #   expr: absent(up == 1)
         #   labels: {}
@@ -1048,7 +1050,6 @@ connector:
 
   ## Primary connector configuration
   config:
-
     ## Connector container service ports
     addr:
       https: 9443

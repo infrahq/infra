@@ -170,6 +170,7 @@ func TestTrimWhitespace(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	userID := uid.New()
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
 		User:      userID,
 		Privilege: "admin   ",
@@ -183,6 +184,7 @@ func TestTrimWhitespace(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
+	// nolint:noctx
 	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
 	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
@@ -210,6 +212,7 @@ func TestInfraVersionHeader(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	body := jsonBody(t, api.CreateUserRequest{Name: "usera@example.com"})
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 	assert.NilError(t, err)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))

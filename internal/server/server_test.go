@@ -31,6 +31,10 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	options := Options{
 		SessionDuration:          10 * time.Minute,
 		SessionExtensionDeadline: 30 * time.Minute,
+		Config: Config{
+			OrganizationName:   "Default Co.",
+			OrganizationDomain: "localhost",
+		},
 	}
 	for _, op := range ops {
 		op(t, &options)
@@ -138,6 +142,7 @@ func TestServer_Run(t *testing.T) {
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
+		// nolint:noctx
 		req, err = http.NewRequest("GET", "http://"+srv.Addrs.Metrics.String()+"/metrics", nil)
 		assert.NilError(t, err)
 		req.Header.Set("Infra-Version", apiVersionLatest)
@@ -160,6 +165,7 @@ func TestServer_Run(t *testing.T) {
 	})
 
 	t.Run("http server started", func(t *testing.T) {
+		// nolint:noctx
 		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/healthz")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
@@ -176,6 +182,7 @@ func TestServer_Run(t *testing.T) {
 		client := &http.Client{Transport: tr}
 
 		url := "https://" + srv.Addrs.HTTPS.String() + "/healthz"
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		assert.NilError(t, err)
 
@@ -221,6 +228,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	}()
 
 	t.Run("requests are proxied", func(t *testing.T) {
+		// nolint:noctx
 		resp, err := http.Get("http://" + srv.Addrs.HTTP.String() + "/any-path")
 		assert.NilError(t, err)
 		defer resp.Body.Close()
@@ -232,6 +240,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	})
 
 	t.Run("api routes are available", func(t *testing.T) {
+		// nolint:noctx
 		req, err := http.NewRequest("GET", "http://"+srv.Addrs.HTTP.String()+"/api/signup", nil)
 		assert.NilError(t, err)
 		req.Header.Set("Infra-Version", apiVersionLatest)

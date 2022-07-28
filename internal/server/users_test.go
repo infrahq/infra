@@ -31,6 +31,7 @@ func TestAPI_GetUser(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -197,6 +198,7 @@ func TestAPI_ListUsers(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
@@ -222,6 +224,7 @@ func TestAPI_ListUsers(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
@@ -419,6 +422,7 @@ func TestAPI_CreateUser(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -671,6 +675,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 
@@ -742,6 +747,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 		body := jsonBody(t, tc.body)
 
 		id := user.ID.String()
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPut, "/api/users/"+id, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))

@@ -283,6 +283,9 @@ func setupEnv(t *testing.T) string {
 func setupServerTLSOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
 
+	opts.Config.OrganizationName = "CLI test"
+	opts.Config.OrganizationDomain = "cli-test"
+
 	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 
 	key, err := os.ReadFile("testdata/pki/localhost.key")
