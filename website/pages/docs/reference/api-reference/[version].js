@@ -12,11 +12,13 @@ export default function OpenAPIDocs({ version }) {
       <Head>
         <title>{version} - Infra API Docs</title>
       </Head>
-      <API
-        apiDescriptionUrl={apiDescriptionUrl}
-        layout='stacked'
-        router='static'
-      />
+      <div data-theme='dark'>
+        <API
+          apiDescriptionUrl={apiDescriptionUrl}
+          layout='stacked'
+          router='static'
+        />
+      </div>
     </>
   )
 }

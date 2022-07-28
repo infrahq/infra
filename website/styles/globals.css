@@ -227,3 +227,7 @@ body,
 .token.variable {
   color: #ff6666;
 }
+
+.sl-elements {
+  --color-code: bg-black;
+}
