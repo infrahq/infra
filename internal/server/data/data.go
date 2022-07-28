@@ -155,7 +155,18 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
-	err := db.Create(model).Error
+	var err error
+	if db.Name() == "postgres" {
+		// failures on postgres need to be rolled back in order to
+		// continue using the same transaction
+		db.SavePoint("beforeCreate")
+		err = db.Create(model).Error
+		if err != nil {
+			db.RollbackTo("beforeCreate")
+		}
+	} else {
+		err = db.Create(model).Error
+	}
 	return handleError(err)
 }
 
