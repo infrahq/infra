@@ -236,7 +236,6 @@ export default function Groups() {
   const limit = 13
   const {
     data: { items: groups, totalPages, totalCount } = {
-      items: [],
       totalPages: 1,
       totalCount: 1,
     },

@@ -210,7 +210,6 @@ export default function Users() {
   const limit = 13
   const {
     data: { items, totalPages, totalCount } = {
-      items: [],
       totalCount: 0,
       totalPages: 0,
     },

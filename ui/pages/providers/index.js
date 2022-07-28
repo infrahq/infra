@@ -107,7 +107,6 @@ export default function Providers() {
   const limit = 13
   const {
     data: { items: providers, totalPages, totalCount } = {
-      items: [],
       totalCount: 0,
       totalPages: 0,
     },

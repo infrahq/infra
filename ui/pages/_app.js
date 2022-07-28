@@ -1,4 +1,3 @@
-import dynamic from 'next/dynamic'
 import Head from 'next/head'
 import useSWR, { SWRConfig } from 'swr'
 import { useRouter } from 'next/router'
@@ -24,7 +23,7 @@ const swrConfig = {
   revalidateOnReconnect: false,
 }
 
-function App({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   const { data: signup } = useSWR('/api/signup', swrConfig)
   const router = useRouter()
 
@@ -60,8 +59,3 @@ function App({ Component, pageProps }) {
     </SWRConfig>
   )
 }
-
-// disable server-side rendering for pages
-export default dynamic(() => Promise.resolve(App), {
-  ssr: false,
-})
