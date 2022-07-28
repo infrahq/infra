@@ -12,7 +12,7 @@ import DeleteModal from '../../components/delete-modal'
 import Notification from '../../components/notification'
 import GrantForm from '../../components/grant-form'
 
-function AdminGrant({ name, showRemove, onRemove, message = undefined }) {
+function AdminGrant({ name, showRemove, onRemove, message = '' }) {
   const [open, setOpen] = useState(false)
 
   return (
