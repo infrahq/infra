@@ -4,7 +4,7 @@ import useSWR from 'swr'
 export default function AuthRequired({ children }) {
   const { data: auth, error } = useSWR('/api/users/self')
   const router = useRouter()
-  const { pathname } = router
+  const { asPath } = router
   const logout = window.localStorage.getItem('logout')
 
   if (!auth && !error) {
@@ -12,8 +12,8 @@ export default function AuthRequired({ children }) {
   }
 
   if (!auth?.id) {
-    if (!logout && pathname !== '/destinations' && pathname !== '/') {
-      router.replace(`/login?next=${pathname.slice(1)}`)
+    if (!logout && asPath !== '/destinations' && asPath !== '/') {
+      router.replace(`/login?next=${asPath.slice(1)}`)
     } else {
       router.replace('/login')
     }

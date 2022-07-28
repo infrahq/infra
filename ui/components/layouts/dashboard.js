@@ -50,13 +50,13 @@ function Layout({ children }) {
   // redirect non-admin routes if user isn't admin
   if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
     router.replace('/')
-    return false
+    return null
   }
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
       router.replace('/')
-      return false
+      return null
     }
   }
 
