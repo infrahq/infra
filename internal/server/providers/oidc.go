@@ -110,7 +110,7 @@ func (o *oidcClientImplementation) Validate(ctx context.Context) error {
 				return newValidationError("clientSecret")
 			}
 		}
-		logging.Debugf("%s", err.Error())
+		logging.Tracef("validating oidc provider resulted in: %s. this may be expected.", err.Error())
 	}
 
 	// return nil for all other errors, because the request was made with an
