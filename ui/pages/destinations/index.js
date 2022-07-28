@@ -326,7 +326,6 @@ export default function Destinations() {
 
   const {
     data: { items: destinations, totalPages, totalCount } = {
-      items: [],
       totalPages: 0,
       totalCount: 0,
     },
@@ -336,22 +335,21 @@ export default function Destinations() {
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
-  const data =
-    destinations?.map(d => ({
-      ...d,
-      kind: 'cluster',
-      resource: d.name,
+  const data = destinations?.map(d => ({
+    ...d,
+    kind: 'cluster',
+    resource: d.name,
 
-      // Create "fake" destinations as subrows from resources
-      subRows: d.resources?.map(r => ({
-        name: r,
-        resource: `${d.name}.${r}`,
-        kind: 'namespace',
-        roles: d.roles?.filter(r => r !== 'cluster-admin'),
-      })),
-    })) || []
+    // Create "fake" destinations as subrows from resources
+    subRows: d.resources?.map(r => ({
+      name: r,
+      resource: `${d.name}.${r}`,
+      kind: 'namespace',
+      roles: d.roles?.filter(r => r !== 'cluster-admin'),
+    })),
+  }))
 
-  const loading = adminLoading || !destinations
+  const loading = adminLoading || !data
 
   return (
     <>
