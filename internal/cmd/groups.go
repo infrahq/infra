@@ -62,7 +62,8 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 }
 
 func newGroupsListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	const truncateCount int = 8
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List groups",
@@ -74,8 +75,9 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			type row struct {
-				Name  string `header:"Name"`
-				Users string `header:"Users"`
+				Name      string `header:"Name"`
+				Users     string `header:"Users"`
+				UserCount int    `header:"Count"`
 			}
 
 			var rows []row
@@ -86,19 +88,27 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			for _, group := range groups {
-				users, err := listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
+				users, err := client.ListUsers(api.ListUsersRequest{
+					PaginationRequest: api.PaginationRequest{Limit: truncateCount},
+					Group:             group.ID,
+				})
 				if err != nil {
 					return err
 				}
 
 				var userNames []string
-				for _, user := range users {
+				for _, user := range users.Items {
 					userNames = append(userNames, user.Name)
 				}
 
+				if group.TotalUsers > truncateCount {
+					userNames = append(userNames, "...")
+				}
+
 				rows = append(rows, row{
-					Name:  group.Name,
-					Users: strings.Join(userNames, ", "),
+					Name:      group.Name,
+					Users:     strings.Join(userNames, ", "),
+					UserCount: group.TotalUsers,
 				})
 			}
 
@@ -111,6 +121,7 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+	return cmd
 }
 
 func newGroupsAddCmd(cli *CLI) *cobra.Command {
