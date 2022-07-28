@@ -6,10 +6,9 @@ import (
 )
 
 type Organization struct {
-	ID      uid.ID `json:"id"`
-	Name    string `json:"name"`
-	Created Time   `json:"created"`
-	Updated Time   `json:"updated"`
+	ID     uid.ID `json:"id"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 type ListOrganizationsRequest struct {

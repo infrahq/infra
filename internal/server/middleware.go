@@ -182,3 +182,76 @@ func getCookie(req *http.Request, name string) (string, error) {
 	}
 	return url.QueryUnescape(cookie.Value)
 }
+
+func OrganizationFromDomain(defaultOrgName, defaultOrgDomain string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		db := getDB(c)
+		host := c.Request.Header.Get("Host")
+
+		// remove port
+		if i := strings.Index(host, ":"); i >= 0 {
+			host = host[0:i]
+		}
+
+		if len(host) == 0 {
+			// tests are lazy and don't set Host
+			host = defaultOrgDomain
+		}
+
+		if len(host) > 0 {
+			org, err := data.GetOrganization(db, data.ByDomain(host))
+			if err != nil {
+				if errors.Is(err, internal.ErrNotFound) {
+					org, err = getDefaultOrg(db, defaultOrgName, defaultOrgDomain)
+					if err != nil {
+						sendAPIError(c, fmt.Errorf("creating default organization: %w", err))
+						return
+					}
+					goto success
+				} else {
+					logging.Errorf("fetching org: %s", err)
+				}
+				// failed to find org
+				c.Next()
+				return
+			}
+		success:
+			c.Set("host", host)
+			c.Set("org", org)
+			logging.Debugf("organization set to %s for host %s", org.Name, host)
+		}
+		c.Next()
+	}
+}
+
+func OrganizationRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		o, ok := c.Get("org")
+		if !ok {
+			sendAPIError(c, internal.ErrBadRequest)
+			return
+		}
+		if _, ok = o.(*models.Organization); !ok {
+			sendAPIError(c, internal.ErrBadRequest)
+			return
+		}
+		c.Next()
+	}
+}
+
+// check for configured default org
+func getDefaultOrg(db *gorm.DB, defaultOrgName, defaultOrgDomain string) (*models.Organization, error) {
+	if len(defaultOrgName) == 0 {
+		return nil, errors.New("organization not configured")
+	}
+	org, err := data.GetOrganization(db, data.ByName(defaultOrgName))
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			org = &models.Organization{Name: defaultOrgName, Domain: defaultOrgDomain}
+			return org, data.CreateOrganization(db, org)
+		}
+		return nil, err
+	}
+
+	return org, nil
+}

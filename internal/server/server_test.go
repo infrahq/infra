@@ -31,6 +31,10 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	options := Options{
 		SessionDuration:          10 * time.Minute,
 		SessionExtensionDeadline: 30 * time.Minute,
+		Config: Config{
+			OrganizationName:   "Default Co.",
+			OrganizationDomain: "localhost",
+		},
 	}
 	for _, op := range ops {
 		op(t, &options)

@@ -56,10 +56,11 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	apiGroup := router.Group("/",
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
+		OrganizationFromDomain(s.options.Config.OrganizationName, s.options.Config.OrganizationDomain),
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/", authenticatedMiddleware())
+	authn := apiGroup.Group("/", authenticatedMiddleware(), OrganizationRequired())
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)

@@ -80,6 +80,9 @@ func (u User) ValidationRules() []validate.ValidationRule {
 }
 
 type Config struct {
+	OrganizationName   string
+	OrganizationDomain string
+
 	Providers []Provider
 	Grants    []Grant
 	Users     []User
@@ -620,6 +623,15 @@ func (s Server) loadConfig(config Config) error {
 			Role:     models.InfraConnectorRole,
 			Resource: "infra",
 		})
+
+		org, err := data.GetOrganization(tx, data.ByName(config.OrganizationName))
+		if errors.Is(err, internal.ErrNotFound) {
+			org = &models.Organization{Name: config.OrganizationName, Domain: config.OrganizationDomain}
+			err = data.CreateOrganization(tx, org)
+		}
+		if err != nil {
+			return err
+		}
 
 		if err := s.loadProviders(tx, config.Providers); err != nil {
 			return fmt.Errorf("load providers: %w", err)
