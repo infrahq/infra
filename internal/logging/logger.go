@@ -67,10 +67,6 @@ func UseFileLogger(filepath string) {
 	L = newLogger(writer)
 }
 
-func Tracef(format string, v ...interface{}) {
-	L.Trace().Msgf(format, v...)
-}
-
 func Debugf(format string, v ...interface{}) {
 	L.Debug().Msgf(format, v...)
 }
