@@ -69,7 +69,7 @@ function Details({ user, admin, onDelete }) {
     () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
     (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
   )
-  const { data: { items: infraAdmin } = {} } = useSWR(
+  const { data: { items: infraAdmins } = {} } = useSWR(
     '/api/grants?resource=infra&privilege=admin'
   )
 
