@@ -230,4 +230,12 @@ body,
 
 .sl-elements {
   --color-code: bg-black;
+
+  --font-ui: neuzeit-grotesk, sans-serif;
+  --font-prose: neuzeit-grotesk, sans-serif;
+  --font-mono: input-mono, monospace;
+}
+
+.svg-inline--fa {
+  height: 1em;
 }
