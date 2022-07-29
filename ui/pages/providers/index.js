@@ -1,8 +1,8 @@
-import useSWR, { useSWRConfig } from 'swr'
-import { useState } from 'react'
+import useSWR from 'swr'
 import Head from 'next/head'
-import { useTable } from 'react-table'
 import dayjs from 'dayjs'
+import { useState } from 'react'
+import { useTable } from 'react-table'
 import { useRouter } from 'next/router'
 
 import { useAdmin } from '../../lib/admin'
@@ -42,9 +42,7 @@ const columns = [
   },
 ]
 
-function SidebarContent({ provider, admin, setSelectedProvider }) {
-  const { mutate } = useSWRConfig()
-
+function SidebarContent({ provider, admin, onDelete }) {
   const { name, url, clientID, created, updated } = provider
 
   const metadata = [
@@ -72,20 +70,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            onRemove={() => {
-              mutate(
-                '/api/providers',
-                async ({ items: providers } = { items: [] }) => {
-                  await fetch(`/api/providers/${provider.id}`, {
-                    method: 'DELETE',
-                  })
-
-                  return { items: providers.filter(p => p?.id !== provider.id) }
-                }
-              )
-
-              setSelectedProvider(null)
-            }}
+            onRemove={() => onDelete()}
             modalTitle='Remove Identity Provider'
             modalMessage={
               <>
@@ -111,6 +96,7 @@ export default function Providers() {
       totalPages: 0,
     },
     error,
+    mutate,
   } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
@@ -185,7 +171,19 @@ export default function Providers() {
               <SidebarContent
                 provider={selected}
                 admin={admin}
-                setSelectedProvider={setSelected}
+                onDelete={() => {
+                  mutate(async ({ items: providers } = { items: [] }) => {
+                    await fetch(`/api/providers/${selected.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    return {
+                      items: providers.filter(p => p?.id !== selected.id),
+                    }
+                  })
+
+                  setSelected(null)
+                }}
               />
             </Sidebar>
           )}
