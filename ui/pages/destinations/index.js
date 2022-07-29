@@ -220,9 +220,7 @@ function Details({ destination, onDelete }) {
       {admin && destination.id && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            onRemove={async () => {
-              onDelete()
-            }}
+            onRemove={() => onDelete()}
             modalTitle='Remove Cluster'
             modalMessage={
               <>

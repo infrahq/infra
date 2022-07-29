@@ -70,9 +70,7 @@ function SidebarContent({ provider, admin, onDelete }) {
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            onRemove={async () => {
-              onDelete()
-            }}
+            onRemove={() => onDelete()}
             modalTitle='Remove Identity Provider'
             modalMessage={
               <>
