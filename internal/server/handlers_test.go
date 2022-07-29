@@ -49,6 +49,14 @@ func withAdminUser(_ *testing.T, opts *Options) {
 	})
 }
 
+func withSupportAdminGrant(_ *testing.T, opts *Options) {
+	opts.Grants = append(opts.Grants, Grant{
+		User:     "admin@example.com",
+		Role:     "support-admin",
+		Resource: "infra",
+	})
+}
+
 func createAdmin(t *testing.T, db *gorm.DB) *models.Identity {
 	user := &models.Identity{
 		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
@@ -145,12 +153,6 @@ func jsonUnmarshal(t *testing.T, raw string) interface{} {
 	err := json.Unmarshal([]byte(raw), &out)
 	assert.NilError(t, err, "failed to decode JSON")
 	return out
-}
-
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
 }
 
 var cmpAPIUserJSON = gocmp.Options{

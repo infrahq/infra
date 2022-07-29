@@ -14,11 +14,11 @@ func ListOrganizations(c *gin.Context, name string, pg *models.Pagination) ([]mo
 		selectors = append(selectors, data.ByName(name))
 	}
 
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err == nil {
 		return data.ListOrganizations(db, pg, selectors...)
 	}
-	err = HandleAuthErr(err, "organizations", "list", models.InfraAdminRole)
+	err = HandleAuthErr(err, "organizations", "list", models.InfraSupportAdminRole)
 
 	// TODO:
 	//    * Consider allowing a user to list their own organization
@@ -27,30 +27,27 @@ func ListOrganizations(c *gin.Context, name string, pg *models.Pagination) ([]mo
 }
 
 func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
-	roles := []string{models.InfraAdminRole}
-	db, err := RequireInfraRole(c, roles...)
+	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err != nil {
-		return nil, HandleAuthErr(err, "organizations", "get", roles...)
+		return nil, HandleAuthErr(err, "organizations", "get", models.InfraSupportAdminRole)
 	}
 
 	return data.GetOrganization(db, data.ByID(id))
 }
 
 func CreateOrganization(c *gin.Context, org *models.Organization) error {
-	roles := []string{models.InfraAdminRole}
-	db, err := RequireInfraRole(c, roles...)
+	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err != nil {
-		return HandleAuthErr(err, "organizations", "create", roles...)
+		return HandleAuthErr(err, "organizations", "create", models.InfraSupportAdminRole)
 	}
 
 	return data.CreateOrganization(db, org)
 }
 
 func DeleteOrganization(c *gin.Context, id uid.ID) error {
-	roles := []string{models.InfraAdminRole}
-	db, err := RequireInfraRole(c, roles...)
+	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err != nil {
-		return HandleAuthErr(err, "organizations", "delete", roles...)
+		return HandleAuthErr(err, "organizations", "delete", models.InfraSupportAdminRole)
 	}
 
 	return data.DeleteOrganizations(db, data.ByID(id))

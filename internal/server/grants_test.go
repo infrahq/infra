@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -565,85 +564,161 @@ func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	reqBody := strings.NewReader(`
-		{
-		  "user": "TJ",
-		  "privilege": "admin-role",
-		  "resource": "some-cluster"
-		}`)
-
-	resp := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodPost, "/api/grants", reqBody)
-	assert.NilError(t, err)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.12.3")
-
 	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
 	assert.NilError(t, err)
 
-	runStep(t, "full JSON response", func(t *testing.T) {
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusCreated)
-
-		expected := jsonUnmarshal(t, fmt.Sprintf(`
-		{
-		  "id": "<any-valid-uid>",
-		  "created_by": "%[1]v",
-		  "privilege": "admin-role",
-		  "resource": "some-cluster",
-		  "user": "TJ",
-		  "created": "%[2]v",
-		  "updated": "%[2]v",
-		  "wasCreated": true
-		}`,
-			accessKey.IssuedFor,
-			time.Now().UTC().Format(time.RFC3339),
-		))
-		actual := jsonUnmarshal(t, resp.Body.String())
-		assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
-	})
-
-	var newGrant api.Grant
-	err = json.NewDecoder(resp.Body).Decode(&newGrant)
+	someUser := models.Identity{Name: "someone@example.com"}
+	err = data.CreateIdentity(srv.db, &someUser)
 	assert.NilError(t, err)
 
-	runStep(t, "grant exists", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/grants/"+newGrant.ID.String(), nil)
+	supportAdmin := models.Identity{Name: "support-admin@example.com"}
+	err = data.CreateIdentity(srv.db, &supportAdmin)
+	assert.NilError(t, err)
+
+	supportAdminGrant := models.Grant{
+		Subject:   supportAdmin.PolyID(),
+		Privilege: models.InfraSupportAdminRole,
+		Resource:  "infra",
+	}
+	err = data.CreateGrant(srv.db, &supportAdminGrant)
+	assert.NilError(t, err)
+
+	token := &models.AccessKey{
+		IssuedFor:  supportAdmin.ID,
+		ProviderID: data.InfraProvider(srv.db).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
+	}
+
+	supportAccessKeyStr, err := data.CreateAccessKey(srv.db, token)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		body     api.CreateGrantRequest
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPost, "/api/grants", body)
 		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		var getGrant api.Grant
-		err = json.NewDecoder(resp.Body).Decode(&getGrant)
-		assert.NilError(t, err)
-		assert.DeepEqual(t, getGrant, newGrant)
-	})
-
-	t.Run("missing required fields", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodPost, "/api/grants", strings.NewReader(`{}`))
-		assert.NilError(t, err)
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.13.6")
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
-
-		respBody := &api.Error{}
-		err = json.Unmarshal(resp.Body.Bytes(), respBody)
-		assert.NilError(t, err)
-
-		expected := []api.FieldError{
-			{Errors: []string{"one of (user, group) is required"}},
-			{FieldName: "privilege", Errors: []string{"is required"}},
-			{FieldName: "resource", Errors: []string{"is required"}},
+		if tc.setup != nil {
+			tc.setup(t, req)
 		}
-		assert.DeepEqual(t, respBody.FieldErrors, expected)
-	})
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"missing required fields": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.CreateGrantRequest{},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{Errors: []string{"one of (user, group) is required"}},
+					{FieldName: "privilege", Errors: []string{"is required"}},
+					{FieldName: "resource", Errors: []string{"is required"}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		"success": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.CreateGrantRequest{
+				User:      someUser.ID,
+				Privilege: models.InfraAdminRole,
+				Resource:  "some-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"created_by": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "some-cluster",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					accessKey.IssuedFor,
+					models.InfraAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"admin can not grant infra support admin role": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.CreateGrantRequest{
+				User:      someUser.ID,
+				Privilege: models.InfraSupportAdminRole,
+				Resource:  "infra",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
+		"support admin grant": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+supportAccessKeyStr)
+			},
+			body: api.CreateGrantRequest{
+				User:      someUser.ID,
+				Privilege: models.InfraSupportAdminRole,
+				Resource:  "infra",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+				{
+					"id": "<any-valid-uid>",
+					"created_by": "%[1]v",
+					"privilege": "%[2]v",
+					"resource": "infra",
+					"user": "%[3]v",
+					"created": "%[4]v",
+					"updated": "%[4]v",
+					"wasCreated": true
+				}`,
+					supportAdmin.ID,
+					models.InfraSupportAdminRole,
+					someUser.ID.String(),
+					time.Now().UTC().Format(time.RFC3339),
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestAPI_DeleteGrant(t *testing.T) {
