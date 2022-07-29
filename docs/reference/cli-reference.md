@@ -438,6 +438,13 @@ List groups
 infra groups list [flags]
 ```
 
+#### Options
+
+```
+      --no-truncate     Do not truncate the list of users for each group
+      --num-users int   The number of users to display in each group (default 8)
+```
+
 #### Options inherited from parent commands
 
 ```
