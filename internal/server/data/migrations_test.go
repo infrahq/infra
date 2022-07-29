@@ -1,14 +1,18 @@
 package data
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -353,6 +357,36 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				assert.NilError(t, db.Exec(`DELETE FROM groups;`).Error)
 			},
 		},
+		{
+			label: testCaseLine("2022-07-21T18:28"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				err := db.Exec(`INSERT INTO settings(id, created_at) VALUES(1, ?);`, time.Now()).Error
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				err := db.Exec(`DELETE FROM settings WHERE id=1;`).Error
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				row := db.Raw(`
+					SELECT lowercase_min, uppercase_min, number_min, symbol_min, length_min
+					FROM settings
+					LIMIT 1
+				`).Row()
+
+				var settings models.Settings
+				err := row.Scan(
+					&settings.LowercaseMin,
+					&settings.UppercaseMin,
+					&settings.NumberMin,
+					&settings.SymbolMin,
+					&settings.LengthMin,
+				)
+				assert.NilError(t, err)
+				expected := models.Settings{LengthMin: 8}
+				assert.DeepEqual(t, settings, expected)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -366,7 +400,28 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 		}
 	}
 
+	var initialSchema string
 	for _, driver := range dbDrivers(t) {
+		if driver.Name() != "postgres" {
+			continue
+		}
+
+		t.Run("initial schema", func(t *testing.T) {
+			db := setupDB(t, driver)
+
+			initial, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
+			assert.NilError(t, err)
+			initialSchema = initial.String()
+
+			assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
+		})
+	}
+
+	for _, driver := range dbDrivers(t) {
+		if driver.Name() != "postgres" {
+			continue
+		}
+
 		t.Run(driver.Name(), func(t *testing.T) {
 			db, err := newRawDB(driver)
 			assert.NilError(t, err)
@@ -378,7 +433,11 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				})
 			}
 
-			// TODO: compare final migrated schema to static schema
+			out, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
+			assert.NilError(t, err)
+			migratedSchema := out.String()
+
+			assert.Equal(t, initialSchema, migratedSchema)
 		})
 	}
 }
@@ -416,4 +475,42 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 		t.Logf("table exists error: %v", err)
 	}
 	return err == nil
+}
+
+func dumpSchema(conn string) (*bytes.Buffer, error) {
+	conf, err := pgx.ParseConfig(conn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse connection string")
+	}
+
+	envs := os.Environ()
+	addEnv := func(v string) {
+		envs = append(envs, v)
+	}
+
+	if conf.Host != "" {
+		addEnv("PGHOST=" + conf.Host)
+	}
+	if conf.Port != 0 {
+		addEnv(fmt.Sprintf("PGPORT=%d", conf.Port))
+	}
+	if conf.User != "" {
+		addEnv("PGUSER=" + conf.User)
+	}
+	if conf.Database != "" {
+		addEnv("PGDATABASE=" + conf.Database)
+	}
+	if conf.Password != "" {
+		addEnv("PGPASSWORD=" + conf.Password)
+	}
+
+	out := new(bytes.Buffer)
+	// https://www.postgresql.org/docs/current/app-pgdump.html
+	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only")
+	cmd.Env = envs
+	cmd.Stdout = out
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+	return out, err
 }

@@ -46,13 +46,13 @@ type Provider struct {
 	Model
 
 	Name         string `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL"`
-	Kind         ProviderKind
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest
+	CreatedBy    uid.ID
+	Kind         ProviderKind
 	AuthURL      string
 	Scopes       CommaSeparatedStrings
-	CreatedBy    uid.ID
 
 	// fields used to directly query an external API
 	PrivateKey       EncryptedAtRest

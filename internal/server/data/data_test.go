@@ -52,7 +52,7 @@ func dbDrivers(t *testing.T) []gorm.Dialector {
 		db, err := gorm.Open(pgsql)
 		assert.NilError(t, err, "connect to postgresql")
 		t.Cleanup(func() {
-			assert.NilError(t, db.Exec("DROP SCHEMA testing CASCADE").Error)
+			assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
 		})
 		assert.NilError(t, db.Exec("CREATE SCHEMA testing").Error)
 

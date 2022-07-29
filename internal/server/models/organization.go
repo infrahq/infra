@@ -10,8 +10,6 @@ type Organization struct {
 
 	Name      string `gorm:"uniqueIndex:idx_organizations_name,where:deleted_at is NULL"`
 	CreatedBy uid.ID
-
-	Identities []Identity `gorm:"many2many:identities_organizations"`
 }
 
 func (o *Organization) ToAPI() *api.Organization {
