@@ -39,3 +39,7 @@ func (m *Model) BeforeCreate(_ *gorm.DB) error {
 
 	return nil
 }
+
+func (m Model) Primary() uid.ID {
+	return m.ID
+}
