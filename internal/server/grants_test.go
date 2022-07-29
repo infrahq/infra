@@ -667,7 +667,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
 		},
-		"unprivileged support admin grant": {
+		"admin can not grant infra support admin role": {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
