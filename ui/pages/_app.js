@@ -28,7 +28,7 @@ export default function App({ Component, pageProps }) {
   const router = useRouter()
 
   if (!signup) {
-    return false
+    return null
   }
 
   if (signup.enabled && router.pathname !== '/signup') {

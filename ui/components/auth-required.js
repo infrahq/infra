@@ -13,7 +13,7 @@ export default function AuthRequired({ children }) {
 
   if (!auth?.id) {
     if (!logout && asPath !== '/destinations' && asPath !== '/') {
-      router.replace(`/login?next=${asPath.slice(1)}`)
+      router.replace(`/login?next=${encodeURIComponent(asPath.slice(1))}`)
     } else {
       router.replace('/login')
     }
