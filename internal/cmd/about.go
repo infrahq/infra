@@ -150,6 +150,7 @@ func newScrollText(width, height int) *scrollText {
 		"dnephin",
 		"FSHA",
 		"hoyyeva",
+		"j-sneh",
 		"jmorganca",
 		"kimskimchi",
 		"mchiang0610",
