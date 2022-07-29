@@ -20,7 +20,11 @@ export default function Callback() {
 
     await mutate('/api/users/self')
 
-    next ? router.replace(`/${next}`) : router.replace('/')
+    if (next) {
+      router.replace(`/${next}`)
+    } else {
+      router.replace('/')
+    }
     window.localStorage.removeItem('next')
 
     return
