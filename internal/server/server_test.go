@@ -326,11 +326,12 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	var buf bytes.Buffer
+	orgName := "Test Org"
 	email := "admin@email.com"
 	passwd := "supersecretpassword"
 
 	// run signup for "admin@email.com"
-	signupReq := api.SignupRequest{Name: email, Password: passwd}
+	signupReq := api.SignupRequest{OrgName: orgName, Name: email, Password: passwd}
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 

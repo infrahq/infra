@@ -116,7 +116,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	identity, err := access.Signup(c, r.Name, r.Password)
+	identity, err := access.Signup(c, r.OrgName, r.Name, r.Password)
 	if err != nil {
 		return nil, err
 	}

@@ -60,6 +60,8 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 		})
 
 		exp := expector{console: console}
+		exp.ExpectString(t, "Organization Name:")
+		exp.Send(t, "Test Org\n")
 		exp.ExpectString(t, "Email:")
 		exp.Send(t, "admin@example.com\n")
 		exp.ExpectString(t, "Password")

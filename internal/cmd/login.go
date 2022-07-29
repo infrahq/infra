@@ -356,7 +356,12 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 }
 
 func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
-	fmt.Fprintln(cli.Stderr, "  Welcome to Infra. Set up your admin user:")
+	fmt.Fprintln(cli.Stderr, "  Welcome to Infra. Set up your initial organization and admin user:")
+
+	orgName, err := promptSetOrgName(cli)
+	if err != nil {
+		return nil, err
+	}
 
 	email, err := promptSetEmail(cli)
 	if err != nil {
@@ -370,7 +375,7 @@ PROMPTSIGNUP:
 	}
 
 	logging.Debugf("call server: signup for user %q", email)
-	_, err = client.Signup(&api.SignupRequest{Name: email, Password: password})
+	_, err = client.Signup(&api.SignupRequest{OrgName: orgName, Name: email, Password: password})
 	if err != nil {
 		if passwordError(cli, err) {
 			goto PROMPTSIGNUP
@@ -705,6 +710,21 @@ func promptServerList(cli *CLI, servers []ClientHostConfig) (string, error) {
 	}
 
 	return servers[i].Host, nil
+}
+
+func promptSetOrgName(cli *CLI) (string, error) {
+	var orgName string
+
+	if err := survey.AskOne(
+		&survey.Input{Message: "Organization Name:"},
+		&orgName,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	); err != nil {
+		return "", err
+	}
+
+	return orgName, nil
 }
 
 func promptSetEmail(cli *CLI) (string, error) {

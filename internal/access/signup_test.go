@@ -93,6 +93,7 @@ func TestSignupEnabled(t *testing.T) {
 		assert.Assert(t, !enabled)
 	})
 
+	orgName := "Test Org"
 	user := "admin@infrahq.com"
 	pass := "password"
 
@@ -103,7 +104,7 @@ func TestSignupEnabled(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, enabled, true)
 
-		identity, err := Signup(c, user, pass)
+		identity, err := Signup(c, orgName, user, pass)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 

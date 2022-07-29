@@ -4275,11 +4275,15 @@
                     "format": "email",
                     "type": "string"
                   },
+                  "orgName": {
+                    "type": "string"
+                  },
                   "password": {
                     "type": "string"
                   }
                 },
                 "required": [
+                  "orgName",
                   "name",
                   "password"
                 ],
