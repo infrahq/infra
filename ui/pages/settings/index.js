@@ -12,7 +12,7 @@ import DeleteModal from '../../components/delete-modal'
 import Notification from '../../components/notification'
 import GrantForm from '../../components/grant-form'
 
-function AdminGrant({ name, showRemove, onRemove }) {
+function AdminGrant({ name, showRemove, onRemove, message = '' }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -33,10 +33,14 @@ function AdminGrant({ name, showRemove, onRemove }) {
             onSubmit={onRemove}
             title='Revoke Admin'
             message={
-              <>
-                Are you sure you want to revoke admin access for{' '}
-                <span className='font-bold text-white'>{name}</span>?
-              </>
+              !message ? (
+                <>
+                  Are you sure you want to revoke admin access for{' '}
+                  <span className='font-bold text-white'>{name}</span>?
+                </>
+              ) : (
+                message
+              )
             }
           />
         </div>
@@ -60,8 +64,12 @@ export default function Settings() {
   const { data: { items: grants } = {}, mutate } = useSWR(
     '/api/grants?resource=infra&privilege=admin'
   )
+  const { data: { items: selfGroups } = {} } = useSWR(
+    `/api/groups?userID=${auth?.id}`
+  )
 
   const hasInfraProvider = auth?.providerNames.includes('infra')
+  const listSelfGroupsId = selfGroups?.map(g => g.id)
 
   const loading = [auth, users, groups, grants].some(x => !x)
 
@@ -141,21 +149,41 @@ export default function Settings() {
             }}
           />
           <div className='mt-6'>
-            {grants?.sort(sortBySubject)?.map(g => (
-              <AdminGrant
-                key={g.id}
-                name={
-                  users?.find(u => g.user === u.id)?.name ||
-                  groups?.find(group => g.group === group.id)?.name ||
-                  ''
+            {grants
+              ?.sort(sortBySubject)
+              ?.map(grant => {
+                const deleteModalMessage = {
+                  deleteSelfUser:
+                    'Are you sure you want to revoke your own admin permission?',
+                  deleteSelfGroup:
+                    'Are you sure you want to revoke this group? You will lose any access to Infra that this group grants.',
                 }
-                showRemove={g?.user !== auth?.id}
-                onRemove={async () => {
-                  await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                  mutate({ items: grants.filter(x => x.id !== g.id) })
-                }}
-              />
-            ))}
+
+                const message =
+                  grant?.user === auth?.id
+                    ? deleteModalMessage.deleteSelfUser
+                    : listSelfGroupsId.includes(grant.group)
+                    ? deleteModalMessage.deleteSelfGroup
+                    : undefined
+
+                return { ...grant, message }
+              })
+              .map(g => (
+                <AdminGrant
+                  key={g.id}
+                  name={
+                    users?.find(u => g.user === u.id)?.name ||
+                    groups?.find(group => g.group === group.id)?.name ||
+                    ''
+                  }
+                  showRemove={grants.length > 1}
+                  message={g.message}
+                  onRemove={async () => {
+                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
+                    mutate({ items: grants.filter(x => x.id !== g.id) })
+                  }}
+                />
+              ))}
           </div>
         </div>
       )}
