@@ -287,6 +287,7 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 
 	rootCmd.SetHelpCommandGroup("Other commands:")
 	rootCmd.AddCommand(newAboutCmd())
+	rootCmd.AddCommand(newCompletionsCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
 }
