@@ -285,7 +285,7 @@ func TestMigration_AddOrganizations(t *testing.T) {
 
 			loadSQL(t, db, "202207041724-"+driver.Name())
 
-			db, err = NewDB(driver, nil)
+			_, err = NewDB(driver, nil)
 			assert.NilError(t, err)
 		})
 	}
