@@ -421,8 +421,15 @@ func migrate(db *gorm.DB) error {
 		{
 			ID: "202204211705",
 			Migrate: func(tx *gorm.DB) error {
+				type Model struct {
+					ID        uid.ID
+					CreatedAt time.Time `gorm:"<-:create"`
+					UpdatedAt time.Time
+					DeletedAt gorm.DeletedAt
+				}
+
 				type Settings struct {
-					models.Model
+					Model
 					PrivateJWK models.EncryptedAtRestBytes
 				}
 
@@ -479,6 +486,7 @@ func migrate(db *gorm.DB) error {
 		setDestinationLastSeenAt(),
 		deleteDuplicateGrants(),
 		dropDeletedProviderUsers(),
+		addOrganizations(),
 		// next one here
 	})
 	if err := m.Migrate(); err != nil {
@@ -654,4 +662,38 @@ func dropDeletedProviderUsers() *migrator.Migration {
 func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
 	subQuery := tx.Select("min(id)").Group(group).Model(model)
 	return tx.Where("id NOT in (?)", subQuery).Delete(model).Error
+}
+
+func addOrganizations() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "202207271554",
+		Migrate: func(tx *gorm.DB) error {
+			logging.Debugf("migrating orgs")
+			mods := []interface{}{
+				&models.AccessKey{},
+				&models.Credential{},
+				&models.Destination{},
+				&models.EncryptionKey{},
+				&models.Grant{},
+				&models.Group{},
+				&models.Identity{},
+				&models.Organization{},
+				&models.Provider{},
+				&models.Settings{},
+			}
+
+			for _, mod := range mods {
+				if tx.Migrator().HasTable(mod) {
+					if !tx.Migrator().HasColumn(mod, "organization_id") {
+						if err := tx.Migrator().AddColumn(mod, "organization_id"); err != nil {
+							logging.Debugf("failed to add column: %q", mod)
+							return err
+						}
+					}
+				}
+			}
+
+			return nil
+		},
+	}
 }
