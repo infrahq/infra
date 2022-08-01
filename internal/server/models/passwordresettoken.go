@@ -8,6 +8,7 @@ import (
 
 type PasswordResetToken struct {
 	ID uid.ID
+	OrganizationMember
 
 	Token      string    `validate:"required" gorm:"uniqueIndex"`
 	IdentityID uid.ID    `validate:"required"`

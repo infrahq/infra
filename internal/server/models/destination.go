@@ -8,6 +8,7 @@ import (
 
 type Destination struct {
 	Model
+	OrganizationMember
 
 	Name          string
 	UniqueID      string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`

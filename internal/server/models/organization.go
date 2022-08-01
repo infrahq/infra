@@ -20,3 +20,8 @@ func (o *Organization) ToAPI() *api.Organization {
 		Name:    o.Name,
 	}
 }
+
+type OrganizationMember struct {
+	// OrganizationID of the organization this entity belongs to.
+	OrganizationID uid.ID
+}

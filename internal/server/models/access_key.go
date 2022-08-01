@@ -17,6 +17,7 @@ const ScopePasswordReset = "password-reset"
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
 	Model
+	OrganizationMember
 	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
 	// IssuedFor is the ID of the user that this access key was created for
 	IssuedFor         uid.ID

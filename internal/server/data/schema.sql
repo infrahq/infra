@@ -17,6 +17,7 @@ CREATE TABLE access_keys (
     extension_deadline timestamp with time zone,
     key_id text,
     secret_checksum bytea,
+    organization_id bigint,
     scopes text
 );
 
@@ -36,7 +37,8 @@ CREATE TABLE credentials (
     deleted_at timestamp with time zone,
     identity_id bigint,
     password_hash bytea,
-    one_time_password boolean
+    one_time_password boolean,
+    organization_id bigint
 );
 
 CREATE SEQUENCE credentials_id_seq
@@ -58,6 +60,7 @@ CREATE TABLE destinations (
     connection_url text,
     connection_ca text,
     last_seen_at timestamp with time zone,
+    organization_id bigint,
     version text,
     resources text,
     roles text
@@ -101,7 +104,8 @@ CREATE TABLE grants (
     subject text,
     privilege text,
     resource text,
-    created_by bigint
+    created_by bigint,
+    organization_id bigint
 );
 
 CREATE SEQUENCE grants_id_seq
@@ -120,6 +124,7 @@ CREATE TABLE groups (
     deleted_at timestamp with time zone,
     name text,
     created_by bigint,
+    organization_id bigint,
     created_by_provider bigint
 );
 
@@ -139,7 +144,8 @@ CREATE TABLE identities (
     deleted_at timestamp with time zone,
     name text,
     last_seen_at timestamp with time zone,
-    created_by bigint
+    created_by bigint,
+    organization_id bigint
 );
 
 CREATE TABLE identities_groups (
@@ -178,7 +184,8 @@ CREATE TABLE password_reset_tokens (
     id bigint NOT NULL,
     token text,
     identity_id bigint,
-    expires_at timestamp with time zone
+    expires_at timestamp with time zone,
+    organization_id bigint
 );
 
 CREATE SEQUENCE password_reset_tokens_id_seq
@@ -215,6 +222,7 @@ CREATE TABLE providers (
     kind text,
     auth_url text,
     scopes text,
+    organization_id bigint,
     private_key text,
     client_email text,
     domain_admin_email text
@@ -236,6 +244,7 @@ CREATE TABLE settings (
     deleted_at timestamp with time zone,
     private_jwk bytea,
     public_jwk bytea,
+    organization_id bigint,
     lowercase_min bigint DEFAULT 0,
     uppercase_min bigint DEFAULT 0,
     number_min bigint DEFAULT 0,
