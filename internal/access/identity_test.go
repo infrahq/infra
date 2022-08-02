@@ -9,6 +9,7 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestListIdentities(t *testing.T) {
@@ -81,6 +82,13 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	err = data.CreateGrant(db, grantDestination)
 	assert.NilError(t, err)
 
+	err = data.CreateGroup(db, &models.Group{Name: "Group"})
+	assert.NilError(t, err)
+	groups, err := data.ListGroups(db, nil)
+	assert.NilError(t, err)
+	err = data.AddUsersToGroup(db, groups[0].ID, []uid.ID{identity.ID})
+	assert.NilError(t, err)
+
 	// delete the identity, and make sure all their resources are gone
 	err = DeleteIdentity(c, identity.ID)
 	assert.NilError(t, err)
@@ -97,4 +105,8 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	grants, err := data.ListGrants(db, nil, data.BySubject(identity.PolyID()))
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
+
+	group, err := data.GetGroup(db, data.ByID(groups[0].ID))
+	assert.NilError(t, err)
+	assert.Equal(t, group.TotalUsers, 0)
 }
