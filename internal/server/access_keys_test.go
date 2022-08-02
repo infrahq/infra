@@ -35,6 +35,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := tc.setup(t)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -244,6 +245,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("latest", func(t *testing.T) {
 		resp := httptest.NewRecorder()
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -261,6 +263,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))

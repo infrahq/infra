@@ -41,6 +41,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodPost, "/api/password-reset-request", bytes.NewBuffer(body))
 	assert.NilError(t, err)
 
@@ -70,6 +71,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
+	// nolint:noctx
 	req, err = http.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
 	assert.NilError(t, err)
 

@@ -36,6 +36,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
 	assert.NilError(t, err)
 

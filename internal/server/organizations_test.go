@@ -115,6 +115,7 @@ func TestAPI_CreateOrganization(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/organizations", body)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")
@@ -189,6 +190,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")

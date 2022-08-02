@@ -56,6 +56,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/grants", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))

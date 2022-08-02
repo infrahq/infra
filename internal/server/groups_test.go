@@ -215,6 +215,7 @@ func TestAPI_CreateGroup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/groups", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -305,6 +306,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -382,6 +384,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPatch, tc.urlPath, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
