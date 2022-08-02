@@ -33,7 +33,7 @@ export default function App({ Component, pageProps }) {
 
   if (signup.enabled && router.pathname !== '/signup') {
     router.replace('/signup')
-    return false
+    return null
   }
 
   const layout = Component.layout || (page => page)
