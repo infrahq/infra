@@ -17,10 +17,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func migrate(db *gorm.DB) error {
-	opts := migrator.DefaultOptions
-	opts.InitSchema = preMigrate
-	m := migrator.New(db, opts, []*migrator.Migration{
+func migrations() []*migrator.Migration {
+	return []*migrator.Migration{
 		// rename grants.identity -> grants.subject
 		{
 			ID: "202203231621", // date the migration was created
@@ -79,7 +77,7 @@ func migrate(db *gorm.DB) error {
 
 				var keys []AccessKey
 
-				err := db.Find(&keys).Error
+				err := tx.Find(&keys).Error
 				if err != nil {
 					return fmt.Errorf("migrating access key identities: %w", err)
 				}
@@ -115,7 +113,7 @@ func migrate(db *gorm.DB) error {
 						SecretChecksum: key.SecretChecksum,
 					}
 
-					if err := SaveAccessKey(db, convertedKey); err != nil {
+					if err := SaveAccessKey(tx, convertedKey); err != nil {
 						return fmt.Errorf("save converted key: %w", err)
 					}
 				}
@@ -139,7 +137,7 @@ func migrate(db *gorm.DB) error {
 
 				var creds []Credential
 
-				if err := db.Find(&creds).Error; err != nil {
+				if err := tx.Find(&creds).Error; err != nil {
 					return fmt.Errorf("migrating creds: %w", err)
 				}
 
@@ -169,7 +167,7 @@ func migrate(db *gorm.DB) error {
 						OneTimePassword: cred.OneTimePassword,
 					}
 
-					if err := CreateCredential(db, convertedCred); err != nil {
+					if err := CreateCredential(tx, convertedCred); err != nil {
 						return fmt.Errorf("create converted cred: %w", err)
 					}
 				}
@@ -224,7 +222,7 @@ func migrate(db *gorm.DB) error {
 
 					var machines []Machine
 
-					if err := db.Find(&machines).Error; err != nil {
+					if err := tx.Find(&machines).Error; err != nil {
 						return fmt.Errorf("migrating machine identities: %w", err)
 					}
 
@@ -235,7 +233,7 @@ func migrate(db *gorm.DB) error {
 							LastSeenAt: machine.LastSeenAt,
 						}
 
-						if err := SaveIdentity(db, identity); err != nil {
+						if err := SaveIdentity(tx, identity); err != nil {
 							return fmt.Errorf("saving migrated machine identity: %w", err)
 						}
 					}
@@ -251,7 +249,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202203301647")
 				if tx.Migrator().HasTable("machines") {
-					grants, err := ListGrants(db, nil)
+					grants, err := ListGrants(tx, nil)
 					if err != nil {
 						return err
 					}
@@ -262,7 +260,7 @@ func migrate(db *gorm.DB) error {
 							identitySubject = strings.TrimPrefix(identitySubject, "u:")
 							identitySubject = strings.TrimPrefix(identitySubject, "m:")
 							grants[i].Subject = uid.PolymorphicID(fmt.Sprintf("%s:%s", "i", identitySubject))
-							if err := save(db, &grants[i]); err != nil {
+							if err := save(tx, &grants[i]); err != nil {
 								return fmt.Errorf("update identity grant: %w", err)
 							}
 						}
@@ -292,7 +290,7 @@ func migrate(db *gorm.DB) error {
 			Migrate: func(tx *gorm.DB) error {
 				logging.Infof("running migration 202204061643")
 				if tx.Migrator().HasTable("access_keys") {
-					keys, err := ListAccessKeys(db, nil)
+					keys, err := ListAccessKeys(tx, nil)
 					if err != nil {
 						return err
 					}
@@ -300,7 +298,7 @@ func migrate(db *gorm.DB) error {
 					for i := range keys {
 						if strings.Contains(keys[i].Name, " ") {
 							keys[i].Name = strings.ReplaceAll(keys[i].Name, " ", "-")
-							err := SaveAccessKey(db, &keys[i])
+							err := SaveAccessKey(tx, &keys[i])
 							if err != nil {
 								return err
 							}
@@ -346,7 +344,7 @@ func migrate(db *gorm.DB) error {
 
 					infraProviderID := providerIDs["infra"]
 
-					users, err := ListIdentities(db, nil, func(db *gorm.DB) *gorm.DB {
+					users, err := ListIdentities(tx, nil, func(db *gorm.DB) *gorm.DB {
 						return db.Where("provider_id != ?", infraProviderID)
 					})
 					if err != nil {
@@ -355,7 +353,7 @@ func migrate(db *gorm.DB) error {
 
 					for _, user := range users {
 						logging.Debugf("migrating user %s", user.ID.String())
-						newUser, err := GetIdentity(db, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
+						newUser, err := GetIdentity(tx, ByName(user.Name), func(db *gorm.DB) *gorm.DB {
 							return db.Where("provider_id = ?", infraProviderID)
 						})
 						if err != nil {
@@ -429,7 +427,7 @@ func migrate(db *gorm.DB) error {
 				// to convert the plaintext field to encrypted, load it with SkipSymmetricKey, then save without it.
 				models.SkipSymmetricKey = true
 				settings := []Settings{}
-				err := db.Model(Settings{}).Find(&settings).Error
+				err := tx.Model(Settings{}).Find(&settings).Error
 				if err != nil {
 					models.SkipSymmetricKey = false
 					return err
@@ -437,7 +435,7 @@ func migrate(db *gorm.DB) error {
 
 				models.SkipSymmetricKey = false
 				for _, setting := range settings {
-					if err := db.Save(setting).Error; err != nil {
+					if err := tx.Save(setting).Error; err != nil {
 						return err
 					}
 				}
@@ -480,24 +478,7 @@ func migrate(db *gorm.DB) error {
 		deleteDuplicateGrants(),
 		dropDeletedProviderUsers(),
 		// next one here
-	})
-	if err := m.Migrate(); err != nil {
-		return err
 	}
-
-	// initializeSchema so that for simple things like adding db fields
-	// we don't necessarily need to do a migration.
-	// TODO: why not do this before migrate in all cases?
-	return initializeSchema(db)
-}
-
-func preMigrate(db *gorm.DB) error {
-	if db.Migrator().HasTable("providers") {
-		// don't initialize the schema if tables already exist.
-		return nil
-	}
-
-	return initializeSchema(db)
 }
 
 func initializeSchema(db *gorm.DB) error {
