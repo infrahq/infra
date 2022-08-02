@@ -22,6 +22,12 @@ func PasswordResetRequest(c *gin.Context, email string) (token string, err error
 		return "", internal.ErrNotFound
 	}
 
+	_, err = data.GetCredential(db, data.ByIdentityID(users[0].ID))
+	if err != nil {
+		// if credential is not found, the user cannot reset their password.
+		return "", err
+	}
+
 	prt, err := data.CreatePasswordResetToken(db, &users[0])
 	if err != nil {
 		return "", err
