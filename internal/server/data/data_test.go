@@ -208,10 +208,12 @@ func TestDefaultSortFromType(t *testing.T) {
 func TestCreateTransactionError(t *testing.T) {
 	// on creation error (such as conflict) the database transaction should still be usable
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		db.Transaction(func(tx *gorm.DB) error {
+		err := db.Transaction(func(tx *gorm.DB) error {
 			g := &models.Grant{}
 			err := add(tx, g)
-			assert.NilError(t, err)
+			if err != nil {
+				return err
+			}
 
 			// attempt to re-create, which results in a conflict
 			err = add(tx, g)
@@ -219,9 +221,9 @@ func TestCreateTransactionError(t *testing.T) {
 
 			// the same transaction should still be usable
 			_, err = get[models.Grant](tx, ByID(g.ID))
-			assert.NilError(t, err)
-
-			return nil
+			return err
 		})
+
+		assert.NilError(t, err)
 	})
 }
