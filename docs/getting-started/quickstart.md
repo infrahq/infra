@@ -28,7 +28,7 @@ Next, visit the Infra Dashboard. To retrieve the hostname, run:
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
 ```
 
-Next, visit this hostname in your browser to get started:
+Visit this hostname in your browser to access the Infra Dashboard:
 
 ![welcome](../images/welcome.png)
 
@@ -51,7 +51,7 @@ Install the Infra CLI:
 
 {% partial file="../partials/cli-install.md" /%}
 
-Log in to Infra as the admin user you created earlier:
+Login to Infra as the admin user you created earlier:
 
 ```
 infra login <load balancer hostname>
