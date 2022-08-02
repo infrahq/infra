@@ -85,12 +85,12 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 
 	groups, err := data.ListGroups(db, nil, data.ByGroupMember(id))
 	if err != nil {
-		return fmt.Errorf("delete identity from groups: %w", err)
+		return fmt.Errorf("list groups for identity: %w", err)
 	}
 	for _, group := range groups {
 		err = data.RemoveUsersFromGroup(db, group.ID, []uid.ID{id})
 		if err != nil {
-			return fmt.Errorf("delete identity from groups: %w", err)
+			return fmt.Errorf("delete group membership for identity: %w", err)
 		}
 	}
 	// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
