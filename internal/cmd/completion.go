@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -53,17 +54,23 @@ PowerShell:
 		DisableFlagsInUseLine: true,
 		Group:                 "Other commands:",
 		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-		Args:                  cobra.ExactValidArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			switch args[0] {
+			shell := filepath.Base(os.Getenv("SHELL"))
+			if len(args) > 0 {
+				shell = args[0]
+			}
+
+			switch shell {
 			case "bash":
-				cmd.Root().GenBashCompletion(os.Stdout)
+				cmd.Root().GenBashCompletion(os.Stdout) // nolint
 			case "zsh":
-				cmd.Root().GenZshCompletion(os.Stdout)
+				cmd.Root().GenZshCompletion(os.Stdout) // nolint
 			case "fish":
-				cmd.Root().GenFishCompletion(os.Stdout, true)
+				cmd.Root().GenFishCompletion(os.Stdout, true) // nolint
 			case "powershell":
-				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout)
+				cmd.Root().GenPowerShellCompletionWithDesc(os.Stdout) // nolint
+			default:
+				fmt.Fprintf(os.Stdout, "No completions found for specified shell.\n")
 			}
 		},
 	}
