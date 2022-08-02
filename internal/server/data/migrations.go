@@ -476,7 +476,6 @@ func migrations() []*migrator.Migration {
 		addAuthURLAndScopeToProviders(),
 		setDestinationLastSeenAt(),
 		deleteDuplicateGrants(),
-		addFieldsFor_0_14(),
 		dropDeletedProviderUsers(),
 		// next one here
 	}
@@ -636,20 +635,4 @@ func dropDeletedProviderUsers() *migrator.Migration {
 func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
 	subQuery := tx.Select("min(id)").Group(group).Model(model)
 	return tx.Where("id NOT in (?)", subQuery).Delete(model).Error
-}
-
-// nolint:revive
-func addFieldsFor_0_14() *migrator.Migration {
-	return &migrator.Migration{
-		ID: "2022-07-21T18:28",
-		Migrate: func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&models.Provider{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.Settings{}); err != nil {
-				return err
-			}
-			return nil
-		},
-	}
 }

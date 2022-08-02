@@ -41,6 +41,14 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 	if err := m.Migrate(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
+
+	// Call initializeSchema again to apply implicit migrations handled by
+	// gorm.AutoMigrate. In the future we will replace this call with
+	// explicit migrations for all database changes.
+	if err := initializeSchema(db); err != nil {
+		return nil, fmt.Errorf("auto-migrate failed: %w", err)
+	}
+
 	return db, nil
 }
 
