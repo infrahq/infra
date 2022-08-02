@@ -12,7 +12,7 @@ export default function Login({ children }) {
 
   if (auth?.id) {
     if (next) {
-      router.replace(`/${next}`)
+      router.replace(decodeURIComponent(next))
     } else if (router.pathname !== '/login/finish') {
       // TODO (https://github.com/infrahq/infra/issues/1441): remove me when
       // using an OTP doesn't trigger authentication
