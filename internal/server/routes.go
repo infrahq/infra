@@ -108,6 +108,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, noAuthn, "/api/signup", a.Signup)
 
 	post(a, noAuthn, "/api/login", a.Login)
+	post(a, noAuthn, "/api/password-reset-request", a.RequestPasswordReset)
+	post(a, noAuthn, "/api/password-reset", a.VerifiedPasswordReset)
 
 	get(a, noAuthn, "/api/providers", a.ListProviders)
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)

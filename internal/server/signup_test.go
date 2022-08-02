@@ -25,6 +25,7 @@ func TestAPI_Signup(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := tc.setup(t)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/signup", jsonBody(t, body))
 		assert.NilError(t, err)
 		req.Header.Set("Infra-Version", apiVersionLatest)
