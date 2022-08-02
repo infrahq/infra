@@ -603,6 +603,12 @@ func getKindFromUnstructured(data interface{}) string {
 }
 
 func (s Server) loadConfig(config Config) error {
+	if config.OrganizationName == "" {
+		config.OrganizationName = "Default"
+	}
+	if config.OrganizationDomain == "" {
+		config.OrganizationDomain = "localhost"
+	}
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
@@ -630,7 +636,7 @@ func (s Server) loadConfig(config Config) error {
 			err = data.CreateOrganization(tx, org)
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("loading org: %w", err)
 		}
 
 		if err := s.loadProviders(tx, config.Providers); err != nil {
