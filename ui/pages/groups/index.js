@@ -47,7 +47,7 @@ const columns = [
         <>
           <div className='text-gray-400'>
             {totalUsers === undefined ? (
-              '--'
+              '-'
             ) : (
               <>
                 {totalUsers} {totalUsers === 1 ? 'member' : 'members'}
