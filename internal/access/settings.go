@@ -3,6 +3,7 @@ package access
 import (
 	"fmt"
 
+	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/internal/server/data"

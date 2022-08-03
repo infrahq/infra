@@ -11,10 +11,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/square/go-jose.v2"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
@@ -110,11 +109,17 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthn, "/api/providers", a.ListProviders)
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
 
-	noAuthn.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 	get(a, noAuthn, "/api/version", a.Version)
 
 	get(a, noAuthn, "/api/settings", a.GetSettings)
 	put(a, authn, "/api/settings", a.UpdateSettings)
+	add(a, noAuthn, route[api.EmptyRequest, WellKnownJWKResponse]{
+		method:            http.MethodGet,
+		path:              "/.well-known/jwks.json",
+		handler:           wellKnownJWKsHandler,
+		omitFromDocs:      true,
+		omitFromTelemetry: true,
+	})
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
@@ -261,21 +266,6 @@ func bind(c *gin.Context, req interface{}) error {
 
 func init() {
 	gin.DisableBindValidation()
-}
-
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
-}
-
-func (a *API) wellKnownJWKsHandler(c *gin.Context) {
-	rCtx := getRequestContext(c)
-	keys, err := access.GetPublicJWK(rCtx)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, WellKnownJWKResponse{Keys: keys})
 }
 
 func healthHandler(c *gin.Context) {

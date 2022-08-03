@@ -19,6 +19,8 @@ import (
 func TestPasswordResetFlow(t *testing.T) {
 	s := setupServer(t)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	_, err := data.InitializeSettings(s.db)
+	assert.NilError(t, err)
 
 	email.TestMode = true
 
@@ -26,7 +28,7 @@ func TestPasswordResetFlow(t *testing.T) {
 		Name: "skeletor@example.com",
 	}
 
-	err := data.CreateIdentity(s.db, user)
+	err = data.CreateIdentity(s.db, user)
 	assert.NilError(t, err)
 
 	err = data.CreateCredential(s.db, &models.Credential{

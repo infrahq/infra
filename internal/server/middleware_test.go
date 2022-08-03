@@ -33,10 +33,6 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	// create the provider if it's missing.
 	data.InfraProvider(db)
-
-	err = data.SaveSettings(db, &models.Settings{})
-	assert.NilError(t, err)
-
 	return db
 }
 
