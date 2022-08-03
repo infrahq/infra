@@ -271,7 +271,6 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 	rootCmd.AddCommand(newGroupsCmd(cli))
 	rootCmd.AddCommand(newKeysCmd(cli))
 	rootCmd.AddCommand(newProvidersCmd(cli))
-	rootCmd.AddCommand(newSettingsCmd(cli))
 
 	// Other commands:
 	rootCmd.AddCommand(newInfoCmd(cli))
