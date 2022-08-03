@@ -5,7 +5,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '13 2 * * *'
+    - cron: "13 2 * * *"
 
 jobs:
   test:
@@ -58,11 +58,10 @@ jobs:
       - name: Run unit tests
         working-directory: ui
         run: npm test
-      - name: Build and export
+      - name: Builds
         working-directory: ui
         run: |
           npm run build
-          npm run export
       - name: Lint and format ui
         working-directory: ui
         run: |
@@ -72,12 +71,10 @@ jobs:
         with:
           go-version: "1.18"
           cache: true
-      - name: run e2e tests
+      - name: Run e2e tests
         working-directory: ui
         run: |
-          npm run build
-          npm run export -- -o ../internal/server/ui/static
-          ./node_modules/.bin/playwright install --with-deps
+          docker compose -f ../docker-compose.dev.yaml up -d --wait
           npm run test:e2e
 
   test-website:
