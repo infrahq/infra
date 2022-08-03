@@ -57,7 +57,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		metrics.Middleware(promRegistry),
 		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
 	)
-	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
 	authn := apiGroup.Group("/", authenticatedMiddleware())
 
@@ -114,6 +113,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthn, "/api/providers", a.ListProviders)
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
 
+	noAuthn.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 	get(a, noAuthn, "/api/version", a.Version)
 
 	get(a, noAuthn, "/api/settings", a.GetSettings)
@@ -271,15 +271,14 @@ type WellKnownJWKResponse struct {
 }
 
 func (a *API) wellKnownJWKsHandler(c *gin.Context) {
-	keys, err := access.GetPublicJWK(c)
+	rCtx := getRequestContext(c)
+	keys, err := access.GetPublicJWK(rCtx)
 	if err != nil {
 		sendAPIError(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, WellKnownJWKResponse{
-		Keys: keys,
-	})
+	c.JSON(http.StatusOK, WellKnownJWKResponse{Keys: keys})
 }
 
 func healthHandler(c *gin.Context) {
