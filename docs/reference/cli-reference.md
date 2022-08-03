@@ -699,6 +699,58 @@ $ infra providers remove okta
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+### `infra settings view`
+
+View settings
+
+```
+infra settings view [flags]
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra settings edit`
+
+Update settings
+
+```
+infra settings edit [flags]
+```
+
+#### Options
+
+```
+      --length int      Set minimum password length (default -1)
+      --lowercase int   Set minimum lowercase letters (default -1)
+      --numbers int     Set minimum numbers (default -1)
+      --symbols int     Set minimum symbols (default -1)
+      --uppercase int   Set minimum uppercase letters (default -1)
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
+### `infra settings reset`
+
+Reset settings to default
+
+```
+infra settings reset [flags]
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
 ### `infra info`
 
 Display the info about the current session
