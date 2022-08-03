@@ -116,6 +116,9 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	get(a, noAuthn, "/api/version", a.Version)
 
+	get(a, authn, "/api/settings", a.GetSettings)
+	put(a, authn, "/api/settings", a.UpdateSettings)
+
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
 	// UI middleware unnecessarily.

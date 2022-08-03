@@ -339,6 +339,17 @@ func (c Client) GetServerVersion() (*Version, error) {
 	return get[Version](c, "/api/version", Query{})
 }
 
+func (c Client) GetSettings(req *GetSettingsRequest) (*Settings, error) {
+	return get[Settings](c, "/api/settings", Query{
+		"passwordRequirements": {strconv.FormatBool(req.PasswordRequirements)},
+	})
+}
+
+func (c Client) UpdateSettings(req *Settings) error {
+	_, err := put[Settings, EmptyResponse](c, "/api/settings", req)
+	return err
+}
+
 func partialText(body []byte, limit int) string {
 	if len(body) <= limit {
 		return string(body)
