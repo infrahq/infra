@@ -13,16 +13,27 @@ import (
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
+func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	err := checkPasswordRequirements(db, password)
+	org := &models.Organization{Name: orgName}
+	err := data.CreateOrganization(db, org)
 	if err != nil {
 		return nil, err
 	}
 
-	identity := &models.Identity{Name: name}
+	err = checkPasswordRequirements(db, password)
+	if err != nil {
+		return nil, err
+	}
+
+	identity := &models.Identity{
+		Model: models.Model{
+			OrganizationID: org.ID,
+		},
+		Name: name,
+	}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
 		return nil, err
@@ -39,6 +50,9 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	}
 
 	credential := &models.Credential{
+		Model: models.Model{
+			OrganizationID: org.ID,
+		},
 		IdentityID:   identity.ID,
 		PasswordHash: hash,
 	}
@@ -49,12 +63,18 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 
 	grants := []*models.Grant{
 		{
+			Model: models.Model{
+				OrganizationID: org.ID,
+			},
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraAdminRole,
 			Resource:  ResourceInfraAPI,
 			CreatedBy: identity.ID,
 		},
 		{
+			Model: models.Model{
+				OrganizationID: org.ID,
+			},
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraSupportAdminRole,
 			Resource:  ResourceInfraAPI,
