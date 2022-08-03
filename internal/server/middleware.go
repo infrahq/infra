@@ -190,6 +190,7 @@ func unauthenticatedMiddleware() gin.HandlerFunc {
 			DBTxn:   getDB(c),
 		}
 		c.Set(access.RequestContextKey, rCtx)
+		c.Next()
 	}
 }
 
