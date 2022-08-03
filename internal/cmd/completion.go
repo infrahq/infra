@@ -11,7 +11,7 @@ import (
 func newCompletionsCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "completion",
-		Short: "Generate completions",
+		Short: "Generate shell auto-completion for the CLI",
 		Long: fmt.Sprintf(`To load completions:
 
 Bash:

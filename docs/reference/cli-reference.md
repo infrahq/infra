@@ -743,7 +743,7 @@ infra about [flags]
 ```
 ### `infra completion`
 
-Generate completions
+Generate shell auto-completion for the CLI
 
 #### Description
 
