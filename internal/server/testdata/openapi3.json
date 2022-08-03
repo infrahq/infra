@@ -906,13 +906,6 @@
           }
         }
       },
-      "SignupEnabledResponse": {
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          }
-        }
-      },
       "User": {
         "properties": {
           "created": {
@@ -4167,89 +4160,6 @@
       }
     },
     "/api/signup": {
-      "get": {
-        "description": "SignupEnabled",
-        "operationId": "SignupEnabled",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Infra-Version",
-            "required": true,
-            "schema": {
-              "description": "Version of the API being requested",
-              "example": "0.0.0",
-              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignupEnabledResponse"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "SignupEnabled",
-        "tags": [
-          "Misc"
-        ]
-      },
       "post": {
         "description": "Signup",
         "operationId": "Signup",
@@ -4275,13 +4185,17 @@
                     "format": "email",
                     "type": "string"
                   },
+                  "org": {
+                    "type": "string"
+                  },
                   "password": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "name",
-                  "password"
+                  "password",
+                  "org"
                 ],
                 "type": "object"
               }
