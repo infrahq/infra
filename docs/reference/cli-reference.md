@@ -741,3 +741,59 @@ infra about [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+### `infra completion`
+
+Generate shell auto-completion for the CLI
+
+#### Description
+
+To load completions:
+
+Bash:
+
+  $ source <(infra completion bash)
+
+  # To load completions for each session, execute once:
+  # Linux:
+  $ infra completion bash > /etc/bash_completion.d/infra
+  # macOS:
+  $ infra completion bash > /usr/local/etc/bash_completion.d/infra
+
+Zsh:
+
+  # If shell completion is not already enabled in your environment,
+  # you will need to enable it.  You can execute the following once:
+
+  $ echo "autoload -U compinit; compinit" >> ~/.zshrc
+
+  # To load completions for each session, execute once:
+  $ infra completion zsh > "${fpath[1]}/_infra"
+
+  # You will need to start a new shell for this setup to take effect.
+
+fish:
+
+  $ infra completion fish | source
+
+  # To load completions for each session, execute once:
+  $ infra completion fish > ~/.config/fish/completions/infra.fish
+
+PowerShell:
+
+  PS> infra completion powershell | Out-String | Invoke-Expression
+
+  # To load completions for every new session, run:
+  PS> infra completion powershell > infra.ps1
+  # and source this file from your PowerShell profile.
+
+
+```
+infra completion
+```
+
+#### Options inherited from parent commands
+
+```
+      --help               Display help
+      --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
+```
