@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useTable } from 'react-table'
 import useSWR from 'swr'
@@ -14,10 +15,11 @@ import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
-import IdentityList from '../../components/identity-list'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
+import DeleteModal from '../../components/delete-modal'
 
 const columns = [
   {
@@ -67,18 +69,25 @@ function Details({ user, admin, onDelete }) {
     () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
     (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
   )
+  const { data: { items: infraAdmins } = {} } = useSWR(
+    '/api/grants?resource=infra&privilege=admin'
+  )
+
+  const [open, setOpen] = useState(false)
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const inherited = groupGrantDatas
     ?.map(g => g?.items || [])
     ?.flat()
     ?.filter(g => g.resource !== 'infra')
+  const adminGroups = infraAdmins?.map(admin => admin.group)
   const metadata = [
     { title: 'ID', data: user?.id },
     {
       title: 'Created',
       data: user?.created ? dayjs(user.created).fromNow() : '-',
     },
+    { title: 'Providers', data: user?.providerNames.join(', ') },
   ]
 
   const loading = [
@@ -87,6 +96,17 @@ function Details({ user, admin, onDelete }) {
     groups,
     groups?.length ? inherited : true,
   ].some(x => !x)
+
+  const handleRemoveGroupFromUser = async groupId => {
+    const usersToRemove = [id]
+    await fetch(`/api/groups/${groupId}/users`, {
+      method: 'PATCH',
+      body: JSON.stringify({ usersToRemove }),
+    })
+    mutateGroups({
+      items: groups.filter(i => i.id !== groupId),
+    })
+  }
 
   return (
     !loading && (
@@ -157,19 +177,37 @@ function Details({ user, admin, onDelete }) {
                     <div className='mt-6'>No groups</div>
                   </EmptyData>
                 )}
-                <IdentityList
-                  list={groups}
-                  onClick={async groupId => {
-                    const usersToRemove = [id]
-                    await fetch(`/api/groups/${groupId}/users`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ usersToRemove }),
-                    })
-                    mutateGroups({
-                      items: groups.filter(i => i.id !== groupId),
-                    })
-                  }}
-                />
+                {groups.map(group => {
+                  return (
+                    <div
+                      key={group.id}
+                      className='group flex items-center justify-between truncate text-2xs'
+                    >
+                      <div className='py-2'>{group.name}</div>
+
+                      <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
+                        <button
+                          onClick={() =>
+                            auth?.id === id && adminGroups?.includes(group.id)
+                              ? setOpen(true)
+                              : handleRemoveGroupFromUser(group.id)
+                          }
+                          className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
+                        >
+                          Remove
+                        </button>
+                        <DeleteModal
+                          open={open}
+                          setOpen={setOpen}
+                          primaryButtonText='Remove'
+                          onSubmit={() => handleRemoveGroupFromUser(group.id)}
+                          title='Remove Group'
+                          message='Are you sure you want to remove yourself from this group? You will lose any access that this group grants.'
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </section>
           </>
@@ -202,12 +240,22 @@ function Details({ user, admin, onDelete }) {
 }
 
 export default function Users() {
-  const { data: { items } = {}, error, mutate } = useSWR('/api/users')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
+  const {
+    data: { items, totalPages, totalCount } = {
+      totalCount: 0,
+      totalPages: 0,
+    },
+    error,
+    mutate,
+  } = useSWR(`/api/users?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const users = items?.filter(u => u.name !== 'connector')
   const table = useTable({
     columns,
-    data: users?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+    data: users || [],
   })
   const [selected, setSelected] = useState(null)
 
@@ -242,7 +290,7 @@ export default function Users() {
                         : 'cursor-pointer',
                   })}
                 />
-                {users?.length === 0 && (
+                {users?.length === 0 && page === 1 && (
                   <EmptyTable
                     title='There are no users'
                     subtitle='Invite users to Infra and manage their access.'
@@ -252,6 +300,14 @@ export default function Users() {
                   />
                 )}
               </div>
+            )}
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                limit={limit}
+              ></Pagination>
             )}
           </div>
           {selected && (

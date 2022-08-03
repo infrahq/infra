@@ -7,8 +7,8 @@ position: 2
 
 ## Prerequisites
 
-* Install [Helm](https://helm.sh/) (v3+)
-* Install [Kubernetes](https://kubernetes.io/) (v1.14+)
+- Install [Helm](https://helm.sh/) (v3+)
+- Install [Kubernetes](https://kubernetes.io/) (v1.14+)
 
 ## Install via Helm
 
@@ -23,14 +23,10 @@ helm install infra infrahq/infra
 Find your load balancer endpoint:
 
 ```
-LOAD_BALANCER=$(kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
+kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
-Finally, login to finish setting up Infra:
-
-```
-infra login $LOAD_BALANCER
-```
+Finally, open this URL in your browser to get started.
 
 ## Connecting clusters
 

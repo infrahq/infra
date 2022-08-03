@@ -98,6 +98,7 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 		Transport: transport,
 	}
 
+	// nolint:noctx
 	resp, err := http.Get(server.URL)
 	assert.NilError(t, err)
 

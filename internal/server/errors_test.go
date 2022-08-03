@@ -83,7 +83,10 @@ func TestSendAPIError(t *testing.T) {
 			err: data.UniqueConstraintError{Table: "user", Column: "name"},
 			result: api.Error{
 				Code:    http.StatusConflict,
-				Message: "value for name already exists for user",
+				Message: "a user with that name already exists",
+				FieldErrors: []api.FieldError{
+					{FieldName: "name", Errors: []string{"a user with that name already exists"}},
+				},
 			},
 		},
 	}

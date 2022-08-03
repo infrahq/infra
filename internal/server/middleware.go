@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -49,63 +50,80 @@ func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func DestinationMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		uniqueID := c.GetHeader("Infra-Destination")
-		if uniqueID != "" {
-			destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{})
-			if err != nil {
-				return
-			}
+func handleInfraDestinationHeader(c *gin.Context) error {
+	uniqueID := c.Request.Header.Get("Infra-Destination")
+	if uniqueID == "" {
+		return nil
+	}
 
-			switch len(destinations) {
-			case 0:
-				// destination does not exist yet, noop
-			case 1:
-				destination := destinations[0]
-				// only save if there's significant difference between LastSeenAt and Now
-				if time.Since(destination.LastSeenAt) > time.Second {
-					destination.LastSeenAt = time.Now()
-					if err := access.SaveDestination(c, &destination); err != nil {
-						sendAPIError(c, err)
-						return
-					}
-				}
-			default:
-				sendAPIError(c, fmt.Errorf("multiple destinations found for unique ID %q", uniqueID))
-				return
+	// TODO: use GetDestination(ByUniqueID())
+	destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{Limit: 1})
+	if err != nil {
+		return err
+	}
+
+	switch len(destinations) {
+	case 0:
+		// destination does not exist yet, noop
+		return nil
+	case 1:
+		destination := destinations[0]
+		// only save if there's significant difference between LastSeenAt and Now
+		if time.Since(destination.LastSeenAt) > time.Second {
+			destination.LastSeenAt = time.Now()
+			if err := access.SaveDestination(c, &destination); err != nil {
+				return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
 			}
 		}
-
-		c.Next()
+		return nil
+	default:
+		return fmt.Errorf("multiple destinations found for unique ID %q", uniqueID)
 	}
 }
 
-// AuthenticationMiddleware validates the incoming token
-func AuthenticationMiddleware() gin.HandlerFunc {
+// TODO: remove duplicate in access package
+func getDB(c *gin.Context) *gorm.DB {
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return nil
+	}
+	return db
+}
+
+// authenticatedMiddleware is applied to all routes that require authentication.
+// It validates the access key, and updates the lastSeenAt of the user, and
+// possibly also of the destination.
+func authenticatedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := RequireAccessKey(c); err != nil {
+		db := getDB(c)
+		authned, err := requireAccessKey(db, c.Request)
+		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
+		rCtx := access.RequestContext{
+			Request:       c.Request,
+			DBTxn:         db,
+			Authenticated: authned,
+		}
+		c.Set(access.RequestContextKey, rCtx)
+
+		// TODO: remove
+		c.Set("identity", authned.User)
+
+		if err := handleInfraDestinationHeader(c); err != nil {
+			sendAPIError(c, err)
+			return
+		}
 		c.Next()
 	}
 }
 
-// RequireAccessKey checks the bearer token is present and valid
-func RequireAccessKey(c *gin.Context) error {
-	val, ok := c.Get("db")
-	if !ok {
-		return errors.New("could not find db in context")
-	}
-
-	db, ok := val.(*gorm.DB)
-	if !ok {
-		return errors.New("unknown db type in context")
-	}
-
-	header := c.Request.Header.Get("Authorization")
+// requireAccessKey checks the bearer token is present and valid
+func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, error) {
+	var u access.Authenticated
+	header := req.Header.Get("Authorization")
 
 	bearer := ""
 
@@ -114,9 +132,9 @@ func RequireAccessKey(c *gin.Context) error {
 		bearer = parts[1]
 	} else {
 		// Fall back to checking cookies
-		cookie, err := c.Cookie(CookieAuthorizationName)
+		cookie, err := getCookie(req, cookieAuthorizationName)
 		if err != nil {
-			return fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
 		}
 
 		bearer = cookie
@@ -124,37 +142,65 @@ func RequireAccessKey(c *gin.Context) error {
 
 	// this will get caught by key validation, but check to be safe
 	if strings.TrimSpace(bearer) == "" {
-		return fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+		return u, fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
 	}
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
 	if err != nil {
 		if errors.Is(err, data.ErrAccessKeyExpired) {
-			return err
+			return u, err
 		}
-		return fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
+		return u, fmt.Errorf("%w: invalid token: %s", internal.ErrUnauthorized, err)
 	}
 
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
-		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
-			return fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
+		if req.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || req.Method != http.MethodPut {
+			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
 		}
 	}
 
-	c.Set("key", accessKey)
-
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
-		return fmt.Errorf("identity for token: %w", err)
+		return u, fmt.Errorf("identity for token: %w", err)
 	}
 
 	identity.LastSeenAt = time.Now().UTC()
 	if err = data.SaveIdentity(db, identity); err != nil {
-		return fmt.Errorf("identity update fail: %w", err)
+		return u, fmt.Errorf("identity update fail: %w", err)
 	}
 
-	c.Set("identity", identity)
+	u.AccessKey = accessKey
+	u.User = identity
+	return u, nil
+}
 
-	return nil
+func getCookie(req *http.Request, name string) (string, error) {
+	cookie, err := req.Cookie(name)
+	if err != nil {
+		return "", err
+	}
+	return url.QueryUnescape(cookie.Value)
+}
+
+func unauthenticatedMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rCtx := access.RequestContext{
+			Request: c.Request,
+			DBTxn:   getDB(c),
+		}
+		c.Set(access.RequestContextKey, rCtx)
+	}
+}
+
+func getRequestContext(c *gin.Context) access.RequestContext {
+	raw, ok := c.Get(access.RequestContextKey)
+	if !ok {
+		return access.RequestContext{}
+	}
+	rCtx, ok := raw.(access.RequestContext)
+	if !ok {
+		return access.RequestContext{}
+	}
+	return rCtx
 }

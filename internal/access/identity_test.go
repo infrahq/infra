@@ -29,7 +29,7 @@ func TestListIdentities(t *testing.T) {
 	assert.NilError(t, err)
 
 	// test fetch all identities
-	ids, err := ListIdentities(c, "", 0, nil, &models.Pagination{})
+	ids, err := ListIdentities(c, "", 0, nil, nil)
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(ids), 4) // the two identities created, the admin one used to call these access functions, and the internal connector identity
@@ -94,7 +94,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	_, err = data.GetCredential(db, data.ByIdentityID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	grants, err := data.ListGrants(db, &models.Pagination{}, data.BySubject(identity.PolyID()))
+	grants, err := data.ListGrants(db, nil, data.BySubject(identity.PolyID()))
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 }

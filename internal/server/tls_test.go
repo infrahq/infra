@@ -44,6 +44,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 			},
 		}
 
+		// nolint:noctx
 		resp, err := client.Get(srv.URL)
 		assert.NilError(t, err)
 		assert.Equal(t, resp.StatusCode, http.StatusOK)
@@ -83,6 +84,7 @@ func TestTLSConfigFromOptions(t *testing.T) {
 			},
 		}
 
+		// nolint:noctx
 		resp, err := client.Get("https://" + l.Addr().String())
 		assert.NilError(t, err)
 		assert.Equal(t, resp.StatusCode, http.StatusOK)

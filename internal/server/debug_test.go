@@ -30,6 +30,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/api/debug/pprof/heap?debug=1", nil)
 		req.Header.Add("Infra-Version", "0.12.3")
 		assert.NilError(t, err)

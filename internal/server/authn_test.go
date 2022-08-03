@@ -28,6 +28,7 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 
 	// user can't access other urls.
 	tryOtherURL := func() *httptest.ResponseRecorder {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/api/users/"+loginResp.UserID.String(), nil)
 		assert.NilError(t, err)
 
@@ -58,6 +59,7 @@ func createUser(t *testing.T, srv *Server, routes Routes, email string) *api.Cre
 	body, err := json.Marshal(r)
 	assert.NilError(t, err)
 
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
 	assert.NilError(t, err)
 
@@ -83,6 +85,7 @@ func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, pa
 	body, err := json.Marshal(r)
 	assert.NilError(t, err)
 
+	// nolint:noctx
 	req, err := http.NewRequest(http.MethodPut, "/api/users/"+id.String(), bytes.NewReader(body))
 	assert.NilError(t, err)
 

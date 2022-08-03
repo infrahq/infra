@@ -3,20 +3,15 @@ package access
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
-
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func CreateToken(c *gin.Context) (token *models.Token, err error) {
-	identity := AuthenticatedIdentity(c)
-	if identity == nil {
+func CreateToken(c RequestContext) (token *models.Token, err error) {
+	// does not need authorization check, limited to calling identity
+	if c.Authenticated.User == nil {
 		return nil, fmt.Errorf("no active identity")
 	}
 
-	// does not need authorization check, limited to calling identity
-	db := getDB(c)
-
-	return data.CreateIdentityToken(db, identity.ID)
+	return data.CreateIdentityToken(c.DBTxn, c.Authenticated.User.ID)
 }

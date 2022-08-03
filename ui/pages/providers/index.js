@@ -1,8 +1,9 @@
-import useSWR, { useSWRConfig } from 'swr'
-import { useState } from 'react'
+import useSWR from 'swr'
 import Head from 'next/head'
-import { useTable } from 'react-table'
 import dayjs from 'dayjs'
+import { useState } from 'react'
+import { useTable } from 'react-table'
+import { useRouter } from 'next/router'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -13,6 +14,7 @@ import PageHeader from '../../components/page-header'
 import Sidebar from '../../components/sidebar'
 import Metadata from '../../components/metadata'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
 
 const columns = [
   {
@@ -40,9 +42,7 @@ const columns = [
   },
 ]
 
-function SidebarContent({ provider, admin, setSelectedProvider }) {
-  const { mutate } = useSWRConfig()
-
+function SidebarContent({ provider, admin, onDelete }) {
   const { name, url, clientID, created, updated } = provider
 
   const metadata = [
@@ -60,7 +60,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
   ]
 
   return (
-    <div className='flex flex-1 flex-col space-y-6'>
+    <div className='flex flex-1 flex-col space-y-6 overflow-x-hidden'>
       <section>
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata
@@ -70,20 +70,7 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
       {admin && (
         <section className='flex flex-1 flex-col items-end justify-end py-6'>
           <RemoveButton
-            onRemove={() => {
-              mutate(
-                '/api/providers',
-                async ({ items: providers } = { items: [] }) => {
-                  await fetch(`/api/providers/${provider.id}`, {
-                    method: 'DELETE',
-                  })
-
-                  return { items: providers.filter(p => p?.id !== provider.id) }
-                }
-              )
-
-              setSelectedProvider(null)
-            }}
+            onRemove={() => onDelete()}
             modalTitle='Remove Identity Provider'
             modalMessage={
               <>
@@ -100,11 +87,21 @@ function SidebarContent({ provider, admin, setSelectedProvider }) {
 }
 
 export default function Providers() {
-  const { data: { items: providers } = {}, error } = useSWR('/api/providers')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
+  const {
+    data: { items: providers, totalPages, totalCount } = {
+      totalCount: 0,
+      totalPages: 0,
+    },
+    error,
+    mutate,
+  } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
   const table = useTable({
     columns,
-    data: providers?.sort((a, b) => b.created?.localeCompare(a.created)) || [],
+    data: providers || [],
   })
 
   const [selected, setSelected] = useState(null)
@@ -156,6 +153,14 @@ export default function Providers() {
                 )}
               </div>
             )}
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                limit={limit}
+              ></Pagination>
+            )}
           </div>
           {selected && (
             <Sidebar
@@ -166,7 +171,19 @@ export default function Providers() {
               <SidebarContent
                 provider={selected}
                 admin={admin}
-                setSelectedProvider={setSelected}
+                onDelete={() => {
+                  mutate(async ({ items: providers } = { items: [] }) => {
+                    await fetch(`/api/providers/${selected.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    return {
+                      items: providers.filter(p => p?.id !== selected.id),
+                    }
+                  })
+
+                  setSelected(null)
+                }}
               />
             </Sidebar>
           )}

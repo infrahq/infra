@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io/fs"
 	"net/http"
 	"path"
 	"reflect"
@@ -38,6 +37,9 @@ type Routes struct {
 // Router.{GET,POST,etc} method is called.
 func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	a := &API{t: s.tel, server: s}
+	a.addRewrites()
+	a.addRedirects()
+
 	router := gin.New()
 	router.NoRoute(a.notFoundHandler)
 
@@ -50,9 +52,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		TimeoutMiddleware(1*time.Minute),
 	)
 
-	a.addRewrites()
-	a.addRedirects()
-
 	// This group of middleware only applies to non-ui routes
 	apiGroup := router.Group("/",
 		metrics.Middleware(promRegistry),
@@ -60,10 +59,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
 
-	authn := apiGroup.Group("/",
-		AuthenticationMiddleware(),
-		DestinationMiddleware(),
-	)
+	authn := apiGroup.Group("/", authenticatedMiddleware())
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -80,6 +76,11 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, authn, "/api/groups/:id", a.GetGroup)
 	del(a, authn, "/api/groups/:id", a.DeleteGroup)
 	patch(a, authn, "/api/groups/:id/users", a.UpdateUsersInGroup)
+
+	get(a, authn, "/api/organizations", a.ListOrganizations)
+	post(a, authn, "/api/organizations", a.CreateOrganization)
+	get(a, authn, "/api/organizations/:id", a.GetOrganization)
+	del(a, authn, "/api/organizations/:id", a.DeleteOrganization)
 
 	get(a, authn, "/api/grants", a.ListGrants)
 	get(a, authn, "/api/grants/:id", a.GetGrant)
@@ -102,11 +103,13 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/")
+	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware())
 	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 
 	post(a, noAuthn, "/api/login", a.Login)
+	post(a, noAuthn, "/api/password-reset-request", a.RequestPasswordReset)
+	post(a, noAuthn, "/api/password-reset", a.VerifiedPasswordReset)
 
 	get(a, noAuthn, "/api/providers", a.ListProviders)
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
@@ -289,22 +292,7 @@ func (a *API) notFoundHandler(c *gin.Context) {
 
 	c.Status(http.StatusNotFound)
 
-	buf := []byte("404 not found")
-
-	if strings.HasPrefix(accept, "text/html") {
-
-		const filePath404 = "ui/static/404.html"
-		uiFS := a.server.options.UI.FS
-		if _, err := fs.Stat(uiFS, filePath404); err == nil {
-			buf, err = fs.ReadFile(uiFS, filePath404)
-			if err != nil {
-				logging.Errorf("%s", err.Error())
-			}
-		}
-	}
-	// If there's any other Accept header or an error in reading,
-	// the response will default to "404 not found"
-	_, err := c.Writer.Write(buf)
+	_, err := c.Writer.Write([]byte("404 not found"))
 	if err != nil {
 		logging.Errorf("%s", err.Error())
 	}

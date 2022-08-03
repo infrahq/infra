@@ -1,22 +1,24 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
 
+import DeleteModal from '../../components/delete-modal'
 import Dashboard from '../../components/layouts/dashboard'
 import PageHeader from '../../components/page-header'
 import EmptyTable from '../../components/empty-table'
 import Table from '../../components/table'
 import Sidebar from '../../components/sidebar'
 import EmptyData from '../../components/empty-data'
-import IdentityList from '../../components/identity-list'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Metadata from '../../components/metadata'
 import GrantsList from '../../components/grants-list'
 import RemoveButton from '../../components/remove-button'
+import Pagination from '../../components/pagination'
 
 const columns = [
   {
@@ -33,6 +35,26 @@ const columns = [
             <div className='truncate'>{group.name}</div>
           </div>
         </div>
+      )
+    },
+  },
+  {
+    Header: 'Users',
+    accessor: g => g,
+    width: '33%',
+    Cell: ({ value: { totalUsers } }) => {
+      return (
+        <>
+          <div className='text-gray-400'>
+            {totalUsers === undefined ? (
+              '-'
+            ) : (
+              <>
+                {totalUsers} {totalUsers === 1 ? 'member' : 'members'}
+              </>
+            )}
+          </div>
+        </>
       )
     },
   },
@@ -96,17 +118,24 @@ function EmailsSelectInput({
 function Details({ group, admin, onDelete }) {
   const { id, name } = group
 
+  const { data: auth } = useSWR('/api/users/self')
   const { data: { items: users } = {}, mutate: mutateUsers } = useSWR(
     `/api/users?group=${group.id}`
   )
   const { data: { items } = {}, mutate: mutateGrants } = useSWR(
     `/api/grants?group=${id}`
   )
+  const { data: { items: infraAdmin } = {} } = useSWR(
+    '/api/grants?resource=infra&privilege=admin'
+  )
 
   const [emails, setEmails] = useState([])
+  const [open, setOpen] = useState(false)
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const existMembers = users?.map(m => m.id)
+  const adminGroups = infraAdmin?.map(admin => admin.group)
+
   const metadata = [
     { title: 'ID', data: id },
     {
@@ -114,8 +143,22 @@ function Details({ group, admin, onDelete }) {
       data: group?.created ? dayjs(group.created).fromNow() : '-',
     },
   ]
+  const loading = [auth, users, grants, infraAdmin].some(x => !x)
 
-  const loading = [users, grants].some(x => !x)
+  const hideRemoveGroupBtn =
+    !admin || (infraAdmin?.length === 1 && adminGroups.includes(id))
+
+  const handleRemoveUserFromGroup = async userId => {
+    const usersToRemove = [userId]
+    await fetch(`/api/groups/${id}/users`, {
+      method: 'PATCH',
+      body: JSON.stringify({ usersToRemove }),
+    })
+
+    mutateUsers({
+      items: users.filter(i => i.id !== userId),
+    })
+  }
 
   return (
     !loading && (
@@ -167,7 +210,6 @@ function Details({ group, admin, onDelete }) {
                 existMembers={existMembers}
                 onClick={async () => {
                   const usersToAdd = emails.map(email => email.id)
-                  console.log(emails)
                   await fetch(`/api/groups/${id}/users`, {
                     method: 'PATCH',
                     body: JSON.stringify({ usersToAdd }),
@@ -183,20 +225,39 @@ function Details({ group, admin, onDelete }) {
                     <div className='mt-6'>No members in the group</div>
                   </EmptyData>
                 )}
-                <IdentityList
-                  list={users}
-                  onClick={async userId => {
-                    const usersToRemove = [userId]
-                    await fetch(`/api/groups/${id}/users`, {
-                      method: 'PATCH',
-                      body: JSON.stringify({ usersToRemove }),
-                    })
-
-                    mutateUsers({
-                      items: users.filter(i => i.id !== userId),
-                    })
-                  }}
-                />
+                {users.map(user => {
+                  return (
+                    <div
+                      key={user.id}
+                      className='group flex items-center justify-between truncate text-2xs'
+                    >
+                      <div className='py-2'>{user.name}</div>
+                      {
+                        <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
+                          <button
+                            onClick={() => {
+                              console.log(user.id === auth.id)
+                              user.id === auth.id
+                                ? setOpen(true)
+                                : handleRemoveUserFromGroup(user.id)
+                            }}
+                            className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
+                          >
+                            Remove
+                          </button>
+                          <DeleteModal
+                            open={open}
+                            setOpen={setOpen}
+                            primaryButtonText='Remove'
+                            onSubmit={() => handleRemoveUserFromGroup(user.id)}
+                            title='Remove User'
+                            message='Are you sure you want to remove yourself from this group? You will lose any access that this group grants.'
+                          />
+                        </div>
+                      }
+                    </div>
+                  )
+                })}
               </div>
             </section>
           </>
@@ -207,7 +268,7 @@ function Details({ group, admin, onDelete }) {
           </h3>
           <Metadata data={metadata} />
         </section>
-        {admin && (
+        {!hideRemoveGroupBtn && (
           <section className='flex flex-1 flex-col items-end justify-end py-6'>
             <RemoveButton
               onRemove={async () => {
@@ -230,7 +291,17 @@ function Details({ group, admin, onDelete }) {
 }
 
 export default function Groups() {
-  const { data: { items: groups } = {}, error, mutate } = useSWR('/api/groups')
+  const router = useRouter()
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 13
+  const {
+    data: { items: groups, totalPages, totalCount } = {
+      totalPages: 1,
+      totalCount: 1,
+    },
+    error,
+    mutate,
+  } = useSWR(`/api/groups?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
 
   const [selected, setSelected] = useState(null)
@@ -256,11 +327,7 @@ export default function Groups() {
               <div className='flex min-h-0 flex-1 flex-col overflow-y-auto px-6'>
                 <Table
                   columns={columns}
-                  data={
-                    groups?.sort((a, b) =>
-                      b.created?.localeCompare(a.created)
-                    ) || []
-                  }
+                  data={groups || []}
                   getRowProps={row => ({
                     onClick: () => setSelected(row.original),
                     className:
@@ -279,6 +346,13 @@ export default function Groups() {
                   />
                 )}
               </div>
+            )}
+            {totalPages > 1 && (
+              <Pagination
+                curr={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+              ></Pagination>
             )}
           </div>
           {selected && (

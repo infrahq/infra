@@ -164,11 +164,16 @@ func TestAPI_ListGroups(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 {
 	"count": 1,
+	"limit": 100,
+	"page": 1,
+	"totalPages": 1,
+	"totalCount": 1,
 	"items": [{
 		"id": "%[1]v",
 		"name": "humans",
 		"created": "%[2]v",
-		"updated": "%[2]v"
+		"updated": "%[2]v",
+		"totalUsers": 1
 	}]
 }`,
 					humans.ID.String(),
@@ -210,6 +215,7 @@ func TestAPI_CreateGroup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/groups", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -300,6 +306,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -332,7 +339,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListGroups(srv.db, &models.Pagination{}, data.ByID(humans.ID))
+				actual, err := data.ListGroups(srv.db, nil, data.ByID(humans.ID))
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},
@@ -377,6 +384,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPatch, tc.urlPath, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -409,7 +417,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.db, &models.Pagination{}, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.db, nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
 			},
@@ -426,7 +434,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.db, &models.Pagination{}, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.db, nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.Assert(t, len(idents) == 0)
 			},

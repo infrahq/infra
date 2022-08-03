@@ -10,7 +10,7 @@ const footerLinks = [
     text: 'About',
   },
   {
-    href: 'https://jobs.lever.co/infra-hq',
+    href: 'https://www.ycombinator.com/companies/infra/jobs',
     text: 'Work with us',
   },
   {

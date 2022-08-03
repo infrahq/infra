@@ -31,6 +31,7 @@ func TestAPI_GetUser(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -176,8 +177,6 @@ func TestAPI_GetUser(t *testing.T) {
 	}
 }
 
-var defaultPagination api.PaginationResponse
-
 func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
@@ -199,6 +198,7 @@ func TestAPI_ListUsers(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
@@ -224,6 +224,7 @@ func TestAPI_ListUsers(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
@@ -244,7 +245,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"count":0,"items":[]}`)
+				assert.Equal(t, resp.Body.String(), `{"page":1,"limit":100,"count":0,"items":[]}`)
 			},
 		},
 		"name match": {
@@ -260,7 +261,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: "me@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 1},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -280,7 +281,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "me@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 3},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -304,7 +305,7 @@ func TestAPI_ListUsers(t *testing.T) {
 						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 7},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -356,7 +357,7 @@ func TestAPI_ListUsers(t *testing.T) {
 					Items: []api.User{
 						{Name: anotherID.Name},
 					},
-					PaginationResponse: defaultPagination,
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 1},
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
@@ -421,6 +422,7 @@ func TestAPI_CreateUser(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -673,6 +675,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 
@@ -744,6 +747,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 		body := jsonBody(t, tc.body)
 
 		id := user.ID.String()
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodPut, "/api/users/"+id, body)
 		assert.NilError(t, err)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))

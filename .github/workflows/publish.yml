@@ -101,6 +101,13 @@ jobs:
 
   publish-docker:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        images:
+          - image: infrahq/infra
+            context: .
+          - image: infrahq/ui
+            context: ui
     environment: ${{ inputs.ENVIRONMENT }}
     steps:
       - uses: actions/checkout@v3
@@ -111,16 +118,17 @@ jobs:
       - id: metadata
         uses: docker/metadata-action@v4
         with:
-          images: infrahq/infra
+          images: ${{ matrix.images.image }}
           flavor: latest=false
           tags: |
             type=raw,value=${{ inputs.RELEASE_NAME }}
             type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
             type=match,pattern=.*-(.*),group=1,value=${{ inputs.RELEASE_NAME }}
       - uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-qemu-action@v2
       - uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ${{ matrix.images.context }}
           push: true
           platforms: linux/amd64,linux/arm64
           build-args: |
@@ -128,5 +136,5 @@ jobs:
             TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=infrahq/infra:latest
+          cache-from: type=registry,ref=${{ matrix.images.image }}:latest
           cache-to: type=inline

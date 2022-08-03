@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
+import Link from 'next/link'
 
 import { providers as providersList } from '../../lib/providers'
 
@@ -115,15 +116,22 @@ export default function Login() {
         Welcome back. Login with your credentials{' '}
         {providers?.length > 0 && 'or via your identity provider.'}
       </h2>
-      {providers?.length > 0 && <Providers providers={providers || []} />}
-      <div className='relative mt-4 w-full'>
-        <div className='absolute inset-0 flex items-center' aria-hidden='true'>
-          <div className='w-full border-t border-gray-800' />
-        </div>
-        <div className='relative flex justify-center text-sm'>
-          <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
-        </div>
-      </div>
+      {providers?.length > 0 && (
+        <>
+          <Providers providers={providers || []} />
+          <div className='relative mt-4 w-full'>
+            <div
+              className='absolute inset-0 flex items-center'
+              aria-hidden='true'
+            >
+              <div className='w-full border-t border-gray-800' />
+            </div>
+            <div className='relative flex justify-center text-sm'>
+              <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
+            </div>
+          </div>
+        </>
+      )}
       <form
         onSubmit={onSubmit}
         className='relative flex w-full max-w-sm flex-col'
@@ -174,6 +182,11 @@ export default function Login() {
         >
           Login
         </button>
+        <Link href='/password-reset'>
+          <a className='text-3xs text-violet-100 hover:border-violet-100'>
+            I forgot my password
+          </a>
+        </Link>
         {error && (
           <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
             {error}

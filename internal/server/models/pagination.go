@@ -15,9 +15,6 @@ type Pagination struct {
 }
 
 func RequestToPagination(pr api.PaginationRequest) Pagination {
-	if pr.Limit == 0 && pr.Page == 0 {
-		return Pagination{} // temporary so pagination is disabled by default
-	}
 	page, limit := 1, 100
 
 	if pr.Limit != 0 {
@@ -44,7 +41,7 @@ func PaginationToResponse(p Pagination) api.PaginationResponse {
 }
 
 func (p *Pagination) SetTotalCount(count int) {
-	if p.Page != 0 && p.Limit != 0 {
+	if p.Limit != 0 {
 		p.TotalCount = count
 		p.TotalPages = int(math.Ceil(float64(count) / float64(p.Limit)))
 	}

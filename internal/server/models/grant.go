@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	InfraAdminRole     = "admin"
-	InfraViewRole      = "view"
-	InfraConnectorRole = "connector"
+	InfraSupportAdminRole = "support-admin"
+	InfraAdminRole        = "admin"
+	InfraViewRole         = "view"
+	InfraConnectorRole    = "connector"
 )
 
 // BasePermissionConnect is the first-principle permission that all other permissions are defined from.
@@ -34,9 +35,9 @@ const BasePermissionConnect = "connect"
 type Grant struct {
 	Model
 
-	Subject   uid.PolymorphicID `validate:"required" gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
-	Privilege string            `validate:"required" gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission
-	Resource  string            `validate:"required" gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // Universal Resource Notation
+	Subject   uid.PolymorphicID `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
+	Privilege string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission
+	Resource  string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // Universal Resource Notation
 	CreatedBy uid.ID
 }
 

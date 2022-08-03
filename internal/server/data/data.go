@@ -11,7 +11,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/driver/postgres"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -33,18 +33,20 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err := preMigrate(db); err != nil {
-		return nil, err
+	opts := migrator.Options{
+		InitSchema: initializeSchema,
+		LoadKey:    loadDBKey,
 	}
-
-	if loadDBKey != nil {
-		if err := loadDBKey(db); err != nil {
-			return nil, fmt.Errorf("load DB key failed: %w", err)
-		}
-	}
-
-	if err = migrate(db); err != nil {
+	m := migrator.New(db, opts, migrations())
+	if err := m.Migrate(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
+	}
+
+	// Call initializeSchema again to apply implicit migrations handled by
+	// gorm.AutoMigrate. In the future we will replace this call with
+	// explicit migrations for all database changes.
+	if err := initializeSchema(db); err != nil {
+		return nil, fmt.Errorf("auto-migrate failed: %w", err)
 	}
 
 	return db, nil
@@ -132,13 +134,15 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 		db = selector(db)
 	}
 
-	var count int64
-	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
-		return nil, err
-	}
-	p.SetTotalCount(int(count))
+	if p != nil {
+		var count int64
+		if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
+			return nil, err
+		}
+		p.SetTotalCount(int(count))
 
-	db = ByPagination(*p)(db)
+		db = ByPagination(*p)(db)
+	}
 
 	result := make([]T, 0)
 	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {
@@ -149,22 +153,23 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 }
 
 func save[T models.Modelable](db *gorm.DB, model *T) error {
-	v := validator.New()
-	if err := v.Struct(model); err != nil {
-		return err
-	}
-
 	err := db.Save(model).Error
 	return handleError(err)
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
-	v := validator.New()
-	if err := v.Struct(model); err != nil {
-		return err
+	var err error
+	if db.Name() == "postgres" {
+		// failures on postgres need to be rolled back in order to
+		// continue using the same transaction
+		db.SavePoint("beforeCreate")
+		err = db.Create(model).Error
+		if err != nil {
+			db.RollbackTo("beforeCreate")
+		}
+	} else {
+		err = db.Create(model).Error
 	}
-
-	err := db.Create(model).Error
 	return handleError(err)
 }
 
@@ -174,12 +179,22 @@ type UniqueConstraintError struct {
 }
 
 func (e UniqueConstraintError) Error() string {
-	if e.Table == "" {
+	table := e.Table
+	switch table {
+	case "":
 		return "value already exists"
-	} else if e.Column == "" {
-		return fmt.Sprintf("value already exists for %v", e.Table)
+	case "identities":
+		table = "user"
+	case "access_keys":
+		table = "access key"
+	default:
+		table = strings.TrimSuffix(table, "s")
 	}
-	return fmt.Sprintf("value for %v already exists for %v", e.Column, e.Table)
+
+	if e.Column == "" {
+		return fmt.Sprintf("a %v with that value already exists", table)
+	}
+	return fmt.Sprintf("a %v with that %v already exists", table, e.Column)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it
@@ -194,14 +209,16 @@ func handleError(err error) error {
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation:
+			// constraintFields maps the name of a unique constraint, to the
+			// user facing name of that field.
 			constraintFields := map[string]string{
 				"idx_identities_name":         "name",
 				"idx_groups_name":             "name",
 				"idx_providers_name":          "name",
 				"idx_access_keys_name":        "name",
-				"idx_destinations_unique_id":  "unique_id",
-				"idx_access_keys_key_id":      "key_id",
-				"idx_credentials_identity_id": "identity_id",
+				"idx_destinations_unique_id":  "uniqueId",
+				"idx_access_keys_key_id":      "keyId",
+				"idx_credentials_identity_id": "identityId",
 			}
 
 			columnName := constraintFields[pgErr.ConstraintName]

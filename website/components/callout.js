@@ -28,10 +28,10 @@ export default function Callout({ type, children }) {
 
   return (
     <div
-      className={`flex items-center rounded-xl border px-4 ${styles[type]} mt-6 mb-8`}
+      className={`flex items-center rounded-xl border px-4 ${styles[type]} mt-4 mb-8`}
     >
       <Icon
-        className={`mt-6 mr-4 h-5 w-5 flex-none self-start stroke-current ${iconstyle[type]}`}
+        className={`mt-[20px] mr-4 h-5 w-5 flex-none self-start stroke-current ${iconstyle[type]}`}
       />
       <div className='overflow-hidden prose-p:text-base prose-p:leading-tight first-letter:prose-p:my-3'>
         {children}

@@ -117,7 +117,7 @@ func TestDatabaseSelectors(t *testing.T) {
 		t.Logf("DB pointer: %p", tx)
 
 		// query using one of our helpers and selectors
-		_, err := ListGrants(tx, &models.Pagination{}, ByID(534))
+		_, err := ListGrants(tx, nil, ByID(534))
 		assert.NilError(t, err)
 
 		// query with Model and Where
@@ -136,7 +136,7 @@ func TestDatabaseSelectors(t *testing.T) {
 	assert.NilError(t, err)
 
 	// query using one of our helpers and selectors
-	_, err = ListGrants(db, &models.Pagination{}, ByID(534))
+	_, err = ListGrants(db, nil, ByID(534))
 	assert.NilError(t, err)
 
 	// query with Model and Where
@@ -193,7 +193,6 @@ func TestPaginationSelector(t *testing.T) {
 		for i, user := range actual {
 			assert.Equal(t, user.Name, letters[i])
 		}
-
 	})
 }
 
@@ -204,4 +203,27 @@ func TestDefaultSortFromType(t *testing.T) {
 	assert.Equal(t, getDefaultSortFromType(new(models.Group)), "name ASC")
 	assert.Equal(t, getDefaultSortFromType(new(models.Provider)), "name ASC")
 	assert.Equal(t, getDefaultSortFromType(new(models.Identity)), "name ASC")
+}
+
+func TestCreateTransactionError(t *testing.T) {
+	// on creation error (such as conflict) the database transaction should still be usable
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		err := db.Transaction(func(tx *gorm.DB) error {
+			g := &models.Grant{}
+			err := add(tx, g)
+			if err != nil {
+				return err
+			}
+
+			// attempt to re-create, which results in a conflict
+			err = add(tx, g)
+			assert.ErrorContains(t, err, "already exists")
+
+			// the same transaction should still be usable
+			_, err = get[models.Grant](tx, ByID(g.ID))
+			return err
+		})
+
+		assert.NilError(t, err)
+	})
 }

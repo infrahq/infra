@@ -12,11 +12,36 @@ func CreateGroup(db *gorm.DB, group *models.Group) error {
 }
 
 func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
-	return get[models.Group](db, selectors...)
+	group, err := get[models.Group](db, selectors...)
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := CountUsersInGroup(db, group.ID)
+	if err != nil {
+		return nil, err
+	}
+	group.TotalUsers = int(count)
+	return group, nil
 }
 
 func ListGroups(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
-	return list[models.Group](db, p, selectors...)
+	groups, err := list[models.Group](db, p, selectors...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range groups {
+		count, err := CountUsersInGroup(db, groups[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		groups[i].TotalUsers = int(count)
+	}
+
+	return groups, nil
+
 }
 
 func ByGroupMember(id uid.ID) SelectorFunc {
@@ -28,7 +53,7 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 }
 
 func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListGroups(db, &models.Pagination{}, selectors...)
+	toDelete, err := ListGroups(db, nil, selectors...)
 	if err != nil {
 		return err
 	}
@@ -42,7 +67,7 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 			return err
 		}
 
-		identities, err := ListIdentities(db, &models.Pagination{}, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
+		identities, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
 		if err != nil {
 			return err
 		}
@@ -80,4 +105,14 @@ func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) err
 		}
 	}
 	return nil
+}
+
+func CountUsersInGroup(db *gorm.DB, groupID uid.ID) (int64, error) {
+	var count int64
+	err := db.Table("identities_groups").Where("group_id = ?", groupID).Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
