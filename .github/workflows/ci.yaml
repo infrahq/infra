@@ -74,6 +74,7 @@ jobs:
       - name: Run e2e tests
         working-directory: ui
         run: |
+          npx playwright install
           docker compose -f ../docker-compose.dev.yaml up -d --wait
           npm run test:e2e
 
