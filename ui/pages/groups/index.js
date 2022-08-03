@@ -38,6 +38,26 @@ const columns = [
       )
     },
   },
+  {
+    Header: 'Users',
+    accessor: g => g,
+    width: '33%',
+    Cell: ({ value: { totalUsers } }) => {
+      return (
+        <>
+          <div className='text-gray-400'>
+            {totalUsers === undefined ? (
+              '-'
+            ) : (
+              <>
+                {totalUsers} {totalUsers === 1 ? 'member' : 'members'}
+              </>
+            )}
+          </div>
+        </>
+      )
+    },
+  },
 ]
 
 function EmailsSelectInput({
