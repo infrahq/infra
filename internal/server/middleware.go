@@ -36,20 +36,6 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
-// DatabaseMiddleware injects a `db` object into the Gin context.
-func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		err := db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-			c.Set("db", tx)
-			c.Next()
-			return nil
-		})
-		if err != nil {
-			logging.Debugf(err.Error())
-		}
-	}
-}
-
 func handleInfraDestinationHeader(c *gin.Context) error {
 	uniqueID := c.Request.Header.Get("Infra-Destination")
 	if uniqueID == "" {
@@ -81,42 +67,61 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 }
 
-// TODO: remove duplicate in access package
-func getDB(c *gin.Context) *gorm.DB {
-	db, ok := c.MustGet("db").(*gorm.DB)
-	if !ok {
-		return nil
-	}
-	return db
-}
-
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware() gin.HandlerFunc {
+func authenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db := getDB(c)
-		authned, err := requireAccessKey(db, c.Request)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
+		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+			authned, err := requireAccessKey(tx, c.Request)
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
 
-		rCtx := access.RequestContext{
-			Request:       c.Request,
-			DBTxn:         db,
-			Authenticated: authned,
-		}
-		c.Set(access.RequestContextKey, rCtx)
+			rCtx := access.RequestContext{
+				Request:       c.Request,
+				DBTxn:         tx,
+				Authenticated: authned,
+			}
+			c.Set(access.RequestContextKey, rCtx)
 
-		// TODO: remove
-		c.Set("identity", authned.User)
+			// TODO: remove once everything uses RequestContext
+			c.Set("identity", authned.User)
+			c.Set("db", tx)
 
-		if err := handleInfraDestinationHeader(c); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.Next()
+			if err := handleInfraDestinationHeader(c); err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			c.Next()
+		})
+	}
+}
+
+func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		fn(tx)
+		return nil
+	})
+	// TODO: https://github.com/infrahq/infra/issues/2697
+	if err != nil {
+		logging.L.Error().Err(err).Msg("failed to commit database transaction")
+	}
+}
+
+func unauthenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+			rCtx := access.RequestContext{
+				Request: c.Request,
+				DBTxn:   tx,
+			}
+			c.Set(access.RequestContextKey, rCtx)
+			// TODO: remove once everything uses RequestContext
+			c.Set("db", tx)
+			c.Next()
+		})
 	}
 }
 
@@ -181,17 +186,6 @@ func getCookie(req *http.Request, name string) (string, error) {
 		return "", err
 	}
 	return url.QueryUnescape(cookie.Value)
-}
-
-func unauthenticatedMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rCtx := access.RequestContext{
-			Request: c.Request,
-			DBTxn:   getDB(c),
-		}
-		c.Set(access.RequestContextKey, rCtx)
-		c.Next()
-	}
 }
 
 func getRequestContext(c *gin.Context) access.RequestContext {

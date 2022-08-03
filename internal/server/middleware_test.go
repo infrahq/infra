@@ -99,7 +99,7 @@ func TestDBTimeout(t *testing.T) {
 			c.Set("ctx", ctx)
 			c.Next()
 		},
-		DatabaseMiddleware(db),
+		unauthenticatedMiddleware(db),
 	)
 	router.GET("/", func(c *gin.Context) {
 		db, ok := c.MustGet("db").(*gorm.DB)
