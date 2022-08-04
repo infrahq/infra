@@ -401,45 +401,30 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	}
 
 	var initialSchema string
-	for _, driver := range dbDrivers(t) {
-		if driver.Name() != "postgres" {
-			continue
-		}
+	runStep(t, "initial schema", func(t *testing.T) {
+		db := setupDB(t, postgresDriver(t))
 
-		t.Run("initial schema", func(t *testing.T) {
-			db := setupDB(t, driver)
+		initial, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
+		assert.NilError(t, err)
+		initialSchema = initial.String()
 
-			initial, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
-			assert.NilError(t, err)
-			initialSchema = initial.String()
+		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
+	})
 
-			assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
+	db, err := newRawDB(postgresDriver(t))
+	assert.NilError(t, err)
+	for i, tc := range testCases {
+		runStep(t, tc.label.Name, func(t *testing.T) {
+			fmt.Printf("    %v: test case %v\n", tc.label.Line, tc.label.Name)
+			run(t, i, tc, db)
 		})
 	}
 
-	for _, driver := range dbDrivers(t) {
-		if driver.Name() != "postgres" {
-			continue
-		}
+	out, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
+	assert.NilError(t, err)
+	migratedSchema := out.String()
 
-		t.Run(driver.Name(), func(t *testing.T) {
-			db, err := newRawDB(driver)
-			assert.NilError(t, err)
-
-			for i, tc := range testCases {
-				runStep(t, tc.label.Name, func(t *testing.T) {
-					fmt.Printf("    %v: test case %v\n", tc.label.Line, tc.label.Name)
-					run(t, i, tc, db)
-				})
-			}
-
-			out, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
-			assert.NilError(t, err)
-			migratedSchema := out.String()
-
-			assert.Equal(t, initialSchema, migratedSchema)
-		})
-	}
+	assert.Equal(t, initialSchema, migratedSchema)
 }
 
 func parseTime(t *testing.T, s string) time.Time {

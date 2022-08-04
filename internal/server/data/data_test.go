@@ -31,50 +31,47 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	return db
 }
 
-// dbDrivers returns the list of database drivers to test.
-// Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
-// against postgresql.
-func dbDrivers(t *testing.T) []gorm.Dialector {
-	t.Helper()
-	var drivers []gorm.Dialector
+var isEnvironmentCI = os.Getenv("CI") != ""
 
-	tmp := t.TempDir()
-	sqlite, err := NewSQLiteDriver(filepath.Join(tmp, t.Name()))
-	assert.NilError(t, err, "sqlite driver")
-	drivers = append(drivers, sqlite)
-
+func postgresDriver(t *testing.T) gorm.Dialector {
 	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
 	switch {
-	case ok:
-		pgsql, err := NewPostgresDriver(pgConn)
-		assert.NilError(t, err, "postgresql driver")
-
-		db, err := gorm.Open(pgsql)
-		assert.NilError(t, err, "connect to postgresql")
-		t.Cleanup(func() {
-			assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
-		})
-		assert.NilError(t, db.Exec("CREATE SCHEMA testing").Error)
-
-		pgsql, err = NewPostgresDriver(pgConn + " search_path=testing")
-		assert.NilError(t, err, "postgresql driver")
-
-		drivers = append(drivers, pgsql)
-	case os.Getenv("CI") != "":
-		t.Fatalf("CI must test all drivers, set POSTGRESQL_CONNECTION")
+	case !ok && isEnvironmentCI:
+		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
+	case !ok:
+		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
 	}
 
-	return drivers
+	pgsql, err := NewPostgresDriver(pgConn)
+	assert.NilError(t, err, "postgresql driver")
+
+	db, err := gorm.Open(pgsql)
+	assert.NilError(t, err, "connect to postgresql")
+	t.Cleanup(func() {
+		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
+	})
+	assert.NilError(t, db.Exec("CREATE SCHEMA testing").Error)
+
+	pgsql, err = NewPostgresDriver(pgConn + " search_path=testing")
+	assert.NilError(t, err, "postgresql driver")
+	return pgsql
 }
 
 // runDBTests against all supported databases. Defaults to only sqlite locally,
-// and all supported DBs in CI. See dbDrivers to test other databases locally.
+// and all supported DBs in CI.
+// Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
+// against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
-	for _, driver := range dbDrivers(t) {
-		t.Run(driver.Name(), func(t *testing.T) {
-			run(t, setupDB(t, driver))
-		})
-	}
+	t.Run("sqlite", func(t *testing.T) {
+		tmp := t.TempDir()
+		sqlite, err := NewSQLiteDriver(filepath.Join(tmp, t.Name()))
+		assert.NilError(t, err, "sqlite driver")
+		run(t, setupDB(t, sqlite))
+	})
+	t.Run("postgres", func(t *testing.T) {
+		pgsql := postgresDriver(t)
+		run(t, setupDB(t, pgsql))
+	})
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {
