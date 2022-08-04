@@ -82,11 +82,10 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	err = data.CreateGrant(db, grantDestination)
 	assert.NilError(t, err)
 
-	err = data.CreateGroup(db, &models.Group{Name: "Group"})
+	group := models.Group{Name: "Group"}
+	err = data.CreateGroup(db, &group)
 	assert.NilError(t, err)
-	groups, err := data.ListGroups(db, nil)
-	assert.NilError(t, err)
-	err = data.AddUsersToGroup(db, groups[0].ID, []uid.ID{identity.ID})
+	err = data.AddUsersToGroup(db, group.ID, []uid.ID{identity.ID})
 	assert.NilError(t, err)
 
 	// delete the identity, and make sure all their resources are gone
