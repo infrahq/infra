@@ -33,7 +33,7 @@ export default function TypeaheadCombobox({
           <Combobox.Input
             type='search'
             ref={inputRef}
-            className='relative w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
+            className='relative my-2 w-full bg-transparent text-xs text-gray-300 placeholder:italic focus:outline-none'
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
               button.current?.click()

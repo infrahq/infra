@@ -85,7 +85,7 @@ function EmailsSelectInput({
 
   return (
     <section className='my-2 flex'>
-      <div className='flex flex-1 items-center border-b border-gray-800 py-3'>
+      <div className='flex flex-1 items-center border-b border-gray-800 py-2'>
         <TypeaheadCombobox
           selectedEmails={selectedEmails}
           setSelectedEmails={setSelectedEmails}
