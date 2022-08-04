@@ -14,7 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
-func TestGroupAddCmd(t *testing.T) {
+func TestGroupsAddCmd(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
@@ -66,6 +66,74 @@ func TestGroupAddCmd(t *testing.T) {
 		err := Run(context.Background(), "groups", "add")
 		assert.ErrorContains(t, err, `"infra groups add" requires exactly 1 argument.`)
 		assert.ErrorContains(t, err, `Usage:  infra groups add GROUP [flags]`)
+	})
+}
+
+func TestGroupsRemoveCmd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	setup := func(t *testing.T) {
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+			listResp := api.ListResponse[api.Group]{}
+
+			if requestMatches(req, http.MethodGet, "/api/groups") {
+				if req.URL.Query().Get("name") == "Test" {
+					listResp = api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 100, Name: "Test"}}}
+				}
+				resp.WriteHeader(http.StatusOK)
+				err := json.NewEncoder(resp).Encode(listResp)
+				assert.NilError(t, err)
+				return
+
+			}
+
+			if !requestMatchesPrefix(req, http.MethodDelete, "/api/groups") {
+				resp.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			resp.WriteHeader(http.StatusOK)
+			err := json.NewEncoder(resp).Encode(map[string]string{})
+			assert.NilError(t, err)
+		}
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
+
+		cfg := newTestClientConfig(srv, api.User{})
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+	}
+
+	t.Run("remove group", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "remove", "Test")
+		assert.NilError(t, err)
+		assert.Equal(t, bufs.Stdout.String(), `Removed group "Test"`+"\n")
+	})
+
+	t.Run("remove group unknown", func(t *testing.T) {
+		setup(t)
+		ctx, _ := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "remove", "Nonexistent")
+		assert.ErrorContains(t, err, `unknown group "Nonexistent"`)
+	})
+
+	t.Run("remove group force", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "remove", "Nonexistent", "--force")
+		assert.NilError(t, err)
+		assert.Equal(t, bufs.Stdout.String(), "")
+	})
+
+	t.Run("without argument", func(t *testing.T) {
+		err := Run(context.Background(), "groups", "remove")
+		assert.ErrorContains(t, err, `"infra groups remove" requires exactly 1 argument.`)
+		assert.ErrorContains(t, err, `Usage:  infra groups remove GROUP [flags]`)
 	})
 }
 
