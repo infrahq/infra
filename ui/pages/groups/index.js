@@ -308,7 +308,6 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 13
-
   const {
     data: { items: groups, totalPages, totalCount } = {
       totalPages: 1,
@@ -317,7 +316,6 @@ export default function Groups() {
     error,
     mutate,
   } = useSWR(`/api/groups?page=${page}&limit=${limit}`)
-
   const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
