@@ -75,12 +75,6 @@
   description: The pull request is a work in progress.
   from_name: "wip"
 
-- name: "autorelease/pending"
-  color: "dddddd"
-  description: Used by release-please to mark a pending release PR.
-- name: "autorelease/tagged"
-  color: "dddddd"
-  description: Used by release-please to mark a PR that has been released.
 - name: "status/stale"
   description: Used by actions/stale to mark an issue or PR as stale.
   color: "dddddd"

@@ -5,10 +5,8 @@ import (
 )
 
 var (
-	Branch = "main"
-	// {x-release-please-start-version}
-	Version = "0.14.3"
-	// {x-release-please-end}
+	Branch     = "main"
+	Version    = "0.14.3"
 	Prerelease = ""
 	Metadata   = "dev"
 	Commit     = ""
@@ -16,7 +14,6 @@ var (
 )
 
 // FullVersion returns the full semver version string, however it also increments the patch version if you're working on a pre-release.
-// This is because release-please keeps this at the released version, and not the upcoming next version.
 // While the next version may not match the patch release, it causes the right behavior for semver version comparisons.
 func FullVersion() string {
 	v := semver.MustParse(Version)
