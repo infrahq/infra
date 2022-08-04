@@ -1,0 +1,54 @@
+name: cd / helm
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'helm/**'
+  workflow_dispatch:
+    inputs:
+      OVERRIDE_EXISTING:
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: azure/setup-helm@v1
+      - run: |
+          helm package -d helm helm/charts/*
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - run: |
+          for chart in *.tgz; do
+            if aws s3 ls s3://${{ env.HELM_BUCKET }}/$chart && ! ${{ inputs.OVERRIDE_EXISTING }} ; then
+              echo "Skipping $chart which already exists."
+              continue
+            fi
+
+            echo "Syncing $chart to ${{ env.HELM_BUCKET }}."
+            # HACK: index each chart independently. helm repo index requires a directory so
+            # if there are multiple charts in a directory, every chart will be indexed.
+            mkdir -p ${chart%%.tgz}
+            cp -a $chart ${chart%%.tgz}
+
+            (
+              # create a subshell so the chdir isn't persisted
+              cd ${chart%%.tgz}
+
+              # download the previous index.yaml so we can amend it
+              aws s3 sync s3://${{ env.HELM_BUCKET }} . --exclude '*' --include 'index.yaml'
+              helm repo index --merge index.yaml .
+
+              aws s3 sync . s3://${{ env.HELM_BUCKET }} --exclude '*' --include 'index.yaml' --include '*.tgz' --acl public-read
+            )
+          done
+        env:
+          HELM_BUCKET: helm.infrahq.com
