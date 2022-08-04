@@ -66,7 +66,7 @@ func ParseSchema(schema string) ([]Statement, error) {
 			state = scanSchemaForEndOfStatement
 
 		case scanSchemaForEndOfStatement:
-			line = strings.Replace(line, schemaNamePrefix, "", -1)
+			line = strings.ReplaceAll(line, schemaNamePrefix, "")
 			currentStmt.WriteString(line + "\n")
 
 			if strings.HasSuffix(line, ";") {
@@ -117,7 +117,7 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	for words.Scan() {
 		word := words.Text()
 		if table != "" {
-			word = strings.Replace(word, schemaNamePrefix, "", -1)
+			word = strings.ReplaceAll(word, schemaNamePrefix, "")
 			result.WriteString(word + " ")
 			continue
 		}

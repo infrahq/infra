@@ -20,6 +20,7 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/migrator"
+	"github.com/infrahq/infra/internal/server/data/schema"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
@@ -498,4 +499,27 @@ func dumpSchema(conn string) (*bytes.Buffer, error) {
 
 	err = cmd.Run()
 	return out, err
+}
+
+func TestWriteInitialSchema(t *testing.T) {
+	t.Skip()
+	setupDB(t, postgresDriver(t))
+
+	initial, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
+	assert.NilError(t, err)
+
+	stmts, err := schema.ParseSchema(initial.String())
+	assert.NilError(t, err)
+
+	var out bytes.Buffer
+	for _, stmt := range stmts {
+		if stmt.TableName == "migrations" {
+			continue
+		}
+		out.WriteString(stmt.Value)
+	}
+
+	// nolint:gosec
+	err = os.WriteFile("schema.sql", out.Bytes(), 0o644)
+	assert.NilError(t, err)
 }

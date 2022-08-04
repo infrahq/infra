@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
@@ -56,7 +57,21 @@ func migrations() []*migrator.Migration {
 	}
 }
 
+//go:embed schema.sql
+var schemaSQL string
+
 func initializeSchema(db *gorm.DB) error {
+	if db.Dialector.Name() == "sqlite" {
+		return autoMigrateSchema(db)
+	}
+
+	if err := db.Exec(schemaSQL).Error; err != nil {
+		return fmt.Errorf("failed to exec sql: %w", err)
+	}
+	return nil
+}
+
+func autoMigrateSchema(db *gorm.DB) error {
 	tables := []interface{}{
 		&models.ProviderUser{},
 		&models.Group{},
@@ -71,6 +86,7 @@ func initializeSchema(db *gorm.DB) error {
 		&models.Organization{},
 		&models.PasswordResetToken{},
 	}
+
 	for _, table := range tables {
 		if err := db.AutoMigrate(table); err != nil {
 			return err
