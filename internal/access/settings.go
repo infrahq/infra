@@ -26,38 +26,35 @@ func GetPublicJWK(c *gin.Context) ([]jose.JSONWebKey, error) {
 	return []jose.JSONWebKey{pubKey}, nil
 }
 
-func GetPasswordRequirements(c *gin.Context) (api.PasswordRequirements, error) {
+func GetSettings(c *gin.Context) (*api.Settings, error) {
 	db := getDB(c)
 	settings, err := data.GetSettings(db)
-
 	if err != nil {
-		return api.PasswordRequirements{}, fmt.Errorf("could not get password settings: %w", err)
+		return &api.Settings{}, fmt.Errorf("could not get settings: %w", err)
 	}
 
-	var requirements api.PasswordRequirements
-	requirements.LowercaseMin = settings.LowercaseMin
-	requirements.UppercaseMin = settings.UppercaseMin
-	requirements.NumberMin = settings.NumberMin
-	requirements.SymbolMin = settings.SymbolMin
-	requirements.LengthMin = settings.LengthMin
-	return requirements, nil
+	return settings.ToAPI(), nil
 }
 
-func SaveSettings(c *gin.Context, updatedSettings *models.Settings) error {
+func SaveSettings(c *gin.Context, updatedSettings *api.Settings) (*api.Settings, error) {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
+		return nil, HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
 	}
 
 	settings, err := data.GetSettings(db)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	settings.LengthMin = updatedSettings.LengthMin
-	settings.UppercaseMin = updatedSettings.UppercaseMin
-	settings.LowercaseMin = updatedSettings.LowercaseMin
-	settings.SymbolMin = updatedSettings.SymbolMin
-	settings.NumberMin = updatedSettings.NumberMin
 
-	return data.SaveSettings(db, settings)
+	settings.SetFromAPI(updatedSettings)
+	if err = data.SaveSettings(db, settings); err != nil {
+		return nil, err
+	}
+
+	settings, err = data.GetSettings(db)
+	if err != nil {
+		return nil, fmt.Errorf("could not get settings after update: %w", err)
+	}
+	return settings.ToAPI(), nil
 }

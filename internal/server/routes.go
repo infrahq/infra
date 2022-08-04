@@ -116,7 +116,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	get(a, noAuthn, "/api/version", a.Version)
 
-	get(a, authn, "/api/settings", a.GetSettings)
+	get(a, noAuthn, "/api/settings", a.GetSettings)
 	put(a, authn, "/api/settings", a.UpdateSettings)
 
 	// registerUIRoutes must happen last because it uses catch-all middleware

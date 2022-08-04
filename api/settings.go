@@ -1,9 +1,5 @@
 package api
 
-type GetSettingsRequest struct {
-	PasswordRequirements bool `form:"passwordRequirements,omitempty"`
-}
-
 type Settings struct {
 	PasswordRequirements PasswordRequirements `json:"passwordRequirements"`
 }
