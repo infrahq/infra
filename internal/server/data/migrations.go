@@ -37,7 +37,6 @@ func migrations() []*migrator.Migration {
 				return nil
 			},
 		},
-		// drop old Groups constraint; new constraint will be created automatically
 		{
 			ID: "202206081027",
 			Migrate: func(tx *gorm.DB) error {
@@ -168,7 +167,15 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 // #2360: delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
 func deleteDuplicateGrants() *migrator.Migration {
 	return &migrator.Migration{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
-		return deleteDuplicates(tx, "subject, resource, privilege", &models.Grant{})
+		stmt := `
+			DELETE FROM grants
+			WHERE deleted_at IS NULL
+			AND id NOT IN (
+				SELECT min(id)
+				FROM grants
+				WHERE deleted_at IS NULL
+				GROUP BY subject, resource, privilege)`
+		return tx.Exec(stmt).Error
 	}}
 }
 
@@ -205,9 +212,4 @@ func dropDeletedProviderUsers() *migrator.Migration {
 			return nil
 		},
 	}
-}
-
-func deleteDuplicates(tx *gorm.DB, group string, model models.Modelable) error {
-	subQuery := tx.Select("min(id)").Group(group).Model(model)
-	return tx.Where("id NOT in (?)", subQuery).Delete(model).Error
 }
