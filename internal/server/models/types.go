@@ -9,7 +9,12 @@ import (
 type CommaSeparatedStrings []string
 
 func (s CommaSeparatedStrings) Value() (driver.Value, error) {
-	return strings.Join([]string(s), ","), nil
+	for _, v := range s {
+		if strings.Contains(v, ",") {
+			return nil, fmt.Errorf("can not store values that include commas")
+		}
+	}
+	return strings.Join(s, ","), nil
 }
 
 func (s *CommaSeparatedStrings) Scan(v interface{}) error {
@@ -18,7 +23,7 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 	}
 	str, ok := v.(string)
 	if !ok {
-		return fmt.Errorf("expected string type for %v", v)
+		return fmt.Errorf("expected string type for comma separated string, got %T", v)
 	}
 	parts := strings.Split(str, ",")
 
@@ -27,7 +32,6 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 	}
 
 	*s = parts
-
 	return nil
 }
 
