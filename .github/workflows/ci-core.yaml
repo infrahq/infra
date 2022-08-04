@@ -1,0 +1,96 @@
+name: ci / core
+
+on:
+  pull_request:
+    paths:
+      - go.mod
+      - go.sum
+      - '**/*.go'
+  push:
+    branches:
+      - main
+    paths:
+      - go.mod
+      - go.sum
+      - '**/*.go'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+          cache: true
+      - uses: golangci/golangci-lint-action@v3.2.0
+        with:
+          version: v1.46.2
+          args: --verbose
+          # setup-go already restores the build and module cache
+          skip-build-cache: true
+          skip-pkg-cache: true
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14-alpine
+        env:
+          POSTGRES_PASSWORD: password123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ["5432:5432"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+          cache: true
+      - run: go mod download -x
+      - run: go install gotest.tools/gotestsum@v1.8.0
+
+      - name: go test
+        run: ~/go/bin/gotestsum -ftestname -- -race ./...
+        env:
+          POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
+
+      - name: Check that tests leave a clean git checkout
+        run: |
+          # show and check changes to committed files
+          git diff --exit-code
+          # show and check for uncommitted files
+          git status --short; [[ "$(git status --short)" == "" ]]
+
+  check-generated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.18"
+          cache: true
+      - run: go mod download -x
+      - run: go build -debug-actiongraph=compile.json .
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-log
+          path: compile.json
+
+      - name: Check generated docs are updated
+        run: |
+          # fake a terminal to get the right defaults for non-interactive
+          script -e -q -c "go run ${LDFLAGS:+-ldflags \"$LDFLAGS\"} ./internal/docgen"
+          git diff --exit-code
+      - name: Check go mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+      - name: Check generated code is updated
+        run: |
+          go generate ./...
+          git diff --exit-code
