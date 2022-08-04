@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/mail"
 	"net/url"
 	"os"
 	"strings"
@@ -124,23 +123,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 	}
 
 	loginReq := &api.LoginRequest{}
-
-	// if signup is required, use it to create an admin account
-	// and use those credentials for subsequent requests
-	logging.Debugf("call server: check signup enabled")
-	signupEnabled, err := lc.APIClient.SignupEnabled()
-	if err != nil {
-		return err
-	}
-
-	if signupEnabled.Enabled {
-		loginReq.PasswordCredentials, err = runSignupForLogin(cli, lc.APIClient)
-		if err != nil {
-			return err
-		}
-
-		return loginToInfra(cli, lc, loginReq, options.NoAgent)
-	}
 
 	if options.AccessKey == "" {
 		options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
@@ -352,35 +334,6 @@ func loginToProvider(provider *api.Provider) (*api.LoginRequestOIDC, error) {
 		ProviderID:  provider.ID,
 		RedirectURL: cliLoginRedirectURL,
 		Code:        code,
-	}, nil
-}
-
-func runSignupForLogin(cli *CLI, client *api.Client) (*api.LoginRequestPasswordCredentials, error) {
-	fmt.Fprintln(cli.Stderr, "  Welcome to Infra. Set up your admin user:")
-
-	email, err := promptSetEmail(cli)
-	if err != nil {
-		return nil, err
-	}
-
-PROMPTSIGNUP:
-	password, err := promptSetPassword(cli, "")
-	if err != nil {
-		return nil, err
-	}
-
-	logging.Debugf("call server: signup for user %q", email)
-	_, err = client.Signup(&api.SignupRequest{Name: email, Password: password})
-	if err != nil {
-		if passwordError(cli, err) {
-			goto PROMPTSIGNUP
-		}
-		return nil, err
-	}
-
-	return &api.LoginRequestPasswordCredentials{
-		Name:     email,
-		Password: password,
 	}, nil
 }
 
@@ -705,27 +658,6 @@ func promptServerList(cli *CLI, servers []ClientHostConfig) (string, error) {
 	}
 
 	return servers[i].Host, nil
-}
-
-func promptSetEmail(cli *CLI) (string, error) {
-	var email string
-PROMPT:
-	if err := survey.AskOne(
-		&survey.Input{Message: "Email:"},
-		&email,
-		cli.surveyIO,
-		survey.WithValidator(survey.Required),
-	); err != nil {
-		return "", err
-	}
-
-	_, err := mail.ParseAddress(email)
-	if err != nil {
-		cli.Output("  Please enter a valid email.")
-		goto PROMPT
-	}
-
-	return email, nil
 }
 
 // authURLForProvider builds an authorization URL that will get the information we need from an identity provider
