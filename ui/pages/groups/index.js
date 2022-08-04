@@ -254,24 +254,26 @@ function Details({ group, admin, onDelete }) {
                   <div className='mt-6'>No members in the group</div>
                 </EmptyData>
               ) : (
-                users.map(user => (
-                  <Member
-                    key={user.id}
-                    name={user.name}
-                    id={user.id}
-                    showDialog={user.id === auth.id}
-                    onRemove={async () => {
-                      await fetch(`/api/groups/${id}/users`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({ usersToRemove: [user.id] }),
-                      })
+                users
+                  .sort((a, b) => a.id?.localeCompare(b.id))
+                  .map(user => (
+                    <Member
+                      key={user.id}
+                      name={user.name}
+                      id={user.id}
+                      showDialog={user.id === auth.id}
+                      onRemove={async () => {
+                        await fetch(`/api/groups/${id}/users`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ usersToRemove: [user.id] }),
+                        })
 
-                      mutateUsers({
-                        items: users.filter(i => i.id !== user.id),
-                      })
-                    }}
-                  />
-                ))
+                        mutateUsers({
+                          items: users.filter(i => i.id !== user.id),
+                        })
+                      }}
+                    />
+                  ))
               )}
             </div>
           </section>
