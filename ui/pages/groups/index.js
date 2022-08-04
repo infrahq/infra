@@ -115,7 +115,7 @@ function EmailsSelectInput({
   )
 }
 
-function Member({ name, showDialog, onRemove }) {
+function Member({ name = '', showDialog = false, onRemove = () => {} }) {
   const [open, setOpen] = useState(false)
 
   return (
