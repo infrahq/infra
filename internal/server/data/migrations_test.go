@@ -191,7 +191,7 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 			setup: func(t *testing.T, db *gorm.DB) {
 				stmt := `
 INSERT INTO destinations (id, created_at, updated_at, name, unique_id)
-VALUES (12345, '2022-07-05 00:41:49.143574+00', '2022-07-05 01:41:49.143574+00', 'the-destination', 'unique-id');`
+VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-destination', 'unique-id');`
 				err := db.Exec(stmt).Error
 				assert.NilError(t, err)
 			},
@@ -330,9 +330,6 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	}
 
 	for _, driver := range dbDrivers(t) {
-		if driver.Name() != "postgres" {
-			continue
-		}
 		t.Run(driver.Name(), func(t *testing.T) {
 			db, err := newRawDB(driver)
 			assert.NilError(t, err)

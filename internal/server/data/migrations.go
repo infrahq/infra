@@ -173,18 +173,8 @@ func deleteDuplicateGrants() *migrator.Migration {
 				SELECT min(id)
 				FROM grants
 				WHERE deleted_at IS NULL
-				GROUP BY (subject, resource, privilege))`
-		if err := tx.Exec(stmt).Error; err != nil {
-			return err
-		}
-
-		stmt = `CREATE UNIQUE INDEX idx_grant_srp ON grants
-USING btree (subject, privilege, resource)
-WHERE (deleted_at IS NULL);`
-		if err := tx.Exec(stmt).Error; err != nil {
-			return err
-		}
-		return nil
+				GROUP BY subject, resource, privilege)`
+		return tx.Exec(stmt).Error
 	}}
 }
 
