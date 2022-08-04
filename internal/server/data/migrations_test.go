@@ -18,6 +18,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/patch"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestMigrations(t *testing.T) {
@@ -314,6 +315,42 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				assert.Equal(t, len(puDetails), 1)
 				assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
 				assert.Equal(t, puDetails[0].ProviderID, "75225930151567361")
+			},
+		},
+		{
+			label: testCaseLine("2022-07-28T12:46"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+				INSERT INTO identities (id, name, deleted_at) VALUES (100, 'deleted@test.com', '2022-07-27 14:02:18.934641547+00:00'), (101, 'user@test.com', NULL);
+				INSERT INTO groups (id, name) VALUES (102, 'Test');
+				INSERT INTO identities_groups (identity_id, group_id) VALUES (100, 102), (101, 102);`
+
+				assert.NilError(t, db.Exec(stmt).Error)
+			},
+			expected: func(t *testing.T, db *gorm.DB) {
+				type IdentityGroup struct {
+					IdentityID uid.ID
+					GroupID    uid.ID
+				}
+				var relations []IdentityGroup
+				rows, err := db.Raw("SELECT identity_id, group_id FROM identities_groups").Rows()
+				assert.NilError(t, err)
+				defer rows.Close()
+
+				for rows.Next() {
+					var relation IdentityGroup
+					err := rows.Scan(&relation.IdentityID, &relation.GroupID)
+					assert.NilError(t, err)
+					relations = append(relations, relation)
+				}
+
+				assert.Equal(t, len(relations), 1)
+				assert.DeepEqual(t, relations[0], IdentityGroup{IdentityID: 101, GroupID: 102})
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				assert.NilError(t, db.Exec(`DELETE FROM identities_groups;`).Error)
+				assert.NilError(t, db.Exec(`DELETE FROM identities;`).Error)
+				assert.NilError(t, db.Exec(`DELETE FROM groups;`).Error)
 			},
 		},
 	}
