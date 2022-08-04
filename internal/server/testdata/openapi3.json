@@ -4422,13 +4422,6 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
-          },
-          {
-            "in": "query",
-            "name": "passwordRequirements,omitempty",
-            "schema": {
-              "type": "boolean"
-            }
           }
         ],
         "responses": {
@@ -4605,7 +4598,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EmptyResponse"
+                  "$ref": "#/components/schemas/Settings"
                 }
               }
             },
