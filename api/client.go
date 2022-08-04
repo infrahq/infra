@@ -164,8 +164,11 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 		return id.String()
 	})
 	return get[ListResponse[User]](c, "/api/users",
-		Query{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
-			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}, "showSystem": {strconv.FormatBool(req.ShowSystem)}})
+		Query{
+			"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
+			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
+			"showSystem": {strconv.FormatBool(req.ShowSystem)},
+		})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
@@ -220,8 +223,10 @@ func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
 
 func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider], error) {
 	return get[ListResponse[Provider]](c, "/api/providers",
-		Query{"name": {req.Name},
-			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
+		Query{
+			"name": {req.Name},
+			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
+		})
 }
 
 func (c Client) ListOrganizations(req ListOrganizationsRequest) (*ListResponse[Organization], error) {
@@ -325,10 +330,6 @@ func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {
 func (c Client) Logout() error {
 	_, err := post[EmptyRequest, EmptyResponse](c, "/api/logout", &EmptyRequest{})
 	return err
-}
-
-func (c Client) SignupEnabled() (*SignupEnabledResponse, error) {
-	return get[SignupEnabledResponse](c, "/api/signup", Query{})
 }
 
 func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
