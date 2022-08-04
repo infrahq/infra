@@ -115,6 +115,42 @@ function EmailsSelectInput({
   )
 }
 
+function Member({ name, showDialog, onRemove }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className='group flex items-center justify-between truncate text-2xs'>
+      <div className='py-2'>{name}</div>
+      <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
+        <button
+          onClick={() => {
+            if (showDialog) {
+              setOpen(true)
+              return
+            }
+
+            onRemove()
+          }}
+          className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
+        >
+          Remove
+        </button>
+        <DeleteModal
+          open={open}
+          setOpen={setOpen}
+          primaryButtonText='Remove'
+          onSubmit={() => {
+            onRemove()
+            setOpen(false)
+          }}
+          title='Remove User'
+          message='Are you sure you want to remove yourself from this group? You will lose any access provided by this group.'
+        />
+      </div>
+    </div>
+  )
+}
+
 function Details({ group, admin, onDelete }) {
   const { id, name } = group
 
@@ -125,16 +161,15 @@ function Details({ group, admin, onDelete }) {
   const { data: { items } = {}, mutate: mutateGrants } = useSWR(
     `/api/grants?group=${id}`
   )
-  const { data: { items: infraAdmin } = {} } = useSWR(
+  const { data: { items: infraAdmins } = {} } = useSWR(
     '/api/grants?resource=infra&privilege=admin'
   )
 
   const [emails, setEmails] = useState([])
-  const [open, setOpen] = useState(false)
 
   const grants = items?.filter(g => g.resource !== 'infra')
   const existMembers = users?.map(m => m.id)
-  const adminGroups = infraAdmin?.map(admin => admin.group)
+  const adminGroups = infraAdmins?.map(admin => admin.group)
 
   const metadata = [
     { title: 'ID', data: id },
@@ -143,149 +178,129 @@ function Details({ group, admin, onDelete }) {
       data: group?.created ? dayjs(group.created).fromNow() : '-',
     },
   ]
-  const loading = [auth, users, grants, infraAdmin].some(x => !x)
+  const loading = [auth, users, grants, infraAdmins].some(x => !x)
 
   const hideRemoveGroupBtn =
-    !admin || (infraAdmin?.length === 1 && adminGroups.includes(id))
+    !admin || (infraAdmins?.length === 1 && adminGroups.includes(id))
 
-  const handleRemoveUserFromGroup = async userId => {
-    const usersToRemove = [userId]
-    await fetch(`/api/groups/${id}/users`, {
-      method: 'PATCH',
-      body: JSON.stringify({ usersToRemove }),
-    })
-
-    mutateUsers({
-      items: users.filter(i => i.id !== userId),
-    })
+  if (loading) {
+    return null
   }
 
   return (
-    !loading && (
-      <div className='flex flex-1 flex-col space-y-6'>
-        {admin && (
-          <>
-            <section>
-              <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-                Access
-              </h3>
-              <GrantsList
-                grants={grants}
-                onRemove={async id => {
-                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-                  mutateGrants({ items: grants.filter(x => x.id !== id) })
-                }}
-                onChange={async (privilege, grant) => {
-                  const res = await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      ...grant,
-                      privilege,
-                    }),
-                  })
-
-                  // delete old grant
-                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
-                  mutateGrants({
-                    items: [
-                      ...grants.filter(f => f.id !== grant.id),
-                      await res.json(),
-                    ],
-                  })
-                }}
-              />
-              {!grants?.length && (
-                <EmptyData>
-                  <div className='mt-6'>No access</div>
-                </EmptyData>
-              )}
-            </section>
-            <section>
-              <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-                Users{users?.length > 0 && <span> ({users.length})</span>}
-              </h3>
-              <EmailsSelectInput
-                selectedEmails={emails}
-                setSelectedEmails={setEmails}
-                existMembers={existMembers}
-                onClick={async () => {
-                  const usersToAdd = emails.map(email => email.id)
-                  await fetch(`/api/groups/${id}/users`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ usersToAdd }),
-                  })
-
-                  mutateUsers({ items: [...users, ...emails] })
-                  setEmails([])
-                }}
-              />
-              <div className='mt-4'>
-                {users?.length === 0 && (
-                  <EmptyData>
-                    <div className='mt-6'>No members in the group</div>
-                  </EmptyData>
-                )}
-                {users.map(user => {
-                  return (
-                    <div
-                      key={user.id}
-                      className='group flex items-center justify-between truncate text-2xs'
-                    >
-                      <div className='py-2'>{user.name}</div>
-                      {
-                        <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
-                          <button
-                            onClick={() => {
-                              user.id === auth.id
-                                ? setOpen(true)
-                                : handleRemoveUserFromGroup(user.id)
-                            }}
-                            className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
-                          >
-                            Remove
-                          </button>
-                          <DeleteModal
-                            open={open}
-                            setOpen={setOpen}
-                            primaryButtonText='Remove'
-                            onSubmit={() => handleRemoveUserFromGroup(user.id)}
-                            title='Remove User'
-                            message='Are you sure you want to remove yourself from this group? You will lose any access that this group grants.'
-                          />
-                        </div>
-                      }
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          </>
-        )}
-        <section>
-          <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-            Metadata
-          </h3>
-          <Metadata data={metadata} />
-        </section>
-        {!hideRemoveGroupBtn && (
-          <section className='flex flex-1 flex-col items-end justify-end py-6'>
-            <RemoveButton
-              onRemove={async () => {
-                onDelete()
+    <div className='flex flex-1 flex-col space-y-6'>
+      {admin && (
+        <>
+          {/* Access */}
+          <section>
+            <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+              Access
+            </h3>
+            <GrantsList
+              grants={grants}
+              onRemove={async id => {
+                await fetch(`/api/grants/${id}`, { method: 'DELETE' })
+                mutateGrants({ items: grants.filter(x => x.id !== id) })
               }}
-              modalTitle='Remove Group'
-              modalMessage={
-                <>
-                  Are you sure you want to delete{' '}
-                  <span className='font-bold text-white'>{name}</span>? This
-                  action cannot be undone.
-                </>
-              }
+              onChange={async (privilege, grant) => {
+                const res = await fetch('/api/grants', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    ...grant,
+                    privilege,
+                  }),
+                })
+
+                // delete old grant
+                await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
+                mutateGrants({
+                  items: [
+                    ...grants.filter(f => f.id !== grant.id),
+                    await res.json(),
+                  ],
+                })
+              }}
             />
+            {!grants?.length && (
+              <EmptyData>
+                <div className='mt-6'>No access</div>
+              </EmptyData>
+            )}
           </section>
-        )}
-      </div>
-    )
+
+          {/* Members */}
+          <section>
+            <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+              Users{users?.length > 0 && <span> ({users.length})</span>}
+            </h3>
+            <EmailsSelectInput
+              selectedEmails={emails}
+              setSelectedEmails={setEmails}
+              existMembers={existMembers}
+              onClick={async () => {
+                const usersToAdd = emails.map(email => email.id)
+                await fetch(`/api/groups/${id}/users`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ usersToAdd }),
+                })
+
+                mutateUsers({ items: [...users, ...emails] })
+                setEmails([])
+              }}
+            />
+            <div className='mt-4'>
+              {users?.length === 0 ? (
+                <EmptyData>
+                  <div className='mt-6'>No members in the group</div>
+                </EmptyData>
+              ) : (
+                users.map(user => (
+                  <Member
+                    key={user.id}
+                    name={user.name}
+                    id={user.id}
+                    showDialog={user.id === auth.id}
+                    onRemove={async () => {
+                      await fetch(`/api/groups/${id}/users`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ usersToRemove: [user.id] }),
+                      })
+
+                      mutateUsers({
+                        items: users.filter(i => i.id !== user.id),
+                      })
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </>
+      )}
+      <section>
+        <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+          Metadata
+        </h3>
+        <Metadata data={metadata} />
+      </section>
+      {!hideRemoveGroupBtn && (
+        <section className='flex flex-1 flex-col items-end justify-end py-6'>
+          <RemoveButton
+            onRemove={async () => {
+              onDelete()
+            }}
+            modalTitle='Remove Group'
+            modalMessage={
+              <>
+                Are you sure you want to delete{' '}
+                <span className='font-bold text-white'>{name}</span>? This
+                action cannot be undone.
+              </>
+            }
+          />
+        </section>
+      )}
+    </div>
   )
 }
 
@@ -293,6 +308,7 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 13
+
   const {
     data: { items: groups, totalPages, totalCount } = {
       totalPages: 1,
@@ -301,8 +317,8 @@ export default function Groups() {
     error,
     mutate,
   } = useSWR(`/api/groups?page=${page}&limit=${limit}`)
-  const { admin, loading: adminLoading } = useAdmin()
 
+  const { admin, loading: adminLoading } = useAdmin()
   const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!groups && !error)
