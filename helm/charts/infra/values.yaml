@@ -428,8 +428,8 @@ server:
     ## Path on the filesystem to store the database encryption key
     # dbEncryptionKey: ""
 
-    # defaultOrganizationName: "Acme"
-    # defaultOrganizationDomain: "localhost"
+    # organizationName: "Acme"
+    # organizationDomain: "localhost"
 
     ## Enable service telemetry
     # enableTelemetry: true
