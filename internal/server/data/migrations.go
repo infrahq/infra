@@ -214,8 +214,6 @@ func dropDeletedProviderUsers() *migrator.Migration {
 		},
 	}
 }
-<<<<<<< HEAD
-=======
 
 func removeDeletedIdentitiesFromGroups() *migrator.Migration {
 	return &migrator.Migration{
