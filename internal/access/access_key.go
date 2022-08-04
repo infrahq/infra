@@ -10,15 +10,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func currentAccessKey(c *gin.Context) *models.AccessKey {
-	accessKey, ok := c.MustGet("key").(*models.AccessKey)
-	if !ok {
-		return nil
-	}
-
-	return accessKey
-}
-
 func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p *models.Pagination) ([]models.AccessKey, error) {
 	roles := []string{models.InfraAdminRole, models.InfraViewRole}
 	db, err := RequireInfraRole(c, roles...)
@@ -57,11 +48,7 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 	return data.DeleteAccessKeys(db, data.ByID(id))
 }
 
-func DeleteRequestAccessKey(c *gin.Context) error {
+func DeleteRequestAccessKey(c RequestContext) error {
 	// does not need authorization check, this action is limited to the calling key
-	key := currentAccessKey(c)
-
-	db := getDB(c)
-
-	return data.DeleteAccessKey(db, key.ID)
+	return data.DeleteAccessKey(c.DBTxn, c.Authenticated.AccessKey.ID)
 }

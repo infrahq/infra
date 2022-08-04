@@ -27,14 +27,16 @@ type API struct {
 }
 
 func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateTokenResponse, error) {
-	if access.AuthenticatedIdentity(c) != nil {
+	rCtx := getRequestContext(c)
+
+	if rCtx.Authenticated.User != nil {
 		err := a.UpdateIdentityInfoFromProvider(c)
 		if err != nil {
 			// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 			return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
 		}
 
-		token, err := access.CreateToken(c)
+		token, err := access.CreateToken(rCtx)
 		if err != nil {
 			return nil, err
 		}
@@ -152,14 +154,13 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(expires), PasswordUpdateRequired: requiresUpdate}, nil
 }
 
-func (a *API) Logout(c *gin.Context, r *api.EmptyRequest) (*api.EmptyResponse, error) {
-	err := access.DeleteRequestAccessKey(c)
+func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
+	err := access.DeleteRequestAccessKey(getRequestContext(c))
 	if err != nil {
 		return nil, err
 	}
 
-	deleteAuthCookie(c)
-
+	deleteAuthCookie(c.Writer)
 	return nil, nil
 }
 
@@ -169,7 +170,8 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	provider, redirectURL, err := access.GetContextProviderIdentity(c)
+	rCtx := getRequestContext(c)
+	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx)
 	if err != nil {
 		return err
 	}
@@ -178,12 +180,12 @@ func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 		return nil
 	}
 
-	oidc, err := a.providerClient(c, provider, redirectURL)
+	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)
 	if err != nil {
 		return fmt.Errorf("update provider client: %w", err)
 	}
 
-	return access.UpdateIdentityInfoFromProvider(c, oidc)
+	return access.UpdateIdentityInfoFromProvider(rCtx, oidc)
 }
 
 func (a *API) providerClient(ctx context.Context, provider *models.Provider, redirectURL string) (providers.OIDCClient, error) {

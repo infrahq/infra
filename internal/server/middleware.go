@@ -88,7 +88,6 @@ func getDB(c *gin.Context) *gorm.DB {
 	if !ok {
 		return nil
 	}
-
 	return db
 }
 
@@ -98,15 +97,21 @@ func getDB(c *gin.Context) *gorm.DB {
 func authenticatedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		db := getDB(c)
-		authnUser, err := requireAccessKey(db, c.Request)
+		authned, err := requireAccessKey(db, c.Request)
 		if err != nil {
 			sendAPIError(c, err)
 			return
 		}
 
-		// TODO: save authnUser in a single key
-		c.Set("key", authnUser.AccessKey)
-		c.Set("identity", authnUser.User)
+		rCtx := access.RequestContext{
+			Request:       c.Request,
+			DBTxn:         db,
+			Authenticated: authned,
+		}
+		c.Set(access.RequestContextKey, rCtx)
+
+		// TODO: remove
+		c.Set("identity", authned.User)
 
 		if err := handleInfraDestinationHeader(c); err != nil {
 			sendAPIError(c, err)
@@ -116,14 +121,9 @@ func authenticatedMiddleware() gin.HandlerFunc {
 	}
 }
 
-type authenticatedUser struct {
-	AccessKey *models.AccessKey
-	User      *models.Identity
-}
-
 // requireAccessKey checks the bearer token is present and valid
-func requireAccessKey(db *gorm.DB, req *http.Request) (authenticatedUser, error) {
-	var u authenticatedUser
+func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, error) {
+	var u access.Authenticated
 	header := req.Header.Get("Authorization")
 
 	bearer := ""
@@ -133,7 +133,7 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (authenticatedUser, error)
 		bearer = parts[1]
 	} else {
 		// Fall back to checking cookies
-		cookie, err := getCookie(req, CookieAuthorizationName)
+		cookie, err := getCookie(req, cookieAuthorizationName)
 		if err != nil {
 			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
 		}
@@ -268,4 +268,26 @@ func getDefaultOrg(db *gorm.DB, defaultOrgName, defaultOrgDomain string) (*model
 
 	defaultOrgCache = org
 	return org, nil
+}
+
+func unauthenticatedMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rCtx := access.RequestContext{
+			Request: c.Request,
+			DBTxn:   getDB(c),
+		}
+		c.Set(access.RequestContextKey, rCtx)
+	}
+}
+
+func getRequestContext(c *gin.Context) access.RequestContext {
+	raw, ok := c.Get(access.RequestContextKey)
+	if !ok {
+		return access.RequestContext{}
+	}
+	rCtx, ok := raw.(access.RequestContext)
+	if !ok {
+		return access.RequestContext{}
+	}
+	return rCtx
 }

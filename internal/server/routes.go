@@ -105,7 +105,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/")
+	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware())
 	post(a, noAuthn, "/api/signup", a.Signup)
 
 	post(a, noAuthn, "/api/login", a.Login)

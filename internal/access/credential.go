@@ -91,8 +91,9 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 
 	if isSelf {
 		// if we updated our own password, remove the password-reset scope from our access key.
-		if k, ok := c.Get("key"); ok {
-			if accessKey, ok := k.(*models.AccessKey); ok {
+		if raw, ok := c.Get(RequestContextKey); ok {
+			if rCtx, ok := raw.(RequestContext); ok {
+				accessKey := rCtx.Authenticated.AccessKey
 				accessKey.Scopes = models.CommaSeparatedStrings{}
 				if err = data.SaveAccessKey(db, accessKey); err != nil {
 					return fmt.Errorf("updating access key: %w", err)

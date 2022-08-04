@@ -36,6 +36,14 @@ func info(cli *CLI) error {
 		return err
 	}
 
+	user, err := client.GetUser(config.UserID)
+	if err != nil {
+		if api.ErrorStatusCode(err) == 401 {
+			return Error{Message: "Session is not valid for this server; run 'infra login' to start a new session"}
+		}
+		return err
+	}
+
 	w := tabwriter.NewWriter(cli.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	defer w.Flush()
 
@@ -44,11 +52,6 @@ func info(cli *CLI) error {
 
 	if config.UserID == 0 {
 		return fmt.Errorf("no active user")
-	}
-
-	user, err := client.GetUser(config.UserID)
-	if err != nil {
-		return err
 	}
 
 	fmt.Fprintf(w, "User:\t %s (%s)\n", user.Name, user.ID)

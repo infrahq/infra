@@ -147,5 +147,5 @@ UI 'envFrom' values. Merges global and local values.
 Infer whether ui should be deployed. For backwards compatibility, also check .Values.server.config.ui.enabled
 */}}
 {{- define "ui.enabled" -}}
-{{- and .Values.ui.enabled (ne .Values.server.config.ui.enabled false) }}
+{{- and .Values.ui.enabled (ne .Values.server.config.ui.enabled false) (not .Values.connector.config.server) }}
 {{- end }}
