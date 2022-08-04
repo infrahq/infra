@@ -319,6 +319,7 @@ export default function Groups() {
     mutate,
   } = useSWR(`/api/groups?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
+
   const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!groups && !error)
