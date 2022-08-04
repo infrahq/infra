@@ -82,8 +82,8 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	err = data.CreateGrant(db, grantDestination)
 	assert.NilError(t, err)
 
-	group := models.Group{Name: "Group"}
-	err = data.CreateGroup(db, &group)
+	group := &models.Group{Name: "Group"}
+	err = data.CreateGroup(db, group)
 	assert.NilError(t, err)
 	err = data.AddUsersToGroup(db, group.ID, []uid.ID{identity.ID})
 	assert.NilError(t, err)
@@ -105,7 +105,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 
-	group, err := data.GetGroup(db, data.ByID(groups[0].ID))
+	group, err = data.GetGroup(db, data.ByID(group.ID))
 	assert.NilError(t, err)
 	assert.Equal(t, group.TotalUsers, 0)
 }
