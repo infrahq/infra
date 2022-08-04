@@ -137,6 +137,109 @@ func TestGroupsRemoveCmd(t *testing.T) {
 	})
 }
 
+func TestGroupsAddAndRemoveUserCmds(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	setup := func(t *testing.T) {
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+
+			if requestMatches(req, http.MethodGet, "/api/groups") {
+				resp.WriteHeader(http.StatusOK)
+				if req.URL.Query().Get("name") == "Test" {
+					err := json.NewEncoder(resp).Encode(api.ListResponse[api.Group]{Count: 1, Items: []api.Group{{ID: 100, Name: "Test"}}})
+					assert.NilError(t, err)
+				} else {
+					err := json.NewEncoder(resp).Encode(api.ListResponse[api.Group]{Count: 0, Items: []api.Group{}})
+					assert.NilError(t, err)
+				}
+				return
+			}
+
+			if requestMatches(req, http.MethodGet, "/api/users") {
+				resp.WriteHeader(http.StatusOK)
+				if req.URL.Query().Get("name") == "user@example.com" {
+					err := json.NewEncoder(resp).Encode(api.ListResponse[api.User]{Count: 1, Items: []api.User{{ID: 1, Name: "user@example.com"}}})
+					assert.NilError(t, err)
+				} else {
+					err := json.NewEncoder(resp).Encode(api.ListResponse[api.User]{Count: 0, Items: []api.User{}})
+					assert.NilError(t, err)
+				}
+				return
+			}
+			if !requestMatches(req, http.MethodPatch, "/api/groups/2J/users") {
+				resp.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			var updateRequest api.UpdateUsersInGroupRequest
+			err := json.NewDecoder(req.Body).Decode(&updateRequest)
+			assert.NilError(t, err)
+
+			if (len(updateRequest.UserIDsToAdd) > 0 && updateRequest.UserIDsToAdd[0] == 1) || (len(updateRequest.UserIDsToRemove) > 0 && updateRequest.UserIDsToRemove[0] == 1) {
+				resp.WriteHeader(http.StatusOK)
+				err = json.NewEncoder(resp).Encode(map[string]string{})
+				assert.NilError(t, err)
+				return
+			}
+
+		}
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
+
+		cfg := newTestClientConfig(srv, api.User{})
+		err := writeConfig(&cfg)
+		assert.NilError(t, err)
+
+	}
+
+	t.Run("add user", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "adduser", "user@example.com", "Test")
+		assert.NilError(t, err)
+		assert.Equal(t, bufs.Stdout.String(), `Added user "user@example.com" to group "Test"`+"\n")
+	})
+
+	t.Run("remove user", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "removeuser", "user@example.com", "Test")
+		assert.NilError(t, err)
+		assert.Equal(t, bufs.Stdout.String(), `Removed user "user@example.com" from group "Test"`+"\n")
+	})
+
+	t.Run("remove user unknown", func(t *testing.T) {
+		setup(t)
+		ctx, _ := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "removeuser", "unknown@example.com", "Test")
+		assert.ErrorContains(t, err, `unknown user "unknown@example.com"`)
+	})
+
+	t.Run("add user unknown", func(t *testing.T) {
+		setup(t)
+		ctx, _ := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "adduser", "unknown@example.com", "Test")
+		assert.ErrorContains(t, err, `unknown user "unknown@example.com"`)
+	})
+
+	t.Run("group unknown add", func(t *testing.T) {
+		setup(t)
+		ctx, _ := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "adduser", "user@example.com", "Nonexistent")
+		assert.ErrorContains(t, err, `unknown group "Nonexistent"`)
+	})
+
+	t.Run("group unknown remove", func(t *testing.T) {
+		setup(t)
+		ctx, _ := PatchCLI(context.Background())
+		err := Run(ctx, "groups", "removeuser", "user@example.com", "Nonexistent")
+		assert.ErrorContains(t, err, `unknown group "Nonexistent"`)
+	})
+
+}
+
 var expectedGroupsAddOutput = `Added group "Test"
 `
 
