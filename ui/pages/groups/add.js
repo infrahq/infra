@@ -169,7 +169,7 @@ export default function GroupsAdd() {
             <button
               type='button'
               onClick={() => handleCreateGroup()}
-              disabled={!groupName || emails.length === 0}
+              disabled={!groupName}
               className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-10'
             >
               Create Group

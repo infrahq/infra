@@ -236,7 +236,6 @@ function Details({ group, admin, onDelete }) {
                         <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
                           <button
                             onClick={() => {
-                              console.log(user.id === auth.id)
                               user.id === auth.id
                                 ? setOpen(true)
                                 : handleRemoveUserFromGroup(user.id)
