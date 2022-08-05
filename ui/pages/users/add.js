@@ -125,12 +125,8 @@ export default function UsersAdd() {
         }
 
         // TODO: need to work with backend for better error message
-        if (
-          e.code === 409 &&
-          errors['identity_id'] &&
-          errors['identity_id'].includes('already exist')
-        ) {
-          errors['name'] = 'user already exists'
+        if (e.code === 409 && errors.identity_id) {
+          errors.name = 'user already exists'
         }
 
         setErrors(errors)
