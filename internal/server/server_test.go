@@ -24,6 +24,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -48,6 +49,12 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
+
+	err = data.SaveSettings(s.db, &models.Settings{})
+	assert.NilError(t, err)
+
+	// create the provider if it's missing.
+	data.InfraProvider(s.db)
 
 	data.InvalidateCache()
 	t.Cleanup(data.InvalidateCache)
@@ -344,9 +351,10 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-	signupResp := &api.CreateUserResponse{}
+	signupResp := &api.SignupResponse{}
 	err = json.Unmarshal(resp.Body.Bytes(), signupResp)
 	assert.NilError(t, err)
+	domain := signupResp.Organization.Domain
 
 	// login with "admin@email.com" to get an access key
 	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Name: email, Password: passwd}}
@@ -355,6 +363,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
 	req.Header.Set("Infra-Version", apiVersionLatest)
+	req.Header.Set("Host", domain)
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -367,6 +376,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		req = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
 		req.Header.Set("Infra-Version", apiVersionLatest)
+		req.Header.Set("Host", domain)
 		resp = httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)

@@ -8,11 +8,16 @@ type SignupRequest struct {
 	Org      string `json:"org"`
 }
 
+type SignupResponse struct {
+	User         *User         `json:"user"`
+	Organization *Organization `json:"organization"`
+}
+
 func (r SignupRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", r.Name),
+		validate.Email("name", r.Name),
 		validate.Required("password", r.Password),
 		validate.Required("org", r.Org),
-		validate.Email("name", r.Name),
 	}
 }

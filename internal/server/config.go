@@ -630,12 +630,15 @@ func (s Server) loadConfig(config Config) error {
 			Resource: "infra",
 		})
 
-		_, err := s.setupDefaultOrg(tx, config.OrganizationName, config.OrganizationDomain)
+		org, err := s.setupDefaultOrg(tx, config.OrganizationName, config.OrganizationDomain)
 		if err != nil {
 			return fmt.Errorf("loading org: %w", err)
 		}
 
-		if err := s.loadProviders(tx, config.Providers); err != nil {
+		s.db.Statement.Context = context.WithValue(s.db.Statement.Context, "org", org)
+		tx.Statement.Context = context.WithValue(tx.Statement.Context, "org", org)
+
+		if err := s.loadProviders(tx, org, config.Providers); err != nil {
 			return fmt.Errorf("load providers: %w", err)
 		}
 
@@ -650,11 +653,11 @@ func (s Server) loadConfig(config Config) error {
 			}
 		}
 
-		if err := s.loadUsers(tx, config.Users); err != nil {
+		if err := s.loadUsers(tx, org, config.Users); err != nil {
 			return fmt.Errorf("load users: %w", err)
 		}
 
-		if err := s.loadGrants(tx, config.Grants); err != nil {
+		if err := s.loadGrants(tx, org, config.Grants); err != nil {
 			return fmt.Errorf("load grants: %w", err)
 		}
 
@@ -665,18 +668,19 @@ func (s Server) loadConfig(config Config) error {
 func (s Server) setupDefaultOrg(tx *gorm.DB, name, domain string) (*models.Organization, error) {
 	org, err := data.GetOrganization(tx, data.ByNameOrDomain(name, domain))
 	if errors.Is(err, internal.ErrNotFound) {
-		org = &models.Organization{Name: name, Domain: domain}
+		id := uid.New()
+		org = &models.Organization{Name: name, Domain: domain, Model: models.Model{ID: id, OrganizationID: uid.New()}}
 		err = data.CreateOrganization(tx, org)
 	}
 
 	return org, err
 }
 
-func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
+func (s Server) loadProviders(db *gorm.DB, org *models.Organization, providers []Provider) error {
 	keep := []uid.ID{}
 
 	for _, p := range providers {
-		provider, err := s.loadProvider(db, p)
+		provider, err := s.loadProvider(db, org, p)
 		if err != nil {
 			return err
 		}
@@ -685,27 +689,28 @@ func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
 	}
 
 	// remove any provider previously defined by config
-	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem), data.ByOrg(org)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+func (Server) loadProvider(db *gorm.DB, org *models.Organization, input Provider) (*models.Provider, error) {
 	// provider kind is an optional field
 	kind, err := models.ParseProviderKind(input.Kind)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse provider in config load: %w", err)
 	}
 
-	provider, err := data.GetProvider(db, data.ByName(input.Name))
+	provider, err := data.GetProvider(db, data.ByName(input.Name), data.ByOrg(org))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
 		}
 
 		provider := &models.Provider{
+			Model:        models.Model{OrganizationID: org.ID},
 			Name:         input.Name,
 			URL:          input.URL,
 			ClientID:     input.ClientID,
@@ -766,11 +771,11 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 	return provider, nil
 }
 
-func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
+func (s Server) loadGrants(db *gorm.DB, org *models.Organization, grants []Grant) error {
 	keep := make([]uid.ID, 0, len(grants))
 
 	for _, g := range grants {
-		grant, err := s.loadGrant(db, g)
+		grant, err := s.loadGrant(db, org, g)
 		if err != nil {
 			return err
 		}
@@ -779,19 +784,19 @@ func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
 	}
 
 	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem), data.ByOrg(org)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
+func (Server) loadGrant(db *gorm.DB, org *models.Organization, input Grant) (*models.Grant, error) {
 	var id uid.PolymorphicID
 
 	switch {
 	case input.User != "":
-		user, err := data.GetIdentity(db, data.ByName(input.User))
+		user, err := data.GetIdentity(db, data.ByName(input.User), data.ByOrg(org))
 		if err != nil {
 			return nil, err
 		}
@@ -799,7 +804,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 		id = uid.NewIdentityPolymorphicID(user.ID)
 
 	case input.Group != "":
-		group, err := data.GetGroup(db, data.ByName(input.Group))
+		group, err := data.GetGroup(db, data.ByName(input.Group), data.ByOrg(org))
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return nil, err
@@ -809,6 +814,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 
 			// group does not exist yet, create a placeholder
 			group = &models.Group{
+				Model:     models.Model{OrganizationID: org.ID},
 				Name:      input.Group,
 				CreatedBy: models.CreatedBySystem,
 			}
@@ -822,7 +828,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 
 	// TODO: remove this when deprecated machines in config are removed
 	case input.Machine != "":
-		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
+		machine, err := data.GetIdentity(db, data.ByName(input.Machine), data.ByOrg(org))
 		if err != nil {
 			return nil, err
 		}
@@ -837,13 +843,14 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 		input.Role = models.BasePermissionConnect
 	}
 
-	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role), data.ByOrg(org))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
 		}
 
 		grant = &models.Grant{
+			Model:     models.Model{OrganizationID: org.ID},
 			Subject:   id,
 			Resource:  input.Resource,
 			Privilege: input.Role,
@@ -858,11 +865,11 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	return grant, nil
 }
 
-func (s Server) loadUsers(db *gorm.DB, users []User) error {
+func (s Server) loadUsers(db *gorm.DB, org *models.Organization, users []User) error {
 	keep := make([]uid.ID, 0, len(users)+1)
 
 	for _, i := range users {
-		user, err := s.loadUser(db, i)
+		user, err := s.loadUser(db, org, i)
 		if err != nil {
 			return err
 		}
@@ -871,15 +878,15 @@ func (s Server) loadUsers(db *gorm.DB, users []User) error {
 	}
 
 	// remove any users previously defined by config
-	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem), data.ByOrg(org)); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
-	identity, err := data.GetIdentity(db, data.ByName(input.Name))
+func (s Server) loadUser(db *gorm.DB, org *models.Organization, input User) (*models.Identity, error) {
+	identity, err := data.GetIdentity(db, data.ByName(input.Name), data.ByOrg(org))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -893,6 +900,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 		}
 
 		identity = &models.Identity{
+			Model:     models.Model{OrganizationID: org.ID},
 			Name:      input.Name,
 			CreatedBy: models.CreatedBySystem,
 		}

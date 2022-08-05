@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 const initSchemaMigrationID = "SCHEMA_INIT"
@@ -188,7 +190,9 @@ func (g *Migrator) runMigration(migration *Migration) error {
 		return nil
 	}
 
+	logging.Infof("Running migration %s", migration.ID)
 	if err := migration.Migrate(g.tx); err != nil {
+		logging.Errorf("Err during migration %s: %s", migration.ID, err.Error())
 		return err
 	}
 	return g.insertMigration(migration.ID)

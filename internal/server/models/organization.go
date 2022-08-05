@@ -11,11 +11,11 @@ import (
 type Organization struct {
 	Model
 
-	Name      string `gorm:"uniqueIndex:idx_organizations_name,where:deleted_at is NULL"`
-	Domain    string `gorm:"uniqueIndex:idx_org_domain,where:deleted_at is NULL"`
+	Name      string
+	Domain    string
 	CreatedBy uid.ID
 
-	Identities []Identity `gorm:"many2many:identities_organizations"`
+	Identities []Identity
 }
 
 func (o *Organization) ToAPI() *api.Organization {
@@ -32,10 +32,14 @@ func (o *Organization) SetDefaultDomain() {
 	if len(o.Domain) > 0 {
 		return
 	}
-	o.Domain = domainNameReplacer.ReplaceAllStringFunc(o.Name, func(s string) string {
+	slug := domainNameReplacer.ReplaceAllStringFunc(o.Name, func(s string) string {
 		if s == " " {
 			return "-"
 		}
 		return ""
-	}) + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
+	})
+	if len(slug) > 20 {
+		slug = slug[:20]
+	}
+	o.Domain = slug + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
 }

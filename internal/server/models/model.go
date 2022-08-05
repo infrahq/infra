@@ -18,7 +18,7 @@ const CreatedBySystem = 1
 
 type Model struct {
 	ID             uid.ID
-	OrganizationID uid.ID
+	OrganizationID uid.ID // TODO: make required in validation
 	// CreatedAt is set by GORM to time.Now when a record is first created.
 	// See https://gorm.io/docs/conventions.html#Timestamp-Tracking
 	// gorm:"<-:create" allows read and create, but not updating

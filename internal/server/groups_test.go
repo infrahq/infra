@@ -124,7 +124,7 @@ func TestAPI_ListGroups(t *testing.T) {
 				var actual api.ListResponse[api.Group]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				assert.Equal(t, len(actual.Items), 3)
+				assert.Equal(t, len(actual.Items), 3, actual.Items)
 			},
 		},
 		"page 2": {
