@@ -29,7 +29,7 @@
 
   Start a port forward:
 
-  $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "server.fullname" . }} 8080:80 8443:443
+  $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "server.fullname" . }} 8080:{{ .Values.server.config.addr.http }} 8443:{{ .Values.server.config.addr.https }}
 
   Then visit:
 
