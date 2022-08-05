@@ -34,7 +34,7 @@ func TestListCmd(t *testing.T) {
 			{User: "manygrants@example.com", Resource: "moon", Role: "inhabitant"},
 		},
 	}
-	setupServerTLSOptions(t, &opts)
+	setupServerOptions(t, &opts)
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 

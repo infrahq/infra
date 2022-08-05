@@ -19,17 +19,28 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	tpatch "github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
 func setupDB(t *testing.T) *gorm.DB {
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
+	driver := database.PostgresDriver(t)
+	if driver == nil {
+		var err error
+		driver, err = data.NewSQLiteDriver("file::memory:")
+		assert.NilError(t, err)
+	}
 
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
+
+	t.Cleanup(func() {
+		sqlDB, err := db.DB()
+		assert.NilError(t, err)
+		assert.NilError(t, sqlDB.Close())
+	})
 
 	// create the provider if it's missing.
 	data.InfraProvider(db)
@@ -92,7 +103,6 @@ func TestDBTimeout(t *testing.T) {
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
-			c.Set("ctx", ctx)
 			c.Next()
 		},
 		unauthenticatedMiddleware(db),

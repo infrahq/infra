@@ -404,12 +404,13 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
-		db := setupDB(t, postgresDriver(t))
+		db := setupDB(t, optionalPostgresDriver(t))
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
+
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
 	})
 
-	db, err := newRawDB(postgresDriver(t))
+	db, err := newRawDB(optionalPostgresDriver(t))
 	assert.NilError(t, err)
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {

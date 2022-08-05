@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
@@ -33,28 +34,15 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 var isEnvironmentCI = os.Getenv("CI") != ""
 
-func postgresDriver(t *testing.T) gorm.Dialector {
-	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
+func optionalPostgresDriver(t *testing.T) gorm.Dialector {
+	driver := database.PostgresDriver(t)
 	switch {
-	case !ok && isEnvironmentCI:
+	case driver == nil && isEnvironmentCI:
 		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
-	case !ok:
+	case driver == nil:
 		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
 	}
-
-	pgsql, err := NewPostgresDriver(pgConn)
-	assert.NilError(t, err, "postgresql driver")
-
-	db, err := gorm.Open(pgsql)
-	assert.NilError(t, err, "connect to postgresql")
-	t.Cleanup(func() {
-		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
-	})
-	assert.NilError(t, db.Exec("CREATE SCHEMA testing").Error)
-
-	pgsql, err = NewPostgresDriver(pgConn + " search_path=testing")
-	assert.NilError(t, err, "postgresql driver")
-	return pgsql
+	return driver
 }
 
 // runDBTests against all supported databases. Defaults to only sqlite locally,
@@ -69,7 +57,7 @@ func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
 		run(t, setupDB(t, sqlite))
 	})
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := postgresDriver(t)
+		pgsql := optionalPostgresDriver(t)
 		run(t, setupDB(t, pgsql))
 	})
 }
