@@ -52,9 +52,5 @@ func SaveSettings(c *gin.Context, updatedSettings *api.Settings) (*api.Settings,
 		return nil, err
 	}
 
-	settings, err = data.GetSettings(db)
-	if err != nil {
-		return nil, fmt.Errorf("could not get settings after update: %w", err)
-	}
 	return settings.ToAPI(), nil
 }
