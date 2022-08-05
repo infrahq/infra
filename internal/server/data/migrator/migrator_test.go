@@ -24,7 +24,7 @@ var migrations = []*Migration{
 			return tx.AutoMigrate(&Person{})
 		},
 		Rollback: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("people")
+			return tx.Exec(`DROP TABLE IF EXISTS people`).Error
 		},
 	},
 	{
@@ -33,7 +33,7 @@ var migrations = []*Migration{
 			return tx.AutoMigrate(&Pet{})
 		},
 		Rollback: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("pets")
+			return tx.Exec(`DROP TABLE IF EXISTS pets`).Error
 		},
 	},
 }
@@ -44,7 +44,7 @@ var extendedMigrations = append(migrations, &Migration{
 		return tx.AutoMigrate(&Book{})
 	},
 	Rollback: func(tx *gorm.DB) error {
-		return tx.Migrator().DropTable("books")
+		return tx.Exec(`DROP TABLE IF EXISTS books`).Error
 	},
 })
 
@@ -392,8 +392,10 @@ func forEachDatabase(t *testing.T, fn func(t *testing.T, database *gorm.DB), dia
 			db, err := gorm.Open(database.driver, &gorm.Config{})
 			assert.NilError(t, err, "Could not connect to database %s, %v", database.dialect, err)
 
-			// ensure tables do not exists
-			assert.NilError(t, db.Migrator().DropTable("migrations", "people", "pets"))
+			for _, table := range []string{"migrations", "people", "pets"} {
+				err := db.Exec(`DROP TABLE IF EXISTS ` + table).Error
+				assert.NilError(t, err)
+			}
 
 			fn(t, db)
 		})

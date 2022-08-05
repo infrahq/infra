@@ -122,7 +122,13 @@ func dropCertificateTables() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206161733",
 		Migrate: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
+			if err := tx.Exec(`DROP TABLE IF EXISTS trusted_certificates`).Error; err != nil {
+				return err
+			}
+			if err := tx.Exec(`DROP TABLE IF EXISTS root_certificates`).Error; err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 }
