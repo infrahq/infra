@@ -86,8 +86,7 @@ func TestMigrations(t *testing.T) {
 		{
 			label: testCaseLine("202204281130"),
 			expected: func(t *testing.T, tx *gorm.DB) {
-				hasCol := tx.Migrator().HasColumn("settings", "signup_enabled")
-				assert.Assert(t, !hasCol)
+				// dropped columns are tested by schema comparison
 			},
 		},
 		{
