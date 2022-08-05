@@ -16,6 +16,7 @@ import (
 )
 
 func setupDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	driver := database.PostgresDriver(t)
 	if driver == nil {
 		var err error

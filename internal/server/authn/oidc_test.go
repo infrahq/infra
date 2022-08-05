@@ -2,11 +2,9 @@ package authn
 
 import (
 	"context"
-	"net/http/httptest"
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -236,19 +234,15 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
-		db := setupDB(t)
-
-		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Set("db", db)
-
-		// setup fake identity provider
-		provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com", Kind: models.ProviderKindOIDC}
-		err := data.CreateProvider(db, provider)
-		assert.NilError(t, err)
-
 		t.Run(name, func(t *testing.T) {
-			mockOIDC := tc.setup(t, db)
+			db := setupDB(t)
 
+			// setup fake identity provider
+			provider := &models.Provider{Name: "mockoidc", URL: "mockOIDC.example.com", Kind: models.ProviderKindOIDC}
+			err := data.CreateProvider(db, provider)
+			assert.NilError(t, err)
+
+			mockOIDC := tc.setup(t, db)
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
 			u, _, _, err := loginMethod.Authenticate(context.Background(), db)

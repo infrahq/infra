@@ -11,9 +11,11 @@ import (
 type TestingT interface {
 	assert.TestingT
 	Cleanup(func())
+	Helper()
 }
 
 func PostgresDriver(t TestingT) gorm.Dialector {
+	t.Helper()
 	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
 	if !ok {
 		return nil
