@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/square/go-jose.v2"
 
-	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -26,31 +25,19 @@ func GetPublicJWK(c *gin.Context) ([]jose.JSONWebKey, error) {
 	return []jose.JSONWebKey{pubKey}, nil
 }
 
-func GetSettings(c *gin.Context) (*api.Settings, error) {
+func GetSettings(c *gin.Context) (*models.Settings, error) {
 	db := getDB(c)
-	settings, err := data.GetSettings(db)
-	if err != nil {
-		return &api.Settings{}, fmt.Errorf("could not get settings: %w", err)
-	}
-
-	return settings.ToAPI(), nil
+	return data.GetSettings(db)
 }
 
-func SaveSettings(c *gin.Context, updatedSettings *api.Settings) (*api.Settings, error) {
+func SaveSettings(c *gin.Context, settings *models.Settings) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return nil, HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
+		return HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
 	}
 
-	settings, err := data.GetSettings(db)
-	if err != nil {
-		return nil, err
-	}
-
-	settings.SetFromAPI(updatedSettings)
 	if err = data.SaveSettings(db, settings); err != nil {
-		return nil, err
+		return err
 	}
-
-	return settings.ToAPI(), nil
+	return nil
 }
