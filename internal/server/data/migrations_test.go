@@ -143,12 +143,12 @@ func TestMigrations(t *testing.T) {
 			label: testCaseLine("202206161733"),
 			setup: func(t *testing.T, db *gorm.DB) {
 				// integrity check
-				assert.Assert(t, tableExists(t, db, "trusted_certificates"))
-				assert.Assert(t, tableExists(t, db, "root_certificates"))
+				assert.Assert(t, migrator.HasTable(db, "trusted_certificates"))
+				assert.Assert(t, migrator.HasTable(db, "root_certificates"))
 			},
 			expected: func(t *testing.T, db *gorm.DB) {
-				assert.Assert(t, !tableExists(t, db, "trusted_certificates"))
-				assert.Assert(t, !tableExists(t, db, "root_certificates"))
+				assert.Assert(t, !migrator.HasTable(db, "trusted_certificates"))
+				assert.Assert(t, !migrator.HasTable(db, "root_certificates"))
 			},
 		},
 		{
@@ -465,16 +465,6 @@ func testCaseLine(name string) testCaseLabel {
 type testCaseLabel struct {
 	Name string
 	Line string
-}
-
-func tableExists(t *testing.T, db *gorm.DB, name string) bool {
-	t.Helper()
-	var count int
-	err := db.Raw("SELECT count(id) FROM " + name).Row().Scan(&count)
-	if err != nil {
-		t.Logf("table exists error: %v", err)
-	}
-	return err == nil
 }
 
 func dumpSchema(t *testing.T, conn string) string {
