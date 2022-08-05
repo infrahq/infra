@@ -99,7 +99,7 @@ func TestDBTimeout(t *testing.T) {
 	router.Use(
 		func(c *gin.Context) {
 			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
-			ctx, cancel = context.WithTimeout(c, 100*time.Millisecond)
+			ctx, cancel = context.WithTimeout(c.Request.Context(), 100*time.Millisecond)
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
