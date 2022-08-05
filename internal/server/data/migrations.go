@@ -141,7 +141,7 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206281027",
 		Migrate: func(tx *gorm.DB) error {
-			if !tx.Migrator().HasColumn(&models.Provider{}, "scopes") {
+			if !migrator.HasColumn(tx, "providers", "scopes") {
 				logging.Debugf("migrating provider table auth URL and scopes")
 				if err := tx.Exec(`ALTER TABLE providers ADD COLUMN auth_url text`).Error; err != nil {
 					return err
@@ -211,7 +211,7 @@ func setDestinationLastSeenAt() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207041724",
 		Migrate: func(tx *gorm.DB) error {
-			if tx.Migrator().HasColumn(&models.Destination{}, "last_seen_at") {
+			if migrator.HasColumn(tx, "destinations", "last_seen_at") {
 				return nil
 			}
 
@@ -232,7 +232,7 @@ func dropDeletedProviderUsers() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207270000",
 		Migrate: func(tx *gorm.DB) error {
-			if tx.Migrator().HasColumn(&models.ProviderUser{}, "deleted_at") {
+			if migrator.HasColumn(tx, "provider_users", "deleted_at") {
 				if err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error; err != nil {
 					return fmt.Errorf("could not remove soft deleted provider users: %w", err)
 				}
