@@ -178,6 +178,15 @@ func (s *Server) Run(ctx context.Context) error {
 
 	err := group.Wait()
 	s.tel.Close()
+
+	if sqlDB, err := s.db.DB(); err != nil {
+		logging.L.Warn().Err(err).Msg("failed to get database conn to close")
+	} else {
+		if err := sqlDB.Close(); err != nil {
+			logging.L.Warn().Err(err).Msg("failed to close database connection")
+		}
+	}
+
 	if errors.Is(err, context.Canceled) {
 		return nil
 	}
@@ -330,7 +339,7 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 		}
 
 		if s.options.DBParameters != "" {
-			fmt.Fprintf(&pgConn, "%s", s.options.DBParameters)
+			fmt.Fprint(&pgConn, s.options.DBParameters)
 		}
 	}
 
