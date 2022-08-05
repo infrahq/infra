@@ -22,6 +22,13 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
+	org := &models.Organization{Name: "setupDB Co", Domain: "setupthing.local"}
+	err = data.CreateOrganization(db, org)
+	assert.NilError(t, err)
+
+	// set this as the default org
+	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+
 	// create the provider if it's missing
 	data.InfraProvider(db)
 

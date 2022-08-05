@@ -888,6 +888,65 @@
           }
         }
       },
+      "SignupResponse": {
+        "properties": {
+          "organization": {
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "id": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "user": {
+            "properties": {
+              "created": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              },
+              "id": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              },
+              "lastSeenAt": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "providerNames": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "updated": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        }
+      },
       "User": {
         "properties": {
           "created": {
@@ -4239,7 +4298,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/SignupResponse"
                 }
               }
             },

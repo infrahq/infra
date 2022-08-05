@@ -704,14 +704,14 @@ func scopeUniqueIndicesToOrganization() *migrator.Migration {
 		ID: "202208041772",
 		Migrate: func(tx *gorm.DB) error {
 			queries := strings.Split(`
-drop index idx_access_keys_name;
-drop index idx_access_keys_key_id;
-drop index idx_credentials_identity_id;
-drop index idx_destinations_unique_id;
-drop index idx_grant_srp;
-drop index idx_groups_name;
-drop index idx_identities_name;
-drop index idx_providers_name;
+drop index if exists idx_access_keys_name;
+drop index if exists idx_access_keys_key_id;
+drop index if exists idx_credentials_identity_id;
+drop index if exists idx_destinations_unique_id;
+drop index if exists idx_grant_srp;
+drop index if exists idx_groups_name;
+drop index if exists idx_identities_name;
+drop index if exists idx_providers_name;
 
 create unique index idx_access_keys_name on access_keys (organization_id, name) where (deleted_at is null);
 create unique index idx_access_keys_key_id on access_keys (organization_id, key_id) where (deleted_at is null);
@@ -723,18 +723,18 @@ create unique index idx_identities_name ON identities ("organization_id","name")
 create unique index idx_providers_name ON providers ("organization_id","name") where (deleted_at is null);
 create unique index settings_org_id ON settings ("organization_id") where deleted_at is null;
 
-drop table identities_organizations;
+drop table if exists identities_organizations;
 
-alter table settings alter column "id" set default null;
-alter table providers alter column "id" set default null;
-alter table organizations alter column "id" set default null;
-alter table access_keys alter column "id" set default null;
-alter table credentials alter column "id" set default null;
-alter table destinations alter column "id" set default null;
-alter table encryption_keys alter column "id" set default null;
-alter table grants alter column "id" set default null;
-alter table groups alter column "id" set default null;
-alter table identities alter column "id" set default null;
+alter table "settings" alter column "id" drop default;
+alter table "providers" alter column "id" drop default;
+alter table "organizations" alter column "id" drop default;
+alter table "access_keys" alter column "id" drop default;
+alter table "credentials" alter column "id" drop default;
+alter table "destinations" alter column "id" drop default;
+alter table "encryption_keys" alter column "id" drop default;
+alter table "grants" alter column "id" drop default;
+alter table "groups" alter column "id" drop default;
+alter table "identities" alter column "id" drop default;
 
 alter table provider_users DROP CONSTRAINT "fk_provider_users_provider";
 alter table provider_users DROP CONSTRAINT "fk_provider_users_identity";
@@ -753,7 +753,9 @@ drop sequence organizations_id_seq;
 drop sequence providers_id_seq;
 drop sequence settings_id_seq;
 			`, ";\n")
+			// note running these one line at a time makes for _much_ better errors when one line fails.
 			for _, query := range queries {
+				query = strings.Trim(query, "\n")
 				err := tx.Exec(query).Error
 				if err != nil {
 					return err

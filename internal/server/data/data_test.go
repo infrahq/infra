@@ -23,6 +23,15 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
+	org := &models.Organization{
+		Name:   "Database Co",
+		Domain: "database.local",
+	}
+	err = CreateOrganization(db, org)
+	assert.NilError(t, err)
+
+	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+
 	InfraProvider(db)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
@@ -95,60 +104,6 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 
 		assert.Equal(t, int64(id), intID)
 	})
-}
-
-func TestDatabaseSelectors(t *testing.T) {
-	driver, err := NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-
-	db, err := newRawDB(driver)
-	assert.NilError(t, err)
-	t.Logf("DB pointer: %p", db)
-
-	assert.NilError(t, initializeSchema(db))
-
-	// mimic server.DatabaseMiddleware
-	withCtx := db.WithContext(context.Background())
-	assert.Assert(t, db != withCtx, "db=%p withCtx=%p", db, withCtx)
-	t.Logf("DB pointer: %p", withCtx)
-
-	err = withCtx.Transaction(func(tx *gorm.DB) error {
-		assert.Assert(t, withCtx != tx, "db=%p tx=%p", withCtx, tx)
-		t.Logf("DB pointer: %p", tx)
-
-		// query using one of our helpers and selectors
-		_, err := ListGrants(tx, nil, ByID(534))
-		assert.NilError(t, err)
-
-		// query with Model and Where
-		var groups []models.Group
-		qDB := tx.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-		assert.NilError(t, qDB.Error)
-		assert.Assert(t, tx != qDB, "tx=%p queryDB=%p", tx, qDB)
-		t.Logf("DB pointer: %p", qDB)
-
-		// Show that queries have not modified the original gorm.DB references
-		assert.Equal(t, len(db.Statement.Clauses), 0)
-		assert.Equal(t, len(withCtx.Statement.Clauses), 0)
-		assert.Equal(t, len(tx.Statement.Clauses), 0)
-		return nil
-	})
-	assert.NilError(t, err)
-
-	// query using one of our helpers and selectors
-	_, err = ListGrants(db, nil, ByID(534))
-	assert.NilError(t, err)
-
-	// query with Model and Where
-	var groups []models.Group
-	qDB := db.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-	assert.NilError(t, qDB.Error)
-	assert.Assert(t, db != qDB, "db=%p queryDB=%p", db, qDB)
-	t.Logf("DB pointer: %p", qDB)
-
-	// Show that queries have not modified the original gorm.DB references
-	assert.Equal(t, len(db.Statement.Clauses), 0)
-	assert.Equal(t, len(withCtx.Statement.Clauses), 0)
 }
 
 func TestPaginationSelector(t *testing.T) {
