@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestIdentity(t *testing.T) {
@@ -162,6 +163,32 @@ func TestDeleteIdentity(t *testing.T) {
 		// deleting a identity should not delete unrelated identities
 		_, err = GetIdentity(db, ByName(bourne.Name))
 		assert.NilError(t, err)
+	})
+}
+
+func TestDeleteIdentityWithGroups(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		var (
+			bond   = models.Identity{Name: "jbond@infrahq.com"}
+			bourne = models.Identity{Name: "jbourne@infrahq.com"}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+		)
+		group := &models.Group{Name: "Agents"}
+		err := CreateGroup(db, group)
+		assert.NilError(t, err)
+
+		createIdentities(t, db, &bond, &bourne, &bauer)
+
+		err = AddUsersToGroup(db, group.ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
+		assert.NilError(t, err)
+
+		err = DeleteIdentities(db, ByName(bond.Name))
+		assert.NilError(t, err)
+
+		group, err = GetGroup(db, ByID(group.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, group.TotalUsers, 2)
+
 	})
 }
 

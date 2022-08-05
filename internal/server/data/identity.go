@@ -124,6 +124,18 @@ func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
 		if err != nil {
 			return err
 		}
+
+		groups, err := ListGroups(db, nil, ByGroupMember(i.ID))
+		if err != nil {
+			return err
+		}
+
+		for _, group := range groups {
+			err = RemoveUsersFromGroup(db, group.ID, []uid.ID{i.ID})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return deleteAll[models.Identity](db, ByIDs(ids))
