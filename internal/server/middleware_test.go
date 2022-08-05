@@ -25,6 +25,7 @@ import (
 )
 
 func setupDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	driver := database.PostgresDriver(t)
 	if driver == nil {
 		var err error
@@ -318,7 +319,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 
 		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
 		assert.NilError(t, err)
-		assert.Equal(t, destination.LastSeenAt, time.Time{})
+		assert.Equal(t, destination.LastSeenAt.UTC(), time.Time{})
 	})
 
 	t.Run("good no destination", func(t *testing.T) {
