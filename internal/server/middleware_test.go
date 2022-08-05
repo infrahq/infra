@@ -32,12 +32,6 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	// create the provider if it's missing.
-	data.InfraProvider(db)
-
-	err = data.SaveSettings(db, &models.Settings{})
-	assert.NilError(t, err)
-
 	return db
 }
 
@@ -240,7 +234,8 @@ func TestRequireAccessKey(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := setupDB(t)
+			s := setupServer(t)
+			db := s.db
 
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Set("db", db)

@@ -35,9 +35,9 @@ const BasePermissionConnect = "connect"
 type Grant struct {
 	Model
 
-	Subject   uid.PolymorphicID `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
-	Privilege string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission
-	Resource  string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // Universal Resource Notation
+	Subject   uid.PolymorphicID // usually an identity, but could be a role definition
+	Privilege string            // role or permission
+	Resource  string            // Universal Resource Notation
 	CreatedBy uid.ID
 }
 

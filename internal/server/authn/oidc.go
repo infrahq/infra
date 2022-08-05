@@ -52,7 +52,14 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Iden
 			return nil, nil, AuthScope{}, fmt.Errorf("get user: %w", err)
 		}
 
-		identity = &models.Identity{Name: email}
+		org, ok := ctx.Value("org").(*models.Organization)
+		if !ok {
+			return nil, nil, AuthScope{}, errors.New("organization not set")
+		}
+		identity = &models.Identity{
+			Model: models.Model{OrganizationID: org.ID},
+			Name:  email,
+		}
 
 		if err := data.CreateIdentity(db, identity); err != nil {
 			return nil, nil, AuthScope{}, fmt.Errorf("create user: %w", err)

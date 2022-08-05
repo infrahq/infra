@@ -539,8 +539,9 @@ func TestAPI_CreateUser(t *testing.T) {
 
 // Note this test is the result of a long conversation, don't change lightly.
 func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
-	db := setupDB(t)
-	a := &API{server: &Server{db: db}}
+	s := setupServer(t)
+	db := s.db
+	a := &API{server: s}
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {

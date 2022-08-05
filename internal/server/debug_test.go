@@ -26,9 +26,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 		expectedResp func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{db: setupDB(t), options: Options{Config: Config{OrganizationName: "Acme", OrganizationDomain: "acme"}}}
-	_, err := s.setupDefaultOrg(s.db, "Acme", "acme")
-	assert.NilError(t, err)
+	s := setupServer(t)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {

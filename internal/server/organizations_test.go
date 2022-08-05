@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
@@ -13,6 +15,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
@@ -185,12 +188,18 @@ func TestAPI_CreateOrganization(t *testing.T) {
 	}
 }
 
+func setCurrentOrg(db *gorm.DB, org *models.Organization) {
+	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+}
+
 func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var first = models.Organization{Name: "first"}
-	createOrgs(t, srv.db, &first)
+	var first = &models.Organization{Name: "first"}
+	createOrgs(t, srv.db, first)
+	setCurrentOrg(srv.db, first)
+	p := data.InfraProvider(srv.db)
 
 	type testCase struct {
 		urlPath  string
@@ -198,11 +207,36 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
+	user := &models.Identity{
+		Model: models.Model{OrganizationID: first.ID},
+		Name:  "joe@example.com",
+	}
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	key := &models.AccessKey{Model: models.Model{OrganizationID: first.ID},
+		Name:       "foo",
+		ExpiresAt:  time.Now().Add(10 * time.Minute).UTC(),
+		IssuedFor:  user.ID,
+		ProviderID: p.ID,
+	}
+	_, err = data.CreateAccessKey(srv.db, key)
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(srv.db, &models.Grant{
+		Model:     models.Model{OrganizationID: first.ID},
+		Subject:   uid.NewIdentityPolymorphicID(user.ID),
+		Resource:  "infra",
+		Privilege: "support-admin",
+	})
+	assert.NilError(t, err)
+
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")
+		req.Header.Add("host", first.Domain)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -227,7 +261,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 		"authorized by grant": {
 			urlPath: "/api/organizations/" + first.ID.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Authorization", "Bearer "+key.KeyID+"."+key.Secret)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())

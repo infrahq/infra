@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -11,42 +12,42 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// Signup creates a user identity using the supplied name and password and
+// Signup creates an organization and user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, error) {
+func Signup(c *gin.Context, orgName, domain, name, password string) (*models.Identity, *models.Organization, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	org := &models.Organization{Name: orgName}
-	err := data.CreateOrganization(db, org)
+	err := checkPasswordRequirements(db, password)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = checkPasswordRequirements(db, password)
-	if err != nil {
-		return nil, err
+	org := &models.Organization{Name: orgName}
+	org.SetDefaultDomain()
+	if err := data.CreateOrganization(db, org); err != nil {
+		return nil, nil, err
 	}
+	c.Set("org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
 
 	identity := &models.Identity{
-		Model: models.Model{
-			OrganizationID: org.ID,
-		},
-		Name: name,
+		Model: models.Model{OrganizationID: org.ID},
+		Name:  name,
 	}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = CreateProviderUser(c, InfraProvider(c), identity)
 	if err != nil {
-		return nil, fmt.Errorf("create provider user")
+		return nil, nil, fmt.Errorf("create provider user: %w", err)
 	}
 
 	credential := &models.Credential{
@@ -58,7 +59,7 @@ func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, e
 	}
 
 	if err := data.CreateCredential(db, credential); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	grants := []*models.Grant{
@@ -84,9 +85,9 @@ func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, e
 
 	for _, grant := range grants {
 		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return identity, nil
+	return identity, org, nil
 }

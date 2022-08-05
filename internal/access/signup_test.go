@@ -34,7 +34,7 @@ func TestSignup(t *testing.T) {
 	t.Run("SignupNewOrg", func(t *testing.T) {
 		c, db := setup(t)
 
-		identity, err := Signup(c, user, pass, org)
+		identity, err := Signup(c, "acme", "acme.infrahq.com", user, pass)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 

@@ -41,12 +41,15 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
+			tx.Statement.Context = context.WithValue(tx.Statement.Context, "org", db.Statement.Context.Value("org"))
 			c.Set("db", tx)
 			c.Next()
 			return nil
 		})
 		if err != nil {
 			logging.Debugf(err.Error())
+			sendAPIError(c, err) // TODO: is this going to work if something lower down the stack wrote the response already?
+			_ = c.Error(err)
 		}
 	}
 }
@@ -194,6 +197,10 @@ func OrganizationFromDomain(defaultOrgName, defaultOrgDomain string) gin.Handler
 		if org != nil {
 			c.Set("host", host)
 			c.Set("org", org)
+			// c.Request.WithContext(context.WithValue(c.Request.Context(), "org", org))
+			db := getDB(c)
+			db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+			c.Set("db", db)
 			logging.Debugf("organization set to %s for host %s", org.Name, host)
 		}
 		c.Next()

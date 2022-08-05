@@ -112,6 +112,9 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	for _, selector := range selectors {
 		db = selector(db)
 	}
+	if hasOrgID(db, new(T)) {
+		db = ByOrg(getOrg(db))(db)
+	}
 
 	result := new(T)
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
@@ -125,10 +128,73 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
+func getOrg(db *gorm.DB) *models.Organization {
+	org, ok := db.Statement.Context.Value("org").(*models.Organization)
+	if !ok {
+		panic("no org")
+	}
+	return org
+}
+
+func checkOrg(db *gorm.DB, model interface{}) error {
+	if !hasOrgID(db, model) {
+		return nil
+	}
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	f := v.FieldByName("OrganizationID")
+	org := getOrg(db)
+	id := uid.ID(f.Int())
+	if id != org.ID {
+		panic("OrganizationID doesn't match org id")
+	}
+
+	return nil
+}
+
+func setOrg(db *gorm.DB, model interface{}) {
+	if !hasOrgID(db, model) {
+		return
+	}
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	f := v.FieldByName("OrganizationID")
+	org := getOrg(db)
+	id := uid.ID(f.Int())
+	if id == 0 {
+		f.SetInt(int64(org.ID))
+		return
+	}
+	if id != org.ID {
+		panic("OrganizationID doesn't match org id")
+	}
+}
+
+func hasOrgID(db *gorm.DB, model interface{}) bool {
+	v := reflect.ValueOf(model)
+	if v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+	typeName := v.Type().Name()
+	switch typeName {
+	case "Organization", "EncryptionKey":
+		return false
+	}
+	f := v.FieldByName("OrganizationID")
+	return f.IsValid()
+}
+
 func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
+	}
+	if hasOrgID(db, new(T)) {
+		db = ByOrg(getOrg(db))(db)
 	}
 
 	if p != nil {
@@ -150,11 +216,13 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 }
 
 func save[T models.Modelable](db *gorm.DB, model *T) error {
+	setOrg(db, model)
 	err := db.Save(model).Error
 	return handleError(err)
 }
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
+	setOrg(db, model)
 	err := db.Create(model).Error
 	return handleError(err)
 }
@@ -245,6 +313,10 @@ func handleError(err error) error {
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
+	if hasOrgID(db, new(T)) {
+		org := getOrg(db)
+		db = db.Where("organization_id = ?", org.ID)
+	}
 	return db.Delete(new(T), id).Error
 }
 
@@ -252,11 +324,16 @@ func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error
 	for _, selector := range selectors {
 		db = selector(db)
 	}
+	if hasOrgID(db, new(T)) {
+		org := getOrg(db)
+		db = db.Where("organization_id = ?", org.ID)
+	}
 
 	return db.Delete(new(T)).Error
 }
 
-func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
+// GlobalCount gives the count of all records, not scoped by org.
+func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
 	for _, selector := range selectors {
 		db = selector(db)
 	}
@@ -269,53 +346,40 @@ func Count[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, e
 	return count, nil
 }
 
-var infraProviderCache *models.Provider
-
 // InfraProvider is a lazy-loaded cached reference to the infra provider. The
 // cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
-	if infraProviderCache == nil {
-		infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra))
-		if err != nil {
-			if errors.Is(err, internal.ErrNotFound) {
-				p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra}
-				if err := add(db, p); err != nil {
-					logging.L.Panic().Err(err).Msg("failed to create infra provider")
-				}
-				return p
+	org := getOrg(db)
+	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrg(org))
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			p := &models.Provider{Name: models.InternalInfraProviderName, Kind: models.ProviderKindInfra, Model: models.Model{OrganizationID: org.ID}}
+			if err := add(db, p); err != nil {
+				logging.L.Panic().Err(err).Msg("failed to create infra provider")
 			}
-			logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
-			return nil // unreachable, the line above panics
+			return p
 		}
-
-		infraProviderCache = infra
+		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
+		return nil // unreachable, the line above panics
 	}
-
-	return infraProviderCache
+	return infra
 }
-
-var infraConnectorCache *models.Identity
 
 // InfraConnectorIdentity is a lazy-loaded reference to the connector identity.
 // The cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
-	if infraConnectorCache == nil {
-		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
-		if err != nil {
-			logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
-			return nil // unreachable, the line above panics
-		}
-
-		infraConnectorCache = connector
+	org := getOrg(db)
+	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrg(org))
+	if err != nil {
+		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
+		return nil // unreachable, the line above panics
 	}
 
-	return infraConnectorCache
+	return connector
 }
 
 // InvalidateCache is used to clear references to frequently used resources
 func InvalidateCache() {
-	infraProviderCache = nil
-	infraConnectorCache = nil
 }
