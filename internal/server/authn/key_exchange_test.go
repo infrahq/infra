@@ -10,7 +10,6 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestKeyExchangeAuthentication(t *testing.T) {
@@ -77,9 +76,15 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 		},
 		"AccessKeyCannotBeExchangedWhenUserNoLongerExists": {
 			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+				user := &models.Identity{Name: "notforlong@example.com"}
+				user.DeletedAt.Time = time.Now()
+				user.DeletedAt.Valid = true
+				err := data.CreateIdentity(db, user)
+				assert.NilError(t, err)
+
 				key := &models.AccessKey{
 					Name:       "no-user-key",
-					IssuedFor:  uid.New(), // simulate the user not existing
+					IssuedFor:  user.ID,
 					ProviderID: data.InfraProvider(db).ID,
 					ExpiresAt:  time.Now().Add(5 * time.Minute),
 				}
