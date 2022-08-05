@@ -7,6 +7,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func GetPublicJWK(c *gin.Context) ([]jose.JSONWebKey, error) {
@@ -22,4 +23,21 @@ func GetPublicJWK(c *gin.Context) ([]jose.JSONWebKey, error) {
 	}
 
 	return []jose.JSONWebKey{pubKey}, nil
+}
+
+func GetSettings(c *gin.Context) (*models.Settings, error) {
+	db := getDB(c)
+	return data.GetSettings(db)
+}
+
+func SaveSettings(c *gin.Context, settings *models.Settings) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
+	}
+
+	if err = data.SaveSettings(db, settings); err != nil {
+		return err
+	}
+	return nil
 }
