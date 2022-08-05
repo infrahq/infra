@@ -4,35 +4,33 @@
 
 {{- if include "server.enabled" . | eq "true" }}
 
-  To get started, login via the Infra CLI
+  To get started, navigate to your Infra host in a web browser 
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}
 
-  $ infra login {{ . }}
+  https://{{ . }}/signup
 
 {{- end }}
 {{- else if eq .Values.server.service.type "NodePort" }}
 
-  $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.status.addresses[0].address}")
-  $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.spec.ports[0].nodePort}")
-  $ infra login $NODE_HOST:NODE_PORT
+  To find your signup link run:
+  $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.status.addresses[0].address}") && NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.spec.ports[0].nodePort}") && echo "https://"$NODE_HOST:$NODE_PORT"/signup"
 
 {{- else if eq .Values.server.service.type "LoadBalancer" }}
 
   NOTE: It may take a few minutes for the LoadBalancer to become available.
-  You can watch the status of by running `kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -w`
-
-  $ LOADBALANCER=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
-  $ infra login $LOADBALANCER
+  
+  To find your signup link run:
+  $ INFRA_HOST=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}") && echo "https://"$INFRA_HOST"/signup"
 
 {{- else if contains .Values.server.service.type "ClusterIP" }}
 
+  To expose access to Infra run:
   $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "server.fullname" . }} 8080:80 8443:443
 
-  Infra API server is now accessible on localhost:8443
-
-  $ infra login localhost:8443
+  Infra is now accessible at localhost:8443
+  Get started by signing up: https://localhost:8443/signup
 
 {{- end }}
 

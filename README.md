@@ -37,13 +37,13 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Next, find the exposed hostname:
+Next, find the Infra sign-up endpoint:
 
 ```
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
+INFRA_HOST=$(kubectl get services/infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}") && echo "https://"$INFRA_HOST"/signup"
 ```
 
-Open this hostname in your browser to get started
+Open this URL in your web browser to get started
 
 ## Connectors
 

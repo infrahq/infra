@@ -25,47 +25,13 @@ helm repo update
 helm install infra infrahq/infra
 ```
 
-Next, log into your instance of Infra to setup your admin account:
+Next, find the Infra sign-up endpoint:
 
 ```
-infra login localhost
+INFRA_HOST=$(kubectl get services/infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}") && echo "https://"$INFRA_HOST"/signup"
 ```
 
-{% callout type="info" %}
-You may be prompted to verify the fingerprint of the server's TLS certificate. The fingerprint can be found in the server logs:
-
-```
-kubectl logs --tail=-1 -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
-```
-
-If you're not using Docker Desktop, you'll be need to specify a different endpoint than `localhost`. This endpoint can be found via the following `kubectl` command:
-
-```
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
-```
-
-Note: it may take a few minutes for the LoadBalancer to be provisioned.
-
-If your load balancer does not have a hostname (often true for GKE and AKS clusters), Infra will not be able to automatically
-create a TLS certificate for the server. On GKE you can use the hostname `<LoadBalancer IP>.bc.googleusercontent.com` instead
-of `localhost`.
-
-
-Otherwise you'll need to configure the LoadBalancer with a static IP and hostname (see
-[GKE docs](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip), or
-[AKS docs](https://docs.microsoft.com/en-us/azure/aks/static-ip#create-a-static-ip-address)).
-Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup your own TLS certificates for Infra.
-
-{% /callout %}
-
-Once the server is deployed, download the CA certificate that was generated for the server and save it to a file.
-This certificate will be used by the CLI and by connectors to establish secure TLS
-communication with the server.
-
-```
-kubectl get secrets/infra-server-ca --template='{{index .data "ca.crt"}}' | base64 --decode > infra.ca
-```
-
+Open this URL in your web browser to get started
 
 ## Connect a Kubernetes cluster
 
