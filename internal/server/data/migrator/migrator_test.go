@@ -408,3 +408,11 @@ func contains(haystack []string, needle string) bool {
 	}
 	return false
 }
+
+// DefaultOptions used for tests
+var DefaultOptions = Options{
+	UseTransaction: false,
+	InitSchema: func(db *gorm.DB) error {
+		return nil
+	},
+}
