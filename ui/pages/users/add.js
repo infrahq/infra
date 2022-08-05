@@ -123,6 +123,16 @@ export default function UsersAdd() {
           errors[error.fieldName.toLowerCase()] =
             error.errors[0] || 'invalid value'
         }
+
+        // TODO: need to work with backend for better error message
+        if (
+          e.code === 409 &&
+          errors['identity_id'] &&
+          errors['identity_id'].includes('already exist')
+        ) {
+          errors['name'] = 'user already exists'
+        }
+
         setErrors(errors)
       } else {
         setError(e.message)
@@ -158,7 +168,11 @@ export default function UsersAdd() {
         {state === 'add' && (
           <AddUser
             email={email}
-            onChange={e => handleInputChange(e.target.value)}
+            onChange={e => {
+              handleInputChange(e.target.value)
+              setErrors({})
+              setError('')
+            }}
             onKeyDown={e => handleKeyDownEvent(e)}
             onSubmit={handleUserOneTimePassword}
             error={errors.name}
