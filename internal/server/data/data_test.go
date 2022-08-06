@@ -34,8 +34,10 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 var isEnvironmentCI = os.Getenv("CI") != ""
 
-func optionalPostgresDriver(t *testing.T) gorm.Dialector {
-	driver := database.PostgresDriver(t)
+// postgresDriver requires postgres to be available in a CI environment, and
+// marks the test as skipped when not in CI environment.
+func postgresDriver(t *testing.T) gorm.Dialector {
+	driver := database.PostgresDriver(t, "")
 	switch {
 	case driver == nil && isEnvironmentCI:
 		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
@@ -57,7 +59,7 @@ func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
 		run(t, setupDB(t, sqlite))
 	})
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := optionalPostgresDriver(t)
+		pgsql := postgresDriver(t)
 		run(t, setupDB(t, pgsql))
 	})
 }

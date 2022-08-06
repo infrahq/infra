@@ -26,7 +26,7 @@ import (
 
 func setupDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	driver := database.PostgresDriver(t)
+	driver := database.PostgresDriver(t, "_server")
 	if driver == nil {
 		var err error
 		driver, err = data.NewSQLiteDriver("file::memory:")
