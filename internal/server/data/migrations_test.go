@@ -406,11 +406,7 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		db := setupDB(t, postgresDriver(t))
-
-		initial, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
-		assert.NilError(t, err)
-		initialSchema = initial.String()
-
+		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
 	})
 
@@ -423,16 +419,15 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 		})
 	}
 
-	out, err := dumpSchema(os.Getenv("POSTGRESQL_CONNECTION"))
-	assert.NilError(t, err)
-	migratedSchema := out.String()
+	runStep(t, "compare initial schema to migrated schema", func(t *testing.T) {
+		migratedSchema := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
 
-	if golden.FlagUpdate() {
-		writeSchema(t, migratedSchema)
-		return
-	}
-	if !assert.Check(t, is.Equal(initialSchema, migratedSchema)) {
-		t.Log(`
+		if golden.FlagUpdate() {
+			writeSchema(t, migratedSchema)
+			return
+		}
+		if !assert.Check(t, is.Equal(initialSchema, migratedSchema)) {
+			t.Log(`
 The migrated schema does not match the initial schema in ./schema.sql.
 
 If you just added a new migration, run the tests again with -update to apply the
@@ -443,7 +438,8 @@ changes to schema.sql:
 If you changed schema.sql, add the missing migration to the migrations() function
 in ./migrations.go, add a test case to this test, and run the tests again.
 `)
-	}
+		}
+	})
 }
 
 func parseTime(t *testing.T, s string) time.Time {
@@ -481,11 +477,18 @@ func tableExists(t *testing.T, db *gorm.DB, name string) bool {
 	return err == nil
 }
 
-func dumpSchema(conn string) (*bytes.Buffer, error) {
-	conf, err := pgx.ParseConfig(conn)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse connection string")
+func dumpSchema(t *testing.T, conn string) string {
+	t.Helper()
+	if _, err := exec.LookPath("pg_dump"); err != nil {
+		msg := "pg_dump is required to run this test. Install pg_dump or set $PATH to include it."
+		if isEnvironmentCI {
+			t.Fatalf(msg)
+		}
+		t.Skip(msg)
 	}
+
+	conf, err := pgx.ParseConfig(conn)
+	assert.NilError(t, err, "failed to parse connection string")
 
 	envs := os.Environ()
 	addEnv := func(v string) {
@@ -515,8 +518,8 @@ func dumpSchema(conn string) (*bytes.Buffer, error) {
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
-	return out, err
+	assert.NilError(t, cmd.Run())
+	return out.String()
 }
 
 func writeSchema(t *testing.T, raw string) {
