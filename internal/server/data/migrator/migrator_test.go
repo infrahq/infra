@@ -21,7 +21,7 @@ var migrations = []*Migration{
 	{
 		ID: "201608301400",
 		Migrate: func(tx *gorm.DB) error {
-			return tx.AutoMigrate(&Person{})
+			return tx.Exec(Person{}.Schema()).Error
 		},
 		Rollback: func(tx *gorm.DB) error {
 			return tx.Exec(`DROP TABLE IF EXISTS people`).Error
@@ -30,7 +30,7 @@ var migrations = []*Migration{
 	{
 		ID: "201608301430",
 		Migrate: func(tx *gorm.DB) error {
-			return tx.AutoMigrate(&Pet{})
+			return tx.Exec(Pet{}.Schema()).Error
 		},
 		Rollback: func(tx *gorm.DB) error {
 			return tx.Exec(`DROP TABLE IF EXISTS pets`).Error
@@ -41,7 +41,7 @@ var migrations = []*Migration{
 var extendedMigrations = append(migrations, &Migration{
 	ID: "201807221927",
 	Migrate: func(tx *gorm.DB) error {
-		return tx.AutoMigrate(&Book{})
+		return tx.Exec(Book{}.Schema()).Error
 	},
 	Rollback: func(tx *gorm.DB) error {
 		return tx.Exec(`DROP TABLE IF EXISTS books`).Error
@@ -52,7 +52,7 @@ var failingMigration = []*Migration{
 	{
 		ID: "201904231300",
 		Migrate: func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&Book{}); err != nil {
+			if err := tx.Exec(Book{}.Schema()).Error; err != nil {
 				return err
 			}
 			return errors.New("this transaction should be rolled back")
@@ -68,16 +68,51 @@ type Person struct {
 	Name string
 }
 
+func (p Person) Schema() string {
+	return `
+CREATE TABLE people (
+	id integer PRIMARY KEY,
+	created_at text,
+	updated_at text,
+	deleted_at text,
+	name text
+);`
+}
+
 type Pet struct {
 	gorm.Model
 	Name     string
 	PersonID int
 }
 
+func (p Pet) Schema() string {
+	return `
+CREATE TABLE pets (
+	id integer PRIMARY KEY,
+	created_at text,
+	updated_at text,
+	deleted_at text,
+	name text,
+	person_id integer
+);`
+}
+
 type Book struct {
 	gorm.Model
 	Name     string
 	PersonID int
+}
+
+func (b Book) Schema() string {
+	return `
+CREATE TABLE books (
+	id integer PRIMARY KEY,
+	created_at text,
+	updated_at text,
+	deleted_at text,
+	name text,
+	person_id integer
+);`
 }
 
 func TestMigration_RunsNewMigrations(t *testing.T) {
@@ -151,10 +186,10 @@ func TestInitSchemaNoMigrations(t *testing.T) {
 	forEachDatabase(t, func(t *testing.T, db *gorm.DB) {
 		m := New(db, DefaultOptions, []*Migration{})
 		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&Person{}); err != nil {
+			if err := tx.Exec(Person{}.Schema()).Error; err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&Pet{}); err != nil {
+			if err := tx.Exec(Pet{}.Schema()).Error; err != nil {
 				return err
 			}
 			return nil
@@ -174,7 +209,7 @@ func TestInitSchemaWithMigrations(t *testing.T) {
 	forEachDatabase(t, func(t *testing.T, db *gorm.DB) {
 		m := New(db, DefaultOptions, migrations)
 		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&Person{}); err != nil {
+			if err := tx.Exec(Person{}.Schema()).Error; err != nil {
 				return err
 			}
 			return nil
@@ -187,13 +222,23 @@ func TestInitSchemaWithMigrations(t *testing.T) {
 	})
 }
 
+type Car struct {
+	gorm.Model
+}
+
+func (c Car) Schema() string {
+	return `
+CREATE TABLE cars (
+	id integer PRIMARY KEY,
+	created_at text,
+	updated_at text,
+	deleted_at text
+);`
+}
+
 // If the schema has already been initialised,
 // then initSchema() is not executed, even if defined.
 func TestInitSchemaAlreadyInitialised(t *testing.T) {
-	type Car struct {
-		gorm.Model
-	}
-
 	forEachDatabase(t, func(t *testing.T, db *gorm.DB) {
 		m := New(db, DefaultOptions, []*Migration{})
 
@@ -206,10 +251,7 @@ func TestInitSchemaAlreadyInitialised(t *testing.T) {
 		// Then migrate again, this time with a non-empty initialisation
 		// This second initialisation should not happen!
 		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&Car{}); err != nil {
-				return err
-			}
-			return nil
+			return tx.Exec(Car{}.Schema()).Error
 		}
 		assert.NilError(t, m.Migrate())
 
@@ -222,10 +264,6 @@ func TestInitSchemaAlreadyInitialised(t *testing.T) {
 // but any other migration has already been applied,
 // then initSchema() is not executed, even if defined.
 func TestInitSchemaExistingMigrations(t *testing.T) {
-	type Car struct {
-		gorm.Model
-	}
-
 	forEachDatabase(t, func(t *testing.T, db *gorm.DB) {
 		m := New(db, DefaultOptions, migrations)
 
@@ -235,10 +273,7 @@ func TestInitSchemaExistingMigrations(t *testing.T) {
 		// Then migrate again, this time with a non-empty initialisation
 		// This initialisation should not happen!
 		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&Car{}); err != nil {
-				return err
-			}
-			return nil
+			return tx.Exec(Car{}.Schema()).Error
 		}
 		assert.NilError(t, m.Migrate())
 

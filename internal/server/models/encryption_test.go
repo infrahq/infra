@@ -17,6 +17,14 @@ type StructForTesting struct {
 	ASecret models.EncryptedAtRest
 }
 
+func (s StructForTesting) Schema() string {
+	return `
+CREATE TABLE struct_for_testings (
+	id integer PRIMARY KEY,
+	a_secret text
+);`
+}
+
 func TestEncryptedAtRest(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
@@ -26,8 +34,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	err = db.AutoMigrate(&StructForTesting{})
-	assert.NilError(t, err)
+	assert.NilError(t, db.Exec(StructForTesting{}.Schema()).Error)
 
 	id := uid.New()
 
