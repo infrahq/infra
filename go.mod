@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/goware/urlx v0.3.2
 	github.com/hashicorp/vault/api v1.5.0 // indirect
-	github.com/jackc/pgconn v1.12.1
+	github.com/jackc/pgconn v1.13.0
 	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/client_golang v1.13.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/cobra v1.4.0
-	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
@@ -123,7 +123,7 @@ require (
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jackc/pgx/v4 v4.16.1 // indirect
