@@ -316,7 +316,11 @@ CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) W
 			if err := tx.AutoMigrate(&models.ProviderUser{}); err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.Group{}); err != nil {
+
+			if err := tx.Exec(`
+				ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_provider bigint;
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name ON groups USING btree (name) WHERE (deleted_at IS NULL);
+			`).Error; err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "password_reset_tokens") {
@@ -371,7 +375,7 @@ ALTER TABLE provider_users ADD CONSTRAINT provider_users_pkey
 			}
 
 			if !tx.Migrator().HasIndex("grants", "idx_grant_srp") {
-				stmt := `CREATE UNIQUE INDEX idx_grant_srp ON testing.grants USING btree (subject, privilege, resource) WHERE (deleted_at IS NULL);`
+				stmt := `CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (subject, privilege, resource) WHERE (deleted_at IS NULL);`
 				if err := tx.Exec(stmt).Error; err != nil {
 					return err
 				}
