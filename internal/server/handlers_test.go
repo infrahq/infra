@@ -178,7 +178,6 @@ func TestWellKnownKWKs(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		req, err := http.NewRequest(http.MethodGet, "/.well-known/jwks.json", nil)
 		assert.NilError(t, err)
-		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
