@@ -90,7 +90,7 @@ func TestMigrations(t *testing.T) {
 			},
 		},
 		{
-			label: testCaseLine("202206081027"),
+			label: testCaseLine("2022-06-08T10:27-fixed"),
 			expected: func(t *testing.T, db *gorm.DB) {
 				// dropped constraints are tested by schema comparison
 			},

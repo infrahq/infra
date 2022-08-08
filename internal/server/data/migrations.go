@@ -37,11 +37,11 @@ func migrations() []*migrator.Migration {
 				return nil
 			},
 		},
+		// drop old Groups index; new index will be created automatically
 		{
-			ID: "202206081027",
+			ID: "2022-06-08T10:27-fixed",
 			Migrate: func(tx *gorm.DB) error {
-				_ = tx.Migrator().DropConstraint(&models.Group{}, "idx_groups_name_provider_id")
-				return nil
+				return tx.Exec(`DROP INDEX IF EXISTS idx_groups_name_provider_id`).Error
 			},
 		},
 		addKindToProviders(),
