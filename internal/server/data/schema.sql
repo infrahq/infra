@@ -174,6 +174,22 @@ CREATE SEQUENCE organizations_id_seq
 
 ALTER SEQUENCE organizations_id_seq OWNED BY organizations.id;
 
+CREATE TABLE password_reset_tokens (
+    id bigint NOT NULL,
+    token text,
+    identity_id bigint,
+    expires_at timestamp with time zone
+);
+
+CREATE SEQUENCE password_reset_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE password_reset_tokens_id_seq OWNED BY password_reset_tokens.id;
+
 CREATE TABLE provider_users (
     identity_id bigint NOT NULL,
     provider_id bigint NOT NULL,
@@ -252,6 +268,8 @@ ALTER TABLE ONLY identities ALTER COLUMN id SET DEFAULT nextval('identities_id_s
 
 ALTER TABLE ONLY organizations ALTER COLUMN id SET DEFAULT nextval('organizations_id_seq'::regclass);
 
+ALTER TABLE ONLY password_reset_tokens ALTER COLUMN id SET DEFAULT nextval('password_reset_tokens_id_seq'::regclass);
+
 ALTER TABLE ONLY providers ALTER COLUMN id SET DEFAULT nextval('providers_id_seq'::regclass);
 
 ALTER TABLE ONLY settings ALTER COLUMN id SET DEFAULT nextval('settings_id_seq'::regclass);
@@ -283,6 +301,9 @@ ALTER TABLE ONLY identities
 ALTER TABLE ONLY organizations
     ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+
 ALTER TABLE ONLY provider_users
     ADD CONSTRAINT provider_users_pkey PRIMARY KEY (identity_id, provider_id);
 
@@ -309,6 +330,8 @@ CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (name) WHERE (deleted_
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
 
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (name) WHERE (deleted_at IS NULL);
 
