@@ -329,6 +329,8 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.SessionExtensionDeadline = time.Minute
 	})
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	_, err := data.InitializeSettings(s.db)
+	assert.NilError(t, err)
 
 	var buf bytes.Buffer
 	email := "admin@email.com"
@@ -336,7 +338,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	// run signup for "admin@email.com"
 	signupReq := api.SignupRequest{Name: email, Password: passwd}
-	err := json.NewEncoder(&buf).Encode(signupReq)
+	err = json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", &buf)

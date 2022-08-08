@@ -33,10 +33,6 @@ func setupDB(t *testing.T) *gorm.DB {
 
 	// create the provider if it's missing.
 	data.InfraProvider(db)
-
-	err = data.SaveSettings(db, &models.Settings{})
-	assert.NilError(t, err)
-
 	return db
 }
 
@@ -99,7 +95,7 @@ func TestDBTimeout(t *testing.T) {
 			c.Set("ctx", ctx)
 			c.Next()
 		},
-		DatabaseMiddleware(db),
+		unauthenticatedMiddleware(db),
 	)
 	router.GET("/", func(c *gin.Context) {
 		db, ok := c.MustGet("db").(*gorm.DB)

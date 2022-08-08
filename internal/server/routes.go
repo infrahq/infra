@@ -11,10 +11,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/square/go-jose.v2"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
@@ -53,13 +52,9 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 
 	// This group of middleware only applies to non-ui routes
-	apiGroup := router.Group("/",
-		metrics.Middleware(promRegistry),
-		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
-	)
-	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
+	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
 
-	authn := apiGroup.Group("/", authenticatedMiddleware())
+	authn := apiGroup.Group("/", authenticatedMiddleware(a.server.db))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -103,7 +98,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware())
+	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server.db))
 	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 
@@ -118,6 +113,13 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	get(a, noAuthn, "/api/settings", a.GetSettings)
 	put(a, authn, "/api/settings", a.UpdateSettings)
+	add(a, noAuthn, route[api.EmptyRequest, WellKnownJWKResponse]{
+		method:            http.MethodGet,
+		path:              "/.well-known/jwks.json",
+		handler:           wellKnownJWKsHandler,
+		omitFromDocs:      true,
+		omitFromTelemetry: true,
+	})
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
@@ -264,22 +266,6 @@ func bind(c *gin.Context, req interface{}) error {
 
 func init() {
 	gin.DisableBindValidation()
-}
-
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
-}
-
-func (a *API) wellKnownJWKsHandler(c *gin.Context) {
-	keys, err := access.GetPublicJWK(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, WellKnownJWKResponse{
-		Keys: keys,
-	})
 }
 
 func healthHandler(c *gin.Context) {

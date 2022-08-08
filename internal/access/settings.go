@@ -10,9 +10,8 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func GetPublicJWK(c *gin.Context) ([]jose.JSONWebKey, error) {
-	db := getDB(c)
-	settings, err := data.GetSettings(db)
+func GetPublicJWK(c RequestContext) ([]jose.JSONWebKey, error) {
+	settings, err := data.GetSettings(c.DBTxn)
 	if err != nil {
 		return nil, fmt.Errorf("could not get JWKs: %w", err)
 	}
