@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.14.3](https://github.com/infrahq/infra/compare/v0.14.2...v0.14.3) (2022-08-08)
+
+
+### Features
+
+* `infra` shell completion ([#2792](https://github.com/infrahq/infra/issues/2792)) ([35f0aee](https://github.com/infrahq/infra/commit/35f0aeede099c91f899ccf64ac2be653cbfad415))
+* add infra support admin user ([#2755](https://github.com/infrahq/infra/issues/2755)) ([c19170c](https://github.com/infrahq/infra/commit/c19170c315b940234c13e608f0b57568243931a9))
+* add noTruncate flag to groups ls ([c3c75c9](https://github.com/infrahq/infra/commit/c3c75c9385a2d07865e1cfb585325d768ff093c9))
+* add the total users to group table ([#2798](https://github.com/infrahq/infra/issues/2798)) ([86e3602](https://github.com/infrahq/infra/commit/86e36026bdeadb287b31d6f445fa5957f02523fb))
+* **api:** add totalUsers to groups endpoint ([#2736](https://github.com/infrahq/infra/issues/2736)) ([8f0d485](https://github.com/infrahq/infra/commit/8f0d4852fa92bc44341e5f91dacc270d532224d1))
+* implement api get/update settings ([#2808](https://github.com/infrahq/infra/issues/2808)) ([e25518f](https://github.com/infrahq/infra/commit/e25518fee89e87fada2100fd6629944691c5a337))
+* password reset ([#2661](https://github.com/infrahq/infra/issues/2661)) ([184ee64](https://github.com/infrahq/infra/commit/184ee644f88d737df0b796a142efb3b9f2ceb181))
+* truncate users in groups list ([d7e1049](https://github.com/infrahq/infra/commit/d7e10491d1647c0ea83ba66e27f81d0e5c41e686))
+* **ui:** add providers to user metadata ([#2754](https://github.com/infrahq/infra/issues/2754)) ([b8a426f](https://github.com/infrahq/infra/commit/b8a426f996d0d799ce0cc409b2ecd792cf02d61b))
+
+
+### Bug Fixes
+
+* `infra info` handle error when session is invalid for the server (not expired or cleared, but just invalid) ([#2756](https://github.com/infrahq/infra/issues/2756)) ([a65352e](https://github.com/infrahq/infra/commit/a65352eec18635bca41d86364e46432ce02c8d0d))
+* add missing middleware next ([1726bfa](https://github.com/infrahq/infra/commit/1726bfa41207fb5672fa0524953ba15ad6ca7af8))
+* add safeguard for CommaSeparatedStrings ([58b72d5](https://github.com/infrahq/infra/commit/58b72d59d2b5657657a707171c513e5dcc1f2ed0))
+* data migration of group index name ([8b7f0ef](https://github.com/infrahq/infra/commit/8b7f0ef90917f8e404045498a009580b24ac406e))
+* deleting provider doesn't update the table until refresh ([#2774](https://github.com/infrahq/infra/issues/2774)) ([daee235](https://github.com/infrahq/infra/commit/daee235df1276d64c03e046f0eb710e9f7a09f96))
+* groups and users remove improvement ([#2686](https://github.com/infrahq/infra/issues/2686)) ([728f596](https://github.com/infrahq/infra/commit/728f59645641da2bb69211750b662fe49d54c63c))
+* **helm:** dont deploy ui in connector-only configurations ([#2794](https://github.com/infrahq/infra/issues/2794)) ([b411fba](https://github.com/infrahq/infra/commit/b411fba433be683c15a936aa6b6ba4334152d877))
+* **helm:** server.config.ui.proxyURL ([#2805](https://github.com/infrahq/infra/issues/2805)) ([ca30bfa](https://github.com/infrahq/infra/commit/ca30bfaff1120ad83ff12e3b8997ad073037a1df))
+* **helm:** use config http(s) addrs ([cbc2326](https://github.com/infrahq/infra/commit/cbc23261a314d7ff9b945ab4c213d3f2fd00ba8b))
+* make infra header optional for well-known jwks ([a48fe6f](https://github.com/infrahq/infra/commit/a48fe6f453c11c35007e2b47e02f865dad96ae11))
+* mute the password reset link for this release ([e77ee7c](https://github.com/infrahq/infra/commit/e77ee7cf06b703ea9099a0d3236c143653d7e89f))
+* path for go fuzz cache ([b1b6386](https://github.com/infrahq/infra/commit/b1b63860e16c4f72551fc5f50bd6bf3806bf123e))
+* remove deleted identities from identities_groups ([#2767](https://github.com/infrahq/infra/issues/2767)) ([fe568fa](https://github.com/infrahq/infra/commit/fe568fa654536708521f8a5961fcf9464270579a))
+* rollback postgres db transaction on fail ([#2759](https://github.com/infrahq/infra/issues/2759)) ([2e95b8c](https://github.com/infrahq/infra/commit/2e95b8cdb6be5b43bd52442e452fdfb8f8839084))
+* **ui:** add groups / users bugs and badge ui bug ([#2842](https://github.com/infrahq/infra/issues/2842)) ([4388d29](https://github.com/infrahq/infra/commit/4388d29bf014483563e730cd1c7dbe644692a679))
+* **ui:** bug where modal dialog would not close when removing a user from a group ([#2834](https://github.com/infrahq/infra/issues/2834)) ([1941a79](https://github.com/infrahq/infra/commit/1941a791287d6687071372fde8e5a0c30a5c668e))
+* **ui:** fix ui build by including qemu dependency in github actions ([#2763](https://github.com/infrahq/infra/issues/2763)) ([dcc51fb](https://github.com/infrahq/infra/commit/dcc51fb73ef567d3777004fa7e1b71b355c9110b))
+* **ui:** remove empty ui flicker while loading initial data ([#2769](https://github.com/infrahq/infra/issues/2769)) ([94521fc](https://github.com/infrahq/infra/commit/94521fc3ea0f3e641461f79faa6d60042a218d01))
+* **ui:** use inherited grants instead of fetching groups ([#2837](https://github.com/infrahq/infra/issues/2837)) ([7b9058b](https://github.com/infrahq/infra/commit/7b9058ba83a0aba931ea9cec9a4cf373e099eb17))
+
 ## [0.14.2](https://github.com/infrahq/infra/compare/v0.14.1...v0.14.2) (2022-07-27)
 
 
