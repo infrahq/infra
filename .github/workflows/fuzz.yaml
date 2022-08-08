@@ -43,7 +43,7 @@ jobs:
         with:
           key: go-fuzz-corpus-${{ matrix.name }}-${{ github.run_number }}
           restore-keys: go-fuzz-corpus-${{ matrix.name }}-
-          path: /home/runner/go/cache/fuzz
+          path: /home/runner/.cache/go-build/fuzz/
 
       - name: Set fuzz time
         run: echo "fuzz_time=5m" >> $GITHUB_ENV
