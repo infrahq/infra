@@ -274,7 +274,13 @@ func addFieldsFor_0_14_3() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-21T18:28",
 		Migrate: func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&models.Settings{}); err != nil {
+			if err := tx.Exec(`
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS lowercase_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS uppercase_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS number_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS symbol_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS length_min bigint DEFAULT 8;
+			`).Error; err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "organizations") {
