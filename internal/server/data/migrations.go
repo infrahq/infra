@@ -274,9 +274,6 @@ func addFieldsFor_0_14_3() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-21T18:28",
 		Migrate: func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&models.Provider{}); err != nil {
-				return err
-			}
 			if err := tx.AutoMigrate(&models.Settings{}); err != nil {
 				return err
 			}
@@ -304,22 +301,32 @@ CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) W
 					return err
 				}
 			}
-			if err := tx.AutoMigrate(&models.AccessKey{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.Credential{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.Destination{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.ProviderUser{}); err != nil {
+
+			if err := tx.Exec(`
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS private_key text;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS client_email text;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS domain_admin_email text;
+			`).Error; err != nil {
 				return err
 			}
 
 			if err := tx.Exec(`
-				ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_provider bigint;
-				CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name ON groups USING btree (name) WHERE (deleted_at IS NULL);
+ALTER TABLE access_keys ADD COLUMN IF NOT EXISTS scopes text;
+			`).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Exec(`
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS version text;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS resources text;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS roles text;
+			`).Error; err != nil {
+				return err
+			}
+
+			if err := tx.Exec(`
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_provider bigint;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name ON groups USING btree (name) WHERE (deleted_at IS NULL);
 			`).Error; err != nil {
 				return err
 			}
