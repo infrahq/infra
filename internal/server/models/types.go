@@ -2,38 +2,19 @@ package models
 
 import (
 	"database/sql/driver"
-	"encoding/base64"
 	"fmt"
 	"strings"
 )
 
-type Base64 []byte
-
-func (f Base64) Value() (driver.Value, error) {
-	r := base64.StdEncoding.EncodeToString([]byte(f))
-
-	return r, nil
-}
-
-func (f *Base64) Scan(v interface{}) error {
-	b, err := base64.StdEncoding.DecodeString(string(v.(string)))
-	if err != nil {
-		return fmt.Errorf("base64 decoding field: %w", err)
-	}
-
-	*f = Base64(b)
-
-	return nil
-}
-
-func (f Base64) GormDataType() string {
-	return "text"
-}
-
 type CommaSeparatedStrings []string
 
 func (s CommaSeparatedStrings) Value() (driver.Value, error) {
-	return strings.Join([]string(s), ","), nil
+	for _, v := range s {
+		if strings.Contains(v, ",") {
+			return nil, fmt.Errorf("can not store values that include commas")
+		}
+	}
+	return strings.Join(s, ","), nil
 }
 
 func (s *CommaSeparatedStrings) Scan(v interface{}) error {
@@ -42,7 +23,7 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 	}
 	str, ok := v.(string)
 	if !ok {
-		return fmt.Errorf("expected string type for %v", v)
+		return fmt.Errorf("expected string type for comma separated string, got %T", v)
 	}
 	parts := strings.Split(str, ",")
 
@@ -50,8 +31,7 @@ func (s *CommaSeparatedStrings) Scan(v interface{}) error {
 		parts = parts[1:]
 	}
 
-	*s = CommaSeparatedStrings(parts)
-
+	*s = parts
 	return nil
 }
 
