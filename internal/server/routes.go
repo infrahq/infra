@@ -114,11 +114,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthn, "/api/settings", a.GetSettings)
 	put(a, authn, "/api/settings", a.UpdateSettings)
 	add(a, noAuthn, route[api.EmptyRequest, WellKnownJWKResponse]{
-		method:            http.MethodGet,
-		path:              "/.well-known/jwks.json",
-		handler:           wellKnownJWKsHandler,
-		omitFromDocs:      true,
-		omitFromTelemetry: true,
+		method:              http.MethodGet,
+		path:                "/.well-known/jwks.json",
+		handler:             wellKnownJWKsHandler,
+		omitFromDocs:        true,
+		omitFromTelemetry:   true,
+		infraHeaderOptional: true,
 	})
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
@@ -133,11 +134,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
-	method            string
-	path              string
-	handler           HandlerFunc[Req, Res]
-	omitFromDocs      bool
-	omitFromTelemetry bool
+	method              string
+	path                string
+	handler             HandlerFunc[Req, Res]
+	omitFromDocs        bool
+	omitFromTelemetry   bool
+	infraHeaderOptional bool
 }
 
 func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
@@ -148,9 +150,11 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 	}
 
 	wrappedHandler := func(c *gin.Context) {
-		if _, err := requestVersion(c.Request); err != nil {
-			sendAPIError(c, err)
-			return
+		if !route.infraHeaderOptional {
+			if _, err := requestVersion(c.Request); err != nil {
+				sendAPIError(c, err)
+				return
+			}
 		}
 
 		req := new(Req)
