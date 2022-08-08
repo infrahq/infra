@@ -503,7 +503,7 @@ func dumpSchema(t *testing.T, conn string) string {
 
 	out := new(bytes.Buffer)
 	// https://www.postgresql.org/docs/current/app-pgdump.html
-	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only")
+	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only", "--schema=testing")
 	cmd.Env = envs
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
