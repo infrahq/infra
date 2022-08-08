@@ -24,7 +24,6 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -50,14 +49,15 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
 
-	err = data.SaveSettings(s.db, &models.Settings{})
-	assert.NilError(t, err)
-
 	// create the provider if it's missing.
 	data.InfraProvider(s.db)
 
 	data.InvalidateCache()
 	t.Cleanup(data.InvalidateCache)
+	// TODO: clean this up
+	t.Cleanup(func() {
+		defaultOrgCache = nil
+	})
 
 	return s
 }
@@ -334,6 +334,8 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.SessionExtensionDeadline = time.Minute
 	})
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	_, err := data.InitializeSettings(s.db)
+	assert.NilError(t, err)
 
 	var buf bytes.Buffer
 	email := "admin@email.com"
@@ -342,7 +344,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	// run signup for "admin@email.com"
 	signupReq := api.SignupRequest{Name: email, Password: passwd, Org: org}
-	err := json.NewEncoder(&buf).Encode(signupReq)
+	err = json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/signup", &buf)

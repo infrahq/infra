@@ -339,6 +339,14 @@ func (c Client) GetServerVersion() (*Version, error) {
 	return get[Version](c, "/api/version", Query{})
 }
 
+func (c Client) GetSettings() (*Settings, error) {
+	return get[Settings](c, "/api/settings", Query{})
+}
+
+func (c Client) UpdateSettings(req *Settings) (*Settings, error) {
+	return put[Settings, Settings](c, "/api/settings", req)
+}
+
 func partialText(body []byte, limit int) string {
 	if len(body) <= limit {
 		return string(body)

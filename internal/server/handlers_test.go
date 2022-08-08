@@ -3,12 +3,15 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -159,3 +162,76 @@ var cmpAPIUserJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
+
+func TestWellKnownKWKs(t *testing.T) {
+	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	_, err := data.InitializeSettings(srv.db)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, "/.well-known/jwks.json", nil)
+		assert.NilError(t, err)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		{
+			name: "success",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				body := jsonUnmarshal(t, resp.Body.String())
+				expected := map[string]any{
+					"keys": []any{
+						map[string]any{
+							"alg": "ED25519",
+							"crv": "Ed25519",
+							"kty": "OKP",
+							"use": "sig",
+							"kid": "<any-string>",
+							"x":   "<any-string>",
+						},
+					},
+				}
+				assert.DeepEqual(t, body, expected, cmpWellKnownJWKsJSON)
+			},
+		},
+		// TODO(orgs): add test case with other org
+		// TODO(orgs): add test case with non-existent org
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+var cmpWellKnownJWKsJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`kid`, `x`), cmpAnyString),
+}
+
+// cmpAnyString is a gocmp.Option that allows a field to match any non-zero string.
+var cmpAnyString = gocmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	ys, _ := y.(string)
+
+	if xs == "" || ys == "" {
+		return false
+	}
+	if xs == "<any-string>" || ys == "<any-string>" {
+		return true
+	}
+	return xs == ys
+})

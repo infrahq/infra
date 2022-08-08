@@ -25,6 +25,50 @@ function parent(resource = '') {
   return parts.length > 1 ? parts[0] : null
 }
 
+function ConnectSection({ userID, resource, kind = 'resource' }) {
+  const { data: { items: grants } = {} } = useSWR(
+    `/api/grants?user=${userID}&resource=${resource}&showInherited=1`
+  )
+
+  const roles = [
+    ...new Set(
+      grants?.filter(g => g.resource !== 'infra')?.map(ug => ug.privilege)
+    ),
+  ].sort(sortByPrivilege)
+
+  if (!roles.length) {
+    return null
+  }
+
+  return (
+    <section>
+      <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
+        Connect
+      </h3>
+      <p className='my-4 text-2xs leading-normal'>
+        Connect to this {kind} via the{' '}
+        <a
+          target='_blank'
+          href='https://infrahq.com/docs/install/install-infra-cli'
+          className='font-medium text-violet-200 underline'
+          rel='noreferrer'
+        >
+          Infra CLI
+        </a>
+        . You have <span className='font-semibold'>{roles.join(', ')}</span>{' '}
+        access.
+      </p>
+      <pre className='overflow-auto rounded-md bg-gray-900 px-4 py-3 text-2xs leading-normal text-gray-300'>
+        infra login {window.location.host}
+        <br />
+        infra use {resource}
+        <br />
+        kubectl get pods
+      </pre>
+    </section>
+  )
+}
+
 function Details({ destination, onDelete }) {
   const { resource } = destination
 
@@ -32,9 +76,6 @@ function Details({ destination, onDelete }) {
   const { data: auth } = useSWR('/api/users/self')
   const { data: { items: users } = {} } = useSWR('/api/users')
   const { data: { items: groups } = {} } = useSWR('/api/groups')
-  const { data: { items: usergroups } = {} } = useSWR(() =>
-    auth ? `/api/groups?userID=${auth.id}` : null
-  )
   const { data: { items: grants } = {}, mutate } = useSWR(
     `/api/grants?resource=${resource}`
   )
@@ -42,15 +83,6 @@ function Details({ destination, onDelete }) {
     parent(resource) ? `/api/grants?resource=${parent(resource)}` : null
   )
 
-  const showConnect = grants?.find(
-    g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
-  )
-  const usergrants = [...(grants || []), ...(inherited || [])]?.filter(
-    g => g.user === auth?.id || usergroups.some(ug => ug.id === g.group)
-  )
-  const userroles = [
-    ...new Set(usergrants?.sort(sortByPrivilege)?.map(ug => ug.privilege)),
-  ]
   const empty =
     grants?.length === 0 && (parent(resource) ? inherited?.length === 0 : true)
   const metadata = [
@@ -183,34 +215,11 @@ function Details({ destination, onDelete }) {
           </div>
         </section>
       )}
-      {showConnect && (
-        <section>
-          <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-            Connect
-          </h3>
-          <p className='my-4 text-2xs leading-normal'>
-            Connect to this {destination?.kind || 'resource'} via the{' '}
-            <a
-              target='_blank'
-              href='https://infrahq.com/docs/install/install-infra-cli'
-              className='font-medium text-violet-200 underline'
-              rel='noreferrer'
-            >
-              Infra CLI
-            </a>
-            . You have{' '}
-            <span className='font-semibold'>{userroles.join(', ')}</span>{' '}
-            access.
-          </p>
-          <pre className='overflow-auto rounded-md bg-gray-900 px-4 py-3 text-2xs leading-normal text-gray-300'>
-            infra login {window.location.host}
-            <br />
-            infra use {destination.resource}
-            <br />
-            kubectl get pods
-          </pre>
-        </section>
-      )}
+      <ConnectSection
+        userID={auth?.id}
+        kind={destination?.kind}
+        resource={destination?.resource}
+      />
       <section>
         <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
           Metadata

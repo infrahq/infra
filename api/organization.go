@@ -29,6 +29,7 @@ type CreateOrganizationRequest struct {
 func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", r.Name),
+		ValidateName(r.Name),
 	}
 }
 

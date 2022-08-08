@@ -22,6 +22,12 @@ func TestCommaSeparatedStringsValue(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, test.expected, val)
 	}
+
+	t.Run("invalid input", func(t *testing.T) {
+		input := []string{"ok", "with, comma"}
+		_, err := CommaSeparatedStrings(input).Value()
+		assert.Error(t, err, "can not store values that include commas")
+	})
 }
 
 func TestCommaSeparatedStringsScan(t *testing.T) {

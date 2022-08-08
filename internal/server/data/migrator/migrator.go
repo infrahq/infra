@@ -22,6 +22,10 @@ type Options struct {
 	// function is run, migrator will create the migrations table and populate
 	// it with the IDs of all the currently defined migrations.
 	InitSchema func(*gorm.DB) error
+
+	// LoadKey is an optional function to initialize an encryption key from the
+	// database, that is used to encrypt other fields.
+	LoadKey func(*gorm.DB) error
 }
 
 // Migration represents a database migration (a modification to be made on the database).
@@ -52,6 +56,11 @@ var DefaultOptions = Options{
 
 // New returns a new Migrator.
 func New(db *gorm.DB, options Options, migrations []*Migration) *Migrator {
+	if options.LoadKey == nil {
+		options.LoadKey = func(db *gorm.DB) error {
+			return nil
+		}
+	}
 	return &Migrator{
 		db:         db,
 		options:    options,
@@ -76,15 +85,19 @@ func (g *Migrator) Migrate() error {
 		return err
 	}
 
-	canInitializeSchema, err := g.shouldInitializeSchema()
-	if err != nil {
+	initSchema, err := g.mustInitializeSchema()
+	switch {
+	case err != nil:
 		return err
-	}
-	if canInitializeSchema {
+	case initSchema:
 		if err := g.runInitSchema(); err != nil {
 			return err
 		}
 		return g.commit()
+	}
+
+	if err := g.options.LoadKey(g.tx); err != nil {
+		return fmt.Errorf("load key: %w", err)
 	}
 
 	for _, migration := range g.migrations {
@@ -179,7 +192,7 @@ func (g *Migrator) runInitSchema() error {
 			return err
 		}
 	}
-	return nil
+	return g.options.LoadKey(g.tx)
 }
 
 func (g *Migrator) runMigration(migration *Migration) error {
@@ -215,7 +228,7 @@ func (g *Migrator) migrationRan(m *Migration) (bool, error) {
 	return count > 0, err
 }
 
-func (g *Migrator) shouldInitializeSchema() (bool, error) {
+func (g *Migrator) mustInitializeSchema() (bool, error) {
 	migrationRan, err := g.migrationRan(&Migration{ID: initSchemaMigrationID})
 	if err != nil {
 		return false, err

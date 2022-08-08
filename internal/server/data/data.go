@@ -19,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -32,18 +33,20 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 
-	if err := preMigrate(db); err != nil {
-		return nil, err
+	opts := migrator.Options{
+		InitSchema: initializeSchema,
+		LoadKey:    loadDBKey,
 	}
-
-	if loadDBKey != nil {
-		if err := loadDBKey(db); err != nil {
-			return nil, fmt.Errorf("load DB key failed: %w", err)
-		}
-	}
-
-	if err = migrate(db); err != nil {
+	m := migrator.New(db, opts, migrations())
+	if err := m.Migrate(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
+	}
+
+	// Call initializeSchema again to apply implicit migrations handled by
+	// gorm.AutoMigrate. In the future we will replace this call with
+	// explicit migrations for all database changes.
+	if err := initializeSchema(db); err != nil {
+		return nil, fmt.Errorf("auto-migrate failed: %w", err)
 	}
 
 	return db, nil
@@ -205,7 +208,19 @@ func save[T models.Modelable](db *gorm.DB, model *T) error {
 
 func add[T models.Modelable](db *gorm.DB, model *T) error {
 	setOrg(db, model)
-	err := db.Create(model).Error
+
+	var err error
+	if db.Name() == "postgres" {
+		// failures on postgres need to be rolled back in order to
+		// continue using the same transaction
+		db.SavePoint("beforeCreate")
+		err = db.Create(model).Error
+		if err != nil {
+			db.RollbackTo("beforeCreate")
+		}
+	} else {
+		err = db.Create(model).Error
+	}
 	return handleError(err)
 }
 

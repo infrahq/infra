@@ -22,6 +22,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 )
@@ -43,6 +44,11 @@ type Options struct {
 	DBUsername              string
 	DBPassword              string
 	DBParameters            string
+
+	EmailAppDomain   string
+	EmailFromAddress string
+	EmailFromName    string
+	SendgridApiKey   string
 
 	Keys    []KeyProvider
 	Secrets []SecretProvider
@@ -142,6 +148,9 @@ func New(options Options) (*Server, error) {
 	if err := server.listen(); err != nil {
 		return nil, fmt.Errorf("listening: %w", err)
 	}
+
+	configureEmail(options)
+
 	return server, nil
 }
 
@@ -375,4 +384,19 @@ func createDBKey(db *gorm.DB, provider secrets.SymmetricKeyProvider, rootKeyId s
 	models.SymmetricKey = sKey
 
 	return nil
+}
+
+func configureEmail(options Options) {
+	if len(options.EmailAppDomain) > 0 {
+		email.AppDomain = options.EmailAppDomain
+	}
+	if len(options.EmailFromAddress) > 0 {
+		email.FromAddress = options.EmailFromAddress
+	}
+	if len(options.EmailFromName) > 0 {
+		email.FromName = options.EmailFromName
+	}
+	if len(options.SendgridApiKey) > 0 {
+		email.SendgridAPIKey = options.SendgridApiKey
+	}
 }

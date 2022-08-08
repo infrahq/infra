@@ -87,21 +87,24 @@ func TestOIDCAuthenticate(t *testing.T) {
 }
 
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
-	cases := map[string]map[string]interface{}{
+	type testCase struct {
+		setup    func(t *testing.T, db *gorm.DB) providers.OIDCClient
+		expected func(t *testing.T, user *models.Identity)
+	}
+	testCases := map[string]testCase{
 		"NewUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
+			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.Identity, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, user *models.Identity) {
 				assert.Equal(t, "newusernewgroups@example.com", user.Name)
 			},
 		},
 		"NewUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
+			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -116,8 +119,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existing1", "existing2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.Identity, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, user *models.Identity) {
 				assert.Equal(t, "newuserexistinggroups@example.com", user.Name)
 
 				assert.Assert(t, is.Len(user.Groups, 2))
@@ -131,7 +133,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
+			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
@@ -140,8 +142,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existingusernewgroups1", "existingusernewgroups2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.Identity, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, user *models.Identity) {
 				assert.Equal(t, "existingusernewgroups@example.com", user.Name)
 
 				assert.Assert(t, is.Len(user.Groups, 2))
@@ -155,7 +156,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
+			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -170,8 +171,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.Identity, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, user *models.Identity) {
 				assert.Equal(t, "existinguserexistinggroups@example.com", user.Name)
 
 				assert.Assert(t, is.Len(user.Groups, 2))
@@ -185,7 +185,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			"setup": func(t *testing.T, db *gorm.DB) providers.OIDCClient {
+			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -222,8 +222,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
 				}
 			},
-			"verify": func(t *testing.T, user *models.Identity, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, user *models.Identity) {
 				assert.Equal(t, "eugwnw@example.com", user.Name)
 
 				assert.Assert(t, len(user.Groups) == 3)
@@ -239,7 +238,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		},
 	}
 
-	for k, v := range cases {
+	for name, tc := range testCases {
 		db := setupDB(t)
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -250,25 +249,20 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		err := data.CreateProvider(db, provider)
 		assert.NilError(t, err)
 
-		t.Run(k, func(t *testing.T) {
-			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) providers.OIDCClient)
-			assert.Assert(t, ok)
-			mockOIDC := setupFunc(t, db)
+		t.Run(name, func(t *testing.T) {
+			mockOIDC := tc.setup(t, db)
 
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
-			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, error))
-			assert.Assert(t, ok)
-
 			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
-			verifyFunc(t, u, err)
+			assert.NilError(t, err)
+			tc.expected(t, u)
 
 			if err == nil {
 				// make sure the associations are still set when you reload the object.
 				u, err = data.GetIdentity(db.Preload("Groups"), data.ByID(u.ID))
 				assert.NilError(t, err)
-
-				verifyFunc(t, u, err)
+				tc.expected(t, u)
 			}
 		})
 	}

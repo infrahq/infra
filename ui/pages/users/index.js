@@ -16,7 +16,7 @@ import Sidebar from '../../components/sidebar'
 import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
 import Metadata from '../../components/metadata'
-import GrantsList from '../../components/grants-list'
+import RoleSelect from '../../components/role-select'
 import RemoveButton from '../../components/remove-button'
 import Pagination from '../../components/pagination'
 import DeleteModal from '../../components/delete-modal'
@@ -61,14 +61,13 @@ function Details({ user, admin, onDelete }) {
   const { id, name } = user
   const { data: auth } = useSWR('/api/users/self')
 
-  const { data: { items } = {}, mutate } = useSWR(`/api/grants?user=${id}`)
+  const { data: { items } = {}, mutate } = useSWR(
+    `/api/grants?user=${id}&showInherited=1`
+  )
   const { data: { items: groups } = {}, mutate: mutateGroups } = useSWR(
     `/api/groups?userID=${id}`
   )
-  const { data: groupGrantDatas } = useSWR(
-    () => (groups ? groups.map(g => `/api/grants?group=${g.id}`) : null),
-    (...urls) => Promise.all(urls.map(url => fetch(url).then(r => r.json())))
-  )
+
   const { data: { items: infraAdmins } = {} } = useSWR(
     '/api/grants?resource=infra&privilege=admin'
   )
@@ -76,10 +75,6 @@ function Details({ user, admin, onDelete }) {
   const [open, setOpen] = useState(false)
 
   const grants = items?.filter(g => g.resource !== 'infra')
-  const inherited = groupGrantDatas
-    ?.map(g => g?.items || [])
-    ?.flat()
-    ?.filter(g => g.resource !== 'infra')
   const adminGroups = infraAdmins?.map(admin => admin.group)
   const metadata = [
     { title: 'ID', data: user?.id },
@@ -90,12 +85,7 @@ function Details({ user, admin, onDelete }) {
     { title: 'Providers', data: user?.providerNames.join(', ') },
   ]
 
-  const loading = [
-    auth,
-    grants,
-    groups,
-    groups?.length ? inherited : true,
-  ].some(x => !x)
+  const loading = [auth, grants, groups].some(x => !x)
 
   const handleRemoveGroupFromUser = async groupId => {
     const usersToRemove = [id]
@@ -117,51 +107,74 @@ function Details({ user, admin, onDelete }) {
               <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
                 Access
               </h3>
-              <GrantsList
-                grants={grants}
-                onRemove={async id => {
-                  await fetch(`/api/grants/${id}`, { method: 'DELETE' })
-                  mutate({ items: grants.filter(x => x.id !== id) })
-                }}
-                onChange={async (privilege, grant) => {
-                  const res = await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      ...grant,
-                      privilege,
-                    }),
-                  })
+              {grants
+                ?.sort(sortByResource)
+                ?.sort((a, b) => {
+                  if (a.user === user.id) {
+                    return -1
+                  }
 
-                  // delete old grant
-                  await fetch(`/api/grants/${grant.id}`, { method: 'DELETE' })
-                  mutate({
-                    items: [
-                      ...grants.filter(f => f.id !== grant.id),
-                      await res.json(),
-                    ],
-                  })
-                }}
-              />
-              {inherited?.sort(sortByResource)?.map(g => (
-                <div
-                  key={g.id}
-                  className='flex items-center justify-between text-2xs'
-                >
-                  <div>{g.resource}</div>
-                  <div className='flex flex-none'>
-                    <div
-                      title='This access is inherited by a group and cannot be edited here'
-                      className='relative mx-1 self-center rounded border border-gray-800 bg-gray-800 px-2 pt-px text-2xs text-gray-400'
-                    >
-                      inherited
-                    </div>
-                    <div className='relative w-32 flex-none py-2 pl-3 pr-8 text-left text-2xs text-gray-400'>
-                      {g.privilege}
-                    </div>
+                  if (b.user === user.id) {
+                    return 1
+                  }
+
+                  return 0
+                })
+                .map(g => (
+                  <div
+                    key={g.id}
+                    className='flex items-center justify-between text-2xs'
+                  >
+                    <div>{g.resource}</div>
+                    {g.user !== user.id ? (
+                      <div className='flex'>
+                        <div
+                          title='This access is inherited by a group and cannot be edited here'
+                          className='relative mx-1 self-center rounded border border-gray-800 bg-gray-800 px-2 pt-px text-2xs text-gray-400'
+                        >
+                          inherited
+                        </div>
+                        <div className='relative w-32 flex-none py-2 pl-3 pr-8 text-left text-2xs text-gray-400'>
+                          {g.privilege}
+                        </div>
+                      </div>
+                    ) : (
+                      <RoleSelect
+                        role={g.privilege}
+                        resource={g.resource}
+                        remove
+                        direction='left'
+                        onRemove={async () => {
+                          await fetch(`/api/grants/${g.id}`, {
+                            method: 'DELETE',
+                          })
+                          mutate({ items: grants.filter(x => x.id !== g.id) })
+                        }}
+                        onChange={async privilege => {
+                          const res = await fetch('/api/grants', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                              ...g,
+                              privilege,
+                            }),
+                          })
+
+                          // delete old grant
+                          await fetch(`/api/grants/${g.id}`, {
+                            method: 'DELETE',
+                          })
+                          mutate({
+                            items: [
+                              ...grants.filter(f => f.id !== g.id),
+                              await res.json(),
+                            ],
+                          })
+                        }}
+                      />
+                    )}
                   </div>
-                </div>
-              ))}
-              {!grants?.length && !inherited?.length && !loading && (
+                ))}
+              {!grants?.length && !loading && (
                 <EmptyData>
                   <div className='mt-6'>No access</div>
                 </EmptyData>

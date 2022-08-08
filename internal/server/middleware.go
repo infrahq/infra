@@ -37,23 +37,6 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
-// DatabaseMiddleware injects a `db` object into the Gin context.
-func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		err := db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-			tx.Statement.Context = context.WithValue(tx.Statement.Context, "org", db.Statement.Context.Value("org"))
-			c.Set("db", tx)
-			c.Next()
-			return nil
-		})
-		if err != nil {
-			logging.Debugf(err.Error())
-			sendAPIError(c, err) // TODO: is this going to work if something lower down the stack wrote the response already?
-			_ = c.Error(err)
-		}
-	}
-}
-
 func handleInfraDestinationHeader(c *gin.Context) error {
 	uniqueID := c.Request.Header.Get("Infra-Destination")
 	if uniqueID == "" {
@@ -85,42 +68,74 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 }
 
-// TODO: remove duplicate in access package
-func getDB(c *gin.Context) *gorm.DB {
-	db, ok := c.MustGet("db").(*gorm.DB)
-	if !ok {
-		return nil
-	}
-	return db
-}
-
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware() gin.HandlerFunc {
+func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		db := getDB(c)
-		authned, err := requireAccessKey(db, c.Request)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
 
-		rCtx := access.RequestContext{
-			Request:       c.Request,
-			DBTxn:         db,
-			Authenticated: authned,
-		}
-		c.Set(access.RequestContextKey, rCtx)
+			// TODO: remove once everything uses RequestContext
+			c.Set("db", tx)
+			OrganizationFromDomain(c, srv.options.Config.OrganizationName, srv.options.Config.OrganizationDomain)
 
-		// TODO: remove
-		c.Set("identity", authned.User)
+			// TODO: org should be able to come from acess key, not require domain
+			if err := orgRequired(c); err != nil {
+				sendAPIError(c, internal.ErrBadRequest)
+				return
+			}
 
-		if err := handleInfraDestinationHeader(c); err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		c.Next()
+			authned, err := requireAccessKey(tx, c.Request)
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+
+			rCtx := access.RequestContext{
+				Request:       c.Request,
+				DBTxn:         tx,
+				Authenticated: authned,
+			}
+			c.Set(access.RequestContextKey, rCtx)
+
+			// TODO: remove once everything uses RequestContext
+			c.Set("identity", authned.User)
+
+			if err := handleInfraDestinationHeader(c); err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			c.Next()
+		})
+	}
+}
+
+func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		fn(tx)
+		return nil
+	})
+	// TODO: https://github.com/infrahq/infra/issues/2697
+	if err != nil {
+		logging.L.Error().Err(err).Msg("failed to commit database transaction")
+	}
+}
+
+func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
+			rCtx := access.RequestContext{
+				Request: c.Request,
+				DBTxn:   tx,
+			}
+			c.Set(access.RequestContextKey, rCtx)
+			// TODO: remove once everything uses RequestContext
+			c.Set("db", tx)
+
+			OrganizationFromDomain(c, srv.options.Config.OrganizationName, srv.options.Config.OrganizationDomain)
+
+			c.Next()
+		})
 	}
 }
 
@@ -187,24 +202,31 @@ func getCookie(req *http.Request, name string) (string, error) {
 	return url.QueryUnescape(cookie.Value)
 }
 
-func OrganizationFromDomain(defaultOrgName, defaultOrgDomain string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		org, host, err := getOrgFromRequest(c, defaultOrgName, defaultOrgDomain)
-		if err != nil {
-			sendAPIError(c, err)
-			return
-		}
-		if org != nil {
-			c.Set("host", host)
-			c.Set("org", org)
-			// c.Request.WithContext(context.WithValue(c.Request.Context(), "org", org))
-			db := getDB(c)
-			db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
-			c.Set("db", db)
-			logging.Debugf("organization set to %s for host %s", org.Name, host)
-		}
-		c.Next()
+func OrganizationFromDomain(c *gin.Context, defaultOrgName, defaultOrgDomain string) {
+	org, host, err := getOrgFromRequest(c, defaultOrgName, defaultOrgDomain)
+	if err != nil {
+		sendAPIError(c, err)
+		return
 	}
+	if org != nil {
+		c.Set("host", host)
+		c.Set("org", org)
+		// c.Request.WithContext(context.WithValue(c.Request.Context(), "org", org))
+		db := getDB(c)
+		db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+		c.Set("db", db)
+		logging.Debugf("organization set to %s for host %s", org.Name, host)
+	}
+}
+
+// TODO: remove, use DB from RequestContext
+func getDB(c *gin.Context) *gorm.DB {
+	db, ok := c.MustGet("db").(*gorm.DB)
+	if !ok {
+		return nil
+	}
+
+	return db
 }
 
 // returns org, host
@@ -243,19 +265,15 @@ func getOrgFromRequest(c *gin.Context, defaultOrgName, defaultOrgDomain string) 
 	return nil, "", nil
 }
 
-func OrganizationRequired() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		o, ok := c.Get("org")
-		if !ok {
-			sendAPIError(c, internal.ErrBadRequest)
-			return
-		}
-		if _, ok = o.(*models.Organization); !ok {
-			sendAPIError(c, internal.ErrBadRequest)
-			return
-		}
-		c.Next()
+func orgRequired(c *gin.Context) error {
+	o, ok := c.Get("org")
+	if !ok {
+		return fmt.Errorf("missing org ID")
 	}
+	if _, ok = o.(*models.Organization); !ok {
+		return fmt.Errorf("missing org")
+	}
+	return nil
 }
 
 var defaultOrgCache *models.Organization
@@ -275,16 +293,6 @@ func getDefaultOrg(db *gorm.DB, defaultOrgName, defaultOrgDomain string) (*model
 
 	defaultOrgCache = org
 	return org, nil
-}
-
-func unauthenticatedMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rCtx := access.RequestContext{
-			Request: c.Request,
-			DBTxn:   getDB(c),
-		}
-		c.Set(access.RequestContextKey, rCtx)
-	}
 }
 
 func getRequestContext(c *gin.Context) access.RequestContext {

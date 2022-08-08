@@ -11,11 +11,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
@@ -54,14 +52,9 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 
 	// This group of middleware only applies to non-ui routes
-	apiGroup := router.Group("/",
-		metrics.Middleware(promRegistry),
-		DatabaseMiddleware(a.server.db), // must be after TimeoutMiddleware to time out db queries.
-		OrganizationFromDomain(s.options.Config.OrganizationName, s.options.Config.OrganizationDomain),
-	)
-	apiGroup.GET("/.well-known/jwks.json", a.wellKnownJWKsHandler)
+	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
 
-	authn := apiGroup.Group("/", authenticatedMiddleware(), OrganizationRequired())
+	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -105,10 +98,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware())
+	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
 	post(a, noAuthn, "/api/signup", a.Signup)
 
 	post(a, noAuthn, "/api/login", a.Login)
+	post(a, noAuthn, "/api/password-reset-request", a.RequestPasswordReset)
+	post(a, noAuthn, "/api/password-reset", a.VerifiedPasswordReset)
 
 	get(a, noAuthn, "/api/providers", a.ListProviders)
 	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
@@ -126,6 +121,17 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		},
 	)
 
+	get(a, noAuthn, "/api/settings", a.GetSettings)
+	put(a, authn, "/api/settings", a.UpdateSettings)
+	add(a, noAuthn, route[api.EmptyRequest, WellKnownJWKResponse]{
+		method:              http.MethodGet,
+		path:                "/.well-known/jwks.json",
+		handler:             wellKnownJWKsHandler,
+		omitFromDocs:        true,
+		omitFromTelemetry:   true,
+		infraHeaderOptional: true,
+	})
+
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
 	// UI middleware unnecessarily.
@@ -138,11 +144,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
-	method            string
-	path              string
-	handler           HandlerFunc[Req, Res]
-	omitFromDocs      bool
-	omitFromTelemetry bool
+	method              string
+	path                string
+	handler             HandlerFunc[Req, Res]
+	omitFromDocs        bool
+	omitFromTelemetry   bool
+	infraHeaderOptional bool
 }
 
 func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
@@ -153,9 +160,11 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 	}
 
 	wrappedHandler := func(c *gin.Context) {
-		if _, err := requestVersion(c.Request); err != nil {
-			sendAPIError(c, err)
-			return
+		if !route.infraHeaderOptional {
+			if _, err := requestVersion(c.Request); err != nil {
+				sendAPIError(c, err)
+				return
+			}
 		}
 
 		req := new(Req)
@@ -281,22 +290,6 @@ func bind(c *gin.Context, req interface{}) error {
 
 func init() {
 	gin.DisableBindValidation()
-}
-
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
-}
-
-func (a *API) wellKnownJWKsHandler(c *gin.Context) {
-	keys, err := access.GetPublicJWK(c)
-	if err != nil {
-		sendAPIError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, WellKnownJWKResponse{
-		Keys: keys,
-	})
 }
 
 func healthHandler(c *gin.Context) {

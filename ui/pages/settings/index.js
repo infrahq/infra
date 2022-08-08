@@ -69,9 +69,6 @@ export default function Settings() {
   )
 
   const hasInfraProvider = auth?.providerNames.includes('infra')
-  const listSelfGroupsId = selfGroups?.map(g => g.id)
-
-  const loading = [auth, users, groups, grants].some(x => !x)
 
   return (
     <>
@@ -79,7 +76,7 @@ export default function Settings() {
         <title>Settings - Infra</title>
       </Head>
 
-      {!loading && auth && (
+      {auth && (
         <div className='mt-6 mb-4 flex flex-1 flex-col space-y-8'>
           <h1 className='mb-6 text-xs font-bold'>Settings</h1>
           {hasInfraProvider && (
@@ -121,7 +118,7 @@ export default function Settings() {
           )}
         </div>
       )}
-      {!loading && admin && (
+      {admin && (
         <div className='max-w-md'>
           <div className='border-b border-gray-800 pb-6 text-2xs uppercase leading-none text-gray-400'>
             Admins
@@ -152,18 +149,11 @@ export default function Settings() {
             {grants
               ?.sort(sortBySubject)
               ?.map(grant => {
-                const deleteModalMessage = {
-                  deleteSelfUser:
-                    'Are you sure you want to revoke your own admin permission?',
-                  deleteSelfGroup:
-                    'Are you sure you want to revoke this group? You will lose any access to Infra that this group grants.',
-                }
-
                 const message =
                   grant?.user === auth?.id
-                    ? deleteModalMessage.deleteSelfUser
-                    : listSelfGroupsId.includes(grant.group)
-                    ? deleteModalMessage.deleteSelfGroup
+                    ? 'Are you sure you want to revoke your own admin access?'
+                    : selfGroups.some(g => g.id === grant.group)
+                    ? `Are you sure you want to revoke this group's admin access? You are a member of this group.`
                     : undefined
 
                 return { ...grant, message }

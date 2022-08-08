@@ -4,35 +4,36 @@
 
 {{- if include "server.enabled" . | eq "true" }}
 
-  To get started, login via the Infra CLI
+  To get started, visit the Infra Dashboard:
 
 {{- if .Values.server.ingress.enabled }}
 {{- with first .Values.server.ingress.hosts }}
 
-  $ infra login {{ . }}
+  {{ . }}
 
 {{- end }}
 {{- else if eq .Values.server.service.type "NodePort" }}
 
   $ NODE_HOST=$(kubectl -n {{ .Release.Namespace }} get nodes -o jsonpath="{.status.addresses[0].address}")
   $ NODE_PORT=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.spec.ports[0].nodePort}")
-  $ infra login $NODE_HOST:NODE_PORT
+  $ echo $NODE_HOST:NODE_PORT
 
 {{- else if eq .Values.server.service.type "LoadBalancer" }}
 
   NOTE: It may take a few minutes for the LoadBalancer to become available.
   You can watch the status of by running `kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -w`
 
-  $ LOADBALANCER=$(kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}")
-  $ infra login $LOADBALANCER
+  kubectl -n {{ .Release.Namespace }} get services/{{ include "server.fullname" . }} -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 
 {{- else if contains .Values.server.service.type "ClusterIP" }}
 
-  $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "server.fullname" . }} 8080:80 8443:443
+  Start a port forward:
 
-  Infra API server is now accessible on localhost:8443
+  $ kubectl -n {{ .Release.Namespace }} port-forward deployments/{{ include "server.fullname" . }} 8080:{{ .Values.server.config.addr.http }} 8443:{{ .Values.server.config.addr.https }}
 
-  $ infra login localhost:8443
+  Then visit:
+
+  http://localhost:8080
 
 {{- end }}
 

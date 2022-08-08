@@ -9,6 +9,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
+	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -45,6 +46,20 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	}
 
 	return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
+}
+
+type WellKnownJWKResponse struct {
+	Keys []jose.JSONWebKey `json:"keys"`
+}
+
+func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
+	rCtx := getRequestContext(c)
+	keys, err := access.GetPublicJWK(rCtx)
+	if err != nil {
+		return WellKnownJWKResponse{}, err
+	}
+
+	return WellKnownJWKResponse{Keys: keys}, nil
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {

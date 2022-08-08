@@ -62,7 +62,9 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 }
 
 func newGroupsListCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
+	var noTruncate bool
+	var numUsers int
+	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Short:   "List groups",
@@ -74,8 +76,9 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			type row struct {
-				Name  string `header:"Name"`
-				Users string `header:"Users"`
+				Name      string `header:"Name"`
+				Users     string `header:"Users"`
+				UserCount int    `header:"Count"`
 			}
 
 			var rows []row
@@ -86,9 +89,21 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			}
 
 			for _, group := range groups {
-				users, err := listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
-				if err != nil {
-					return err
+				var users []api.User
+				if noTruncate {
+					users, err = listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
+					if err != nil {
+						return err
+					}
+				} else if numUsers != 0 {
+					userRes, err := client.ListUsers(api.ListUsersRequest{
+						PaginationRequest: api.PaginationRequest{Limit: numUsers},
+						Group:             group.ID,
+					})
+					if err != nil {
+						return err
+					}
+					users = userRes.Items
 				}
 
 				var userNames []string
@@ -96,9 +111,14 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 					userNames = append(userNames, user.Name)
 				}
 
+				if !noTruncate && group.TotalUsers > numUsers {
+					userNames = append(userNames, "...")
+				}
+
 				rows = append(rows, row{
-					Name:  group.Name,
-					Users: strings.Join(userNames, ", "),
+					Name:      group.Name,
+					Users:     strings.Join(userNames, ", "),
+					UserCount: group.TotalUsers,
 				})
 			}
 
@@ -111,6 +131,9 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&noTruncate, "no-truncate", false, "Do not truncate the list of users for each group")
+	cmd.Flags().IntVar(&numUsers, "num-users", 8, "The number of users to display in each group")
+	return cmd
 }
 
 func newGroupsAddCmd(cli *CLI) *cobra.Command {

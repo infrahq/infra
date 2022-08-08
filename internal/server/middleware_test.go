@@ -94,7 +94,7 @@ func TestDBTimeout(t *testing.T) {
 			c.Set("ctx", ctx)
 			c.Next()
 		},
-		DatabaseMiddleware(db),
+		unauthenticatedMiddleware(&Server{db: db}),
 	)
 	router.GET("/", func(c *gin.Context) {
 		db, ok := c.MustGet("db").(*gorm.DB)
@@ -336,8 +336,7 @@ func TestOrgLookupByDomain(t *testing.T) {
 	assert.NilError(t, err)
 
 	router.GET("/foo",
-		DatabaseMiddleware(db),
-		OrganizationFromDomain("", ""),
+		unauthenticatedMiddleware(srv),
 		func(ctx *gin.Context) {
 			o, ok := ctx.Get("org")
 			assert.Assert(t, ok)
@@ -363,45 +362,22 @@ func TestOrgLookupByDomain(t *testing.T) {
 	assert.Equal(t, resp.Code, 200)
 }
 
-func TestMissingOrgErrors(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-	db := srv.db
-
-	router := gin.New()
-
-	router.GET("/foo",
-		DatabaseMiddleware(db),
-		OrganizationFromDomain("", ""),
-		OrganizationRequired(),
-		func(ctx *gin.Context) {
-			assert.Assert(t, false, "Shouldn't get here")
-		})
-
-	req := httptest.NewRequest("GET", "/foo", nil)
-
-	resp := httptest.NewRecorder()
-	router.ServeHTTP(resp, req)
-
-	assert.Equal(t, resp.Code, http.StatusBadRequest)
-
-}
-
 func TestDefaultOrg(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	db := srv.db
+	srv.options.Config.OrganizationName = "Default Co."
+	srv.options.Config.OrganizationDomain = "localhost"
 
 	router := gin.New()
 
 	router.GET("/foo",
-		DatabaseMiddleware(db),
-		OrganizationFromDomain("Default Co.", "localhost"),
-		OrganizationRequired(),
+		authenticatedMiddleware(srv),
 		func(ctx *gin.Context) {
 			ctx.JSON(200, nil)
 		})
 
 	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header.Add("Host", "localhost")
+	req.Header.Set("Host", "localhost")
+	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)

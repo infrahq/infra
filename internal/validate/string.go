@@ -24,10 +24,10 @@ type StringRule struct {
 	CharacterRanges []CharRange
 }
 
-func String(value, name string, min, max int, charset ...CharRange) StringRule {
+func String(name, value string, min, max int, charset ...CharRange) StringRule {
 	return StringRule{
-		Value:           value,
 		Name:            name,
+		Value:           value,
 		MinLength:       min,
 		MaxLength:       max,
 		CharacterRanges: charset,
@@ -57,6 +57,7 @@ var (
 	Underscore    = CharRange{Low: '_', High: '_'}
 	Dot           = CharRange{Low: '.', High: '.'}
 	AtSign        = CharRange{Low: '@', High: '@'}
+	AlphaNumeric  = []CharRange{AlphabetLower, AlphabetUpper, Numbers}
 )
 
 func (s StringRule) DescribeSchema(parent *openapi3.Schema) {
