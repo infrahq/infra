@@ -136,24 +136,6 @@ func getOrg(db *gorm.DB) *models.Organization {
 	return org
 }
 
-func checkOrg(db *gorm.DB, model interface{}) error {
-	if !hasOrgID(db, model) {
-		return nil
-	}
-	v := reflect.ValueOf(model)
-	if v.Kind() == reflect.Pointer {
-		v = v.Elem()
-	}
-	f := v.FieldByName("OrganizationID")
-	org := getOrg(db)
-	id := uid.ID(f.Int())
-	if id != org.ID {
-		panic("OrganizationID doesn't match org id")
-	}
-
-	return nil
-}
-
 func setOrg(db *gorm.DB, model interface{}) {
 	if !hasOrgID(db, model) {
 		return

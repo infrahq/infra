@@ -13,7 +13,6 @@ import (
 
 	"github.com/infrahq/infra/internal/server/authn"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestSignup(t *testing.T) {
@@ -29,18 +28,15 @@ func TestSignup(t *testing.T) {
 
 	user := "admin@infrahq.com"
 	pass := "password"
-	org := "acme"
 
 	t.Run("SignupNewOrg", func(t *testing.T) {
 		c, db := setup(t)
 
-		identity, err := Signup(c, "acme", "acme.infrahq.com", user, pass)
+		identity, createdOrg, err := Signup(c, "acme", "acme.infrahq.com", user, pass)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 
-		createdOrg, err := data.ListOrganizations(db, &models.Pagination{Page: 1, Limit: 1}, data.ByName(org))
-		assert.NilError(t, err)
-		assert.Equal(t, identity.OrganizationID, createdOrg[0].ID)
+		assert.Equal(t, identity.OrganizationID, createdOrg.ID)
 
 		// check "admin" user can login
 		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)

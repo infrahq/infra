@@ -54,7 +54,10 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Iden
 
 		org, ok := ctx.Value("org").(*models.Organization)
 		if !ok {
-			return nil, nil, AuthScope{}, errors.New("organization not set")
+			org, ok = db.Statement.Context.Value("org").(*models.Organization)
+			if !ok {
+				return nil, nil, AuthScope{}, errors.New("organization not set")
+			}
 		}
 		identity = &models.Identity{
 			Model: models.Model{OrganizationID: org.ID},

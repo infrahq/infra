@@ -37,6 +37,9 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
 
 func TestAPI_ListGroups(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
+	o := srv.db.Statement.Context.Value("org")
+	_, ok := o.(*models.Organization)
+	assert.Assert(t, ok)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var (
@@ -45,7 +48,7 @@ func TestAPI_ListGroups(t *testing.T) {
 		others = models.Group{Name: "others"}
 	)
 
-	createGroups(t, srv.db, &humans, &second)
+	createGroups(t, srv.db, &humans, &second, &others)
 
 	var (
 		idInGroup = models.Identity{

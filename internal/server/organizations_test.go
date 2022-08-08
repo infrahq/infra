@@ -51,6 +51,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")

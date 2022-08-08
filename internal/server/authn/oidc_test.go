@@ -189,9 +189,12 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
-				err = db.Model(user).Association("Groups").Append([]models.Group{{Name: "Foo"}, {Name: "existing3"}})
-				assert.NilError(t, err)
-				assert.Assert(t, len(user.Groups) == 2)
+				for _, name := range []string{"Foo", "existing3"} {
+					group := &models.Group{Name: name}
+					err = data.CreateGroup(db, group)
+					assert.NilError(t, err)
+					user.Groups = append(user.Groups, *group)
+				}
 
 				err = data.SaveIdentity(db, user)
 				assert.NilError(t, err)
@@ -254,11 +257,10 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
-			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
-
 			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, error))
 			assert.Assert(t, ok)
 
+			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
 			verifyFunc(t, u, err)
 
 			if err == nil {
