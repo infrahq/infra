@@ -191,7 +191,6 @@ function Details({ group, admin, onDelete }) {
     <div className='flex flex-1 flex-col space-y-6'>
       {admin && (
         <>
-          {/* Access */}
           <section>
             <h3 className='mb-4 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Access
@@ -227,8 +226,6 @@ function Details({ group, admin, onDelete }) {
               </EmptyData>
             )}
           </section>
-
-          {/* Members */}
           <section>
             <h3 className='mb-2 border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
               Users{users?.length > 0 && <span> ({users.length})</span>}
