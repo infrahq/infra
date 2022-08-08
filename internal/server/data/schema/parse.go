@@ -79,7 +79,7 @@ func ParseSchema(schema string) ([]Statement, error) {
 
 const (
 	scanSchemaForStartOfStatement = iota
-	scanSchemaForEndOfStatement   = iota
+	scanSchemaForEndOfStatement
 )
 
 func isClientConnectionSetting(line string) bool {

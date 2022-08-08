@@ -12,45 +12,56 @@ type Column struct {
 	DataType string
 }
 
-type TableDescription struct {
-	Name    string
-	Columns []Column
-}
-
-func (d TableDescription) ColumnNames() []string {
-	c := make([]string, len(d.Columns))
-	for i := range d.Columns {
-		c[i] = d.Columns[i].Name
-	}
-	return c
-}
-
-// ParseCreateTable parses an SQL CREATE TABLE statement and returns the table name
-// and all column names and types. The createTableSQL string is expected to start with
-// the following structure. Any [...] can be replaced by any words.
-//
-//    CREATE TABLE [...] TableName (
-//        Column.Name Column.DataType [...] ,
-//        <more columns>
-//    ) [...]`
-//
-func ParseCreateTable(schema string) (TableDescription, error) {
-	var cols []Column
+// ParseCreateTable parses a string that contains PostgreSQL statements and
+// returns a mapping of table name to column names and types. The parse
+// is very limited. Only statements in the form produced by schema.ParseSchema
+// are supported.
+func ParseCreateTable(schema string) (map[string][]Column, error) {
+	result := make(map[string][]Column)
 	var state uint8
-	var name string
+	var tableName string
+	var cols []Column
+
+	endStatement := func() {
+		if tableName == "" {
+			return
+		}
+		result[tableName] = cols
+		cols = nil
+		tableName = ""
+	}
+
 	words := bufio.NewScanner(strings.NewReader(schema))
 	words.Split(bufio.ScanWords)
 
-SCAN:
 	for words.Scan() {
 		word := words.Text()
+
 		switch state {
+		case scanForStartOfStatement:
+			if word != "CREATE" {
+				continue
+			}
+			state = scanForCreateType
+
+		case scanForCreateType:
+			switch word {
+			case "TABLE":
+				state = scanForStartOfColumns
+				continue
+			case "GLOBAL", "LOCAL", "TEMPORARY", "TEMP", "UNLOGGED":
+				// keep looking for type of create
+			default:
+				// not a CREATE TABLE statement
+				state = scanForEndOfStatement
+			}
+
 		case scanForStartOfColumns:
 			if word == "(" {
 				state = scanForColumnName
 				continue
 			}
-			name = strings.TrimSuffix(word, "(") // store the last word before "("
+			tableName = word // store the last word before "("
 
 		case scanForColumnName:
 			cols = append(cols, Column{Name: word})
@@ -70,18 +81,31 @@ SCAN:
 				state = scanForColumnName
 				continue
 			}
-			if strings.HasSuffix(word, ")") || strings.HasSuffix(word, ");") {
-				break SCAN // end of possible columns
+			if strings.HasSuffix(word, ")") {
+				state = scanForEndOfStatement
+				continue
+			}
+			if strings.HasSuffix(word, ";") {
+				endStatement()
+				state = scanForStartOfStatement
+			}
+
+		case scanForEndOfStatement:
+			if strings.HasSuffix(word, ";") {
+				endStatement()
+				state = scanForStartOfStatement
 			}
 		}
 	}
-
-	return TableDescription{Name: name, Columns: cols}, words.Err()
+	return result, words.Err()
 }
 
 const (
-	scanForStartOfColumns = iota
+	scanForStartOfStatement = iota
+	scanForCreateType
+	scanForStartOfColumns
 	scanForColumnName
 	scanForColumnDataType
 	scanForEndOfColumnDefinition
+	scanForEndOfStatement
 )

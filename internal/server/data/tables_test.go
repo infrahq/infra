@@ -42,6 +42,9 @@ func TestGenerateTableMethods(t *testing.T) {
 		t.Fatalf("no target found for generating %v", inputName)
 	}
 
+	tables, err := model.ParseCreateTable(schemaSQL)
+	assert.NilError(t, err)
+
 	var fileset token.FileSet
 	cfg := &packages.Config{
 		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax,
@@ -60,19 +63,15 @@ func TestGenerateTableMethods(t *testing.T) {
 			t.Fatalf("could not find type %v in package data", inputName)
 		}
 
-		// TODO: lookup stmt in parsed schema
-		var stmt string
-		desc, err := model.ParseCreateTable(stmt)
-		assert.NilError(t, err)
-
 		filename := fileset.File(pos).Name()
-		err = model.GenerateMethods(target, desc.ColumnNames(), filename)
+		cols := columnNames(tables[target.Table()])
+		err = model.GenerateMethods(target, cols, filename)
 		assert.NilError(t, err)
 	}
 }
 
-func targetsForGenerate(name string) []any {
-	var result []any
+func targetsForGenerate(name string) []Table {
+	var result []Table
 	for _, m := range tables {
 		typ := reflect.TypeOf(m)
 		switch {
@@ -101,4 +100,12 @@ func positionOfType(pkg *packages.Package, name string) token.Pos {
 		}
 	}
 	return 0
+}
+
+func columnNames(cols []model.Column) []string {
+	c := make([]string, len(cols))
+	for i := range cols {
+		c[i] = cols[i].Name
+	}
+	return c
 }
