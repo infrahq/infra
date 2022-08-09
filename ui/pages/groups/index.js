@@ -308,10 +308,7 @@ export default function Groups() {
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 13
   const {
-    data: { items: groups, totalPages, totalCount } = {
-      totalPages: 1,
-      totalCount: 1,
-    },
+    data: { items: groups, totalPages, totalCount } = {},
     error,
     mutate,
   } = useSWR(`/api/groups?page=${page}&limit=${limit}`)

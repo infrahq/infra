@@ -332,10 +332,7 @@ export default function Destinations() {
   const limit = 13 // TODO: make limit dynamic
 
   const {
-    data: { items: destinations, totalPages, totalCount } = {
-      totalPages: 0,
-      totalCount: 0,
-    },
+    data: { items: destinations, totalPages, totalCount } = {},
     error,
     mutate,
   } = useSWR(`/api/destinations?page=${page}&limit=${limit}`)

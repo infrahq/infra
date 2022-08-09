@@ -257,10 +257,7 @@ export default function Users() {
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 13
   const {
-    data: { items, totalPages, totalCount } = {
-      totalCount: 0,
-      totalPages: 0,
-    },
+    data: { items, totalPages, totalCount } = {},
     error,
     mutate,
   } = useSWR(`/api/users?page=${page}&limit=${limit}`)

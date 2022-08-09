@@ -28,8 +28,8 @@ func (p PaginationRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type PaginationResponse struct {
-	Page       int `json:"page,omitempty"`
-	Limit      int `json:"limit,omitempty"`
-	TotalPages int `json:"totalPages,omitempty"`
-	TotalCount int `json:"totalCount,omitempty"`
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	TotalPages int `json:"totalPages"`
+	TotalCount int `json:"totalCount"`
 }

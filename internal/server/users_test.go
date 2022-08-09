@@ -245,7 +245,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			urlPath: "/api/users?name=doesnotmatch",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
-				assert.Equal(t, resp.Body.String(), `{"page":1,"limit":100,"count":0,"items":[]}`)
+				assert.Equal(t, resp.Body.String(), `{"page":1,"limit":100,"totalPages":0,"totalCount":0,"count":0,"items":[]}`)
 			},
 		},
 		"name match": {
