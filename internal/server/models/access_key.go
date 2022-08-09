@@ -20,7 +20,7 @@ type AccessKey struct {
 	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
 	// IssuedFor is the ID of the user that this access key was created for
 	IssuedFor         uid.ID
-	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor"`
+	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor" db:"-"`
 	ProviderID        uid.ID
 
 	ExpiresAt         time.Time
@@ -28,7 +28,7 @@ type AccessKey struct {
 	ExtensionDeadline time.Time
 
 	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
-	Secret         string `gorm:"-"`
+	Secret         string `gorm:"-" db:"-"`
 	SecretChecksum []byte
 
 	Scopes CommaSeparatedStrings // if set, scopes limit what the key can be used for

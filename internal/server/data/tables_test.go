@@ -13,7 +13,9 @@ import (
 	"github.com/infrahq/infra/internal/server/data/model"
 )
 
-var tables = []tabler{}
+var tables = []tabler{
+	accessKeyTable{},
+}
 
 type tabler interface {
 	Table() string

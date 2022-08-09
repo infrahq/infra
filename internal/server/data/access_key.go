@@ -15,6 +15,24 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type accessKeyTable models.AccessKey
+
+func (a accessKeyTable) Table() string {
+	return "access_keys"
+}
+
+func (a accessKeyTable) Columns() []string {
+	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "provider_id", "scopes", "secret_checksum", "updated_at"}
+}
+
+func (a accessKeyTable) Values() []any {
+	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
+}
+
+func (a *accessKeyTable) ScanFields() []any {
+	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
+}
+
 var (
 	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
 	ErrAccessKeyDeadlineExceeded = fmt.Errorf("%w: extension deadline exceeded", ErrAccessKeyExpired)
