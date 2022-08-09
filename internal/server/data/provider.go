@@ -83,7 +83,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 			return fmt.Errorf("delete provider users: %w", err)
 		}
 
-		if err := DeleteAccessKeys(db, ByProviderID(p.ID)); err != nil {
+		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByProviderID: p.ID}); err != nil {
 			return fmt.Errorf("delete access keys: %w", err)
 		}
 	}

@@ -28,6 +28,14 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	return db
 }
 
+func txnForTestCase(t *testing.T, db *DB) *Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() { tx.Rollback() })
+	return tx.WithOrgID(db.DefaultOrg.ID)
+}
+
 // runDBTests against all supported databases.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
