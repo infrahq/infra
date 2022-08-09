@@ -112,7 +112,7 @@ func TestPaginationSelector(t *testing.T) {
 		for r := 'a'; r < 'a'+26; r++ {
 			letters = append(letters, string(r))
 			g := &models.Identity{Name: string(r)}
-			err := db.Create(g).Error
+			err := add(db, g)
 			assert.NilError(t, err)
 		}
 
