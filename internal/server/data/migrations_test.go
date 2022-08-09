@@ -395,6 +395,12 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				// column changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-08-04T17:72"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

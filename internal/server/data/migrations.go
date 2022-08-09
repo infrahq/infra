@@ -56,6 +56,7 @@ func migrations() []*migrator.Migration {
 		removeDeletedIdentitiesFromGroups(),
 		addFieldsFor_0_14_3(),
 		addOrganizations(),
+		scopeUniqueIndicesToOrganization(),
 		// next one here
 	}
 }
@@ -392,6 +393,68 @@ ALTER TABLE IF EXISTS identities ADD COLUMN IF NOT EXISTS organization_id bigint
 ALTER TABLE IF EXISTS providers ADD COLUMN IF NOT EXISTS organization_id bigint;
 ALTER TABLE IF EXISTS settings ADD COLUMN IF NOT EXISTS organization_id bigint;
 ALTER TABLE IF EXISTS password_reset_tokens ADD COLUMN IF NOT EXISTS organization_id bigint;
+`
+			return tx.Exec(stmt).Error
+		},
+	}
+}
+
+func scopeUniqueIndicesToOrganization() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-04T17:72",
+		Migrate: func(tx *gorm.DB) error {
+			stmt := `
+DROP INDEX idx_access_keys_name;
+DROP INDEX idx_access_keys_key_id;
+DROP INDEX idx_credentials_identity_id;
+DROP INDEX idx_destinations_unique_id;
+DROP INDEX idx_grant_srp;
+DROP INDEX idx_groups_name;
+DROP INDEX idx_identities_name;
+DROP INDEX idx_providers_name;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+CREATE UNIQUE INDEX idx_access_keys_name on access_keys (organization_id, name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_access_keys_key_id on access_keys (organization_id, key_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials (organization_id,identity_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations (organization_id,unique_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_grant_srp ON grants (organization_id,subject,privilege,resource) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_groups_name ON groups (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_identities_name ON identities (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_providers_name ON providers (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX settings_org_id ON settings (organization_id) where deleted_at is null;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_provider;
+ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_group;
+ALTER TABLE access_keys DROP CONSTRAINT fk_access_keys_issued_for_identity;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+DROP SEQUENCE IF EXISTS access_keys_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS credentials_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS destinations_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS encryption_keys_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS grants_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS groups_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS identities_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS organizations_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS providers_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS settings_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS password_reset_tokens_id_seq CASCADE;
 `
 			return tx.Exec(stmt).Error
 		},

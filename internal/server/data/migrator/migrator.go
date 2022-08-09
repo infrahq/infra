@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 const initSchemaMigrationID = "SCHEMA_INIT"
@@ -201,8 +203,9 @@ func (g *Migrator) runMigration(migration *Migration) error {
 		return nil
 	}
 
+	logging.Infof("Running migration %s", migration.ID)
 	if err := migration.Migrate(g.tx); err != nil {
-		return err
+		return fmt.Errorf("failed to apply migration %v: %w", migration.ID, err)
 	}
 	return g.insertMigration(migration.ID)
 }

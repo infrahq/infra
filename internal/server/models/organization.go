@@ -25,3 +25,11 @@ type OrganizationMember struct {
 	// OrganizationID of the organization this entity belongs to.
 	OrganizationID uid.ID
 }
+
+func (OrganizationMember) IsOrganizationMember() {}
+
+func (o *OrganizationMember) SetOrganizationID(id uid.ID) {
+	if o.OrganizationID == 0 {
+		o.OrganizationID = id
+	}
+}
