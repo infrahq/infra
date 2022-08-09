@@ -1,9 +1,9 @@
 package data
 
 import (
+	"database/sql"
 	"testing"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/uid"
@@ -51,14 +51,15 @@ func TestInsert(t *testing.T) {
 }
 
 type txnCapture struct {
+	ReadTxn
 	query string
 	args  []any
 }
 
-func (t *txnCapture) Exec(query string, args ...any) *gorm.DB {
+func (t *txnCapture) Exec(query string, args ...any) (sql.Result, error) {
 	t.query = query
 	t.args = args
-	return &gorm.DB{}
+	return nil, nil
 }
 
 func TestUpdate(t *testing.T) {

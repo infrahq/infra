@@ -94,7 +94,7 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
-	if err := add(db, accessKey); err != nil {
+	if err := insert(db, (*accessKeyTable)(accessKey)); err != nil {
 		return "", err
 	}
 

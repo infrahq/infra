@@ -3,8 +3,6 @@ package data
 import (
 	"strings"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/uid"
 )
 
@@ -36,14 +34,6 @@ func (q *queryBuilder) B(clause string, args ...interface{}) {
 // WriteTxn.Exec, or ReadTxn.Query. You must also pass q.Args as the varargs.
 func (q *queryBuilder) String() string {
 	return q.query.String()
-}
-
-type WriteTxn interface {
-	Exec(query string, args ...any) *gorm.DB
-}
-
-type ReadTxn interface {
-	Raw(query string, args ...any) *gorm.DB
 }
 
 type Table interface {
@@ -95,7 +85,7 @@ func insert(tx WriteTxn, item Insertable) error {
 	query.B(") VALUES (")
 	query.B(placeholderForColumns(item.Columns()), item.Values()...)
 	query.B(");")
-	err := tx.Exec(query.String(), query.Args...).Error
+	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
 
@@ -120,7 +110,7 @@ func update(tx WriteTxn, item Updatable) error {
 	query.B("SET")
 	query.B(columnsForUpdate(item.Columns()), item.Values()...)
 	query.B("WHERE id = ?;", item.Primary())
-	err := tx.Exec(query.String(), query.Args...).Error
+	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
 
