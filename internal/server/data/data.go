@@ -104,11 +104,11 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 		db = selector(db)
 	}
 
-	if hasOrgID(new(T)) {
-		db = ByOrgID(getOrg(db).ID)(db)
+	result := new(T)
+	if isOrgMember(result) {
+		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
 	}
 
-	result := new(T)
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, internal.ErrNotFound
@@ -120,22 +120,13 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func getOrg(db *gorm.DB) *models.Organization {
-	org, ok := db.Statement.Context.Value("org").(*models.Organization)
-	if !ok {
-		// TODO(orgs): panic("no org") when not set
-		return &models.Organization{}
-	}
-	return org
-}
-
 func setOrg(db *gorm.DB, model any) {
 	member, ok := model.(orgMember)
 	if !ok {
 		return
 	}
 
-	org := getOrg(db)
+	org := OrgFromContext(db.Statement.Context)
 	member.SetOrganizationID(org.ID)
 }
 
@@ -144,7 +135,7 @@ type orgMember interface {
 	SetOrganizationID(id uid.ID)
 }
 
-func hasOrgID(model any) bool {
+func isOrgMember(model any) bool {
 	_, ok := model.(orgMember)
 	return ok
 }
@@ -154,8 +145,8 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 	for _, selector := range selectors {
 		db = selector(db)
 	}
-	if hasOrgID(new(T)) {
-		db = ByOrgID(getOrg(db).ID)(db)
+	if isOrgMember(new(T)) {
+		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
 	}
 
 	if p != nil {
@@ -286,9 +277,8 @@ func handleError(err error) error {
 }
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
-	if hasOrgID(new(T)) {
-		org := getOrg(db)
-		db = db.Where("organization_id = ?", org.ID)
+	if isOrgMember(new(T)) {
+		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
 	}
 	return db.Delete(new(T), id).Error
 }
@@ -297,9 +287,8 @@ func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error
 	for _, selector := range selectors {
 		db = selector(db)
 	}
-	if hasOrgID(new(T)) {
-		org := getOrg(db)
-		db = db.Where("organization_id = ?", org.ID)
+	if isOrgMember(new(T)) {
+		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
 	}
 
 	return db.Delete(new(T)).Error
@@ -323,7 +312,7 @@ func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (in
 // cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
-	org := getOrg(db)
+	org := OrgFromContext(db.Statement.Context)
 	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
@@ -347,7 +336,7 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 // The cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
-	org := getOrg(db)
+	org := OrgFromContext(db.Statement.Context)
 	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(org.ID))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")

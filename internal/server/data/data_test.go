@@ -222,7 +222,7 @@ func TestSetOrg(t *testing.T) {
 
 	db := &gorm.DB{}
 	db.Statement = &gorm.Statement{
-		Context: context.WithValue(context.Background(), "org", org),
+		Context: WithOrg(context.Background(), org),
 	}
 	setOrg(db, model)
 	assert.Equal(t, model.OrganizationID, uid.ID(123456))
