@@ -163,12 +163,9 @@ var cmpAPIUserJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
-func TestWellKnownKWKs(t *testing.T) {
+func TestWellKnownJWKs(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-
-	_, err := data.InitializeSettings(srv.db)
-	assert.NilError(t, err)
 
 	type testCase struct {
 		name     string

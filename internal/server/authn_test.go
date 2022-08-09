@@ -8,17 +8,27 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+func getDefaultOrgFromCtx(db *gorm.DB) *models.Organization {
+	org, ok := db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	if !ok {
+		panic("org missing from db context")
+	}
+	return org
+}
 
 func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes((prometheus.NewRegistry()))
-	_, err := data.InitializeSettings(srv.db)
+	_, err := data.InitializeSettings(srv.db, getDefaultOrgFromCtx(srv.db))
 	assert.NilError(t, err)
 
 	// create a user

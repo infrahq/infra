@@ -539,11 +539,10 @@ func TestAPI_CreateUser(t *testing.T) {
 
 // Note this test is the result of a long conversation, don't change lightly.
 func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
-	db := setupDB(t)
-	_, err := data.InitializeSettings(db)
-	assert.NilError(t, err)
-
-	a := &API{server: &Server{db: db}}
+	s := setupServer(t)
+	db := s.db
+	// _, err := data.InitializeSettings(db)
+	a := &API{server: s}
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
@@ -734,7 +733,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 func TestAPI_UpdateUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-	_, err := data.InitializeSettings(srv.db)
+	_, err := data.InitializeSettings(srv.db, getDefaultOrgFromCtx(srv.db))
 	assert.NilError(t, err)
 
 	user := &models.Identity{Name: "salsa@example.com"}

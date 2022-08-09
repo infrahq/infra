@@ -10,7 +10,7 @@ type Destination struct {
 	Model
 
 	Name          string
-	UniqueID      string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
+	UniqueID      string
 	ConnectionURL string
 	ConnectionCA  string
 

@@ -1,13 +1,27 @@
 package data
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+type OrgCtxKey struct{}
+
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {
-	return add(db, org)
+	err := add(db, org)
+	if err != nil {
+		return fmt.Errorf("creating org: %w", err)
+	}
+
+	_, err = InitializeSettings(db, org)
+	if err != nil {
+		return fmt.Errorf("initializing org settings: %w", err)
+	}
+
+	return nil
 }
 
 func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {

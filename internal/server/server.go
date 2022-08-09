@@ -132,13 +132,8 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 
-	settings, err := data.InitializeSettings(server.db)
-	if err != nil {
-		return nil, fmt.Errorf("settings: %w", err)
-	}
-
 	if options.EnableTelemetry {
-		server.tel = NewTelemetry(server.db, settings.ID)
+		server.tel = NewTelemetry(server.db)
 	}
 
 	if err := server.loadConfig(server.options.Config); err != nil {

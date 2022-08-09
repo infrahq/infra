@@ -63,7 +63,12 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 func updateCredential(c *gin.Context, user *models.Identity, newPassword string, isSelf bool) error {
 	db := getDB(c)
 
-	err := checkPasswordRequirements(db, newPassword)
+	org, err := data.GetOrganization(db, data.ByID(user.OrganizationID))
+	if err != nil {
+		return err
+	}
+
+	err = checkPasswordRequirements(db, org, newPassword)
 	if err != nil {
 		return err
 	}
@@ -128,10 +133,10 @@ func hasMinimumCount(min int, password string, check func(rune) bool) bool {
 	return count >= min
 }
 
-func checkPasswordRequirements(db *gorm.DB, password string) error {
-	settings, err := data.GetSettings(db)
+func checkPasswordRequirements(db *gorm.DB, org *models.Organization, password string) error {
+	settings, err := data.GetSettings(db, org)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting settings: %w", err)
 	}
 	errs := make(validate.Error)
 

@@ -30,100 +30,6 @@ import (
 
 var anyUID = uid.ID(99)
 
-func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
-	dir := setupEnv(t)
-
-	opts := defaultServerOptions(dir)
-	setupServerTLSOptions(t, &opts)
-
-	srv, err := server.New(opts)
-	assert.NilError(t, err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	go func() {
-		assert.Check(t, srv.Run(ctx))
-	}()
-
-	runStep(t, "first login prompts for setup", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(ctx)
-		t.Cleanup(cancel)
-
-		console := newConsole(t)
-		ctx = PatchCLIWithPTY(ctx, console.Tty())
-
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			// TODO: remove --skip-tls-verify
-			return Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify")
-		})
-
-		exp := expector{console: console}
-		exp.ExpectString(t, "Email:")
-		exp.Send(t, "admin@example.com\n")
-		exp.ExpectString(t, "Password")
-		exp.Send(t, "password\n")
-		exp.ExpectString(t, "Confirm")
-		exp.Send(t, "password\n")
-		exp.ExpectString(t, "Logged in as")
-	})
-
-	runStep(t, "login updated infra config", func(t *testing.T) {
-		cfg, err := readConfig()
-		assert.NilError(t, err)
-
-		expected := []ClientHostConfig{
-			{
-				Name:          "admin@example.com",
-				AccessKey:     "any-access-key",
-				UserID:        anyUID,
-				Host:          srv.Addrs.HTTPS.String(),
-				SkipTLSVerify: true,
-				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
-				Current:       true,
-			},
-		}
-		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
-	})
-
-	runStep(t, "login updated kube config", func(t *testing.T) {
-		kubeCfg, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
-
-		// config is empty because there are no grants yet
-		expected := clientcmdapi.Config{}
-		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
-	})
-
-	runStep(t, "login updated infra config", func(t *testing.T) {
-		cfg, err := readConfig()
-		assert.NilError(t, err)
-
-		expected := []ClientHostConfig{
-			{
-				Name:          "admin@example.com",
-				AccessKey:     "any-access-key",
-				UserID:        anyUID,
-				Host:          srv.Addrs.HTTPS.String(),
-				SkipTLSVerify: true,
-				Expires:       api.Time(time.Now().UTC().Add(opts.SessionDuration)),
-				Current:       true,
-			},
-		}
-		assert.DeepEqual(t, cfg.Hosts, expected, cmpClientHostConfig)
-	})
-
-	runStep(t, "login updated kube config", func(t *testing.T) {
-		kubeCfg, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
-
-		// config is empty because there are no grants yet
-		expected := clientcmdapi.Config{}
-		assert.DeepEqual(t, expected, kubeCfg, cmpopts.EquateEmpty())
-	})
-}
-
 func TestLoginCmd_Options(t *testing.T) {
 	dir := setupEnv(t)
 
@@ -282,6 +188,9 @@ func setupEnv(t *testing.T) string {
 
 func setupServerTLSOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
+
+	opts.Config.OrganizationName = "CLI test"
+	opts.Config.OrganizationDomain = "cli-test"
 
 	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 

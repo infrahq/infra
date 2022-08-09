@@ -619,10 +619,7 @@
           "items": {
             "items": {
               "properties": {
-                "created": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
+                "domain": {
                   "type": "string"
                 },
                 "id": {
@@ -632,12 +629,6 @@
                   "type": "string"
                 },
                 "name": {
-                  "type": "string"
-                },
-                "updated": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
                   "type": "string"
                 }
               },
@@ -833,10 +824,7 @@
       },
       "Organization": {
         "properties": {
-          "created": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
+          "domain": {
             "type": "string"
           },
           "id": {
@@ -846,12 +834,6 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "updated": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
             "type": "string"
           }
         }
@@ -935,10 +917,62 @@
           }
         }
       },
-      "SignupEnabledResponse": {
+      "SignupResponse": {
         "properties": {
-          "enabled": {
-            "type": "boolean"
+          "organization": {
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "id": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "user": {
+            "properties": {
+              "created": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              },
+              "id": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              },
+              "lastSeenAt": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "providerNames": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "updated": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -4615,89 +4649,6 @@
       }
     },
     "/api/signup": {
-      "get": {
-        "description": "SignupEnabled",
-        "operationId": "SignupEnabled",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Infra-Version",
-            "required": true,
-            "schema": {
-              "description": "Version of the API being requested",
-              "example": "0.0.0",
-              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignupEnabledResponse"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "SignupEnabled",
-        "tags": [
-          "Misc"
-        ]
-      },
       "post": {
         "description": "Signup",
         "operationId": "Signup",
@@ -4723,13 +4674,17 @@
                     "format": "email",
                     "type": "string"
                   },
+                  "org": {
+                    "type": "string"
+                  },
                   "password": {
                     "type": "string"
                   }
                 },
                 "required": [
                   "name",
-                  "password"
+                  "password",
+                  "org"
                 ],
                 "type": "object"
               }
@@ -4791,7 +4746,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/User"
+                  "$ref": "#/components/schemas/SignupResponse"
                 }
               }
             },

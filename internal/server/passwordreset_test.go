@@ -19,7 +19,7 @@ import (
 func TestPasswordResetFlow(t *testing.T) {
 	s := setupServer(t)
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	_, err := data.InitializeSettings(s.db)
+	_, err := data.InitializeSettings(s.db, getDefaultOrgFromCtx(s.db))
 	assert.NilError(t, err)
 
 	email.TestMode = true

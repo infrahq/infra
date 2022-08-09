@@ -145,7 +145,9 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	})
 
 	t.Run("MissingIssuedFor", func(t *testing.T) {
-		err := srv.db.Create(&models.AccessKey{Name: "testing"}).Error
+		org, err := getDefaultOrg(srv.db, srv.options.OrganizationName, srv.options.OrganizationDomain)
+		assert.NilError(t, err)
+		err = srv.db.Create(&models.AccessKey{Name: "testing", Model: models.Model{OrganizationID: org.ID}}).Error
 		assert.NilError(t, err)
 
 		accessKeys := run()
@@ -158,6 +160,7 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 				accessKey = &accessKeys.Items[i]
 			}
 		}
+		assert.Assert(t, accessKey != nil)
 
 		assert.Assert(t, accessKey.Name == "testing")
 		assert.Assert(t, accessKey.IssuedFor == 0)
@@ -166,10 +169,8 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 }
 
 func TestAPI_ListAccessKeys(t *testing.T) {
-	db := setupDB(t)
-	s := &Server{
-		db: db,
-	}
+	s := setupServer(t)
+	db := s.db
 	handlers := &API{
 		server: s,
 	}

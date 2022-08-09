@@ -12,8 +12,8 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
-	settings, err := GetSettings(db)
+func InitializeSettings(db *gorm.DB, org *models.Organization) (*models.Settings, error) {
+	settings, err := GetSettings(db, org)
 	if settings != nil {
 		return settings, err
 	}
@@ -45,21 +45,22 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 	}
 
 	settings = &models.Settings{
+		Model:      models.Model{OrganizationID: org.ID},
 		PrivateJWK: secs,
 		PublicJWK:  pubs,
 	}
 
 	// Attrs() assigns the field iff the record is not found
-	if err := db.FirstOrCreate(&settings).Error; err != nil {
+	if err := db.Where("organization_id = ?", org.ID).FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
 
 	return settings, nil
 }
 
-func GetSettings(db *gorm.DB) (*models.Settings, error) {
+func GetSettings(db *gorm.DB, org *models.Organization) (*models.Settings, error) {
 	var settings models.Settings
-	if err := db.First(&settings).Error; err != nil {
+	if err := db.Where("organization_id = ?", org.ID).First(&settings).Error; err != nil {
 		return nil, err
 	}
 

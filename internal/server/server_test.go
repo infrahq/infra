@@ -24,6 +24,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -31,6 +32,10 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	options := Options{
 		SessionDuration:          10 * time.Minute,
 		SessionExtensionDeadline: 30 * time.Minute,
+		Config: Config{
+			OrganizationName:   "Default Co.",
+			OrganizationDomain: "localhost",
+		},
 	}
 	for _, op := range ops {
 		op(t, &options)
@@ -38,12 +43,23 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	s := newServer(options)
 	s.db = setupDB(t)
 
+	org := &models.Organization{Name: options.OrganizationName, Domain: options.OrganizationDomain}
+	err := data.CreateOrganization(s.db, org)
+	assert.NilError(t, err)
+	s.db.Statement.Context = context.WithValue(s.db.Statement.Context, data.OrgCtxKey{}, org)
+
 	// TODO: share more of this with Server.New
-	err := loadDefaultSecretConfig(s.secrets)
+	err = loadDefaultSecretConfig(s.secrets)
 	assert.NilError(t, err)
 
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
+
+	_, err = data.InitializeSettings(s.db, getDefaultOrgFromCtx(s.db))
+	assert.NilError(t, err)
+
+	// create the provider if it's missing.
+	data.InfraProvider(s.db)
 
 	data.InvalidateCache()
 	t.Cleanup(data.InvalidateCache)
@@ -245,12 +261,6 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		var body api.SignupEnabledResponse
-		err = json.NewDecoder(resp.Body).Decode(&body)
-		assert.NilError(t, err)
-
-		assert.Assert(t, body.Enabled)
 	})
 }
 
@@ -329,15 +339,16 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.SessionExtensionDeadline = time.Minute
 	})
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
-	_, err := data.InitializeSettings(s.db)
+	_, err := data.InitializeSettings(s.db, getDefaultOrgFromCtx(s.db))
 	assert.NilError(t, err)
 
 	var buf bytes.Buffer
 	email := "admin@email.com"
 	passwd := "supersecretpassword"
+	org := "infrahq"
 
 	// run signup for "admin@email.com"
-	signupReq := api.SignupRequest{Name: email, Password: passwd}
+	signupReq := api.SignupRequest{Name: email, Password: passwd, Org: org}
 	err = json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
@@ -347,9 +358,10 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-	signupResp := &api.CreateUserResponse{}
+	signupResp := &api.SignupResponse{}
 	err = json.Unmarshal(resp.Body.Bytes(), signupResp)
 	assert.NilError(t, err)
+	domain := signupResp.Organization.Domain
 
 	// login with "admin@email.com" to get an access key
 	loginReq := api.LoginRequest{PasswordCredentials: &api.LoginRequestPasswordCredentials{Name: email, Password: passwd}}
@@ -358,6 +370,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
 	req.Header.Set("Infra-Version", apiVersionLatest)
+	req.Header.Set("Host", domain)
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -370,6 +383,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		req = httptest.NewRequest(http.MethodGet, "/api/users", nil)
 		req.Header.Set("Authorization", "Bearer "+loginResp.AccessKey)
 		req.Header.Set("Infra-Version", apiVersionLatest)
+		req.Header.Set("Host", domain)
 		resp = httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)

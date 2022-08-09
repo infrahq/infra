@@ -20,24 +20,30 @@ const BasePermissionConnect = "connect"
 // field bloat should be avoided here since this model is going to be used heavily.
 //
 // Subject
-// 		Subject is mostly an Identity, which is a string specifying a user, group, the name of a role, or another grant
-// 			- an identity:  	i:E97WmsYfvo   		 - a user reference
-// 			- a group: 			g:CCoJ1ornpf   		 - a group reference
-// 			- a role:  			r:role-name   		 - a role definition
-// 			- a permission: p:permissionn-name - a permission definition
-// Privilege
-// 		Privilege is a predicate that describes what sort of access the identity has to the resource
-// URN
-// 		URN is Universal Resource Notation.
-// Expiry
-//    time you want the grant to expire at
 //
+//	Subject is mostly an Identity, which is a string specifying a user, group, the name of a role, or another grant
+//		- an identity:  	i:E97WmsYfvo   		 - a user reference
+//		- a group: 			g:CCoJ1ornpf   		 - a group reference
+//		- a role:  			r:role-name   		 - a role definition
+//		- a permission: p:permissionn-name - a permission definition
+//
+// Privilege
+//
+//	Privilege is a predicate that describes what sort of access the identity has to the resource
+//
+// URN
+//
+//	URN is Universal Resource Notation.
+//
+// Expiry
+//
+//	time you want the grant to expire at
 type Grant struct {
 	Model
 
-	Subject   uid.PolymorphicID `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
-	Privilege string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission
-	Resource  string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // Universal Resource Notation
+	Subject   uid.PolymorphicID // usually an identity, but could be a role definition
+	Privilege string            // role or permission
+	Resource  string            // Universal Resource Notation
 	CreatedBy uid.ID
 }
 

@@ -32,7 +32,7 @@ func TestSettingsPasswordRequirements(t *testing.T) {
 	})
 
 	// Test min length success
-	settings, err := data.GetSettings(db)
+	settings, err := data.GetSettings(db, getDefaultOrg(db))
 	assert.NilError(t, err)
 	settings.LengthMin = 5
 	err = data.SaveSettings(db, settings)

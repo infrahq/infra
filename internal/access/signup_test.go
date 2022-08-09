@@ -16,100 +16,36 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func TestSignupEnabled(t *testing.T) {
+func getDefaultOrg(db *gorm.DB) *models.Organization {
+	org, ok := db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	if !ok {
+		panic("org missing from db context")
+	}
+	return org
+}
+
+func TestSignup(t *testing.T) {
 	setup := func(t *testing.T) (*gin.Context, *gorm.DB) {
 		db := setupDB(t)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = (&http.Request{}).WithContext(context.Background())
 		c.Set("db", db)
-		_, err := data.InitializeSettings(db)
+		_, err := data.InitializeSettings(db, getDefaultOrg(db))
 		assert.NilError(t, err)
 		return c, db
 	}
 
-	t.Run("Enabled", func(t *testing.T) {
-		c, _ := setup(t)
-
-		enabled, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, enabled)
-	})
-
-	t.Run("DisabledByResources", func(t *testing.T) {
-		c, db := setup(t)
-
-		err := data.CreateIdentity(db, &models.Identity{Name: "test"})
-		assert.NilError(t, err)
-
-		enabled, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, !enabled)
-	})
-
-	t.Run("DisabledByDeletedResources", func(t *testing.T) {
-		c, db := setup(t)
-
-		enabled, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, enabled)
-
-		err = data.CreateIdentity(db, &models.Identity{Name: "test"})
-		assert.NilError(t, err)
-
-		enabled, err = SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, !enabled)
-
-		err = data.DeleteIdentities(db, data.ByName("test"))
-		assert.NilError(t, err)
-
-		enabled, err = SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, !enabled)
-	})
-
-	t.Run("DisabledByInClusterConnector", func(t *testing.T) {
-		c, db := setup(t)
-
-		// emulate an in-cluster connector by installing a connector access key
-		identity := models.Identity{Name: models.InternalInfraConnectorIdentityName}
-
-		err := data.CreateIdentity(db, &identity)
-		assert.NilError(t, err)
-
-		provider := data.InfraProvider(db)
-
-		accessKey := models.AccessKey{
-			IssuedFor:  identity.ID,
-			ProviderID: provider.ID,
-			ExpiresAt:  time.Now().Add(time.Minute),
-		}
-
-		_, err = data.CreateAccessKey(db, &accessKey)
-		assert.NilError(t, err)
-
-		enabled, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Assert(t, !enabled)
-	})
-
 	user := "admin@infrahq.com"
 	pass := "password"
 
-	t.Run("SignupUser", func(t *testing.T) {
+	t.Run("SignupNewOrg", func(t *testing.T) {
 		c, db := setup(t)
 
-		enabled, err := SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Equal(t, enabled, true)
-
-		identity, err := Signup(c, user, pass)
+		identity, createdOrg, err := Signup(c, "acme", "acme.infrahq.com", user, pass)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 
-		enabled, err = SignupEnabled(c)
-		assert.NilError(t, err)
-		assert.Equal(t, enabled, false)
+		assert.Equal(t, identity.OrganizationID, createdOrg.ID)
 
 		// check "admin" user can login
 		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)

@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http/httptest"
@@ -24,6 +25,18 @@ func setupDB(t *testing.T) *gorm.DB {
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
+
+	org := &models.Organization{
+		Name:   "Access Holly Wood",
+		Domain: "access.example.com",
+	}
+	err = data.CreateOrganization(db, org)
+	assert.NilError(t, err)
+
+	_, err = data.InitializeSettings(db, org)
+	assert.NilError(t, err)
+
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 
 	return db
 }
@@ -70,6 +83,7 @@ var (
 
 func TestBasicGrant(t *testing.T) {
 	db := setupDB(t)
+
 	err := data.CreateIdentity(db, tom)
 	assert.NilError(t, err)
 

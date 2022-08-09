@@ -1,4 +1,5 @@
-/*Package patch provides helper functions for patching static variables in tests.
+/*
+Package patch provides helper functions for patching static variables in tests.
 
 Ideally we would not use exported static package-level variables, but as long as
 we have them, we need to patch them in tests.

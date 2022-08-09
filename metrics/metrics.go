@@ -15,9 +15,9 @@ import (
 // NewRegistry creates a new prometheus.Registry and registers common collectors and metrics.
 //
 // NewRegistry registers:
-//   * standard process collector
-//   * standard go collector
-//   * build_info metric
+//   - standard process collector
+//   - standard go collector
+//   - build_info metric
 func NewRegistry(version string) *prometheus.Registry {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))

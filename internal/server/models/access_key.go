@@ -17,7 +17,7 @@ const ScopePasswordReset = "password-reset"
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {
 	Model
-	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
+	Name string
 	// IssuedFor is the ID of the user that this access key was created for
 	IssuedFor         uid.ID
 	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor"`
@@ -27,7 +27,7 @@ type AccessKey struct {
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
 	ExtensionDeadline time.Time
 
-	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
+	KeyID          string `gorm:"<-"`
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
 

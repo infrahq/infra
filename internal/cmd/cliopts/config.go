@@ -18,22 +18,21 @@ type Options struct {
 //
 // To set default values, apply them to target before calling Load.
 // Configuration is loaded in the following order:
-//    1. from a yaml file identified by opts.Filename
-//    2. from environment variables that start with opts.EnvPrefix
-//    3. from command line flags in opts.Flags
+//  1. from a yaml file identified by opts.Filename
+//  2. from environment variables that start with opts.EnvPrefix
+//  3. from command line flags in opts.Flags
 //
 // Values are matched to the fields in target by convention. To override the
 // convention use the 'config' struct field tag to specify a different name.
 //
 // For example, the field target.Addr.HTTPS would be set from:
 //
-//    // YAML
-//   {"addr": {"https": "value"}}
-//   // environment variable
-//   PREFIX_ADDR_HTTPS=value
-//   // command line flag
-//   flags.String("addr-https", ...)
-//
+//	 // YAML
+//	{"addr": {"https": "value"}}
+//	// environment variable
+//	PREFIX_ADDR_HTTPS=value
+//	// command line flag
+//	flags.String("addr-https", ...)
 func Load(target interface{}, opts Options) error {
 	if opts.Filename != "" {
 		if err := loadFromFile(target, opts); err != nil {

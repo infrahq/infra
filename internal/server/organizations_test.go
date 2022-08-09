@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
@@ -13,12 +15,19 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 	t.Helper()
 	for i := range orgs {
-		err := data.CreateOrganization(db, orgs[i])
+		o, err := data.GetOrganization(db, data.ByName(orgs[i].Name))
+		if err == nil {
+			*orgs[i] = *o
+			continue
+		}
+		orgs[i].SetDefaultDomain()
+		err = data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}
 }
@@ -42,6 +51,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")
@@ -77,7 +87,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 				var actual api.ListResponse[api.Organization]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				assert.Equal(t, len(actual.Items), 3)
+				assert.Assert(t, len(actual.Items) >= 3, len(actual.Items))
 			},
 		},
 		"page 2": {
@@ -91,8 +101,11 @@ func TestAPI_ListOrganizations(t *testing.T) {
 				var actual api.ListResponse[api.Organization]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				assert.Equal(t, len(actual.Items), 1)
-				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2, TotalCount: 3, TotalPages: 2}, actual.PaginationResponse)
+				assert.Assert(t, len(actual.Items) >= 1, len(actual.Items))
+				assert.Equal(t, 2, actual.PaginationResponse.Page)
+				assert.Equal(t, 2, actual.PaginationResponse.Limit)
+				assert.Assert(t, actual.PaginationResponse.TotalCount >= 3, actual.PaginationResponse.TotalCount)
+				assert.Assert(t, actual.PaginationResponse.TotalPages >= 2, actual.PaginationResponse.TotalPages)
 			},
 		},
 	}
@@ -176,12 +189,18 @@ func TestAPI_CreateOrganization(t *testing.T) {
 	}
 }
 
+func setCurrentOrg(db *gorm.DB, org *models.Organization) {
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
+}
+
 func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var first = models.Organization{Name: "first"}
-	createOrgs(t, srv.db, &first)
+	first := &models.Organization{Name: "first"}
+	createOrgs(t, srv.db, first)
+	setCurrentOrg(srv.db, first)
+	p := data.InfraProvider(srv.db)
 
 	type testCase struct {
 		urlPath  string
@@ -189,11 +208,37 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
+	user := &models.Identity{
+		Model: models.Model{OrganizationID: first.ID},
+		Name:  "joe@example.com",
+	}
+	err := data.CreateIdentity(srv.db, user)
+	assert.NilError(t, err)
+
+	key := &models.AccessKey{
+		Model:      models.Model{OrganizationID: first.ID},
+		Name:       "foo",
+		ExpiresAt:  time.Now().Add(10 * time.Minute).UTC(),
+		IssuedFor:  user.ID,
+		ProviderID: p.ID,
+	}
+	_, err = data.CreateAccessKey(srv.db, key)
+	assert.NilError(t, err)
+
+	err = data.CreateGrant(srv.db, &models.Grant{
+		Model:     models.Model{OrganizationID: first.ID},
+		Subject:   uid.NewIdentityPolymorphicID(user.ID),
+		Resource:  "infra",
+		Privilege: "support-admin",
+	})
+	assert.NilError(t, err)
+
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
 		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		assert.NilError(t, err)
 		req.Header.Add("Infra-Version", "0.14.1")
+		req.Header.Add("host", first.Domain)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -218,7 +263,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 		"authorized by grant": {
 			urlPath: "/api/organizations/" + first.ID.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+				req.Header.Set("Authorization", "Bearer "+key.KeyID+"."+key.Secret)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())

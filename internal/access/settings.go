@@ -1,6 +1,7 @@
 package access
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,12 @@ import (
 )
 
 func GetPublicJWK(c RequestContext) ([]jose.JSONWebKey, error) {
-	settings, err := data.GetSettings(c.DBTxn)
+	org, ok := c.DBTxn.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	if !ok {
+		return nil, errors.New("unknown organization")
+	}
+
+	settings, err := data.GetSettings(c.DBTxn, org)
 	if err != nil {
 		return nil, fmt.Errorf("could not get JWKs: %w", err)
 	}
@@ -26,7 +32,12 @@ func GetPublicJWK(c RequestContext) ([]jose.JSONWebKey, error) {
 
 func GetSettings(c *gin.Context) (*models.Settings, error) {
 	db := getDB(c)
-	return data.GetSettings(db)
+	org, ok := db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	if !ok {
+		return nil, errors.New("unknown organization")
+	}
+
+	return data.GetSettings(db, org)
 }
 
 func SaveSettings(c *gin.Context, settings *models.Settings) error {

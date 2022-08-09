@@ -19,7 +19,13 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 }
 
 func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires time.Time) (string, error) {
-	settings, err := GetSettings(db)
+	orgID := identity.OrganizationID
+	org, err := GetOrganization(db, ByID(orgID))
+	if err != nil {
+		return "", err
+	}
+
+	settings, err := GetSettings(db, org)
 	if err != nil {
 		return "", err
 	}
