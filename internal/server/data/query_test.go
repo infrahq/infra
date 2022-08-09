@@ -31,6 +31,14 @@ func (e example) Values() []any {
 	return []any{e.ID, e.First, e.Age}
 }
 
+func (e example) OnInsert() error {
+	return nil
+}
+
+func (e example) OnUpdate() error {
+	return nil
+}
+
 func TestInsert(t *testing.T) {
 	e := example{ID: 123, First: "first", Age: 111}
 	tx := &txnCapture{}
