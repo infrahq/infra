@@ -2,12 +2,9 @@ package data
 
 import (
 	"testing"
-	"time"
 
-	gocmp "github.com/google/go-cmp/cmp"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
-	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -31,13 +28,6 @@ func TestInitializeSettings(t *testing.T) {
 			assert.DeepEqual(t, settings, nextSettings, cmpModel)
 		})
 	})
-}
-
-var cmpModel = gocmp.Options{
-	gocmp.FilterPath(opt.PathField(models.Model{}, "CreatedAt"),
-		opt.TimeWithThreshold(2*time.Second)),
-	gocmp.FilterPath(opt.PathField(models.Model{}, "UpdatedAt"),
-		opt.TimeWithThreshold(2*time.Second)),
 }
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {

@@ -92,7 +92,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
-	if err := add(db, accessKey); err != nil {
+	if err := insert(db, (*accessKeyTable)(accessKey)); err != nil {
 		return "", err
 	}
 
@@ -132,6 +132,7 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
 
+// TODO: would this be more appropriate in the access package?
 func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {

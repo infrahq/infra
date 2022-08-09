@@ -6,8 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
+
+	"github.com/infrahq/infra/uid"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
@@ -20,46 +25,69 @@ func TestCreateAccessKey(t *testing.T) {
 		err := CreateIdentity(db, jerry)
 		assert.NilError(t, err)
 
-		t.Run("no key id set", func(t *testing.T) {
+		infraProviderID := InfraProvider(db).ID
+
+		t.Run("all default values", func(t *testing.T) {
 			key := &models.AccessKey{
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: infraProviderID,
 			}
-			_, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(db, key)
 			assert.NilError(t, err)
-			assert.Assert(t, key.KeyID != "")
+
+			expected := &models.AccessKey{
+				Model: models.Model{
+					ID:        uid.ID(12345),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				IssuedFor:      jerry.ID,
+				ProviderID:     infraProviderID,
+				KeyID:          "<any-string>",
+				Secret:         "<any-string>",
+				ExpiresAt:      time.Now().Add(12 * time.Hour),
+				Name:           fmt.Sprintf("%s-%s", jerry.Name, key.ID.String()),
+				SecretChecksum: secretChecksum(key.Secret),
+			}
+			assert.DeepEqual(t, key, expected, cmpAccessKey)
+			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
+
+			// check that we can fetch the same value from the db
+			fromDB, err := GetAccessKey(db, ByID(key.ID))
+			assert.NilError(t, err)
+
+			// fromDB should not have the secret value
+			key.Secret = ""
+			assert.DeepEqual(t, fromDB, key, cmpopts.EquateEmpty(), cmpTimeWithDBPrecision)
 		})
 
-		t.Run("no key secret set", func(t *testing.T) {
+		t.Run("all values", func(t *testing.T) {
 			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				Model: models.Model{
+					ID:        uid.ID(512512),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name:              "the-key",
+				IssuedFor:         jerry.ID,
+				ProviderID:        infraProviderID,
+				ExpiresAt:         time.Now().Add(time.Hour),
+				Extension:         3 * time.Hour,
+				ExtensionDeadline: time.Now().Add(time.Minute),
+				KeyID:             "0123456789",
+				Secret:            "012345678901234567890123",
+				Scopes:            []string{"first", "third"},
 			}
-			_, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(db, key)
 			assert.NilError(t, err)
-			assert.Assert(t, key.Secret != "")
-		})
+			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
-		t.Run("no expiry set", func(t *testing.T) {
-			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
-			}
-			_, err := CreateAccessKey(db, key)
+			// check that we can fetch the same value from the db
+			fromDB, err := GetAccessKey(db, ByID(key.ID))
 			assert.NilError(t, err)
-			assert.Assert(t, !key.ExpiresAt.IsZero())
-		})
-
-		t.Run("no name set", func(t *testing.T) {
-			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
-			}
-			_, err := CreateAccessKey(db, key)
-			assert.NilError(t, err)
-
-			expected := fmt.Sprintf("%s-%s", jerry.Name, key.ID.String())
-			assert.Equal(t, key.Name, expected)
+			// fromDB should not have the secret value
+			key.Secret = ""
+			assert.DeepEqual(t, fromDB, key, cmpTimeWithDBPrecision)
 		})
 
 		t.Run("invalid specified key id length", func(t *testing.T) {
@@ -83,6 +111,47 @@ func TestCreateAccessKey(t *testing.T) {
 		})
 	})
 }
+
+var cmpModel = cmp.Options{
+	cmp.FilterPath(opt.PathField(models.Model{}, "ID"), anyValidUID),
+	cmp.FilterPath(opt.PathField(models.Model{}, "CreatedAt"), opt.TimeWithThreshold(2*time.Second)),
+	cmp.FilterPath(opt.PathField(models.Model{}, "UpdatedAt"), opt.TimeWithThreshold(2*time.Second)),
+}
+
+var cmpAccessKey = cmp.Options{
+	cmpModel,
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "KeyID"), nonZeroString),
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "Secret"), nonZeroString),
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "ExpiresAt"), opt.TimeWithThreshold(time.Second)),
+}
+
+var nonZeroString = cmp.Comparer(func(x, y string) bool {
+	if x == "" || y == "" {
+		return false
+	}
+	if x == "<any-string>" || y == "<any-string>" {
+		return true
+	}
+	return false
+})
+
+var anyValidUID = cmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	ys, _ := y.(string)
+
+	if xs == "<any-valid-uid>" {
+		_, err := uid.Parse([]byte(ys))
+		return err == nil
+	}
+	if ys == "<any-valid-uid>" {
+		_, err := uid.Parse([]byte(xs))
+		return err == nil
+	}
+	return xs == ys
+})
+
+// PostgreSQL only has microsecond precision
+var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
