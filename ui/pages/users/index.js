@@ -13,7 +13,6 @@ import PageHeader from '../../components/page-header'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
-import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
 import Metadata from '../../components/metadata'
 import RoleSelect from '../../components/role-select'
@@ -33,7 +32,6 @@ const columns = [
             {user.name[0]}
           </span>
         </div>
-        {/* <ProfileIcon name={user.name[0]} /> */}
         <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>
           <div className='truncate'>{user.name}</div>
         </div>
@@ -330,7 +328,6 @@ export default function Users() {
               onClose={() => setSelected(null)}
               title={selected.name}
               iconText={selected.name[0]}
-              // profileIcon={selected.name[0]}
             >
               <Details
                 user={selected}
