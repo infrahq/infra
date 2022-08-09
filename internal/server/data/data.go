@@ -204,10 +204,13 @@ func add[T models.Modelable](db *gorm.DB, model *T) error {
 		err = db.Create(model).Error
 		if err != nil {
 			db.RollbackTo("beforeCreate")
+			return handleError(err)
 		}
-	} else {
-		err = db.Create(model).Error
+		return nil
 	}
+
+	err = db.Create(model).Error
+
 	return handleError(err)
 }
 

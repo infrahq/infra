@@ -79,7 +79,9 @@ func TestMigrations(t *testing.T) {
 		err := m.Migrate()
 		assert.NilError(t, err)
 
-		tc.expected(t, db)
+		if tc.expected != nil {
+			tc.expected(t, db)
+		}
 	}
 
 	testCases := []testCase{
@@ -388,6 +390,12 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				expected := models.Settings{LengthMin: 8}
 				assert.DeepEqual(t, settings, expected)
 			},
+		},
+		{
+			label: testCaseLine("202207271554"), // addOrganizations
+		},
+		{
+			label: testCaseLine("202208041772"), // scopeUniqueIndicesToOrganization
 		},
 	}
 

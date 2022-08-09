@@ -297,13 +297,13 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 7,
 					Items: []api.User{
-						{Name: "AnotherUser@example.com"},
-						{Name: "HAL@example.com"},
 						{Name: "admin@example.com"},
+						{Name: "AnotherUser@example.com"},
 						{Name: "connector"},
+						{Name: "HAL@example.com"},
 						{Name: "me@example.com"},
-						{Name: "other-HAL@example.com"},
 						{Name: "other@example.com"},
+						{Name: "other-HAL@example.com"},
 					},
 					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 7},
 				}
@@ -330,8 +330,8 @@ func TestAPI_ListUsers(t *testing.T) {
 				expected := api.ListResponse[api.User]{
 					Count: 2,
 					Items: []api.User{
-						{Name: "admin@example.com"},
 						{Name: "connector"},
+						{Name: "HAL@example.com"},
 					},
 					PaginationResponse: api.PaginationResponse{
 						Page:       2,

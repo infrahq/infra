@@ -50,11 +50,14 @@ func setupDB(t *testing.T) *gorm.DB {
 func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provider) {
 	// setup db and context
 	db := setupDB(t)
+	org, ok := db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	assert.Assert(t, ok)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
 
 	err := data.SaveSettings(db, &models.Settings{
+		Model:     models.Model{OrganizationID: org.ID},
 		LengthMin: 8,
 	})
 	assert.NilError(t, err)

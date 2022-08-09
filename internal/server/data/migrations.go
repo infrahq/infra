@@ -382,6 +382,10 @@ drop index if exists idx_grant_srp;
 drop index if exists idx_groups_name;
 drop index if exists idx_identities_name;
 drop index if exists idx_providers_name;
+drop index if exists idx_settings_org_id;
+drop index if exists idx_password_reset_tokens_token;
+
+alter table password_reset_tokens add column organization_id bigint;
 
 create unique index idx_access_keys_name on access_keys (organization_id, name) where (deleted_at is null);
 create unique index idx_access_keys_key_id on access_keys (organization_id, key_id) where (deleted_at is null);
@@ -391,7 +395,9 @@ create unique index idx_grant_srp ON grants ("organization_id","subject","privil
 create unique index idx_groups_name ON groups ("organization_id","name") where (deleted_at is null);
 create unique index idx_identities_name ON identities ("organization_id","name") where (deleted_at is null);
 create unique index idx_providers_name ON providers ("organization_id","name") where (deleted_at is null);
-create unique index settings_org_id ON settings ("organization_id") where deleted_at is null;
+create unique index idx_settings_org_id ON settings ("organization_id") where deleted_at is null;
+create unique index idx_password_reset_tokens_token ON password_reset_tokens (organization_id, token);
+create unique index idx_orgs_domain ON organizations (domain);
 
 drop table if exists identities_organizations;
 
@@ -405,6 +411,7 @@ alter table "encryption_keys" alter column "id" drop default;
 alter table "grants" alter column "id" drop default;
 alter table "groups" alter column "id" drop default;
 alter table "identities" alter column "id" drop default;
+alter table "password_reset_tokens" alter column "id" drop default;
 
 alter table provider_users DROP CONSTRAINT "fk_provider_users_provider";
 alter table provider_users DROP CONSTRAINT "fk_provider_users_identity";
@@ -422,6 +429,7 @@ drop sequence identities_id_seq;
 drop sequence organizations_id_seq;
 drop sequence providers_id_seq;
 drop sequence settings_id_seq;
+drop sequence password_reset_tokens_id_seq;
 			`, ";\n")
 			// note running these one line at a time makes for _much_ better errors when one line fails.
 			for _, query := range queries {

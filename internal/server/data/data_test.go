@@ -2,15 +2,17 @@ package data
 
 import (
 	"context"
+	"errors"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
@@ -24,16 +26,37 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	org := &models.Organization{
-		Name:   "Database Co",
-		Domain: "database.local",
+	if migrator.HasTable(db, "organizations") && migrator.HasColumn(db, "organizations", "organization_id") {
+		var org *models.Organization
+		// txFunc := db.Transaction
+		t.Log("db name: " + db.Name())
+		// if db.Name() == "sqlite" {
+		// 	txFunc = func(fc func(tx *gorm.DB) error, opts ...*sql.TxOptions) (err error) {
+		// 		return fc(db)
+		// 	}
+		// }
+		// err = txFunc(func(tx *gorm.DB) error {
+		org, err = GetOrganization(db, ByNameOrDomain("Database Co", "database.local"))
+		if errors.Is(err, internal.ErrNotFound) {
+			id := uid.New()
+			org = &models.Organization{
+				Model: models.Model{
+					ID:             id,
+					OrganizationID: id,
+				},
+				Name:   "Database Co",
+				Domain: "database.local",
+			}
+			err = CreateOrganization(db, org)
+		}
+		// assert.NilError(t, err)
+		// return nil
+		// })
+		assert.NilError(t, err)
+		db.Statement.Context = context.WithValue(db.Statement.Context, OrgCtxKey{}, org)
+
+		InfraProvider(db)
 	}
-	err = CreateOrganization(db, org)
-	assert.NilError(t, err)
-
-	db.Statement.Context = context.WithValue(db.Statement.Context, OrgCtxKey{}, org)
-
-	InfraProvider(db)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 	t.Cleanup(InvalidateCache)

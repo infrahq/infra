@@ -22,6 +22,8 @@ func TestPasswordResetFlow(t *testing.T) {
 	_, err := data.InitializeSettings(s.db, getDefaultOrgFromCtx(s.db))
 	assert.NilError(t, err)
 
+	org, ok := s.db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
+	assert.Assert(t, ok)
 	email.TestMode = true
 
 	user := &models.Identity{
@@ -48,6 +50,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	req.Header.Add("Infra-Version", "0.13.6")
+	req.Header.Add("Host", "localhost")
 
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
@@ -58,7 +61,7 @@ func TestPasswordResetFlow(t *testing.T) {
 
 	// cheat and grab the token from the db.
 	tokens := []string{}
-	err = s.db.Raw("select token from password_reset_tokens").Pluck("token", &tokens).Error
+	err = s.db.Raw("select token from password_reset_tokens where organization_id = ?", org.ID).Pluck("token", &tokens).Error
 	assert.NilError(t, err)
 
 	assert.Assert(t, len(tokens) > 0)
@@ -78,6 +81,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	req.Header.Add("Infra-Version", "0.13.6")
+	req.Header.Add("Host", "localhost")
 
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
