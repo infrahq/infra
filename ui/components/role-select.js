@@ -6,7 +6,7 @@ import { XIcon } from '@heroicons/react/outline'
 import {
   sortByPrivilege,
   descriptions,
-  sortByHasDescriptions,
+  sortByHasDescription,
 } from '../lib/grants'
 
 const OPTION_REMOVE = 'remove'
@@ -31,7 +31,7 @@ export default function RoleSelect({
   roles = roles || items?.[0]?.roles || []
   roles = roles
     ?.sort(sortByPrivilege)
-    ?.sort(sortByHasDescriptions)
+    ?.sort(sortByHasDescription)
     ?.filter(r => !hasParent || r !== 'cluster-admin')
 
   return (

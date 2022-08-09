@@ -20,14 +20,12 @@ export function sortByPrivilege(a, b) {
   return a?.privilege?.localeCompare(b?.privilege)
 }
 
-export function sortByHasDescriptions(a, b) {
-  const descriptionsList = Object.keys(descriptions)
-
-  if (descriptionsList.includes(a)) {
+export function sortByHasDescription(a, b) {
+  if (descriptions[a]) {
     return -1
   }
 
-  if (descriptionsList.includes(b)) {
+  if (descriptions[b]) {
     return 1
   }
 
