@@ -24,7 +24,7 @@ var migrations = []*Migration{
 			return tx.AutoMigrate(&Person{})
 		},
 		Rollback: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("people")
+			return tx.Exec(`DROP TABLE IF EXISTS people`).Error
 		},
 	},
 	{
@@ -33,7 +33,7 @@ var migrations = []*Migration{
 			return tx.AutoMigrate(&Pet{})
 		},
 		Rollback: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("pets")
+			return tx.Exec(`DROP TABLE IF EXISTS pets`).Error
 		},
 	},
 }
@@ -44,7 +44,7 @@ var extendedMigrations = append(migrations, &Migration{
 		return tx.AutoMigrate(&Book{})
 	},
 	Rollback: func(tx *gorm.DB) error {
-		return tx.Migrator().DropTable("books")
+		return tx.Exec(`DROP TABLE IF EXISTS books`).Error
 	},
 })
 
@@ -87,22 +87,22 @@ func TestMigration_RunsNewMigrations(t *testing.T) {
 
 		err := m.Migrate()
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, HasTable(db, "pets"))
 		expected := []string{initSchemaMigrationID, "201608301400", "201608301430"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 
 		err = m.RollbackTo(migrations[len(migrations)-2].ID)
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
 		expected = []string{initSchemaMigrationID, "201608301400"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 
 		err = m.RollbackTo(initSchemaMigrationID)
 		assert.NilError(t, err)
-		assert.Assert(t, !db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, !HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
 		expected = []string{initSchemaMigrationID}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 	})
@@ -130,18 +130,18 @@ func TestRollbackTo(t *testing.T) {
 		// First, apply all migrations.
 		err := m.Migrate()
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, db.Migrator().HasTable(&Pet{}))
-		assert.Assert(t, db.Migrator().HasTable(&Book{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, HasTable(db, "pets"))
+		assert.Assert(t, HasTable(db, "books"))
 		expected := []string{initSchemaMigrationID, "201608301400", "201608301430", "201807221927"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 
 		// Rollback to the first migration: only the last 2 migrations are expected to be rolled back.
 		err = m.RollbackTo("201608301400")
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Book{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
+		assert.Assert(t, !HasTable(db, "books"))
 		expected = []string{initSchemaMigrationID, "201608301400"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 	})
@@ -161,8 +161,8 @@ func TestInitSchemaNoMigrations(t *testing.T) {
 		}
 
 		assert.NilError(t, m.Migrate())
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, HasTable(db, "pets"))
 		assert.Equal(t, int64(1), migrationCount(t, db))
 	})
 }
@@ -181,8 +181,8 @@ func TestInitSchemaWithMigrations(t *testing.T) {
 		}
 
 		assert.NilError(t, m.Migrate())
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
 		assert.Equal(t, int64(3), migrationCount(t, db))
 	})
 }
@@ -213,7 +213,7 @@ func TestInitSchemaAlreadyInitialised(t *testing.T) {
 		}
 		assert.NilError(t, m.Migrate())
 
-		assert.Assert(t, !db.Migrator().HasTable(&Car{}))
+		assert.Assert(t, !HasTable(db, "cars"))
 		assert.Equal(t, int64(1), migrationCount(t, db))
 	})
 }
@@ -242,7 +242,7 @@ func TestInitSchemaExistingMigrations(t *testing.T) {
 		}
 		assert.NilError(t, m.Migrate())
 
-		assert.Assert(t, !db.Migrator().HasTable(&Car{}))
+		assert.Assert(t, !HasTable(db, "cars"))
 		expected := []string{initSchemaMigrationID, "201608301400", "201608301430"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 	})
@@ -313,22 +313,22 @@ func TestMigration_WithUseTransactions(t *testing.T) {
 
 		err := m.Migrate()
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, HasTable(db, "pets"))
 		expected := []string{initSchemaMigrationID, "201608301400", "201608301430"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 
 		err = m.RollbackTo(migrations[len(migrations)-2].ID)
 		assert.NilError(t, err)
-		assert.Assert(t, db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
 		expected = []string{initSchemaMigrationID, "201608301400"}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 
 		err = m.RollbackTo(initSchemaMigrationID)
 		assert.NilError(t, err)
-		assert.Assert(t, !db.Migrator().HasTable(&Person{}))
-		assert.Assert(t, !db.Migrator().HasTable(&Pet{}))
+		assert.Assert(t, !HasTable(db, "people"))
+		assert.Assert(t, !HasTable(db, "pets"))
 		expected = []string{initSchemaMigrationID}
 		assert.DeepEqual(t, migrationIDs(t, db), expected)
 	}, "postgres", "sqlite3", "mssql")
@@ -345,7 +345,7 @@ func TestMigration_WithUseTransactionsShouldRollback(t *testing.T) {
 		// Migration should return an error and not leave around a Book table
 		err := m.Migrate()
 		assert.Error(t, err, "this transaction should be rolled back")
-		assert.Assert(t, !db.Migrator().HasTable(&Book{}))
+		assert.Assert(t, !HasTable(db, "books"))
 	}, "postgres", "sqlite3", "mssql")
 }
 
@@ -376,7 +376,7 @@ func forEachDatabase(t *testing.T, fn func(t *testing.T, database *gorm.DB), dia
 		{dialect: "sqlite3", driver: sqlite.Open("file:" + filepath.Join(dir, "sqlite3.db"))},
 	}
 
-	if pg := os.Getenv("PG_CONN_STRING"); pg != "" {
+	if pg := os.Getenv("POSTGRESQL_CONNECTION"); pg != "" {
 		databases = append(databases, database{
 			dialect: "postgres", driver: postgres.Open(pg),
 		})
@@ -392,8 +392,10 @@ func forEachDatabase(t *testing.T, fn func(t *testing.T, database *gorm.DB), dia
 			db, err := gorm.Open(database.driver, &gorm.Config{})
 			assert.NilError(t, err, "Could not connect to database %s, %v", database.dialect, err)
 
-			// ensure tables do not exists
-			assert.NilError(t, db.Migrator().DropTable("migrations", "people", "pets"))
+			for _, table := range []string{"migrations", "people", "pets"} {
+				err := db.Exec(`DROP TABLE IF EXISTS ` + table).Error
+				assert.NilError(t, err)
+			}
 
 			fn(t, db)
 		})
@@ -407,4 +409,12 @@ func contains(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+// DefaultOptions used for tests
+var DefaultOptions = Options{
+	UseTransaction: false,
+	InitSchema: func(db *gorm.DB) error {
+		return nil
+	},
 }

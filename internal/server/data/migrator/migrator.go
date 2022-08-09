@@ -9,10 +9,10 @@ import (
 
 const initSchemaMigrationID = "SCHEMA_INIT"
 
-// Options define options for all migrations.
+// Options used by the Migrator to perform database migrations.
 type Options struct {
-	// UseTransaction makes Migrator execute migrations inside a single transaction.
-	// Keep in mind that not all databases support DDL commands inside transactions.
+	// UseTransaction indicates that Migrator should execute all migrations
+	// inside a single transaction.
 	UseTransaction bool
 
 	// InitSchema is used to create the database when no migrations table exists.
@@ -26,9 +26,9 @@ type Options struct {
 	LoadKey func(*gorm.DB) error
 }
 
-// Migration represents a database migration (a modification to be made on the database).
+// Migration defines a database migration, and an optional rollback.
 type Migration struct {
-	// ID is the migration identifier. Usually a timestamp like "201601021504".
+	// ID is the migration identifier. Usually a timestamp like "2016-01-02T15:04".
 	ID string
 	// Migrate is a function that will br executed while running this migration.
 	Migrate func(*gorm.DB) error
@@ -36,20 +36,12 @@ type Migration struct {
 	Rollback func(*gorm.DB) error
 }
 
-// Migrator represents a collection of all migrations of a database schema.
+// Migrator performs database migrations.
 type Migrator struct {
 	db         *gorm.DB
 	tx         *gorm.DB
 	options    Options
 	migrations []*Migration
-}
-
-// DefaultOptions can be used if you don't want to think about options.
-var DefaultOptions = Options{
-	UseTransaction: false,
-	InitSchema: func(db *gorm.DB) error {
-		return nil
-	},
 }
 
 // New returns a new Migrator.
@@ -66,7 +58,15 @@ func New(db *gorm.DB, options Options, migrations []*Migration) *Migrator {
 	}
 }
 
-// Migrate executes all migrations that did not run yet.
+// Migrate runs all the migrations that have not yet been applied to the
+// database. Migrate may follow one of three flows:
+//
+//   1. If the initial schema has not yet been applied then Migrate will run
+//      Options.InitSchema, and then exit.
+//   2. If all the migrations have already been applied then Migrate will do
+//      nothing.
+//   3. If there are migrations in the list that have not yet been applied then
+//      Migrate will run them in order.
 func (g *Migrator) Migrate() error {
 	if g.options.InitSchema == nil && len(g.migrations) == 0 {
 		return fmt.Errorf("there are no migrations")
@@ -209,7 +209,7 @@ func (g *Migrator) runMigration(migration *Migration) error {
 
 func (g *Migrator) createMigrationTableIfNotExists() error {
 	// TODO: replace gorm helper
-	if g.tx.Migrator().HasTable("migrations") {
+	if HasTable(g.tx, "migrations") {
 		return nil
 	}
 
@@ -220,7 +220,7 @@ func (g *Migrator) createMigrationTableIfNotExists() error {
 // individually
 func (g *Migrator) migrationRan(m *Migration) (bool, error) {
 	var count int64
-	err := g.tx.Raw(`select count(id) from migrations where id = ?`, m.ID).Scan(&count).Error
+	err := g.tx.Raw(`SELECT count(id) FROM migrations WHERE id = ?`, m.ID).Scan(&count).Error
 	return count > 0, err
 }
 
@@ -235,7 +235,7 @@ func (g *Migrator) mustInitializeSchema() (bool, error) {
 
 	// If the ID doesn't exist, we also want the list of migrations to be empty
 	var count int64
-	err = g.tx.Raw(`SELECT count(id) from migrations`).Scan(&count).Error
+	err = g.tx.Raw(`SELECT count(id) FROM migrations`).Scan(&count).Error
 	return count == 0, err
 }
 
