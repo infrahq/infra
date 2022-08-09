@@ -12,9 +12,9 @@ type Group struct {
 	CreatedBy         uid.ID
 	CreatedByProvider uid.ID
 
-	Identities []Identity `gorm:"many2many:identities_groups"`
+	Identities []Identity `gorm:"many2many:identities_groups" db:"-"`
 
-	TotalUsers int `gorm:"-:all"`
+	TotalUsers int `gorm:"-:all" db:"-"`
 }
 
 func (g *Group) ToAPI() *api.Group {

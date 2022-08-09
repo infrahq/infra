@@ -21,8 +21,8 @@ type Identity struct {
 	CreatedBy  uid.ID
 
 	// for eager loading, don't use these for saving.
-	Groups    []Group    `gorm:"many2many:identities_groups"`
-	Providers []Provider `gorm:"many2many:provider_users;"`
+	Groups    []Group    `gorm:"many2many:identities_groups" db:"-"`
+	Providers []Provider `gorm:"many2many:provider_users;"  db:"-"`
 }
 
 func (i *Identity) ToAPI() *api.User {
