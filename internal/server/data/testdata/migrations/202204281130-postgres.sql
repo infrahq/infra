@@ -282,8 +282,8 @@ ALTER TABLE identities OWNER TO postgres;
 --
 
 CREATE TABLE identities_groups (
-    group_id bigint NOT NULL,
-    identity_id bigint NOT NULL
+    identity_id bigint NOT NULL,
+    group_id bigint NOT NULL
 );
 
 
@@ -330,8 +330,8 @@ CREATE TABLE provider_users (
     created_at timestamp with time zone,
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    provider_id bigint,
     identity_id bigint,
+    provider_id bigint,
     email text,
     groups text,
     last_update timestamp with time zone,
@@ -679,7 +679,7 @@ ALTER TABLE ONLY groups
 --
 
 ALTER TABLE ONLY identities_groups
-    ADD CONSTRAINT identities_groups_pkey PRIMARY KEY (group_id, identity_id);
+    ADD CONSTRAINT identities_groups_pkey PRIMARY KEY (identity_id, group_id);
 
 
 --

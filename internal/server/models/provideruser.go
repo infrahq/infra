@@ -8,8 +8,8 @@ import (
 
 // ProviderUser is a cache of the provider's user and their groups, plus any authentication-specific information for that provider.
 type ProviderUser struct {
-	ProviderID uid.ID `gorm:"primaryKey"`
 	IdentityID uid.ID `gorm:"primaryKey"`
+	ProviderID uid.ID `gorm:"primaryKey"`
 
 	Email      string
 	Groups     CommaSeparatedStrings

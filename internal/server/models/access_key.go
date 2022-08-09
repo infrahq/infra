@@ -22,7 +22,6 @@ type AccessKey struct {
 	IssuedFor         uid.ID
 	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor"`
 	ProviderID        uid.ID
-	Scopes            CommaSeparatedStrings // if set, scopes limit what the key can be used for
 
 	ExpiresAt         time.Time
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
@@ -31,6 +30,8 @@ type AccessKey struct {
 	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
 	Secret         string `gorm:"-"`
 	SecretChecksum []byte
+
+	Scopes CommaSeparatedStrings // if set, scopes limit what the key can be used for
 }
 
 func (ak *AccessKey) ToAPI() *api.AccessKey {

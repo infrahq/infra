@@ -9,14 +9,13 @@ import (
 type Destination struct {
 	Model
 
-	Name       string
-	UniqueID   string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
-	LastSeenAt time.Time
-
-	Version string
-
+	Name          string
+	UniqueID      string `gorm:"uniqueIndex:idx_destinations_unique_id,where:deleted_at is NULL"`
 	ConnectionURL string
 	ConnectionCA  string
+
+	LastSeenAt time.Time
+	Version    string
 
 	Resources CommaSeparatedStrings
 	Roles     CommaSeparatedStrings
