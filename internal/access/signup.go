@@ -29,7 +29,7 @@ func Signup(c *gin.Context, orgName, domain, name, password string) (*models.Ide
 		return nil, nil, err
 	}
 	c.Set("org", org)
-	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 
 	identity := &models.Identity{
 		Model: models.Model{OrganizationID: org.ID},

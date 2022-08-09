@@ -190,14 +190,14 @@ func TestAPI_CreateOrganization(t *testing.T) {
 }
 
 func setCurrentOrg(db *gorm.DB, org *models.Organization) {
-	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 }
 
 func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var first = &models.Organization{Name: "first"}
+	first := &models.Organization{Name: "first"}
 	createOrgs(t, srv.db, first)
 	setCurrentOrg(srv.db, first)
 	p := data.InfraProvider(srv.db)
@@ -215,7 +215,8 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	err := data.CreateIdentity(srv.db, user)
 	assert.NilError(t, err)
 
-	key := &models.AccessKey{Model: models.Model{OrganizationID: first.ID},
+	key := &models.AccessKey{
+		Model:      models.Model{OrganizationID: first.ID},
 		Name:       "foo",
 		ExpiresAt:  time.Now().Add(10 * time.Minute).UTC(),
 		IssuedFor:  user.ID,

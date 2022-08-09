@@ -27,7 +27,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	assert.NilError(t, err)
 
 	// set this as the default org
-	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 
 	// create the provider if it's missing
 	data.InfraProvider(db)

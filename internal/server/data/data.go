@@ -129,7 +129,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 }
 
 func getOrg(db *gorm.DB) *models.Organization {
-	org, ok := db.Statement.Context.Value("org").(*models.Organization)
+	org, ok := db.Statement.Context.Value(OrgCtxKey{}).(*models.Organization)
 	if !ok {
 		panic("no org")
 	}

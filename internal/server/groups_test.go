@@ -37,7 +37,7 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
 
 func TestAPI_ListGroups(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	o := srv.db.Statement.Context.Value("org")
+	o := srv.db.Statement.Context.Value(data.OrgCtxKey{})
 	_, ok := o.(*models.Organization)
 	assert.Assert(t, ok)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
@@ -281,15 +281,13 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var humans = models.Group{Name: "humans"}
+	humans := models.Group{Name: "humans"}
 	createGroups(t, srv.db, &humans)
 
-	var (
-		inGroup = models.Identity{
-			Name:   "inagroup@example.com",
-			Groups: []models.Group{humans},
-		}
-	)
+	inGroup := models.Identity{
+		Name:   "inagroup@example.com",
+		Groups: []models.Group{humans},
+	}
 
 	createIdentities(t, srv.db, &inGroup)
 
@@ -359,7 +357,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var humans = models.Group{Name: "humans"}
+	humans := models.Group{Name: "humans"}
 	createGroups(t, srv.db, &humans)
 
 	var (

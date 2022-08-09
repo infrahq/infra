@@ -52,9 +52,9 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB) (*models.Iden
 			return nil, nil, AuthScope{}, fmt.Errorf("get user: %w", err)
 		}
 
-		org, ok := ctx.Value("org").(*models.Organization)
+		org, ok := ctx.Value(data.OrgCtxKey{}).(*models.Organization)
 		if !ok {
-			org, ok = db.Statement.Context.Value("org").(*models.Organization)
+			org, ok = db.Statement.Context.Value(data.OrgCtxKey{}).(*models.Organization)
 			if !ok {
 				return nil, nil, AuthScope{}, errors.New("organization not set")
 			}
