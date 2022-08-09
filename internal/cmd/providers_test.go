@@ -148,7 +148,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--kind", "google",
 			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
 			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
-			"--domain-admin", "admin@example.com",
+			"--workspace-domain-admin", "admin@example.com",
 		)
 		assert.NilError(t, err)
 
@@ -178,7 +178,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			"--kind", "okta",
 			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
 			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
-			"--domain-admin", "admin@example.com",
+			"--workspace-domain-admin", "admin@example.com",
 		)
 
 		assert.ErrorContains(t, err, "field(s) [\"clientEmail\" \"domainAdminEmail\" \"privateKey\"] are only applicable to Google identity providers")
@@ -321,7 +321,7 @@ func TestProvidersEditCmd(t *testing.T) {
 			"--client-secret", "google-client-secret-2",
 			"--service-account-key", "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
 			"--service-account-email", "example@tenant.iam.gserviceaccount.com",
-			"--domain-admin", "admin@example.com",
+			"--workspace-domain-admin", "admin@example.com",
 		)
 		assert.NilError(t, err)
 
