@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.4](https://github.com/infrahq/infra/compare/v0.14.3...v0.14.4) (2022-08-09)
+
+
+### Bug Fixes
+
+* **ui:** fix issue where settings page would sometimes throw an error ([#2879](https://github.com/infrahq/infra/issues/2879)) ([67224a7](https://github.com/infrahq/infra/commit/67224a746e15457064251fdef4caae82400fb27d))
+
 ## [0.14.3](https://github.com/infrahq/infra/compare/v0.14.2...v0.14.3) (2022-08-08)
 
 
