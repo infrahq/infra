@@ -9,7 +9,7 @@ export function useAdmin() {
     { revalidateIfStale: false }
   )
 
-  const loading = !auth && !grants
+  const loading = !auth || !grants
   const admin = grants?.some(g => g.privilege === INFRA_ADMIN_ROLE)
 
   return {
