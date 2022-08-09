@@ -57,6 +57,8 @@ type Insertable interface {
 	// Values returns the values for all fields. The values must be in the same
 	// order as the column names returned by Columns.
 	Values() []any
+	// OnInsert is called by insert to initialize values before inserting.
+	OnInsert() error
 }
 
 type Updatable interface {
@@ -64,6 +66,8 @@ type Updatable interface {
 	// Primary returns the value for the field that is mapped to the primary key
 	// of the table.
 	Primary() uid.ID
+	// OnUpdate is called by update to initialize values before updating.
+	OnUpdate() error
 }
 
 type Deletable interface {
@@ -80,6 +84,10 @@ type Selectable interface {
 }
 
 func insert(tx WriteTxn, item Insertable) error {
+	if err := item.OnInsert(); err != nil {
+		return err
+	}
+
 	query := Query("INSERT INTO")
 	query.B(item.Table())
 	query.B("(")
@@ -104,6 +112,9 @@ func placeholderForColumns(columns []string) string {
 }
 
 func update(tx WriteTxn, item Updatable) error {
+	if err := item.OnUpdate(); err != nil {
+		return err
+	}
 	query := Query("UPDATE")
 	query.B(item.Table())
 	query.B("SET")
