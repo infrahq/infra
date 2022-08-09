@@ -6,6 +6,8 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+type OrgCtxKey struct{}
+
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 	return add(db, org)
 }

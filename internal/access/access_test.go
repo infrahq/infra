@@ -33,7 +33,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	err = data.CreateOrganization(db, org)
 	assert.NilError(t, err)
 
-	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 
 	return db
 }

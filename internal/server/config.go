@@ -635,8 +635,8 @@ func (s Server) loadConfig(config Config) error {
 			return fmt.Errorf("loading org: %w", err)
 		}
 
-		s.db.Statement.Context = context.WithValue(s.db.Statement.Context, "org", org)
-		tx.Statement.Context = context.WithValue(tx.Statement.Context, "org", org)
+		s.db.Statement.Context = context.WithValue(s.db.Statement.Context, data.OrgCtxKey{}, org)
+		tx.Statement.Context = context.WithValue(tx.Statement.Context, data.OrgCtxKey{}, org)
 
 		if err := s.loadProviders(tx, org, config.Providers); err != nil {
 			return fmt.Errorf("load providers: %w", err)

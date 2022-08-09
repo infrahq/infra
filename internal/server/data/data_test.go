@@ -30,7 +30,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	err = CreateOrganization(db, org)
 	assert.NilError(t, err)
 
-	db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+	db.Statement.Context = context.WithValue(db.Statement.Context, OrgCtxKey{}, org)
 
 	InfraProvider(db)
 
@@ -148,7 +148,6 @@ func TestPaginationSelector(t *testing.T) {
 		for i, user := range actual {
 			assert.Equal(t, user.Name, letters[i])
 		}
-
 	})
 }
 

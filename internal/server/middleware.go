@@ -41,7 +41,7 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 func DatabaseMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := db.WithContext(c.Request.Context()).Transaction(func(tx *gorm.DB) error {
-			tx.Statement.Context = context.WithValue(tx.Statement.Context, "org", db.Statement.Context.Value("org"))
+			tx.Statement.Context = context.WithValue(tx.Statement.Context, data.OrgCtxKey{}, db.Statement.Context.Value(data.OrgCtxKey{}))
 			c.Set("db", tx)
 			c.Next()
 			return nil
@@ -199,7 +199,7 @@ func OrganizationFromDomain(defaultOrgName, defaultOrgDomain string) gin.Handler
 			c.Set("org", org)
 			// c.Request.WithContext(context.WithValue(c.Request.Context(), "org", org))
 			db := getDB(c)
-			db.Statement.Context = context.WithValue(db.Statement.Context, "org", org)
+			db.Statement.Context = context.WithValue(db.Statement.Context, data.OrgCtxKey{}, org)
 			c.Set("db", db)
 			logging.Debugf("organization set to %s for host %s", org.Name, host)
 		}
