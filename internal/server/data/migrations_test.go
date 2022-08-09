@@ -86,8 +86,7 @@ func TestMigrations(t *testing.T) {
 		{
 			label: testCaseLine("202204281130"),
 			expected: func(t *testing.T, tx *gorm.DB) {
-				hasCol := tx.Migrator().HasColumn("settings", "signup_enabled")
-				assert.Assert(t, !hasCol)
+				// dropped columns are tested by schema comparison
 			},
 		},
 		{
@@ -143,12 +142,12 @@ func TestMigrations(t *testing.T) {
 			label: testCaseLine("202206161733"),
 			setup: func(t *testing.T, db *gorm.DB) {
 				// integrity check
-				assert.Assert(t, tableExists(t, db, "trusted_certificates"))
-				assert.Assert(t, tableExists(t, db, "root_certificates"))
+				assert.Assert(t, migrator.HasTable(db, "trusted_certificates"))
+				assert.Assert(t, migrator.HasTable(db, "root_certificates"))
 			},
 			expected: func(t *testing.T, db *gorm.DB) {
-				assert.Assert(t, !tableExists(t, db, "trusted_certificates"))
-				assert.Assert(t, !tableExists(t, db, "root_certificates"))
+				assert.Assert(t, !migrator.HasTable(db, "trusted_certificates"))
+				assert.Assert(t, !migrator.HasTable(db, "root_certificates"))
 			},
 		},
 		{
@@ -407,6 +406,7 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	runStep(t, "initial schema", func(t *testing.T) {
 		db := setupDB(t, postgresDriver(t))
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
+
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
 	})
 
@@ -467,16 +467,6 @@ type testCaseLabel struct {
 	Line string
 }
 
-func tableExists(t *testing.T, db *gorm.DB, name string) bool {
-	t.Helper()
-	var count int
-	err := db.Raw("SELECT count(id) FROM " + name).Row().Scan(&count)
-	if err != nil {
-		t.Logf("table exists error: %v", err)
-	}
-	return err == nil
-}
-
 func dumpSchema(t *testing.T, conn string) string {
 	t.Helper()
 	if _, err := exec.LookPath("pg_dump"); err != nil {
@@ -513,7 +503,7 @@ func dumpSchema(t *testing.T, conn string) string {
 
 	out := new(bytes.Buffer)
 	// https://www.postgresql.org/docs/current/app-pgdump.html
-	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only")
+	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only", "--schema=testing")
 	cmd.Env = envs
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr

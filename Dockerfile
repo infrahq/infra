@@ -8,9 +8,7 @@ RUN apt-get update && \
 RUN CGO_ENABLED=0 GOOS=linux go install -v -installsuffix cgo -a std
 
 ARG TARGETARCH
-# {x-release-please-start-version}
 ARG BUILDVERSION=0.14.4
-# {x-release-please-end}
 ARG BUILDVERSION_PRERELEASE
 ARG BUILDVERSION_METADATA
 ARG TELEMETRY_WRITE_KEY

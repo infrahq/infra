@@ -20,17 +20,30 @@ import (
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	tpatch "github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
 func setupDB(t *testing.T) *gorm.DB {
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
+	t.Helper()
+	driver := database.PostgresDriver(t, "_server")
+	if driver == nil {
+		var err error
+		driver, err = data.NewSQLiteDriver("file::memory:")
+		assert.NilError(t, err)
+	}
 
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
+	t.Cleanup(data.InvalidateCache)
+
+	t.Cleanup(func() {
+		sqlDB, err := db.DB()
+		assert.NilError(t, err)
+		assert.NilError(t, sqlDB.Close())
+	})
 
 	return db
 }
@@ -87,11 +100,10 @@ func TestDBTimeout(t *testing.T) {
 	router.Use(
 		func(c *gin.Context) {
 			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
-			ctx, cancel = context.WithTimeout(c, 100*time.Millisecond)
+			ctx, cancel = context.WithTimeout(c.Request.Context(), 100*time.Millisecond)
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
-			c.Set("ctx", ctx)
 			c.Next()
 		},
 		unauthenticatedMiddleware(db),
@@ -307,7 +319,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 
 		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
 		assert.NilError(t, err)
-		assert.Equal(t, destination.LastSeenAt, time.Time{})
+		assert.Equal(t, destination.LastSeenAt.UTC(), time.Time{})
 	})
 
 	t.Run("good no destination", func(t *testing.T) {

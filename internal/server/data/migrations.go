@@ -22,20 +22,22 @@ func migrations() []*migrator.Migration {
 		{
 			ID: "202204281130",
 			Migrate: func(tx *gorm.DB) error {
-				return tx.Migrator().DropColumn(&models.Settings{}, "signup_enabled")
+				stmt := `ALTER TABLE settings DROP COLUMN IF EXISTS signup_enabled`
+				if tx.Dialector.Name() == "sqlite" {
+					stmt = `ALTER TABLE settings DROP COLUMN signup_enabled`
+				}
+				return tx.Exec(stmt).Error
 			},
 		},
 		// #1657: get rid of identity kind
 		{
 			ID: "202204291613",
 			Migrate: func(tx *gorm.DB) error {
-				if tx.Migrator().HasColumn(&models.Identity{}, "kind") {
-					if err := tx.Migrator().DropColumn(&models.Identity{}, "kind"); err != nil {
-						return err
-					}
+				stmt := `ALTER TABLE identities DROP COLUMN IF EXISTS kind`
+				if tx.Dialector.Name() == "sqlite" {
+					stmt = `ALTER TABLE identities DROP COLUMN kind`
 				}
-
-				return nil
+				return tx.Exec(stmt).Error
 			},
 		},
 		// drop old Groups index; new index will be created automatically
@@ -103,11 +105,12 @@ func addKindToProviders() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206151027",
 		Migrate: func(tx *gorm.DB) error {
-			if !tx.Migrator().HasColumn(&models.Provider{}, "kind") {
-				logging.Debugf("migrating provider table kind")
-				if err := tx.Migrator().AddColumn(&models.Provider{}, "kind"); err != nil {
-					return err
-				}
+			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS kind text`
+			if tx.Dialector.Name() == "sqlite" {
+				stmt = `ALTER TABLE providers ADD COLUMN kind text`
+			}
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
 			}
 
 			db := tx.Begin()
@@ -124,7 +127,13 @@ func dropCertificateTables() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206161733",
 		Migrate: func(tx *gorm.DB) error {
-			return tx.Migrator().DropTable("trusted_certificates", "root_certificates")
+			if err := tx.Exec(`DROP TABLE IF EXISTS trusted_certificates`).Error; err != nil {
+				return err
+			}
+			if err := tx.Exec(`DROP TABLE IF EXISTS root_certificates`).Error; err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 }
@@ -134,12 +143,12 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206281027",
 		Migrate: func(tx *gorm.DB) error {
-			if !tx.Migrator().HasColumn(&models.Provider{}, "scopes") {
+			if !migrator.HasColumn(tx, "providers", "scopes") {
 				logging.Debugf("migrating provider table auth URL and scopes")
-				if err := tx.Migrator().AddColumn(&models.Provider{}, "auth_url"); err != nil {
+				if err := tx.Exec(`ALTER TABLE providers ADD COLUMN auth_url text`).Error; err != nil {
 					return err
 				}
-				if err := tx.Migrator().AddColumn(&models.Provider{}, "scopes"); err != nil {
+				if err := tx.Exec(`ALTER TABLE providers ADD COLUMN scopes text`).Error; err != nil {
 					return err
 				}
 
@@ -204,14 +213,17 @@ func setDestinationLastSeenAt() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207041724",
 		Migrate: func(tx *gorm.DB) error {
-			if tx.Migrator().HasColumn(&models.Destination{}, "last_seen_at") {
+			if migrator.HasColumn(tx, "destinations", "last_seen_at") {
 				return nil
 			}
 
-			if err := tx.Migrator().AddColumn(&models.Destination{}, "last_seen_at"); err != nil {
+			stmt := `ALTER TABLE destinations ADD COLUMN last_seen_at timestamp with time zone`
+			if tx.Dialector.Name() == "sqlite" {
+				stmt = `ALTER TABLE destinations ADD COLUMN last_seen_at datetime`
+			}
+			if err := tx.Exec(stmt).Error; err != nil {
 				return err
 			}
-
 			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
 		},
 	}
@@ -222,11 +234,11 @@ func dropDeletedProviderUsers() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207270000",
 		Migrate: func(tx *gorm.DB) error {
-			if tx.Migrator().HasColumn(&models.ProviderUser{}, "deleted_at") {
+			if migrator.HasColumn(tx, "provider_users", "deleted_at") {
 				if err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error; err != nil {
 					return fmt.Errorf("could not remove soft deleted provider users: %w", err)
 				}
-				return tx.Migrator().DropColumn(&models.ProviderUser{}, "deleted_at")
+				return tx.Exec(`ALTER TABLE provider_users DROP COLUMN deleted_at`).Error
 			}
 			return nil
 		},
