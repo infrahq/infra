@@ -31,6 +31,14 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	return db
 }
 
+func txnForTestCase(t *testing.T, db *gorm.DB) *gorm.DB {
+	tx := db.Begin()
+	t.Cleanup(func() {
+		tx.Rollback()
+	})
+	return tx
+}
+
 var isEnvironmentCI = os.Getenv("CI") != ""
 
 func postgresDriver(t *testing.T) gorm.Dialector {

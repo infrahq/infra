@@ -45,7 +45,7 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "access key", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteAccessKeys(db, data.ByID(id))
+	return data.DeleteAccessKey(db, id)
 }
 
 func DeleteRequestAccessKey(c RequestContext) error {

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -119,17 +118,28 @@ func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
 	return delete[models.AccessKey](db, id)
 }
 
-func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, nil, selectors...)
-	if err != nil {
-		return err
+type DeleteAccessKeysOptions struct {
+	// ByUserID instructs DeleteAccessKeys to delete keys issued for this user.
+	ByUserID uid.ID
+	// ByProviderID instructs DeleteAccessKeys to delete keys issued by this
+	// provider.
+	ByProviderID uid.ID
+}
+
+func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
+	query := Query("UPDATE access_keys")
+	query.B("SET deleted_at = ? WHERE", time.Now())
+	switch {
+	case opts.ByUserID != 0:
+		query.B("issued_for = ?", opts.ByUserID)
+	case opts.ByProviderID != 0:
+		query.B("provider_id = ?", opts.ByProviderID)
+	default:
+		return fmt.Errorf("DeleteAccessKeys requires an ID to delete")
 	}
 
-	ids := slice.Map[models.AccessKey, uid.ID](toDelete, func(k models.AccessKey) uid.ID {
-		return k.ID
-	})
-
-	return deleteAll[models.AccessKey](db, ByIDs(ids))
+	err := tx.Exec(query.String(), query.Args...).Error
+	return err
 }
 
 // TODO: would this be more appropriate in the access package?

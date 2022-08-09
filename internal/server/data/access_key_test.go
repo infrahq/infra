@@ -12,10 +12,9 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
-	"github.com/infrahq/infra/uid"
-
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestCreateAccessKey(t *testing.T) {
@@ -198,11 +197,77 @@ func TestDeleteAccessKey(t *testing.T) {
 
 		_, err = GetAccessKey(db, ByID(token.ID))
 		assert.Error(t, err, "record not found")
-
-		err = DeleteAccessKeys(db, ByID(token.ID))
-		assert.NilError(t, err)
 	})
 }
+
+func TestDeleteAccessKeys(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		provider := &models.Provider{Name: "azure", Kind: models.ProviderKindAzure}
+		otherProvider := &models.Provider{Name: "other", Kind: models.ProviderKindGoogle}
+		createProviders(t, db, provider, otherProvider)
+
+		user := &models.Identity{Name: "main@example.com"}
+		otherUser := &models.Identity{Name: "other@example.com"}
+		createIdentities(t, db, user, otherUser)
+
+		t.Run("empty options", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{})
+			assert.ErrorContains(t, err, "requires an ID to delete")
+		})
+
+		t.Run("by user id", func(t *testing.T) {
+			tx := txnForTestCase(t, db)
+			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, key2, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByUserID: user.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+
+		t.Run("by provider id", func(t *testing.T) {
+			tx := txnForTestCase(t, db)
+			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, key2, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByProviderID: provider.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+	})
+}
+
+func createAccessKeys(t *testing.T, db *gorm.DB, keys ...*models.AccessKey) {
+	t.Helper()
+	for i := range keys {
+		_, err := CreateAccessKey(db, keys[i])
+		assert.NilError(t, err)
+	}
+}
+
+type primaryKeyable interface {
+	Primary() uid.ID
+}
+
+var cmpModelByID = cmp.Comparer(func(x, y primaryKeyable) bool {
+	return x.Primary() == y.Primary()
+})
 
 func TestCheckAccessKeyExpired(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
