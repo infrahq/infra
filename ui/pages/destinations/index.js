@@ -27,7 +27,7 @@ function parent(resource = '') {
 
 function ConnectSection({ userID, resource, kind = 'resource' }) {
   const { data: { items: grants } = {} } = useSWR(
-    `/api/grants?user=${userID}&resource=${resource}&showInherited=1`
+    `/api/grants?user=${userID}&resource=${resource}&showInherited=1&limit=1000`
   )
 
   const roles = [
@@ -74,13 +74,15 @@ function Details({ destination, onDelete }) {
 
   const { admin } = useAdmin()
   const { data: auth } = useSWR('/api/users/self')
-  const { data: { items: users } = {} } = useSWR('/api/users')
-  const { data: { items: groups } = {} } = useSWR('/api/groups')
+  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
+  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    `/api/grants?resource=${resource}`
+    `/api/grants?resource=${resource}&limit=1000`
   )
   const { data: { items: inherited } = {} } = useSWR(() =>
-    parent(resource) ? `/api/grants?resource=${parent(resource)}` : null
+    parent(resource)
+      ? `/api/grants?resource=${parent(resource)}&limit=1000`
+      : null
   )
 
   const empty =

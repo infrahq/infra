@@ -9,7 +9,9 @@ import Fullscreen from '../../components/layouts/fullscreen'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 
 function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
-  const { data: { items: users } = { items: [] } } = useSWR('/api/users')
+  const { data: { items: users } = { items: [] } } = useSWR(
+    '/api/users?limit=1000'
+  )
 
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
