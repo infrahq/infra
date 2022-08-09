@@ -1,0 +1,48 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows:
+      - cd / ui
+      - cd / core
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      COMPONENT:
+        type: string
+        default: core
+        required: true
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      matrix:
+        environment:
+          - name: Development
+          - name: Production
+    environment: ${{ matrix.environment.name }}
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.job }}-${{ matrix.environment.name }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-infra
+        with:
+          infra-server: ${{ secrets.INFRA_SERVER }}
+          infra-access-key: ${{ secrets.INFRA_ACCESS_KEY }}
+          infra-destination: ${{ secrets.INFRA_DESTINATION }}
+      - uses: ./.github/actions/setup-argocd
+        with:
+          argocd-tools: |
+            argocd-image-updater
+      - run: |
+          COMPONENT=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.COMPONENT }} | awk '{ print $NF }' )
+          if [ -z "$COMPONENT" ]; then
+            echo Missing Infra component.
+            exit 1
+          fi
+
+          echo Syncing Infra component $COMPONENT
+          argocd-image-updater run --once --match-application-label=app.infrahq.com/component=$COMPONENT

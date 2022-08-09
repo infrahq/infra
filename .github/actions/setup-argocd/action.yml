@@ -1,0 +1,19 @@
+name: Setup ArgoCD Tools
+description: Install ArgoCD tools and add them to the PATH
+inputs:
+  argocd-tools:
+    description: ArgoCD tools to install
+    required: true
+    default: argocd
+  argocd-server:
+    description: ArgoCD server URL
+    required: false
+  argocd-token:
+    description: ArgoCD server authentication token
+    required: false
+outputs:
+  argocd-tools:
+    description: The installed ArgoCD tools
+runs:
+  using: node16
+  main: dist/index.js
