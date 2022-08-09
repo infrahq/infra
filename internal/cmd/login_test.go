@@ -25,6 +25,8 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -34,17 +36,12 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	setupServerTLSOptions(t, &opts)
+	setupServerOptions(t, &opts)
 
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	go func() {
-		assert.Check(t, srv.Run(ctx))
-	}()
+	ctx := runAndWait(t, srv.Run)
 
 	runStep(t, "first login prompts for setup", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -124,11 +121,34 @@ func TestLoginCmd_SetupAdminOnFirstLogin(t *testing.T) {
 	})
 }
 
+// runAndWait runs fn in a goroutine and adds a t.Cleanup function to wait for
+// the goroutine to exit before ending cleanup. runAndWait is used to ensure
+// that the goroutine exits before a new test starts.
+//
+// Returns the context used to cancel the goroutine so that it can be used by
+// other functions in the test.
+func runAndWait(t *testing.T, fn func(ctx context.Context) error) context.Context {
+	t.Helper()
+	done := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		t.Helper()
+		assert.Check(t, fn(ctx))
+		close(done)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-done
+	})
+	return ctx
+}
+
 func TestLoginCmd_Options(t *testing.T) {
 	dir := setupEnv(t)
 
 	opts := defaultServerOptions(dir)
-	setupServerTLSOptions(t, &opts)
+	setupServerOptions(t, &opts)
 	adminAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 	opts.Config.Users = []server.User{
 		{
@@ -139,12 +159,7 @@ func TestLoginCmd_Options(t *testing.T) {
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	go func() {
-		assert.Check(t, srv.Run(ctx))
-	}()
+	ctx := runAndWait(t, srv.Run)
 
 	runStep(t, "login without background agent", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -280,8 +295,9 @@ func setupEnv(t *testing.T) string {
 	return dir
 }
 
-func setupServerTLSOptions(t *testing.T, opts *server.Options) {
+func setupServerOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
+	t.Cleanup(data.InvalidateCache)
 
 	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 
@@ -292,6 +308,14 @@ func setupServerTLSOptions(t *testing.T, opts *server.Options) {
 	cert, err := os.ReadFile("testdata/pki/localhost.crt")
 	assert.NilError(t, err)
 	opts.TLS.Certificate = types.StringOrFile(cert)
+
+	// TODO: why do tests fail when the same schemaSuffix is used?
+	suffix := "_cmd_" + t.Name()
+	pgDriver := database.PostgresDriver(t, suffix)
+	if pgDriver != nil {
+		dsn := os.Getenv("POSTGRESQL_CONNECTION") + " search_path=testing" + suffix
+		opts.DBConnectionString = dsn
+	}
 }
 
 func TestLoginCmd_TLSVerify(t *testing.T) {
@@ -303,7 +327,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Setenv("KUBECONFIG", kubeConfigPath)
 
 	opts := defaultServerOptions(dir)
-	setupServerTLSOptions(t, &opts)
+	setupServerOptions(t, &opts)
 	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
 		{Name: "admin@example.com", AccessKey: accessKey},
@@ -311,12 +335,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	go func() {
-		assert.Check(t, srv.Run(ctx))
-	}()
+	ctx := runAndWait(t, srv.Run)
 
 	runStep(t, "reject server certificate", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)

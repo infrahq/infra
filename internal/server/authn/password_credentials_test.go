@@ -15,9 +15,15 @@ import (
 func TestPasswordCredentialAuthentication(t *testing.T) {
 	db := setupDB(t)
 
-	cases := map[string]map[string]interface{}{
+	type testCase struct {
+		setup       func(t *testing.T, db *gorm.DB) LoginMethod
+		expectedErr string
+		expected    func(t *testing.T, identity *models.Identity, provider *models.Provider)
+	}
+
+	cases := map[string]testCase{
 		"UsernameAndOneTimePasswordFirstUse": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "goku@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -38,15 +44,14 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, oneTimePassword)
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
 				assert.Equal(t, "goku@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
 				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPassword": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "bulma@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -67,15 +72,14 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, password)
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
 				assert.Equal(t, "bulma@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
 				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"UsernameAndPasswordReuse": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "cell@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -101,15 +105,14 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return userPassLogin
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.NilError(t, err)
+			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
 				assert.Equal(t, "cell@example.com", identity.Name)
 				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
 				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
 			},
 		},
 		"ValidUsernameAndNoPasswordFails": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "krillin@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -117,12 +120,10 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, "")
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "record not found")
-			},
+			expectedErr: "record not found",
 		},
 		"UsernameAndInvalidPasswordFails": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "po@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -143,12 +144,10 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, "invalidPassword")
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "hashedPassword is not the hash of the given password")
-			},
+			expectedErr: "hashedPassword is not the hash of the given password",
 		},
 		"UsernameAndEmptyPasswordFails": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				username := "gohan@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -169,32 +168,27 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, "")
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "hashedPassword is not the hash of the given password")
-			},
+			expectedErr: "hashedPassword is not the hash of the given password",
 		},
 		"EmptyUsernameAndPasswordFails": {
-			"setup": func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
 				return NewPasswordCredentialAuthentication("", "whatever")
 			},
-			"verify": func(t *testing.T, identity *models.Identity, provider *models.Provider, err error) {
-				assert.ErrorContains(t, err, "record not found")
-			},
+			expectedErr: "record not found",
 		},
 	}
 
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
-			setupFunc, ok := v["setup"].(func(*testing.T, *gorm.DB) LoginMethod)
-			assert.Assert(t, ok)
-			credentialLogin := setupFunc(t, db)
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			credentialLogin := tc.setup(t, db)
 
 			identity, provider, _, err := credentialLogin.Authenticate(context.Background(), db)
-
-			verifyFunc, ok := v["verify"].(func(*testing.T, *models.Identity, *models.Provider, error))
-			assert.Assert(t, ok)
-
-			verifyFunc(t, identity, provider, err)
+			if tc.expectedErr != "" {
+				assert.ErrorContains(t, err, tc.expectedErr)
+				return
+			}
+			assert.NilError(t, err)
+			tc.expected(t, identity, provider)
 		})
 	}
 }

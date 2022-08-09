@@ -13,7 +13,6 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -84,10 +83,6 @@ func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
 	connection = uri.String()
 
 	return sqlite.Open(connection), nil
-}
-
-func NewPostgresDriver(connection string) (gorm.Dialector, error) {
-	return postgres.Open(connection), nil
 }
 
 func getDefaultSortFromType(t interface{}) string {

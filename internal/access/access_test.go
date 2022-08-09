@@ -13,17 +13,23 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
 func setupDB(t *testing.T) *gorm.DB {
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
+	driver := database.PostgresDriver(t, "_access")
+	if driver == nil {
+		var err error
+		driver, err = data.NewSQLiteDriver("file::memory:")
+		assert.NilError(t, err)
+	}
 
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
+	t.Cleanup(data.InvalidateCache)
 
 	return db
 }

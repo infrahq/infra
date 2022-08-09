@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"path/filepath"
 	"testing"
 	"time"
@@ -34,16 +33,11 @@ func TestListCmd(t *testing.T) {
 			{User: "manygrants@example.com", Resource: "moon", Role: "inhabitant"},
 		},
 	}
-	setupServerTLSOptions(t, &opts)
+	setupServerOptions(t, &opts)
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	t.Cleanup(cancel)
-
-	go func() {
-		assert.Check(t, srv.Run(ctx))
-	}()
+	ctx := runAndWait(t, srv.Run)
 
 	httpTransport := httpTransportForHostConfig(&ClientHostConfig{SkipTLSVerify: true})
 	c := apiClient(srv.Addrs.HTTPS.String(), "0000000001.adminadminadminadmin1234", httpTransport)

@@ -406,6 +406,7 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	runStep(t, "initial schema", func(t *testing.T) {
 		db := setupDB(t, postgresDriver(t))
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
+
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
 	})
 
@@ -502,7 +503,7 @@ func dumpSchema(t *testing.T, conn string) string {
 
 	out := new(bytes.Buffer)
 	// https://www.postgresql.org/docs/current/app-pgdump.html
-	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only")
+	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only", "--schema=testing")
 	cmd.Env = envs
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr

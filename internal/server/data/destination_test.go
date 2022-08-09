@@ -11,29 +11,25 @@ import (
 )
 
 func TestDestinationSaveCreatedPersists(t *testing.T) {
-	driver, err := NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
+	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		destination := &models.Destination{
+			Name: "example-cluster-1",
+		}
 
-	db, err := NewDB(driver, nil)
-	assert.NilError(t, err)
+		err := CreateDestination(db, destination)
+		assert.NilError(t, err)
+		assert.Assert(t, !destination.CreatedAt.IsZero())
 
-	destination := &models.Destination{
-		Name: "example-cluster-1",
-	}
+		destination.Name = "example-cluster-2"
+		destination.CreatedAt = time.Time{}
 
-	err = CreateDestination(db, destination)
-	assert.NilError(t, err)
-	assert.Assert(t, !destination.CreatedAt.IsZero())
+		err = SaveDestination(db, destination)
+		assert.NilError(t, err)
 
-	destination.Name = "example-cluster-2"
-	destination.CreatedAt = time.Time{}
-
-	err = SaveDestination(db, destination)
-	assert.NilError(t, err)
-
-	destination, err = GetDestination(db, ByID(destination.ID))
-	assert.NilError(t, err)
-	assert.Assert(t, !destination.CreatedAt.IsZero())
+		destination, err = GetDestination(db, ByID(destination.ID))
+		assert.NilError(t, err)
+		assert.Assert(t, !destination.CreatedAt.IsZero())
+	})
 }
 
 func TestCountDestinationsByConnectedVersion(t *testing.T) {

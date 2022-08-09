@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
@@ -145,6 +144,9 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	})
 
 	t.Run("MissingIssuedFor", func(t *testing.T) {
+		if srv.db.Dialector.Name() == "postgres" {
+			t.Skip("not possible with postgres because of FK constraint")
+		}
 		err := srv.db.Create(&models.AccessKey{Name: "testing"}).Error
 		assert.NilError(t, err)
 
@@ -166,13 +168,10 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 }
 
 func TestAPI_ListAccessKeys(t *testing.T) {
-	db := setupDB(t)
-	s := &Server{
-		db: db,
-	}
-	handlers := &API{
-		server: s,
-	}
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+
+	db := srv.db
 
 	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com"}
 	err := data.CreateIdentity(db, user)
@@ -184,10 +183,6 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		Resource:  "infra",
 	})
 	assert.NilError(t, err)
-
-	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", db)
-	c.Set("identity", user)
 
 	_, err = data.CreateAccessKey(db, &models.AccessKey{
 		Name:       "foo",
@@ -214,32 +209,47 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	resp, err := handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{})
-	assert.NilError(t, err)
+	t.Run("success", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
 
-	assert.Assert(t, len(resp.Items) > 0)
-	assert.Equal(t, resp.Count, len(resp.Items))
-	assert.Equal(t, resp.Items[0].IssuedForName, user.Name)
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
 
-	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+		keys := api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), &keys)
+		assert.NilError(t, err)
 
-	t.Run("expired", func(t *testing.T) {
-		for _, item := range resp.Items {
+		// TODO: replace this with a more strict assertion using DeepEqual
+		assert.Equal(t, len(keys.Items), 2)
+		for _, item := range keys.Items {
 			assert.Assert(t, item.Expires.Time().UTC().After(time.Now().UTC()) || item.Expires.Time().IsZero())
 			assert.Assert(t, item.ExtensionDeadline.Time().UTC().After(time.Now().UTC()) || item.ExtensionDeadline.Time().IsZero())
 		}
-
-		notExpiredLength := len(resp.Items)
-		resp, err = handlers.ListAccessKeys(c, &api.ListAccessKeysRequest{ShowExpired: true})
-		assert.NilError(t, err)
-
-		assert.Equal(t, notExpiredLength, len(resp.Items)-2) // test showExpired in request
 	})
 
-	t.Run("sort", func(t *testing.T) {
-		sort.SliceIsSorted(resp.Items, func(i, j int) bool {
-			return resp.Items[i].Name < resp.Items[j].Name
+	t.Run("show expired", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req, err := http.NewRequest(http.MethodGet, "/api/access-keys?show_expired=1", nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		keys := api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), &keys)
+		assert.NilError(t, err)
+
+		// TODO: replace this with a more strict assertion using DeepEqual
+		assert.Equal(t, len(keys.Items), 4)
+
+		sort.SliceIsSorted(keys.Items, func(i, j int) bool {
+			return keys.Items[i].Name < keys.Items[j].Name
 		})
 	})
 

@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
 	"golang.org/x/sync/errgroup"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -44,6 +45,7 @@ type Options struct {
 	DBUsername              string
 	DBPassword              string
 	DBParameters            string
+	DBConnectionString      string
 
 	EmailAppDomain   string
 	EmailFromAddress string
@@ -176,6 +178,15 @@ func (s *Server) Run(ctx context.Context) error {
 
 	err := group.Wait()
 	s.tel.Close()
+
+	if sqlDB, err := s.db.DB(); err != nil {
+		logging.L.Warn().Err(err).Msg("failed to get database conn to close")
+	} else {
+		if err := sqlDB.Close(); err != nil {
+			logging.L.Warn().Err(err).Msg("failed to close database connection")
+		}
+	}
+
 	if errors.Is(err, context.Canceled) {
 		return nil
 	}
@@ -285,13 +296,13 @@ type routine struct {
 }
 
 func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
-	postgres, err := s.getPostgresConnectionString()
+	pgDSN, err := s.getPostgresConnectionString()
 	if err != nil {
 		return nil, fmt.Errorf("postgres: %w", err)
 	}
 
-	if postgres != "" {
-		return data.NewPostgresDriver(postgres)
+	if pgDSN != "" {
+		return postgres.Open(pgDSN), nil
 	}
 
 	return data.NewSQLiteDriver(s.options.DBFile)
@@ -300,6 +311,7 @@ func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
 // getPostgresConnectionString parses postgres configuration options and returns the connection string
 func (s *Server) getPostgresConnectionString() (string, error) {
 	var pgConn strings.Builder
+	pgConn.WriteString(s.options.DBConnectionString)
 
 	if s.options.DBHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
@@ -327,7 +339,7 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 		}
 
 		if s.options.DBParameters != "" {
-			fmt.Fprintf(&pgConn, "%s", s.options.DBParameters)
+			fmt.Fprint(&pgConn, s.options.DBParameters)
 		}
 	}
 
