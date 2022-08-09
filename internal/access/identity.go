@@ -114,7 +114,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	return data.DeleteIdentity(db, id)
 }
 
-func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p *models.Pagination) ([]models.Identity, error) {
+func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, showSystem bool, p *models.Pagination) ([]models.Identity, error) {
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	db, err := RequireInfraRole(c, roles...)
 	if err != nil {
@@ -125,6 +125,10 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, p
 		data.ByOptionalName(name),
 		data.ByOptionalIDs(ids),
 		data.ByOptionalIdentityGroupID(groupID),
+	}
+
+	if !showSystem {
+		selectors = append(selectors, data.NotName(models.InternalInfraConnectorIdentityName))
 	}
 
 	return data.ListIdentities(db.Preload("Providers"), p, selectors...)

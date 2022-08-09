@@ -30,7 +30,7 @@ func TestListIdentities(t *testing.T) {
 	assert.NilError(t, err)
 
 	// test fetch all identities
-	ids, err := ListIdentities(c, "", 0, nil, nil)
+	ids, err := ListIdentities(c, "", 0, nil, true, nil)
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(ids), 4) // the two identities created, the admin one used to call these access functions, and the internal connector identity

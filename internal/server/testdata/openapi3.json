@@ -4937,6 +4937,13 @@
           },
           {
             "in": "query",
+            "name": "showSystem",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "format": "int",
