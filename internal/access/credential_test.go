@@ -21,10 +21,15 @@ func TestSettingsPasswordRequirements(t *testing.T) {
 	_, err = CreateCredential(c, *user)
 	assert.NilError(t, err)
 
-	err = data.SaveSettings(db, &models.Settings{
-		LengthMin: 8,
-	})
+	org := getDefaultOrg(db)
+
+	settings, err := data.GetSettings(db, org)
 	assert.NilError(t, err)
+
+	settings.LengthMin = 8
+	err = data.SaveSettings(db, settings)
+	assert.NilError(t, err)
+
 	t.Run("Update user credentials fails if less than min length", func(t *testing.T) {
 		err := UpdateCredential(c, user, "short")
 		assert.ErrorContains(t, err, "validation failed: password")
@@ -32,7 +37,7 @@ func TestSettingsPasswordRequirements(t *testing.T) {
 	})
 
 	// Test min length success
-	settings, err := data.GetSettings(db, getDefaultOrg(db))
+	settings, err = data.GetSettings(db, getDefaultOrg(db))
 	assert.NilError(t, err)
 	settings.LengthMin = 5
 	err = data.SaveSettings(db, settings)
