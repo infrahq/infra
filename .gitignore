@@ -4,6 +4,6 @@
 .vscode
 
 # infra binary
-dist
-docs/api/openapi3.json
+./dist/
+
 sendgrid.env

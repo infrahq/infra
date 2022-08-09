@@ -1,0 +1,28 @@
+name: Setup Infra
+description: Install Infra and add it to the PATH
+inputs:
+  infra-version:
+    description: The version of Infra to install
+    required: true
+    default: latest
+  infra-server:
+    description: Infra server URL
+    required: false
+    default: https://infrahq.com
+  infra-access-key:
+    description: Infra server access key
+    required: false
+  infra-destination:
+    description: Infra destination
+    required: false
+  skip-tls-verify:
+    description: Skip TLS verification
+    type: boolean
+    required: true
+    default: false
+outputs:
+  infra-version:
+    description: The installed version of Infra
+runs:
+  using: node16
+  main: dist/index.js

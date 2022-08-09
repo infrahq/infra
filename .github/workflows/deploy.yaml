@@ -1,0 +1,24 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      COMPONENT:
+        type: string
+        required: true
+        default: server
+
+jobs:
+  development:
+    runs-on: ubuntu-latest
+    environment: Development
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-infra
+        with:
+          infra-server: ${{ secrets.INFRA_SERVER }}
+          infra-access-key: ${{ secrets.INFRA_ACCESS_KEY }}
+          infra-destination: ${{ secrets.INFRA_DESTINATION }}
+      - uses: ./.github/actions/setup-argocd-image-updater
+      - run: |
+          argocd-image-updater run --once --match-application-label=app.infrahq.com/component=${{ inputs.COMPONENT }}

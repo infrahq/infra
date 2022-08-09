@@ -1,0 +1,19 @@
+name: Setup ArgoCD Image Updater
+description: Install ArgoCD Image Updater and add it to the PATH
+inputs:
+  argocd-image-updater-version:
+    description: The version of ArgoCD Image Updater to install
+    required: true
+    default: latest
+  argocd-server:
+    description: ArgoCD server URL
+    required: false
+  argocd-token:
+    description: ArgoCD server authentication token
+    required: false
+outputs:
+  argocd-image-updater-version:
+    description: The installed version of ArgoCD Image Updater
+runs:
+  using: node16
+  main: dist/index.js
