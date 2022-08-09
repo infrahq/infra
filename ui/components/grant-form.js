@@ -22,9 +22,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
   const filtered = [
     ...users.map(u => ({ ...u, user: true })),
     ...groups.map(g => ({ ...g, group: true })),
-  ]
-    .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
-    .filter(s => s.name !== 'connector')
+  ].filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
 
   return (
     <form

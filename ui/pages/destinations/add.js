@@ -38,7 +38,7 @@ export default function DestinationsAdd() {
 
     setConnected(false)
 
-    let res = await fetch('/api/users?name=connector')
+    let res = await fetch('/api/users?name=connector&showSystem=true')
     const { items: connectors } = await res.json()
 
     // TODO (https://github.com/infrahq/infra/issues/2056): handle the case where connector does not exist

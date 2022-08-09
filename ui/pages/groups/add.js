@@ -18,7 +18,6 @@ function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
 
   const filteredEmail = [...users.map(u => ({ ...u, user: true }))]
     .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
-    .filter(s => s.name !== 'connector')
     .filter(s => !selectedEmailsId?.includes(s.id))
 
   function removeSelectedEmail(email) {
