@@ -152,13 +152,13 @@ export default function Settings() {
                 const message =
                   grant?.user === auth?.id
                     ? 'Are you sure you want to revoke your own admin access?'
-                    : selfGroups.some(g => g.id === grant.group)
+                    : selfGroups?.some(g => g.id === grant.group)
                     ? `Are you sure you want to revoke this group's admin access? You are a member of this group.`
                     : undefined
 
                 return { ...grant, message }
               })
-              .map(g => (
+              ?.map(g => (
                 <AdminGrant
                   key={g.id}
                   name={
@@ -166,11 +166,11 @@ export default function Settings() {
                     groups?.find(group => g.group === group.id)?.name ||
                     ''
                   }
-                  showRemove={grants.length > 1}
+                  showRemove={grants?.length > 1}
                   message={g.message}
                   onRemove={async () => {
                     await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                    mutate({ items: grants.filter(x => x.id !== g.id) })
+                    mutate({ items: grants?.filter(x => x.id !== g.id) })
                   }}
                 />
               ))}
