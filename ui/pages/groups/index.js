@@ -28,7 +28,7 @@ const columns = [
     Cell: ({ value: group }) => {
       return (
         <div className='flex items-center py-1.5'>
-          <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-violet-300/40'>
+          <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-gray-800'>
             <img alt='group icon' src='/groups.svg' className='h-3 w-3' />
           </div>
           <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>

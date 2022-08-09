@@ -101,6 +101,8 @@ export default function Providers() {
     data: providers || [],
   })
 
+  console.log(providers)
+
   const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!providers && !error)
@@ -163,7 +165,7 @@ export default function Providers() {
             <Sidebar
               onClose={() => setSelected(null)}
               title={selected.name}
-              iconPath='/providers.svg'
+              iconPath={`/providers/${selected.kind}.svg`}
             >
               <SidebarContent
                 provider={selected}
