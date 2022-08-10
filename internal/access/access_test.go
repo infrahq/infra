@@ -41,13 +41,8 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provi
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	c.Set("db", db)
 
-	err := data.SaveSettings(db, &models.Settings{
-		LengthMin: 8,
-	})
-	assert.NilError(t, err)
-
 	admin := &models.Identity{Name: "admin@example.com"}
-	err = data.CreateIdentity(db, admin)
+	err := data.CreateIdentity(db, admin)
 	assert.NilError(t, err)
 
 	c.Set("identity", admin)
