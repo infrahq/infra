@@ -3,6 +3,7 @@ package data
 import (
 	"time"
 
+	"github.com/infrahq/infra/uid"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -17,6 +18,7 @@ func CreatePasswordResetToken(db *gorm.DB, user *models.Identity) (*models.Passw
 	}
 
 	prt := &models.PasswordResetToken{
+		ID:         uid.New(),
 		Token:      token,
 		IdentityID: user.ID,
 		ExpiresAt:  time.Now().Add(10 * time.Minute).UTC(),
