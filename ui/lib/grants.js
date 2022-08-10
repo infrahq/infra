@@ -1,3 +1,13 @@
+export const descriptions = {
+  'cluster-admin': 'Super-user access to perform any action on any resource',
+  admin: 'Read and write access to all resources',
+  edit: 'Read and write access to most resources, but not roles',
+  view: 'Read-only access to see most resources',
+  logs: 'Read and stream logs',
+  exec: 'Shell to a running container',
+  'port-forward': 'Use port-forwarding to access applications',
+}
+
 export function sortByPrivilege(a, b) {
   if (a?.privilege === 'cluster-admin') {
     return -1
@@ -8,6 +18,18 @@ export function sortByPrivilege(a, b) {
   }
 
   return a?.privilege?.localeCompare(b?.privilege)
+}
+
+export function sortByHasDescription(a, b) {
+  if (descriptions[a]) {
+    return -1
+  }
+
+  if (descriptions[b]) {
+    return 1
+  }
+
+  return a.localeCompare(b)
 }
 
 export function sortByResource(a, b) {
