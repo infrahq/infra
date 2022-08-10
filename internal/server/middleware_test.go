@@ -42,6 +42,7 @@ func setupDB(t *testing.T) *gorm.DB {
 		assert.NilError(t, db.Close())
 	})
 
+	db.Statement.Context = data.WithOrg(db.Statement.Context, db.DefaultOrg)
 	return db.DB
 }
 

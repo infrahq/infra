@@ -73,6 +73,16 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 func authenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+
+			// TODO: get this from server
+			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+
 			authned, err := requireAccessKey(tx, c.Request)
 			if err != nil {
 				sendAPIError(c, err)
@@ -113,6 +123,15 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+			// TODO: get this from server
+			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+
 			rCtx := access.RequestContext{
 				Request: c.Request,
 				DBTxn:   tx,
