@@ -23,7 +23,7 @@ export default function Table({ columns, data, getRowProps = () => {} }) {
               <th
                 width={column.width}
                 key={column.id}
-                className='sticky top-0 z-10 border-b border-gray-800 bg-black py-1 text-left text-3xs font-normal uppercase text-gray-400'
+                className='sticky top-0 z-10 border-b border-gray-800 py-1 text-left text-3xs font-normal uppercase text-gray-400'
                 {...column.getHeaderProps()}
               >
                 {column.render('Header')}

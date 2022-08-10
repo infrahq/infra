@@ -17,7 +17,7 @@ export default function Sidebar({
       ref={ref}
       className='my-0 flex h-full w-full min-w-[24em] max-w-sm flex-col overflow-y-auto overflow-x-visible pl-8 pr-6 lg:max-w-md lg:pl-12 xl:max-w-lg xl:pl-16'
     >
-      <header className='flex-start sticky top-0 z-10 flex items-center justify-between bg-black py-3'>
+      <header className='flex-start sticky top-0 z-10 flex items-center justify-between py-3'>
         {iconPath && (
           <div className='flex h-7 w-7 flex-none items-center justify-center rounded-md border border-gray-800'>
             <img alt='profile icon' className='h-3' src={iconPath} />

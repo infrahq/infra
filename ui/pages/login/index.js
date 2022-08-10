@@ -33,7 +33,7 @@ export function Providers({ providers }) {
   const { next } = router.query
   return (
     <>
-      <div className='mt-2 w-full max-w-sm'>
+      <div className='mt-4 w-full'>
         {providers.map(
           p =>
             p.kind && (
@@ -41,17 +41,17 @@ export function Providers({ providers }) {
                 onClick={() => oidcLogin({ ...p }, next)}
                 key={p.id}
                 title={`${p.name} — ${p.url}`}
-                className='my-2 flex w-full items-center rounded-md border border-gray-700 px-4 py-3 hover:border-gray-600'
+                className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'
               >
                 <img
                   alt='identity provider icon'
                   className='h-4'
                   src={`/providers/${p.kind}.svg`}
                 />
-                <span className='items-center pl-4 text-xs text-gray-300'>
+                <span className='items-center pl-4 text-gray-800 sm:text-sm'>
                   {providersList.filter(i => i.kind === p.kind) ? (
                     <span>
-                      <span>Login with </span>
+                      <span>Log in with </span>
                       <span className='capitalize'>{p.name}</span>
                     </span>
                   ) : (
@@ -133,55 +133,54 @@ export default function Login() {
     return false
   }
 
+  console.log(providers?.length)
+
   return (
-    <>
-      <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
-      <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-        Welcome back. Login with your credentials
-        {providers?.length > 0 && ' or with your identity provider'}.
+    <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
+      <h1 className='mt-4 text-2xl font-bold leading-snug'>Log in</h1>
+      <h2 className='my-2 text-center text-sm text-gray-500'>
+        Welcome back. Log in with your credentials{' '}
+        {providers?.length > 0 && 'or via your identity provider.'}
       </h2>
       {providers?.length > 0 && (
         <>
           <Providers providers={providers || []} />
-          <div className='relative mt-4 w-full'>
+          <div className='relative mt-6 mb-2 w-full'>
             <div
               className='absolute inset-0 flex items-center'
               aria-hidden='true'
             >
-              <div className='w-full border-t border-gray-800' />
+              <div className='w-full border-t border-gray-200' />
             </div>
             <div className='relative flex justify-center text-sm'>
-              <span className='bg-black px-2 text-2xs text-gray-300'>OR</span>
+              <span className='bg-white px-2 text-2xs text-gray-400'>OR</span>
             </div>
           </div>
         </>
       )}
-      <form
-        onSubmit={onSubmit}
-        className='relative flex w-full max-w-sm flex-col'
-      >
+      <form onSubmit={onSubmit} className='relative flex w-full flex-col'>
         <div className='my-2 w-full'>
-          <label htmlFor='name' className='text-3xs uppercase text-gray-500'>
+          <label htmlFor='name' className='text-2xs font-medium text-gray-700'>
             Email
           </label>
           <input
             required
-            autoFocus
+            autoFocus={providers?.length === 0}
             id='name'
-            placeholder='enter your email'
+            type='email'
             onChange={e => {
               setName(e.target.value)
               setError('')
             }}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-              error ? 'border-pink-500/60' : ''
+            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
         </div>
         <div className='my-2 w-full'>
           <label
             htmlFor='password'
-            className='text-3xs uppercase text-gray-500'
+            className='text-2xs font-medium text-gray-700'
           >
             Password
           </label>
@@ -190,36 +189,34 @@ export default function Login() {
             id='password'
             type='password'
             data-testid='form-field-password'
-            placeholder='enter your password'
             onChange={e => {
               setPassword(e.target.value)
               setError('')
             }}
-            className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              error ? 'border-pink-500/60' : ''
+            className={`mt-1 block w-full rounded-md  shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
         </div>
-        <button
-          disabled={!name || !password}
-          className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
-        >
-          Login
-        </button>
         {isEmailConfigured && (
-          <Link href='/password-reset'>
-            <a className='mt-3 text-3xs text-violet-100 hover:border-violet-100'>
-              I forgot my password
-            </a>
-          </Link>
+          <div className='mt-4 flex items-center justify-end text-sm'>
+            <Link href='/password-reset'>
+              <a className='font-medium text-blue-600 hover:text-blue-500'>
+                Forgot your password?
+              </a>
+            </Link>
+          </div>
         )}
+        <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'>
+          Log in
+        </button>
         {error && (
-          <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
+          <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
             {error}
           </p>
         )}
       </form>
-    </>
+    </div>
   )
 }
 

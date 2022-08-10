@@ -13,14 +13,14 @@ function Layout({ children, backHref, closeHref }) {
       >
         {backHref && (
           <Link href={backHref || '/'}>
-            <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-white'>
+            <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-black'>
               <ChevronLeftIcon className='mr-1.5 h-5 w-5 stroke-1' />
               Back
             </a>
           </Link>
         )}
         <Link href={closeHref || '/'}>
-          <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-white'>
+          <a className='flex items-center p-4 text-3xs uppercase text-gray-400 hover:text-black'>
             Close
             <XIcon className='ml-1 h-6 w-6 stroke-1' />
           </a>

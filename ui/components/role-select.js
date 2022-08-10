@@ -51,19 +51,19 @@ export default function RoleSelect({
       }}
     >
       <div className='relative'>
-        <Listbox.Button className='relative w-32 cursor-default bg-black py-2 pl-3 pr-8 text-left text-2xs focus:outline-none'>
+        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-200 bg-white py-2 pl-3 pr-8 text-left text-2xs focus:outline-none'>
           <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
             <ChevronDownIcon
               className='h-4 w-4 stroke-1 text-gray-400'
               aria-hidden='true'
             />
           </span>
-          <span className='block truncate text-gray-400'>{role}</span>
+          <span className='block truncate text-gray-500'>{role}</span>
         </Listbox.Button>
         <Listbox.Options
           className={`absolute z-10 w-48 ${
             direction === 'right' ? '' : 'right-0'
-          } mt-2 overflow-auto rounded-md border border-gray-700 bg-gray-800 text-2xs text-white ring-1 ring-black ring-opacity-5 focus:outline-none`}
+          } mt-2 overflow-auto rounded-md border border-gray-200 bg-white text-2xs text-black ring-1 ring-black ring-opacity-5 focus:outline-none`}
         >
           <div className={`max-h-64 overflow-auto ${remove ? 'mb-9' : ''}`}>
             {roles?.map(r => (
@@ -71,7 +71,7 @@ export default function RoleSelect({
                 key={r}
                 className={({ active }) =>
                   `${
-                    active ? 'bg-gray-700' : ''
+                    active ? 'bg-gray-300' : ''
                   } relative cursor-default select-none py-2 px-3`
                 }
                 value={r}
@@ -101,8 +101,8 @@ export default function RoleSelect({
             <Listbox.Option
               className={({ active }) =>
                 `${
-                  active ? 'bg-gray-700' : ''
-                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-700 py-2 px-3 hover:bg-gray-700`
+                  active ? 'bg-gray-300' : ''
+                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-200 py-2 px-3 hover:bg-gray-300`
               }
               value={OPTION_REMOVE}
             >

@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { useState, useRef } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useRouter } from 'next/router'
+import { UserGroupIcon } from '@heroicons/react/outline'
 
 import ErrorMessage from '../../components/error-message'
-import Fullscreen from '../../components/layouts/fullscreen'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
+import Dashboard from '../../components/layouts/dashboard'
 
 function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
   const { data: { items: users } = { items: [] } } = useSWR(
@@ -33,7 +34,7 @@ function EmailsSelectInput({ selectedEmails, setSelectedEmails }) {
   }
 
   return (
-    <div className='bg-gray-900 px-4 py-3'>
+    <div className='rounded-md bg-gray-100 p-2'>
       <TypeaheadCombobox
         selectedEmails={selectedEmails}
         setSelectedEmails={setSelectedEmails}
@@ -126,30 +127,31 @@ export default function GroupsAdd() {
   }
 
   return (
-    <>
-      <Head>Create Group</Head>
-      <div className='space-y-4 pt-5 pb-4'>
+    <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
+      <Head>
+        <title>Create Group</title>
+      </Head>
+      <div className='space-y-4 px-4 py-5 md:px-6 xl:px-0'>
         <div className='flex flex-col'>
-          <div className='flex flex-row items-center space-x-2 px-4'>
-            <img alt='groups' src='/groups.svg' className='h-6 w-6' />
+          <div className='flex flex-row items-center space-x-2'>
+            <UserGroupIcon className='h-6 w-6' />
             <div>
-              <h1 className='text-2xs'>Create Group</h1>
+              <h1 className='text-base'>Create Group</h1>
             </div>
           </div>
           <div className='mt-6 flex flex-col space-y-1'>
-            <div className='mt-4 px-4'>
-              <label className='text-3xs uppercase text-gray-400'>
+            <div className='mt-4'>
+              <label className='text-2xs font-medium text-gray-700'>
                 Name Your Group
               </label>
               <input
                 autoFocus
                 spellCheck='false'
                 type='search'
-                placeholder='enter the group name here'
                 value={groupName}
                 onChange={e => handleGroupNameInputChange(e.target.value)}
-                className={`border-gray-950 w-full border-b bg-transparent px-px py-3 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                  errors.name ? 'border-pink-500' : 'border-gray-800'
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               {errors && <ErrorMessage message={errors.name} />}
@@ -161,17 +163,12 @@ export default function GroupsAdd() {
               />
             </section>
           </div>
-          <div className='mt-6 flex flex-row items-center justify-end px-4'>
-            <Link href='/groups'>
-              <a className='-ml-4 border-0 px-4 py-2 text-4xs uppercase text-gray-400 hover:text-white'>
-                Cancel
-              </a>
-            </Link>
+          <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
             <button
               type='button'
               onClick={() => handleCreateGroup()}
               disabled={!groupName}
-              className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-10'
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'
             >
               Create Group
             </button>
@@ -179,8 +176,10 @@ export default function GroupsAdd() {
         </div>
         {error && <ErrorMessage message={error} />}
       </div>
-    </>
+    </div>
   )
 }
 
-GroupsAdd.layout = page => <Fullscreen closeHref='/groups'>{page}</Fullscreen>
+GroupsAdd.layout = page => {
+  return <Dashboard>{page}</Dashboard>
+}

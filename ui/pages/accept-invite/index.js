@@ -12,7 +12,7 @@ export default function AcceptInvite() {
       {token ? (
         <>
           <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-            Welcome to InfraHQ! Please set your password
+            Welcome to Infra. Please set your password
           </h2>
           <div className='relative mt-4 w-full'>
             <div

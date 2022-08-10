@@ -5,7 +5,7 @@ export default function HeaderIcon({ iconPath, size = 8, position }) {
         position === 'center' ? 'mx-auto my-4' : 'mt-6 mb-4'
       }`}
     >
-      <div className='m-0.5 flex h-16 w-16 items-center justify-center rounded-full bg-black'>
+      <div className='m-0.5 flex h-16 w-16 items-center justify-center rounded-full'>
         <img
           alt='header icon'
           className={`w-${size} h-${size}`}

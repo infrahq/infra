@@ -19,11 +19,7 @@ export function Pages({ path, selected, count, totalPages }) {
         data-testid='pages-button-link'
         href={path + '?p=' + page}
       >
-        <a
-          className={`inline-flex w-8 items-center px-1 text-center text-sm font-medium text-gray-500 hover:text-violet-300 ${
-            selected === page ? 'rounded-md text-violet-300' : ''
-          }`}
-        >
+        <a className='relative hidden items-center border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20 md:inline-flex'>
           {page}
         </a>
       </Link>
@@ -35,24 +31,24 @@ export function Pages({ path, selected, count, totalPages }) {
 
 export function Arrow({ path, direction }) {
   return (
-    <Link href={path} data-testid={`${direction}-arrow-button-link`}>
-      <a className='inline-flex items-center text-sm font-medium text-gray-500 hover:text-violet-300 '>
-        {direction === 'RIGHT' && (
-          <ChevronRightIcon
-            data-testid='right-arrow'
-            className='h-5 w-5 text-gray-400 hover:text-violet-300'
-            aria-hidden='true'
-          />
-        )}
-        {direction === 'LEFT' && (
-          <ChevronLeftIcon
-            data-testid='left-arrow'
-            className='mr-3 h-5 w-5 text-gray-400 hover:text-violet-300'
-            aria-hidden='true'
-          />
-        )}
-      </a>
-    </Link>
+    <>
+      {direction === 'LEFT' && (
+        <Link href={path} data-testid={`${direction}-arrow-button-link`}>
+          <a className='relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20'>
+            <span className='sr-only'>Previous</span>
+            <ChevronLeftIcon className='h-5 w-5' aria-hidden='true' />
+          </a>
+        </Link>
+      )}
+      {direction === 'RIGHT' && (
+        <Link href={path} data-testid={`${direction}-arrow-button-link`}>
+          <a className='relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20'>
+            <span className='sr-only'>Next</span>
+            <ChevronRightIcon className='h-5 w-5' aria-hidden='true' />
+          </a>
+        </Link>
+      )}
+    </>
   )
 }
 
@@ -73,29 +69,58 @@ export default function Pagination({
   const upperItem = Math.min(curr * limit, totalCount)
 
   return (
-    <div className='box-border flex items-center justify-between pb-[16.5px]'>
-      <h3 key='results' className='px-4 pb-2 text-2xs text-gray-400'>
-        Displaying {lowerItem}–{upperItem} out of {totalCount}
-      </h3>
-      <div className='flex items-center px-4 pb-2'>
-        <Arrow
-          direction='LEFT'
-          path={path + '?p=' + (curr > 1 ? curr - 1 : 1)}
-        ></Arrow>
-        <Pages
-          path={path}
-          count={7}
-          totalPages={totalPages}
-          selected={curr}
-        ></Pages>
-        <Arrow
-          direction='RIGHT'
-          path={
+    <div className='flex items-center justify-between bg-white px-4 py-3 sm:px-6'>
+      <div className='flex flex-1 justify-between sm:hidden'>
+        <Link href={path + '?p=' + (curr > 1 ? curr - 1 : 1)}>
+          <a className='relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'>
+            Previous
+          </a>
+        </Link>
+        <Link
+          href={
             path +
             '?p=' +
             (curr < totalPages ? curr + 1 : Math.max(1, totalPages))
           }
-        ></Arrow>
+        >
+          <a className='relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50'>
+            Next
+          </a>
+        </Link>
+      </div>
+      <div className='hidden sm:flex sm:flex-1 sm:items-center sm:justify-between'>
+        <div>
+          <p className='text-sm text-gray-700'>
+            Showing <span className='font-medium'>{lowerItem}</span> to{' '}
+            <span className='font-medium'>{upperItem}</span> of{' '}
+            <span className='font-medium'>{totalCount}</span> results
+          </p>
+        </div>
+        <div>
+          <nav
+            className='isolate inline-flex -space-x-px rounded-md shadow-sm'
+            aria-label='Pagination'
+          >
+            <Arrow
+              direction='LEFT'
+              path={path + '?p=' + (curr > 1 ? curr - 1 : 1)}
+            ></Arrow>
+            <Pages
+              path={path}
+              count={7}
+              totalPages={totalPages}
+              selected={curr}
+            ></Pages>
+            <Arrow
+              direction='RIGHT'
+              path={
+                path +
+                '?p=' +
+                (curr < totalPages ? curr + 1 : Math.max(1, totalPages))
+              }
+            ></Arrow>
+          </nav>
+        </div>
       </div>
     </div>
   )

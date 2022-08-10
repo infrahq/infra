@@ -26,7 +26,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
 
   return (
     <form
-      className='my-2 flex'
+      className='my-2 flex flex-row'
       onSubmit={e => {
         e.preventDefault()
         onSubmit({
@@ -38,7 +38,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
         setSelected(null)
       }}
     >
-      <div className='flex flex-1 items-center border-b border-gray-800'>
+      <div className='flex flex-1 items-center pr-3'>
         <Combobox
           as='div'
           className='relative flex-1'
@@ -50,7 +50,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
           }}
         >
           <Combobox.Input
-            className='relative w-full bg-transparent py-3 pr-2 text-xs placeholder:italic focus:outline-none disabled:opacity-30'
+            className={`block w-full rounded-md border-gray-300 text-xs shadow-sm placeholder:italic focus:border-blue-500 focus:ring-blue-500`}
             placeholder='User or group'
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
@@ -66,7 +66,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
                   key={f.id}
                   value={f}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-2 px-3 hover:bg-gray-700 ${
+                    `relative cursor-default select-none py-2 px-3 text-gray-200 ${
                       active ? 'bg-gray-700' : ''
                     }`
                   }
@@ -82,18 +82,20 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
           )}
           <Combobox.Button className='hidden' ref={button} />
         </Combobox>
-        {roles?.length > 1 && (
-          <RoleSelect onChange={setRole} role={role} roles={roles} />
-        )}
       </div>
-      <div className='relative mt-2'>
+      {roles?.length > 1 && (
+        <div className='relative p-3'>
+          <RoleSelect onChange={setRole} role={role} roles={roles} />
+        </div>
+      )}
+      <div className='relative p-3'>
         <button
           disabled={!selected}
           type='submit'
-          className='flex h-8 cursor-pointer items-center rounded-md border border-violet-300 px-3 py-3 text-2xs disabled:transform-none disabled:cursor-default disabled:opacity-30 disabled:transition-none sm:ml-4 sm:mt-0'
+          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'
         >
-          <PlusIcon className='mr-1.5 h-3 w-3' />
-          <div className='text-violet-100'>Add</div>
+          <PlusIcon className='mr-1 h-3 w-3' />
+          <div className='text-2xs leading-none'>Add</div>
         </button>
       </div>
     </form>

@@ -7,17 +7,17 @@ module.exports = {
     extend: {
       colors: {
         black: '#0A0E12',
-        gray: {
-          50: '#FDFDFE',
-          100: '#F3F4F6',
-          200: '#E5E7EB',
-          300: '#D2D5DA',
-          400: '#9DA3AE',
-          500: '#747B8B',
-          600: '#4D5562',
-          700: '#394150',
-          800: '#222833',
-          900: '#151A1E',
+        blue: {
+          50: '#F1F7FE',
+          100: '#DEE9FC',
+          200: '#C4DAFB',
+          300: '#95C0FD',
+          400: '#5F9DFB',
+          500: '#1D67F9',
+          600: '#0F60FF',
+          700: '#1159E9',
+          800: '#0C44B5',
+          900: '#0B3C9E',
         },
       },
       fontSize: {
@@ -30,9 +30,20 @@ module.exports = {
         'spin-fast': 'spin 0.75s linear infinite',
       },
       fontFamily: {
-        sans: ['SF Pro Text', 'ui-sans-serif', 'sans-serif'],
-        mono: ['SF Mono', 'ui-monospace', 'monospace'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'segoe ui',
+          'helvetica neue',
+          'helvetica',
+          'Ubuntu',
+          'roboto',
+          'arial',
+          'sans-serif',
+        ],
+        mono: ['SF Mono', 'Menlo', 'Consolas', 'monospace'],
       },
     },
   },
+  plugins: [require('@tailwindcss/forms')],
 }

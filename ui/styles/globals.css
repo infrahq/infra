@@ -5,9 +5,9 @@
 html,
 body,
 #__next {
-  @apply h-screen;
-  @apply text-white;
-  @apply bg-black;
+  @apply min-h-screen;
+  @apply text-black;
+  @apply bg-white;
   @apply antialiased;
   @apply font-normal;
 }
