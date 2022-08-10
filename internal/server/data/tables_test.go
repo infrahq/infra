@@ -13,9 +13,16 @@ import (
 	"github.com/infrahq/infra/internal/server/data/table"
 )
 
-var tables = []Table{}
+var tables = []tabler{
+	accessKeyTable{},
+	destinationsTable{},
+	encryptionKeysTable{},
+	grantsTable{},
+	groupsTable{},
+	providerUserTable{},
+}
 
-type Table interface {
+type tabler interface {
 	Table() string
 }
 
@@ -70,8 +77,8 @@ func TestGenerateTableMethods(t *testing.T) {
 	}
 }
 
-func targetsForGenerate(name string) []Table {
-	var result []Table
+func targetsForGenerate(name string) []tabler {
+	var result []tabler
 	for _, m := range tables {
 		typ := reflect.TypeOf(m)
 		switch {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -105,6 +106,11 @@ func renderTemplate(tmpl *ast.File, data templateData) ([]*ast.FuncDecl, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to read model struct: %w", err)
 	}
+
+	// sort by lowercase name, to hopefully match struct field names
+	sort.Slice(data.columns, func(i, j int) bool {
+		return strings.ToLower(data.columns[i]) < strings.ToLower(data.columns[j])
+	})
 
 	rendered := make([]*ast.FuncDecl, 3)
 	for _, decl := range tmpl.Decls {
@@ -219,5 +225,10 @@ func reflectFields(table any) ([]reflect.StructField, error) {
 
 		fields = append(fields, field)
 	}
+
+	// sort by lowercase name, to hopefully match table columns
+	sort.Slice(fields, func(i, j int) bool {
+		return strings.ToLower(fields[i].Name) < strings.ToLower(fields[j].Name)
+	})
 	return fields, nil
 }
