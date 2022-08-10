@@ -13,7 +13,6 @@ import PageHeader from '../../components/page-header'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import Sidebar from '../../components/sidebar'
-import ProfileIcon from '../../components/profile-icon'
 import EmptyData from '../../components/empty-data'
 import Metadata from '../../components/metadata'
 import RoleSelect from '../../components/role-select'
@@ -28,7 +27,11 @@ const columns = [
     accessor: u => u,
     Cell: ({ value: user }) => (
       <div className='flex items-center py-1.5'>
-        <ProfileIcon name={user.name[0]} />
+        <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-gray-800'>
+          <span className='text-3xs font-normal leading-none text-gray-400'>
+            {user.name[0]}
+          </span>
+        </div>
         <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>
           <div className='truncate'>{user.name}</div>
         </div>
@@ -324,7 +327,7 @@ export default function Users() {
             <Sidebar
               onClose={() => setSelected(null)}
               title={selected.name}
-              profileIcon={selected.name[0]}
+              iconText={selected.name[0]}
             >
               <Details
                 user={selected}

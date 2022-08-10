@@ -163,7 +163,7 @@ export default function Providers() {
             <Sidebar
               onClose={() => setSelected(null)}
               title={selected.name}
-              iconPath='/providers.svg'
+              iconPath={`/providers/${selected.kind}.svg`}
             >
               <SidebarContent
                 provider={selected}
