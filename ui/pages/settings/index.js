@@ -59,13 +59,13 @@ export default function Settings() {
     resetPassword === 'success'
   )
 
-  const { data: { items: users } = {} } = useSWR('/api/users')
-  const { data: { items: groups } = {} } = useSWR('/api/groups')
+  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
+  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    '/api/grants?resource=infra&privilege=admin'
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
   const { data: { items: selfGroups } = {} } = useSWR(
-    `/api/groups?userID=${auth?.id}`
+    `/api/groups?userID=${auth?.id}&limit=1000`
   )
 
   const hasInfraProvider = auth?.providerNames.includes('infra')

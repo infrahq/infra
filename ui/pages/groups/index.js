@@ -66,7 +66,9 @@ function EmailsSelectInput({
   existMembers,
   onClick,
 }) {
-  const { data: { items: users } = { items: [] } } = useSWR('/api/users')
+  const { data: { items: users } = { items: [] } } = useSWR(
+    '/api/users?limit=1000'
+  )
 
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
@@ -156,13 +158,13 @@ function Details({ group, admin, onDelete }) {
 
   const { data: auth } = useSWR('/api/users/self')
   const { data: { items: users } = {}, mutate: mutateUsers } = useSWR(
-    `/api/users?group=${group.id}`
+    `/api/users?group=${group.id}&limit=1000`
   )
   const { data: { items } = {}, mutate: mutateGrants } = useSWR(
-    `/api/grants?group=${id}`
+    `/api/grants?group=${id}&limit=1000`
   )
   const { data: { items: infraAdmins } = {} } = useSWR(
-    '/api/grants?resource=infra&privilege=admin'
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
 
   const [emails, setEmails] = useState([])

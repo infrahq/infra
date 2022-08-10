@@ -62,14 +62,14 @@ function Details({ user, admin, onDelete }) {
   const { data: auth } = useSWR('/api/users/self')
 
   const { data: { items } = {}, mutate } = useSWR(
-    `/api/grants?user=${id}&showInherited=1`
+    `/api/grants?user=${id}&showInherited=1&limit=1000`
   )
   const { data: { items: groups } = {}, mutate: mutateGroups } = useSWR(
-    `/api/groups?userID=${id}`
+    `/api/groups?userID=${id}&limit=1000`
   )
 
   const { data: { items: infraAdmins } = {} } = useSWR(
-    '/api/grants?resource=infra&privilege=admin'
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
   )
 
   const [open, setOpen] = useState(false)

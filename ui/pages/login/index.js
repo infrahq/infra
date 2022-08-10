@@ -60,9 +60,12 @@ export function Providers({ providers }) {
 }
 
 export default function Login() {
-  const { data: { items: providers } = {} } = useSWR('/api/providers', {
-    fallbackData: [],
-  })
+  const { data: { items: providers } = {} } = useSWR(
+    '/api/providers?limit=1000',
+    {
+      fallbackData: [],
+    }
+  )
   const { mutate } = useSWRConfig()
   const router = useRouter()
 

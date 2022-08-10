@@ -5,7 +5,7 @@ const INFRA_ADMIN_ROLE = 'admin'
 export function useAdmin() {
   const { data: auth } = useSWR('/api/users/self', { revalidateIfStale: false })
   const { data: { items: grants } = {} } = useSWR(
-    `/api/grants?user=${auth?.id}&showInherited=1&resource=infra`,
+    `/api/grants?user=${auth?.id}&showInherited=1&resource=infra&limit=1000`,
     { revalidateIfStale: false }
   )
 

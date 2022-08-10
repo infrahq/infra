@@ -8,9 +8,9 @@ import ComboboxItem from './combobox-item'
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
-    useSWR('/api/users')
+    useSWR('/api/users?limit=1000')
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
-    useSWR('/api/groups')
+    useSWR('/api/groups?limit=1000')
 
   const [role, setRole] = useState(roles?.[0])
   const [query, setQuery] = useState('')
