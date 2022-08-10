@@ -94,6 +94,9 @@ func TestDBTimeout(t *testing.T) {
 	var ctx context.Context
 	var cancel context.CancelFunc
 
+	srv := newServer(Options{})
+	srv.db = db
+
 	router := gin.New()
 	router.Use(
 		func(c *gin.Context) {
@@ -104,7 +107,7 @@ func TestDBTimeout(t *testing.T) {
 			c.Request = c.Request.WithContext(ctx)
 			c.Next()
 		},
-		unauthenticatedMiddleware(db),
+		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
 		db, ok := c.MustGet("db").(*gorm.DB)
