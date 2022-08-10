@@ -3,7 +3,7 @@ import useSWR from 'swr'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
-import { PlusIcon, UserGroupIcon } from '@heroicons/react/outline'
+import { PlusIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
 
