@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -28,7 +29,20 @@ func WithOrg(ctx context.Context, org *models.Organization) context.Context {
 }
 
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {
-	return add(db, org)
+	err := add(db, org)
+	if err != nil {
+		return fmt.Errorf("creating org: %w", err)
+	}
+
+	db.Statement.Context = WithOrg(db.Statement.Context, org)
+	_, err = InitializeSettings(db)
+	if err != nil {
+		return fmt.Errorf("initializing org settings: %w", err)
+	}
+
+	// TODO: create infra provider here too?
+
+	return nil
 }
 
 func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {
