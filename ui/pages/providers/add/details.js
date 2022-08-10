@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { InformationCircleIcon } from '@heroicons/react/outline'
 
-
 import Fullscreen from '../../../components/layouts/fullscreen'
 import ErrorMessage from '../../../components/error-message'
 
@@ -247,8 +246,12 @@ export default function ProvidersAddDetails() {
               </a>
             </label>
             <div className='mt-4'>
-              <label className='text-3xs uppercase text-gray-400' title='upload the private key json file that was created for your service account'>
-                Private Key <InformationCircleIcon className='ml-0.5 h-[1rem] w-[1rem] inline'/>
+              <label
+                className='text-3xs uppercase text-gray-400'
+                title='upload the private key json file that was created for your service account'
+              >
+                Private Key{' '}
+                <InformationCircleIcon className='ml-0.5 inline h-[1rem] w-[1rem]' />
               </label>
               <input
                 type='file'
