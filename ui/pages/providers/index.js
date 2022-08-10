@@ -101,8 +101,6 @@ export default function Providers() {
     data: providers || [],
   })
 
-  console.log(providers)
-
   const [selected, setSelected] = useState(null)
 
   const loading = adminLoading || (!providers && !error)
