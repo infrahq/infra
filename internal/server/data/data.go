@@ -26,7 +26,7 @@ import (
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.DB, error) {
+func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
@@ -41,7 +41,23 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	return db, nil
+	// TODO: initialize, and populate settings and org on DB
+
+	return &DB{DB: db}, nil
+}
+
+// DB wraps the underlying database and provides access to the default org,
+// and settings.
+type DB struct {
+	*gorm.DB // embedded for now to minimize the diff
+}
+
+func (db *DB) Close() error {
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database conn to close: %w", err)
+	}
+	return sqlDB.Close()
 }
 
 // newRawDB creates a new database connection without running migrations.

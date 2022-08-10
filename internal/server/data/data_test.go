@@ -24,12 +24,10 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	InfraProvider(db)
-
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 	t.Cleanup(InvalidateCache)
 
-	return db
+	return db.DB
 }
 
 var isEnvironmentCI = os.Getenv("CI") != ""

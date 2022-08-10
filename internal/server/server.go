@@ -129,10 +129,12 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
-	server.db, err = data.NewDB(driver, server.loadDBKey)
+	db, err := data.NewDB(driver, server.loadDBKey)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
+	// TODO: store data.DB on server
+	server.db = db.DB
 
 	settings, err := data.InitializeSettings(server.db)
 	if err != nil {
