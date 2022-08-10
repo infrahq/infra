@@ -201,7 +201,7 @@ ALTER TABLE ONLY providers
 ALTER TABLE ONLY settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (organization_id, key_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 

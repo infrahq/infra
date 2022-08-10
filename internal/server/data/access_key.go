@@ -3,6 +3,7 @@ package data
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -94,7 +96,19 @@ func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc
 }
 
 func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
-	return get[models.AccessKey](db, selectors...)
+	// GetAccessKey by keyID needs to not set an organization_id in the query.
+	// keyID should be globally unique.
+	for _, selector := range selectors {
+		db = selector(db)
+	}
+	result := new(models.AccessKey)
+	if err := db.Model(result).First(result).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, internal.ErrNotFound
+		}
+		return nil, err
+	}
+	return result, nil
 }
 
 func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
