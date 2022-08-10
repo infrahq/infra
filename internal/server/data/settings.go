@@ -12,7 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
+func initializeSettings(db *gorm.DB) (*models.Settings, error) {
 	org := OrgFromContext(db.Statement.Context)
 
 	settings, err := GetSettings(db)
@@ -72,5 +72,13 @@ func GetSettings(db *gorm.DB) (*models.Settings, error) {
 }
 
 func SaveSettings(db *gorm.DB, settings *models.Settings) error {
+	// TODO: clean this up by having the query use the organization_id instead of the
+	// primary key in the WHERE.
+	existing, err := GetSettings(db)
+	if err != nil {
+		return err
+	}
+	settings.ID = existing.ID
+
 	return save(db, settings)
 }

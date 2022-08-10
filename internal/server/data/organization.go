@@ -35,7 +35,7 @@ func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 	}
 
 	db.Statement.Context = WithOrg(db.Statement.Context, org)
-	_, err = InitializeSettings(db)
+	_, err = initializeSettings(db)
 	if err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}

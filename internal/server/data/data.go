@@ -42,14 +42,20 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 	}
 
 	// TODO: initialize, and populate settings and org on DB
+	dataDB := &DB{DB: db}
+	if err := initialize(dataDB); err != nil {
+		return nil, fmt.Errorf("initialize: %w", err)
+	}
 
-	return &DB{DB: db}, nil
+	return dataDB, nil
 }
 
 // DB wraps the underlying database and provides access to the default org,
 // and settings.
 type DB struct {
 	*gorm.DB // embedded for now to minimize the diff
+
+	DefaultOrgSettings *models.Settings
 }
 
 func (db *DB) Close() error {
@@ -81,6 +87,17 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func initialize(db *DB) error {
+	// TODO: set org
+
+	var err error
+	db.DefaultOrgSettings, err = initializeSettings(db.DB)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
