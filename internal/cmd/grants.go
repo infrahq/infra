@@ -252,6 +252,12 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 					Message: "Cannot revoke grants: missing privileges for DeleteGrant",
 				}
 			}
+			if api.ErrorStatusCode(err) == 400 && strings.Contains(err.Error(), "cannot remove the last infra admin") {
+				logging.Debugf("%s", err.Error())
+				return Error{
+					Message: "Cannot revoke grant: at least one admin grant must exist",
+				}
+			}
 			return err
 		}
 
