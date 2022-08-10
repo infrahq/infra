@@ -43,7 +43,6 @@ jobs:
         with:
           name: binaries
           path: dist/
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
 
   publish:
     runs-on: ubuntu-latest
