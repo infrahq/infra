@@ -29,7 +29,11 @@ const columns = [
       return (
         <div className='flex items-center py-1.5'>
           <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-gray-800'>
-            <UserGroupIcon className='h-[14px] w-[14px] text-gray-400' />
+            <img
+              className='h-[14px] w-[14px] opacity-60'
+              src='/groups.svg'
+              alt='groups icon'
+            />
           </div>
           <div className='ml-3 flex min-w-0 flex-1 flex-col leading-tight'>
             <div className='truncate'>{group.name}</div>
@@ -352,7 +356,7 @@ export default function Groups() {
                     subtitle='Connect, create and manage your groups.'
                     iconPath='/groups.svg'
                     buttonHref='/groups/add'
-                    buttonText='Groups'
+                    buttonText='Group'
                   />
                 )}
               </div>
