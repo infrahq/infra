@@ -44,7 +44,7 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 	// TODO: initialize, and populate settings and org on DB
 	dataDB := &DB{DB: db}
 	if err := initialize(dataDB); err != nil {
-		return nil, fmt.Errorf("initialize: %w", err)
+		return nil, fmt.Errorf("initialize database: %w", err)
 	}
 
 	return dataDB, nil
@@ -55,6 +55,7 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 type DB struct {
 	*gorm.DB // embedded for now to minimize the diff
 
+	DefaultOrg         *models.Organization
 	DefaultOrgSettings *models.Settings
 }
 
@@ -90,6 +91,15 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 }
 
 func initialize(db *DB) error {
+	p := &models.Provider{
+		Name: models.InternalInfraProviderName,
+		Kind: models.ProviderKindInfra,
+		// TODO: OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	if err := add(db.DB, p); err != nil {
+		logging.L.Panic().Err(err).Msg("failed to create infra provider")
+	}
+
 	// TODO: set org
 
 	var err error
@@ -348,17 +358,6 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 	org := OrgFromContext(db.Statement.Context)
 	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
 	if err != nil {
-		if errors.Is(err, internal.ErrNotFound) {
-			p := &models.Provider{
-				Name:               models.InternalInfraProviderName,
-				Kind:               models.ProviderKindInfra,
-				OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			}
-			if err := add(db, p); err != nil {
-				logging.L.Panic().Err(err).Msg("failed to create infra provider")
-			}
-			return p
-		}
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
 		return nil // unreachable, the line above panics
 	}

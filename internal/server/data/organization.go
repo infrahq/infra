@@ -40,8 +40,14 @@ func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}
 
-	// TODO: create infra provider here too?
-
+	infraProvider := &models.Provider{
+		Name:               models.InternalInfraProviderName,
+		Kind:               models.ProviderKindInfra,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	if err := CreateProvider(db, infraProvider); err != nil {
+		return fmt.Errorf("failed to create infra provider: %w", err)
+	}
 	return nil
 }
 
