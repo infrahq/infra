@@ -70,9 +70,9 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
+func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
 
 			// TODO: get this from server
 			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
@@ -120,9 +120,9 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 	}
 }
 
-func unauthenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
+func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
 			// TODO: get this from server
 			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
 			if err != nil {
