@@ -91,23 +91,25 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 }
 
 func initialize(db *DB) error {
-	p := &models.Provider{
-		Name: models.InternalInfraProviderName,
-		Kind: models.ProviderKindInfra,
-		// TODO: OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-	}
-	if err := add(db.DB, p); err != nil {
-		logging.L.Panic().Err(err).Msg("failed to create infra provider")
+	org, err := GetOrganization(db.DB, ByName(models.DefaultOrganizationName))
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		org = &models.Organization{
+			Name:      models.DefaultOrganizationName,
+			CreatedBy: models.CreatedBySystem,
+		}
+		if err := CreateOrganization(db.DB, org); err != nil {
+			return fmt.Errorf("failed to create default organization: %w", err)
+		}
+	case err != nil:
+		return fmt.Errorf("failed to get default organization: %w", err)
 	}
 
-	// TODO: set org
+	db.DefaultOrg = org
 
-	var err error
-	db.DefaultOrgSettings, err = initializeSettings(db.DB)
-	if err != nil {
-		return err
-	}
-	return nil
+	db.Statement.Context = WithOrg(db.Statement.Context, org)
+	db.DefaultOrgSettings, err = GetSettings(db.DB)
+	return err
 }
 
 func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
