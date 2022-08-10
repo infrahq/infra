@@ -28,7 +28,7 @@ const columns = [
     Cell: ({ value: user }) => (
       <div className='flex items-center py-1.5'>
         <div className='flex h-7 w-7 select-none items-center justify-center rounded-md border border-gray-800'>
-          <span className='text-3xs font-normal leading-none'>
+          <span className='text-3xs font-normal leading-none text-gray-400'>
             {user.name[0]}
           </span>
         </div>

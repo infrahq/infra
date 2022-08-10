@@ -96,7 +96,7 @@ function Layout({ children }) {
         </div>
         <div className='group mx-2 mb-2 flex h-12 overflow-hidden rounded-xl bg-transparent p-2.5 pb-1 transition-all duration-300 ease-in-out hover:h-[132px] hover:bg-gray-900'>
           <div className='flex h-[23px] w-[23px] select-none items-center justify-center rounded-md border border-gray-800'>
-            <span className='text-center text-3xs font-normal leading-none'>
+            <span className='text-center text-3xs font-normal leading-none text-gray-400'>
               {auth?.name?.[0]}
             </span>
           </div>

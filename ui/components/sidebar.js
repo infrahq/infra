@@ -20,7 +20,7 @@ export default function Sidebar({
       <header className='flex-start sticky top-0 z-10 flex items-center justify-between bg-black py-3'>
         {iconPath && (
           <div className='flex h-7 w-7 flex-none items-center justify-center rounded-md border border-gray-800'>
-            <img alt='PROFILE icon' className='h-3' src={iconPath} />
+            <img alt='profile icon' className='h-3' src={iconPath} />
           </div>
         )}
         {iconText && (
