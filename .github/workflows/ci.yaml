@@ -2,157 +2,16 @@ name: ci
 
 on:
   pull_request:
-  push:
-    branches: [main]
-  schedule:
-    - cron: '13 2 * * *'
+    # Dummy test job to pass required status checks. Any component
+    # implementing or requiring real tests should filter out this workflow.
+    paths-ignore:
+      - go.mod
+      - go.sum
+      - '**/*.go'
+      - 'ui/**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:14-alpine
-        env:
-          POSTGRES_PASSWORD: password123
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports: ["5432:5432"]
-
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "1.18"
-          cache: true
-      - run: go mod download -x
-      - run: go install gotest.tools/gotestsum@v1.8.0
-
-      - name: go test
-        run: ~/go/bin/gotestsum -ftestname -- -race ./...
-        env:
-          POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
-
-      - name: Check that tests leave a clean git checkout
-        run: |
-          # show and check changes to committed files
-          git diff --exit-code
-          # show and check for uncommitted files
-          git status --short; [[ "$(git status --short)" == "" ]]
-
-  test-ui:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: install npm dependencies
-        working-directory: ui
-        run: npm install
-      - name: run ui tests
-        working-directory: ui
-        run: npm test
-      - name: Check ui build
-        working-directory: ui
-        run: |
-          npm run build
-          npm run export
-      - name: Lint and format ui
-        working-directory: ui
-        run: |
-          npm run lint
-          npm run format
-
-  test-website:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - name: Install dependencies
-        working-directory: website
-        run: npm install
-      - name: Build
-        working-directory: website
-        run: npm run build
-      - name: Lint
-        working-directory: website
-        run: |
-          npm run lint
-          npm run format
-
-  go-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "1.18"
-          cache: true
-      - uses: golangci/golangci-lint-action@v3.2.0
-        with:
-          version: v1.46.2
-          args: --verbose
-          # setup-go already restores the build and module cache
-          skip-build-cache: true
-          skip-pkg-cache: true
-
-  helm-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: Azure/setup-helm@v1
-      - run: make helm/lint tag=0.0.0-development
-
-  check-generated:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version: "1.18"
-          cache: true
-      - run: go mod download -x
-      - run: go build -debug-actiongraph=compile.json .
-      - uses: actions/upload-artifact@v3
-        with:
-          name: build-log
-          path: compile.json
-
-      - name: Check generated docs are updated
-        run: |
-          # if checking a release candidate pull request, unset `internal.Metadata`
-          if [[ "$GITHUB_HEAD_REF" =~ ^release-please-.*$ ]]; then LDFLAGS='-X github.com/infrahq/infra/internal.Metadata='; fi
-          # fake a terminal to get the right defaults for non-interactive
-          script -e -q -c "go run ${LDFLAGS:+-ldflags \"$LDFLAGS\"} ./internal/docgen"
-          git diff --exit-code
-      - name: Check go mod is tidy
-        run: |
-          go mod tidy
-          git diff --exit-code go.mod go.sum
-      - name: Check generated code is updated
-        run: |
-          go generate ./...
-          git diff --exit-code
-
-  commit-lint:
-    if: ${{ github.event_name == 'pull_request' && ! startsWith(github.head_ref, 'dependabot/') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v3
-      - id: cache-commitlint
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-commitlint
-      - run: npm install @commitlint/{config-conventional,cli}
-        if: steps.cache-commitlint.cache-hit != true
-      - run: ./node_modules/.bin/commitlint --from origin/$GITHUB_BASE_REF --to @ --verbose --config .github/commitlint.config.js
+      - run: echo No test required for this change.
