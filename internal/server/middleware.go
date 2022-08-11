@@ -145,7 +145,7 @@ func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization
 	org, err := getOrgFromHost(req, dataDB)
 	switch {
 	case err != nil:
-		logging.L.Warn().Err(err).Msg("unknown host header")
+		return nil, internal.ErrBadRequest
 	case org != nil:
 		return org, nil
 	}
