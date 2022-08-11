@@ -26,7 +26,8 @@ func TestAPI_PProfHandler(t *testing.T) {
 		expectedResp func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{db: setupDB(t)}
+	dataDB := setupDB(t)
+	s := &Server{db: dataDB.DB, dataDB: dataDB}
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
@@ -60,6 +61,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 			setupRequest: func(_ *testing.T, req *http.Request) {
 				key, _ := createAccessKey(t, s.db, "user1@example.com")
 				req.Header.Add("Authorization", "Bearer "+key)
+				req.Header.Add("Host", "localhost")
 			},
 			expectedResp: responseBodyAPIErrorWithCode(http.StatusForbidden),
 		},
@@ -77,6 +79,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 				assert.NilError(t, err)
 
 				req.Header.Add("Authorization", "Bearer "+key)
+				req.Header.Add("Host", "localhost")
 			},
 			expectedResp: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, "text/plain; charset=utf-8", resp.Header().Get("Content-Type"))

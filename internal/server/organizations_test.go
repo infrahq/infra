@@ -18,7 +18,13 @@ import (
 func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 	t.Helper()
 	for i := range orgs {
-		err := data.CreateOrganization(db, orgs[i])
+		o, err := data.GetOrganization(db, data.ByName(orgs[i].Name))
+		if err == nil {
+			*orgs[i] = *o
+			continue
+		}
+		orgs[i].SetDefaultDomain()
+		err = data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}
 }

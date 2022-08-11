@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -70,24 +71,17 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
+func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
-
-			// TODO: get this from server
-			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
-			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
-
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
 			authned, err := requireAccessKey(tx, c.Request)
 			if err != nil {
 				sendAPIError(c, err)
 				return
 			}
+
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
+			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
 				Request:       c.Request,
@@ -120,15 +114,15 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 	}
 }
 
-func unauthenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
+func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), db, func(tx *gorm.DB) {
-			// TODO: get this from server
-			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
+		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
+			org, err := getOrgFromRequest(c.Request, srv.dataDB)
 			if err != nil {
 				sendAPIError(c, err)
 				return
 			}
+
 			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
@@ -142,6 +136,21 @@ func unauthenticatedMiddleware(db *gorm.DB) gin.HandlerFunc {
 			c.Next()
 		})
 	}
+}
+
+func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
+		return data.GetOrganization(dataDB.DB, data.ByName(orgName))
+	}
+	org, err := getOrgFromHost(req, dataDB)
+	switch {
+	case err != nil:
+		return nil, internal.ErrBadRequest
+	case org != nil:
+		return org, nil
+	}
+
+	return dataDB.DefaultOrg, nil
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -184,9 +193,15 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 		}
 	}
 
+	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	if err != nil {
+		return u, fmt.Errorf("access kye org lookup: %w", err)
+	}
+
+	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
-		return u, fmt.Errorf("identity for token: %w", err)
+		return u, fmt.Errorf("identity for access key: %w", err)
 	}
 
 	identity.LastSeenAt = time.Now().UTC()
@@ -195,6 +210,7 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 	}
 
 	u.AccessKey = accessKey
+	u.Organization = org
 	u.User = identity
 	return u, nil
 }
@@ -217,4 +233,27 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 		return access.RequestContext{}
 	}
 	return rCtx
+}
+
+func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+	host := req.Header.Get("Host")
+
+	if host == "" {
+		return nil, nil
+	}
+
+hostLookup:
+	org, err := data.GetOrganization(dataDB.DB, data.ByDomain(host))
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			// first, remove port and try again
+			h, p, err := net.SplitHostPort(host)
+			if len(p) > 0 && err == nil {
+				host = h
+				goto hostLookup
+			}
+		}
+		return nil, err
+	}
+	return org, nil
 }

@@ -15,6 +15,7 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
@@ -24,7 +25,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T) *gorm.DB {
+func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_server")
 	if driver == nil {
@@ -43,7 +44,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	})
 
 	db.Statement.Context = data.WithOrg(db.Statement.Context, db.DefaultOrg)
-	return db.DB
+	return db
 }
 
 func issueToken(t *testing.T, db *gorm.DB, identityName string, sessionDuration time.Duration) string {
@@ -90,9 +91,13 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestDBTimeout(t *testing.T) {
-	db := setupDB(t)
+	dataDB := setupDB(t)
 	var ctx context.Context
 	var cancel context.CancelFunc
+
+	srv := newServer(Options{})
+	srv.dataDB = dataDB
+	srv.db = dataDB.DB
 
 	router := gin.New()
 	router.Use(
@@ -104,7 +109,7 @@ func TestDBTimeout(t *testing.T) {
 			c.Request = c.Request.WithContext(ctx)
 			c.Next()
 		},
-		unauthenticatedMiddleware(db),
+		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
 		db, ok := c.MustGet("db").(*gorm.DB)
@@ -244,7 +249,7 @@ func TestRequireAccessKey(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := setupDB(t)
+			db := setupDB(t).DB
 
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Set("db", db)
@@ -329,4 +334,75 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		_, err := data.GetDestination(db, data.ByOptionalUniqueID("nonexistent"))
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
+}
+
+func TestOrgLookupByDomain(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	db := srv.db
+
+	router := gin.New()
+
+	org := &models.Organization{
+		Name:   "The Umbrella Academy",
+		Domain: "umbrella.infrahq.com",
+	}
+	err := data.CreateOrganization(db, org)
+	assert.NilError(t, err)
+
+	router.GET("/foo",
+		unauthenticatedMiddleware(srv),
+		func(ctx *gin.Context) {
+			ctxOrg := data.OrgFromContext(ctx)
+
+			assert.Equal(t, ctxOrg.ID, org.ID)
+			ctx.JSON(200, api.EmptyResponse{})
+		})
+
+	req := httptest.NewRequest("GET", "/foo", nil)
+	req.Header.Add("Host", "umbrella.infrahq.com")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, 200)
+}
+
+func TestMissingOrgErrors(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	router := gin.New()
+
+	router.GET("/foo",
+		unauthenticatedMiddleware(srv),
+		func(ctx *gin.Context) {
+			assert.Assert(t, false, "Shouldn't get here")
+		})
+
+	req := httptest.NewRequest("GET", "/foo", nil)
+	req.Header.Add("Host", "notadomainweknowabout.org")
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusBadRequest)
+
+}
+
+func TestDefaultOrg(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+
+	router := gin.New()
+
+	router.GET("/foo",
+		unauthenticatedMiddleware(srv),
+		func(ctx *gin.Context) {
+			ctx.JSON(200, nil)
+		})
+
+	req := httptest.NewRequest("GET", "/foo", nil)
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusOK)
 }

@@ -208,3 +208,9 @@ func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
 			Where("identities_groups.group_id = ?", groupID)
 	}
 }
+
+func ByDomain(host string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("domain = ?", host)
+	}
+}

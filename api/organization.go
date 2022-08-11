@@ -10,6 +10,7 @@ type Organization struct {
 	Name    string `json:"name"`
 	Created Time   `json:"created"`
 	Updated Time   `json:"updated"`
+	Domain  string `json:"domain"`
 }
 
 type ListOrganizationsRequest struct {

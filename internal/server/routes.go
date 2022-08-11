@@ -54,7 +54,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	// This group of middleware only applies to non-ui routes
 	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
 
-	authn := apiGroup.Group("/", authenticatedMiddleware(a.server.db))
+	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -98,7 +98,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
 	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server.db))
+	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
 	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 

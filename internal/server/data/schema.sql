@@ -105,7 +105,8 @@ CREATE TABLE organizations (
     updated_at timestamp with time zone,
     deleted_at timestamp with time zone,
     name text,
-    created_by bigint
+    created_by bigint,
+    domain text
 );
 
 CREATE TABLE password_reset_tokens (
@@ -201,7 +202,7 @@ ALTER TABLE ONLY providers
 ALTER TABLE ONLY settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
-CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (organization_id, key_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
@@ -216,6 +217,8 @@ CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (organization_id, subjec
 CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_id, name) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) WHERE (deleted_at IS NULL);
 

@@ -60,6 +60,7 @@ func migrations() []*migrator.Migration {
 		addOrganizations(),
 		scopeUniqueIndicesToOrganization(),
 		addDefaultOrganization(),
+		addOrganizationDomain(),
 		// next one here
 	}
 }
@@ -408,7 +409,6 @@ func scopeUniqueIndicesToOrganization() *migrator.Migration {
 		Migrate: func(tx *gorm.DB) error {
 			stmt := `
 DROP INDEX idx_access_keys_name;
-DROP INDEX idx_access_keys_key_id;
 DROP INDEX idx_credentials_identity_id;
 DROP INDEX idx_destinations_unique_id;
 DROP INDEX idx_grant_srp;
@@ -422,7 +422,6 @@ DROP INDEX idx_providers_name;
 
 			stmt = `
 CREATE UNIQUE INDEX idx_access_keys_name on access_keys (organization_id, name) where (deleted_at is null);
-CREATE UNIQUE INDEX idx_access_keys_key_id on access_keys (organization_id, key_id) where (deleted_at is null);
 CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials (organization_id,identity_id) where (deleted_at is null);
 CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations (organization_id,unique_id) where (deleted_at is null);
 CREATE UNIQUE INDEX idx_grant_srp ON grants (organization_id,subject,privilege,resource) where (deleted_at is null);
@@ -498,4 +497,18 @@ VALUES (?, ?, ?, ?);
 			return nil
 		},
 	}
+}
+
+func addOrganizationDomain() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-11T11:52",
+		Migrate: func(db *gorm.DB) error {
+			stmt := `
+ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS domain text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
+`
+			return db.Exec(stmt).Error
+		},
+	}
+
 }
