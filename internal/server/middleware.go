@@ -163,7 +163,8 @@ func orgRequired() gin.HandlerFunc {
 
 func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		org, err := getOrgFromRequest(c.Request, srv.dataDB)
+		// TODO: use a transaction
+		org, err := getOrgFromRequest(c.Request, srv.dataDB.DB, srv.dataDB.DefaultOrg)
 		if err != nil {
 			c.Next()
 			return
@@ -180,11 +181,11 @@ func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
 	}
 }
 
-func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx *gorm.DB, defaultOrg *models.Organization) (*models.Organization, error) {
 	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
-		return data.GetOrganization(dataDB.DB, data.ByName(orgName))
+		return data.GetOrganization(tx, data.ByName(orgName))
 	}
-	return getOrgFromHost(req, dataDB)
+	return getOrgFromHost(req, tx)
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -269,7 +270,7 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 	return rCtx
 }
 
-func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+func getOrgFromHost(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
 	host := req.Host
 
 	logging.Debugf("Host: %s", host)
@@ -278,7 +279,7 @@ func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, e
 	}
 
 hostLookup:
-	org, err := data.GetOrganization(dataDB.DB, data.ByDomain(host))
+	org, err := data.GetOrganization(tx, data.ByDomain(host))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			logging.Debugf("Host not found: %s", host)
