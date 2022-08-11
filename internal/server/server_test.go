@@ -36,7 +36,8 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 		op(t, &options)
 	}
 	s := newServer(options)
-	s.db = setupDB(t)
+	s.dataDB = setupDB(t)
+	s.db = s.dataDB.DB
 
 	// TODO: share more of this with Server.New
 	err := loadDefaultSecretConfig(s.secrets)

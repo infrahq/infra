@@ -24,7 +24,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T) *gorm.DB {
+func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_server")
 	if driver == nil {
@@ -43,7 +43,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	})
 
 	db.Statement.Context = data.WithOrg(db.Statement.Context, db.DefaultOrg)
-	return db.DB
+	return db
 }
 
 func issueToken(t *testing.T, db *gorm.DB, identityName string, sessionDuration time.Duration) string {
@@ -90,12 +90,13 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestDBTimeout(t *testing.T) {
-	db := setupDB(t)
+	dataDB := setupDB(t)
 	var ctx context.Context
 	var cancel context.CancelFunc
 
 	srv := newServer(Options{})
-	srv.db = db
+	srv.dataDB = dataDB
+	srv.db = dataDB.DB
 
 	router := gin.New()
 	router.Use(
@@ -247,7 +248,7 @@ func TestRequireAccessKey(t *testing.T) {
 
 	for k, v := range cases {
 		t.Run(k, func(t *testing.T) {
-			db := setupDB(t)
+			db := setupDB(t).DB
 
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Set("db", db)

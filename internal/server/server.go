@@ -88,8 +88,11 @@ type TLSOptions struct {
 }
 
 type Server struct {
-	options  Options
-	db       *gorm.DB
+	options Options
+	// TODO: consolidate these two
+	db     *gorm.DB
+	dataDB *data.DB
+
 	tel      *Telemetry
 	secrets  map[string]secrets.SecretStorage
 	keys     map[string]secrets.SymmetricKeyProvider
@@ -135,6 +138,7 @@ func New(options Options) (*Server, error) {
 	}
 	// TODO: store data.DB on server
 	server.db = db.DB
+	server.dataDB = db
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.db, db.DefaultOrgSettings.ID)
