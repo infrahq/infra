@@ -630,11 +630,6 @@ func (s Server) loadConfig(config Config) error {
 			Resource: "infra",
 		})
 
-		_, err := s.setupDefaultOrg(tx, config.OrganizationName, config.OrganizationDomain)
-		if err != nil {
-			return fmt.Errorf("loading org: %w", err)
-		}
-
 		if err := s.loadProviders(tx, config.Providers); err != nil {
 			return fmt.Errorf("load providers: %w", err)
 		}
@@ -660,16 +655,6 @@ func (s Server) loadConfig(config Config) error {
 
 		return nil
 	})
-}
-
-func (s Server) setupDefaultOrg(tx *gorm.DB, name, domain string) (*models.Organization, error) {
-	org, err := data.GetOrganization(tx, data.ByNameOrDomain(name, domain))
-	if errors.Is(err, internal.ErrNotFound) {
-		org = &models.Organization{Name: name, Domain: domain}
-		err = data.CreateOrganization(tx, org)
-	}
-
-	return org, err
 }
 
 func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
