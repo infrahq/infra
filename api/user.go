@@ -25,9 +25,10 @@ type User struct {
 }
 
 type ListUsersRequest struct {
-	Name  string   `form:"name"`
-	Group uid.ID   `form:"group"`
-	IDs   []uid.ID `form:"ids"`
+	Name       string   `form:"name"`
+	Group      uid.ID   `form:"group"`
+	IDs        []uid.ID `form:"ids"`
+	ShowSystem bool     `form:"showSystem"`
 	PaginationRequest
 }
 

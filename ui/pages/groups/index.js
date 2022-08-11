@@ -81,7 +81,6 @@ function EmailsSelectInput({
 
   const filteredEmail = [...users.map(u => ({ ...u, user: true }))]
     .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
-    .filter(s => s.name !== 'connector')
     .filter(s => !selectedEmailsId?.includes(s.id))
     .filter(s => !existMembers?.includes(s.id))
 

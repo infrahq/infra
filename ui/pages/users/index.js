@@ -265,7 +265,7 @@ export default function Users() {
     mutate,
   } = useSWR(`/api/users?page=${page}&limit=${limit}`)
   const { admin, loading: adminLoading } = useAdmin()
-  const users = items?.filter(u => u.name !== 'connector')
+  const users = items
   const table = useTable({
     columns,
     data: users || [],

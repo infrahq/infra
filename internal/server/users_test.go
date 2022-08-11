@@ -287,7 +287,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		"no filter": {
-			urlPath: "/api/users",
+			urlPath: "/api/users?showSystem=true",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -310,6 +310,29 @@ func TestAPI_ListUsers(t *testing.T) {
 				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
 			},
 		},
+		"hide connector": {
+			urlPath: "/api/users",
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+				expected := api.ListResponse[api.User]{
+					Count: 6,
+					Items: []api.User{
+						{Name: "AnotherUser@example.com"},
+						{Name: "HAL@example.com"},
+						{Name: "admin@example.com"},
+						{Name: "me@example.com"},
+						{Name: "other-HAL@example.com"},
+						{Name: "other@example.com"},
+					},
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 6},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+			},
+		},
 		"no authorization": {
 			urlPath: "/api/users",
 			setup: func(t *testing.T, req *http.Request) {
@@ -320,7 +343,7 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		"page 2 limit 2": {
-			urlPath: "/api/users?limit=2&page=2",
+			urlPath: "/api/users?limit=2&page=2&showSystem=true",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
 

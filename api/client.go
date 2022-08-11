@@ -165,7 +165,7 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	})
 	return get[ListResponse[User]](c, "/api/users",
 		Query{"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
-			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}})
+			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)}, "showSystem": {strconv.FormatBool(req.ShowSystem)}})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
