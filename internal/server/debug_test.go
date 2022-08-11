@@ -26,7 +26,8 @@ func TestAPI_PProfHandler(t *testing.T) {
 		expectedResp func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	s := &Server{db: setupDB(t)}
+	dataDB := setupDB(t)
+	s := &Server{db: dataDB.DB, dataDB: dataDB}
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {

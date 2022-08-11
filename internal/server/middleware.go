@@ -73,14 +73,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
-
-			// TODO: get this from server
-			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), srv.dataDB.DefaultOrg))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			authned, err := requireAccessKey(tx, c.Request)
@@ -123,13 +116,7 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
-			// TODO: get this from server
-			org, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), srv.dataDB.DefaultOrg))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -184,9 +171,10 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 		}
 	}
 
+	// TODO: this lookup needs to use the orgID of the accessKey.
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
-		return u, fmt.Errorf("identity for token: %w", err)
+		return u, fmt.Errorf("identity for access key: %w", err)
 	}
 
 	identity.LastSeenAt = time.Now().UTC()
