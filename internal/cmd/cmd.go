@@ -143,8 +143,9 @@ $ infra use development
 
 # Use a Kubernetes namespace context
 $ infra use development.kube-system`,
-		Args:  ExactArgs(1),
-		Group: "Core commands:",
+		Args:              ExactArgs(1),
+		Group:             "Core commands:",
+		ValidArgsFunction: getUseCompletion,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
@@ -178,6 +179,43 @@ $ infra use development.kube-system`,
 			return kubernetesSetContext(parts[0], parts[1])
 		},
 	}
+}
+
+func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	client, err := defaultAPIClient()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	_, destinations, grants, err := getUserDestinationGrants(client)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	resources := make(map[string]struct{}, len(grants))
+
+	for _, g := range grants {
+		resources[g.Resource] = struct{}{}
+	}
+
+	validArgs := make([]string, 0, len(resources))
+
+	for r := range resources {
+		var exists bool
+		for _, d := range destinations {
+			if strings.HasPrefix(r, d.Name) {
+				exists = true
+				break
+			}
+		}
+
+		if exists {
+			validArgs = append(validArgs, r)
+		}
+
+	}
+
+	return validArgs, cobra.ShellCompDirectiveNoSpace
+
 }
 
 func canonicalPath(path string) (string, error) {
