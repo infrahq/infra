@@ -69,7 +69,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 	}
 
 	if !showSystem {
-		selectors = append(selectors, data.NotPrivilege(models.InfraConnectorRole))
+		selectors = append(selectors, data.NotInfraConnector())
 	}
 
 	return data.ListGrants(db, p, selectors...)

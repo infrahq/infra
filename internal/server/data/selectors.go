@@ -192,6 +192,12 @@ func NotPrivilege(privilege string) SelectorFunc {
 	}
 }
 
+func NotInfraConnector() SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where(`NOT (privilege = 'connector' AND resource = 'infra')`)
+	}
+}
+
 func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if groupID == 0 {

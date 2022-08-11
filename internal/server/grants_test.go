@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -86,6 +85,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 	createGrant(t, idInGroup, "custom1")
 	createGrant(t, idOther, "custom2")
+	createGrant(t, idOther, "connector")
 
 	groupID := createGroup(t, "humans", idInGroup)
 	otherGroup := createGroup(t, "others", idOther)
@@ -214,9 +214,6 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				if runtime.GOOS == "darwin" {
-					t.Skip("this test doesn't do the right thing on mac due to a different default postgres sort order collation")
-				}
 				connector, err := data.GetIdentity(srv.db, data.ByName("connector"))
 				assert.NilError(t, err)
 
@@ -246,6 +243,11 @@ func TestAPI_ListGrants(t *testing.T) {
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1",
+					},
 				}
 				// check sort
 				assert.Assert(t, sort.SliceIsSorted(grants.Items, func(i, j int) bool {
@@ -260,9 +262,6 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				if runtime.GOOS == "darwin" {
-					t.Skip("this test doesn't do the right thing on mac due to a different default postgres sort order collation")
-				}
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
@@ -281,18 +280,15 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2})
+				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 5, TotalPages: 3})
 			},
 		},
-		"hide connector": {
+		"hide infra connector": {
 			urlPath: "/api/grants",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				if runtime.GOOS == "darwin" {
-					t.Skip("this test doesn't do the right thing on mac due to a different default postgres sort order collation")
-				}
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
@@ -314,6 +310,11 @@ func TestAPI_ListGrants(t *testing.T) {
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1",
+					},
 				}
 				// check sort
 				assert.Assert(t, sort.SliceIsSorted(grants.Items, func(i, j int) bool {
@@ -329,9 +330,6 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Add("Infra-Version", "0.12.3")
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				if runtime.GOOS == "darwin" {
-					t.Skip("this test doesn't do the right thing on mac due to a different default postgres sort order collation")
-				}
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
@@ -348,6 +346,11 @@ func TestAPI_ListGrants(t *testing.T) {
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1",
+					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
@@ -358,9 +361,6 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				if runtime.GOOS == "darwin" {
-					t.Skip("this test doesn't do the right thing on mac due to a different default postgres sort order collation")
-				}
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 				var grants api.ListResponse[api.Grant]
 				err = json.NewDecoder(resp.Body).Decode(&grants)
