@@ -73,14 +73,14 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), srv.dataDB.DefaultOrg))
-			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
-
 			authned, err := requireAccessKey(tx, c.Request)
 			if err != nil {
 				sendAPIError(c, err)
 				return
 			}
+
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
+			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
 				Request:       c.Request,
@@ -116,7 +116,13 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), srv.dataDB.DefaultOrg))
+			org, err := getOrgFromRequest(c.Request, srv.dataDB)
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -129,6 +135,13 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			c.Next()
 		})
 	}
+}
+
+func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
+	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
+		return data.GetOrganization(dataDB.DB, data.ByName(orgName))
+	}
+	return dataDB.DefaultOrg, nil
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -171,7 +184,12 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 		}
 	}
 
-	// TODO: this lookup needs to use the orgID of the accessKey.
+	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	if err != nil {
+		return u, fmt.Errorf("access kye org lookup: %w", err)
+	}
+
+	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
 		return u, fmt.Errorf("identity for access key: %w", err)
@@ -183,6 +201,7 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 	}
 
 	u.AccessKey = accessKey
+	u.Organization = org
 	u.User = identity
 	return u, nil
 }
