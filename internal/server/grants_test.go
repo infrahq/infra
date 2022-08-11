@@ -406,7 +406,8 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 
 	zoologistsID := createGroup(t, "Zoologists", mikhail)
 
-	loginAs := func(userID uid.ID, req *http.Request) {
+	loginAs := func(t *testing.T, userID uid.ID, req *http.Request) {
+		t.Helper()
 		token := &models.AccessKey{
 			IssuedFor:  userID,
 			ProviderID: data.InfraProvider(srv.db).ID,
@@ -460,7 +461,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		"authorized by inherited group matching subject": {
 			urlPath: "/api/grants?resource=butterflies&showInherited=1&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(idInGroup, req)
+				loginAs(t, idInGroup, req)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -480,7 +481,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		"can list grants without a subject": {
 			urlPath: "/api/grants?showInherited=1&resource=dinosaurs", // inherited doesn't mean anything here
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(idInGroup, req)
+				loginAs(t, idInGroup, req)
 
 				err = data.CreateGrant(srv.db, &models.Grant{
 					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
@@ -507,7 +508,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		"user can select grants for groups they are a member of": {
 			urlPath: "/api/grants?resource=butterflies&group=" + zoologistsID.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(mikhail, req)
+				loginAs(t, mikhail, req)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK)
@@ -527,7 +528,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		"user can select their own inherited grants without any special permissions": {
 			urlPath: "/api/grants?showInherited=1&resource=butterflies&user=" + mikhail.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				loginAs(mikhail, req)
+				loginAs(t, mikhail, req)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
