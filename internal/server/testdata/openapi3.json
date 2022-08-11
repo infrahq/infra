@@ -2004,9 +2004,11 @@
             }
           },
           {
+            "description": "if true, this shows the connector and other internal grants",
             "in": "query",
             "name": "showSystem",
             "schema": {
+              "description": "if true, this shows the connector and other internal grants",
               "type": "boolean"
             }
           },
@@ -4943,9 +4945,11 @@
             }
           },
           {
+            "description": "if true, this shows the connector and other internal users",
             "in": "query",
             "name": "showSystem",
             "schema": {
+              "description": "if true, this shows the connector and other internal users",
               "type": "boolean"
             }
           },
