@@ -55,7 +55,8 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 type DB struct {
 	*gorm.DB // embedded for now to minimize the diff
 
-	DefaultOrg         *models.Organization
+	DefaultOrg *models.Organization
+	// DefaultOrgSettings are the settings for DefaultOrg
 	DefaultOrgSettings *models.Settings
 }
 
@@ -111,9 +112,7 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-
-	db.Statement.Context = WithOrg(db.Statement.Context, org)
-	db.DefaultOrgSettings, err = GetSettings(db.DB)
+	db.DefaultOrgSettings, err = getSettingsForOrg(db.DB, org.ID)
 	return err
 }
 
