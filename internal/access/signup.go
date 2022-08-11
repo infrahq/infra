@@ -11,63 +11,40 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// SignupEnabled queries the current state of the service and returns whether
-// or not to allow unauthenticated signup. Signup is enabled if and only if
-// the configuration flag 'enableSignup' is set and no identities, providers,
-// or grants have been configured, both currently and previously.
-func SignupEnabled(c *gin.Context) (bool, error) {
-	// no authorization is setup yet
-	db := getDB(c)
-
-	// use Unscoped because deleting identities, providers or grants should not re-enable signup
-	identities, err := data.GlobalCount[models.Identity](db.Unscoped(), data.NotName(models.InternalInfraConnectorIdentityName))
-	if err != nil {
-		return false, err
-	}
-
-	providers, err := data.GlobalCount[models.Provider](db.Unscoped(), data.NotProviderKind(models.ProviderKindInfra))
-	if err != nil {
-		return false, err
-	}
-
-	grants, err := data.GlobalCount[models.Grant](db.Unscoped(), data.NotPrivilege(models.InfraConnectorRole))
-	if err != nil {
-		return false, err
-	}
-
-	accessKeys, err := data.GlobalCount[models.AccessKey](db.Unscoped())
-	if err != nil {
-		return false, err
-	}
-
-	return identities+providers+grants+accessKeys == 0, nil
-}
-
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
+func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, *models.Organization, error) {
 	// no authorization is setup yet
 	db := getDB(c)
+
+	org := &models.Organization{Name: orgName}
+	org.SetDefaultDomain()
+	if err := data.CreateOrganization(db, org); err != nil {
+		return nil, nil, err
+	}
+	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
 
 	err := checkPasswordRequirements(db, password)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	identity := &models.Identity{Name: name}
+	identity := &models.Identity{
+		Name: name,
+	}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = CreateProviderUser(c, InfraProvider(c), identity)
 	if err != nil {
-		return nil, fmt.Errorf("create provider user")
+		return nil, nil, fmt.Errorf("create provider user")
 	}
 
 	credential := &models.Credential{
@@ -76,7 +53,7 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 	}
 
 	if err := data.CreateCredential(db, credential); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	grants := []*models.Grant{
@@ -96,9 +73,9 @@ func Signup(c *gin.Context, name, password string) (*models.Identity, error) {
 
 	for _, grant := range grants {
 		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return identity, nil
+	return identity, org, nil
 }

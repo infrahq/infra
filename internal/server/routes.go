@@ -99,7 +99,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	// these endpoints do not require authentication
 	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
-	get(a, noAuthn, "/api/signup", a.SignupEnabled)
 	post(a, noAuthn, "/api/signup", a.Signup)
 
 	post(a, noAuthn, "/api/login", a.Login)
@@ -121,6 +120,17 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		omitFromTelemetry:   true,
 		infraHeaderOptional: true,
 	})
+
+	// deprecated endpoints
+	// CLI clients before v0.14.4 rely on sign-up being false to continue with login
+	type SignupEnabledResponse struct {
+		Enabled bool `json:"enabled"`
+	}
+	addDeprecated(a, noAuthn, http.MethodGet, "/api/signup",
+		func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
+			return &SignupEnabledResponse{Enabled: false}, nil
+		},
+	)
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
@@ -242,6 +252,16 @@ func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler Handle
 
 func del[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
+}
+
+func addDeprecated[Req, Res any](a *API, r *gin.RouterGroup, method string, path string, handler HandlerFunc[Req, Res]) {
+	add(a, r, route[Req, Res]{
+		method:            method,
+		path:              path,
+		handler:           handler,
+		omitFromTelemetry: true,
+		omitFromDocs:      true,
+	})
 }
 
 func bind(c *gin.Context, req interface{}) error {

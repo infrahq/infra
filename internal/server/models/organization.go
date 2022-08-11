@@ -28,17 +28,21 @@ func (o *Organization) ToAPI() *api.Organization {
 
 var domainNameReplacer = regexp.MustCompile(`[^\da-zA-Z-]`)
 
-// TODO: is the model the right place for this? Should we do this in CreateOrg ?
+// TODO: let's do this in data.CreateOrganization
 func (o *Organization) SetDefaultDomain() {
 	if len(o.Domain) > 0 {
 		return
 	}
-	o.Domain = domainNameReplacer.ReplaceAllStringFunc(o.Name, func(s string) string {
+	slug := domainNameReplacer.ReplaceAllStringFunc(o.Name, func(s string) string {
 		if s == " " {
 			return "-"
 		}
 		return ""
-	}) + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
+	})
+	if len(slug) > 20 {
+		slug = slug[:20]
+	}
+	o.Domain = slug + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
 }
 
 type OrganizationMember struct {

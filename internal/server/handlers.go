@@ -106,34 +106,12 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	}, nil
 }
 
-func (a *API) SignupEnabled(c *gin.Context, _ *api.EmptyRequest) (*api.SignupEnabledResponse, error) {
-	if !a.server.options.EnableSignup {
-		return &api.SignupEnabledResponse{Enabled: false}, nil
-	}
-
-	signupEnabled, err := access.SignupEnabled(c)
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.SignupEnabledResponse{Enabled: signupEnabled}, nil
-}
-
-func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
+func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
 	if !a.server.options.EnableSignup {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	signupEnabled, err := access.SignupEnabled(c)
-	if err != nil {
-		return nil, err
-	}
-
-	if !signupEnabled {
-		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
-	}
-
-	identity, err := access.Signup(c, r.Name, r.Password)
+	identity, org, err := access.Signup(c, r.Name, r.Password, r.Org)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +120,10 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.User, error) {
 	a.t.Alias(identity.ID.String())
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
-	return identity.ToAPI(), nil
+	return &api.SignupResponse{
+		User:         identity.ToAPI(),
+		Organization: org.ToAPI(),
+	}, nil
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {

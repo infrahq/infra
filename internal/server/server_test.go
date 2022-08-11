@@ -246,12 +246,6 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		assert.NilError(t, err)
 		defer resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
-		var body api.SignupEnabledResponse
-		err = json.NewDecoder(resp.Body).Decode(&body)
-		assert.NilError(t, err)
-
-		assert.Assert(t, body.Enabled)
 	})
 }
 
@@ -334,9 +328,10 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	var buf bytes.Buffer
 	email := "admin@email.com"
 	passwd := "supersecretpassword"
+	org := "infrahq"
 
 	// run signup for "admin@email.com"
-	signupReq := api.SignupRequest{Name: email, Password: passwd}
+	signupReq := api.SignupRequest{Name: email, Password: passwd, Org: org}
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 
@@ -346,7 +341,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
-	signupResp := &api.CreateUserResponse{}
+	signupResp := &api.SignupResponse{}
 	err = json.Unmarshal(resp.Body.Bytes(), signupResp)
 	assert.NilError(t, err)
 
@@ -357,6 +352,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
 	req.Header.Set("Infra-Version", apiVersionLatest)
+	req.Header.Set("Infra-Organization", signupResp.Organization.Name)
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
