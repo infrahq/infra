@@ -429,7 +429,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	err = s.db.Where("name = ?", "okta").First(&okta).Error
 	assert.NilError(t, err)
 
-	defaultOrg := data.MustGetOrgFromContext(s.db.Statement.Context)
+	defaultOrg := data.MustGetOrgFromContext(s.DB().Statement.Context)
 	expected := models.Provider{
 		Model:              okta.Model,     // not relevant
 		CreatedBy:          okta.CreatedBy, // not relevant
@@ -523,24 +523,24 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	user, _, _, err := getTestUserDetails(s.db, "bob")
+	user, _, _, err := getTestUserDetails(s.DB(), "bob")
 	assert.NilError(t, err)
 	assert.Equal(t, "bob", user.Name)
 
-	user, creds, _, err := getTestUserDetails(s.db, "alice")
+	user, creds, _, err := getTestUserDetails(s.DB(), "alice")
 	assert.NilError(t, err)
 	assert.Equal(t, "alice", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
 
-	user, _, key, err := getTestUserDetails(s.db, "sue")
+	user, _, key, err := getTestUserDetails(s.DB(), "sue")
 	assert.NilError(t, err)
 	assert.Equal(t, "sue", user.Name)
 	assert.Equal(t, key.KeyID, "aaaaaaaaaa")
 	chksm := sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
 	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
 
-	user, creds, key, err = getTestUserDetails(s.db, "jim")
+	user, creds, key, err = getTestUserDetails(s.DB(), "jim")
 	assert.NilError(t, err)
 	assert.Equal(t, "jim", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
@@ -674,7 +674,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(3), grants) // 2 from config, 1 internal connector
 
-	identities, err := data.ListIdentities(s.db, nil)
+	identities, err := data.ListIdentities(s.DB(), nil)
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(identities))
 
@@ -709,7 +709,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), grants) // connector
 
-	identities, err = data.ListIdentities(s.db, nil)
+	identities, err = data.ListIdentities(s.DB(), nil)
 	assert.NilError(t, err)
 	assert.Equal(t, 1, len(identities))
 
@@ -787,7 +787,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 0)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err := data.ListIdentities(s.db, nil)
+	identities, err := data.ListIdentities(s.DB(), nil)
 	assert.NilError(t, err)
 	assert.Equal(t, 5, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
 
@@ -839,7 +839,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err = s.db.Where("name = ?", "atko").First(&provider).Error
 	assert.NilError(t, err)
 
-	defaultOrg := data.MustGetOrgFromContext(s.db.Statement.Context)
+	defaultOrg := data.MustGetOrgFromContext(s.DB().Statement.Context)
 	expected := models.Provider{
 		Model:              provider.Model,     // not relevant
 		CreatedBy:          provider.CreatedBy, // not relevant
@@ -883,7 +883,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 2)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err = data.ListIdentities(s.db, nil)
+	identities, err = data.ListIdentities(s.DB(), nil)
 	assert.NilError(t, err)
 	assert.Equal(t, 2, len(identities))
 
@@ -908,23 +908,23 @@ func TestLoadAccessKey(t *testing.T) {
 
 	// create a user and assign them an access key
 	bob := &models.Identity{Name: "bob"}
-	err := data.CreateIdentity(s.db, bob)
+	err := data.CreateIdentity(s.DB(), bob)
 	assert.NilError(t, err)
 
-	err = s.loadAccessKey(s.db, bob, testAccessKey)
+	err = s.loadAccessKey(s.DB(), bob, testAccessKey)
 	assert.NilError(t, err)
 
 	t.Run("access key can be reloaded for the same identity it was issued for", func(t *testing.T) {
-		err = s.loadAccessKey(s.db, bob, testAccessKey)
+		err = s.loadAccessKey(s.DB(), bob, testAccessKey)
 		assert.NilError(t, err)
 	})
 
 	t.Run("duplicate access key ID is rejected", func(t *testing.T) {
 		alice := &models.Identity{Name: "alice"}
-		err = data.CreateIdentity(s.db, alice)
+		err = data.CreateIdentity(s.DB(), alice)
 		assert.NilError(t, err)
 
-		err = s.loadAccessKey(s.db, alice, testAccessKey)
+		err = s.loadAccessKey(s.DB(), alice, testAccessKey)
 		assert.Error(t, err, "access key assigned to \"alice\" is already assigned to another user, a user's access key must have a unique ID")
 	})
 }

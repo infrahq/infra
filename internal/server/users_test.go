@@ -51,11 +51,11 @@ func TestAPI_GetUser(t *testing.T) {
 
 	token := &models.AccessKey{
 		IssuedFor:  idMe,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	accessKeyMe, err := data.CreateAccessKey(srv.db, token)
+	accessKeyMe, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -93,7 +93,7 @@ func TestAPI_GetUser(t *testing.T) {
 		"not authorized": {
 			urlPath: "/api/users/" + idHal.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				key, _ := createAccessKey(t, srv.DB(), "someonenew@example.com")
 
 				req.Header.Set("Authorization", "Bearer "+key)
 			},
@@ -127,11 +127,11 @@ func TestAPI_GetUser(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				token := &models.AccessKey{
 					IssuedFor:  idMe,
-					ProviderID: data.InfraProvider(srv.db).ID,
+					ProviderID: data.InfraProvider(srv.DB()).ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
 
-				key, err := data.CreateAccessKey(srv.db, token)
+				key, err := data.CreateAccessKey(srv.DB(), token)
 				assert.NilError(t, err)
 
 				req.Header.Set("Authorization", "Bearer "+key)
@@ -185,12 +185,12 @@ func TestAPI_ListUsers(t *testing.T) {
 	// TODO: Convert the "humans" group and "AnotherUser" user to call the standard http endpoints
 	//       when the new endpoint to add a user to a group exists
 	humans := models.Group{Name: "humans"}
-	createGroups(t, srv.db, &humans)
+	createGroups(t, srv.DB(), &humans)
 	anotherID := models.Identity{
 		Name:   "AnotherUser@example.com",
 		Groups: []models.Group{humans},
 	}
-	createIdentities(t, srv.db, &anotherID)
+	createIdentities(t, srv.DB(), &anotherID)
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
@@ -445,7 +445,7 @@ func TestAPI_CreateUser(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	existing := &models.Identity{Name: "existing@example.com"}
-	err := data.CreateIdentity(srv.db, existing)
+	err := data.CreateIdentity(srv.DB(), existing)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -486,7 +486,7 @@ func TestAPI_CreateUser(t *testing.T) {
 				Name: "noone@example.com",
 			},
 			setup: func(t *testing.T, req *http.Request) {
-				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				key, _ := createAccessKey(t, srv.DB(), "someonenew@example.com")
 				req.Header.Set("Authorization", "Bearer "+key)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -573,10 +573,10 @@ func TestAPI_CreateUser(t *testing.T) {
 
 // Note this test is the result of a long conversation, don't change lightly.
 func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
-	dataDB := setupDB(t)
-	db := dataDB.DB
+	srv := &Server{db: setupDB(t)}
+	db := srv.DB()
 
-	a := &API{server: &Server{db: db, dataDB: dataDB}}
+	a := &API{server: srv}
 	admin := createAdmin(t, db)
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
@@ -698,10 +698,10 @@ func TestAPI_DeleteUser(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	testUser := &models.Identity{Name: "test"}
-	err := data.CreateIdentity(srv.db, testUser)
+	err := data.CreateIdentity(srv.DB(), testUser)
 	assert.NilError(t, err)
 
-	connector := data.InfraConnectorIdentity(srv.db)
+	connector := data.InfraConnectorIdentity(srv.DB())
 
 	type testCase struct {
 		name     string
@@ -740,7 +740,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 		{
 			name: "can not delete self",
 			setup: func(t *testing.T, req *http.Request) {
-				key, user := createAccessKey(t, srv.db, "usera@example.com")
+				key, user := createAccessKey(t, srv.DB(), "usera@example.com")
 				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", key))
 				req.URL.Path = "/api/users/" + user.ID.String()
 			},
@@ -769,7 +769,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	user := &models.Identity{Name: "salsa@example.com"}
-	err := data.CreateIdentity(srv.db, user)
+	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -813,7 +813,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 			name: "not authorized",
 			body: api.UpdateUserRequest{Password: "new-password"},
 			setup: func(t *testing.T, req *http.Request) {
-				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {

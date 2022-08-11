@@ -22,12 +22,12 @@ func TestAPI_Login(t *testing.T) {
 
 	// setup user to login as
 	user := &models.Identity{Name: "steve"}
-	err := data.CreateIdentity(srv.db, user)
+	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
 
-	p := data.InfraProvider(srv.db)
+	p := data.InfraProvider(srv.DB())
 
-	_, err = data.CreateProviderUser(srv.db, p, user)
+	_, err = data.CreateProviderUser(srv.DB(), p, user)
 	assert.NilError(t, err)
 
 	hash, err := bcrypt.GenerateFromPassword([]byte("hunter2"), bcrypt.MinCost)
@@ -38,7 +38,7 @@ func TestAPI_Login(t *testing.T) {
 		PasswordHash: hash,
 	}
 
-	err = data.CreateCredential(srv.db, userCredential)
+	err = data.CreateCredential(srv.DB(), userCredential)
 	assert.NilError(t, err)
 
 	type testCase struct {

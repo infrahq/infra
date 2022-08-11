@@ -54,17 +54,17 @@ func TestAPI_CreateToken(t *testing.T) {
 				user := &models.Identity{
 					Name: "spike@example.com",
 				}
-				err := data.CreateIdentity(srv.db, user)
+				err := data.CreateIdentity(srv.DB(), user)
 				assert.NilError(t, err)
-				_, err = data.CreateProviderUser(srv.db, data.InfraProvider(srv.db), user)
+				_, err = data.CreateProviderUser(srv.DB(), data.InfraProvider(srv.DB()), user)
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
 					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(srv.db).ID,
+					ProviderID: data.InfraProvider(srv.DB()).ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
-				accessKey, err := data.CreateAccessKey(srv.db, key)
+				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
 				req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -83,15 +83,15 @@ func TestAPI_CreateToken(t *testing.T) {
 				user := &models.Identity{
 					Name: "faye@example.com",
 				}
-				err := data.CreateIdentity(srv.db, user)
+				err := data.CreateIdentity(srv.DB(), user)
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
 					IssuedFor:  user.ID,
-					ProviderID: data.InfraProvider(srv.db).ID,
+					ProviderID: data.InfraProvider(srv.DB()).ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
-				accessKey, err := data.CreateAccessKey(srv.db, key)
+				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
 				req.Header.Set("Authorization", "Bearer "+accessKey)
@@ -105,17 +105,17 @@ func TestAPI_CreateToken(t *testing.T) {
 				user := &models.Identity{
 					Name: "jet@example.com",
 				}
-				err := data.CreateIdentity(srv.db, user)
+				err := data.CreateIdentity(srv.DB(), user)
 				assert.NilError(t, err)
 
 				provider := &models.Provider{
 					Name: "mockta",
 					Kind: models.ProviderKindOIDC,
 				}
-				err = data.CreateProvider(srv.db, provider)
+				err = data.CreateProvider(srv.DB(), provider)
 				assert.NilError(t, err)
 
-				_, err = data.CreateProviderUser(srv.db, provider, user)
+				_, err = data.CreateProviderUser(srv.DB(), provider, user)
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
@@ -123,13 +123,13 @@ func TestAPI_CreateToken(t *testing.T) {
 					ProviderID: provider.ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
-				accessKey, err := data.CreateAccessKey(srv.db, key)
+				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
 				rCtx := access.RequestContext{
 					Request: req,
-					DBTxn:   srv.db,
+					DBTxn:   srv.DB(),
 					Authenticated: access.Authenticated{
 						AccessKey: key,
 						User:      user,
@@ -157,17 +157,17 @@ func TestAPI_CreateToken(t *testing.T) {
 				user := &models.Identity{
 					Name: "ein@example.com",
 				}
-				err := data.CreateIdentity(srv.db, user)
+				err := data.CreateIdentity(srv.DB(), user)
 				assert.NilError(t, err)
 
 				provider := &models.Provider{
 					Name: "mockta-revoked-user",
 					Kind: models.ProviderKindOIDC,
 				}
-				err = data.CreateProvider(srv.db, provider)
+				err = data.CreateProvider(srv.DB(), provider)
 				assert.NilError(t, err)
 
-				_, err = data.CreateProviderUser(srv.db, provider, user)
+				_, err = data.CreateProviderUser(srv.DB(), provider, user)
 				assert.NilError(t, err)
 
 				key := &models.AccessKey{
@@ -175,13 +175,13 @@ func TestAPI_CreateToken(t *testing.T) {
 					ProviderID: provider.ID,
 					ExpiresAt:  time.Now().Add(10 * time.Second),
 				}
-				accessKey, err := data.CreateAccessKey(srv.db, key)
+				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{UserInfoRevoked: true})
 				rCtx := access.RequestContext{
 					Request: req,
-					DBTxn:   srv.db,
+					DBTxn:   srv.DB(),
 					Authenticated: access.Authenticated{
 						AccessKey: key,
 						User:      user,

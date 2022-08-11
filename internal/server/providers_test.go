@@ -30,10 +30,10 @@ func TestAPI_ListProviders(t *testing.T) {
 		Scopes:  []string{"openid", "email"},
 	}
 
-	err := data.CreateProvider(s.db, testProvider)
+	err := data.CreateProvider(s.DB(), testProvider)
 	assert.NilError(t, err)
 
-	dbProviders, err := data.ListProviders(s.db, nil)
+	dbProviders, err := data.ListProviders(s.DB(), nil)
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 
@@ -66,7 +66,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 	createProvider := func(t *testing.T) *models.Provider {
 		t.Helper()
 		p := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
-		err := data.CreateProvider(srv.db, p)
+		err := data.CreateProvider(srv.DB(), p)
 		assert.NilError(t, err)
 		return p
 	}
@@ -107,7 +107,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 		"not authorized": {
 			urlPath: "/api/providers/2341",
 			setup: func(t *testing.T, req *http.Request) {
-				key, _ := createAccessKey(t, srv.db, "someonenew@example.com")
+				key, _ := createAccessKey(t, srv.DB(), "someonenew@example.com")
 				req.Header.Set("Authorization", "Bearer "+key)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -121,7 +121,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 			},
 		},
 		"infra provider can not be deleted": {
-			urlPath: "/api/providers/" + data.InfraProvider(srv.db).ID.String(),
+			urlPath: "/api/providers/" + data.InfraProvider(srv.DB()).ID.String(),
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
 			},
@@ -183,7 +183,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 				ClientSecret: "client-secret",
 			},
 			setup: func(t *testing.T, req *http.Request) {
-				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
@@ -324,7 +324,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		Scopes:  []string{"openid", "email"},
 	}
 
-	err := data.CreateProvider(srv.db, provider)
+	err := data.CreateProvider(srv.DB(), provider)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -372,7 +372,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 				ClientSecret: "client-secret",
 			},
 			setup: func(t *testing.T, req *http.Request) {
-				accessKey, _ := createAccessKey(t, srv.db, "usera@example.com")
+				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})

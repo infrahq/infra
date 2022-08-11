@@ -144,10 +144,10 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	})
 
 	t.Run("MissingIssuedFor", func(t *testing.T) {
-		if srv.db.Dialector.Name() == "postgres" {
+		if srv.DB().Dialector.Name() == "postgres" {
 			t.Skip("not possible with postgres because of FK constraint")
 		}
-		err := srv.db.Create(&models.AccessKey{Name: "testing"}).Error
+		err := srv.DB().Create(&models.AccessKey{Name: "testing"}).Error
 		assert.NilError(t, err)
 
 		accessKeys := run()
@@ -171,7 +171,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	db := srv.db
+	db := srv.DB()
 
 	user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "foo@example.com"}
 	err := data.CreateIdentity(db, user)
