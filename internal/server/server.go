@@ -266,10 +266,14 @@ func (s *Server) listen() error {
 }
 
 func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
+	if server.Addr == "" {
+		server.Addr = "127.0.0.1:"
+	}
 	l, err := net.Listen("tcp", server.Addr)
 	if err != nil {
 		return nil, err
 	}
+	logging.Infof("listening on %s", l.Addr().String())
 
 	s.routines = append(s.routines, routine{
 		run: func() error {
