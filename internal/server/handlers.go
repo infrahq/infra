@@ -189,13 +189,16 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
 func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
 	rCtx := getRequestContext(c)
+
+	if rCtx.Authenticated.AccessKey.ProviderID == access.InfraProvider(c).ID {
+		// no external verification needed
+		logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
+		return nil
+	}
+
 	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx)
 	if err != nil {
 		return err
-	}
-
-	if provider.Name == models.InternalInfraProviderName || provider.Kind == models.ProviderKindInfra {
-		return nil
 	}
 
 	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)
