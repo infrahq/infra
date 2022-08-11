@@ -255,7 +255,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			if api.ErrorStatusCode(err) == 400 && strings.Contains(err.Error(), "cannot remove the last infra admin") {
 				logging.Debugf("%s", err.Error())
 				return Error{
-					Message: "Cannot revoke grant: at least one admin grant must exist",
+					Message: "Cannot revoke grant: at least one Infra admin grant must exist",
 				}
 			}
 			return err
