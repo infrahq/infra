@@ -13,26 +13,20 @@ import (
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, error) {
+func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, *models.Organization, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
 	org := &models.Organization{Name: orgName}
-
 	org.SetDefaultDomain()
 	if err := data.CreateOrganization(db, org); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
 
 	err := checkPasswordRequirements(db, password)
 	if err != nil {
-		return nil, err
-	}
-
-	err = checkPasswordRequirements(db, password)
-	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	identity := &models.Identity{
@@ -40,17 +34,17 @@ func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, e
 	}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = CreateProviderUser(c, InfraProvider(c), identity)
 	if err != nil {
-		return nil, fmt.Errorf("create provider user")
+		return nil, nil, fmt.Errorf("create provider user")
 	}
 
 	credential := &models.Credential{
@@ -59,7 +53,7 @@ func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, e
 	}
 
 	if err := data.CreateCredential(db, credential); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	grants := []*models.Grant{
@@ -79,9 +73,9 @@ func Signup(c *gin.Context, name, password, orgName string) (*models.Identity, e
 
 	for _, grant := range grants {
 		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return identity, nil
+	return identity, org, nil
 }
