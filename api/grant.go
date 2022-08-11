@@ -38,6 +38,7 @@ type ListGrantsRequest struct {
 	Resource      string `form:"resource" example:"production"`
 	Privilege     string `form:"privilege" example:"view"`
 	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
+	ShowSystem    bool   `form:"showSystem"`
 	PaginationRequest
 }
 

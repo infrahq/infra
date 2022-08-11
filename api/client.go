@@ -265,6 +265,7 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 		"resource":      {req.Resource},
 		"privilege":     {req.Privilege},
 		"showInherited": {strconv.FormatBool(req.ShowInherited)},
+		"showSystem":    {strconv.FormatBool(req.ShowSystem)},
 		"page":          {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
