@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -19,9 +21,6 @@ import (
 func TestAPI_CreateToken(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-
-	_, err := data.InitializeSettings(srv.db)
-	assert.NilError(t, err)
 
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
@@ -70,8 +69,12 @@ func TestAPI_CreateToken(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.NilError(t, err)
 				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				respBody := &api.CreateTokenResponse{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+				assert.Assert(t, respBody.Token != "")
 			},
 		},
 		"access key directly created for user not in infra provider": {
@@ -93,7 +96,6 @@ func TestAPI_CreateToken(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.NilError(t, err)
 				assert.Equal(t, resp.Code, http.StatusCreated)
 			},
 		},
@@ -141,8 +143,12 @@ func TestAPI_CreateToken(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.NilError(t, err)
 				assert.Equal(t, resp.Code, http.StatusCreated)
+
+				respBody := &api.CreateTokenResponse{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+				assert.Assert(t, respBody.Token != "")
 			},
 		},
 		"access key for revoked idp user": {
