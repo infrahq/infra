@@ -2,17 +2,21 @@ name: cd / ui
 
 on:
   push:
-    branches:
-      - main
     tags:
       - v*
-    paths:
-      - 'ui/**'
+  workflow_run:
+    workflows:
+      - ci / ui
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   docker:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     env:
       IMAGE: infrahq/ui
       CONTEXT: ui
