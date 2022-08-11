@@ -41,13 +41,6 @@ data:
 {{- end }}
 {{- end }}
 
-{{- if not (hasKey .Values.server.config "organizationName") }}
-    organizationName: "Acme"
-{{- end }}
-{{- if not (hasKey .Values.server.config "organizationDomain") }}
-    organizationDomain: "localhost"
-{{- end }}
-
 {{- if not .Values.server.config.tls }}
     tls:
       ca: "/var/run/secrets/infrahq.com/tls-ca/ca.crt"

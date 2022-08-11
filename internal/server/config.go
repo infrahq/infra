@@ -80,9 +80,6 @@ func (u User) ValidationRules() []validate.ValidationRule {
 }
 
 type Config struct {
-	OrganizationName   string
-	OrganizationDomain string
-
 	Providers []Provider
 	Grants    []Grant
 	Users     []User
@@ -603,12 +600,6 @@ func getKindFromUnstructured(data interface{}) string {
 }
 
 func (s Server) loadConfig(config Config) error {
-	if config.OrganizationName == "" {
-		config.OrganizationName = "Default"
-	}
-	if config.OrganizationDomain == "" {
-		config.OrganizationDomain = "localhost"
-	}
 	if err := validate.Validate(config); err != nil {
 		return err
 	}

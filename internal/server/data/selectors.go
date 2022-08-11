@@ -62,12 +62,6 @@ func ByName(name string) SelectorFunc {
 	}
 }
 
-func ByNameOrDomain(name, domain string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("name = ?", name).Or("domain = ?", domain)
-	}
-}
-
 func ByOptionalUniqueID(nodeID string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if len(nodeID) > 0 {

@@ -299,9 +299,6 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
 	t.Cleanup(data.InvalidateCache)
 
-	opts.Config.OrganizationName = "CLI test"
-	opts.Config.OrganizationDomain = "cli-test"
-
 	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 
 	key, err := os.ReadFile("testdata/pki/localhost.key")
