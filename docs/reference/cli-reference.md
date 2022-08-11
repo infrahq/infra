@@ -35,6 +35,11 @@ $ infra login --provider okta
 # Login with an access key
 $ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
 $ infra login
+
+# Login with pre-set provider and server
+$ export INFRA_SERVER=example.infrahq.com
+$ export INFRA_PROVIDER=google
+$ infra login
 ```
 
 #### Options
