@@ -5,6 +5,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+const DefaultOrganizationName = "Default"
+
 type Organization struct {
 	Model
 

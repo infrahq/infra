@@ -22,8 +22,6 @@ func TestSignupEnabled(t *testing.T) {
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = (&http.Request{}).WithContext(context.Background())
 		c.Set("db", db)
-		_, err := data.InitializeSettings(db)
-		assert.NilError(t, err)
 		return c, db
 	}
 

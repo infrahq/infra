@@ -12,7 +12,9 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
+func initializeSettings(db *gorm.DB) (*models.Settings, error) {
+	org := OrgFromContext(db.Statement.Context)
+
 	settings, err := GetSettings(db)
 	if settings != nil {
 		return settings, err
@@ -45,12 +47,13 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 	}
 
 	settings = &models.Settings{
-		PrivateJWK: secs,
-		PublicJWK:  pubs,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		PrivateJWK:         secs,
+		PublicJWK:          pubs,
 	}
 
 	// Attrs() assigns the field iff the record is not found
-	if err := db.FirstOrCreate(&settings).Error; err != nil {
+	if err := db.Where("organization_id = ?", org.ID).FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
 
@@ -58,8 +61,10 @@ func InitializeSettings(db *gorm.DB) (*models.Settings, error) {
 }
 
 func GetSettings(db *gorm.DB) (*models.Settings, error) {
+	org := OrgFromContext(db.Statement.Context)
+
 	var settings models.Settings
-	if err := db.First(&settings).Error; err != nil {
+	if err := db.Where("organization_id = ?", org.ID).First(&settings).Error; err != nil {
 		return nil, err
 	}
 
@@ -67,5 +72,13 @@ func GetSettings(db *gorm.DB) (*models.Settings, error) {
 }
 
 func SaveSettings(db *gorm.DB, settings *models.Settings) error {
+	// TODO: clean this up by having the query use the organization_id instead of the
+	// primary key in the WHERE.
+	existing, err := GetSettings(db)
+	if err != nil {
+		return err
+	}
+	settings.ID = existing.ID
+
 	return save(db, settings)
 }

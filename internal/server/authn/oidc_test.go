@@ -187,7 +187,13 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
-				err = db.Model(user).Association("Groups").Append([]models.Group{{Name: "Foo"}, {Name: "existing3"}})
+
+				for _, name := range []string{"Foo", "existing3"} {
+					group := &models.Group{Name: name}
+					err = data.CreateGroup(db, group)
+					assert.NilError(t, err)
+					user.Groups = append(user.Groups, *group)
+				}
 				assert.NilError(t, err)
 				assert.Assert(t, len(user.Groups) == 2)
 

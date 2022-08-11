@@ -24,12 +24,10 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	db, err := NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	InfraProvider(db)
-
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 	t.Cleanup(InvalidateCache)
 
-	return db
+	return db.DB
 }
 
 var isEnvironmentCI = os.Getenv("CI") != ""
@@ -139,13 +137,12 @@ func TestDatabaseSelectors(t *testing.T) {
 }
 
 func TestPaginationSelector(t *testing.T) {
-	letters := make([]string, 0, 26)
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+		letters := make([]string, 0, 26)
 		for r := 'a'; r < 'a'+26; r++ {
 			letters = append(letters, string(r))
 			g := &models.Identity{Name: string(r)}
-			err := db.Create(g).Error
-			assert.NilError(t, err)
+			assert.NilError(t, CreateIdentity(db, g))
 		}
 
 		p := models.Pagination{Page: 1, Limit: 10}

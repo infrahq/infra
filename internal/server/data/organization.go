@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -13,7 +14,7 @@ type orgCtxKey struct{}
 // OrgFromContext returns the Organization stored using WithOrg.
 func OrgFromContext(ctx context.Context) *models.Organization {
 	org, ok := ctx.Value(orgCtxKey{}).(*models.Organization)
-	if !ok {
+	if !ok || org == nil {
 		// TODO(orgs): panic("no org")
 		return &models.Organization{}
 	}
@@ -28,7 +29,26 @@ func WithOrg(ctx context.Context, org *models.Organization) context.Context {
 }
 
 func CreateOrganization(db *gorm.DB, org *models.Organization) error {
-	return add(db, org)
+	err := add(db, org)
+	if err != nil {
+		return fmt.Errorf("creating org: %w", err)
+	}
+
+	db.Statement.Context = WithOrg(db.Statement.Context, org)
+	_, err = initializeSettings(db)
+	if err != nil {
+		return fmt.Errorf("initializing org settings: %w", err)
+	}
+
+	infraProvider := &models.Provider{
+		Name:               models.InternalInfraProviderName,
+		Kind:               models.ProviderKindInfra,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	if err := CreateProvider(db, infraProvider); err != nil {
+		return fmt.Errorf("failed to create infra provider: %w", err)
+	}
+	return nil
 }
 
 func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {

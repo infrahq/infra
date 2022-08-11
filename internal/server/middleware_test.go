@@ -39,14 +39,11 @@ func setupDB(t *testing.T) *gorm.DB {
 	t.Cleanup(data.InvalidateCache)
 
 	t.Cleanup(func() {
-		sqlDB, err := db.DB()
-		assert.NilError(t, err)
-		assert.NilError(t, sqlDB.Close())
+		assert.NilError(t, db.Close())
 	})
 
-	// create the provider if it's missing.
-	data.InfraProvider(db)
-	return db
+	db.Statement.Context = data.WithOrg(db.Statement.Context, db.DefaultOrg)
+	return db.DB
 }
 
 func issueToken(t *testing.T, db *gorm.DB, identityName string, sessionDuration time.Duration) string {

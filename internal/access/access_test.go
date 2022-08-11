@@ -31,7 +31,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	assert.NilError(t, err)
 	t.Cleanup(data.InvalidateCache)
 
-	return db
+	return db.DB
 }
 
 func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provider) {

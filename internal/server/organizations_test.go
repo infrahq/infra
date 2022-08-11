@@ -77,7 +77,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 				var actual api.ListResponse[api.Organization]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				assert.Equal(t, len(actual.Items), 3)
+				assert.Equal(t, len(actual.Items), 4)
 			},
 		},
 		"page 2": {
@@ -91,8 +91,8 @@ func TestAPI_ListOrganizations(t *testing.T) {
 				var actual api.ListResponse[api.Organization]
 				err := json.NewDecoder(resp.Body).Decode(&actual)
 				assert.NilError(t, err)
-				assert.Equal(t, len(actual.Items), 1)
-				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2, TotalCount: 3, TotalPages: 2}, actual.PaginationResponse)
+				assert.Equal(t, len(actual.Items), 2)
+				assert.Equal(t, api.PaginationResponse{Page: 2, Limit: 2, TotalCount: 4, TotalPages: 2}, actual.PaginationResponse)
 			},
 		},
 	}

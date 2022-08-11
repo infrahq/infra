@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/uid"
 )
 
 func migrations() []*migrator.Migration {
@@ -57,6 +59,7 @@ func migrations() []*migrator.Migration {
 		addFieldsFor_0_14_3(),
 		addOrganizations(),
 		scopeUniqueIndicesToOrganization(),
+		addDefaultOrganization(),
 		// next one here
 	}
 }
@@ -457,6 +460,42 @@ DROP SEQUENCE IF EXISTS settings_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS password_reset_tokens_id_seq CASCADE;
 `
 			return tx.Exec(stmt).Error
+		},
+	}
+}
+
+func addDefaultOrganization() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-10T13:35",
+		Migrate: func(tx *gorm.DB) error {
+
+			stmt := `
+INSERT INTO organizations(id, name, created_at, updated_at)
+VALUES (?, ?, ?, ?);
+`
+			orgID := uid.New()
+			now := time.Now()
+			if err := tx.Exec(stmt, orgID, "Default", now, now).Error; err != nil {
+				return err
+			}
+
+			// postgres only allows a single statement when using parameters
+			for _, stmt := range []string{
+				`UPDATE access_keys SET organization_id = ?;`,
+				`UPDATE credentials SET organization_id = ?;`,
+				`UPDATE destinations SET organization_id = ?;`,
+				`UPDATE grants SET organization_id = ?;`,
+				`UPDATE groups SET organization_id = ?;`,
+				`UPDATE identities SET organization_id = ?;`,
+				`UPDATE providers SET organization_id = ?;`,
+				`UPDATE settings SET organization_id = ?;`,
+				`UPDATE password_reset_tokens SET organization_id = ?;`,
+			} {
+				if err := tx.Exec(stmt, orgID).Error; err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	}
 }

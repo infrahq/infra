@@ -26,7 +26,7 @@ import (
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.DB, error) {
+func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
@@ -41,7 +41,30 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*gorm.
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	return db, nil
+	// TODO: initialize, and populate settings and org on DB
+	dataDB := &DB{DB: db}
+	if err := initialize(dataDB); err != nil {
+		return nil, fmt.Errorf("initialize database: %w", err)
+	}
+
+	return dataDB, nil
+}
+
+// DB wraps the underlying database and provides access to the default org,
+// and settings.
+type DB struct {
+	*gorm.DB // embedded for now to minimize the diff
+
+	DefaultOrg         *models.Organization
+	DefaultOrgSettings *models.Settings
+}
+
+func (db *DB) Close() error {
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database conn to close: %w", err)
+	}
+	return sqlDB.Close()
 }
 
 // newRawDB creates a new database connection without running migrations.
@@ -65,6 +88,28 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+func initialize(db *DB) error {
+	org, err := GetOrganization(db.DB, ByName(models.DefaultOrganizationName))
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		org = &models.Organization{
+			Name:      models.DefaultOrganizationName,
+			CreatedBy: models.CreatedBySystem,
+		}
+		if err := CreateOrganization(db.DB, org); err != nil {
+			return fmt.Errorf("failed to create default organization: %w", err)
+		}
+	case err != nil:
+		return fmt.Errorf("failed to get default organization: %w", err)
+	}
+
+	db.DefaultOrg = org
+
+	db.Statement.Context = WithOrg(db.Statement.Context, org)
+	db.DefaultOrgSettings, err = GetSettings(db.DB)
+	return err
 }
 
 func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
@@ -315,17 +360,6 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 	org := OrgFromContext(db.Statement.Context)
 	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
 	if err != nil {
-		if errors.Is(err, internal.ErrNotFound) {
-			p := &models.Provider{
-				Name:               models.InternalInfraProviderName,
-				Kind:               models.ProviderKindInfra,
-				OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
-			}
-			if err := add(db, p); err != nil {
-				logging.L.Panic().Err(err).Msg("failed to create infra provider")
-			}
-			return p
-		}
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
 		return nil // unreachable, the line above panics
 	}

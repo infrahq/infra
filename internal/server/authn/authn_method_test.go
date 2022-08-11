@@ -29,10 +29,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	assert.NilError(t, err)
 	t.Cleanup(data.InvalidateCache)
 
-	// create the provider if it's missing
-	data.InfraProvider(db)
-
-	return db
+	return db.DB
 }
 
 func TestLogin(t *testing.T) {

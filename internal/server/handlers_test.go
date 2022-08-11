@@ -167,9 +167,6 @@ func TestWellKnownKWKs(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	_, err := data.InitializeSettings(srv.db)
-	assert.NilError(t, err)
-
 	type testCase struct {
 		name     string
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)

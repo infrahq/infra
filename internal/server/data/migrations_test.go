@@ -401,6 +401,35 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-08-10T13:35"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				stmt := `SELECT id, name, created_at, updated_at FROM organizations`
+				rows, err := db.Raw(stmt).Rows()
+				assert.NilError(t, err)
+
+				var orgs []models.Organization
+				for rows.Next() {
+					org := models.Organization{}
+					err := rows.Scan(&org.ID, &org.Name, &org.CreatedAt, &org.UpdatedAt)
+					assert.NilError(t, err)
+					orgs = append(orgs, org)
+				}
+
+				now := time.Now()
+				expected := []models.Organization{
+					{
+						Model: models.Model{
+							ID:        99,
+							CreatedAt: now,
+							UpdatedAt: now,
+						},
+						Name: "Default",
+					},
+				}
+				assert.DeepEqual(t, orgs, expected, cmpModel)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

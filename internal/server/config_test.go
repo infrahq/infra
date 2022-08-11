@@ -429,16 +429,18 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	err = s.db.Where("name = ?", "okta").First(&okta).Error
 	assert.NilError(t, err)
 
+	defaultOrg := data.OrgFromContext(s.db.Statement.Context)
 	expected := models.Provider{
-		Model:        okta.Model,     // not relevant
-		CreatedBy:    okta.CreatedBy, // not relevant
-		Name:         "okta",
-		URL:          "demo.okta.com",
-		ClientID:     "client-id",
-		ClientSecret: "client-secret",
-		Kind:         models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:      "dev.okta.com/oauth2/default/v1/token",
-		Scopes:       []string{"openid", "email"},
+		Model:              okta.Model,     // not relevant
+		CreatedBy:          okta.CreatedBy, // not relevant
+		Name:               "okta",
+		URL:                "demo.okta.com",
+		ClientID:           "client-id",
+		ClientSecret:       "client-secret",
+		Kind:               models.ProviderKindOIDC, // the kind gets the default value
+		AuthURL:            "dev.okta.com/oauth2/default/v1/token",
+		Scopes:             []string{"openid", "email"},
+		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
 	cmpProvider := cmp.Options{
@@ -457,15 +459,16 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	expected = models.Provider{
-		Model:        azure.Model,     // not relevant
-		CreatedBy:    azure.CreatedBy, // not relevant
-		Name:         "azure",
-		URL:          "demo.azure.com",
-		ClientID:     "client-id",
-		ClientSecret: "client-secret",
-		Kind:         models.ProviderKindAzure, // when specified, the kind is set
-		AuthURL:      "demo.azure.com/oauth2/v2.0/authorize",
-		Scopes:       []string{"openid", "email"},
+		Model:              azure.Model,     // not relevant
+		CreatedBy:          azure.CreatedBy, // not relevant
+		Name:               "azure",
+		URL:                "demo.azure.com",
+		ClientID:           "client-id",
+		ClientSecret:       "client-secret",
+		Kind:               models.ProviderKindAzure, // when specified, the kind is set
+		AuthURL:            "demo.azure.com/oauth2/v2.0/authorize",
+		Scopes:             []string{"openid", "email"},
+		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
 	assert.DeepEqual(t, azure, expected, cmpProvider)
@@ -475,18 +478,19 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	expected = models.Provider{
-		Model:            google.Model,     // not relevant
-		CreatedBy:        google.CreatedBy, // not relevant
-		Name:             "google",
-		URL:              "accounts.google.com",
-		ClientID:         "client-id",
-		ClientSecret:     "client-secret",
-		Kind:             models.ProviderKindGoogle,
-		AuthURL:          "https://accounts.google.com/o/oauth2/v2/auth",
-		Scopes:           []string{"openid", "email"},
-		PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-		ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-		DomainAdminEmail: "admin@example.com",
+		Model:              google.Model,     // not relevant
+		CreatedBy:          google.CreatedBy, // not relevant
+		Name:               "google",
+		URL:                "accounts.google.com",
+		ClientID:           "client-id",
+		ClientSecret:       "client-secret",
+		Kind:               models.ProviderKindGoogle,
+		AuthURL:            "https://accounts.google.com/o/oauth2/v2/auth",
+		Scopes:             []string{"openid", "email"},
+		PrivateKey:         "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+		ClientEmail:        "example@tenant.iam.gserviceaccount.com",
+		DomainAdminEmail:   "admin@example.com",
+		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
 	assert.DeepEqual(t, google, expected, cmpProvider)
@@ -834,16 +838,18 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err = s.db.Where("name = ?", "atko").First(&provider).Error
 	assert.NilError(t, err)
 
+	defaultOrg := data.OrgFromContext(s.db.Statement.Context)
 	expected := models.Provider{
-		Model:        provider.Model,     // not relevant
-		CreatedBy:    provider.CreatedBy, // not relevant
-		Name:         "atko",
-		URL:          "demo.atko.com",
-		ClientID:     "client-id-2",
-		ClientSecret: "client-secret-2",
-		Kind:         models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:      "demo.okta.com/v1/auth",
-		Scopes:       []string{"openid", "email", "groups"},
+		Model:              provider.Model,     // not relevant
+		CreatedBy:          provider.CreatedBy, // not relevant
+		Name:               "atko",
+		URL:                "demo.atko.com",
+		ClientID:           "client-id-2",
+		ClientSecret:       "client-secret-2",
+		Kind:               models.ProviderKindOIDC, // the kind gets the default value
+		AuthURL:            "demo.okta.com/v1/auth",
+		Scopes:             []string{"openid", "email", "groups"},
+		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
 	cmpProvider := cmp.Options{

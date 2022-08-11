@@ -45,7 +45,7 @@ func TestAPI_ListGroups(t *testing.T) {
 		others = models.Group{Name: "others"}
 	)
 
-	createGroups(t, srv.db, &humans, &second)
+	createGroups(t, srv.db, &humans, &second, &others)
 
 	var (
 		idInGroup = models.Identity{

@@ -14,9 +14,7 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/pki"
 	"github.com/infrahq/infra/uid"
 )
@@ -113,18 +111,5 @@ func requireMutualTLSWorks(t *testing.T, clientKeypair *pki.KeyPair, cp pki.Cert
 
 // nolint:unused
 func setupDB(t *testing.T) *gorm.DB {
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-
-	patch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver, nil)
-	assert.NilError(t, err)
-
-	err = data.CreateProvider(db, &models.Provider{
-		Name:      models.InternalInfraProviderName,
-		CreatedBy: models.CreatedBySystem,
-	})
-	assert.NilError(t, err)
-
-	return db
+	return nil
 }
