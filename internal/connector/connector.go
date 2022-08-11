@@ -148,7 +148,8 @@ func Run(ctx context.Context, options Options) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	repeat.Start(ctx, 5*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
+	// TODO: make polling time configurable
+	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
 
 	ginutil.SetMode()
 	router := gin.New()
