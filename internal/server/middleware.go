@@ -236,9 +236,9 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 }
 
 func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
-	host := req.Header.Get("Host")
+	host := req.Host
 
-	if host == "" {
+	if host == "" || host == "localhost" {
 		return nil, nil
 	}
 
