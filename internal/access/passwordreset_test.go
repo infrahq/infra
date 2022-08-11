@@ -13,17 +13,10 @@ import (
 func TestPasswordResetFlow(t *testing.T) {
 	c, db, _ := setupAccessTestContext(t)
 
-	err := data.SaveSettings(db, &models.Settings{
-		LengthMin: 8,
-	})
-	assert.NilError(t, err)
-
-	user := &models.Identity{
-		Name: "joe@example.com",
-	}
+	user := &models.Identity{Name: "joe@example.com"}
 
 	// setup user
-	err = CreateIdentity(c, user)
+	err := CreateIdentity(c, user)
 	assert.NilError(t, err)
 
 	err = data.CreateCredential(db, &models.Credential{
