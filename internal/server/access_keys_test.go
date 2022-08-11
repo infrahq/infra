@@ -142,29 +142,6 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 		assert.Assert(t, accessKeys.Count != 0)
 		assert.Assert(t, accessKeys.Items != nil)
 	})
-
-	t.Run("MissingIssuedFor", func(t *testing.T) {
-		if srv.DB().Dialector.Name() == "postgres" {
-			t.Skip("not possible with postgres because of FK constraint")
-		}
-		err := srv.DB().Create(&models.AccessKey{Name: "testing"}).Error
-		assert.NilError(t, err)
-
-		accessKeys := run()
-		assert.Assert(t, accessKeys.Count != 0)
-		assert.Assert(t, accessKeys.Items != nil)
-
-		var accessKey *api.AccessKey
-		for i := range accessKeys.Items {
-			if accessKeys.Items[i].Name == "testing" {
-				accessKey = &accessKeys.Items[i]
-			}
-		}
-
-		assert.Assert(t, accessKey.Name == "testing")
-		assert.Assert(t, accessKey.IssuedFor == 0)
-		assert.Assert(t, accessKey.IssuedForName == "")
-	})
 }
 
 func TestAPI_ListAccessKeys(t *testing.T) {
