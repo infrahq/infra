@@ -344,7 +344,7 @@ func TestMigration_WithUseTransactionsShouldRollback(t *testing.T) {
 
 		// Migration should return an error and not leave around a Book table
 		err := m.Migrate()
-		assert.Error(t, err, "this transaction should be rolled back")
+		assert.ErrorContains(t, err, "this transaction should be rolled back")
 		assert.Assert(t, !HasTable(db, "books"))
 	}, "postgres", "sqlite3", "mssql")
 }

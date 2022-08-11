@@ -389,6 +389,18 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				assert.DeepEqual(t, settings, expected)
 			},
 		},
+		{
+			label: testCaseLine("2022-07-27T15:54"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// column changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine("2022-08-04T17:72"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -404,7 +416,9 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
-		db := setupDB(t, postgresDriver(t))
+		patch.ModelsSymmetricKey(t)
+		db, err := NewDB(postgresDriver(t), nil)
+		assert.NilError(t, err)
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
 
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)

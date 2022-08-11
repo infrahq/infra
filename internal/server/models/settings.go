@@ -6,6 +6,7 @@ import (
 
 type Settings struct {
 	Model
+	OrganizationMember
 
 	PrivateJWK EncryptedAtRestBytes
 	PublicJWK  []byte

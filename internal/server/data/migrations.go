@@ -55,6 +55,8 @@ func migrations() []*migrator.Migration {
 		dropDeletedProviderUsers(),
 		removeDeletedIdentitiesFromGroups(),
 		addFieldsFor_0_14_3(),
+		addOrganizations(),
+		scopeUniqueIndicesToOrganization(),
 		// next one here
 	}
 }
@@ -273,8 +275,29 @@ func addFieldsFor_0_14_3() *migrator.Migration {
 			if err := tx.AutoMigrate(&models.Settings{}); err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.Organization{}); err != nil {
-				return err
+			if !migrator.HasTable(tx, "organizations") {
+				if err := tx.Exec(`
+CREATE TABLE organizations (
+    id bigint NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    name text,
+    created_by bigint
+);
+CREATE SEQUENCE organizations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER SEQUENCE organizations_id_seq OWNED BY organizations.id;
+ALTER TABLE ONLY organizations ALTER COLUMN id SET DEFAULT nextval('organizations_id_seq'::regclass);
+ALTER TABLE ONLY organizations ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) WHERE (deleted_at IS NULL);
+				`).Error; err != nil {
+					return err
+				}
 			}
 			if err := tx.AutoMigrate(&models.AccessKey{}); err != nil {
 				return err
@@ -291,8 +314,29 @@ func addFieldsFor_0_14_3() *migrator.Migration {
 			if err := tx.AutoMigrate(&models.Group{}); err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.PasswordResetToken{}); err != nil {
-				return err
+			if !migrator.HasTable(tx, "password_reset_tokens") {
+				err := tx.Exec(`
+CREATE TABLE password_reset_tokens (
+    id bigint NOT NULL,
+    token text,
+    identity_id bigint,
+    expires_at timestamp with time zone
+);
+CREATE SEQUENCE password_reset_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+ALTER SEQUENCE password_reset_tokens_id_seq OWNED BY password_reset_tokens.id;
+ALTER TABLE ONLY password_reset_tokens ALTER COLUMN id SET DEFAULT nextval('password_reset_tokens_id_seq'::regclass);
+ALTER TABLE ONLY password_reset_tokens
+    ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
+CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
+`).Error
+				if err != nil {
+					return err
+				}
 			}
 
 			if err := tx.Exec(`
@@ -329,6 +373,90 @@ ALTER TABLE provider_users ADD CONSTRAINT provider_users_pkey
 			}
 
 			return nil
+		},
+	}
+}
+
+func addOrganizations() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-07-27T15:54",
+		Migrate: func(tx *gorm.DB) error {
+			logging.Debugf("migrating orgs")
+
+			stmt := `
+ALTER TABLE IF EXISTS access_keys ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS credentials ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS destinations ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS grants ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS groups ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS identities ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS providers ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS settings ADD COLUMN IF NOT EXISTS organization_id bigint;
+ALTER TABLE IF EXISTS password_reset_tokens ADD COLUMN IF NOT EXISTS organization_id bigint;
+`
+			return tx.Exec(stmt).Error
+		},
+	}
+}
+
+func scopeUniqueIndicesToOrganization() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-04T17:72",
+		Migrate: func(tx *gorm.DB) error {
+			stmt := `
+DROP INDEX idx_access_keys_name;
+DROP INDEX idx_access_keys_key_id;
+DROP INDEX idx_credentials_identity_id;
+DROP INDEX idx_destinations_unique_id;
+DROP INDEX idx_grant_srp;
+DROP INDEX idx_groups_name;
+DROP INDEX idx_identities_name;
+DROP INDEX idx_providers_name;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+CREATE UNIQUE INDEX idx_access_keys_name on access_keys (organization_id, name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_access_keys_key_id on access_keys (organization_id, key_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials (organization_id,identity_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations (organization_id,unique_id) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_grant_srp ON grants (organization_id,subject,privilege,resource) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_groups_name ON groups (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_identities_name ON identities (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX idx_providers_name ON providers (organization_id,name) where (deleted_at is null);
+CREATE UNIQUE INDEX settings_org_id ON settings (organization_id) where deleted_at is null;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_provider;
+ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_group;
+ALTER TABLE access_keys DROP CONSTRAINT fk_access_keys_issued_for_identity;
+`
+			if err := tx.Exec(stmt).Error; err != nil {
+				return err
+			}
+
+			stmt = `
+DROP SEQUENCE IF EXISTS access_keys_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS credentials_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS destinations_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS encryption_keys_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS grants_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS groups_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS identities_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS organizations_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS providers_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS settings_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS password_reset_tokens_id_seq CASCADE;
+`
+			return tx.Exec(stmt).Error
 		},
 	}
 }

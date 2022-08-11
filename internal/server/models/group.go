@@ -7,6 +7,7 @@ import (
 
 type Group struct {
 	Model
+	OrganizationMember
 
 	Name              string `gorm:"uniqueIndex:idx_groups_name,where:deleted_at is NULL"`
 	CreatedBy         uid.ID

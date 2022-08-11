@@ -50,6 +50,12 @@ func ByOptionalIDs(ids []uid.ID) SelectorFunc {
 	}
 }
 
+func ByOrgID(orgID uid.ID) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("organization_id = ?", orgID)
+	}
+}
+
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name)

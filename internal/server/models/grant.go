@@ -34,6 +34,7 @@ const BasePermissionConnect = "connect"
 //
 type Grant struct {
 	Model
+	OrganizationMember
 
 	Subject   uid.PolymorphicID `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
 	Privilege string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission

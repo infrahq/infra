@@ -214,3 +214,16 @@ func TestCreateTransactionError(t *testing.T) {
 		assert.NilError(t, err)
 	})
 }
+
+func TestSetOrg(t *testing.T) {
+	model := &models.AccessKey{}
+	org := &models.Organization{}
+	org.ID = 123456
+
+	db := &gorm.DB{}
+	db.Statement = &gorm.Statement{
+		Context: WithOrg(context.Background(), org),
+	}
+	setOrg(db, model)
+	assert.Equal(t, model.OrganizationID, uid.ID(123456))
+}
