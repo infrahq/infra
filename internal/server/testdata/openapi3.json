@@ -619,6 +619,12 @@
           "items": {
             "items": {
               "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "domain": {
                   "type": "string"
                 },
@@ -629,6 +635,12 @@
                   "type": "string"
                 },
                 "name": {
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
                   "type": "string"
                 }
               },
@@ -824,6 +836,12 @@
       },
       "Organization": {
         "properties": {
+          "created": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
           "domain": {
             "type": "string"
           },
@@ -834,6 +852,12 @@
             "type": "string"
           },
           "name": {
+            "type": "string"
+          },
+          "updated": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
             "type": "string"
           }
         }
