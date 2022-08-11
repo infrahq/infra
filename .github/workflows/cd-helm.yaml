@@ -8,7 +8,7 @@ on:
       - 'helm/**'
   workflow_dispatch:
     inputs:
-      OVERRIDE_EXISTING:
+      override-chart:
         type: boolean
         default: false
         required: false
@@ -41,7 +41,7 @@ jobs:
           name: helm
       - run: |
           for chart in *.tgz; do
-            if aws s3 ls s3://${{ env.HELM_BUCKET }}/$chart && ! ${{ inputs.OVERRIDE_EXISTING }} ; then
+            if aws s3 ls s3://${{ env.HELM_BUCKET }}/$chart && ! ${{ inputs.override-chart }} ; then
               echo "Skipping $chart which already exists."
               continue
             fi
