@@ -158,7 +158,7 @@ func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
 		logging.Errorf("agent failed to get user destination grants: %v\n", err)
 		cancel()
 	}
-	if err := writeKubeconfig(user, destinations.Items, grants.Items); err != nil {
+	if err := writeKubeconfig(user, destinations, grants); err != nil {
 		logging.Errorf("agent failed to update kube config: %v\n", err)
 		cancel()
 	}

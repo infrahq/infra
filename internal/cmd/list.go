@@ -41,7 +41,7 @@ func list(cli *CLI) error {
 	}
 
 	gs := make(map[string]map[string]struct{})
-	for _, g := range grants.Items {
+	for _, g := range grants {
 		// aggregate privileges
 		if gs[g.Resource] == nil {
 			gs[g.Resource] = make(map[string]struct{})
@@ -64,7 +64,7 @@ func list(cli *CLI) error {
 		}
 
 		var exists bool
-		for _, d := range destinations.Items {
+		for _, d := range destinations {
 			if strings.HasPrefix(k, d.Name) {
 				exists = true
 				break
@@ -104,10 +104,10 @@ func list(cli *CLI) error {
 		cli.Output("You have not been granted access to any active destinations")
 	}
 
-	return writeKubeconfig(user, destinations.Items, grants.Items)
+	return writeKubeconfig(user, destinations, grants)
 }
 
-func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[api.Destination], *api.ListResponse[api.Grant], error) {
+func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination, []api.Grant, error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return nil, nil, nil, err
@@ -122,12 +122,12 @@ func getUserDestinationGrants(client *api.Client) (*api.User, *api.ListResponse[
 		return nil, nil, nil, err
 	}
 
-	grants, err := client.ListGrants(api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
+	grants, err := listAll(client.ListGrants, api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	destinations, err := client.ListDestinations(api.ListDestinationsRequest{})
+	destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
