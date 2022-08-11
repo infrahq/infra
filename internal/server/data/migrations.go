@@ -467,7 +467,6 @@ func addDefaultOrganization() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-10T13:35",
 		Migrate: func(tx *gorm.DB) error {
-
 			stmt := `
 INSERT INTO organizations(id, name, created_at, updated_at)
 VALUES (?, ?, ?, ?);
@@ -510,5 +509,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USIN
 			return db.Exec(stmt).Error
 		},
 	}
-
 }
