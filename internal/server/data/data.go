@@ -282,6 +282,7 @@ func handleError(err error) error {
 				"idx_destinations_unique_id":  "uniqueId",
 				"idx_access_keys_key_id":      "keyId",
 				"idx_credentials_identity_id": "identityId",
+				"idx_organizations_domain":    "domain",
 			}
 
 			columnName := constraintFields[pgErr.ConstraintName]

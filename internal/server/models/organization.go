@@ -14,7 +14,7 @@ type Organization struct {
 	Model
 
 	Name      string `gorm:"uniqueIndex:idx_organizations_name,where:deleted_at is NULL"`
-	Domain    string `gorm:"uniqueIndex:idx_org_domain,where:deleted_at is NULL"`
+	Domain    string `gorm:"uniqueIndex:idx_organizations_domain,where:deleted_at is NULL"`
 	CreatedBy uid.ID
 }
 

@@ -60,6 +60,7 @@ func migrations() []*migrator.Migration {
 		addOrganizations(),
 		scopeUniqueIndicesToOrganization(),
 		addDefaultOrganization(),
+		addOrganizationDomain(),
 		// next one here
 	}
 }
@@ -496,4 +497,18 @@ VALUES (?, ?, ?, ?);
 			return nil
 		},
 	}
+}
+
+func addOrganizationDomain() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-11T11:52",
+		Migrate: func(db *gorm.DB) error {
+			stmt := `
+ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS domain text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
+`
+			return db.Exec(stmt).Error
+		},
+	}
+
 }

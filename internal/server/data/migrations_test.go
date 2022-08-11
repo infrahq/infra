@@ -430,6 +430,12 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				assert.DeepEqual(t, orgs, expected, cmpModel)
 			},
 		},
+		{
+			label: testCaseLine("2022-08-11T11:52"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -446,8 +452,13 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		patch.ModelsSymmetricKey(t)
-		db, err := NewDB(postgresDriver(t), nil)
+		db, err := newRawDB(postgresDriver(t))
 		assert.NilError(t, err)
+
+		opts := migrator.Options{InitSchema: initializeSchema}
+		m := migrator.New(db, opts, nil)
+		assert.NilError(t, m.Migrate())
+
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
 
 		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
