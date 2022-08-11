@@ -12,6 +12,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestSignup(t *testing.T) {
@@ -25,21 +26,22 @@ func TestSignup(t *testing.T) {
 
 	user := "admin@infrahq.com"
 	pass := "password"
-	org := "acme"
+	org := &models.Organization{Name: "acme", Domain: "acme.infrahq.com"}
 
 	t.Run("SignupNewOrg", func(t *testing.T) {
 		c, db := setup(t)
 
-		identity, createdOrg, err := Signup(c, user, pass, org)
+		identity, bearer, err := Signup(c, time.Now().Add(1*time.Minute), user, pass, org)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
-		assert.Equal(t, identity.OrganizationID, createdOrg.ID)
+		assert.Equal(t, identity.OrganizationID, org.ID)
 
 		// check "admin" user can login
 		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)
 		key, _, requiresUpdate, err := Login(c, userPassLogin, time.Now().Add(time.Hour), time.Hour)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.ID, key.IssuedFor)
+		assert.Assert(t, bearer != "")
 		assert.Equal(t, requiresUpdate, false)
 
 		rCtx := RequestContext{
