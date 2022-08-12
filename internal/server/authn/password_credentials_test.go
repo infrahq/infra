@@ -3,6 +3,7 @@ package authn
 import (
 	"context"
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -18,7 +19,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 	type testCase struct {
 		setup       func(t *testing.T, db *gorm.DB) LoginMethod
 		expectedErr string
-		expected    func(t *testing.T, identity *models.Identity, provider *models.Provider)
+		expected    func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
 
 	cases := map[string]testCase{
@@ -44,10 +45,10 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, oneTimePassword)
 			},
-			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
-				assert.Equal(t, "goku@example.com", identity.Name)
-				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
-				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
+			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
+				assert.Equal(t, "goku@example.com", authnIdentity.Identity.Name)
+				assert.Equal(t, models.InternalInfraProviderName, authnIdentity.Provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, authnIdentity.Provider.Kind)
 			},
 		},
 		"UsernameAndPassword": {
@@ -72,10 +73,10 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				return NewPasswordCredentialAuthentication(username, password)
 			},
-			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
-				assert.Equal(t, "bulma@example.com", identity.Name)
-				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
-				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
+			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
+				assert.Equal(t, "bulma@example.com", authnIdentity.Identity.Name)
+				assert.Equal(t, models.InternalInfraProviderName, authnIdentity.Provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, authnIdentity.Provider.Kind)
 			},
 		},
 		"UsernameAndPasswordReuse": {
@@ -100,15 +101,15 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 
 				userPassLogin := NewPasswordCredentialAuthentication(username, password)
 
-				_, _, _, err = userPassLogin.Authenticate(context.Background(), db)
+				_, err = userPassLogin.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 				assert.NilError(t, err)
 
 				return userPassLogin
 			},
-			expected: func(t *testing.T, identity *models.Identity, provider *models.Provider) {
-				assert.Equal(t, "cell@example.com", identity.Name)
-				assert.Equal(t, models.InternalInfraProviderName, provider.Name)
-				assert.Equal(t, models.ProviderKindInfra, provider.Kind)
+			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
+				assert.Equal(t, "cell@example.com", authnIdentity.Identity.Name)
+				assert.Equal(t, models.InternalInfraProviderName, authnIdentity.Provider.Name)
+				assert.Equal(t, models.ProviderKindInfra, authnIdentity.Provider.Kind)
 			},
 		},
 		"ValidUsernameAndNoPasswordFails": {
@@ -182,13 +183,13 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			credentialLogin := tc.setup(t, db)
 
-			identity, provider, _, err := credentialLogin.Authenticate(context.Background(), db)
+			authnIdentity, err := credentialLogin.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 			if tc.expectedErr != "" {
 				assert.ErrorContains(t, err, tc.expectedErr)
 				return
 			}
 			assert.NilError(t, err)
-			tc.expected(t, identity, provider)
+			tc.expected(t, authnIdentity)
 		})
 	}
 }

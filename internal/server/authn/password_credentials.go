@@ -3,12 +3,12 @@ package authn
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 )
 
 // passwordCredentialAuthn allows presenting username/password credentials in exchange for an access key
@@ -24,33 +24,38 @@ func NewPasswordCredentialAuthentication(username, password string) LoginMethod 
 	}
 }
 
-func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB) (*models.Identity, *models.Provider, AuthScope, error) {
-	scope := AuthScope{}
+func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	identity, err := data.GetIdentity(db, data.ByName(a.Username))
 	if err != nil {
-		return nil, nil, scope, fmt.Errorf("could not get identity for username: %w", err)
+		return AuthenticatedIdentity{}, fmt.Errorf("could not get identity for username: %w", err)
 	}
 
 	// Infra users can have only one username/password combo, look it up
 	userCredential, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
 	if err != nil {
-		return nil, nil, scope, fmt.Errorf("validate creds get user: %w", err)
+		return AuthenticatedIdentity{}, fmt.Errorf("validate creds get user: %w", err)
 	}
 
 	// compare the stored hash of the user's password and the hash of the presented password
 	err = bcrypt.CompareHashAndPassword(userCredential.PasswordHash, []byte(a.Password))
 	if err != nil {
 		// this probably means the password was wrong
-		return nil, nil, scope, fmt.Errorf("could not verify password: %w", err)
+		return AuthenticatedIdentity{}, fmt.Errorf("could not verify password: %w", err)
+	}
+
+	authnIdentity := AuthenticatedIdentity{
+		Identity:      identity,
+		Provider:      data.InfraProvider(db),
+		SessionExpiry: requestedExpiry,
 	}
 
 	if userCredential.OneTimePassword {
 		// scope the login down to Password Reset Only
-		scope.PasswordResetOnly = true
+		authnIdentity.AuthScope.PasswordResetOnly = true
 	}
 
 	// authentication was a success
-	return identity, data.InfraProvider(db), scope, nil // password login is always for infra users
+	return authnIdentity, nil // password login is always for infra users
 }
 
 func (a *passwordCredentialAuthn) Name() string {
