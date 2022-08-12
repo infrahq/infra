@@ -1,6 +1,5 @@
 import Head from 'next/head'
-import useSWR, { SWRConfig } from 'swr'
-import { useRouter } from 'next/router'
+import { SWRConfig } from 'swr'
 
 import '../lib/fetch'
 import '../lib/dayjs'
@@ -24,18 +23,6 @@ const swrConfig = {
 }
 
 export default function App({ Component, pageProps }) {
-  const { data: signup } = useSWR('/api/signup', swrConfig)
-  const router = useRouter()
-
-  if (!signup) {
-    return null
-  }
-
-  if (signup.enabled && router.pathname !== '/signup') {
-    router.replace('/signup')
-    return null
-  }
-
   const layout = Component.layout || (page => page)
 
   return (

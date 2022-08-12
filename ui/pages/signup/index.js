@@ -1,17 +1,13 @@
 import { useState } from 'react'
-import { useSWRConfig } from 'swr'
-import { useRouter } from 'next/router'
 
 import Login from '../../components/layouts/login'
 import ErrorMessage from '../../components/error-message'
 
 export default function Signup() {
-  const { mutate } = useSWRConfig()
-  const router = useRouter()
-
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [org, setOrg] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
 
@@ -32,6 +28,7 @@ export default function Signup() {
         body: JSON.stringify({
           name,
           password,
+          org,
         }),
       })
 
@@ -39,25 +36,12 @@ export default function Signup() {
         throw await res.json()
       }
 
-      // login
-      res = await fetch('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          passwordCredentials: {
-            name,
-            password,
-          },
-        }),
-      })
+      // redirect to the new org subdomain
+      let created = await res.json()
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      await mutate('/api/signup')
-      await mutate('/api/users/self')
-
-      router.replace('/')
+      window.location = `${window.location.protocol}//${
+        created?.organization?.domain
+      }.${window.location.host.replace('www.', '')}`
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
@@ -78,8 +62,6 @@ export default function Signup() {
     <>
       <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
       <h2 className='my-1.5 max-w-md text-center text-xs text-gray-400'>
-        You&apos;ve successfully installed Infra.
-        <br />
         Set up your admin user to get started.
       </h2>
       <form onSubmit={onSubmit} className='flex w-full max-w-sm flex-col'>
@@ -89,7 +71,7 @@ export default function Signup() {
           </label>
           <input
             autoFocus
-            name='name'
+            id='name'
             placeholder='enter your email'
             onChange={e => {
               setName(e.target.value)
@@ -110,6 +92,7 @@ export default function Signup() {
             Password
           </label>
           <input
+            id='password'
             type='password'
             placeholder='enter your password'
             onChange={e => {
@@ -132,7 +115,7 @@ export default function Signup() {
           </label>
           <input
             required
-            name='confirmPassword'
+            id='confirmPassword'
             type='password'
             placeholder='confirm your password'
             onChange={e => {
@@ -148,8 +131,27 @@ export default function Signup() {
             <ErrorMessage message={errors.confirmPassword} />
           )}
         </div>
+        <div className='my-2 w-full'>
+          <label htmlFor='org' className='text-3xs uppercase text-gray-500'>
+            Organization
+          </label>
+          <input
+            required
+            id='org'
+            placeholder='name your organization'
+            onChange={e => {
+              setOrg(e.target.value)
+              setErrors({})
+              setError('')
+            }}
+            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+              errors.org ? 'border-pink-500/60' : ''
+            }`}
+          />
+          {errors.org && <ErrorMessage message={errors.org} />}
+        </div>
         <button
-          disabled={!name || !password || !confirmPassword}
+          disabled={!name || !password || !confirmPassword || !org}
           className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
         >
           Get Started

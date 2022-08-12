@@ -61,6 +61,7 @@ func migrations() []*migrator.Migration {
 		scopeUniqueIndicesToOrganization(),
 		addDefaultOrganization(),
 		addOrganizationDomain(),
+		dropOrganizationNameIndex(),
 		// next one here
 	}
 }
@@ -507,6 +508,15 @@ ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS domain text;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 `
 			return db.Exec(stmt).Error
+		},
+	}
+}
+
+func dropOrganizationNameIndex() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "202208121105",
+		Migrate: func(tx *gorm.DB) error {
+			return tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`).Error
 		},
 	}
 }

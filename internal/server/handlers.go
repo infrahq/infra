@@ -111,10 +111,19 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	identity, org, err := access.Signup(c, r.Name, r.Password, r.Org)
+	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
+
+	suDetails := access.SignupDetails{
+		Name:     r.Name,
+		Password: r.Password,
+		Org:      &models.Organization{Name: r.Org},
+	}
+	identity, bearer, err := access.Signup(c, keyExpires, suDetails)
 	if err != nil {
 		return nil, err
 	}
+
+	setAuthCookie(c, bearer, keyExpires)
 
 	a.t.User(identity.ID.String(), r.Name)
 	a.t.Alias(identity.ID.String())
@@ -122,7 +131,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 
 	return &api.SignupResponse{
 		User:         identity.ToAPI(),
-		Organization: org.ToAPI(),
+		Organization: suDetails.Org.ToAPI(),
 	}, nil
 }
 
@@ -178,7 +187,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteAuthCookie(c.Writer)
+	deleteAuthCookie(c)
 	return nil, nil
 }
 

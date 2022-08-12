@@ -332,8 +332,8 @@ func (c Client) Logout() error {
 	return err
 }
 
-func (c Client) Signup(req *SignupRequest) (*CreateAccessKeyResponse, error) {
-	return post[SignupRequest, CreateAccessKeyResponse](c, "/api/signup", req)
+func (c Client) Signup(req *SignupRequest) (*SignupResponse, error) {
+	return post[SignupRequest, SignupResponse](c, "/api/signup", req)
 }
 
 func (c Client) GetServerVersion() (*Version, error) {
