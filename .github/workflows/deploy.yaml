@@ -7,16 +7,35 @@ on:
       - cd / core
     types:
       - completed
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      COMPONENT:
+      component-name:
         type: string
         default: core
         required: true
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      component-name: ${{ steps.component-name.outputs.component-name }}
+    steps:
+      - id: component-name
+        run: |
+          COMPONENT_NAME=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.component-name }} | awk '{ print $NF }' )
+          if [ -z "$COMPONENT_NAME" ]; then
+            echo Missing Infra component name.
+            exit 1
+          fi
+
+          echo "::set-output name=component-name::$COMPONENT_NAME"
+
   synchronize:
     runs-on: ubuntu-latest
+    needs: [prepare]
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
@@ -25,7 +44,8 @@ jobs:
           - name: Production
     environment: ${{ matrix.environment.name }}
     concurrency:
-      group: ${{ github.workflow }}-${{ github.job }}-${{ matrix.environment.name }}
+      group: ${{ github.workflow }}-synchronize-${{ matrix.environment.name }}-${{ needs.prepare.outputs.component-name }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/setup-infra
@@ -38,11 +58,5 @@ jobs:
           argocd-tools: |
             argocd-image-updater
       - run: |
-          COMPONENT=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.COMPONENT }} | awk '{ print $NF }' )
-          if [ -z "$COMPONENT" ]; then
-            echo Missing Infra component.
-            exit 1
-          fi
-
-          echo Syncing Infra component $COMPONENT
-          argocd-image-updater run --once --match-application-label=app.infrahq.com/component=$COMPONENT
+          echo Syncing Infra component-name ${{ needs.prepare.outputs.component-name }}
+          argocd-image-updater run --once --match-application-label=app.infrahq.com/component=${{ needs.prepare.outputs.component-name }}
