@@ -63,12 +63,6 @@ $ infra users add johndoe@example.com`,
 
 			createResp, err := createUser(client, args[0])
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot add users: missing privileges for CreateUser",
-					}
-				}
 				return err
 			}
 
@@ -96,7 +90,7 @@ $ infra users edit janedoe@example.com --password`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !editPassword {
-				return errors.New("Please specify a field to update. For options, run 'infra users edit --help'")
+				return Error{Suggestion: "Please specify a field to update. For options, run 'infra users edit --help'"}
 			}
 
 			return updateUser(cli, args[0])
@@ -152,6 +146,10 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("call server: list users")
 			users, err := listAll(client.ListUsers, api.ListUsersRequest{})
 			if err != nil {
+				if api.ErrorStatusCode(err) == 403 {
+					logging.Debugf("%s", err.Error())
+					return unauthorizedError
+				}
 				return err
 			}
 
@@ -215,15 +213,13 @@ $ infra users remove janedoe@example.com`,
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot delete users: missing privileges for ListUsers",
-					}
+					return unauthorizedError
 				}
 				return err
 			}
 
 			if users.Count == 0 && !force {
-				return Error{Message: fmt.Sprintf("No user named %q ", name)}
+				return fmt.Errorf("no user named %q", name)
 			}
 
 			logging.Debugf("deleting %d users named %q...", users.Count, name)
@@ -232,9 +228,7 @@ $ infra users remove janedoe@example.com`,
 				if err := client.DeleteUser(user.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot delete users: missing privileges for DeleteUsers",
-						}
+						return unauthorizedError
 					}
 					return err
 				}
@@ -311,21 +305,11 @@ func updateUser(cli *CLI, name string) error {
 		return err
 	}
 	if !ok {
-		return Error{Message: "No permission to change password for user " + name}
+		return fmt.Errorf("You do not have permissions to update user %q.", name)
 	}
 
 	user, err := getUserByName(client, name)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			logging.Debugf("user not found: %s", err)
-			return Error{Message: fmt.Sprintf("No user named %q in local provider; only local users can be edited", name)}
-		} else if api.ErrorStatusCode(err) == 403 {
-			logging.Debugf("%s", err.Error())
-			return Error{
-				Message: fmt.Sprintf("Cannot update user %q: missing privileges for GetUser", name),
-			}
-		}
-
 		return err
 	}
 
@@ -346,14 +330,19 @@ func updateUser(cli *CLI, name string) error {
 	return nil
 }
 
+// Throws error if none or multiple results are found
 func getUserByName(client *api.Client, name string) (*api.User, error) {
 	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			logging.Debugf("%s", err.Error())
+			return nil, unauthorizedError
+		}
 		return nil, err
 	}
 
 	if users.Count == 0 {
-		return nil, fmt.Errorf("%w: unknown user %q", ErrUserNotFound, name)
+		return nil, fmt.Errorf("no user named %q ", name)
 	}
 
 	if users.Count > 1 {
@@ -431,6 +420,14 @@ func createUser(client *api.Client, name string) (*api.CreateUserResponse, error
 	logging.Debugf("call server: create user named %q", name)
 	user, err := client.CreateUser(&api.CreateUserRequest{Name: name})
 	if err != nil {
+		if api.ErrorStatusCode(err) == 403 {
+			logging.Debugf("%s", err.Error())
+			return nil, unauthorizedError
+		}
+		if strings.Contains(err.Error(), "already exists") {
+			logging.Debugf("%s", err.Error())
+			return nil, fmt.Errorf("user %q already exists", name)
+		}
 		return nil, err
 	}
 
