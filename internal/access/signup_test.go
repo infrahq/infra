@@ -28,10 +28,16 @@ func TestSignup(t *testing.T) {
 	pass := "password"
 	org := &models.Organization{Name: "acme", Domain: "acme.infrahq.com"}
 
+	signupDetails := SignupDetails{
+		Name:     user,
+		Password: pass,
+		Org:      org,
+	}
+
 	t.Run("SignupNewOrg", func(t *testing.T) {
 		c, db := setup(t)
 
-		identity, bearer, err := Signup(c, time.Now().Add(1*time.Minute), user, pass, org)
+		identity, bearer, err := Signup(c, time.Now().Add(1*time.Minute), signupDetails)
 		assert.NilError(t, err)
 		assert.Equal(t, identity.Name, user)
 		assert.Equal(t, identity.OrganizationID, org.ID)

@@ -111,10 +111,14 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	org := &models.Organization{Name: r.Org}
 	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
 
-	identity, bearer, err := access.Signup(c, keyExpires, r.Name, r.Password, org)
+	suDetails := access.SignupDetails{
+		Name:     r.Name,
+		Password: r.Password,
+		Org:      &models.Organization{Name: r.Org},
+	}
+	identity, bearer, err := access.Signup(c, keyExpires, suDetails)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +131,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 
 	return &api.SignupResponse{
 		User:         identity.ToAPI(),
-		Organization: org.ToAPI(),
+		Organization: suDetails.Org.ToAPI(),
 	}, nil
 }
 

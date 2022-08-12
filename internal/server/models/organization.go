@@ -2,6 +2,7 @@ package models
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/generate"
@@ -13,7 +14,7 @@ const DefaultOrganizationName = "Default"
 type Organization struct {
 	Model
 
-	Name      string `gorm:"uniqueIndex:idx_organizations_name,where:deleted_at is NULL"`
+	Name      string
 	Domain    string `gorm:"uniqueIndex:idx_organizations_domain,where:deleted_at is NULL"`
 	CreatedBy uid.ID
 }
@@ -43,6 +44,7 @@ func (o *Organization) SetDefaultDomain() {
 		slug = slug[:20]
 	}
 	o.Domain = slug + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
+	o.Domain = strings.ToLower(o.Domain)
 }
 
 type OrganizationMember struct {

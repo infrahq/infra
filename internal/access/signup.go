@@ -2,7 +2,6 @@ package access
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,34 +12,40 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type SignupDetails struct {
+	Name     string
+	Password string
+	Org      *models.Organization
+}
+
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, keyExpiresAt time.Time, name, password string, org *models.Organization) (*models.Identity, string, error) {
+func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*models.Identity, string, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	err := checkPasswordRequirements(db, password)
+	details.Org.SetDefaultDomain()
+
+	if err := data.CreateOrganization(db, details.Org); err != nil {
+		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
+	}
+	db.Statement.Context = data.WithOrg(db.Statement.Context, details.Org)
+
+	// check the admin user's password requirements against our basic password requirements
+	err := checkPasswordRequirements(db, details.Password)
 	if err != nil {
 		return nil, "", err
 	}
 
-	org.SetDefaultDomain()
-	// lower-case domains look better
-	org.Domain = strings.ToLower(org.Domain)
-	if err := data.CreateOrganization(db, org); err != nil {
-		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
-	}
-	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
-
 	identity := &models.Identity{
-		Name: name,
+		Name: details.Name,
 	}
 
 	if err := data.CreateIdentity(db, identity); err != nil {
 		return nil, "", fmt.Errorf("create identity on sign-up: %w", err)
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(details.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, "", fmt.Errorf("hash password on sign-up: %w", err)
 	}
