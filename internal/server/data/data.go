@@ -76,15 +76,20 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("getting db driver: %w", err)
+	}
+
 	if connection.Name() == "sqlite" {
 		// avoid issues with concurrent writes by telling gorm
 		// not to open multiple connections in the connection pool
-		sqlDB, err := db.DB()
-		if err != nil {
-			return nil, fmt.Errorf("getting db driver: %w", err)
-		}
-
 		sqlDB.SetMaxOpenConns(1)
+	} else {
+		// TODO: make these configurable from server config
+		sqlDB.SetMaxIdleConns(900)
+		sqlDB.SetMaxOpenConns(1000)
+		sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 	}
 
 	return db, nil

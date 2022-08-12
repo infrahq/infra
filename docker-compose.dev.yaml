@@ -30,6 +30,7 @@ services:
 
   db:
     image: postgres:alpine
+    command: postgres -c log_connections=on -c log_min_messages=INFO
     restart: always
     user: postgres
     environment:
