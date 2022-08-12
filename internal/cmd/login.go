@@ -26,6 +26,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 type loginCmdOptions struct {
@@ -81,10 +82,6 @@ $ infra login`,
 
 			if len(args) == 1 {
 				options.Server = args[0]
-			}
-
-			if options.Provider == "infra" {
-				options.Provider = ""
 			}
 
 			return login(cli, options)
@@ -165,9 +162,17 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
-		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
-		if err != nil {
-			return err
+
+		if options.Provider == models.InternalInfraProviderName {
+			loginReq.PasswordCredentials, err = promptLocalLogin(cli)
+			if err != nil {
+				return err
+			}
+		} else {
+			loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
+			if err != nil {
+				return err
+			}
 		}
 	default:
 		if options.NonInteractive {
