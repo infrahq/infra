@@ -28,7 +28,7 @@ type ListUsersRequest struct {
 	Name       string   `form:"name"`
 	Group      uid.ID   `form:"group"`
 	IDs        []uid.ID `form:"ids"`
-	ShowSystem bool     `form:"showSystem"`
+	ShowSystem bool     `form:"showSystem" note:"if true, this shows the connector and other internal users"`
 	PaginationRequest
 }
 

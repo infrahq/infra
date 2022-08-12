@@ -24,7 +24,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, &p)
+	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, r.ShowSystem, &p)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
-		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, nil)
+		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, false, nil)
 
 		if err != nil {
 			return nil, err
@@ -93,7 +93,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, nil)
+		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, false, nil)
 		if err != nil {
 			return nil, err
 		}

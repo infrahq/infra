@@ -20,7 +20,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, p *models.Pagination) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *models.Pagination) ([]models.Grant, error) {
 	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
@@ -66,6 +66,10 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		selectors = append(selectors, data.GrantsInheritedBySubject(subject))
 	} else {
 		selectors = append(selectors, data.ByOptionalSubject(subject))
+	}
+
+	if !showSystem {
+		selectors = append(selectors, data.NotInfraConnector())
 	}
 
 	return data.ListGrants(db, p, selectors...)

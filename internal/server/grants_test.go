@@ -85,6 +85,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 	createGrant(t, idInGroup, "custom1")
 	createGrant(t, idOther, "custom2")
+	createGrant(t, idOther, "connector")
 
 	groupID := createGroup(t, "humans", idInGroup)
 	otherGroup := createGroup(t, "others", idOther)
@@ -208,7 +209,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"no filters": {
-			urlPath: "/api/grants",
+			urlPath: "/api/grants?showSystem=true",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -242,6 +243,11 @@ func TestAPI_ListGrants(t *testing.T) {
 						Privilege: "custom2",
 						Resource:  "res1",
 					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1",
+					},
 				}
 				// check sort
 				assert.Assert(t, sort.SliceIsSorted(grants.Items, func(i, j int) bool {
@@ -251,7 +257,7 @@ func TestAPI_ListGrants(t *testing.T) {
 			},
 		},
 		"no filter, page 2": {
-			urlPath: "/api/grants?page=2&limit=2",
+			urlPath: "/api/grants?page=2&limit=2&showSystem=true",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
@@ -274,7 +280,47 @@ func TestAPI_ListGrants(t *testing.T) {
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
-				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 4, TotalPages: 2})
+				assert.Equal(t, grants.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 2, TotalCount: 5, TotalPages: 3})
+			},
+		},
+		"hide infra connector": {
+			urlPath: "/api/grants",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{
+						User:      admin.ID,
+						Privilege: "admin",
+						Resource:  "infra",
+					},
+					{
+						User:      idInGroup,
+						Privilege: "custom1",
+						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "custom2",
+						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1",
+					},
+				}
+				// check sort
+				assert.Assert(t, sort.SliceIsSorted(grants.Items, func(i, j int) bool {
+					return grants.Items[i].ID < grants.Items[j].ID
+				}))
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
 		"filter by resource": {
@@ -298,6 +344,11 @@ func TestAPI_ListGrants(t *testing.T) {
 					{
 						User:      idOther,
 						Privilege: "custom2",
+						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "connector",
 						Resource:  "res1",
 					},
 				}
