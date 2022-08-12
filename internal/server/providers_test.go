@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -471,7 +472,9 @@ func TestAPI_UpdateProvider(t *testing.T) {
 }
 
 // mockOIDC is a fake oidc identity provider
-type fakeOIDCImplementation struct{}
+type fakeOIDCImplementation struct {
+	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
+}
 
 func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
 	return nil
@@ -491,5 +494,8 @@ func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerU
 }
 
 func (m *fakeOIDCImplementation) GetUserInfo(_ context.Context, _ *models.ProviderUser) (*providers.UserInfoClaims, error) {
+	if m.UserInfoRevoked {
+		return nil, fmt.Errorf("user revoked")
+	}
 	return &providers.UserInfoClaims{}, nil
 }
