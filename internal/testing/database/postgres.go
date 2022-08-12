@@ -22,7 +22,7 @@ type TestingT interface {
 //
 // schemaSuffix is used to create a schema name to isolate the database from
 // other tests.
-func PostgresDriver(t TestingT, schemaSuffix string) gorm.Dialector {
+func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	t.Helper()
 	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
 	if !ok {
@@ -44,6 +44,14 @@ func PostgresDriver(t TestingT, schemaSuffix string) gorm.Dialector {
 	assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS "+name+" CASCADE").Error)
 	assert.NilError(t, db.Exec("CREATE SCHEMA "+name).Error)
 
-	pgsql := postgres.Open(pgConn + " search_path=" + name)
-	return pgsql
+	dsn := pgConn + " search_path=" + name
+	pgsql := postgres.Open(dsn)
+	return &Driver{Dialector: pgsql, DSN: dsn}
+}
+
+type Driver struct {
+	Dialector gorm.Dialector
+	// DSN is the connection string that can be used to connect to this
+	// database.
+	DSN string
 }

@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -25,6 +24,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/testing/database"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -119,8 +119,8 @@ func TestServer_Run(t *testing.T) {
 		},
 	}
 
-	if pgConn := os.Getenv("POSTGRESQL_CONNECTION"); pgConn != "" {
-		opts.DBConnectionString = pgConn
+	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
+		opts.DBConnectionString = driver.DSN
 	} else {
 		opts.DBFile = filepath.Join(dir, "sqlite3.db")
 	}
@@ -220,8 +220,8 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 
-	if pgConn := os.Getenv("POSTGRESQL_CONNECTION"); pgConn != "" {
-		opts.DBConnectionString = pgConn
+	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
+		opts.DBConnectionString = driver.DSN
 	} else {
 		opts.DBFile = filepath.Join(dir, "sqlite3.db")
 	}
