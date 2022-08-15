@@ -11,13 +11,21 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func getGroupByName(client *api.Client, name string) (*api.Group, error) {
-	groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
+func getGroupByNameOrID(client *api.Client, name string) (*api.Group, error) {
+	req := api.ListGroupsRequest{Name: name}
+	groups, err := client.ListGroups(req)
 	if err != nil {
 		return nil, err
 	}
 
 	if groups.Count == 0 {
+		if id, err := uid.Parse([]byte(name)); err == nil {
+			g, err := client.GetGroup(id)
+			if err == nil {
+				return g, nil
+			}
+		}
+
 		return nil, fmt.Errorf("%w: unknown group %q", ErrGroupNotFound, name)
 	}
 
@@ -220,7 +228,7 @@ $ infra groups adduser johndoe@example.com Engineering
 				return err
 			}
 
-			user, err := getUserByName(client, userName)
+			user, err := getUserByNameOrID(client, userName)
 			if err != nil {
 				if errors.Is(err, ErrUserNotFound) {
 					return Error{Message: fmt.Sprintf("unknown user %q", userName)}
@@ -228,7 +236,7 @@ $ infra groups adduser johndoe@example.com Engineering
 				return err
 			}
 
-			group, err := getGroupByName(client, groupName)
+			group, err := getGroupByNameOrID(client, groupName)
 			if err != nil {
 				if errors.Is(err, ErrGroupNotFound) {
 					return Error{Message: fmt.Sprintf("unknown group %q", groupName)}
@@ -271,7 +279,7 @@ $ infra groups removeuser johndoe@example.com Engineering
 				return err
 			}
 
-			user, err := getUserByName(client, userName)
+			user, err := getUserByNameOrID(client, userName)
 			if err != nil {
 				if !force {
 					if errors.Is(err, ErrUserNotFound) {
@@ -282,7 +290,7 @@ $ infra groups removeuser johndoe@example.com Engineering
 				return nil
 			}
 
-			group, err := getGroupByName(client, groupName)
+			group, err := getGroupByNameOrID(client, groupName)
 			if err != nil {
 				if !force {
 					if errors.Is(err, ErrGroupNotFound) {

@@ -200,6 +200,10 @@ infra grants list [flags]
 
 ```
       --destination string   Filter by destination
+      --group string         Filter by group name or id
+      --inherited            Include grants a user inherited through a group
+      --role string          Filter by user role
+      --user string          Filter by user name or id
 ```
 
 #### Options inherited from parent commands

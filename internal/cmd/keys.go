@@ -70,7 +70,7 @@ $ infra keys add connector
 				return err
 			}
 
-			user, err := getUserByName(client, userName)
+			user, err := getUserByNameOrID(client, userName)
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
@@ -199,7 +199,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			var keys []api.AccessKey
 			var userID uid.ID
 			if options.UserName != "" {
-				user, err := getUserByName(client, options.UserName)
+				user, err := getUserByNameOrID(client, options.UserName)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())

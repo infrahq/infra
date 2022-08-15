@@ -15,17 +15,18 @@ import (
 )
 
 type grantsCmdOptions struct {
-	Name        string
-	Destination string
-	IsGroup     bool
-	Role        string
-	Force       bool
+	UserName  string
+	GroupName string
+	Resource  string
+	Role      string
+	Force     bool
+	Inherited bool
 }
 
 func newGrantsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "grants",
-		Short:   "Manage access to destinations",
+		Short:   "Manage access to resources",
 		Aliases: []string{"grant"},
 		Group:   "Management commands:",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
@@ -56,8 +57,38 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			listReq := api.ListGrantsRequest{
+				Privilege:     options.Role,
+				Resource:      options.Resource,
+				ShowInherited: options.Inherited,
+			}
 
-			grants, err := listAll(client.ListGrants, api.ListGrantsRequest{Resource: options.Destination})
+			if options.UserName != "" && options.GroupName != "" {
+				return Error{Message: "You cannot use both a --user and a --group at the same time"}
+			}
+
+			if options.UserName != "" {
+				user, err := getUserByNameOrID(client, options.UserName)
+				if err != nil {
+					return err
+				}
+
+				listReq.User = user.ID
+			}
+
+			if options.GroupName != "" {
+				if options.Inherited {
+					cli.Output("Warning: using --inherited with a group does nothing")
+				}
+				group, err := getGroupByNameOrID(client, options.GroupName)
+				if err != nil {
+					return err
+				}
+
+				listReq.Group = group.ID
+			}
+
+			grants, err := listAll(client.ListGrants, listReq)
 			if err != nil {
 				return err
 			}
@@ -83,8 +114,11 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVar(&options.Destination, "destination", "", "Filter by destination")
+	cmd.Flags().StringVar(&options.Resource, "destination", "", "Filter by destination")
+	cmd.Flags().StringVar(&options.GroupName, "group", "", "Filter by group name or id")
+	cmd.Flags().StringVar(&options.UserName, "user", "", "Filter by user name or id")
+	cmd.Flags().BoolVar(&options.Inherited, "inherited", false, "Include grants a user inherited through a group")
+	cmd.Flags().StringVar(&options.Role, "role", "", "Filter by user role")
 	return cmd
 }
 
@@ -170,6 +204,7 @@ func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error)
 
 func newGrantRemoveCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
+	var isGroup bool
 
 	cmd := &cobra.Command{
 		Use:     "remove USER|GROUP DESTINATION",
@@ -189,13 +224,17 @@ $ infra grants remove janedoe@example.com infra --role admin
 `,
 		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Name = args[0]
-			options.Destination = args[1]
+			if isGroup {
+				options.GroupName = args[0]
+			} else {
+				options.UserName = args[0]
+			}
+			options.Resource = args[1]
 			return removeGrant(cli, options)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "Group to revoke access from")
+	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "Group to revoke access from")
 	cmd.Flags().StringVar(&options.Role, "role", "", "Role to revoke")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Exit successfully even if grant does not exist")
 
@@ -208,7 +247,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	user, group, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
+	user, group, err := checkUserGroup(client, cmdOptions.UserName, cmdOptions.GroupName)
 	if err != nil {
 		var cliError Error
 		if errors.As(err, &cliError) {
@@ -223,7 +262,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		User:      user,
 		Group:     group,
 		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Destination,
+		Resource:  cmdOptions.Resource,
 	}
 
 	logging.Debugf("call server: list grants %#v", listGrantsReq)
@@ -261,7 +300,11 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			return err
 		}
 
-		cli.Output("Revoked access from user %q for destination %q", cmdOptions.Name, cmdOptions.Destination)
+		if g.Group > 0 {
+			cli.Output("Revoked %q access from group %q for resource %q", g.Privilege, cmdOptions.GroupName, g.Resource)
+		} else if g.User > 0 {
+			cli.Output("Revoked %q access from user %q for resource %q", g.Privilege, cmdOptions.UserName, g.Resource)
+		}
 	}
 
 	return nil
@@ -269,6 +312,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 func newGrantAddCmd(cli *CLI) *cobra.Command {
 	var options grantsCmdOptions
+	var isGroup bool
 
 	cmd := &cobra.Command{
 		Use:   "add USER|GROUP DESTINATION",
@@ -287,13 +331,17 @@ $ infra grants add johndoe@example.com infra --role admin
 `,
 		Args: ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			options.Name = args[0]
-			options.Destination = args[1]
+			if isGroup {
+				options.GroupName = args[0]
+			} else {
+				options.UserName = args[0]
+			}
+			options.Resource = args[1]
 			return addGrant(cli, options)
 		},
 	}
 
-	cmd.Flags().BoolVarP(&options.IsGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
+	cmd.Flags().BoolVarP(&isGroup, "group", "g", false, "When set, creates a grant for a group instead of a user")
 	cmd.Flags().StringVar(&options.Role, "role", models.BasePermissionConnect, "Type of access that the user or group will be given")
 	cmd.Flags().BoolVar(&options.Force, "force", false, "Create grant even if requested user, destination, or role are unknown")
 	return cmd
@@ -305,7 +353,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
-	userID, groupID, err := checkUserGroup(client, cmdOptions.Name, cmdOptions.IsGroup)
+	userID, groupID, err := checkUserGroup(client, cmdOptions.UserName, cmdOptions.GroupName)
 	if err != nil {
 		var cliError Error
 		if errors.As(err, &cliError) {
@@ -318,8 +366,8 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 	}
 
-	if userID == 0 && !cmdOptions.IsGroup {
-		user, err := createUser(client, cmdOptions.Name)
+	if userID == 0 && cmdOptions.UserName != "" {
+		user, err := createUser(client, cmdOptions.UserName)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())
@@ -330,11 +378,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			return err
 		}
 
-		cli.Output("Created user %q", cmdOptions.Name)
+		cli.Output("Created user %q", cmdOptions.UserName)
 		userID = user.ID
 
-	} else if groupID == 0 && cmdOptions.IsGroup {
-		group, err := createGroup(client, cmdOptions.Name)
+	} else if groupID == 0 && cmdOptions.GroupName != "" {
+		group, err := createGroup(client, cmdOptions.GroupName)
 		if err != nil {
 
 			if api.ErrorStatusCode(err) == 403 {
@@ -346,11 +394,11 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 			return err
 		}
 
-		cli.Output("Created group %q", cmdOptions.Name)
+		cli.Output("Created group %q", cmdOptions.GroupName)
 		groupID = group.ID
 	}
 
-	if err := checkResourcesPrivileges(client, cmdOptions.Destination, cmdOptions.Role); err != nil {
+	if err := checkResourcesPrivileges(client, cmdOptions.Resource, cmdOptions.Role); err != nil {
 		if !cmdOptions.Force {
 			return err
 		}
@@ -360,7 +408,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		User:      userID,
 		Group:     groupID,
 		Privilege: cmdOptions.Role,
-		Resource:  cmdOptions.Destination,
+		Resource:  cmdOptions.Resource,
 	}
 	logging.Debugf("call server: create grant %#v", createGrantReq)
 	response, err := client.CreateGrant(createGrantReq)
@@ -374,9 +422,9 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 	if response.WasCreated {
-		cli.Output("Created grant to %q for %q", cmdOptions.Destination, cmdOptions.Name)
+		cli.Output("Created grant to %q for %q", cmdOptions.Resource, cmdOptions.UserName+cmdOptions.GroupName)
 	} else {
-		cli.Output("%q grant to %q already exists for %q. Nothing changed", cmdOptions.Role, cmdOptions.Destination, cmdOptions.Name)
+		cli.Output("%q grant to %q already exists for %q. Nothing changed", cmdOptions.Role, cmdOptions.Resource, cmdOptions.UserName+cmdOptions.GroupName)
 	}
 
 	return nil
@@ -384,9 +432,9 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 // checkUserGroup returns the ID of the requested user or group if they exist. Otherwise it
 // returns an error
-func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID uid.ID, groupID uid.ID, err error) {
-	if isGroup {
-		group, err := getGroupByName(client, subject)
+func checkUserGroup(client *api.Client, user, group string) (userID uid.ID, groupID uid.ID, err error) {
+	if group != "" {
+		g, err := getGroupByNameOrID(client, group)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())
@@ -397,10 +445,10 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 			return 0, 0, err
 		}
 
-		return 0, group.ID, nil
+		return 0, g.ID, nil
 	}
 
-	user, err := getUserByName(client, subject)
+	u, err := getUserByNameOrID(client, user)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			logging.Debugf("%s", err.Error())
@@ -411,7 +459,7 @@ func checkUserGroup(client *api.Client, subject string, isGroup bool) (userID ui
 		return 0, 0, err
 	}
 
-	return user.ID, 0, nil
+	return u.ID, 0, nil
 }
 
 // checkResourcesPrivileges checks if the requested destination (e.g. cluster), optional
