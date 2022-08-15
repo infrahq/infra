@@ -3,7 +3,7 @@ import {
   ExclamationIcon,
   InformationCircleIcon,
   CheckCircleIcon,
-} from '@heroicons/react/outline'
+} from '@heroicons/react/24/outline'
 
 const icons = {
   warning: ExclamationIcon,
@@ -15,15 +15,15 @@ export default function Callout({ type, children }) {
   const Icon = icons[type]
 
   const styles = {
-    warning: 'bg-amber-400/10 border-amber-400/20',
-    info: 'bg-indigo-400/10 border-indigo-300/20',
-    success: 'bg-teal-400/10 border-teal-400/20',
+    warning: 'bg-yellow-400/10 border-yellow-400/30',
+    info: 'bg-blue-600/5 border-blue-600/10',
+    success: 'bg-emerald-500/10 border-emerald-400/30',
   }
 
   const iconstyle = {
-    warning: 'text-yellow-200',
-    info: 'text-indigo-200',
-    success: 'text-teal-200',
+    warning: 'text-yellow-500',
+    info: 'text-blue-600/75',
+    success: 'text-emerald-400',
   }
 
   return (

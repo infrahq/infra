@@ -4,8 +4,6 @@ position: 1
 
 # Install Infra CLI
 
-## Install Infra CLI
-
 {% partial file="../partials/cli-install.md" /%}
 
 ## Upgrade Infra CLI

@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
-import { ChevronRightIcon, ExternalLinkIcon } from '@heroicons/react/solid'
+import {
+  ArrowTopRightOnSquareIcon,
+  ChevronRightIcon,
+} from '@heroicons/react/24/outline'
 
-import Nav from './nav'
 import SignupForm from './signup-form'
 
 function Expandable({ expanded, children }) {
@@ -33,24 +35,14 @@ function Category({ href, title, empty, items }) {
   }, [router.asPath, href])
 
   return (
-    <div>
+    <ol>
       <div
         onClick={() => empty && setExpanded(!expanded)}
-        className='relative flex cursor-pointer items-center py-0.5'
+        className='relative flex cursor-pointer items-center py-1 font-medium text-gray-700'
       >
-        <div
-          onClick={() => setExpanded(!expanded)}
-          className='absolute -left-5 mb-0.5 pr-1'
-        >
-          <ChevronRightIcon
-            className={`duration-250 inline h-4 w-4 text-gray-600 transition-transform ${
-              expanded ? 'rotate-90' : 'rotate-0'
-            }`}
-          />
-        </div>
         {empty ? (
-          <span className='flex flex-1 select-none py-1.5 leading-none'>
-            {title}
+          <span className='flex flex-1 select-none py-1 leading-4'>
+            <ChevronRightIcon className='absolute -left-4 h-3' /> {title}
           </span>
         ) : (
           <Page href={href} title={title} />
@@ -65,7 +57,7 @@ function Category({ href, title, empty, items }) {
           ))}
         </div>
       </Expandable>
-    </div>
+    </ol>
   )
 }
 
@@ -89,13 +81,11 @@ function Page({ title, href }) {
         ref={ref}
         target={external ? '_blank' : ''}
         className={`flex flex-1 select-none py-1.5 leading-none ${
-          active ? 'font-semibold text-white' : ''
+          active ? 'font-medium text-blue-600' : ''
         }`}
       >
         {title}{' '}
-        {external && (
-          <ExternalLinkIcon className='ml-1 h-3.5 w-3.5 text-zinc-400' />
-        )}
+        {external && <ArrowTopRightOnSquareIcon className='ml-1 h-3.5 w-3.5' />}
       </a>
     </Link>
   )
@@ -121,12 +111,7 @@ function MobileNavItem({ item, depth }) {
   return <option value={item.href}>{item.title}</option>
 }
 
-export default function DocsLayout({
-  children,
-  items = [],
-  headings = [],
-  icon,
-}) {
+export default function DocsLayout({ children, items = [], headings = [] }) {
   const router = useRouter()
   const [id, setId] = useState('')
   const ref = useRef()
@@ -154,10 +139,6 @@ export default function DocsLayout({
       }
 
       setId(active.id)
-
-      if (ref && ref.current?.scrollIntoViewIfNeeded) {
-        ref.current?.scrollIntoViewIfNeeded()
-      }
     }
 
     onScroll()
@@ -166,17 +147,16 @@ export default function DocsLayout({
   }, [children, headings])
 
   return (
-    <main className='flex w-full flex-1 flex-col justify-center'>
-      <Nav docs />
-      <div className='mx-auto flex w-full max-w-screen-2xl flex-col md:flex-row'>
-        <ul className='fixed hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none flex-col self-start overflow-y-auto py-10 px-8 text-lg tracking-[-0.02em] text-gray-300 md:flex md:w-56 md:flex-none lg:w-64'>
+    <div className='px-4'>
+      <div className='mx-auto flex h-full w-full max-w-7xl flex-col md:flex-row'>
+        <ul className='sticky top-20 hidden min-h-0 flex-none flex-col self-start overflow-y-auto py-8 pr-6 text-sm text-zinc-600 md:flex md:w-48 md:flex-none xl:w-56'>
           {items.map(i => (
             <NavItem key={i.href} item={i} />
           ))}
         </ul>
         <select
           value={router.asPath}
-          className='mx-6 rounded-lg border border-zinc-600 bg-transparent py-2 px-2 text-white md:hidden'
+          className='my-3 rounded-lg border border-gray-300 bg-transparent py-2 px-2 md:hidden'
           onChange={e => router.push(e.target.value)}
         >
           {items.map(i => (
@@ -187,48 +167,45 @@ export default function DocsLayout({
             </optgroup>
           ))}
         </select>
-        <div className='min-w-0 flex-1 pl-0 md:pl-56 lg:pl-64'>
-          <div className='relative my-8 mx-auto flex w-full min-w-0 flex-1 flex-col px-8 md:pl-0 lg:max-w-2xl lg:px-0 xl:max-w-3xl'>
-            {icon && <img alt='icon' className='h-16 w-16' src={icon} />}
-            <div className='prose-docs prose-md prose prose-invert w-full max-w-none break-words'>
-              {children}
-            </div>
-            <hr className='my-12 border-zinc-800' />
-            <div className='mx-auto mb-20 max-w-sm text-center'>
-              <h1 className='my-6 text-xl font-bold tracking-tight'>
-                Sign up for updates
-              </h1>
-              <SignupForm />
-              <h2 className='my-2 text-sm text-gray-300'>
-                You can unsubscribe at any time.
-              </h2>
-            </div>
+        <div className='relative flex w-full min-w-0 flex-1 flex-col md:pl-0'>
+          <div className='prose-docs prose-md prose w-full max-w-none break-words'>
+            {children}
+          </div>
+          <hr className='my-12 border-zinc-200' />
+          <div className='mx-auto mb-20 max-w-sm text-center'>
+            <h1 className='my-6 text-xl font-semibold'>Subscribe to updates</h1>
+            <SignupForm />
+            <h2 className='my-2 text-[11px] text-zinc-600'>
+              You can unsubscribe at any time.
+            </h2>
           </div>
         </div>
-        <aside className='text-md sticky top-20 hidden max-h-[calc(100vh-4rem)] min-h-0 flex-none self-start overflow-auto py-10 lg:block lg:w-64 lg:px-10 xl:w-72'>
-          {headings.length > 0 && (
-            <>
-              <h2 className='text-md mb-2 font-normal text-white'>
-                On this page
-              </h2>
-              {headings
-                .filter(h => h.level <= 3)
-                .map(h => (
-                  <Link key={h.id} href={`#${h.id}`}>
-                    <a
-                      ref={h.id === id ? ref : null}
-                      className={`block py-1 leading-tight text-zinc-400 hover:text-zinc-100 ${
-                        h.id === id ? 'text-zinc-100' : ''
-                      } ${h.level > 2 ? 'ml-3' : ''}`}
-                    >
-                      {h.title}
-                    </a>
-                  </Link>
-                ))}
-            </>
-          )}
+        <aside className='left-full ml-6 hidden w-48 lg:ml-8 lg:block xl:ml-12'>
+          <div className='sticky top-32 mb-32 overflow-y-scroll text-xs text-zinc-500'>
+            {headings.length > 0 && (
+              <>
+                <h2 className='mb-2 font-semibold tracking-tight text-black'>
+                  On this page
+                </h2>
+                {headings
+                  .filter(h => h.level <= 3)
+                  .map(h => (
+                    <Link key={h.id} href={`#${h.id}`}>
+                      <a
+                        ref={h.id === id ? ref : null}
+                        className={`block py-1 leading-tight ${
+                          h.id === id ? 'text-black' : ''
+                        } ${h.level > 2 ? 'ml-3' : ''}`}
+                      >
+                        {h.title}
+                      </a>
+                    </Link>
+                  ))}
+              </>
+            )}
+          </div>
         </aside>
       </div>
-    </main>
+    </div>
   )
 }

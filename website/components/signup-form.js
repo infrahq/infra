@@ -60,28 +60,25 @@ export default function SignupForm() {
         sitekey='6Lcld3EcAAAAAONnvAUZR6igONL-TZm9XextIS9U'
         onChange={onReCAPTCHAChange}
       />
-      <form
-        className='relative flex flex-1 rounded-full border-2 border-zinc-800'
-        onSubmit={onSubmit}
-      >
+      <form className='relative flex flex-1 space-x-2' onSubmit={onSubmit}>
         <input
+          id='email-address'
+          name='email'
           type='email'
+          autoComplete='email'
           required
-          className='w-full flex-1 rounded-full bg-transparent py-2 pl-6 pr-36 text-lg'
-          placeholder='email'
-          onChange={e => {
-            setEmail(e.target.value)
-            setError(false)
-          }}
+          className='w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm leading-4 placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500'
+          placeholder='your email'
+          onChange={e => setEmail(e.target.value)}
         />
         <input
           type='submit'
-          className='absolute top-0 bottom-0 right-0 flex-none cursor-pointer rounded-full bg-zinc-900 px-6 text-gray-300 hover:text-white'
-          value='Get Updates'
+          className='inline-flex items-center rounded-lg bg-black px-3 py-2 text-sm font-semibold tracking-tight text-white hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+          value='Sign Up'
         />
       </form>
       {error && (
-        <div className='absolute -bottom-8 mt-2 ml-6 text-sm text-red-400'>
+        <div className='absolute -bottom-8 mt-2 ml-6 text-xs text-red-400'>
           Could not register for updates
         </div>
       )}

@@ -6,6 +6,7 @@ import Head from 'next/head'
 import Markdoc from '@markdoc/markdoc'
 import yaml from 'js-yaml'
 
+import Layout from '../../components/layout'
 import DocsLayout from '../../components/docs-layout'
 import config from '../../lib/markdoc/config'
 import components from '../../lib/markdoc/components'
@@ -14,7 +15,7 @@ export default function Docs({ markdoc, title }) {
   return (
     <>
       <Head>
-        <title>{title} - Infra Docs</title>
+        <title>{title} - Infra Documentation</title>
         <meta property='og:title' content={title} key='title' />
         <meta property='og:url' content='https://infrahq.com' />
         <meta property='og:description' content='Infra Documentation' />
@@ -26,13 +27,15 @@ export default function Docs({ markdoc, title }) {
 
 Docs.layout = page => {
   return (
-    <DocsLayout
-      headings={page.props.headings}
-      items={page.props.items}
-      icon={page.props.icon}
-    >
-      {page}
-    </DocsLayout>
+    <Layout>
+      <DocsLayout
+        headings={page.props.headings}
+        items={page.props.items}
+        icon={page.props.icon}
+      >
+        {page}
+      </DocsLayout>
+    </Layout>
   )
 }
 
@@ -223,16 +226,7 @@ function checklinks(node) {
   if (node.type === 'link' && isRelative(node.attributes.href)) {
     let filename = node.attributes?.href?.split('#')[0]
     filename = filename.endsWith('.md') ? filename : filename + '.md'
-    if (
-      !fs.existsSync(
-        path.join(
-          process.cwd(),
-          '..',
-          path.dirname(node.location.file),
-          filename
-        )
-      )
-    ) {
+    if (!fs.existsSync(path.join(path.dirname(node.location.file), filename))) {
       throw Error(
         `Broken link in ${node.location.file}: ${node.attributes.href}`
       )
@@ -252,11 +246,13 @@ export async function getStaticProps({ params }) {
     : path.join(rootDir, `${slug}.md`)
 
   const content = fs.readFileSync(filepath, 'utf-8')
-  const ast = Markdoc.parse(content, slug)
+  const ast = Markdoc.parse(content, filepath)
+
+  checklinks(ast)
+
   const transformed = Markdoc.transform(ast, config)
 
   addids(transformed)
-  checklinks(transformed)
 
   const markdoc = JSON.stringify(transformed)
 

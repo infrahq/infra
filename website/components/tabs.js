@@ -7,15 +7,15 @@ export default function Tabs({ labels, children }) {
 
   return (
     <TabContext.Provider value={currentTab}>
-      <div className='flex flex-wrap'>
+      <div className='flex flex-wrap space-x-2'>
         {labels.map(label => (
           <button
             key={label}
             className={`${
               label === currentTab
-                ? 'border-zinc-100 text-white'
-                : 'border-transparent text-zinc-500'
-            } border-b px-7 py-1.5 text-lg font-medium leading-loose first-of-type:ml-0`}
+                ? ' bg-blue-600/5 text-blue-700 hover:text-blue-700'
+                : 'text-gray-500 hover:text-gray-800'
+            } rounded-lg px-7 py-1.5 text-sm font-medium leading-loose first-of-type:ml-0`}
             onClick={() => setCurrentTab(label)}
           >
             {label}

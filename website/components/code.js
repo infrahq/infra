@@ -1,7 +1,7 @@
 /* global Prism */
 import React, { useState, useEffect, useRef } from 'react'
 import copy from 'copy-to-clipboard'
-import { DuplicateIcon, CheckIcon } from '@heroicons/react/outline'
+import { Square2StackIcon, CheckIcon } from '@heroicons/react/24/outline'
 import 'prismjs'
 import 'prismjs/components/prism-yaml.min'
 import 'prismjs/components/prism-bash.min'
@@ -31,12 +31,14 @@ export default function Code({ children, language = 'none' }) {
       </pre>
       <button
         onClick={() => setCopied(true)}
-        className='absolute right-2.5 top-2.5 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-white/50 opacity-0 backdrop-blur-xl hover:text-white/70 group-hover:opacity-100'
+        className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white/40 px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
+          copied ? 'opacity-100' : 'group-hover:opacity-100'
+        }`}
       >
         {copied ? (
-          <CheckIcon className='h-4 w-4 text-green-300' />
+          <CheckIcon className='h-3 w-4 text-green-500' />
         ) : (
-          <DuplicateIcon className='h-4 w-4' />
+          <Square2StackIcon className='h-4 w-4' />
         )}
       </button>
     </div>

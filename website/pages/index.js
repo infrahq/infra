@@ -1,14 +1,20 @@
 import Head from 'next/head'
 import Link from 'next/link'
 
-import SignupForm from '../components/signup-form'
+import {
+  StarIcon,
+  IdentificationIcon,
+  ArrowPathIcon,
+  BoltIcon,
+  ShieldCheckIcon,
+} from '@heroicons/react/24/outline'
 import Layout from '../components/layout'
 
 export default function Index() {
   return (
     <>
       <Head>
-        <title>Infra - Single sign-on for your infrastructure</title>
+        <title>Infra - Infrastructure Access</title>
         <meta
           property='og:title'
           content='Single sign-on for your infrastructure'
@@ -19,77 +25,74 @@ export default function Index() {
           content='Infra enables single sign-on for your infrastructure'
         />
       </Head>
-      <section className='relative mx-auto mb-48 flex w-full max-w-screen-2xl flex-1 flex-col items-center px-8 lg:mb-12 lg:flex-row'>
-        <div className='flex-1 text-center lg:text-left'>
-          <h1 className='my-12 max-w-lg text-center text-6xl font-light tracking-tighter lg:my-4 lg:max-w-none lg:text-left xl:text-[72px]'>
-            The simplest way to manage infrastructure access
-          </h1>
-          <ul className='lg:mx-none my-16 mx-auto max-w-md space-y-1 text-lg leading-tight tracking-tight text-gray-300 md:leading-tight lg:my-4 lg:mx-0 lg:text-xl lg:leading-tight xl:max-w-xl'>
-            <li className='flex items-start'>
-              <img
-                alt='check'
-                src='/images/check.svg'
-                className='mr-3 mt-1 h-5 w-5'
-              />
-              <span className='text-left'>
-                In one command, login and discover access
-              </span>
-            </li>
-            <li className='flex items-start'>
-              <img
-                alt='check'
-                src='/images/check.svg'
-                className='mr-3 mt-1 h-5 w-5'
-              />
-              <span className='text-left'>
-                Short-lived, auto-refreshed credentials under the hood
-              </span>
-            </li>
-            <li className='flex items-start'>
-              <img
-                alt='check'
-                src='/images/check.svg'
-                className='mr-3 mt-1 h-5 w-5'
-              />
-              <span className='text-left'>
-                Nothing else to set up for your team
-              </span>
-            </li>
-            <li className='flex items-start pt-3'>
-              <img
-                alt='kubernetes icon'
-                src='/images/kubernetes.svg'
-                className='mr-3 h-[21px] w-[21px]'
-              />{' '}
-              <span className='font-bold text-white'>
-                Available for Kubernetes
-              </span>
-            </li>
-          </ul>
-          <div className='xl:mx-none relative z-40 my-16 mx-auto flex max-w-sm flex-1 flex-col items-stretch justify-center space-y-6 lg:my-10 lg:mx-0 lg:max-w-md xl:max-w-xl xl:flex-row xl:items-start xl:justify-start xl:space-y-0 xl:space-x-4'>
-            <Link href='https://github.com/infrahq/infra'>
-              <div className='group inline-flex flex-none overflow-hidden rounded-full bg-gradient-to-tr from-cyan-100 to-pink-300'>
-                <button className='m-0.5 flex w-full justify-center rounded-full bg-black py-2 pr-5 pl-3 text-lg text-gray-100 group-hover:bg-gray-900 group-hover:text-white'>
-                  <img
-                    alt='github logo'
-                    className='pr-3'
-                    src='/images/github.svg'
-                  />{' '}
-                  Open in GitHub
-                </button>
-              </div>
-            </Link>
-            <div className='flex flex-1 md:mr-0'>
-              <SignupForm />
+      <section className='flex flex-1 flex-col px-4'>
+        <div className='relative mx-auto my-24 flex w-full max-w-7xl flex-1 items-center justify-between space-x-16'>
+          <div className='flex max-w-2xl flex-1 flex-col'>
+            <h1 className='my-4 overflow-visible text-3xl font-bold tracking-tight md:text-6xl'>
+              Connect your team to your infrastructure.
+            </h1>
+            <h2 className='text-md max-w-xl text-gray-600 md:text-2xl'>
+              Infra is the easiest way to manage access to Kubernetes, with more
+              connectors coming soon.
+            </h2>
+            <div className='z-40 my-5 flex items-center space-x-2 text-base'>
+              <Link href='/docs/getting-started/quickstart'>
+                <a className='rounded-full bg-blue-500 py-1.5 px-4 text-base font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
+                  Get Started
+                </a>
+              </Link>
+              <Link href='https://github.com/infrahq/infra'>
+                <a className='flex items-center rounded-full border border-gray-300 py-1.5 px-3 text-base font-semibold text-gray-500 hover:border-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-4 md:text-lg'>
+                  <StarIcon className='relative mr-1.5 h-5 stroke-current' />{' '}
+                  Star on GitHub
+                </a>
+              </Link>
             </div>
           </div>
         </div>
-        <div className='relative flex max-w-5xl flex-1 items-center justify-center'>
-          <img
-            alt='hero image'
-            className='relative top-24 block scale-125 md:top-16 md:scale-100 lg:-right-12 lg:scale-125'
-            src='https://user-images.githubusercontent.com/251292/174117176-680ee285-dd39-4a0b-a0b8-b75a09ccdc2e.png'
-          />
+      </section>
+      <section className='mb-12 flex flex-1 flex-col px-4'>
+        <div className='mx-auto grid w-full max-w-7xl grid-cols-2 gap-12 md:grid-cols-4'>
+          <div>
+            <BoltIcon className='h-7 stroke-1 text-gray-700' />
+            <h3 className='my-1.5 text-sm font-medium'>
+              Discover &amp; access in one place
+            </h3>
+            <p className='text-sm text-gray-500'>
+              Share and discover access in minutes. Infra makes connecting to
+              infrastructure in a single place fast and easy.
+            </p>
+          </div>
+          <div>
+            <ArrowPathIcon className='h-7 stroke-1 text-gray-700' />
+            <h3 className='my-1.5 text-sm font-medium'>
+              Keep credentials up to date
+            </h3>
+            <p className='text-sm text-gray-500'>
+              No more out-of-date configurations or credentials. Infra provides
+              short-lived credentials on the fly to all team members.
+            </p>
+          </div>
+          <div>
+            <IdentificationIcon className='h-7 stroke-1 text-gray-700' />
+            <h3 className='my-1.5 text-sm font-medium'>
+              Identity Provider Support
+            </h3>
+            <p className='text-sm text-gray-500'>
+              Automatically on-board and off-board users via existing identity
+              providers such as Google, Okta &amp; more.
+            </p>
+          </div>
+          <div>
+            <ShieldCheckIcon className='h-7 stroke-1 text-gray-700' />
+            <h3 className='my-1.5 text-sm font-medium'>
+              Secure, least-privilege access
+            </h3>
+            <p className='text-sm text-gray-500'>
+              Provide short-lived and fine-grained access to specific
+              infrastructure resources.
+            </p>
+          </div>
         </div>
       </section>
     </>
