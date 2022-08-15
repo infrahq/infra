@@ -26,7 +26,7 @@ func main() {
 		case errors.As(err, &unknownAuthErr):
 			// Cert error is most likely caused by mismatch between the client session and its cached server
 			// eg) server was re-installed, but the client cache was not cleared
-			fmt.Fprintf(os.Stderr, "Error: %v\n\nRun `infra login` again OR `infra logout --clear` to see if a new session resolves the issue.\n", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n\nTLS certificate is no longer valid with this server; to see if a new session resolves the issue, run `infra login` again OR `infra logout --clear`\n", err)
 		default:
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		}
