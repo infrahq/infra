@@ -20,11 +20,17 @@ type SignupDetails struct {
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*models.Identity, string, error) {
+func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details SignupDetails) (*models.Identity, string, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	details.Org.SetDefaultDomain()
+	existingOrgs, err := data.ListOrganizations(db, &models.Pagination{Limit: 1}, data.NotName("Default"))
+	if err != nil {
+		return nil, "", err
+	}
+	isFirstOrg := len(existingOrgs) == 0
+
+	details.Org.GenerateDefaultDomain(hostname)
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
@@ -32,7 +38,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*mod
 	db.Statement.Context = data.WithOrg(db.Statement.Context, details.Org)
 
 	// check the admin user's password requirements against our basic password requirements
-	err := checkPasswordRequirements(db, details.Password)
+	err = checkPasswordRequirements(db, details.Password)
 	if err != nil {
 		return nil, "", err
 	}
@@ -71,12 +77,14 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*mod
 			Resource:  ResourceInfraAPI,
 			CreatedBy: identity.ID,
 		},
-		{
+	}
+	if isFirstOrg {
+		grants = append(grants, &models.Grant{
 			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
 			Privilege: models.InfraSupportAdminRole,
 			Resource:  ResourceInfraAPI,
 			CreatedBy: identity.ID,
-		},
+		})
 	}
 
 	for _, grant := range grants {

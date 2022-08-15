@@ -23,7 +23,7 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 			*orgs[i] = *o
 			continue
 		}
-		orgs[i].SetDefaultDomain()
+		orgs[i].GenerateDefaultDomain("example.com")
 		err = data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func initializeSettings(db *gorm.DB) (*models.Settings, error) {
-	org := OrgFromContext(db.Statement.Context)
+	org := MustGetOrgFromContext(db.Statement.Context)
 
 	settings, err := GetSettings(db)
 	if settings != nil {
@@ -61,7 +61,7 @@ func initializeSettings(db *gorm.DB) (*models.Settings, error) {
 }
 
 func GetSettings(db *gorm.DB) (*models.Settings, error) {
-	org := OrgFromContext(db.Statement.Context)
+	org := MustGetOrgFromContext(db.Statement.Context)
 
 	var settings models.Settings
 	if err := db.Where("organization_id = ?", org.ID).First(&settings).Error; err != nil {

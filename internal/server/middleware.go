@@ -80,7 +80,27 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				return
 			}
 
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
+			// Before changing anything here, make sure you read the org-selection workflow diagram.
+			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
+			org := data.OrgFromContext(c.Request.Context())
+
+			if org == nil {
+				org = authned.Organization
+			}
+
+			if org == nil {
+				logging.Debugf("Org is required for request but is missing")
+				sendAPIError(c, internal.ErrBadRequest)
+				return
+			}
+
+			if authned.Organization != nil && authned.Organization.ID != org.ID {
+				logging.Debugf("requested organization does not match access key organization")
+				sendAPIError(c, internal.ErrBadRequest)
+				return
+			}
+
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -117,13 +137,6 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
-			org, err := getOrgFromRequest(c.Request, srv.dataDB)
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -138,19 +151,40 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	}
 }
 
+func orgRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		org := data.OrgFromContext(c.Request.Context())
+
+		if org == nil {
+			sendAPIError(c, internal.ErrBadRequest)
+		}
+	}
+}
+
+func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		org, err := getOrgFromRequest(c.Request, srv.dataDB)
+		if err != nil {
+			c.Next()
+			return
+		}
+
+		if org == nil && !srv.options.EnableSignup { // !saas
+			org = srv.dataDB.DefaultOrg
+		}
+
+		if org != nil {
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+		}
+		c.Next()
+	}
+}
+
 func getOrgFromRequest(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
 	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
 		return data.GetOrganization(dataDB.DB, data.ByName(orgName))
 	}
-	org, err := getOrgFromHost(req, dataDB)
-	switch {
-	case err != nil:
-		return nil, internal.ErrBadRequest
-	case org != nil:
-		return org, nil
-	}
-
-	return dataDB.DefaultOrg, nil
+	return getOrgFromHost(req, dataDB)
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -236,8 +270,9 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 }
 
 func getOrgFromHost(req *http.Request, dataDB *data.DB) (*models.Organization, error) {
-	host := req.Header.Get("Host")
+	host := req.Host
 
+	logging.Debugf("Host: %s", host)
 	if host == "" {
 		return nil, nil
 	}
@@ -246,12 +281,14 @@ hostLookup:
 	org, err := data.GetOrganization(dataDB.DB, data.ByDomain(host))
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
+			logging.Debugf("Host not found: %s", host)
 			// first, remove port and try again
 			h, p, err := net.SplitHostPort(host)
 			if len(p) > 0 && err == nil {
 				host = h
 				goto hostLookup
 			}
+			return nil, nil
 		}
 		return nil, err
 	}

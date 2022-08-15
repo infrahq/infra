@@ -14,9 +14,16 @@ type orgCtxKey struct{}
 // OrgFromContext returns the Organization stored using WithOrg.
 func OrgFromContext(ctx context.Context) *models.Organization {
 	org, ok := ctx.Value(orgCtxKey{}).(*models.Organization)
-	if !ok || org == nil {
-		// TODO(orgs): panic("no org")
-		return &models.Organization{}
+	if !ok {
+		return nil
+	}
+	return org
+}
+
+func MustGetOrgFromContext(ctx context.Context) *models.Organization {
+	org := OrgFromContext(ctx)
+	if org == nil {
+		panic("no organization found in context. this should never happen")
 	}
 	return org
 }

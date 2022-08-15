@@ -118,7 +118,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		Password: r.Password,
 		Org:      &models.Organization{Name: r.Org},
 	}
-	identity, bearer, err := access.Signup(c, keyExpires, suDetails)
+	identity, bearer, err := access.Signup(c, keyExpires, a.server.options.Hostname, suDetails)
 	if err != nil {
 		return nil, err
 	}

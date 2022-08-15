@@ -62,12 +62,16 @@ func tlsConfigFromOptions(
 
 	if opts.CA != "" {
 		raw := pemDecode([]byte(opts.CA))
-		logging.L.Info().
-			Str("SHA256 fingerprint", certs.Fingerprint(raw)).
-			Msg("TLS CA")
+		if len(raw) == 0 {
+			logging.Errorf("could not read CA %q", opts.CA)
+		} else {
+			logging.L.Info().
+				Str("SHA256 fingerprint", certs.Fingerprint(raw)).
+				Msg("TLS CA")
 
-		if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
-			logging.Warnf("failed to load TLS CA, invalid PEM")
+			if !roots.AppendCertsFromPEM([]byte(opts.CA)) {
+				logging.Warnf("failed to load TLS CA, invalid PEM")
+			}
 		}
 	}
 
@@ -200,7 +204,10 @@ func getCertificate(cache autocert.Cache, ca keyPair) func(hello *tls.ClientHell
 
 func pemDecode(raw []byte) []byte {
 	block, _ := pem.Decode(raw)
-	return block.Bytes
+	if block != nil {
+		return block.Bytes
+	}
+	return []byte{}
 }
 
 func tlsCertFromKeyPair(cert, key []byte) (*tls.Certificate, error) {
