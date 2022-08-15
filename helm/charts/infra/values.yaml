@@ -225,6 +225,29 @@ server:
     ## Supports `ClientIP` or `None`
     sessionAffinity: ""
 
+  ## (Deprecated) Server persistence configurations. This value is deprecated and will be removed in a future
+  ## update. See postgres.persistence for configuration values regarding data persistence.
+  persistence:
+
+    ## Enable server persistence
+    enabled: true
+
+    ## Persistence labels
+    labels: {}
+
+    ## Persistence annotations
+    annotations: {}
+
+    ## Name of the storage controller that will implement this resource
+    className: ""
+
+    ## Resource requests and limits for the persistence
+    resources:
+      requests:
+        storage: 2Gi
+    #   limits:
+    #     storage: 4Gi
+
   ## Metrics configurations
   metrics:
     ## Enable server metrics
