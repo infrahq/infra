@@ -35,10 +35,10 @@ data:
 {{- if not (hasKey .Values.server.config "dbFile") }}
     dbFile: /var/lib/infrahq/server/sqlite3.db
 {{- end }}
-
-{{- if not (hasKey .Values.server.config "dbEncryptionKey") }}
-    dbEncryptionKey: /var/lib/infrahq/server/sqlite3.db.key
 {{- end }}
+
+{{- if not .Values.server.config.dbEncryptionKey }}
+    dbEncryptionKey: /var/run/secrets/infrahq.com/encryption-key/key
 {{- end }}
 
 {{- if not .Values.server.config.tls }}
