@@ -316,9 +316,11 @@ func TestLoadConfigInvalid(t *testing.T) {
 		"MissingProviderName": {
 			Providers: []Provider{
 				{
-					URL:          "demo.okta.com",
+					URL:          "example.com",
 					ClientID:     "client-id",
 					ClientSecret: "client-secret",
+					AuthURL:      "example.com/auth",
+					Scopes:       []string{"openid", "email"},
 				},
 			},
 		},
@@ -335,8 +337,10 @@ func TestLoadConfigInvalid(t *testing.T) {
 			Providers: []Provider{
 				{
 					Name:         "okta",
-					URL:          "demo.okta.com",
+					URL:          "example.com",
 					ClientSecret: "client-secret",
+					AuthURL:      "example.com/auth",
+					Scopes:       []string{"openid", "email"},
 				},
 			},
 		},
@@ -344,8 +348,10 @@ func TestLoadConfigInvalid(t *testing.T) {
 			Providers: []Provider{
 				{
 					Name:     "okta",
-					URL:      "demo.okta.com",
+					URL:      "example.com",
 					ClientID: "client-id",
+					AuthURL:  "example.com/auth",
+					Scopes:   []string{"openid", "email"},
 				},
 			},
 		},
@@ -353,9 +359,9 @@ func TestLoadConfigInvalid(t *testing.T) {
 			Providers: []Provider{
 				{
 					Name:     "okta",
-					URL:      "demo.okta.com",
+					URL:      "example.com",
 					ClientID: "client-id",
-					AuthURL:  "example.com",
+					AuthURL:  "example.com/auth",
 					Scopes:   []string{"offline_access"},
 				},
 			},
@@ -392,10 +398,10 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		Providers: []Provider{
 			{
 				Name:         "okta",
-				URL:          "demo.okta.com",
+				URL:          "example.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
-				AuthURL:      "dev.okta.com/oauth2/default/v1/token",
+				AuthURL:      "example.com/oauth2/default/v1/token",
 				Scopes:       []string{"openid", "email"},
 			},
 			{
@@ -434,11 +440,11 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		Model:              okta.Model,     // not relevant
 		CreatedBy:          okta.CreatedBy, // not relevant
 		Name:               "okta",
-		URL:                "demo.okta.com",
+		URL:                "example.com",
 		ClientID:           "client-id",
 		ClientSecret:       "client-secret",
 		Kind:               models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:            "dev.okta.com/oauth2/default/v1/token",
+		AuthURL:            "example.com/oauth2/default/v1/token",
 		Scopes:             []string{"openid", "email"},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
@@ -642,9 +648,11 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		Providers: []Provider{
 			{
 				Name:         "okta",
-				URL:          "demo.okta.com",
+				URL:          "example.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
+				AuthURL:      "example.com/auth",
+				Scopes:       []string{"openid", "email"},
 			},
 		},
 		Grants: []Grant{
@@ -691,9 +699,11 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 		Providers: []Provider{
 			{
 				Name:         "okta",
-				URL:          "new-demo.okta.com",
+				URL:          "new.example.com",
 				ClientID:     "new-client-id",
 				ClientSecret: "new-client-secret",
+				AuthURL:      "new.example.com/auth",
+				Scopes:       []string{"openid", "email"},
 			},
 		},
 	}
@@ -725,10 +735,10 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Providers: []Provider{
 			{
 				Name:         "okta",
-				URL:          "demo.okta.com",
+				URL:          "example.okta.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
-				AuthURL:      "demo.okta.com/auth",
+				AuthURL:      "example.com/auth",
 				Scopes:       []string{"openid", "email"},
 			},
 		},
@@ -807,10 +817,10 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Providers: []Provider{
 			{
 				Name:         "atko",
-				URL:          "demo.atko.com",
+				URL:          "new.example.com",
 				ClientID:     "client-id-2",
 				ClientSecret: "client-secret-2",
-				AuthURL:      "demo.okta.com/v1/auth",
+				AuthURL:      "new.example.com/v1/auth",
 				Scopes:       []string{"openid", "email", "groups"},
 			},
 		},
@@ -844,11 +854,11 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Model:              provider.Model,     // not relevant
 		CreatedBy:          provider.CreatedBy, // not relevant
 		Name:               "atko",
-		URL:                "demo.atko.com",
+		URL:                "new.example.com",
 		ClientID:           "client-id-2",
 		ClientSecret:       "client-secret-2",
 		Kind:               models.ProviderKindOIDC, // the kind gets the default value
-		AuthURL:            "demo.okta.com/v1/auth",
+		AuthURL:            "new.example.com/v1/auth",
 		Scopes:             []string{"openid", "email", "groups"},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
