@@ -24,12 +24,6 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details Sig
 	// no authorization is setup yet
 	db := getDB(c)
 
-	existingOrgs, err := data.ListOrganizations(db, &models.Pagination{Limit: 1}, data.NotName("Default"))
-	if err != nil {
-		return nil, "", err
-	}
-	isFirstOrg := len(existingOrgs) == 0
-
 	details.Org.GenerateDefaultDomain(hostname)
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
@@ -38,7 +32,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details Sig
 	db.Statement.Context = data.WithOrg(db.Statement.Context, details.Org)
 
 	// check the admin user's password requirements against our basic password requirements
-	err = checkPasswordRequirements(db, details.Password)
+	err := checkPasswordRequirements(db, details.Password)
 	if err != nil {
 		return nil, "", err
 	}
@@ -70,27 +64,14 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details Sig
 		return nil, "", fmt.Errorf("create credential on sign-up: %w", err)
 	}
 
-	grants := []*models.Grant{
-		{
-			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
-			Privilege: models.InfraAdminRole,
-			Resource:  ResourceInfraAPI,
-			CreatedBy: identity.ID,
-		},
-	}
-	if isFirstOrg {
-		grants = append(grants, &models.Grant{
-			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
-			Privilege: models.InfraSupportAdminRole,
-			Resource:  ResourceInfraAPI,
-			CreatedBy: identity.ID,
-		})
-	}
-
-	for _, grant := range grants {
-		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, "", fmt.Errorf("create grant on sign-up: %w", err)
-		}
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
+		Privilege: models.InfraAdminRole,
+		Resource:  ResourceInfraAPI,
+		CreatedBy: identity.ID,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("create grant on sign-up: %w", err)
 	}
 
 	// grant the user a session on initial sign-up
