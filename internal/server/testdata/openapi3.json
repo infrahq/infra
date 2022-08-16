@@ -916,6 +916,9 @@
         "properties": {
           "isEmailConfigured": {
             "type": "boolean"
+          },
+          "isSignupEnabled": {
+            "type": "boolean"
           }
         }
       },
