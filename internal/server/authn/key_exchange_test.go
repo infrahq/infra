@@ -2,12 +2,12 @@ package authn
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -24,6 +24,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 
 	shortExpiry := time.Now().UTC().Add(1 * time.Minute)
 	longExpiry := time.Now().UTC().Add(30 * 24 * time.Hour)
+	threshold := opt.DurationWithThreshold(time.Second)
 
 	cases := map[string]testCase{
 		"InvalidAccessKeyCannotBeExchanged": {
@@ -101,9 +102,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
 				assert.Equal(t, authnIdentity.Identity.Name, "krillin@example.com")
 				assert.Equal(t, data.InfraProvider(db).ID, authnIdentity.Provider.ID)
-				fmt.Println(authnIdentity.SessionExpiry)
-				fmt.Println(shortExpiry)
-				assert.Assert(t, authnIdentity.SessionExpiry.UTC().Equal(shortExpiry))
+				assert.DeepEqual(t, authnIdentity.SessionExpiry, shortExpiry, threshold)
 			},
 		},
 		"ValidAccessKeySuccess": {
@@ -129,7 +128,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				assert.Equal(t, data.InfraProvider(db).ID, authnIdentity.Provider.ID)
 				// if the request expiry is less than the lifetime of the requesting key,
 				// the issued key should match the requested expiry
-				assert.Assert(t, authnIdentity.SessionExpiry.Equal(longExpiry))
+				assert.DeepEqual(t, authnIdentity.SessionExpiry, longExpiry, threshold)
 			},
 		},
 	}
