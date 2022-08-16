@@ -138,11 +138,9 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	var loginMethod authn.LoginMethod
 
-	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
-
 	switch {
 	case r.AccessKey != "":
-		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey, expires)
+		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
@@ -163,6 +161,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	}
 
 	// do the actual login now that we know the method selected
+	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
 	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
@@ -174,7 +173,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
 
-	setAuthCookie(c, bearer, expires)
+	setAuthCookie(c, bearer, key.ExpiresAt)
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 

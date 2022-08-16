@@ -13,14 +13,12 @@ import (
 
 // keyExchangeAuthn allows exchanging a valid access key for new access key with a shorter lifetime
 type keyExchangeAuthn struct {
-	RequestingAccessKey string    // the access key being presented in the login request
-	RequestedExpiry     time.Time // the expiry of the new access key that would be issued on login
+	RequestingAccessKey string // the access key being presented in the login request
 }
 
-func NewKeyExchangeAuthentication(requestingAccessKey string, requestedExpiry time.Time) LoginMethod {
+func NewKeyExchangeAuthentication(requestingAccessKey string) LoginMethod {
 	return &keyExchangeAuthn{
 		RequestingAccessKey: requestingAccessKey,
-		RequestedExpiry:     requestedExpiry,
 	}
 }
 
@@ -30,7 +28,7 @@ func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB, requeste
 		return AuthenticatedIdentity{}, fmt.Errorf("invalid access key in exchange: %w", err)
 	}
 
-	sessionExpiry := a.RequestedExpiry
+	sessionExpiry := requestedExpiry
 
 	if sessionExpiry.After(validatedRequestKey.ExpiresAt) {
 		logging.L.Trace().Msg("key exchanged with expiry before default, set exchanged key expiry to match requesting key")

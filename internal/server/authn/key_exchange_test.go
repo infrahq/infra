@@ -17,7 +17,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 	db := setupDB(t)
 
 	type testCase struct {
-		setup       func(t *testing.T, db *gorm.DB) LoginMethod
+		setup       func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time)
 		expectedErr string
 		expected    func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
@@ -28,19 +28,19 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 
 	cases := map[string]testCase{
 		"InvalidAccessKeyCannotBeExchanged": {
-			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "goku@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
 				invalidKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 
-				return NewKeyExchangeAuthentication(invalidKey, time.Now().Add(5*time.Minute))
+				return NewKeyExchangeAuthentication(invalidKey), time.Now().Add(5 * time.Minute)
 			},
 			expectedErr: "could not get access key from database",
 		},
 		"ExpiredAccessKeyCannotBeExchanged": {
-			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "bulma@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -55,12 +55,12 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				bearer, err := data.CreateAccessKey(db, key)
 				assert.NilError(t, err)
 
-				return NewKeyExchangeAuthentication(bearer, time.Now().Add(5*time.Minute))
+				return NewKeyExchangeAuthentication(bearer), time.Now().Add(5 * time.Minute)
 			},
 			expectedErr: data.ErrAccessKeyExpired.Error(),
 		},
 		"AccessKeyCannotBeExchangedWhenUserNoLongerExists": {
-			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "notforlong@example.com"}
 				user.DeletedAt.Time = time.Now()
 				user.DeletedAt.Valid = true
@@ -77,12 +77,12 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				bearer, err := data.CreateAccessKey(db, key)
 				assert.NilError(t, err)
 
-				return NewKeyExchangeAuthentication(bearer, time.Now().Add(1*time.Minute))
+				return NewKeyExchangeAuthentication(bearer), time.Now().Add(5 * time.Minute)
 			},
 			expectedErr: "user is not valid",
 		},
 		"AccessKeyCannotBeExchangedForLongerLived": {
-			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "krillin@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -97,7 +97,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				bearer, err := data.CreateAccessKey(db, key)
 				assert.NilError(t, err)
 
-				return NewKeyExchangeAuthentication(bearer, longExpiry)
+				return NewKeyExchangeAuthentication(bearer), longExpiry
 			},
 			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
 				assert.Equal(t, authnIdentity.Identity.Name, "krillin@example.com")
@@ -106,7 +106,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			},
 		},
 		"ValidAccessKeySuccess": {
-			setup: func(t *testing.T, db *gorm.DB) LoginMethod {
+			setup: func(t *testing.T, db *gorm.DB) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "cell@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -121,7 +121,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 				bearer, err := data.CreateAccessKey(db, key)
 				assert.NilError(t, err)
 
-				return NewKeyExchangeAuthentication(bearer, longExpiry)
+				return NewKeyExchangeAuthentication(bearer), longExpiry
 			},
 			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
 				assert.Equal(t, authnIdentity.Identity.Name, "cell@example.com")
@@ -135,9 +135,9 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			keyExchangeLogin := tc.setup(t, db)
+			keyExchangeLogin, exp := tc.setup(t, db)
 
-			authnIdentity, err := keyExchangeLogin.Authenticate(context.Background(), db, longExpiry)
+			authnIdentity, err := keyExchangeLogin.Authenticate(context.Background(), db, exp)
 			if tc.expectedErr != "" {
 				assert.ErrorContains(t, err, tc.expectedErr)
 				return
