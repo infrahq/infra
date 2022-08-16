@@ -85,13 +85,13 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			org := data.OrgFromContext(c.Request.Context())
 
 			if org == nil {
-				org = authned.Organization
-			}
-
-			if org == nil {
-				logging.Debugf("Org is required for request but is missing")
-				sendAPIError(c, internal.ErrBadRequest)
-				return
+				if authned.Organization != nil {
+					org = authned.Organization
+				} else {
+					logging.Debugf("Org is required for request but is missing")
+					sendAPIError(c, internal.ErrBadRequest)
+					return
+				}
 			}
 
 			if authned.Organization != nil && authned.Organization.ID != org.ID {
