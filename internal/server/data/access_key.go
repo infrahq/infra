@@ -155,6 +155,15 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
+		// if the context wasn't set already, set it from the key so we can save
+		org := OrgFromContext(db.Statement.Context)
+		if org == nil {
+			org, err = GetOrganization(db, ByID(t.OrganizationID))
+			if err != nil {
+				return nil, fmt.Errorf("loading organization: %w", err)
+			}
+			db.Statement.Context = WithOrg(db.Statement.Context, org)
+		}
 		if err := SaveAccessKey(db, t); err != nil {
 			return nil, err
 		}

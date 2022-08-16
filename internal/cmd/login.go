@@ -713,7 +713,7 @@ func getProviderConfig(provider api.Provider) (string, []string, error) {
 	// find out what the authorization endpoint is
 	providerClient, err := oidc.NewProvider(context.Background(), fmt.Sprintf("https://%s", provider.URL))
 	if err != nil {
-		return "", []string{}, fmt.Errorf("get provider oidc info: %w", err)
+		return "", []string{}, fmt.Errorf("get provider client: %w", err)
 	}
 
 	// claims are the attributes of the user we want to know from the identity provider

@@ -11,8 +11,8 @@ import (
 )
 
 func pprofHandler(c *gin.Context) {
-	if _, err := access.RequireInfraRole(c, models.InfraAdminRole); err != nil {
-		sendAPIError(c, access.HandleAuthErr(err, "debug", "run", models.InfraAdminRole))
+	if _, err := access.RequireInfraRole(c, models.InfraSupportAdminRole); err != nil {
+		sendAPIError(c, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole))
 		return
 	}
 

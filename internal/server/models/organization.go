@@ -30,7 +30,7 @@ func (o *Organization) ToAPI() *api.Organization {
 var domainNameReplacer = regexp.MustCompile(`[^\da-zA-Z-]`)
 
 // TODO: let's do this in data.CreateOrganization
-func (o *Organization) SetDefaultDomain() {
+func (o *Organization) GenerateDefaultDomain(hostname string) {
 	if len(o.Domain) > 0 {
 		return
 	}
@@ -44,7 +44,7 @@ func (o *Organization) SetDefaultDomain() {
 		slug = slug[:20]
 	}
 	o.Domain = slug + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
-	o.Domain = strings.ToLower(o.Domain)
+	o.Domain = strings.ToLower(o.Domain) + "." + hostname
 }
 
 type OrganizationMember struct {

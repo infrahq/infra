@@ -156,7 +156,7 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 
 	result := new(T)
 	if isOrgMember(result) {
-		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
 	}
 
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
@@ -176,8 +176,7 @@ func setOrg(db *gorm.DB, model any) {
 		return
 	}
 
-	org := OrgFromContext(db.Statement.Context)
-	member.SetOrganizationID(org.ID)
+	member.SetOrganizationID(MustGetOrgFromContext(db.Statement.Context).ID)
 }
 
 type orgMember interface {
@@ -196,7 +195,7 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
 	}
 
 	if p != nil {
@@ -329,7 +328,7 @@ func handleError(err error) error {
 
 func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
 	if isOrgMember(new(T)) {
-		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
 	}
 	return db.Delete(new(T), id).Error
 }
@@ -339,7 +338,7 @@ func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(OrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
 	}
 
 	return db.Delete(new(T)).Error
@@ -363,7 +362,7 @@ func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (in
 // cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraProvider must call InvalidateCache to clean up.
 func InfraProvider(db *gorm.DB) *models.Provider {
-	org := OrgFromContext(db.Statement.Context)
+	org := MustGetOrgFromContext(db.Statement.Context)
 	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
@@ -376,7 +375,7 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 // The cache lasts for the entire lifetime of the process, so any test or test
 // helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
-	org := OrgFromContext(db.Statement.Context)
+	org := MustGetOrgFromContext(db.Statement.Context)
 	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(org.ID))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")

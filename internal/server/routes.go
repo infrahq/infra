@@ -54,7 +54,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	// This group of middleware only applies to non-ui routes
 	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
 
-	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
+	// auth required, org required
+	authn := apiGroup.Group("/", setOrganizationInCtx(a.server), authenticatedMiddleware(a.server))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -95,24 +96,30 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
 
+	put(a, authn, "/api/settings", a.UpdateSettings)
+
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
-	// these endpoints do not require authentication
-	noAuthn := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
-	post(a, noAuthn, "/api/signup", a.Signup)
+	// no auth required, org not required
+	noAuthnNoOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
+	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
+	get(a, noAuthnNoOrg, "/api/version", a.Version)
 
-	post(a, noAuthn, "/api/login", a.Login)
-	post(a, noAuthn, "/api/password-reset-request", a.RequestPasswordReset)
-	post(a, noAuthn, "/api/password-reset", a.VerifiedPasswordReset)
+	// while an org is required for these endpoints, they return fake data when the org is not supplied
+	noAuthnOptOrg := apiGroup.Group("/", setOrganizationInCtx(a.server), unauthenticatedMiddleware(a.server))
+	get(a, noAuthnOptOrg, "/api/providers", a.ListProviders)
+	get(a, noAuthnOptOrg, "/api/settings", a.GetSettings)
 
-	get(a, noAuthn, "/api/providers", a.ListProviders)
-	get(a, noAuthn, "/api/providers/:id", a.GetProvider)
+	// no auth required, org required
+	noAuthnWithOrg := apiGroup.Group("/", setOrganizationInCtx(a.server), unauthenticatedMiddleware(a.server), orgRequired())
 
-	get(a, noAuthn, "/api/version", a.Version)
+	post(a, noAuthnWithOrg, "/api/login", a.Login)
+	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
+	post(a, noAuthnWithOrg, "/api/password-reset", a.VerifiedPasswordReset)
 
-	get(a, noAuthn, "/api/settings", a.GetSettings)
-	put(a, authn, "/api/settings", a.UpdateSettings)
-	add(a, noAuthn, route[api.EmptyRequest, WellKnownJWKResponse]{
+	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
+
+	add(a, noAuthnWithOrg, route[api.EmptyRequest, WellKnownJWKResponse]{
 		method:              http.MethodGet,
 		path:                "/.well-known/jwks.json",
 		handler:             wellKnownJWKsHandler,
@@ -121,16 +128,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 		infraHeaderOptional: true,
 	})
 
-	// deprecated endpoints
-	// CLI clients before v0.14.4 rely on sign-up being false to continue with login
-	type SignupEnabledResponse struct {
-		Enabled bool `json:"enabled"`
-	}
-	addDeprecated(a, noAuthn, http.MethodGet, "/api/signup",
-		func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
-			return &SignupEnabledResponse{Enabled: false}, nil
-		},
-	)
+	a.deprecatedRoutes(noAuthnNoOrg)
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the

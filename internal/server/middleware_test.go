@@ -350,16 +350,17 @@ func TestOrgLookupByDomain(t *testing.T) {
 	assert.NilError(t, err)
 
 	router.GET("/foo",
+		setOrganizationInCtx(srv),
 		unauthenticatedMiddleware(srv),
 		func(ctx *gin.Context) {
 			ctxOrg := data.OrgFromContext(ctx)
 
+			assert.Assert(t, ctxOrg != nil)
 			assert.Equal(t, ctxOrg.ID, org.ID)
 			ctx.JSON(200, api.EmptyResponse{})
 		})
 
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header.Add("Host", "umbrella.infrahq.com")
+	req := httptest.NewRequest("GET", "http://umbrella.infrahq.com/foo", nil)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)
@@ -374,12 +375,12 @@ func TestMissingOrgErrors(t *testing.T) {
 
 	router.GET("/foo",
 		unauthenticatedMiddleware(srv),
+		orgRequired(),
 		func(ctx *gin.Context) {
 			assert.Assert(t, false, "Shouldn't get here")
 		})
 
-	req := httptest.NewRequest("GET", "/foo", nil)
-	req.Header.Add("Host", "notadomainweknowabout.org")
+	req := httptest.NewRequest("GET", "http://notadomainweknowabout.org/foo", nil)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, req)

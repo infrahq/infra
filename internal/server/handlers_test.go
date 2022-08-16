@@ -173,6 +173,7 @@ func TestWellKnownJWKs(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
+		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/.well-known/jwks.json", nil)
 		assert.NilError(t, err)
 

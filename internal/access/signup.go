@@ -20,11 +20,11 @@ type SignupDetails struct {
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*models.Identity, string, error) {
+func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details SignupDetails) (*models.Identity, string, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	details.Org.SetDefaultDomain()
+	details.Org.GenerateDefaultDomain(hostname)
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
@@ -64,25 +64,14 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, details SignupDetails) (*mod
 		return nil, "", fmt.Errorf("create credential on sign-up: %w", err)
 	}
 
-	grants := []*models.Grant{
-		{
-			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
-			Privilege: models.InfraAdminRole,
-			Resource:  ResourceInfraAPI,
-			CreatedBy: identity.ID,
-		},
-		{
-			Subject:   uid.NewIdentityPolymorphicID(identity.ID),
-			Privilege: models.InfraSupportAdminRole,
-			Resource:  ResourceInfraAPI,
-			CreatedBy: identity.ID,
-		},
-	}
-
-	for _, grant := range grants {
-		if err := data.CreateGrant(db, grant); err != nil {
-			return nil, "", fmt.Errorf("create grant on sign-up: %w", err)
-		}
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(identity.ID),
+		Privilege: models.InfraAdminRole,
+		Resource:  ResourceInfraAPI,
+		CreatedBy: identity.ID,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("create grant on sign-up: %w", err)
 	}
 
 	// grant the user a session on initial sign-up

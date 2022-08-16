@@ -98,7 +98,7 @@ func defaultServerOptions(infraDir string) server.Options {
 		EnableTelemetry:          true,
 		SessionDuration:          24 * time.Hour * 30, // 30 days
 		SessionExtensionDeadline: 24 * time.Hour * 3,  // 3 days
-		EnableSignup:             true,
+		EnableSignup:             false,
 
 		Addr: server.ListenerOptions{
 			HTTP:    ":80",
