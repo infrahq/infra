@@ -2,6 +2,7 @@ package authn
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -21,8 +22,8 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 		expected    func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
 
-	shortExpiry := time.Now().Add(1 * time.Minute)
-	longExpiry := time.Now().Add(30 * 24 * time.Hour)
+	shortExpiry := time.Now().UTC().Add(1 * time.Minute)
+	longExpiry := time.Now().UTC().Add(30 * 24 * time.Hour)
 
 	cases := map[string]testCase{
 		"InvalidAccessKeyCannotBeExchanged": {
@@ -100,7 +101,9 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			expected: func(t *testing.T, authnIdentity AuthenticatedIdentity) {
 				assert.Equal(t, authnIdentity.Identity.Name, "krillin@example.com")
 				assert.Equal(t, data.InfraProvider(db).ID, authnIdentity.Provider.ID)
-				assert.Assert(t, authnIdentity.SessionExpiry.Equal(shortExpiry))
+				fmt.Println(authnIdentity.SessionExpiry)
+				fmt.Println(shortExpiry)
+				assert.Assert(t, authnIdentity.SessionExpiry.UTC().Equal(shortExpiry))
 			},
 		},
 		"ValidAccessKeySuccess": {
