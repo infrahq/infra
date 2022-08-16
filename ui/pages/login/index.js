@@ -3,7 +3,7 @@ import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { serverConfig } from '../../lib/serverconfig'
 
-// import Link from 'next/link'
+import Link from 'next/link'
 
 import { providers as providersList } from '../../lib/providers'
 
