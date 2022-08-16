@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { serverConfig } from '../../lib/serverconfig'
+import { useServerConfig } from '../../lib/serverconfig'
 
 import Link from 'next/link'
 
@@ -74,7 +74,7 @@ export default function Login() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { isEmailConfigured } = serverConfig()
+  const { isEmailConfigured } = useServerConfig()
 
   async function onSubmit(e) {
     e.preventDefault()
