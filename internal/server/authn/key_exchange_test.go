@@ -24,7 +24,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 
 	shortExpiry := time.Now().UTC().Add(1 * time.Minute)
 	longExpiry := time.Now().UTC().Add(30 * 24 * time.Hour)
-	threshold := opt.DurationWithThreshold(time.Second)
+	threshold := opt.TimeWithThreshold(time.Second)
 
 	cases := map[string]testCase{
 		"InvalidAccessKeyCannotBeExchanged": {
