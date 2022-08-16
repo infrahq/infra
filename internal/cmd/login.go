@@ -65,6 +65,11 @@ $ infra login --provider okta
 
 # Login with an access key
 $ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
+$ infra login
+
+# Login with pre-set provider and server
+$ export INFRA_SERVER=example.infrahq.com
+$ export INFRA_PROVIDER=google
 $ infra login`,
 		Args:  MaxArgs(1),
 		Group: "Core commands:",
@@ -101,10 +106,13 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
 		}
-
-		options.Server, err = promptServer(cli, config)
-		if err != nil {
-			return err
+		if len(config.Hosts) == 1 {
+			options.Server = config.Hosts[0].Host
+		} else {
+			options.Server, err = promptServer(cli, config)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -135,9 +143,17 @@ func login(cli *CLI, options loginCmdOptions) error {
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login only supports access keys, set the INFRA_ACCESS_KEY environment variable and try again"}
 		}
-		loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
-		if err != nil {
-			return err
+
+		if options.Provider == "infra" {
+			loginReq.PasswordCredentials, err = promptLocalLogin(cli)
+			if err != nil {
+				return err
+			}
+		} else {
+			loginReq.OIDC, err = loginToProviderN(lc.APIClient, options.Provider)
+			if err != nil {
+				return err
+			}
 		}
 	default:
 		if options.NonInteractive {
@@ -161,7 +177,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 			}
 		}
 	}
-
 	return loginToInfra(cli, lc, loginReq, options.NoAgent)
 }
 
