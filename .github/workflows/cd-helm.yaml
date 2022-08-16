@@ -41,7 +41,7 @@ jobs:
           name: helm
       - run: |
           for chart in *.tgz; do
-            if aws s3 ls s3://${{ env.HELM_BUCKET }}/$chart && ! ${{ inputs.override-chart }} ; then
+            if aws s3 ls s3://${{ env.HELM_BUCKET }}/$chart && ! ${{ inputs.override-chart || false }} ; then
               echo "Skipping $chart which already exists."
               continue
             fi
