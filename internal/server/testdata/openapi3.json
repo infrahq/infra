@@ -4499,7 +4499,7 @@
         ]
       }
     },
-    "/api/server-config": {
+    "/api/server-configuration": {
       "get": {
         "description": "GetServerConfiguration",
         "operationId": "GetServerConfiguration",
