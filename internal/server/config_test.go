@@ -641,7 +641,6 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 }
 
 func TestLoadConfigPruneConfig(t *testing.T) {
-	t.Skip("do not hit external urls") // this test needs to not hit https://demo.okta.com/.well-known/openid-configuration
 	s := setupServer(t)
 
 	config := Config{
