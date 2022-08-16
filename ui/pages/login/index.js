@@ -1,7 +1,9 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-// import Link from 'next/link'
+import { useServerConfig } from '../../lib/serverconfig'
+
+import Link from 'next/link'
 
 import { providers as providersList } from '../../lib/providers'
 
@@ -72,6 +74,7 @@ export default function Login() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const { isEmailConfigured } = useServerConfig()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -185,11 +188,13 @@ export default function Login() {
         >
           Login
         </button>
-        {/* <Link href='/password-reset'>
-          <a className='text-3xs text-violet-100 hover:border-violet-100'>
-            I forgot my password
-          </a>
-        </Link> */}
+        {isEmailConfigured && (
+          <Link href='/password-reset'>
+            <a className='text-3xs text-violet-100 hover:border-violet-100'>
+              I forgot my password
+            </a>
+          </Link>
+        )}
         {error && (
           <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
             {error}
