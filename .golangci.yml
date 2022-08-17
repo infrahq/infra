@@ -1,5 +1,5 @@
 run:
-  go: 1.18
+  go: 1.19
   timeout: 5m
 
 linters-settings:
@@ -15,6 +15,11 @@ linters-settings:
   gocritic:
     disabled-checks:
       - singleCaseSwitch
+
+issues:
+  exclude-rules:
+    - linters: [staticcheck]
+      text: "\"io/ioutil\" has been deprecated"
 
 linters:
   enable:

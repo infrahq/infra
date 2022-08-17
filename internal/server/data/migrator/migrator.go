@@ -63,12 +63,12 @@ func New(db *gorm.DB, options Options, migrations []*Migration) *Migrator {
 // Migrate runs all the migrations that have not yet been applied to the
 // database. Migrate may follow one of three flows:
 //
-//   1. If the initial schema has not yet been applied then Migrate will run
-//      Options.InitSchema, and then exit.
-//   2. If all the migrations have already been applied then Migrate will do
-//      nothing.
-//   3. If there are migrations in the list that have not yet been applied then
-//      Migrate will run them in order.
+//  1. If the initial schema has not yet been applied then Migrate will run
+//     Options.InitSchema, and then exit.
+//  2. If all the migrations have already been applied then Migrate will do
+//     nothing.
+//  3. If there are migrations in the list that have not yet been applied then
+//     Migrate will run them in order.
 func (g *Migrator) Migrate() error {
 	if g.options.InitSchema == nil && len(g.migrations) == 0 {
 		return fmt.Errorf("there are no migrations")

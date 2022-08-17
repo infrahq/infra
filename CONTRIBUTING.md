@@ -39,7 +39,7 @@ documented in the [commitlint config file](.github/commitlint.config.js).
 
 ### Setup
 
-1. Install [Go 1.18](https://go.dev/dl/#go1.18)
+1. Install [Go 1.19](https://go.dev/dl/#go1.19)
 1. Clone the project
     ```
     git clone https://github.com/infrahq/infra
