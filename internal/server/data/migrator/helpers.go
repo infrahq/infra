@@ -1,6 +1,8 @@
 package migrator
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type Tx interface {
 	Exec(stmt string, args ...any) *gorm.DB
@@ -47,7 +49,7 @@ func HasColumn(tx *gorm.DB, table string, column string) bool {
 			WHERE type = 'table' AND name = ?
 			AND sql LIKE ?
 		`
-		column = "%`" + column + "`%"
+		column = "% " + column + " %"
 	}
 
 	if err := tx.Raw(stmt, table, column).Scan(&count).Error; err != nil {
