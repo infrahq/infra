@@ -41,7 +41,7 @@ func postgresDriver(t *testing.T) gorm.Dialector {
 	case driver == nil:
 		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
 	}
-	return driver
+	return driver.Dialector
 }
 
 // runDBTests against all supported databases. Defaults to only sqlite locally,

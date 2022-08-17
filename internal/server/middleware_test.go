@@ -29,13 +29,13 @@ func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_server")
 	if driver == nil {
-		var err error
-		driver, err = data.NewSQLiteDriver("file::memory:")
+		lite, err := data.NewSQLiteDriver("file::memory:")
 		assert.NilError(t, err)
+		driver = &database.Driver{Dialector: lite}
 	}
 
 	tpatch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver, nil)
+	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
 	t.Cleanup(data.InvalidateCache)
 
@@ -336,7 +336,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 }
 
-func TestOrgLookupByDomain(t *testing.T) {
+func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	db := srv.db
 
@@ -355,20 +355,26 @@ func TestOrgLookupByDomain(t *testing.T) {
 		func(ctx *gin.Context) {
 			ctxOrg := data.OrgFromContext(ctx)
 
-			assert.Assert(t, ctxOrg != nil)
-			assert.Equal(t, ctxOrg.ID, org.ID)
+			assert.Check(t, ctxOrg != nil)
+			assert.Check(t, ctxOrg.ID == org.ID, "got org %v", ctxOrg.Name)
 			ctx.JSON(200, api.EmptyResponse{})
 		})
 
-	req := httptest.NewRequest("GET", "http://umbrella.infrahq.com/foo", nil)
+	httpSrv := httptest.NewServer(router)
+	t.Cleanup(httpSrv.Close)
 
-	resp := httptest.NewRecorder()
-	router.ServeHTTP(resp, req)
+	req, err := http.NewRequest("GET", httpSrv.URL+"/foo", nil)
+	assert.NilError(t, err)
+	req.Host = org.Domain
 
-	assert.Equal(t, resp.Code, 200)
+	client := httpSrv.Client()
+	resp, err := client.Do(req)
+	assert.NilError(t, err)
+
+	assert.Equal(t, resp.StatusCode, 200)
 }
 
-func TestMissingOrgErrors(t *testing.T) {
+func TestGetOrgFromRequest_MissingOrgErrors(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
 	router := gin.New()
@@ -386,10 +392,9 @@ func TestMissingOrgErrors(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Code, http.StatusBadRequest)
-
 }
 
-func TestDefaultOrg(t *testing.T) {
+func TestGetOrgFromRequest_UsesDefaultWhenDomainDoesNotMatchAnyOrg(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 
 	router := gin.New()

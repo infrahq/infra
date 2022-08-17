@@ -24,6 +24,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/testing/database"
 )
 
 func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
@@ -112,11 +113,16 @@ func TestServer_Run(t *testing.T) {
 		DBEncryptionKeyProvider: "native",
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
-		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
 			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
 		},
+	}
+
+	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
+		opts.DBConnectionString = driver.DSN
+	} else {
+		opts.DBFile = filepath.Join(dir, "sqlite3.db")
 	}
 
 	srv, err := New(opts)
@@ -206,7 +212,6 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKeyProvider: "native",
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
-		DBFile:                  filepath.Join(dir, "sqlite3.db"),
 		EnableSignup:            true,
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
@@ -214,6 +219,12 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		},
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
+
+	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
+		opts.DBConnectionString = driver.DSN
+	} else {
+		opts.DBFile = filepath.Join(dir, "sqlite3.db")
+	}
 
 	srv, err := New(opts)
 	assert.NilError(t, err)

@@ -19,13 +19,13 @@ func setupDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_authn")
 	if driver == nil {
-		var err error
-		driver, err = data.NewSQLiteDriver("file::memory:")
+		lite, err := data.NewSQLiteDriver("file::memory:")
 		assert.NilError(t, err)
+		driver = &database.Driver{Dialector: lite}
 	}
 
 	patch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver, nil)
+	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
 	t.Cleanup(data.InvalidateCache)
 
