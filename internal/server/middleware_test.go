@@ -361,6 +361,7 @@ func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 	httpSrv := httptest.NewServer(router)
 	t.Cleanup(httpSrv.Close)
 
+	// nolint:noctx
 	req, err := http.NewRequest("GET", httpSrv.URL+"/foo", nil)
 	assert.NilError(t, err)
 	req.Host = org.Domain

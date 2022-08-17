@@ -14,7 +14,8 @@ import (
 // This test is used to catch any potential problems with openapi doc generation in the PR
 // that introduces them. Without this test we wouldn't notice until release time.
 // To update the expected value, run:
-//     go test ./internal/server -update
+//
+//	go test ./internal/server -update
 func TestWriteOpenAPIDocToFile(t *testing.T) {
 	patchProductVersion(t, "0.0.0")
 	s := Server{}

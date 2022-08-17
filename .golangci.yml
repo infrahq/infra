@@ -16,6 +16,11 @@ linters-settings:
     disabled-checks:
       - singleCaseSwitch
 
+issues:
+  exclude-rules:
+    - linters: [staticcheck]
+      text: "\"io/ioutil\" has been deprecated"
+
 linters:
   enable:
     - asciicheck
