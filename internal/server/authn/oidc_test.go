@@ -59,36 +59,39 @@ func TestOIDCAuthenticate(t *testing.T) {
 
 	t.Run("invalid provider", func(t *testing.T) {
 		unknownProviderOIDCAuthn := NewOIDCAuthentication(uid.New(), "localhost:8031", "1234", oidc)
-		_, _, _, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db)
+		_, err := unknownProviderOIDCAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 
 	t.Run("successful authentication", func(t *testing.T) {
 		oidcAuthn := NewOIDCAuthentication(mocktaProvider.ID, "localhost:8031", "1234", oidc)
-		identity, provider, _, err := oidcAuthn.Authenticate(context.Background(), db)
+		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 
 		assert.NilError(t, err)
 		// user should be created
-		assert.Equal(t, identity.Name, "bruce@example.com")
+		assert.Equal(t, authnIdentity.Identity.Name, "bruce@example.com")
 
 		groups := make(map[string]bool)
-		for _, g := range identity.Groups {
+		for _, g := range authnIdentity.Identity.Groups {
 			groups[g.Name] = true
 		}
-		assert.Assert(t, len(identity.Groups) == 2)
+		assert.Assert(t, len(authnIdentity.Identity.Groups) == 2)
 		assert.Equal(t, groups["Everyone"], true)
 		assert.Equal(t, groups["developers"], true)
 
-		assert.Equal(t, provider.ID, mocktaProvider.ID)
+		assert.Equal(t, authnIdentity.Provider.ID, mocktaProvider.ID)
 	})
 }
 
 func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
+	sessionExpiry := time.Now().Add(5 * time.Minute)
+
 	type testCase struct {
 		setup    func(t *testing.T, db *gorm.DB) providers.OIDCClient
-		expected func(t *testing.T, user *models.Identity)
+		expected func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
+
 	testCases := map[string]testCase{
 		"NewUserNewGroups": {
 			setup: func(t *testing.T, db *gorm.DB) providers.OIDCClient {
@@ -97,8 +100,10 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"Everyone", "developers"},
 				}
 			},
-			expected: func(t *testing.T, user *models.Identity) {
-				assert.Equal(t, "newusernewgroups@example.com", user.Name)
+			expected: func(t *testing.T, a AuthenticatedIdentity) {
+				assert.Equal(t, "newusernewgroups@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 			},
 		},
 		"NewUserExistingGroups": {
@@ -117,13 +122,15 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existing1", "existing2"},
 				}
 			},
-			expected: func(t *testing.T, user *models.Identity) {
-				assert.Equal(t, "newuserexistinggroups@example.com", user.Name)
+			expected: func(t *testing.T, a AuthenticatedIdentity) {
+				assert.Equal(t, "newuserexistinggroups@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 
-				assert.Assert(t, is.Len(user.Groups, 2))
+				assert.Assert(t, is.Len(a.Identity.Groups, 2))
 
 				var groupNames []string
-				for _, g := range user.Groups {
+				for _, g := range a.Identity.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
 				assert.Assert(t, is.Contains(groupNames, "existing1"))
@@ -140,13 +147,15 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existingusernewgroups1", "existingusernewgroups2"},
 				}
 			},
-			expected: func(t *testing.T, user *models.Identity) {
-				assert.Equal(t, "existingusernewgroups@example.com", user.Name)
+			expected: func(t *testing.T, a AuthenticatedIdentity) {
+				assert.Equal(t, "existingusernewgroups@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 
-				assert.Assert(t, is.Len(user.Groups, 2))
+				assert.Assert(t, is.Len(a.Identity.Groups, 2))
 
 				var groupNames []string
-				for _, g := range user.Groups {
+				for _, g := range a.Identity.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
 				assert.Assert(t, is.Contains(groupNames, "existingusernewgroups1"))
@@ -169,13 +178,15 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
 				}
 			},
-			expected: func(t *testing.T, user *models.Identity) {
-				assert.Equal(t, "existinguserexistinggroups@example.com", user.Name)
+			expected: func(t *testing.T, a AuthenticatedIdentity) {
+				assert.Equal(t, "existinguserexistinggroups@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 
-				assert.Assert(t, is.Len(user.Groups, 2))
+				assert.Assert(t, is.Len(a.Identity.Groups, 2))
 
 				var groupNames []string
-				for _, g := range user.Groups {
+				for _, g := range a.Identity.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
 				assert.Assert(t, is.Contains(groupNames, "existinguserexistinggroups1"))
@@ -223,13 +234,15 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					UserGroupsResp: []string{"existinguserexistinggroups1", "existinguserexistinggroups2"},
 				}
 			},
-			expected: func(t *testing.T, user *models.Identity) {
-				assert.Equal(t, "eugwnw@example.com", user.Name)
+			expected: func(t *testing.T, a AuthenticatedIdentity) {
+				assert.Equal(t, "eugwnw@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 
-				assert.Assert(t, len(user.Groups) == 3)
+				assert.Assert(t, len(a.Identity.Groups) == 3)
 
 				var groupNames []string
-				for _, g := range user.Groups {
+				for _, g := range a.Identity.Groups {
 					groupNames = append(groupNames, g.Name)
 				}
 				assert.Assert(t, slice.Contains(groupNames, "Foo"))
@@ -251,15 +264,16 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			mockOIDC := tc.setup(t, db)
 			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
 
-			u, _, _, err := loginMethod.Authenticate(context.Background(), db)
+			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
 			assert.NilError(t, err)
-			tc.expected(t, u)
+			tc.expected(t, a)
 
 			if err == nil {
 				// make sure the associations are still set when you reload the object.
-				u, err = data.GetIdentity(db.Preload("Groups"), data.ByID(u.ID))
+				u, err := data.GetIdentity(db.Preload("Groups"), data.ByID(a.Identity.ID))
 				assert.NilError(t, err)
-				tc.expected(t, u)
+				a.Identity = u
+				tc.expected(t, a)
 			}
 		})
 	}
