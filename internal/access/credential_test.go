@@ -86,11 +86,6 @@ func TestUpdateCredentials(t *testing.T) {
 	_, err = CreateCredential(c, *user)
 	assert.NilError(t, err)
 
-	err = data.SaveSettings(db, &models.Settings{
-		LengthMin: 8,
-	})
-	assert.NilError(t, err)
-
 	t.Run("Update user credentials IS single use password", func(t *testing.T) {
 		err := UpdateCredential(c, user, "newPassword")
 		assert.NilError(t, err)
