@@ -52,7 +52,7 @@ type Options struct {
 	EmailFromName    string
 	SendgridApiKey   string
 
-	Hostname string
+	BaseDomain string
 
 	Keys    []KeyProvider
 	Secrets []SecretProvider
@@ -107,8 +107,8 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
-	if options.Hostname == "" {
-		options.Hostname = "example.com"
+	if options.BaseDomain == "" {
+		options.BaseDomain = "example.com"
 	}
 	return &Server{
 		options: options,

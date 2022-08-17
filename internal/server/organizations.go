@@ -36,7 +36,7 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 		Name: r.Name,
 	}
 
-	org.GenerateDefaultDomain(a.server.options.Hostname)
+	org.GenerateDefaultDomain(a.server.options.BaseDomain)
 
 	// TODO: This should be removed in the future in favour of setting CreatedBy automatically
 	authIdent := access.AuthenticatedIdentity(c)

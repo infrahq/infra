@@ -20,11 +20,11 @@ type SignupDetails struct {
 
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
-func Signup(c *gin.Context, keyExpiresAt time.Time, hostname string, details SignupDetails) (*models.Identity, string, error) {
+func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details SignupDetails) (*models.Identity, string, error) {
 	// no authorization is setup yet
 	db := getDB(c)
 
-	details.Org.GenerateDefaultDomain(hostname)
+	details.Org.GenerateDefaultDomain(baseDomain)
 
 	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
