@@ -53,7 +53,6 @@ type OrganizationMember struct {
 }
 
 func (OrganizationMember) IsOrganizationMember() {}
-func (OrganizationMember) IsAModel()             {}
 
 func (o *OrganizationMember) SetOrganizationID(id uid.ID) {
 	if o.OrganizationID == 0 {

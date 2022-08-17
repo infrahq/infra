@@ -107,7 +107,12 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 
 	// while an org is required for these endpoints, they return fake data when the org is not supplied
-	noAuthnOptOrg := apiGroup.Group("/", setOrganizationInCtx(a.server), unauthenticatedMiddleware(a.server))
+	noAuthnOptOrg := apiGroup.Group("/",
+		setOrganizationInCtx(a.server),
+		unauthenticatedMiddleware(a.server),
+		// Until we're ready to return fake data, require the org.
+		orgRequired(),
+	)
 	get(a, noAuthnOptOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnOptOrg, "/api/settings", a.GetSettings)
 

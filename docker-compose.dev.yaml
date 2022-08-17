@@ -30,7 +30,7 @@ services:
 
   db:
     image: postgres:alpine
-    command: postgres -c log_connections=on -c log_min_messages=INFO
+    command: postgres -c log_connections=off -c log_min_messages=INFO
     restart: always
     user: postgres
     environment:
@@ -43,6 +43,6 @@ services:
       - /var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
       retries: 5
