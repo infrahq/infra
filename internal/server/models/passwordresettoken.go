@@ -14,5 +14,3 @@ type PasswordResetToken struct {
 	IdentityID uid.ID    `validate:"required"`
 	ExpiresAt  time.Time `validate:"required"`
 }
-
-func (PasswordResetToken) IsAModel() {}
