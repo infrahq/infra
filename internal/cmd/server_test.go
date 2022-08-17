@@ -136,6 +136,8 @@ dbUsername: infra
 dbPassword: env:POSTGRES_DB_PASSWORD
 dbParameters: sslmode=require
 
+baseDomain: foo.example.com
+
 tls:
   ca: testdata/ca.crt
   caPrivateKey: file:ca.key
@@ -204,6 +206,8 @@ users:
 					DBPassword:              "env:POSTGRES_DB_PASSWORD",
 					DBUsername:              "infra",
 					DBName:                  "infradbname",
+
+					BaseDomain: "foo.example.com",
 
 					Addr: server.ListenerOptions{
 						HTTP:    "1.2.3.4:23",

@@ -10,7 +10,7 @@ services:
     environment:
       - INFRA_SERVER_TLS_CA=internal/server/testdata/pki/ca.crt
       - INFRA_SERVER_TLS_CA_PRIVATE_KEY=file:internal/server/testdata/pki/ca.key
-    command: server --ui-proxy-url http://ui:3000 --db-host db --db-name postgres --db-port 5432 --db-username postgres --db-password postgres
+    command: server --ui-proxy-url http://ui:3000 --db-host db --db-name postgres --db-port 5432 --db-username postgres --db-password postgres --enable-signup --base-domain localhost
     ports:
       - "80:80"
       - "443:443"
