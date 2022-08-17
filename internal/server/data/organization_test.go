@@ -11,7 +11,7 @@ import (
 )
 
 // PostgreSQL only has microsecond precision
-var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
+var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Millisecond)
 
 func TestCreateOrganizationAndSetContext(t *testing.T) {
 	pgsql := postgresDriver(t)
