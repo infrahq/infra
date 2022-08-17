@@ -1,0 +1,40 @@
+package data
+
+import (
+	"testing"
+
+	"github.com/infrahq/infra/internal/server/models"
+	"gotest.tools/v3/assert"
+)
+
+func TestCreateOrganizationAndSetContext(t *testing.T) {
+	pgsql := postgresDriver(t)
+	db := setupDB(t, pgsql)
+
+	org := &models.Organization{Name: "syndicate", Domain: "syndicate-123"}
+
+	err := CreateOrganizationAndSetContext(db, org)
+	assert.NilError(t, err)
+
+	// db context is set
+	ctxOrg := OrgFromContext(db.Statement.Context)
+	assert.DeepEqual(t, org, ctxOrg)
+
+	// org is created
+	readOrg, err := GetOrganization(db, ByID(org.ID))
+	assert.NilError(t, err)
+	assert.DeepEqual(t, org, readOrg)
+
+	// infra provider is created
+	orgInfraIDP := InfraProvider(db)
+	assert.NilError(t, err)
+
+	expectedOrgInfraProviderIDP := &models.Provider{
+		Model:              orgInfraIDP.Model, // does not matter
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		Scopes:             models.CommaSeparatedStrings{},
+		Name:               models.InternalInfraProviderName,
+		Kind:               models.ProviderKindInfra,
+	}
+	assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP)
+}
