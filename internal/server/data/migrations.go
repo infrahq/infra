@@ -56,7 +56,7 @@ func migrations() []*migrator.Migration {
 		deleteDuplicateGrants(),
 		dropDeletedProviderUsers(),
 		removeDeletedIdentitiesFromGroups(),
-		addFieldsFor_0_14_3(),
+		addFieldsForPreviouslyImplicitMigrations(),
 		addOrganizations(),
 		scopeUniqueIndicesToOrganization(),
 		addDefaultOrganization(),
@@ -259,7 +259,7 @@ func removeDeletedIdentitiesFromGroups() *migrator.Migration {
 	}
 }
 
-// addFieldsFor_0_14_3 adds all migrations that were previously applied by a
+// addFieldsForPreviouslyImplicitMigrations adds all migrations that were previously applied by a
 // second call to gorm.AutoMigrate. In this release we're removing the
 // unconditional call to gorm.AutoMigrate in favor of having explicit migrations
 // for all changes.
@@ -270,14 +270,17 @@ func removeDeletedIdentitiesFromGroups() *migrator.Migration {
 // In the future we should use ALTER TABLE sql statements instead of AutoMigrate.
 //
 // nolint:revive
-func addFieldsFor_0_14_3() *migrator.Migration {
+func addFieldsForPreviouslyImplicitMigrations() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-21T18:28",
 		Migrate: func(tx *gorm.DB) error {
-			if err := tx.AutoMigrate(&models.Provider{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.Settings{}); err != nil {
+			if err := tx.Exec(`
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS lowercase_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS uppercase_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS number_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS symbol_min bigint DEFAULT 0;
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS length_min bigint DEFAULT 8;
+			`).Error; err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "organizations") {
@@ -304,19 +307,33 @@ CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) W
 					return err
 				}
 			}
-			if err := tx.AutoMigrate(&models.AccessKey{}); err != nil {
+
+			if err := tx.Exec(`
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS private_key text;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS client_email text;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS domain_admin_email text;
+			`).Error; err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.Credential{}); err != nil {
+
+			if err := tx.Exec(`
+ALTER TABLE access_keys ADD COLUMN IF NOT EXISTS scopes text;
+			`).Error; err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.Destination{}); err != nil {
+
+			if err := tx.Exec(`
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS version text;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS resources text;
+ALTER TABLE destinations ADD COLUMN IF NOT EXISTS roles text;
+			`).Error; err != nil {
 				return err
 			}
-			if err := tx.AutoMigrate(&models.ProviderUser{}); err != nil {
-				return err
-			}
-			if err := tx.AutoMigrate(&models.Group{}); err != nil {
+
+			if err := tx.Exec(`
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_provider bigint;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name ON groups USING btree (name) WHERE (deleted_at IS NULL);
+			`).Error; err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "password_reset_tokens") {
@@ -354,7 +371,7 @@ ALTER TABLE provider_users DROP COLUMN IF EXISTS updated_at;
 				return err
 			}
 
-			if !tx.Migrator().HasConstraint("provider_users", "provider_users_pkey") {
+			if !migrator.HasConstraint(tx, "provider_users", "provider_users_pkey") {
 				if err := tx.Exec(`
 ALTER TABLE ONLY provider_users
 	ADD CONSTRAINT fk_provider_users_identity FOREIGN KEY (identity_id) REFERENCES identities(id);
@@ -370,11 +387,10 @@ ALTER TABLE provider_users ADD CONSTRAINT provider_users_pkey
 				}
 			}
 
-			if !tx.Migrator().HasIndex("grants", "idx_grant_srp") {
-				stmt := `CREATE UNIQUE INDEX idx_grant_srp ON testing.grants USING btree (subject, privilege, resource) WHERE (deleted_at IS NULL);`
-				if err := tx.Exec(stmt).Error; err != nil {
-					return err
-				}
+			if err := tx.Exec(`
+CREATE UNIQUE INDEX IF NOT EXISTS idx_grant_srp ON grants USING btree (subject, privilege, resource) WHERE (deleted_at IS NULL);
+			`).Error; err != nil {
+				return err
 			}
 
 			return nil

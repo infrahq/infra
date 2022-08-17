@@ -1,6 +1,8 @@
 package migrator
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type Tx interface {
 	Exec(stmt string, args ...any) *gorm.DB
@@ -47,10 +49,37 @@ func HasColumn(tx *gorm.DB, table string, column string) bool {
 			WHERE type = 'table' AND name = ?
 			AND sql LIKE ?
 		`
-		column = "%`" + column + "`%"
+		column = "% " + column + " %"
 	}
 
 	if err := tx.Raw(stmt, table, column).Scan(&count).Error; err != nil {
+		return false
+	}
+	return count != 0
+}
+
+// HasConstraint returns true if the database table has the constraint. Returns
+// false if the database table does not have the constraint, or if there was a
+// failure querying the database.
+func HasConstraint(tx *gorm.DB, table string, constraint string) bool {
+	var count int
+	stmt := `
+		SELECT count(*)
+		FROM information_schema.table_constraints
+		WHERE table_schema = CURRENT_SCHEMA()
+		AND table_name = ? AND constraint_name = ?
+	`
+	if tx.Dialector.Name() == "sqlite" {
+		stmt = `
+			SELECT count(*)
+			FROM sqlite_master
+			WHERE type = 'table' AND tbl_name = ?
+			AND sql LIKE ?
+		`
+		constraint = "%CONSTRAINT `" + constraint + "`%"
+	}
+
+	if err := tx.Raw(stmt, table, constraint).Scan(&count).Error; err != nil {
 		return false
 	}
 	return count != 0

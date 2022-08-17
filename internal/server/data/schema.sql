@@ -17,8 +17,8 @@ CREATE TABLE access_keys (
     extension_deadline timestamp with time zone,
     key_id text,
     secret_checksum bytea,
-    organization_id bigint,
-    scopes text
+    scopes text,
+    organization_id bigint
 );
 
 CREATE TABLE credentials (
@@ -42,10 +42,10 @@ CREATE TABLE destinations (
     connection_url text,
     connection_ca text,
     last_seen_at timestamp with time zone,
-    organization_id bigint,
     version text,
     resources text,
-    roles text
+    roles text,
+    organization_id bigint
 );
 
 CREATE TABLE encryption_keys (
@@ -79,8 +79,8 @@ CREATE TABLE groups (
     deleted_at timestamp with time zone,
     name text,
     created_by bigint,
-    organization_id bigint,
-    created_by_provider bigint
+    created_by_provider bigint,
+    organization_id bigint
 );
 
 CREATE TABLE identities (
@@ -142,10 +142,10 @@ CREATE TABLE providers (
     kind text,
     auth_url text,
     scopes text,
-    organization_id bigint,
     private_key text,
     client_email text,
-    domain_admin_email text
+    domain_admin_email text,
+    organization_id bigint
 );
 
 CREATE TABLE settings (
@@ -155,12 +155,12 @@ CREATE TABLE settings (
     deleted_at timestamp with time zone,
     private_jwk bytea,
     public_jwk bytea,
-    organization_id bigint,
     lowercase_min bigint DEFAULT 0,
     uppercase_min bigint DEFAULT 0,
     number_min bigint DEFAULT 0,
     symbol_min bigint DEFAULT 0,
-    length_min bigint DEFAULT 8
+    length_min bigint DEFAULT 8,
+    organization_id bigint
 );
 
 ALTER TABLE ONLY access_keys
