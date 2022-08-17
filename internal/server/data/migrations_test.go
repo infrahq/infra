@@ -154,6 +154,7 @@ func TestMigrations(t *testing.T) {
 			setup: func(t *testing.T, db *gorm.DB) {
 				stmt := `
 INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980736, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'infra', '', '', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'infra', 1);
+INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980737, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'okta', 'example.okta.com', 'client-id', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'okta', 1);
 `
 				err := db.Exec(stmt).Error
 				assert.NilError(t, err)
@@ -176,12 +177,16 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 					actual = append(actual, p)
 				}
 
-				// updated := parseTime(t, "2022-07-05 17:13:14.172568+00")
 				expected := []models.Provider{
 					{
 						Name:    "infra",
 						AuthURL: "",
 						Scopes:  nil,
+					},
+					{
+						Name:    "okta",
+						AuthURL: "https://example.okta.com/oauth2/v1/authorize", // set from external endpoint
+						Scopes:  models.CommaSeparatedStrings{"openid", "email", "offline_access", "groups"},
 					},
 				}
 				assert.DeepEqual(t, actual, expected)
