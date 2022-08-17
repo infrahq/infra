@@ -84,7 +84,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Duration("session-duration", 0, "Maximum session duration per user login")
 	cmd.Flags().Duration("session-extension-deadline", 0, "A user must interact with Infra at least once within this amount of time for their session to remain valid")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
-	cmd.Flags().String("hostname", "example.com", "hostname for the server")
+	cmd.Flags().String("hostname", "", "hostname for the server")
 
 	return cmd
 }
