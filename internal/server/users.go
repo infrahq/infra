@@ -93,9 +93,14 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		fromName := buildNameFromEmail(currentUser.Name)
 		toName := buildNameFromEmail(user.Name)
 
+		token, err := access.PasswordResetRequest(c, user.Name)
+		if err != nil {
+			return nil, err
+		}
+
 		err = email.SendUserInvite(toName, user.Name, email.UserInviteData{
 			FromUserName: fromName,
-			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, tmpPassword),
+			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("sending invite email: %w", err)

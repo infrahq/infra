@@ -425,13 +425,13 @@ func scopeUniqueIndicesToOrganization() *migrator.Migration {
 		ID: "2022-08-04T17:72",
 		Migrate: func(tx *gorm.DB) error {
 			stmt := `
-DROP INDEX idx_access_keys_name;
-DROP INDEX idx_credentials_identity_id;
-DROP INDEX idx_destinations_unique_id;
-DROP INDEX idx_grant_srp;
-DROP INDEX idx_groups_name;
-DROP INDEX idx_identities_name;
-DROP INDEX idx_providers_name;
+DROP INDEX IF EXISTS idx_access_keys_name;
+DROP INDEX IF EXISTS idx_credentials_identity_id;
+DROP INDEX IF EXISTS idx_destinations_unique_id;
+DROP INDEX IF EXISTS idx_grant_srp;
+DROP INDEX IF EXISTS idx_groups_name;
+DROP INDEX IF EXISTS idx_identities_name;
+DROP INDEX IF EXISTS idx_providers_name;
 `
 			if err := tx.Exec(stmt).Error; err != nil {
 				return err
@@ -445,18 +445,18 @@ CREATE UNIQUE INDEX idx_grant_srp ON grants (organization_id,subject,privilege,r
 CREATE UNIQUE INDEX idx_groups_name ON groups (organization_id,name) where (deleted_at is null);
 CREATE UNIQUE INDEX idx_identities_name ON identities (organization_id,name) where (deleted_at is null);
 CREATE UNIQUE INDEX idx_providers_name ON providers (organization_id,name) where (deleted_at is null);
-CREATE UNIQUE INDEX settings_org_id ON settings (organization_id) where deleted_at is null;
+CREATE UNIQUE INDEX IF NOT EXISTS settings_org_id ON settings (organization_id) where deleted_at is null;
 `
 			if err := tx.Exec(stmt).Error; err != nil {
 				return err
 			}
 
 			stmt = `
-ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_provider;
-ALTER TABLE provider_users DROP CONSTRAINT fk_provider_users_identity;
-ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_identity;
-ALTER TABLE identities_groups DROP CONSTRAINT fk_identities_groups_group;
-ALTER TABLE access_keys DROP CONSTRAINT fk_access_keys_issued_for_identity;
+ALTER TABLE provider_users DROP CONSTRAINT IF EXISTS fk_provider_users_provider;
+ALTER TABLE provider_users DROP CONSTRAINT IF EXISTS fk_provider_users_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT IF EXISTS fk_identities_groups_identity;
+ALTER TABLE identities_groups DROP CONSTRAINT IF EXISTS fk_identities_groups_group;
+ALTER TABLE access_keys DROP CONSTRAINT IF EXISTS fk_access_keys_issued_for_identity;
 `
 			if err := tx.Exec(stmt).Error; err != nil {
 				return err

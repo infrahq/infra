@@ -2,13 +2,14 @@ package server
 
 import (
 	"errors"
-	"net/url"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 )
 
@@ -23,16 +24,11 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 		return nil, err
 	}
 
-	// TODO: adjust domain for orgs when here
-	link, _ := url.Parse(email.AppDomain)
-	link.Path = "/password-reset"
-	query := link.Query()
-	query.Add("token", token)
-	link.RawQuery = query.Encode()
+	org := data.MustGetOrgFromContext(c)
 
 	// send email
 	err = email.SendPasswordReset("", r.Email, email.PasswordResetData{
-		Link: link.String(),
+		Link: fmt.Sprintf("https://%s/password-reset?token=%s", org.Domain, token),
 	})
 	if err != nil {
 		return nil, err

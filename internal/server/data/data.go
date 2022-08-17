@@ -113,7 +113,10 @@ func initialize(db *DB) error {
 
 	db.DefaultOrg = org
 	db.DefaultOrgSettings, err = getSettingsForOrg(db.DB, org.ID)
-	return err
+	if err != nil {
+		return fmt.Errorf("getting settings: %w", err)
+	}
+	return nil
 }
 
 func NewSQLiteDriver(connection string) (gorm.Dialector, error) {

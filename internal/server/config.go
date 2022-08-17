@@ -603,8 +603,14 @@ func (s Server) loadConfig(config Config) error {
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
+	org, err := data.GetOrganization(s.DB(), data.ByName(models.DefaultOrganizationName))
+	if err != nil {
+		return err
+	}
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		tx.Statement.Context = data.WithOrg(tx.Statement.Context, org)
+
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
 			Name: models.InternalInfraProviderName,
