@@ -73,7 +73,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // possibly also of the destination.
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
 			authned, err := requireAccessKey(tx, c.Request)
 			if err != nil {
 				sendAPIError(c, err)
@@ -136,7 +136,7 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.db, func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -164,14 +164,14 @@ func orgRequired() gin.HandlerFunc {
 func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO: use a transaction
-		org, err := getOrgFromRequest(c.Request, srv.dataDB.DB, srv.dataDB.DefaultOrg)
+		org, err := getOrgFromRequest(c.Request, srv.DB())
 		if err != nil {
 			c.Next()
 			return
 		}
 
 		if org == nil && !srv.options.EnableSignup { // !saas
-			org = srv.dataDB.DefaultOrg
+			org = srv.db.DefaultOrg
 		}
 
 		if org != nil {
@@ -181,7 +181,7 @@ func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
 	}
 }
 
-func getOrgFromRequest(req *http.Request, tx *gorm.DB, defaultOrg *models.Organization) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
 	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
 		return data.GetOrganization(tx, data.ByName(orgName))
 	}

@@ -71,10 +71,10 @@ func TestAPI_ListGrants(t *testing.T) {
 		t.Helper()
 		group := &models.Group{Name: name}
 
-		err := data.CreateGroup(srv.db, group)
+		err := data.CreateGroup(srv.DB(), group)
 		assert.NilError(t, err)
 
-		err = data.AddUsersToGroup(srv.db, group.ID, users)
+		err = data.AddUsersToGroup(srv.DB(), group.ID, users)
 		assert.NilError(t, err)
 
 		return group.ID
@@ -92,14 +92,14 @@ func TestAPI_ListGrants(t *testing.T) {
 
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Minute),
 	}
 
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
-	admin, err := data.GetIdentity(srv.db, data.ByName("admin@example.com"))
+	admin, err := data.GetIdentity(srv.DB(), data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -214,7 +214,7 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				connector, err := data.GetIdentity(srv.db, data.ByName("connector"))
+				connector, err := data.GetIdentity(srv.DB(), data.ByName("connector"))
 				assert.NilError(t, err)
 
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
@@ -443,10 +443,10 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		t.Helper()
 		group := &models.Group{Name: name}
 
-		err := data.CreateGroup(srv.db, group)
+		err := data.CreateGroup(srv.DB(), group)
 		assert.NilError(t, err)
 
-		err = data.AddUsersToGroup(srv.db, group.ID, users)
+		err = data.AddUsersToGroup(srv.DB(), group.ID, users)
 		assert.NilError(t, err)
 
 		return group.ID
@@ -461,25 +461,25 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		t.Helper()
 		token := &models.AccessKey{
 			IssuedFor:  userID,
-			ProviderID: data.InfraProvider(srv.db).ID,
+			ProviderID: data.InfraProvider(srv.DB()).ID,
 			ExpiresAt:  time.Now().Add(10 * time.Minute),
 		}
 
 		var err error
-		accessKey, err := data.CreateAccessKey(srv.db, token)
+		accessKey, err := data.CreateAccessKey(srv.DB(), token)
 		assert.NilError(t, err)
 
 		req.Header.Set("Authorization", "Bearer "+accessKey)
 	}
 
-	err := data.CreateGrant(srv.db, &models.Grant{
+	err := data.CreateGrant(srv.DB(), &models.Grant{
 		Resource:  "infra",
 		Privilege: "view",
 		Subject:   uid.NewIdentityPolymorphicID(idInGroup),
 	})
 	assert.NilError(t, err)
 
-	err = data.CreateGrant(srv.db, &models.Grant{
+	err = data.CreateGrant(srv.DB(), &models.Grant{
 		Subject:   uid.NewGroupPolymorphicID(zoologistsID),
 		Privilege: "examine",
 		Resource:  "butterflies",
@@ -534,7 +534,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, idInGroup, req)
 
-				err = data.CreateGrant(srv.db, &models.Grant{
+				err = data.CreateGrant(srv.DB(), &models.Grant{
 					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
 					Privilege: "examine",
 					Resource:  "dinosaurs",
@@ -617,15 +617,15 @@ func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	accessKey, err := data.ValidateAccessKey(srv.db, adminAccessKey(srv))
+	accessKey, err := data.ValidateAccessKey(srv.DB(), adminAccessKey(srv))
 	assert.NilError(t, err)
 
 	someUser := models.Identity{Name: "someone@example.com"}
-	err = data.CreateIdentity(srv.db, &someUser)
+	err = data.CreateIdentity(srv.DB(), &someUser)
 	assert.NilError(t, err)
 
 	supportAdmin := models.Identity{Name: "support-admin@example.com"}
-	err = data.CreateIdentity(srv.db, &supportAdmin)
+	err = data.CreateIdentity(srv.DB(), &supportAdmin)
 	assert.NilError(t, err)
 
 	supportAdminGrant := models.Grant{
@@ -633,16 +633,16 @@ func TestAPI_CreateGrant(t *testing.T) {
 		Privilege: models.InfraSupportAdminRole,
 		Resource:  "infra",
 	}
-	err = data.CreateGrant(srv.db, &supportAdminGrant)
+	err = data.CreateGrant(srv.DB(), &supportAdminGrant)
 	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor:  supportAdmin.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	supportAccessKeyStr, err := data.CreateAccessKey(srv.db, token)
+	supportAccessKeyStr, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -780,11 +780,11 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	user := &models.Identity{Name: "non-admin"}
 
-	err := data.CreateIdentity(srv.db, user)
+	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
-		infraAdminGrants, err := data.ListGrants(srv.db, nil, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
+		infraAdminGrants, err := data.ListGrants(srv.DB(), nil, data.ByPrivilege(models.InfraAdminRole), data.ByResource("infra"))
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)
 
@@ -805,7 +805,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 			Resource:  "infra",
 		}
 
-		err := data.CreateGrant(srv.db, grant2)
+		err := data.CreateGrant(srv.DB(), grant2)
 		assert.NilError(t, err)
 
 		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
@@ -825,7 +825,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 			Resource:  "infra",
 		}
 
-		err := data.CreateGrant(srv.db, grant2)
+		err := data.CreateGrant(srv.DB(), grant2)
 		assert.NilError(t, err)
 
 		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)
@@ -845,7 +845,7 @@ func TestAPI_DeleteGrant(t *testing.T) {
 			Resource:  "example",
 		}
 
-		err := data.CreateGrant(srv.db, grant2)
+		err := data.CreateGrant(srv.DB(), grant2)
 		assert.NilError(t, err)
 
 		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", grant2.ID), nil)

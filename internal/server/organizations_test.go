@@ -39,7 +39,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 		third  = models.Organization{Name: "third"}
 	)
 
-	createOrgs(t, srv.db, &first, &second, &third)
+	createOrgs(t, srv.DB(), &first, &second, &third)
 
 	type testCase struct {
 		urlPath  string
@@ -187,7 +187,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var first = models.Organization{Name: "first"}
-	createOrgs(t, srv.db, &first)
+	createOrgs(t, srv.DB(), &first)
 
 	type testCase struct {
 		urlPath  string
@@ -228,7 +228,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListOrganizations(srv.db, &models.Pagination{}, data.ByID(first.ID))
+				actual, err := data.ListOrganizations(srv.DB(), &models.Pagination{}, data.ByID(first.ID))
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},

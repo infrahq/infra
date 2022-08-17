@@ -91,13 +91,11 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestDBTimeout(t *testing.T) {
-	dataDB := setupDB(t)
 	var ctx context.Context
 	var cancel context.CancelFunc
 
 	srv := newServer(Options{})
-	srv.dataDB = dataDB
-	srv.db = dataDB.DB
+	srv.db = setupDB(t)
 
 	router := gin.New()
 	router.Use(
@@ -271,7 +269,7 @@ func TestRequireAccessKey(t *testing.T) {
 func TestHandleInfraDestinationHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
-	db := srv.db
+	db := srv.DB()
 
 	connector := models.Identity{Name: "connectorA"}
 	err := data.CreateIdentity(db, &connector)
@@ -338,7 +336,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 
 func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	db := srv.db
+	db := srv.DB()
 
 	router := gin.New()
 

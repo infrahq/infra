@@ -45,7 +45,7 @@ func TestAPI_ListGroups(t *testing.T) {
 		others = models.Group{Name: "others"}
 	)
 
-	createGroups(t, srv.db, &humans, &second, &others)
+	createGroups(t, srv.DB(), &humans, &second, &others)
 
 	var (
 		idInGroup = models.Identity{
@@ -58,15 +58,15 @@ func TestAPI_ListGroups(t *testing.T) {
 		}
 	)
 
-	createIdentities(t, srv.db, &idInGroup, &idOther)
+	createIdentities(t, srv.DB(), &idInGroup, &idOther)
 
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -202,15 +202,15 @@ func TestAPI_CreateGroup(t *testing.T) {
 	}
 
 	meUser := models.Identity{Name: "me@example.com"}
-	createIdentities(t, srv.db, &meUser)
+	createIdentities(t, srv.DB(), &meUser)
 
 	token := &models.AccessKey{
 		IssuedFor:  meUser.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
@@ -279,7 +279,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var humans = models.Group{Name: "humans"}
-	createGroups(t, srv.db, &humans)
+	createGroups(t, srv.DB(), &humans)
 
 	var (
 		inGroup = models.Identity{
@@ -288,7 +288,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 		}
 	)
 
-	createIdentities(t, srv.db, &inGroup)
+	createIdentities(t, srv.DB(), &inGroup)
 
 	type testCase struct {
 		urlPath  string
@@ -298,11 +298,11 @@ func TestAPI_DeleteGroup(t *testing.T) {
 
 	token := &models.AccessKey{
 		IssuedFor:  inGroup.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
@@ -339,7 +339,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListGroups(srv.db, nil, data.ByID(humans.ID))
+				actual, err := data.ListGroups(srv.DB(), nil, data.ByID(humans.ID))
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},
@@ -357,14 +357,14 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var humans = models.Group{Name: "humans"}
-	createGroups(t, srv.db, &humans)
+	createGroups(t, srv.DB(), &humans)
 
 	var (
 		first  = models.Identity{Name: "first@example.com"}
 		second = models.Identity{Name: "second@example.com"}
 	)
 
-	createIdentities(t, srv.db, &first, &second)
+	createIdentities(t, srv.DB(), &first, &second)
 
 	type testCase struct {
 		urlPath  string
@@ -375,11 +375,11 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 
 	token := &models.AccessKey{
 		IssuedFor:  first.ID,
-		ProviderID: data.InfraProvider(srv.db).ID,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
 		ExpiresAt:  time.Now().Add(10 * time.Second),
 	}
 
-	accessKey, err := data.CreateAccessKey(srv.db, token)
+	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
@@ -417,7 +417,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.db, nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.DB(), nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
 			},
@@ -429,12 +429,12 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-				err := data.AddUsersToGroup(srv.db, humans.ID, []uid.ID{first.ID, second.ID})
+				err := data.AddUsersToGroup(srv.DB(), humans.ID, []uid.ID{first.ID, second.ID})
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.db, nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.DB(), nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
 				assert.NilError(t, err)
 				assert.Assert(t, len(idents) == 0)
 			},

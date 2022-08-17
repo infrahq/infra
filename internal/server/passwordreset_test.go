@@ -26,10 +26,10 @@ func TestPasswordResetFlow(t *testing.T) {
 		Name: "skeletor@example.com",
 	}
 
-	err := data.CreateIdentity(s.db, user)
+	err := data.CreateIdentity(s.DB(), user)
 	assert.NilError(t, err)
 
-	err = data.CreateCredential(s.db, &models.Credential{
+	err = data.CreateCredential(s.DB(), &models.Credential{
 		IdentityID:   user.ID,
 		PasswordHash: []byte("foo"),
 	})

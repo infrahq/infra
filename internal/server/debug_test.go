@@ -26,8 +26,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 		expectedResp func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
-	dataDB := setupDB(t)
-	s := &Server{db: dataDB.DB, dataDB: dataDB}
+	s := &Server{db: setupDB(t)}
 	routes := s.GenerateRoutes(prometheus.NewRegistry())
 
 	run := func(t *testing.T, tc testCase) {
@@ -59,7 +58,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 			name:         "missing admin role",
 			expectedCode: http.StatusForbidden,
 			setupRequest: func(_ *testing.T, req *http.Request) {
-				key, _ := createAccessKey(t, s.db, "user1@example.com")
+				key, _ := createAccessKey(t, s.DB(), "user1@example.com")
 				req.Header.Add("Authorization", "Bearer "+key)
 			},
 			expectedResp: responseBodyAPIErrorWithCode(http.StatusForbidden),
@@ -68,8 +67,8 @@ func TestAPI_PProfHandler(t *testing.T) {
 			name:         "successful profile",
 			expectedCode: http.StatusOK,
 			setupRequest: func(t *testing.T, req *http.Request) {
-				key, user := createAccessKey(t, s.db, "user2@example.com")
-				err := data.CreateGrant(s.db, &models.Grant{
+				key, user := createAccessKey(t, s.DB(), "user2@example.com")
+				err := data.CreateGrant(s.DB(), &models.Grant{
 					Subject:   user.PolyID(),
 					Privilege: models.InfraSupportAdminRole,
 					Resource:  access.ResourceInfraAPI,

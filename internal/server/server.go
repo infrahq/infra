@@ -90,11 +90,8 @@ type TLSOptions struct {
 }
 
 type Server struct {
-	options Options
-	// TODO: consolidate these two
-	db     *gorm.DB
-	dataDB *data.DB
-
+	options  Options
+	db       *data.DB
 	tel      *Telemetry
 	secrets  map[string]secrets.SecretStorage
 	keys     map[string]secrets.SymmetricKeyProvider
@@ -141,12 +138,10 @@ func New(options Options) (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
-	// TODO: store data.DB on server
-	server.db = db.DB
-	server.dataDB = db
+	server.db = db
 
 	if options.EnableTelemetry {
-		server.tel = NewTelemetry(server.db, db.DefaultOrgSettings.ID)
+		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)
 	}
 
 	if err := server.loadConfig(server.options.Config); err != nil {
@@ -160,6 +155,12 @@ func New(options Options) (*Server, error) {
 	configureEmail(options)
 
 	return server, nil
+}
+
+// DB returns an instance of a database connection pool that is used by the server.
+// It is primarily used by tests to create fixture data.
+func (s *Server) DB() *gorm.DB {
+	return s.db.DB
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -185,12 +186,8 @@ func (s *Server) Run(ctx context.Context) error {
 	err := group.Wait()
 	s.tel.Close()
 
-	if sqlDB, err := s.db.DB(); err != nil {
-		logging.L.Warn().Err(err).Msg("failed to get database conn to close")
-	} else {
-		if err := sqlDB.Close(); err != nil {
-			logging.L.Warn().Err(err).Msg("failed to close database connection")
-		}
+	if err := s.db.Close(); err != nil {
+		logging.L.Warn().Err(err).Msg("failed to close database connection")
 	}
 
 	if errors.Is(err, context.Canceled) {
@@ -220,7 +217,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	promRegistry := setupMetrics(s.db)
+	promRegistry := setupMetrics(s.DB())
 	router := s.GenerateRoutes(promRegistry)
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
