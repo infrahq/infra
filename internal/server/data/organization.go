@@ -30,13 +30,14 @@ func MustGetOrgFromContext(ctx context.Context) *models.Organization {
 }
 
 // WithOrg sets an Organization in the context. The Organization will be used
-// by all query functions to insert,select, and modify entities within that
+// by all query functions to insert, select, and modify entities within that
 // organization.
 func WithOrg(ctx context.Context, org *models.Organization) context.Context {
 	return context.WithValue(ctx, orgCtxKey{}, org)
 }
 
-func CreateOrganization(db *gorm.DB, org *models.Organization) error {
+// CreateOrganizationAndSetContext creates a new organization and sets the current db context to execute on this org
+func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) error {
 	err := add(db, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
@@ -49,9 +50,8 @@ func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 	}
 
 	infraProvider := &models.Provider{
-		Name:               models.InternalInfraProviderName,
-		Kind:               models.ProviderKindInfra,
-		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		Name: models.InternalInfraProviderName,
+		Kind: models.ProviderKindInfra,
 	}
 	if err := CreateProvider(db, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)

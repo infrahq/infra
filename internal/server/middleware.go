@@ -233,7 +233,9 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 		return u, fmt.Errorf("access kye org lookup: %w", err)
 	}
 
+	// now that the org is loaded scope all db calls to that org
 	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
+
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
 		return u, fmt.Errorf("identity for access key: %w", err)

@@ -24,8 +24,9 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 			continue
 		}
 		orgs[i].GenerateDefaultDomain("example.com")
-		err = data.CreateOrganization(db, orgs[i])
+		err = data.CreateOrganizationAndSetContext(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
+		assert.DeepEqual(t, data.OrgFromContext(db.Statement.Context), orgs[i])
 	}
 }
 
@@ -186,7 +187,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	var first = models.Organization{Name: "first"}
+	first := models.Organization{Name: "first"}
 	createOrgs(t, srv.DB(), &first)
 
 	type testCase struct {
