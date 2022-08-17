@@ -530,7 +530,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USIN
 
 func dropOrganizationNameIndex() *migrator.Migration {
 	return &migrator.Migration{
-		ID: "202208121105",
+		ID: "2022-08-12T11:05",
 		Migrate: func(tx *gorm.DB) error {
 			return tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`).Error
 		},

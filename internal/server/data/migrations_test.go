@@ -437,9 +437,9 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 			},
 		},
 		{
-			label: testCaseLine("202208121105"),
+			label: testCaseLine("2022-08-12T11:05"),
 			expected: func(t *testing.T, tx *gorm.DB) {
-				// dropped columns are tested by schema comparison
+				// dropped indexes are tested by schema comparison
 			},
 		},
 	}
