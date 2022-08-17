@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
