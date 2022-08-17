@@ -4,8 +4,6 @@ env:
   # TODO (https://github.com/infrahq/infra/issues/65)
   - CGO_ENABLED=0
   - GO111MODULE=on
-  - BUILDVERSION_PRERELEASE={{ if index .Env "BUILDVERSION_PRERELEASE" }}{{ .Env.BUILDVERSION_PRERELEASE }}{{ end }}
-  - BUILDVERSION_METADATA={{ if index .Env "BUILDVERSION_METADATA" }}{{ .Env.BUILDVERSION_METADATA }}{{ end }}
 project_name: infra
 builds:
   - id: infra
@@ -15,8 +13,6 @@ builds:
         -X github.com/infrahq/infra/internal.Version={{ .Version }}
         -X github.com/infrahq/infra/internal.Commit={{ .FullCommit }}
         -X github.com/infrahq/infra/internal.Date={{ .Date }}
-        -X github.com/infrahq/infra/internal.Prerelease={{ .Env.BUILDVERSION_PRERELEASE }}
-        -X github.com/infrahq/infra/internal.Metadata={{ .Env.BUILDVERSION_METADATA }}
     binary: infra
     main: ./main.go
     goos:
@@ -65,38 +61,3 @@ checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
   name_template: "{{ .Env.RELEASE_NAME }}"
-blobs:
-  - provider: s3
-    region: us-east-2
-    bucket: releases.infrahq.com
-    ids:
-      - zip
-      - packages
-brews:
-  - tap:
-      owner: infrahq
-      name: homebrew-tap
-    commit_author:
-      name: infra-ci
-      email: contact@infrahq.com
-    homepage: https://infrahq.com
-    description: Infra
-    url_template: "https://releases.infrahq.com/infra/{{ .Tag }}/{{ .ArtifactName }}"
-    install: |
-      bin.install "infra"
-scoop:
-  bucket:
-    owner: infrahq
-    name: scoop
-  commit_author:
-    name: infra-ci
-    email: contact@infrahq.com
-  homepage: https://infrahq.com
-  description: Infra
-  url_template: "https://releases.infrahq.com/infra/{{ .Tag }}/{{ .ArtifactName }}"
-publishers:
-  - name: gemfury
-    ids:
-      - packages
-    dir: "{{ dir .ArtifactPath }}"
-    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.GEMFURY_TOKEN }}@push.fury.io/infrahq/
