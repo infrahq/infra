@@ -2,13 +2,17 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -81,9 +85,37 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, fmt.Errorf("create credential: %w", err)
 	}
 
-	resp.OneTimePassword = tmpPassword
+	if email.IsConfigured() {
+		org := data.MustGetOrgFromContext(c)
+		currentUser := access.GetRequestContext(c).Authenticated.User
+
+		// hack because we don't have names.
+		fromName := buildNameFromEmail(currentUser.Name)
+		toName := buildNameFromEmail(user.Name)
+
+		token, err := access.PasswordResetRequest(c, user.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		err = email.SendUserInvite(toName, user.Name, email.UserInviteData{
+			FromUserName: fromName,
+			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("sending invite email: %w", err)
+		}
+	} else {
+		resp.OneTimePassword = tmpPassword
+	}
 
 	return resp, nil
+}
+
+func buildNameFromEmail(email string) (name string) {
+	return strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
+		return strings.ToUpper(s[0:1]) + s[1:]
+	}), " ")
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {

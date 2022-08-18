@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useServerConfig } from '../../lib/serverconfig'
 
 import ErrorMessage from '../../components/error-message'
 import Fullscreen from '../../components/layouts/fullscreen'
@@ -50,7 +51,7 @@ function AddUser({ email, onChange, onKeyDown, onSubmit, error }) {
   )
 }
 
-function UserOneTimePassword({ password, onSubmit }) {
+function UserOneTimePassword({ isEmailConfigured, password, onSubmit }) {
   return (
     <div className='flex flex-col'>
       <div className='flex flex-row items-center space-x-2'>
@@ -59,20 +60,28 @@ function UserOneTimePassword({ password, onSubmit }) {
           <h1 className='text-2xs'>Add User</h1>
         </div>
       </div>
-      <h2 className='mt-5 text-2xs'>
-        User added. Send the user this temporary password for their initial
-        login. This password will not be shown again.
-      </h2>
-      <div className='mt-6 flex flex-col space-y-1'>
-        <label className='text-3xs uppercase text-gray-400'>
-          Temporary Password
-        </label>
-        <input
-          readOnly
-          value={password}
-          className='my-0 w-full bg-transparent py-2 font-mono text-3xs focus:outline-none'
-        />
-      </div>
+      {isEmailConfigured ? (
+        <h2 className='mt-5 text-2xs'>
+          User added. The user has been emailed a link inviting them to join.
+        </h2>
+      ) : (
+        <div>
+          <h2 className='mt-5 text-2xs'>
+            User added. Send the user this temporary password for their initial
+            login. This password will not be shown again.
+          </h2>
+          <div className='mt-6 flex flex-col space-y-1'>
+            <label className='text-3xs uppercase text-gray-400'>
+              Temporary Password
+            </label>
+            <input
+              readOnly
+              value={password}
+              className='my-0 w-full bg-transparent py-2 font-mono text-3xs focus:outline-none'
+            />
+          </div>
+        </div>
+      )}
       <div className='mt-6 flex flex-row items-center justify-end'>
         <button
           onClick={onSubmit}
@@ -96,6 +105,7 @@ export default function UsersAdd() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
+  const { isEmailConfigured } = useServerConfig()
 
   async function handleUserOneTimePassword(e) {
     e.preventDefault()
@@ -106,7 +116,9 @@ export default function UsersAdd() {
     try {
       const res = await fetch('/api/users', {
         method: 'POST',
-        body: JSON.stringify({ name: email, setOneTimePassword: true }),
+        body: JSON.stringify({
+          name: email,
+        }),
       })
       const user = await res.json()
 
@@ -176,6 +188,7 @@ export default function UsersAdd() {
         )}
         {state === 'password' && (
           <UserOneTimePassword
+            isEmailConfigured={isEmailConfigured}
             password={password}
             onSubmit={() => handleAddUser()}
           />

@@ -21,7 +21,7 @@ const (
 var emailTemplateIDs = map[EmailTemplate]string{
 	EmailTemplateAccountCreated: "",
 	EmailTemplatePasswordReset:  "d-d87873d2f11b4055befbd7064cda44d6", // transactional-password-reset
-	EmailTemplateUserInvite:     "d-ac6bcb2a7f02463c8b7fc8caffc35f2d", // transactional-user-invite // TODO: Should this instead be a "granted access to x" email?
+	EmailTemplateUserInvite:     "d-ac6bcb2a7f02463c8b7fc8caffc35f2d", // transactional-user-invite
 }
 
 var (
