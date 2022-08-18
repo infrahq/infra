@@ -31,7 +31,7 @@ export default function PasswordResetForm() {
       await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
-      setError(e)
+      setError(e.message)
     }
 
     return false
