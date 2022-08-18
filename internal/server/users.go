@@ -107,3 +107,27 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteIdentity(c, r.ID)
 }
+
+func (a *API) DeleteUser2(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
+	if err := access.CanDeleteIdentity(c, r.ID); err != nil {
+		return nil, err
+	}
+
+	if err := access.DeleteAccessKeysForUser(c, r.ID); err != nil {
+		return nil, err
+	}
+
+	if err := access.RemoveUserFromAllGroups(c, r.ID); err != nil {
+		return nil, err
+	}
+
+	if err := access.DeleteCredentialForUser(c, r.ID); err != nil {
+		return nil, err
+	}
+
+	if err := access.DeleteGrantsForUser(c, r.ID); err != nil {
+		return nil, err
+	}
+
+	return nil, access.DeleteIdentity2(c, r.ID)
+}

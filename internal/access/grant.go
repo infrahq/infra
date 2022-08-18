@@ -2,6 +2,7 @@ package access
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -117,4 +118,17 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 	}
 
 	return data.DeleteGrants(db, data.ByID(id))
+}
+
+func DeleteGrantsForUser(c *gin.Context, userID uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
+	}
+
+	err = data.DeleteGrants(db, data.BySubject(uid.NewIdentityPolymorphicID(userID)))
+	if err != nil {
+		return fmt.Errorf("delete identity creds: %w", err)
+	}
+	return nil
 }

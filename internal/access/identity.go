@@ -59,6 +59,56 @@ func InfraConnectorIdentity(c *gin.Context) *models.Identity {
 	return data.InfraConnectorIdentity(getDB(c))
 }
 
+// This checks if the delete request is allowed
+func CanDeleteIdentity(c *gin.Context, id uid.ID) error {
+	self, err := isIdentitySelf(c, id)
+	if err != nil {
+		return err
+	}
+	if self {
+		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
+	}
+
+	if InfraConnectorIdentity(c).ID == id {
+		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
+	}
+
+	return nil
+}
+
+func DeleteIdentity2(c *gin.Context, id uid.ID) error {
+	if err := CanDeleteIdentity(c, id); err != nil {
+		return err
+	}
+
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+	}
+
+	return data.DeleteIdentity(db, id)
+}
+
+func DeleteCredentialForUser(c *gin.Context, userID uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+	}
+
+	credential, err := data.GetCredential(db, data.ByIdentityID(userID))
+	if err != nil && !errors.Is(err, internal.ErrNotFound) {
+		return fmt.Errorf("get delete identity creds: %w", err)
+	}
+
+	if credential != nil {
+		err := data.DeleteCredential(db, credential.ID)
+		if err != nil {
+			return fmt.Errorf("delete identity creds: %w", err)
+		}
+	}
+	return nil
+}
+
 // TODO (https://github.com/infrahq/infra/issues/2318) remove provider user, not user.
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	self, err := isIdentitySelf(c, id)

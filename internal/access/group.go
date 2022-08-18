@@ -142,3 +142,23 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 	}
 	return data.RemoveUsersFromGroup(db, groupID, rmIDList)
 }
+
+func RemoveUserFromAllGroups(c *gin.Context, id uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+	}
+
+	groups, err := data.ListGroups(db, nil, data.ByGroupMember(id))
+	if err != nil {
+		return fmt.Errorf("list groups for identity: %w", err)
+	}
+	for _, group := range groups {
+		err = data.RemoveUsersFromGroup(db, group.ID, []uid.ID{id})
+		if err != nil {
+			return fmt.Errorf("delete group membership for identity: %w", err)
+		}
+	}
+
+	return nil
+}

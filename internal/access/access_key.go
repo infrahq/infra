@@ -48,6 +48,15 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 	return data.DeleteAccessKeys(db, data.ByID(id))
 }
 
+func DeleteAccessKeysForUser(c *gin.Context, userID uid.ID) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
+	}
+
+	return data.DeleteAccessKeys(db, data.ByIssuedFor(userID))
+}
+
 func DeleteRequestAccessKey(c RequestContext) error {
 	// does not need authorization check, this action is limited to the calling key
 	return data.DeleteAccessKey(c.DBTxn, c.Authenticated.AccessKey.ID)
