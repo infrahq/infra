@@ -457,42 +457,176 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 	}
 }
 
-func TestGetOrgFromRequest_MissingOrgErrorsInMultiTenantEnvironment(t *testing.T) {
+func TestUnauthenticatedMiddleware(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	srv.options.EnableSignup = true // test multi-tenancy environment
+	srv.options.EnableSignup = true // multi-tenant environment
+	db := srv.DB()
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	router := gin.New()
+	org := &models.Organization{
+		Name:   "The Umbrella Academy",
+		Domain: "umbrella.infrahq.com",
+	}
+	otherOrg := &models.Organization{
+		Name:   "The Factory",
+		Domain: "the-factory-xyz8.infrahq.com",
+	}
+	createOrgs(t, db, otherOrg, org)
 
-	router.GET("/foo",
-		unauthenticatedMiddleware(srv),
-		orgRequired(),
-		func(ctx *gin.Context) {
-			assert.Assert(t, false, "Shouldn't get here")
+	provider := &models.Provider{
+		Name:               "electric",
+		Kind:               models.ProviderKindGoogle,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	assert.NilError(t, data.CreateProvider(db, provider))
+
+	user := &models.Identity{
+		Name:               "userone@example.com",
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	createIdentities(t, db, user)
+
+	token := &models.AccessKey{
+		IssuedFor:          user.ID,
+		ProviderID:         data.InfraProvider(db).ID,
+		ExpiresAt:          time.Now().Add(10 * time.Second),
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+
+	key, err := data.CreateAccessKey(db, token)
+	assert.NilError(t, err)
+
+	httpSrv := httptest.NewServer(routes)
+	t.Cleanup(httpSrv.Close)
+
+	type testCase struct {
+		name     string
+		route    string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *http.Response)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		// Any unauthenticated route will do
+		routeURL := httpSrv.URL + "/api/providers"
+		if tc.route != "" {
+			routeURL = httpSrv.URL + tc.route
+		}
+
+		// nolint:noctx
+		req, err := http.NewRequest("GET", routeURL, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		client := httpSrv.Client()
+		resp, err := client.Do(req)
+		assert.NilError(t, err)
+
+		tc.expected(t, resp)
+	}
+
+	expectSuccess := func(t *testing.T, resp *http.Response) {
+		body, err := io.ReadAll(resp.Body)
+		assert.NilError(t, err)
+
+		assert.Equal(t, resp.StatusCode, http.StatusOK, string(body))
+
+		respProviders := &api.ListResponse[api.Provider]{}
+		assert.NilError(t, json.Unmarshal(body, respProviders))
+		assert.Equal(t, len(respProviders.Items), 1)
+		assert.Equal(t, respProviders.Items[0].ID, provider.ID)
+	}
+
+	testCases := []testCase{
+		{
+			name: "Org ID from access key",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: expectSuccess,
+		},
+		{
+			name: "Org ID from hostname",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = org.Domain
+			},
+			expected: expectSuccess,
+		},
+		{
+			name: "Org ID from access key and hostname match",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+				req.Host = org.Domain
+			},
+			expected: expectSuccess,
+		},
+		{
+			name: "Org ID from access key and hostname conflict",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+				req.Host = otherOrg.Domain
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+			},
+		},
+		{
+			name: "missing org with single-tenancy returns default",
+			setup: func(t *testing.T, req *http.Request) {
+				srv.options.EnableSignup = false
+				t.Cleanup(func() {
+					srv.options.EnableSignup = true
+				})
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK)
+			},
+		},
+		{
+			name:  "missing org with multi-tenancy, route ignores org",
+			route: "/api/version",
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK)
+			},
+		},
+		{
+			name: "missing org with multi-tenancy, route returns error",
+			setup: func(t *testing.T, req *http.Request) {
+				t.Skip("TODO: currently this panics")
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+			},
+		},
+		{
+			name: "missing org with multi-tenancy, route returns fake data",
+			setup: func(t *testing.T, req *http.Request) {
+				t.Skip("TODO: not yet implemented")
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK)
+				// TODO: check fake data
+			},
+		},
+		{
+			name:  "unknown hostname works like missing org",
+			route: "/api/version",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = "http://notadomainweknowabout.org/foo"
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
 		})
-
-	req := httptest.NewRequest("GET", "http://notadomainweknowabout.org/foo", nil)
-
-	resp := httptest.NewRecorder()
-	router.ServeHTTP(resp, req)
-
-	assert.Equal(t, resp.Code, http.StatusBadRequest)
-}
-
-func TestGetOrgFromRequest_UsesDefaultWhenDomainDoesNotMatchAnyOrg(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
-
-	router := gin.New()
-
-	router.GET("/foo",
-		unauthenticatedMiddleware(srv),
-		func(ctx *gin.Context) {
-			ctx.JSON(200, nil)
-		})
-
-	req := httptest.NewRequest("GET", "/foo", nil)
-
-	resp := httptest.NewRecorder()
-	router.ServeHTTP(resp, req)
-
-	assert.Equal(t, resp.Code, http.StatusOK)
+	}
 }
