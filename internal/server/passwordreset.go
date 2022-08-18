@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,7 +17,7 @@ import (
 func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
 	// TODO: rate-limit
 
-	token, err := access.PasswordResetRequest(c, r.Email)
+	token, err := access.PasswordResetRequest(c, r.Email, 15*time.Minute)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return nil, nil // This is okay. we don't notify the user if we failed to find the email.
