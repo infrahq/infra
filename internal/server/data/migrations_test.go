@@ -18,7 +18,6 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/golden"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/migrator"
@@ -151,7 +150,6 @@ func TestMigrations(t *testing.T) {
 			},
 		},
 		{
-			// this test does an external call to example.okta.com, if it fails check your network connection
 			label: testCaseLine("202206281027"),
 			setup: func(t *testing.T, db *gorm.DB) {
 				stmt := `
@@ -166,31 +164,32 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, db *gorm.DB) {
-				var providers []models.Provider
-
 				rows, err := db.Raw(`SELECT name, auth_url, scopes FROM providers ORDER BY name`).Rows()
 				assert.NilError(t, err)
 
+				var actual []models.Provider
 				for rows.Next() {
-					p := models.Provider{}
+					var p models.Provider
 					var authURL sql.NullString
 					err := rows.Scan(&p.Name, &authURL, &p.Scopes)
 					assert.NilError(t, err)
 					p.AuthURL = authURL.String
-					providers = append(providers, p)
+					actual = append(actual, p)
 				}
 
-				assert.Equal(t, len(providers), 2)
-				authUrls := make(map[string]string)
-				scopes := make(map[string][]string)
-				for _, p := range providers {
-					authUrls[p.Name] = p.AuthURL
-					scopes[p.Name] = p.Scopes
+				expected := []models.Provider{
+					{
+						Name:    "infra",
+						AuthURL: "",
+						Scopes:  nil,
+					},
+					{
+						Name:    "okta",
+						AuthURL: "https://example.okta.com/oauth2/v1/authorize", // set from external endpoint
+						Scopes:  models.CommaSeparatedStrings{"openid", "email", "offline_access", "groups"},
+					},
 				}
-				assert.Equal(t, authUrls["infra"], "")
-				assert.Equal(t, len(scopes["infra"]), 0)
-				assert.Equal(t, authUrls["okta"], "https://example.okta.com/oauth2/v1/authorize")
-				assert.Assert(t, slices.Equal(scopes["okta"], []string{"openid", "email", "offline_access", "groups"}))
+				assert.DeepEqual(t, actual, expected)
 			},
 		},
 		{
