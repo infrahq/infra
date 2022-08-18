@@ -402,6 +402,20 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 		},
 		{
 			label: testCaseLine("2022-08-10T13:35"),
+			setup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+INSERT INTO providers(id, name) VALUES (12345, 'okta');
+INSERT INTO settings(id) VALUES(24567);
+`
+				assert.NilError(t, db.Exec(stmt).Error)
+			},
+			cleanup: func(t *testing.T, db *gorm.DB) {
+				stmt := `
+DELETE FROM providers WHERE id=12345;
+DELETE FROM settings WHERE id=24567;
+`
+				assert.NilError(t, db.Exec(stmt).Error)
+			},
 			expected: func(t *testing.T, db *gorm.DB) {
 				stmt := `SELECT id, name, created_at, updated_at FROM organizations`
 				rows, err := db.Raw(stmt).Rows()
@@ -427,6 +441,29 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 					},
 				}
 				assert.DeepEqual(t, orgs, expected, cmpModel)
+				org := orgs[0]
+
+				stmt = `SELECT id, organization_id FROM providers;`
+				p := &models.Provider{}
+				err = db.Raw(stmt).Row().Scan(&p.ID, &p.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedProvider := &models.Provider{
+					Model:              models.Model{ID: 12345},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, p, expectedProvider)
+
+				stmt = `SELECT id, organization_id FROM settings;`
+				s := &models.Settings{}
+				err = db.Raw(stmt).Row().Scan(&s.ID, &s.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedSettings := &models.Settings{
+					Model:              models.Model{ID: 24567},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, s, expectedSettings)
 			},
 		},
 		{
@@ -436,9 +473,9 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 			},
 		},
 		{
-			label: testCaseLine("202208121105"),
+			label: testCaseLine("2022-08-12T11:05"),
 			expected: func(t *testing.T, tx *gorm.DB) {
-				// dropped columns are tested by schema comparison
+				// dropped indexes are tested by schema comparison
 			},
 		},
 	}
