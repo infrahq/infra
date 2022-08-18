@@ -1,6 +1,6 @@
 ################################################################################
 
-                                Welcome to Infra
+                              Welcome {{ if .Release.IsUpgrade -}}back {{ end -}} to Infra
 
 {{- if include "server.enabled" . | eq "true" }}
 
@@ -35,6 +35,15 @@
 
   http://localhost:8080
 
+{{- end }}
+
+{{- if and .Values.server.persistence.enabled (not .Values.server.config.dbEncryptionKey) .Release.IsUpgrade }}
+
+  When upgrading from chart version <= 0.14.4, ensure the database encryption
+  key is migrated. Omitting this step may cause your deployment to be fail.
+  For upgrade instructions, see:
+
+    https://github.com/infrahq/infra/tree/main/helm/charts/infra#version-0200-and-higher
 {{- end }}
 
 {{- if .Values.server.config.adminAccessKey }}
