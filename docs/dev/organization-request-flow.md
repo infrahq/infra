@@ -6,28 +6,17 @@ The following diagram describes the process of loading the organization from the
 flowchart TD
     A[Incoming Request] --> AC
 
-    subgraph Org Selection
-        AC{Is org supplied?}
-        AC --> |No| AD{Is multi-tenant?} %% is signup enabled
-        AC --> |Yes| AG[use supplied org]
-        AD --> |Yes| AH[org not set]
-        AD --> |No| AF[use default org]
-        AF --> AI
-        AH --> AI
-        AG --> AI
-        AI(continue)
-    end
-
-    subgraph Authentication and org check
-        AI --> AA
-        AA{Endpoint requires authentication?}
-        AA --> |Yes| AB[fail if org not set]
-        AA --> |No| B{endpoint requires org?}
-        B --> |Yes| C{Does endpoint supply fake data <br>when there is no org supplied?}
-        C --> |Yes|E[org is optional, handler generates fake data if missing]
-        C --> |No|AB
-        B --> |No| D[Org not checked]
-    end
+    AC{Is org supplied?}
+    AC --> |No| AD{Is multi-tenant?} %% is signup enabled
+    AC --> |Yes| AG[use supplied org]
+    AD --> |Yes| AH[org not set]
+    AD --> |No| AF[use default org]
+    AH --> B
+    B{endpoint requires org?}
+    B --> |Yes| C{HTTP Method}
+    C --> |GET|E[org is optional, handler generates fake data if missing]
+    C --> |POST|AB[fail if org not set]
+    B --> |No| D[Org not checked]
 ```
-[Edit on mermaid.live](https://mermaid.live/edit#pako:eNp1U8tu2zAQ_JUFgQAtYP-AUSSgLSfxpQGaXgrJB5pcSYQpUuUDQaD437uSXYepGp2I5ezs7Aw1MOkUshWrjXuRrfARfhaVBfp4ubPSddo28AN_JwxxD8vlLfBNZc-IkA6NF30LT76BZzQoo3aXu4lhM-wCOLoMqe-NRnV3ym8nurfv7g14MSK7ZKJeRrTCxrsT3NyADhB0Y1MPVDwYVPP2Xxio_6FMAa9jxpn7DFrk0MdyVGRdhIDxP6hJz_3Ep7AWpOlfuvuzD7us9DgvPcxLuy_S2ahtwq_nKlo1M5On2CKhpBjdBGGndUC2KI8515meZyU-bK3qnbYRPCWmPQYQH9g--M9zV9ZlLbQBXcMn7vB3d9YDzuZQV06-zrg3Q-EIce2ZUnqFWhzJYREFfDv42xdSCSTV4xi6dZ8-myz27ZQkwV0_LifMAlqyy6CHBi16EWns-xjardMh0IPez-hoLb6eyR-XLcqniyFTAqj21-jYgnXoO6EV_UDDWK4YrdBhxVZ0VMIfK1bZE-FSTxJwq3R0nq1qYQIuGGXjnl-tZKvoE_4FFVrQQ-guqNMfvU4d_A)
+[Edit on mermaid.live](https://mermaid.live/edit#pako:eNplkcFygjAQhl9lJzPe9AU81AGx1UOrU7l0wENKFsgICU020-kA796A2GqbU5L99t__T1qWaYFsyfJKf2YlNwRxlCrwK0h2KtO1VAW84odDSydYLB4gWKdqItbtzoI2BVjXNJVEseqvlRHtXnQHQTRQtatILggVV7TqYTYDacHKQrkG_OV7heK-9Q2t731KnMUf-WHWacKiW2ybDC6UJrBIf4jRw-OoIzDn3setzHaEwsspbFGJRktFYHxkaXCMd00V3oxct9s4PsAzUqnFVJ-cP23ibjMa8hF1Q1IrXs2h5EpUaKBAhYaTl8752XvixEHmUEtr_Vuf7qQO-2PcBWGSc1kN0P-U4W_IKNlP5azE7IzCI2zOajQ1l8L_cTu0pIxKrDFlS78V3JxTlqrec67xVnAjJGnDlmQczhl3pI9fKrueL0wkeWF4fbnsvwHB3rsZ)
 <!-- Keep this link in sync with the above doc -->
