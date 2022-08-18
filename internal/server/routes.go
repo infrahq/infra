@@ -52,7 +52,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 
 	// This group of middleware only applies to non-ui routes
-	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
+	apiGroup := router.Group("/", metrics.Middleware(s.metricsRegistry))
 
 	// auth required, org required
 	authn := apiGroup.Group("/", setOrganizationInCtx(a.server), authenticatedMiddleware(a.server))

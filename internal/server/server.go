@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -90,13 +91,14 @@ type TLSOptions struct {
 }
 
 type Server struct {
-	options  Options
-	db       *data.DB
-	tel      *Telemetry
-	secrets  map[string]secrets.SecretStorage
-	keys     map[string]secrets.SymmetricKeyProvider
-	Addrs    Addrs
-	routines []routine
+	options         Options
+	db              *data.DB
+	tel             *Telemetry
+	secrets         map[string]secrets.SecretStorage
+	keys            map[string]secrets.SymmetricKeyProvider
+	Addrs           Addrs
+	routines        []routine
+	metricsRegistry *prometheus.Registry
 }
 
 type Addrs struct {
@@ -139,6 +141,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 	server.db = db
+	server.metricsRegistry = setupMetrics(server.DB())
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)
@@ -217,15 +220,14 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	promRegistry := setupMetrics(s.DB())
-	router := s.GenerateRoutes(promRegistry)
+	router := s.GenerateRoutes(nil)
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		Addr:              s.options.Addr.Metrics,
-		Handler:           metrics.NewHandler(promRegistry),
+		Handler:           metrics.NewHandler(s.metricsRegistry),
 		ErrorLog:          httpErrorLog,
 	}
 

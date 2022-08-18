@@ -46,6 +46,8 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
 
+	s.metricsRegistry = prometheus.NewRegistry()
+
 	data.InvalidateCache()
 	t.Cleanup(data.InvalidateCache)
 
