@@ -11,7 +11,7 @@ import (
 )
 
 // PostgreSQL only has microsecond precision
-var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Millisecond)
+var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func TestCreateOrganizationAndSetContext(t *testing.T) {
 	pgsql := postgresDriver(t)
@@ -29,7 +29,7 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 	// org is created
 	readOrg, err := GetOrganization(db, ByID(org.ID))
 	assert.NilError(t, err)
-	assert.DeepEqual(t, org, readOrg)
+	assert.DeepEqual(t, org, readOrg, cmpTimeWithDBPrecision)
 
 	// infra provider is created
 	orgInfraIDP := InfraProvider(db)
