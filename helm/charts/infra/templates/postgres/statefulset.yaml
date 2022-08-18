@@ -1,0 +1,118 @@
+{{- if include "postgres.enabled" . | eq "true" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+{{- include "postgres.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "postgres.fullname" . }}
+  replicas: {{ .Values.postgres.replicas }}
+  selector:
+    matchLabels:
+{{- include "postgres.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+{{- include "postgres.podLabels" . | nindent 8 }}
+      annotations:
+{{- include "postgres.podAnnotations" . | nindent 8 }}
+    spec:
+      automountServiceAccountToken: {{ .Values.postgres.serviceAccount.automountServiceAccountToken }}
+      serviceAccountName: {{ include "postgres.serviceAccountName" . }}
+      securityContext:
+{{- toYaml .Values.postgres.podSecurityContext | nindent 8 }}
+      containers:
+        - name: postgres
+          securityContext:
+{{- toYaml .Values.postgres.securityContext | nindent 12 }}
+          image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag | default "alpine" }}"
+          imagePullPolicy: {{ .Values.postgres.image.pullPolicy }}
+          env:
+{{- include "postgres.env" . | nindent 12 }}
+          envFrom:
+{{- include "postgres.envFrom" . | nindent 12 }}
+          volumeMounts:
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+{{- if .Values.postgres.persistence.enabled }}
+            - name: data
+              mountPath: /var/lib/postgresql/data
+{{- end }}
+{{- if .Values.postgres.volumeMounts }}
+{{- toYaml .Values.postgres.volumeMounts | nindent 12 }}
+{{- end }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command: [pg_isready]
+            successThreshold: {{ .Values.postgres.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.postgres.livenessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.postgres.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            exec:
+              command: [pg_isready]
+            successThreshold: {{ .Values.postgres.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.postgres.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ .Values.postgres.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.postgres.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.postgres.readinessProbe.timeoutSeconds }}
+          resources:
+{{- toYaml .Values.postgres.resources | nindent 12 }}
+{{- if .Values.server.persistence.enabled }}
+      initContainers:
+        - name: migration
+          image: alpine:latest
+          command: [sh, -c]
+          args:
+            - |
+              apk add --no-cache sqlite
+              # perform a basic migration but drop any encrypted fields. these items will need to be recreated. only resource
+              # relevant to the end user are tokens and providers.
+              sqlite3 /var/lib/infrahq/server/sqlite3.db .dump \
+                | sed -e '/PRAGMA foreign_keys=OFF/d' -e 's/`/"/g' -e 's/datetime/timestamp/g' -e 's/integer/bigint/g' -e 's/blob/bytea/g' -e "s/X'\([0-9a-f]*\)'/'\\\x\1'/g" -e "s/replace('\(.*\)','\\\n',char(10))/'\1'/g" \
+                >/mnt/initdb/00-dump.sql
+              # update the credentials table and convert the one_time_password numeric to a boolean
+              echo 'ALTER TABLE credentials ALTER COLUMN one_time_password TYPE bool USING (one_time_password::int::bool);' >/mnt/initdb/10-cast-numeric.sql
+              # clean up the database. rename it instead of deleting it in case it's needed for a rollback.
+              mv /var/lib/infrahq/server/sqlite3.db /var/lib/infrahq/server/sqlite3.db.1
+          volumeMounts:
+            - name: initdb
+              mountPath: /mnt/initdb
+            - name: old-data
+              mountPath: /var/lib/infrahq/server
+{{- end }}
+      volumes:
+        - name: initdb
+          emptyDir: {}
+{{- if .Values.postgres.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "postgres.fullname" . }}
+{{- end }}
+{{- if .Values.server.persistence.enabled }}
+        - name: old-data
+          persistentVolumeClaim:
+            claimName: {{ include "server.fullname" . }}
+{{- end }}
+{{- if .Values.postgres.volumes }}
+{{- toYaml .Values.postgres.volumes | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.nodeSelector }}
+      nodeSelector:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.affinity }}
+      affinity:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.postgres.tolerations }}
+      tolerations:
+{{- toYaml . | nindent 8 }}
+{{- end }}
+{{- end }}

@@ -53,10 +53,6 @@ spec:
               mountPath: /var/run/secrets/infrahq.com/tls-ca
               readOnly: true
 {{- end }}
-{{- if .Values.server.persistence.enabled }}
-            - name: data
-              mountPath: /var/lib/infrahq/server
-{{- end }}
 {{- if not .Values.server.config.dbEncryptionKey }}
             - name: encryption-key
               mountPath: /var/run/secrets/infrahq.com/encryption-key
@@ -95,22 +91,21 @@ spec:
             timeoutSeconds: {{ .Values.server.readinessProbe.timeoutSeconds }}
           resources:
 {{- toYaml .Values.server.resources | nindent 12 }}
-{{- if .Values.server.persistence.enabled }}
       initContainers:
-        - name: chown-sqlite3
-          image: alpine:latest
+        - name: postgres-ready
+          image: postgres:14-alpine
           command: [sh, -c]
           args:
-            - 'find /var/lib/infrahq/server -type f -name "sqlite3.*" -exec chown $RUN_AS_USER:$RUN_AS_GROUP {} \;'
+            - while ! pg_isready; do sleep 0.2; done
           env:
-            - name: RUN_AS_USER
-              value: "{{ .Values.server.securityContext.runAsUser | default .Values.server.podSecurityContext.runAsUser | default 1000 }}"
-            - name: RUN_AS_GROUP
-              value: "{{ .Values.server.securityContext.runAsGroup | default .Values.server.podSecurityContext.runAsGroup | default 1000 }}"
-          volumeMounts:
-            - name: data
-              mountPath: /var/lib/infrahq/server
-{{- end }}
+            - name: PGHOST
+              value: {{ .Values.server.config.dbHost | default (include "postgres.fullname" .) }}
+            - name: PGPORT
+              value: {{ .Values.server.config.dbPort | default "5432" | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.server.config.dbName | default .Values.postgres.dbName }}
+            - name: PGUSER
+              value: {{ .Values.server.config.dbUsername | default .Values.postgres.dbUsername }}
       volumes:
         - name: conf
           configMap:
@@ -119,11 +114,6 @@ spec:
         - name: tls-ca
           secret:
             secretName: {{ include "server.fullname" . }}-ca
-{{- end }}
-{{- if .Values.server.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "server.fullname" . }}
 {{- end }}
 {{- if not .Values.server.config.dbEncryptionKey }}
         - name: encryption-key

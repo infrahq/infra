@@ -1,0 +1,38 @@
+{{- if include "postgres.enabled" . | eq "true" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "postgres.fullname" . }}
+  labels:
+{{- include "postgres.labels" . | nindent 4 }}
+{{- if .Values.postgres.service.labels }}
+{{- toYaml .Values.postgres.service.labels | nindent 4 }}
+{{- end }}
+  annotations:
+{{- toYaml .Values.postgres.service.annotations | nindent 4 }}
+spec:
+  type: {{ .Values.postgres.service.type }}
+{{- if eq .Values.postgres.service.type "LoadBalancer" }}
+  loadBalancerIP: {{ .Values.postgres.service.loadBalancerIP }}
+  loadBalancerSourceRanges:
+{{- toYaml .Values.postgres.service.loadBalancerSourceRanges | nindent 4 }}
+{{- end }}
+  externalIPs:
+{{- toYaml .Values.postgres.service.externalIPs | nindent 4 }}
+{{- if .Values.postgres.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ .Values.postgres.service.externalTrafficPolicy }}
+{{- end }}
+{{- if .Values.postgres.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.postgres.service.sessionAffinity }}
+{{- end }}
+  ports:
+    - port: {{ .Values.postgres.service.port }}
+      name: {{ .Values.postgres.service.portName }}
+      targetPort: postgres
+      protocol: TCP
+{{- if eq .Values.postgres.service.type "NodePort" }}
+      nodePort: {{ .Values.postgres.service.nodePort }}
+{{- end }}
+  selector:
+{{- include "postgres.selectorLabels" . | nindent 4 }}
+{{- end }}

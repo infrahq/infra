@@ -153,7 +153,15 @@ Server 'env' values. Merges global and local values.
 {{- end }}
 {{- end }}
 
-{{- concat $env | uniq | toYaml }}
+{{- if include "postgres.enabled" . | eq "true" -}}
+{{- if .Values.postgres.dbPasswordSecret -}}
+{{- $env = append $env (dict "name" "INFRA_SERVER_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" .Values.postgres.dbPasswordSecret "key" "password"))) }}
+{{- else }}
+{{- $env = append $env (dict "name" "INFRA_SERVER_DB_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "postgres.fullname" .) "key" "password"))) }}
+{{- end }}
+{{- end }}
+
+{{- $env | uniq | toYaml }}
 {{- end }}
 
 {{/*
