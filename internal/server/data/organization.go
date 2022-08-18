@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 type orgCtxKey struct{}
@@ -56,8 +57,23 @@ func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
 
+	connector := &models.Identity{Name: models.InternalInfraConnectorIdentityName}
 	// this identity is used to create access keys for connectors
-	return CreateIdentity(db, &models.Identity{Name: models.InternalInfraConnectorIdentityName})
+	if err := CreateIdentity(db, connector); err != nil {
+		return fmt.Errorf("failed to create connector identity while creating org: %w", err)
+	}
+
+	err = CreateGrant(db, &models.Grant{
+		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
+		Privilege: models.InfraAdminRole,
+		Resource:  "infra",
+		CreatedBy: models.CreatedBySystem,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to grant connector role creating org: %w", err)
+	}
+
+	return nil
 }
 
 func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {
