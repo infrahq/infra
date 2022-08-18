@@ -91,6 +91,7 @@ spec:
             timeoutSeconds: {{ .Values.server.readinessProbe.timeoutSeconds }}
           resources:
 {{- toYaml .Values.server.resources | nindent 12 }}
+{{- if include "postgres.enabled" . | eq "true" }}
       initContainers:
         - name: postgres-ready
           image: postgres:14-alpine
@@ -99,13 +100,14 @@ spec:
             - while ! pg_isready; do sleep 0.2; done
           env:
             - name: PGHOST
-              value: {{ .Values.server.config.dbHost | default (include "postgres.fullname" .) }}
+              value: {{ include "postgres.fullname" . }}
             - name: PGPORT
-              value: {{ .Values.server.config.dbPort | default "5432" | quote }}
+              value: {{ .Values.postgres.service.port }}
             - name: PGDATABASE
-              value: {{ .Values.server.config.dbName | default .Values.postgres.dbName }}
+              value: {{ .Values.postgres.dbName }}
             - name: PGUSER
-              value: {{ .Values.server.config.dbUsername | default .Values.postgres.dbUsername }}
+              value: {{ .Values.postgres.dbUsername }}
+{{- end }}
       volumes:
         - name: conf
           configMap:
