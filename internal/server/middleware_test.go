@@ -595,9 +595,6 @@ func TestUnauthenticatedMiddleware(t *testing.T) {
 		},
 		{
 			name: "missing org with multi-tenancy, route returns error",
-			setup: func(t *testing.T, req *http.Request) {
-				t.Skip("TODO: currently this panics")
-			},
 			expected: func(t *testing.T, resp *http.Response) {
 				assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
 			},

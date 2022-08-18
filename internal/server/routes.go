@@ -106,15 +106,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 
-	// while an org is required for these endpoints, they return fake data when the org is not supplied
-	noAuthnOptOrg := apiGroup.Group("/",
-		unauthenticatedMiddleware(a.server),
-		// Until we're ready to return fake data, require the org.
-		orgRequired(),
-	)
-	get(a, noAuthnOptOrg, "/api/providers", a.ListProviders)
-	get(a, noAuthnOptOrg, "/api/settings", a.GetSettings)
-
 	// no auth required, org required
 	noAuthnWithOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server), orgRequired())
 
@@ -123,6 +114,8 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	post(a, noAuthnWithOrg, "/api/password-reset", a.VerifiedPasswordReset)
 
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
+	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
+	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
 
 	add(a, noAuthnWithOrg, route[api.EmptyRequest, WellKnownJWKResponse]{
 		method:              http.MethodGet,
