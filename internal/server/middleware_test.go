@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -333,42 +335,126 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 }
 
-func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
+func TestAuthenticatedMiddleware(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	db := srv.DB()
-
-	router := gin.New()
+	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	org := &models.Organization{
 		Name:   "The Umbrella Academy",
 		Domain: "umbrella.infrahq.com",
 	}
-	err := data.CreateOrganizationAndSetContext(db, org)
+	otherOrg := &models.Organization{
+		Name:   "The Factory",
+		Domain: "the-factory-xyz8.infrahq.com",
+	}
+	createOrgs(t, db, otherOrg, org)
+
+	user := &models.Identity{
+		Name:               "userone@example.com",
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+	createIdentities(t, db, user)
+
+	token := &models.AccessKey{
+		IssuedFor:          user.ID,
+		ProviderID:         data.InfraProvider(db).ID,
+		ExpiresAt:          time.Now().Add(10 * time.Second),
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+	}
+
+	key, err := data.CreateAccessKey(db, token)
 	assert.NilError(t, err)
 
-	router.GET("/foo",
-		unauthenticatedMiddleware(srv),
-		func(ctx *gin.Context) {
-			ctxOrg := data.OrgFromContext(ctx)
-
-			assert.Check(t, ctxOrg != nil)
-			assert.Check(t, ctxOrg.ID == org.ID, "got org %v", ctxOrg.Name)
-			ctx.JSON(200, api.EmptyResponse{})
-		})
-
-	httpSrv := httptest.NewServer(router)
+	httpSrv := httptest.NewServer(routes)
 	t.Cleanup(httpSrv.Close)
 
-	// nolint:noctx
-	req, err := http.NewRequest("GET", httpSrv.URL+"/foo", nil)
-	assert.NilError(t, err)
-	req.Host = org.Domain
+	type testCase struct {
+		name     string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *http.Response)
+	}
 
-	client := httpSrv.Client()
-	resp, err := client.Do(req)
-	assert.NilError(t, err)
+	run := func(t *testing.T, tc testCase) {
+		// Any authenticated route will do
+		routeURL := httpSrv.URL + "/api/users/" + user.ID.String()
 
-	assert.Equal(t, resp.StatusCode, 200)
+		// nolint:noctx
+		req, err := http.NewRequest("GET", routeURL, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		client := httpSrv.Client()
+		resp, err := client.Do(req)
+		assert.NilError(t, err)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		{
+			name: "Org ID from access key",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				body, err := io.ReadAll(resp.Body)
+				assert.NilError(t, err)
+
+				assert.Equal(t, resp.StatusCode, http.StatusOK, string(body))
+
+				respUser := &api.User{}
+				assert.NilError(t, json.Unmarshal(body, respUser))
+				assert.Equal(t, respUser.ID, user.ID)
+			},
+		},
+		{
+			name: "Missing access key",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = org.Domain
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusUnauthorized)
+			},
+		},
+		{
+			name: "Org ID from access key and hostname match",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+				req.Host = org.Domain
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				body, err := io.ReadAll(resp.Body)
+				assert.NilError(t, err)
+
+				assert.Equal(t, resp.StatusCode, http.StatusOK, string(body))
+
+				respUser := &api.User{}
+				assert.NilError(t, json.Unmarshal(body, respUser))
+				assert.Equal(t, respUser.ID, user.ID)
+			},
+		},
+		{
+			name: "Org ID from access key and hostname conflict",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+key)
+				req.Host = otherOrg.Domain
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestGetOrgFromRequest_MissingOrgErrorsInMultiTenantEnvironment(t *testing.T) {
