@@ -347,7 +347,6 @@ func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 	assert.NilError(t, err)
 
 	router.GET("/foo",
-		setOrganizationInCtx(srv),
 		unauthenticatedMiddleware(srv),
 		func(ctx *gin.Context) {
 			ctxOrg := data.OrgFromContext(ctx)
@@ -372,8 +371,9 @@ func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 	assert.Equal(t, resp.StatusCode, 200)
 }
 
-func TestGetOrgFromRequest_MissingOrgErrors(t *testing.T) {
+func TestGetOrgFromRequest_MissingOrgErrorsInMultiTenantEnvironment(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
+	srv.options.EnableSignup = true // test multi-tenancy environment
 
 	router := gin.New()
 

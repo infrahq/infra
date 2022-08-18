@@ -108,7 +108,6 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 
 	// while an org is required for these endpoints, they return fake data when the org is not supplied
 	noAuthnOptOrg := apiGroup.Group("/",
-		setOrganizationInCtx(a.server),
 		unauthenticatedMiddleware(a.server),
 		// Until we're ready to return fake data, require the org.
 		orgRequired(),
@@ -117,7 +116,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	get(a, noAuthnOptOrg, "/api/settings", a.GetSettings)
 
 	// no auth required, org required
-	noAuthnWithOrg := apiGroup.Group("/", setOrganizationInCtx(a.server), unauthenticatedMiddleware(a.server), orgRequired())
+	noAuthnWithOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server), orgRequired())
 
 	post(a, noAuthnWithOrg, "/api/login", a.Login)
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)

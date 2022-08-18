@@ -141,7 +141,20 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
-			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+			org, err := getOrgFromRequest(c.Request, tx)
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+
+			// TODO: use an explicit setting for this, don't overload EnableSignup
+			if org == nil && !srv.options.EnableSignup { // is single tenant
+				org = srv.db.DefaultOrg
+			}
+			if org != nil {
+				c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+				tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+			}
 
 			rCtx := access.RequestContext{
 				Request: c.Request,
@@ -161,25 +174,7 @@ func orgRequired() gin.HandlerFunc {
 
 		if org == nil {
 			sendAPIError(c, internal.ErrBadRequest)
-		}
-	}
-}
-
-func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: use a transaction
-		org, err := getOrgFromRequest(c.Request, srv.DB())
-		if err != nil {
-			c.Next()
 			return
-		}
-
-		if org == nil && !srv.options.EnableSignup { // !saas
-			org = srv.db.DefaultOrg
-		}
-
-		if org != nil {
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 		}
 		c.Next()
 	}

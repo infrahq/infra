@@ -29,9 +29,13 @@ import (
 )
 
 type Options struct {
-	Version                  float64
-	TLSCache                 string // TODO: move this to TLS.CacheDir
-	EnableTelemetry          bool
+	Version         float64
+	TLSCache        string // TODO: move this to TLS.CacheDir
+	EnableTelemetry bool
+	// EnableSignup indicates that anyone can signup and create an org. When
+	// true this implies multi-tenancy, but false does not necessarily indicate
+	// a single tenancy environment (because orgs could have been created by a
+	// support admin).
 	EnableSignup             bool
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
