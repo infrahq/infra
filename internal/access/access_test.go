@@ -30,8 +30,6 @@ func setupDB(t *testing.T) *gorm.DB {
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
-	t.Cleanup(data.InvalidateCache)
-
 	return db.DB
 }
 

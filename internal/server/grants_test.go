@@ -11,7 +11,6 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"

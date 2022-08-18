@@ -23,7 +23,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/testing/database"
 )
 
@@ -47,10 +46,6 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	assert.NilError(t, err)
 
 	s.metricsRegistry = prometheus.NewRegistry()
-
-	data.InvalidateCache()
-	t.Cleanup(data.InvalidateCache)
-
 	return s
 }
 

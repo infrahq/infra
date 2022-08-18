@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/race"
 	"github.com/infrahq/infra/internal/server"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/uid"
 )
@@ -208,7 +207,6 @@ func setupEnv(t *testing.T) string {
 
 func setupServerOptions(t *testing.T, opts *server.Options) {
 	t.Helper()
-	t.Cleanup(data.InvalidateCache)
 
 	opts.Addr = server.ListenerOptions{HTTPS: "127.0.0.1:0", HTTP: "127.0.0.1:0"}
 

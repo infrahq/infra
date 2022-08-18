@@ -37,8 +37,6 @@ func setupDB(t *testing.T) *data.DB {
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
-	t.Cleanup(data.InvalidateCache)
-
 	t.Cleanup(func() {
 		assert.NilError(t, db.Close())
 	})
