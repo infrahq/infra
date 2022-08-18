@@ -15,4 +15,5 @@ var (
 	ErrNotFound       = fmt.Errorf("record not found")
 	ErrBadRequest     = fmt.Errorf("bad request")
 	ErrNotImplemented = fmt.Errorf("not implemented")
+	ErrExpired        = fmt.Errorf("expired")
 )
