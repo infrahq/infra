@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -37,7 +36,7 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
 
 func TestAPI_ListGroups(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	var (
 		humans = models.Group{Name: "humans"}
@@ -193,7 +192,7 @@ func TestAPI_ListGroups(t *testing.T) {
 
 func TestAPI_CreateGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
@@ -276,7 +275,7 @@ func TestAPI_CreateGroup(t *testing.T) {
 
 func TestAPI_DeleteGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	var humans = models.Group{Name: "humans"}
 	createGroups(t, srv.DB(), &humans)
@@ -354,7 +353,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 
 func TestAPI_UpdateUsersInGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	var humans = models.Group{Name: "humans"}
 	createGroups(t, srv.DB(), &humans)

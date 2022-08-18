@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
@@ -21,7 +20,7 @@ import (
 
 func TestAPI_ListProviders(t *testing.T) {
 	s := setupServer(t, withAdminUser)
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes()
 
 	testProvider := &models.Provider{
 		Name:    "mokta",
@@ -61,7 +60,7 @@ func TestAPI_ListProviders(t *testing.T) {
 
 func TestAPI_DeleteProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	createProvider := func(t *testing.T) *models.Provider {
 		t.Helper()
@@ -137,7 +136,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 
 func TestAPI_CreateProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		name     string
@@ -315,7 +314,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 
 func TestAPI_UpdateProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	provider := &models.Provider{
 		Name:    "private",

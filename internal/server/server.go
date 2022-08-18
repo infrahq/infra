@@ -220,7 +220,7 @@ func registerUIRoutes(router *gin.Engine, opts UIOptions) {
 
 func (s *Server) listen() error {
 	ginutil.SetMode()
-	router := s.GenerateRoutes(nil)
+	router := s.GenerateRoutes()
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{

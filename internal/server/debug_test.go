@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
@@ -27,7 +26,7 @@ func TestAPI_PProfHandler(t *testing.T) {
 	}
 
 	s := setupServer(t)
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes()
 
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx

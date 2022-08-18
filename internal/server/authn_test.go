@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -16,7 +15,7 @@ import (
 
 func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes((prometheus.NewRegistry()))
+	routes := srv.GenerateRoutes()
 
 	// create a user
 	resp := createUser(t, srv, routes, "hubert@example.com")

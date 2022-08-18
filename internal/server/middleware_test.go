@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
@@ -265,7 +264,7 @@ func TestRequireAccessKey(t *testing.T) {
 
 func TestHandleInfraDestinationHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 	db := srv.DB()
 
 	connector := models.Identity{Name: "connectorA"}

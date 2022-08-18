@@ -270,7 +270,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 	}
 
 	s := setupServer(t)
-	router := s.GenerateRoutes(prometheus.NewRegistry())
+	router := s.GenerateRoutes()
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
@@ -335,7 +335,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.SessionDuration = time.Minute
 		opts.SessionExtensionDeadline = time.Minute
 	})
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes()
 
 	var buf bytes.Buffer
 	email := "admin@email.com"

@@ -22,7 +22,7 @@ import (
 
 func TestAPI_ListGrants(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
@@ -416,7 +416,7 @@ func TestAPI_ListGrants(t *testing.T) {
 
 func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
@@ -615,7 +615,7 @@ var cmpAPIGrantJSON = gocmp.Options{
 
 func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	accessKey, err := data.ValidateAccessKey(srv.DB(), adminAccessKey(srv))
 	assert.NilError(t, err)
@@ -776,7 +776,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 
 func TestAPI_DeleteGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	user := &models.Identity{Name: "non-admin"}
 

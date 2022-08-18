@@ -11,7 +11,6 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -23,7 +22,7 @@ import (
 
 func TestAPI_GetUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()
@@ -180,7 +179,7 @@ func TestAPI_GetUser(t *testing.T) {
 
 func TestAPI_ListUsers(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	// TODO: Convert the "humans" group and "AnotherUser" user to call the standard http endpoints
 	//       when the new endpoint to add a user to a group exists
@@ -442,7 +441,7 @@ var cmpAPIUserShallow = gocmp.Comparer(func(x, y api.User) bool {
 
 func TestAPI_CreateUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	existing := &models.Identity{Name: "existing@example.com"}
 	err := data.CreateIdentity(srv.DB(), existing)
@@ -695,7 +694,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 
 func TestAPI_DeleteUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	testUser := &models.Identity{Name: "test"}
 	err := data.CreateIdentity(srv.DB(), testUser)
@@ -766,7 +765,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 func TestAPI_UpdateUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	user := &models.Identity{Name: "salsa@example.com"}
 	err := data.CreateIdentity(srv.DB(), user)

@@ -19,7 +19,7 @@ import (
 func TestWriteOpenAPIDocToFile(t *testing.T) {
 	patchProductVersion(t, "0.0.0")
 	s := Server{metricsRegistry: prometheus.NewRegistry()}
-	routes := s.GenerateRoutes(nil)
+	routes := s.GenerateRoutes()
 
 	filename := filepath.Join(t.TempDir(), "openapi3.json")
 	err := WriteOpenAPIDocToFile(routes.OpenAPIDocument, "0.0.0", filename)
