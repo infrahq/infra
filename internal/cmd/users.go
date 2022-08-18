@@ -348,7 +348,13 @@ func updateUser(cli *CLI, name string) error {
 }
 
 func getUserByNameOrID(client *api.Client, name string) (*api.User, error) {
-	users, err := client.ListUsers(api.ListUsersRequest{Name: name})
+	showSystem := false
+
+	if name == "connector" {
+		showSystem = true
+	}
+
+	users, err := client.ListUsers(api.ListUsersRequest{Name: name, ShowSystem: showSystem})
 	if err != nil {
 		return nil, err
 	}

@@ -96,10 +96,12 @@ func TestListIdentities(t *testing.T) {
 		)
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
+		connector := InfraConnectorIdentity(db)
+
 		t.Run("list all", func(t *testing.T) {
 			identities, err := ListIdentities(db, nil)
 			assert.NilError(t, err)
-			expected := []models.Identity{bauer, bond, bourne}
+			expected := []models.Identity{*connector, bauer, bond, bourne}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
@@ -188,7 +190,6 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 		group, err = GetGroup(db, ByID(group.ID))
 		assert.NilError(t, err)
 		assert.Equal(t, group.TotalUsers, 2)
-
 	})
 }
 

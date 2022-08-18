@@ -55,7 +55,9 @@ func CreateOrganization(db *gorm.DB, org *models.Organization) error {
 	if err := CreateProvider(db, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
-	return nil
+
+	// this identity is used to create access keys for connectors
+	return CreateIdentity(db, &models.Identity{Name: models.InternalInfraConnectorIdentityName})
 }
 
 func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {

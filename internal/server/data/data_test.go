@@ -79,7 +79,6 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 
 func TestDatabaseSelectors(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-
 		// assert.NilError(t, initializeSchema(db))
 
 		org := OrgFromContext(db.Statement.Context)
@@ -138,44 +137,47 @@ func TestDatabaseSelectors(t *testing.T) {
 
 func TestPaginationSelector(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		letters := make([]string, 0, 26)
+		alphabeticalIdentities := []string{}
 		for r := 'a'; r < 'a'+26; r++ {
-			letters = append(letters, string(r))
+			alphabeticalIdentities = append(alphabeticalIdentities, string(r))
 			g := &models.Identity{Name: string(r)}
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
 		p := models.Pagination{Page: 1, Limit: 10}
 
-		actual, err := ListIdentities(db, &p)
+		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
-			assert.Equal(t, letters[i+(p.Page-1)*p.Limit], actual[i].Name)
+			if actual[i].Name == models.InternalInfraConnectorIdentityName {
+				continue
+			}
+			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
 		p.Page = 2
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
-			assert.Equal(t, letters[i+(p.Page-1)*p.Limit], actual[i].Name)
+			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
 		p.Page = 3
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 6)
 
 		for i := 0; i < 6; i++ {
-			assert.Equal(t, letters[i+(p.Page-1)*p.Limit], actual[i].Name)
+			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
 		p.Page, p.Limit = 1, 26
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		for i, user := range actual {
-			assert.Equal(t, user.Name, letters[i])
+			assert.Equal(t, user.Name, alphabeticalIdentities[i])
 		}
 	})
 }
