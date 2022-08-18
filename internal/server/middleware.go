@@ -80,8 +80,8 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				return
 			}
 
-			if err := validateOrgMatch(c.Request, tx, authned.Organization); err != nil {
-				logging.L.Warn().Err(err).Msg("org mismatch")
+			if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
+				logging.L.Warn().Err(err).Msg("org validation failed")
 				sendAPIError(c, internal.ErrBadRequest)
 				return
 			}
@@ -109,22 +109,29 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	}
 }
 
-func validateOrgMatch(req *http.Request, tx *gorm.DB, org *models.Organization) error {
+// validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
+// from the request are set they have the same ID. If only one is set no
+// error is returned.
+//
+// Returns the organization from any source that is not nil, or an error if the
+// two sources do not match.
+func validateOrgMatchesRequest(req *http.Request, tx *gorm.DB, accessKeyOrg *models.Organization) (*models.Organization, error) {
 	orgFromRequest, err := getOrgFromRequest(req, tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if orgFromRequest == nil || org == nil {
-		return nil
+	switch {
+	case orgFromRequest == nil:
+		return accessKeyOrg, nil
+	case accessKeyOrg == nil:
+		return orgFromRequest, nil
+	case orgFromRequest.ID != accessKeyOrg.ID:
+		return nil, fmt.Errorf("org from access key %v does not match org from request %v",
+			accessKeyOrg.ID, orgFromRequest.ID)
+	default:
+		return orgFromRequest, nil
 	}
-
-	if orgFromRequest.ID != org.ID {
-		return fmt.Errorf("org from access key %v does not match org from request %v",
-			org.ID, orgFromRequest.ID)
-	}
-	return nil
-
 }
 
 func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
@@ -141,11 +148,19 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
-			org, err := getOrgFromRequest(c.Request, tx)
+			// ignore errors, access key is not required
+			authned, _ := requireAccessKey(tx, c.Request)
+
+			org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 			if err != nil {
-				sendAPIError(c, err)
+				logging.L.Warn().Err(err).Msg("org validation failed")
+				sendAPIError(c, internal.ErrBadRequest)
 				return
 			}
+
+			// See this diagram for more details about this request flow
+			// when an org is not specified.
+			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
 
 			// TODO: use an explicit setting for this, don't overload EnableSignup
 			if org == nil && !srv.options.EnableSignup { // is single tenant
