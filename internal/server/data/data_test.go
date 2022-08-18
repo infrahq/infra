@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"os"
-	"sort"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -145,13 +144,9 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
-		alphabeticalIdentities = append(alphabeticalIdentities, models.InternalInfraConnectorIdentityName)
-
-		sort.Strings(alphabeticalIdentities)
-
 		p := models.Pagination{Page: 1, Limit: 10}
 
-		actual, err := ListIdentities(db, &p)
+		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -162,7 +157,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 2
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -170,16 +165,16 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 3
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
-		assert.Equal(t, len(actual), 7)
+		assert.Equal(t, len(actual), 6)
 
 		for i := 0; i < 6; i++ {
 			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
 		p.Page, p.Limit = 1, 26
-		actual, err = ListIdentities(db, &p)
+		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 		for i, user := range actual {
 			assert.Equal(t, user.Name, alphabeticalIdentities[i])
