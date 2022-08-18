@@ -55,7 +55,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
 
 	// auth required, org required
-	authn := apiGroup.Group("/", setOrganizationInCtx(a.server), authenticatedMiddleware(a.server))
+	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)

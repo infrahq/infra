@@ -368,7 +368,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 
 	req = httptest.NewRequest(http.MethodPost, "/api/login", &buf)
 	req.Header.Set("Infra-Version", apiVersionLatest)
-	req.Header.Set("Infra-Organization", signupResp.Organization.Name)
+	req.Host = signupResp.Organization.Domain
 	resp = httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())

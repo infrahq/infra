@@ -80,27 +80,13 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				return
 			}
 
-			// Before changing anything here, make sure you read the org-selection workflow diagram.
-			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
-			org := data.OrgFromContext(c.Request.Context())
-
-			if org == nil {
-				if authned.Organization != nil {
-					org = authned.Organization
-				} else {
-					logging.Debugf("Org is required for request but is missing")
-					sendAPIError(c, internal.ErrBadRequest)
-					return
-				}
-			}
-
-			if authned.Organization != nil && authned.Organization.ID != org.ID {
-				logging.Debugf("requested organization does not match access key organization")
+			if err := validateOrgMatch(c.Request, tx, authned.Organization); err != nil {
+				logging.L.Warn().Err(err).Msg("org mismatch")
 				sendAPIError(c, internal.ErrBadRequest)
 				return
 			}
 
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -121,6 +107,24 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			c.Next()
 		})
 	}
+}
+
+func validateOrgMatch(req *http.Request, tx *gorm.DB, org *models.Organization) error {
+	orgFromRequest, err := getOrgFromRequest(req, tx)
+	if err != nil {
+		return err
+	}
+
+	if orgFromRequest == nil || org == nil {
+		return nil
+	}
+
+	if orgFromRequest.ID != org.ID {
+		return fmt.Errorf("org from access key %v does not match org from request %v",
+			org.ID, orgFromRequest.ID)
+	}
+	return nil
+
 }
 
 func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
@@ -179,13 +183,6 @@ func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
 		}
 		c.Next()
 	}
-}
-
-func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
-	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
-		return data.GetOrganization(tx, data.ByName(orgName))
-	}
-	return getOrgFromHost(req, tx)
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -272,7 +269,7 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 	return rCtx
 }
 
-func getOrgFromHost(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
 	host := req.Host
 
 	logging.Debugf("Host: %s", host)
