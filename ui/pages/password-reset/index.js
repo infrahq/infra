@@ -2,6 +2,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 
 import LoginLayout from '../../components/layouts/login'
+import PasswordResetForm from '../../components/password-reset-form'
 
 export default function PasswordReset() {
   const router = useRouter()
