@@ -1,6 +1,8 @@
 package access
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
@@ -9,7 +11,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func PasswordResetRequest(c *gin.Context, email string) (token string, err error) {
+func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (token string, err error) {
 	// no auth required
 	db := getDB(c)
 
@@ -28,7 +30,7 @@ func PasswordResetRequest(c *gin.Context, email string) (token string, err error
 		return "", err
 	}
 
-	prt, err := data.CreatePasswordResetToken(db, &users[0])
+	prt, err := data.CreatePasswordResetToken(db, &users[0], ttl)
 	if err != nil {
 		return "", err
 	}

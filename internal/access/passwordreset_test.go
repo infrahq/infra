@@ -2,6 +2,7 @@ package access
 
 import (
 	"testing"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
@@ -26,7 +27,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	// request password reset
-	token, err := PasswordResetRequest(c, "joe@example.com")
+	token, err := PasswordResetRequest(c, "joe@example.com", 1*time.Minute)
 	assert.NilError(t, err)
 
 	// verify with token and set new password

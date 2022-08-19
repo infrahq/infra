@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ssoroka/slice"
@@ -93,7 +94,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		fromName := buildNameFromEmail(currentUser.Name)
 		toName := buildNameFromEmail(user.Name)
 
-		token, err := access.PasswordResetRequest(c, user.Name)
+		token, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}

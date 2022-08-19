@@ -74,6 +74,10 @@ func sendAPIError(c *gin.Context, err error) {
 			return resp.FieldErrors[i].FieldName < resp.FieldErrors[j].FieldName
 		})
 
+	case errors.Is(err, internal.ErrExpired):
+		resp.Code = http.StatusGone
+		resp.Message = "requested resource has expired"
+
 	case errors.Is(err, internal.ErrBadRequest):
 		resp.Code = http.StatusBadRequest
 		resp.Message = err.Error()
