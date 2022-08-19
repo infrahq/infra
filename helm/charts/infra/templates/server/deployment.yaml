@@ -102,7 +102,7 @@ spec:
             - name: PGHOST
               value: {{ include "postgres.fullname" . }}
             - name: PGPORT
-              value: {{ .Values.postgres.service.port }}
+              value: {{ .Values.postgres.service.port | quote }}
             - name: PGDATABASE
               value: {{ .Values.postgres.dbName }}
             - name: PGUSER
