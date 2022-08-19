@@ -26,10 +26,9 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 
 	details.Org.GenerateDefaultDomain(baseDomain)
 
-	if err := data.CreateOrganization(db, details.Org); err != nil {
+	if err := data.CreateOrganizationAndSetContext(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
-	db.Statement.Context = data.WithOrg(db.Statement.Context, details.Org)
 
 	// check the admin user's password requirements against our basic password requirements
 	err := checkPasswordRequirements(db, details.Password)

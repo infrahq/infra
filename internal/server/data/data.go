@@ -41,7 +41,6 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	// TODO: initialize, and populate settings and org on DB
 	dataDB := &DB{DB: db}
 	if err := initialize(dataDB); err != nil {
 		return nil, fmt.Errorf("initialize database: %w", err)
@@ -104,7 +103,7 @@ func initialize(db *DB) error {
 			Name:      models.DefaultOrganizationName,
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganization(db.DB, org); err != nil {
+		if err := CreateOrganizationAndSetContext(db.DB, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:

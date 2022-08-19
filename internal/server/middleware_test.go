@@ -43,7 +43,6 @@ func setupDB(t *testing.T) *data.DB {
 		assert.NilError(t, db.Close())
 	})
 
-	db.Statement.Context = data.WithOrg(db.Statement.Context, db.DefaultOrg)
 	return db
 }
 
@@ -344,7 +343,7 @@ func TestGetOrgFromRequest_FromRequestHost(t *testing.T) {
 		Name:   "The Umbrella Academy",
 		Domain: "umbrella.infrahq.com",
 	}
-	err := data.CreateOrganization(db, org)
+	err := data.CreateOrganizationAndSetContext(db, org)
 	assert.NilError(t, err)
 
 	router.GET("/foo",

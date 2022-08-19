@@ -9,7 +9,7 @@ import (
 )
 
 func ListOrganizations(c *gin.Context, name string, pg *models.Pagination) ([]models.Organization, error) {
-	var selectors = []data.SelectorFunc{}
+	selectors := []data.SelectorFunc{}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))
 	}
@@ -41,7 +41,7 @@ func CreateOrganization(c *gin.Context, org *models.Organization) error {
 		return HandleAuthErr(err, "organizations", "create", models.InfraSupportAdminRole)
 	}
 
-	return data.CreateOrganization(db, org)
+	return data.CreateOrganizationAndSetContext(db, org)
 }
 
 func DeleteOrganization(c *gin.Context, id uid.ID) error {
