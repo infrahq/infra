@@ -2,7 +2,7 @@
 position: 3
 ---
 
-# Upgrading
+# Upgrade
 
 ## Checking the version
 
@@ -15,12 +15,11 @@ $ infra version
     Server: 0.13.3
 ```
 
-## Upgrading Infra CLI
+## Upgrade Infra CLI
 
 {% tabs %}
 {% tab label="macOS" %}
 ```
-brew update
 brew upgrade infra
 ```
 {% /tab %}
@@ -29,24 +28,33 @@ brew upgrade infra
 scoop update infra
 ```
 {% /tab %}
-{% tab label="Linux" %}
 
-#### Ubuntu & Debian
-
+{% tab label="Ubuntu & Debian" %}
+Download the [latest][1] Debian package from GitHub and install it with `dpkg` or `apt`.
 ```
-sudo apt update
-sudo apt upgrade infra
+sudo dpkg -i infra_*.deb
 ```
-
-#### Fedora & Red Hat Enterprise Linux
-
 ```
-sudo dnf update infra
+sudo apt install ./infra_*.deb
 ```
+{% /tab %}
+{% tab label="Fedora & RHEL" %}
+Download the [latest][1] RPM package from GitHub and install it with `rpm` or `dnf`.
+```
+sudo rpm -U infra-*.rpm
+```
+```
+sudo dnf install infra-*.rpm
+```
+{% /tab %}
+{% tab label="Manual" %}
+Download the [latest][1] release from GitHub, unpack the file, and add the binary to the `PATH`.
 {% /tab %}
 {% /tabs %}
 
-## Upgrading Infra Server
+[1]: https://github.com/infrahq/infra/releases/latest
+
+## Upgrade Infra Server
 
 1. Update the Helm repository
 
@@ -60,7 +68,7 @@ sudo dnf update infra
     helm upgrade infra infrahq/infra
     ```
 
-## Upgrading Infra Connector
+## Upgrade Infra Connector
 
 1. Update the Helm repository
 

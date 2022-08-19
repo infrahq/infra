@@ -47,7 +47,7 @@ Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup y
 
 ## Logging in via Infra CLI
 
-Install the Infra CLI:
+Install Infra CLI:
 
 {% partial file="../partials/cli-install.md" /%}
 
