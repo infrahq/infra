@@ -64,11 +64,6 @@ jobs:
           gh release upload v${{ needs.release-name.outputs.release-name }} *.txt *.zip *.deb *.rpm
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: aws s3 sync . s3://release.infrahq.com/infra/v${{ needs.release-name.outputs.release-name }} --exclude '*' --include '*.zip' --include '*.deb' --include '*.rpm' --include 'infra-checksums.txt' --acl public-read
-      - run: |
-          for PACKAGE in *.deb *.rpm; do
-            curl -fsSL -F package=@$PACKAGE https://${{ secrets.GEMFURY_TOKEN }}@push.fury.io/infrahq/
-          done
 
   update-repos:
     runs-on: ubuntu-latest
