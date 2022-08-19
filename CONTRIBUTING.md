@@ -54,11 +54,18 @@ go run .
 
 ### Run tests
 
+#### Go tests
 ```
 go test ./...
 
 # for shorter tests
 go test -short ./...
+```
+
+#### JavaScript tests
+Within the `ui` directory:
+```
+npm run test
 ```
 
 ### Linting
@@ -92,13 +99,29 @@ make dev flags="-f values.yaml"
 
 Example `values.yaml` files:
 
-* Enable the in-cluster connector
+* Create an Infra configuration for local development
 
 ```yaml
 ---
 # example values.yaml
 server:
   config:
+    # enable multi-tenancy
+    enableSignup: true
+
+    # the base domain of your Infra server
+    baseDomain: acme.internal
+
+    # increase the log level for debugging
+    logLevel: debug
+
+    # postgres connection
+    dbHost: host.docker.internal
+    dbPort: 5432
+    dbName: infra-db
+    dbUsername: username
+    dbPassword: password
+
     users:
       - name: admin@local.dev
         password: password
@@ -114,20 +137,23 @@ connector:
     name: desktop
 ```
 
-> Note: login via `infra login` with the username `admin@local.dev` and password `password`
+See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
 
-
-* Disable volumes and persistence
-
-```yaml
-# example values.yaml
----
-server:
-  persistence:
-    enabled: false
+* Add the base domain and an organization domain to your `/etc/hosts` file
+```
+127.0.0.1       acme.internal # the server base domain
+127.0.0.1       dev.acme.internal # an organization sub domain
 ```
 
-See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
+#### Using Customized Development Deployment
+1. Setup the prerequisites and follow the customization instructions above to create a values.yaml configuration file.
+2. In the root of the directory run:
+  ```
+  $ make dev flags="-f values.yaml"
+  ```
+3. Navigate to the Infra server UI in a web browser, for example `acme.internal/signup`.
+4. Register an organization with a domain, for example `dev.acme.internal`.
+5. You can now login via the CLI, for example `infra login dev.acme.internal`.
 
 ## Contributor License Agreement
 
