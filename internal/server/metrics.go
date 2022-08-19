@@ -109,5 +109,21 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 		return values
 	}))
 
+	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
+		Namespace: "infra",
+		Name:      "organizations",
+		Help:      "The total number of organizations",
+	}, []string{}, func() []metrics.Metric {
+		count, err := data.GlobalCount[models.Organization](db)
+		if err != nil {
+			logging.L.Warn().Err(err).Msg("organizations")
+			return []metrics.Metric{}
+		}
+
+		return []metrics.Metric{
+			{Count: float64(count)},
+		}
+	}))
+
 	return registry
 }
