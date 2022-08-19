@@ -31,6 +31,7 @@ jobs:
             exit 1
           fi
 
+          echo "::notice ::Infra component name $COMPONENT_NAME"
           echo "::set-output name=component-name::$COMPONENT_NAME"
 
   synchronize:
@@ -59,4 +60,4 @@ jobs:
             argocd-image-updater
       - run: |
           echo Syncing Infra component-name ${{ needs.prepare.outputs.component-name }}
-          argocd-image-updater run --once --match-application-label=app.infrahq.com/component=${{ needs.prepare.outputs.component-name }}
+          argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ needs.prepare.outputs.component-name }}
