@@ -1,5 +1,12 @@
 version: 2
 updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: maintain
+      include: scope
   - package-ecosystem: gomod
     directory: /
     schedule:
@@ -14,10 +21,10 @@ updates:
     commit-message:
       prefix: maintain
       include: scope
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: npm
+    directory: /website
     schedule:
-      interval: daily
+      interval: weekly
     commit-message:
       prefix: maintain
       include: scope
