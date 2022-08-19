@@ -15,7 +15,7 @@ describe('Signup Component', () => {
     expect(screen.getByLabelText('Email')).toHaveValue('')
     expect(screen.getByLabelText('Password')).toHaveValue('')
     expect(screen.getByLabelText('Confirm Password')).toHaveValue('')
-    expect(screen.getByLabelText('Organization')).toHaveValue('')
+    expect(screen.getByLabelText('Name')).toHaveValue('')
     expect(screen.getByText('Get Started').closest('button')).toBeDisabled()
   })
 })

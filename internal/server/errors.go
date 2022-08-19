@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -52,9 +53,15 @@ func sendAPIError(c *gin.Context, err error) {
 	case errors.As(err, &uniqueConstraintError):
 		resp.Code = http.StatusConflict
 		resp.Message = err.Error()
+		// remove the error trace from field error message
+		errMsg := err.Error()
+		errTrace := strings.Split(err.Error(), ":")
+		if len(errTrace) > 0 {
+			errMsg = errTrace[len(errTrace)-1]
+		}
 		resp.FieldErrors = append(resp.FieldErrors, api.FieldError{
 			FieldName: uniqueConstraintError.Column,
-			Errors:    []string{err.Error()},
+			Errors:    []string{errMsg},
 		})
 
 	case errors.Is(err, internal.ErrNotFound):

@@ -51,7 +51,8 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "name", Errors: []string{"is required"}},
-					{FieldName: "org", Errors: []string{"is required"}},
+					{FieldName: "org.name", Errors: []string{"is required"}},
+					{FieldName: "org.subDomain", Errors: []string{"is required"}},
 					{FieldName: "password", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)

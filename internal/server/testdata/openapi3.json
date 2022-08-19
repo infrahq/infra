@@ -3408,6 +3408,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "domain": {
+                    "type": "string"
+                  },
                   "name": {
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
@@ -3416,7 +3419,8 @@
                   }
                 },
                 "required": [
-                  "name"
+                  "name",
+                  "domain"
                 ],
                 "type": "object"
               }
@@ -4815,7 +4819,15 @@
                     "type": "string"
                   },
                   "org": {
-                    "type": "string"
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "subDomain": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
                   },
                   "password": {
                     "type": "string"
@@ -4824,7 +4836,8 @@
                 "required": [
                   "name",
                   "password",
-                  "org"
+                  "org.name",
+                  "org.subDomain"
                 ],
                 "type": "object"
               }

@@ -25,12 +25,14 @@ func (r ListOrganizationsRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateOrganizationRequest struct {
-	Name string `json:"name"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", r.Name),
+		validate.Required("domain", r.Domain),
 		ValidateName(r.Name),
 	}
 }

@@ -7,10 +7,15 @@ type SignupResponse struct {
 	Organization *Organization `json:"organization"`
 }
 
+type SignupOrg struct {
+	Name      string `json:"name"`
+	Subdomain string `json:"subDomain"`
+}
+
 type SignupRequest struct {
-	Name     string `json:"name"`
-	Password string `json:"password"`
-	Org      string `json:"org"`
+	Name     string    `json:"name"`
+	Password string    `json:"password"`
+	Org      SignupOrg `json:"org"`
 }
 
 func (r SignupRequest) ValidationRules() []validate.ValidationRule {
@@ -18,6 +23,7 @@ func (r SignupRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("name", r.Name),
 		validate.Email("name", r.Name),
 		validate.Required("password", r.Password),
-		validate.Required("org", r.Org),
+		validate.Required("org.name", r.Org.Name),
+		validate.Required("org.subDomain", r.Org.Subdomain),
 	}
 }
