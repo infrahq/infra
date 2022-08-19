@@ -50,14 +50,18 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 	}
 
 	infraProvider := &models.Provider{
-		Name: models.InternalInfraProviderName,
-		Kind: models.ProviderKindInfra,
+		Name:      models.InternalInfraProviderName,
+		Kind:      models.ProviderKindInfra,
+		CreatedBy: models.CreatedBySystem,
 	}
 	if err := CreateProvider(db, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
 
-	connector := &models.Identity{Name: models.InternalInfraConnectorIdentityName}
+	connector := &models.Identity{
+		Name:      models.InternalInfraConnectorIdentityName,
+		CreatedBy: models.CreatedBySystem,
+	}
 	// this identity is used to create access keys for connectors
 	if err := CreateIdentity(db, connector); err != nil {
 		return fmt.Errorf("failed to create connector identity while creating org: %w", err)

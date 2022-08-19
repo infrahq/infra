@@ -41,6 +41,32 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 		Scopes:             models.CommaSeparatedStrings{},
 		Name:               models.InternalInfraProviderName,
 		Kind:               models.ProviderKindInfra,
+		CreatedBy:          models.CreatedBySystem,
 	}
 	assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP, cmpTimeWithDBPrecision)
+
+	// the org connector is created and granted approprite access
+	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
+	assert.NilError(t, err)
+
+	expectedConnector := &models.Identity{
+		Model:              connector.Model,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		Name:               models.InternalInfraConnectorIdentityName,
+		CreatedBy:          models.CreatedBySystem,
+	}
+	assert.DeepEqual(t, connector, expectedConnector)
+
+	connectorGrant, err := GetGrant(db, BySubject(connector.PolyID()), ByPrivilege(models.InfraAdminRole), ByResource("infra"))
+	assert.NilError(t, err)
+
+	expectedConnectorGrant := &models.Grant{
+		Model:              connectorGrant.Model,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		Subject:            connector.PolyID(),
+		Privilege:          models.InfraAdminRole,
+		Resource:           "infra",
+		CreatedBy:          models.CreatedBySystem,
+	}
+	assert.DeepEqual(t, connectorGrant, expectedConnectorGrant)
 }
