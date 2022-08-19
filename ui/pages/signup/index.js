@@ -36,8 +36,8 @@ export default function Signup() {
           password,
           org: {
             name: orgName,
-            subDomain
-          }
+            subDomain,
+          },
         }),
       })
 
@@ -193,19 +193,25 @@ export default function Signup() {
                 setErrors({})
                 setError('')
               }}
-              className={`mb-1 w-2/3 border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${errors.org?.subDomain ? 'border-pink-500/60' : ''
-                }`}
+              className={`mb-1 w-2/3 border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
+                errors.org?.subDomain ? 'border-pink-500/60' : ''
+              }`}
             />
-            <div className='mb-1 w-1/3 text-2xs text-gray-500 border border-gray-800 py-2 text-center'>
+            <div className='mb-1 w-1/3 border border-gray-800 py-2 text-center text-2xs text-gray-500'>
               .{window.location.host}
             </div>
-            {errors.domain && (
-              <ErrorMessage message={errors.domain} />
-            )}
+            {errors.domain && <ErrorMessage message={errors.domain} />}
           </div>
         </div>
         <button
-          disabled={!name || !password || !confirmPassword || !orgName || !subDomain || submitted}
+          disabled={
+            !name ||
+            !password ||
+            !confirmPassword ||
+            !orgName ||
+            !subDomain ||
+            submitted
+          }
           className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
         >
           Get Started
