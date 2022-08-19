@@ -101,7 +101,7 @@ spec:
             summary: HTTP requests are taking too long.
           expr: |
             sum by (method, path) (rate(http_request_duration_seconds_sum{ {{ $commonLabels }} }[5m])) /
-            sum by (method, path) (rate(http_request_duration_seconds_count{ {{ $commonLabels }} }[5m])) > 0.3
+            sum by (method, path) (rate(http_request_duration_seconds_count{ {{ $commonLabels }} }[5m])) > 5
           for: 5m
           labels:
 {{- with .Values.server.metrics.prometheusRule.additionalRuleLabels }}
