@@ -268,7 +268,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				assert.NilError(t, err)
 
 				// reload identity and check groups
-				id, err := GetIdentity(db.Preload("Groups"), ByID(identity.ID))
+				id, err := GetIdentity(db, Preload("Groups"), ByID(identity.ID))
 				assert.NilError(t, err)
 				groupNames := slice.Map[models.Group, string](id.Groups, func(g models.Group) string {
 					return g.Name

@@ -195,6 +195,12 @@ func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
 	}
 }
 
+func Preload(name string) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Preload(name)
+	}
+}
+
 func ByDomain(host string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("domain = ?", host)

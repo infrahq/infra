@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ssoroka/slice"
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -111,8 +112,11 @@ func DeleteIdentity(db GormTxn, id uid.ID) error {
 }
 
 func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
-	db := tx.GormDB()
-	toDelete, err := ListIdentities(db.Select("id"), nil, selectors...)
+	selectID := func(db *gorm.DB) *gorm.DB {
+		return db.Select("id")
+	}
+	selectors = append([]SelectorFunc{selectID}, selectors...)
+	toDelete, err := ListIdentities(tx, nil, selectors...)
 	if err != nil {
 		return err
 	}
