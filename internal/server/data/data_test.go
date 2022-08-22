@@ -76,64 +76,6 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 	})
 }
 
-func TestDatabaseSelectors(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		// assert.NilError(t, initializeSchema(db))
-
-		org := OrgFromContext(db.Statement.Context)
-		assert.Assert(t, org != nil)
-		// mimic server.DatabaseMiddleware
-		withCtx := db.WithContext(context.Background())
-
-		// normally we don't want the default org to go through to the withCtx that the database middleware makes, but our tests won't work without it.
-		withCtx.Statement.Context = WithOrg(withCtx.Statement.Context, org)
-
-		org = OrgFromContext(withCtx.Statement.Context)
-		assert.Assert(t, org != nil)
-
-		assert.Assert(t, db != withCtx, "db=%p withCtx=%p", db, withCtx)
-
-		err := withCtx.Transaction(func(tx *gorm.DB) error {
-			assert.Assert(t, withCtx != tx, "db=%p tx=%p", withCtx, tx)
-
-			org = OrgFromContext(tx.Statement.Context)
-			assert.Assert(t, org != nil)
-
-			// query using one of our helpers and selectors
-			_, err := ListGrants(tx, nil, ByID(534))
-			assert.NilError(t, err)
-
-			// query with Model and Where
-			var groups []models.Group
-			qDB := tx.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-			assert.NilError(t, qDB.Error)
-			assert.Assert(t, tx != qDB, "tx=%p queryDB=%p", tx, qDB)
-
-			// Show that queries have not modified the original gorm.DB references
-			assert.Equal(t, len(db.Statement.Clauses), 0)
-			assert.Equal(t, len(withCtx.Statement.Clauses), 0)
-			assert.Equal(t, len(tx.Statement.Clauses), 0)
-			return nil
-		})
-		assert.NilError(t, err)
-
-		// query using one of our helpers and selectors
-		_, err = ListGrants(db, nil, ByID(534))
-		assert.NilError(t, err)
-
-		// query with Model and Where
-		var groups []models.Group
-		qDB := db.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-		assert.NilError(t, qDB.Error)
-		assert.Assert(t, db != qDB, "db=%p queryDB=%p", db, qDB)
-		t.Logf("DB pointer: %p", qDB)
-
-		// Show that queries have not modified the original gorm.DB references
-		assert.Equal(t, len(db.Statement.Clauses), 0)
-		assert.Equal(t, len(withCtx.Statement.Clauses), 0)
-	})
-}
-
 func TestPaginationSelector(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *gorm.DB) {
 		alphabeticalIdentities := []string{}

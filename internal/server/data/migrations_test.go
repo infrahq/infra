@@ -510,16 +510,18 @@ DELETE FROM settings WHERE id=24567;
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		patch.ModelsSymmetricKey(t)
-		db, err := newRawDB(postgresDriver(t))
+		rawDB, err := newRawDB(postgresDriver(t))
 		assert.NilError(t, err)
 
+		db := &DB{DB: rawDB}
 		opts := migrator.Options{InitSchema: initializeSchema}
-		m := migrator.New(&DB{DB: db}, opts, nil)
+		m := migrator.New(db, opts, nil)
 		assert.NilError(t, m.Migrate())
 
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
 
-		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS testing CASCADE").Error)
+		_, err = db.Exec("DROP SCHEMA IF EXISTS testing CASCADE")
+		assert.NilError(t, err)
 	})
 
 	db, err := newRawDB(postgresDriver(t))
