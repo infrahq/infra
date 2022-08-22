@@ -338,10 +338,16 @@ func TestServer_PersistSignupUser(t *testing.T) {
 	var buf bytes.Buffer
 	email := "admin@email.com"
 	passwd := "supersecretpassword"
-	org := "infrahq"
 
 	// run signup for "admin@email.com"
-	signupReq := api.SignupRequest{Name: email, Password: passwd, Org: org}
+	signupReq := api.SignupRequest{
+		Name:     email,
+		Password: passwd,
+		Org: api.SignupOrg{
+			Name:      "infrahq",
+			Subdomain: "infra",
+		},
+	}
 	err := json.NewEncoder(&buf).Encode(signupReq)
 	assert.NilError(t, err)
 

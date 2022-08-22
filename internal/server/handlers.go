@@ -114,9 +114,10 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
 
 	suDetails := access.SignupDetails{
-		Name:     r.Name,
-		Password: r.Password,
-		Org:      &models.Organization{Name: r.Org},
+		Name:      r.Name,
+		Password:  r.Password,
+		Org:       &models.Organization{Name: r.Org.Name},
+		SubDomain: r.Org.Subdomain,
 	}
 	identity, bearer, err := access.Signup(c, keyExpires, a.server.options.BaseDomain, suDetails)
 	if err != nil {

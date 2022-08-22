@@ -23,7 +23,6 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 			*orgs[i] = *o
 			continue
 		}
-		orgs[i].GenerateDefaultDomain("example.com")
 		err = data.CreateOrganizationAndSetContext(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 		assert.DeepEqual(t, data.OrgFromContext(db.Statement.Context), orgs[i])
@@ -35,9 +34,9 @@ func TestAPI_ListOrganizations(t *testing.T) {
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
 	var (
-		first  = models.Organization{Name: "first"}
-		second = models.Organization{Name: "second"}
-		third  = models.Organization{Name: "third"}
+		first  = models.Organization{Name: "first", Domain: "first.example.com"}
+		second = models.Organization{Name: "second", Domain: "second.example.com"}
+		third  = models.Organization{Name: "third", Domain: "third.example.com"}
 	)
 
 	createOrgs(t, srv.DB(), &first, &second, &third)
@@ -154,7 +153,8 @@ func TestAPI_CreateOrganization(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 			},
 			body: api.CreateOrganizationRequest{
-				Name: "AwesomeOrg",
+				Name:   "AwesomeOrg",
+				Domain: "awesome.example.com",
 			},
 		},
 		"missing required fields": {
@@ -170,6 +170,7 @@ func TestAPI_CreateOrganization(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
+					{FieldName: "domain", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
@@ -187,7 +188,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes(prometheus.NewRegistry())
 
-	first := models.Organization{Name: "first"}
+	first := models.Organization{Name: "first", Domain: "first.example.com"}
 	createOrgs(t, srv.DB(), &first)
 
 	type testCase struct {

@@ -1,11 +1,7 @@
 package models
 
 import (
-	"regexp"
-	"strings"
-
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -25,26 +21,6 @@ func (o *Organization) ToAPI() *api.Organization {
 		Name:   o.Name,
 		Domain: o.Domain,
 	}
-}
-
-var domainNameReplacer = regexp.MustCompile(`[^\da-zA-Z-]`)
-
-// TODO: let's do this in data.CreateOrganization
-func (o *Organization) GenerateDefaultDomain(baseDomain string) {
-	if len(o.Domain) > 0 {
-		return
-	}
-	slug := domainNameReplacer.ReplaceAllStringFunc(o.Name, func(s string) string {
-		if s == " " {
-			return "-"
-		}
-		return ""
-	})
-	if len(slug) > 20 {
-		slug = slug[:20]
-	}
-	o.Domain = slug + "-" + generate.MathRandom(5, generate.CharsetAlphaNumeric)
-	o.Domain = strings.ToLower(o.Domain) + "." + baseDomain
 }
 
 type OrganizationMember struct {

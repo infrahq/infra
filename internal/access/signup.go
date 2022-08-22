@@ -13,9 +13,10 @@ import (
 )
 
 type SignupDetails struct {
-	Name     string
-	Password string
-	Org      *models.Organization
+	Name      string
+	Password  string
+	Org       *models.Organization
+	SubDomain string
 }
 
 // Signup creates a user identity using the supplied name and password and
@@ -24,7 +25,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 	// no authorization is setup yet
 	db := getDB(c)
 
-	details.Org.GenerateDefaultDomain(baseDomain)
+	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
 	if err := data.CreateOrganizationAndSetContext(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
