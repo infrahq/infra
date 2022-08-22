@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -20,7 +19,7 @@ import (
 
 func TestAPI_CreateToken(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)

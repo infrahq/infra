@@ -10,7 +10,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -34,7 +33,7 @@ type Routes struct {
 // The order of routes in this function is important! Gin saves a route along
 // with all the middleware that will apply to the route when the
 // Router.{GET,POST,etc} method is called.
-func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
+func (s *Server) GenerateRoutes() Routes {
 	a := &API{t: s.tel, server: s}
 	a.addRewrites()
 	a.addRedirects()
@@ -52,7 +51,7 @@ func (s *Server) GenerateRoutes(promRegistry prometheus.Registerer) Routes {
 	)
 
 	// This group of middleware only applies to non-ui routes
-	apiGroup := router.Group("/", metrics.Middleware(promRegistry))
+	apiGroup := router.Group("/", metrics.Middleware(s.metricsRegistry))
 
 	// auth required, org required
 	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))

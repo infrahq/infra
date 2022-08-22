@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -167,7 +166,7 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 
 func TestTrimWhitespace(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	userID := uid.New()
 	// nolint:noctx
@@ -209,7 +208,7 @@ func TestTrimWhitespace(t *testing.T) {
 
 func TestInfraVersionHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	body := jsonBody(t, api.CreateUserRequest{Name: "usera@example.com"})
 	// nolint:noctx

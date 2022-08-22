@@ -359,9 +359,8 @@ func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (in
 	return count, nil
 }
 
-// InfraProvider is a lazy-loaded cached reference to the infra provider. The
-// cache lasts for the entire lifetime of the process, so any test or test
-// helper that calls InfraProvider must call InvalidateCache to clean up.
+// InfraProvider returns the infra provider for the organization set in the db
+// context.
 func InfraProvider(db *gorm.DB) *models.Provider {
 	org := MustGetOrgFromContext(db.Statement.Context)
 	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
@@ -372,9 +371,8 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 	return infra
 }
 
-// InfraConnectorIdentity is a lazy-loaded reference to the connector identity.
-// The cache lasts for the entire lifetime of the process, so any test or test
-// helper that calls InfraConnectorIdentity must call InvalidateCache to clean up.
+// InfraConnectorIdentity returns the connector identity for the organization set
+// in the db context.
 func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 	org := MustGetOrgFromContext(db.Statement.Context)
 	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(org.ID))
@@ -382,10 +380,5 @@ func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 		return nil // unreachable, the line above panics
 	}
-
 	return connector
-}
-
-// InvalidateCache is used to clear references to frequently used resources
-func InvalidateCache() {
 }

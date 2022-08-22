@@ -24,7 +24,6 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 	assert.NilError(t, err)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
-	t.Cleanup(InvalidateCache)
 
 	return db.DB
 }

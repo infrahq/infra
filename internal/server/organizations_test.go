@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -31,7 +30,7 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 
 func TestAPI_ListOrganizations(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	var (
 		first  = models.Organization{Name: "first", Domain: "first.example.com"}
@@ -111,7 +110,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 
 func TestAPI_CreateOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
@@ -186,7 +185,7 @@ func TestAPI_CreateOrganization(t *testing.T) {
 
 func TestAPI_DeleteOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	first := models.Organization{Name: "first", Domain: "first.example.com"}
 	createOrgs(t, srv.DB(), &first)

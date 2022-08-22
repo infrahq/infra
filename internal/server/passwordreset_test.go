@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -18,7 +17,7 @@ import (
 
 func TestPasswordResetFlow(t *testing.T) {
 	s := setupServer(t)
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes()
 
 	email.TestMode = true
 

@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -20,7 +19,7 @@ func TestAPI_Signup(t *testing.T) {
 	}
 
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	run := func(t *testing.T, tc testCase) {
 		body := tc.setup(t)

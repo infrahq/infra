@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
@@ -165,7 +164,7 @@ var cmpAPIUserJSON = gocmp.Options{
 
 func TestWellKnownJWKs(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		name     string

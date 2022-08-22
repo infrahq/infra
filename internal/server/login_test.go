@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
@@ -18,7 +17,7 @@ import (
 
 func TestAPI_Login(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	// setup user to login as
 	user := &models.Identity{Name: "steve"}

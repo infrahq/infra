@@ -23,7 +23,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/testing/database"
 )
 
@@ -46,9 +45,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	err = s.loadConfig(s.options.Config)
 	assert.NilError(t, err)
 
-	data.InvalidateCache()
-	t.Cleanup(data.InvalidateCache)
-
+	s.metricsRegistry = prometheus.NewRegistry()
 	return s
 }
 
@@ -268,7 +265,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 	}
 
 	s := setupServer(t)
-	router := s.GenerateRoutes(prometheus.NewRegistry())
+	router := s.GenerateRoutes()
 
 	run := func(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
@@ -333,7 +330,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.SessionDuration = time.Minute
 		opts.SessionExtensionDeadline = time.Minute
 	})
-	routes := s.GenerateRoutes(prometheus.NewRegistry())
+	routes := s.GenerateRoutes()
 
 	var buf bytes.Buffer
 	email := "admin@email.com"

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -17,7 +16,7 @@ import (
 
 func TestAPI_CreateDestination(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	type testCase struct {
 		name     string

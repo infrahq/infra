@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -27,7 +26,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 	}
 
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	userResp := createUser(t, srv, routes, "usera@example.com")
 
@@ -118,7 +117,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 
 func TestAPI_ListAccessKeys_Success(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	run := func() api.ListResponse[api.AccessKey] {
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
@@ -146,7 +145,7 @@ func TestAPI_ListAccessKeys_Success(t *testing.T) {
 
 func TestAPI_ListAccessKeys(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	db := srv.DB()
 

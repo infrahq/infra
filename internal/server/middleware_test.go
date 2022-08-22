@@ -12,13 +12,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -39,8 +39,6 @@ func setupDB(t *testing.T) *data.DB {
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
-	t.Cleanup(data.InvalidateCache)
-
 	t.Cleanup(func() {
 		assert.NilError(t, db.Close())
 	})
@@ -123,109 +121,114 @@ func TestDBTimeout(t *testing.T) {
 }
 
 func TestRequireAccessKey(t *testing.T) {
-	cases := map[string]map[string]interface{}{
+	type testCase struct {
+		setup    func(t *testing.T, db *gorm.DB) *http.Request
+		expected func(t *testing.T, authned access.Authenticated, err error)
+	}
+	cases := map[string]testCase{
 		"AccessKeyValid": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, actual access.Authenticated, err error) {
 				assert.NilError(t, err)
+				assert.Equal(t, actual.User.Name, "existing@infrahq.com")
 			},
 		},
 		"AccessKeyExpired": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorIs(t, err, data.ErrAccessKeyExpired)
 			},
 		},
 		"AccessKeyInvalidKey": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				secret := token[:models.AccessKeySecretLength]
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 		"AccessKeyNoMatch": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "record not found")
 			},
 		},
 		"AccessKeyInvalidSecret": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "access key invalid secret")
 			},
 		},
 		"UnknownAuthenticationMethod": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				authentication, err := generate.CryptoRandom(32, generate.CharsetAlphaNumeric)
 				assert.NilError(t, err)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "invalid access key format")
 			},
 		},
 		"NoAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				// nil pointer if we don't seup the request header here
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptyAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "")
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptySpaceAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", " ")
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "valid token not found in request")
 			},
 		},
 		"EmptyCookieAuthentication": {
-			"authFunc": func(t *testing.T, db *gorm.DB, c *gin.Context) {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 
 				r.AddCookie(&http.Cookie{
@@ -238,38 +241,29 @@ func TestRequireAccessKey(t *testing.T) {
 				})
 
 				r.Header.Add("Authorization", " ")
-				c.Request = r
+				return r
 			},
-			"verifyFunc": func(t *testing.T, c *gin.Context, err error) {
+			expected: func(t *testing.T, _ access.Authenticated, err error) {
 				assert.ErrorContains(t, err, "skipped validating empty token")
 			},
 		},
 	}
 
-	for k, v := range cases {
-		t.Run(k, func(t *testing.T) {
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
 			db := setupDB(t).DB
 
-			c, _ := gin.CreateTestContext(httptest.NewRecorder())
-			c.Set("db", db)
+			req := tc.setup(t, db)
 
-			authFunc, ok := v["authFunc"].(func(*testing.T, *gorm.DB, *gin.Context))
-			assert.Assert(t, ok)
-			authFunc(t, db, c)
-
-			_, err := requireAccessKey(db, c.Request)
-
-			verifyFunc, ok := v["verifyFunc"].(func(*testing.T, *gin.Context, error))
-			assert.Assert(t, ok)
-
-			verifyFunc(t, c, err)
+			authned, err := requireAccessKey(db, req)
+			tc.expected(t, authned, err)
 		})
 	}
 }
 
 func TestHandleInfraDestinationHeader(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 	db := srv.DB()
 
 	connector := models.Identity{Name: "connectorA"}
