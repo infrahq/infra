@@ -41,7 +41,7 @@ func TestMigrations(t *testing.T) {
 		cleanup  func(t *testing.T, db *gorm.DB)
 	}
 
-	run := func(t *testing.T, index int, tc testCase, db *gorm.DB) {
+	run := func(t *testing.T, index int, tc testCase, db *DB) {
 		logging.PatchLogger(t, zerolog.NewTestWriter(t))
 		if index >= len(allMigrations) {
 			t.Fatalf("there are more test cases than migrations")
@@ -58,7 +58,8 @@ func TestMigrations(t *testing.T) {
 			raw, err := ioutil.ReadFile(filename)
 			assert.NilError(t, err)
 
-			assert.NilError(t, db.Exec(string(raw)).Error)
+			_, err = db.Exec(string(raw))
+			assert.NilError(t, err)
 		}
 
 		if tc.setup != nil {
@@ -69,7 +70,7 @@ func TestMigrations(t *testing.T) {
 		}
 
 		opts := migrator.Options{
-			InitSchema: func(db *gorm.DB) error {
+			InitSchema: func(db migrator.DB) error {
 				return fmt.Errorf("unexpected call to init schema")
 			},
 		}
@@ -498,7 +499,7 @@ DELETE FROM settings WHERE id=24567;
 		assert.NilError(t, err)
 
 		opts := migrator.Options{InitSchema: initializeSchema}
-		m := migrator.New(db, opts, nil)
+		m := migrator.New(&DB{DB: db}, opts, nil)
 		assert.NilError(t, m.Migrate())
 
 		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
@@ -511,7 +512,7 @@ DELETE FROM settings WHERE id=24567;
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {
 			fmt.Printf("    %v: test case %v\n", tc.label.Line, tc.label.Name)
-			run(t, i, tc, db)
+			run(t, i, tc, &DB{DB: db})
 		})
 	}
 

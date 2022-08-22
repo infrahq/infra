@@ -12,7 +12,7 @@ func setupExampleTable(t *testing.T, db DB) {
 		t.Skip("does not work with sqlite")
 	}
 
-	db.Exec("DROP TABLE example")
+	_, _ = db.Exec("DROP TABLE example")
 
 	var exampleTable = `
 CREATE TABLE example (
@@ -24,7 +24,7 @@ ALTER TABLE example ADD CONSTRAINT example_pkey PRIMARY KEY (id);
 	_, err := db.Exec(exampleTable)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
-		db.Exec("DROP TABLE example")
+		_, _ = db.Exec("DROP TABLE example")
 	})
 }
 

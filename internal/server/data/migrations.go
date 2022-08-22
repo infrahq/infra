@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -23,30 +22,33 @@ func migrations() []*migrator.Migration {
 		// drop Settings SignupEnabled column
 		{
 			ID: "202204281130",
-			Migrate: func(tx *gorm.DB) error {
+			Migrate: func(tx migrator.DB) error {
 				stmt := `ALTER TABLE settings DROP COLUMN IF EXISTS signup_enabled`
-				if tx.Dialector.Name() == "sqlite" {
+				if tx.DriverName() == "sqlite" {
 					stmt = `ALTER TABLE settings DROP COLUMN signup_enabled`
 				}
-				return tx.Exec(stmt).Error
+				_, err := tx.Exec(stmt)
+				return err
 			},
 		},
 		// #1657: get rid of identity kind
 		{
 			ID: "202204291613",
-			Migrate: func(tx *gorm.DB) error {
+			Migrate: func(tx migrator.DB) error {
 				stmt := `ALTER TABLE identities DROP COLUMN IF EXISTS kind`
-				if tx.Dialector.Name() == "sqlite" {
+				if tx.DriverName() == "sqlite" {
 					stmt = `ALTER TABLE identities DROP COLUMN kind`
 				}
-				return tx.Exec(stmt).Error
+				_, err := tx.Exec(stmt)
+				return err
 			},
 		},
 		// drop old Groups index; new index will be created automatically
 		{
 			ID: "2022-06-08T10:27-fixed",
-			Migrate: func(tx *gorm.DB) error {
-				return tx.Exec(`DROP INDEX IF EXISTS idx_groups_name_provider_id`).Error
+			Migrate: func(tx migrator.DB) error {
+				_, err := tx.Exec(`DROP INDEX IF EXISTS idx_groups_name_provider_id`)
+				return err
 			},
 		},
 		addKindToProviders(),
@@ -69,12 +71,16 @@ func migrations() []*migrator.Migration {
 //go:embed schema.sql
 var schemaSQL string
 
-func initializeSchema(db *gorm.DB) error {
-	if db.Dialector.Name() == "sqlite" {
-		return autoMigrateSchema(db)
+func initializeSchema(db migrator.DB) error {
+	if db.DriverName() == "sqlite" {
+		dataDB, ok := db.(*DB)
+		if !ok {
+			panic("unexpected DB type, remove this with gorm")
+		}
+		return autoMigrateSchema(dataDB.DB)
 	}
 
-	if err := db.Exec(schemaSQL).Error; err != nil {
+	if _, err := db.Exec(schemaSQL); err != nil {
 		return fmt.Errorf("failed to exec sql: %w", err)
 	}
 	return nil
@@ -109,20 +115,24 @@ func autoMigrateSchema(db *gorm.DB) error {
 func addKindToProviders() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206151027",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS kind text`
-			if tx.Dialector.Name() == "sqlite" {
+			if tx.DriverName() == "sqlite" {
 				stmt = `ALTER TABLE providers ADD COLUMN kind text`
 			}
-			if err := tx.Exec(stmt).Error; err != nil {
+			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
 
-			db := tx.Begin()
-			db.Table("providers").Where("kind IS NULL AND name = ?", "infra").Update("kind", models.ProviderKindInfra)
-			db.Table("providers").Where("kind IS NULL").Update("kind", models.ProviderKindOkta)
-
-			return db.Commit().Error
+			stmt = `UPDATE providers WHERE kind IS NULL AND name = ? SET kind = ?`
+			if _, err := tx.Exec(stmt, "infra", models.ProviderKindInfra); err != nil {
+				return err
+			}
+			stmt = `UPDATE providers WHERE kind IS NULL SET kind = ?`
+			if _, err := tx.Exec(stmt, models.ProviderKindOkta); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 }
@@ -131,11 +141,11 @@ func addKindToProviders() *migrator.Migration {
 func dropCertificateTables() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206161733",
-		Migrate: func(tx *gorm.DB) error {
-			if err := tx.Exec(`DROP TABLE IF EXISTS trusted_certificates`).Error; err != nil {
+		Migrate: func(tx migrator.DB) error {
+			if _, err := tx.Exec(`DROP TABLE IF EXISTS trusted_certificates`); err != nil {
 				return err
 			}
-			if err := tx.Exec(`DROP TABLE IF EXISTS root_certificates`).Error; err != nil {
+			if _, err := tx.Exec(`DROP TABLE IF EXISTS root_certificates`); err != nil {
 				return err
 			}
 			return nil
@@ -147,36 +157,37 @@ func dropCertificateTables() *migrator.Migration {
 func addAuthURLAndScopeToProviders() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202206281027",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			if !migrator.HasColumn(tx, "providers", "scopes") {
 				logging.Debugf("migrating provider table auth URL and scopes")
-				if err := tx.Exec(`ALTER TABLE providers ADD COLUMN auth_url text`).Error; err != nil {
+				if _, err := tx.Exec(`ALTER TABLE providers ADD COLUMN auth_url text`); err != nil {
 					return err
 				}
-				if err := tx.Exec(`ALTER TABLE providers ADD COLUMN scopes text`).Error; err != nil {
+				if _, err := tx.Exec(`ALTER TABLE providers ADD COLUMN scopes text`); err != nil {
 					return err
 				}
 
-				db := tx.Begin()
-
-				// need to select only these fields from the providers
-				// we dont have the database encryption key for the client secret at this point
-				var providerModels []models.Provider
-				err := db.Select("id", "url", "kind").Find(&providerModels).Error
+				stmt := `SELECT id, url, kind FROM providers`
+				rows, err := tx.Query(stmt)
 				if err != nil {
 					return err
 				}
 
-				for i := range providerModels {
+				for rows.Next() {
+					var provider models.Provider
+					if err := rows.Scan(&provider.ID, &provider.URL, &provider.Kind); err != nil {
+						return err
+					}
+
 					// do not resolve the auth details for the infra provider
 					// check infra provider name and kind just in case other migrations haven't run
-					if providerModels[i].Kind == models.ProviderKindInfra || providerModels[i].Name == models.InternalInfraProviderName {
+					if provider.Kind == models.ProviderKindInfra || provider.Name == models.InternalInfraProviderName {
 						continue
 					}
 
-					logging.Debugf("migrating %s provider", providerModels[i].Name)
+					logging.Debugf("migrating %s provider", provider.Name)
 
-					providerClient := providers.NewOIDCClient(providerModels[i], "not-used", "http://localhost:8301")
+					providerClient := providers.NewOIDCClient(provider, "not-used", "http://localhost:8301")
 					authServerInfo, err := providerClient.AuthServerInfo(context.Background())
 					if err != nil {
 						if errors.Is(err, context.DeadlineExceeded) {
@@ -185,11 +196,13 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 						return fmt.Errorf("could not get provider info: %w", err)
 					}
 
-					db.Model(&providerModels[i]).Update("auth_url", authServerInfo.AuthURL)
-					db.Model(&providerModels[i]).Update("scopes", strings.Join(authServerInfo.ScopesSupported, ","))
+					stmt := `UPDATE providers SET auth_url = ?, scopes = ? WHERE id = ?`
+					_, err = tx.Exec(stmt, authServerInfo.AuthURL, authServerInfo.ScopesSupported, provider.ID)
+					if err != nil {
+						return err
+					}
 				}
-
-				return db.Commit().Error
+				return rows.Close()
 			}
 
 			return nil
@@ -199,7 +212,7 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 
 // #2360: delete duplicate grants (the same subject, resource, and privilege) to allow for unique constraint
 func deleteDuplicateGrants() *migrator.Migration {
-	return &migrator.Migration{ID: "202207081217", Migrate: func(tx *gorm.DB) error {
+	return &migrator.Migration{ID: "202207081217", Migrate: func(tx migrator.DB) error {
 		stmt := `
 			DELETE FROM grants
 			WHERE deleted_at IS NULL
@@ -208,7 +221,8 @@ func deleteDuplicateGrants() *migrator.Migration {
 				FROM grants
 				WHERE deleted_at IS NULL
 				GROUP BY subject, resource, privilege)`
-		return tx.Exec(stmt).Error
+		_, err := tx.Exec(stmt)
+		return err
 	}}
 }
 
@@ -217,19 +231,20 @@ func deleteDuplicateGrants() *migrator.Migration {
 func setDestinationLastSeenAt() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207041724",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			if migrator.HasColumn(tx, "destinations", "last_seen_at") {
 				return nil
 			}
 
 			stmt := `ALTER TABLE destinations ADD COLUMN last_seen_at timestamp with time zone`
-			if tx.Dialector.Name() == "sqlite" {
+			if tx.DriverName() == "sqlite" {
 				stmt = `ALTER TABLE destinations ADD COLUMN last_seen_at datetime`
 			}
-			if err := tx.Exec(stmt).Error; err != nil {
+			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
-			return tx.Exec("UPDATE destinations SET last_seen_at = updated_at").Error
+			_, err := tx.Exec("UPDATE destinations SET last_seen_at = updated_at")
+			return err
 		},
 	}
 }
@@ -238,12 +253,13 @@ func setDestinationLastSeenAt() *migrator.Migration {
 func dropDeletedProviderUsers() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "202207270000",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			if migrator.HasColumn(tx, "provider_users", "deleted_at") {
-				if err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL").Error; err != nil {
+				if _, err := tx.Exec("DELETE FROM provider_users WHERE deleted_at IS NOT NULL"); err != nil {
 					return fmt.Errorf("could not remove soft deleted provider users: %w", err)
 				}
-				return tx.Exec(`ALTER TABLE provider_users DROP COLUMN deleted_at`).Error
+				_, err := tx.Exec(`ALTER TABLE provider_users DROP COLUMN deleted_at`)
+				return err
 			}
 			return nil
 		},
@@ -253,8 +269,9 @@ func dropDeletedProviderUsers() *migrator.Migration {
 func removeDeletedIdentitiesFromGroups() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-28T12:46",
-		Migrate: func(tx *gorm.DB) error {
-			return tx.Exec("DELETE FROM identities_groups WHERE identity_id in (SELECT id FROM identities WHERE deleted_at IS NOT NULL)").Error
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec("DELETE FROM identities_groups WHERE identity_id in (SELECT id FROM identities WHERE deleted_at IS NOT NULL)")
+			return err
 		},
 	}
 }
@@ -273,18 +290,18 @@ func removeDeletedIdentitiesFromGroups() *migrator.Migration {
 func addFieldsForPreviouslyImplicitMigrations() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-21T18:28",
-		Migrate: func(tx *gorm.DB) error {
-			if err := tx.Exec(`
+		Migrate: func(tx migrator.DB) error {
+			if _, err := tx.Exec(`
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS lowercase_min bigint DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS uppercase_min bigint DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS number_min bigint DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS symbol_min bigint DEFAULT 0;
 ALTER TABLE settings ADD COLUMN IF NOT EXISTS length_min bigint DEFAULT 8;
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "organizations") {
-				if err := tx.Exec(`
+				if _, err := tx.Exec(`
 CREATE TABLE organizations (
     id bigint NOT NULL,
     created_at timestamp with time zone,
@@ -303,41 +320,41 @@ ALTER SEQUENCE organizations_id_seq OWNED BY organizations.id;
 ALTER TABLE ONLY organizations ALTER COLUMN id SET DEFAULT nextval('organizations_id_seq'::regclass);
 ALTER TABLE ONLY organizations ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
 CREATE UNIQUE INDEX idx_organizations_name ON organizations USING btree (name) WHERE (deleted_at IS NULL);
-				`).Error; err != nil {
+				`); err != nil {
 					return err
 				}
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS private_key text;
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS client_email text;
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS domain_admin_email text;
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 ALTER TABLE access_keys ADD COLUMN IF NOT EXISTS scopes text;
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS version text;
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS resources text;
 ALTER TABLE destinations ADD COLUMN IF NOT EXISTS roles text;
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 ALTER TABLE groups ADD COLUMN IF NOT EXISTS created_by_provider bigint;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_groups_name ON groups USING btree (name) WHERE (deleted_at IS NULL);
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 			if !migrator.HasTable(tx, "password_reset_tokens") {
-				err := tx.Exec(`
+				_, err := tx.Exec(`
 CREATE TABLE password_reset_tokens (
     id bigint NOT NULL,
     token text,
@@ -355,24 +372,24 @@ ALTER TABLE ONLY password_reset_tokens ALTER COLUMN id SET DEFAULT nextval('pass
 ALTER TABLE ONLY password_reset_tokens
     ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
 CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
-`).Error
+`)
 				if err != nil {
 					return err
 				}
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 ALTER TABLE credentials DROP COLUMN IF EXISTS one_time_password_used;
 
 ALTER TABLE provider_users DROP COLUMN IF EXISTS id;
 ALTER TABLE provider_users DROP COLUMN IF EXISTS created_at;
 ALTER TABLE provider_users DROP COLUMN IF EXISTS updated_at;
-`).Error; err != nil {
+`); err != nil {
 				return err
 			}
 
 			if !migrator.HasConstraint(tx, "provider_users", "provider_users_pkey") {
-				if err := tx.Exec(`
+				if _, err := tx.Exec(`
 ALTER TABLE ONLY provider_users
 	ADD CONSTRAINT fk_provider_users_identity FOREIGN KEY (identity_id) REFERENCES identities(id);
 
@@ -382,14 +399,14 @@ ALTER TABLE ONLY provider_users
 ALTER TABLE provider_users ADD CONSTRAINT provider_users_pkey
 	PRIMARY KEY (identity_id, provider_id);
 
-`).Error; err != nil {
+`); err != nil {
 					return err
 				}
 			}
 
-			if err := tx.Exec(`
+			if _, err := tx.Exec(`
 CREATE UNIQUE INDEX IF NOT EXISTS idx_grant_srp ON grants USING btree (subject, privilege, resource) WHERE (deleted_at IS NULL);
-			`).Error; err != nil {
+			`); err != nil {
 				return err
 			}
 
@@ -401,7 +418,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_grant_srp ON grants USING btree (subject, 
 func addOrganizations() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-07-27T15:54",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			logging.Debugf("migrating orgs")
 
 			stmt := `
@@ -415,7 +432,8 @@ ALTER TABLE IF EXISTS providers ADD COLUMN IF NOT EXISTS organization_id bigint;
 ALTER TABLE IF EXISTS settings ADD COLUMN IF NOT EXISTS organization_id bigint;
 ALTER TABLE IF EXISTS password_reset_tokens ADD COLUMN IF NOT EXISTS organization_id bigint;
 `
-			return tx.Exec(stmt).Error
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }
@@ -423,7 +441,7 @@ ALTER TABLE IF EXISTS password_reset_tokens ADD COLUMN IF NOT EXISTS organizatio
 func scopeUniqueIndicesToOrganization() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-04T17:72",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			stmt := `
 DROP INDEX IF EXISTS idx_access_keys_name;
 DROP INDEX IF EXISTS idx_credentials_identity_id;
@@ -433,7 +451,7 @@ DROP INDEX IF EXISTS idx_groups_name;
 DROP INDEX IF EXISTS idx_identities_name;
 DROP INDEX IF EXISTS idx_providers_name;
 `
-			if err := tx.Exec(stmt).Error; err != nil {
+			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
 
@@ -447,7 +465,7 @@ CREATE UNIQUE INDEX idx_identities_name ON identities (organization_id,name) whe
 CREATE UNIQUE INDEX idx_providers_name ON providers (organization_id,name) where (deleted_at is null);
 CREATE UNIQUE INDEX IF NOT EXISTS settings_org_id ON settings (organization_id) where deleted_at is null;
 `
-			if err := tx.Exec(stmt).Error; err != nil {
+			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
 
@@ -458,7 +476,7 @@ ALTER TABLE identities_groups DROP CONSTRAINT IF EXISTS fk_identities_groups_ide
 ALTER TABLE identities_groups DROP CONSTRAINT IF EXISTS fk_identities_groups_group;
 ALTER TABLE access_keys DROP CONSTRAINT IF EXISTS fk_access_keys_issued_for_identity;
 `
-			if err := tx.Exec(stmt).Error; err != nil {
+			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
 
@@ -475,7 +493,8 @@ DROP SEQUENCE IF EXISTS providers_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS settings_id_seq CASCADE;
 DROP SEQUENCE IF EXISTS password_reset_tokens_id_seq CASCADE;
 `
-			return tx.Exec(stmt).Error
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }
@@ -483,14 +502,14 @@ DROP SEQUENCE IF EXISTS password_reset_tokens_id_seq CASCADE;
 func addDefaultOrganization() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-10T13:35",
-		Migrate: func(tx *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			stmt := `
 INSERT INTO organizations(id, name, created_at, updated_at)
 VALUES (?, ?, ?, ?);
 `
 			orgID := uid.New()
 			now := time.Now()
-			if err := tx.Exec(stmt, orgID, "Default", now, now).Error; err != nil {
+			if _, err := tx.Exec(stmt, orgID, "Default", now, now); err != nil {
 				return err
 			}
 
@@ -506,7 +525,7 @@ VALUES (?, ?, ?, ?);
 				`UPDATE settings SET organization_id = ?;`,
 				`UPDATE password_reset_tokens SET organization_id = ?;`,
 			} {
-				if err := tx.Exec(stmt, orgID).Error; err != nil {
+				if _, err := tx.Exec(stmt, orgID); err != nil {
 					return err
 				}
 			}
@@ -518,12 +537,13 @@ VALUES (?, ?, ?, ?);
 func addOrganizationDomain() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-11T11:52",
-		Migrate: func(db *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			stmt := `
 ALTER TABLE IF EXISTS organizations ADD COLUMN IF NOT EXISTS domain text;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 `
-			return db.Exec(stmt).Error
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }
@@ -531,8 +551,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_domain ON organizations USIN
 func dropOrganizationNameIndex() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-12T11:05",
-		Migrate: func(tx *gorm.DB) error {
-			return tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`).Error
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`)
+			return err
 		},
 	}
 }

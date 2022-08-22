@@ -3,7 +3,6 @@ package migrator
 import (
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -55,21 +54,6 @@ var extendedMigrations = append(migrations, &Migration{
 		return err
 	},
 })
-
-var failingMigration = []*Migration{
-	{
-		ID: "201904231300",
-		Migrate: func(tx DB) error {
-			if _, err := tx.Exec(Book{}.Schema()); err != nil {
-				return err
-			}
-			return errors.New("this transaction should be rolled back")
-		},
-		Rollback: func(tx DB) error {
-			return nil
-		},
-	},
-}
 
 type Person struct {
 	gorm.Model
