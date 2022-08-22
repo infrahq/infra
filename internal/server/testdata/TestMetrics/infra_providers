@@ -1,5 +1,4 @@
 infra_providers{kind="azure"} 1
 infra_providers{kind="google"} 1
-infra_providers{kind="infra"} 1
 infra_providers{kind="oidc"} 1
 infra_providers{kind="okta"} 2

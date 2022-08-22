@@ -100,7 +100,7 @@ type providersCount struct {
 
 func CountProvidersByKind(db *gorm.DB) ([]providersCount, error) {
 	var results []providersCount
-	if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
+	if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
 		return nil, err
 	}
 

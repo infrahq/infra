@@ -182,7 +182,6 @@ func TestCountProvidersByKind(t *testing.T) {
 		expected := []providersCount{
 			{Kind: "azure", Count: 1},
 			{Kind: "google", Count: 1},
-			{Kind: "infra", Count: 1},
 			{Kind: "oidc", Count: 1},
 			{Kind: "okta", Count: 2},
 		}

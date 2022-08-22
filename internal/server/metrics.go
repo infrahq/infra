@@ -23,7 +23,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 		Name:      "users",
 		Help:      "The total number of users",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Identity](db)
+		count, err := data.GlobalCount[models.Identity](db, data.NotName("connector"))
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("users")
 			return []metrics.Metric{}
@@ -55,7 +55,7 @@ func setupMetrics(db *gorm.DB) *prometheus.Registry {
 		Name:      "grants",
 		Help:      "The total number of grants",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Grant](db)
+		count, err := data.GlobalCount[models.Grant](db, data.NotPrivilege("connector"))
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("grants")
 			return []metrics.Metric{}
