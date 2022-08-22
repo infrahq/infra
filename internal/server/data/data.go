@@ -97,6 +97,10 @@ func (d *DB) OrganizationID() uid.ID {
 	return 0
 }
 
+func (d *DB) GormDB() *gorm.DB {
+	return d.DB
+}
+
 type WriteTxn interface {
 	ReadTxn
 	Exec(sql string, values ...interface{}) (sql.Result, error)
@@ -120,6 +124,10 @@ type GormTxn interface {
 type Transaction struct {
 	*gorm.DB
 	orgID uid.ID
+}
+
+func (t Transaction) DriverName() string {
+	return t.Dialector.Name()
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
@@ -179,7 +187,7 @@ func initialize(db *DB) error {
 			Name:      models.DefaultOrganizationName,
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganizationAndSetContext(db.DB, org); err != nil {
+		if err := CreateOrganizationAndSetContext(db, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:
@@ -247,13 +255,13 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func setOrg(db *gorm.DB, model any) {
+func setOrg(tx ReadTxn, model any) {
 	member, ok := model.(orgMember)
 	if !ok {
 		return
 	}
 
-	member.SetOrganizationID(MustGetOrgFromContext(db.Statement.Context).ID)
+	member.SetOrganizationID(tx.OrganizationID())
 }
 
 type orgMember interface {
@@ -293,17 +301,19 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 	return result, nil
 }
 
-func save[T models.Modelable](db *gorm.DB, model *T) error {
-	setOrg(db, model)
+func save[T models.Modelable](tx GormTxn, model *T) error {
+	db := tx.GormDB()
+	setOrg(tx, model)
 	err := db.Save(model).Error
 	return handleError(err)
 }
 
-func add[T models.Modelable](db *gorm.DB, model *T) error {
-	setOrg(db, model)
+func add[T models.Modelable](tx GormTxn, model *T) error {
+	db := tx.GormDB()
+	setOrg(tx, model)
 
 	var err error
-	if db.Name() == "postgres" {
+	if tx.DriverName() == "postgres" {
 		// failures on postgres need to be rolled back in order to
 		// continue using the same transaction
 		db.SavePoint("beforeCreate")

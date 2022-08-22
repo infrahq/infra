@@ -18,14 +18,14 @@ func validateDestination(dest *models.Destination) error {
 	return nil
 }
 
-func CreateDestination(db *gorm.DB, destination *models.Destination) error {
+func CreateDestination(db GormTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}
 	return add(db, destination)
 }
 
-func SaveDestination(db *gorm.DB, destination *models.Destination) error {
+func SaveDestination(db GormTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}

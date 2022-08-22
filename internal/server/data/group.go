@@ -7,7 +7,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGroup(db *gorm.DB, group *models.Group) error {
+func CreateGroup(db GormTxn, group *models.Group) error {
 	return add(db, group)
 }
 

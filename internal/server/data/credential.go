@@ -16,14 +16,14 @@ func validateCredential(c *models.Credential) error {
 	return nil
 }
 
-func CreateCredential(db *gorm.DB, credential *models.Credential) error {
+func CreateCredential(db GormTxn, credential *models.Credential) error {
 	if err := validateCredential(credential); err != nil {
 		return err
 	}
 	return add(db, credential)
 }
 
-func SaveCredential(db *gorm.DB, credential *models.Credential) error {
+func SaveCredential(db GormTxn, credential *models.Credential) error {
 	if err := validateCredential(credential); err != nil {
 		return err
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGrant(db *gorm.DB, grant *models.Grant) error {
+func CreateGrant(db GormTxn, grant *models.Grant) error {
 	switch {
 	case grant.Subject == "":
 		return fmt.Errorf("subject is required")

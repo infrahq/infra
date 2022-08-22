@@ -37,13 +37,18 @@ func WithOrg(ctx context.Context, org *models.Organization) context.Context {
 }
 
 // CreateOrganizationAndSetContext creates a new organization and sets the current db context to execute on this org
-func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) error {
-	err := add(db, org)
+func CreateOrganizationAndSetContext(tx GormTxn, org *models.Organization) error {
+	err := add(tx, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
 	}
 
+	db := tx.GormDB()
+	// TODO: remove
 	db.Statement.Context = WithOrg(db.Statement.Context, org)
+	// TODO: constructor?
+	tx = &Transaction{DB: db, orgID: org.ID}
+
 	_, err = initializeSettings(db)
 	if err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
@@ -54,7 +59,7 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 		Kind:      models.ProviderKindInfra,
 		CreatedBy: models.CreatedBySystem,
 	}
-	if err := CreateProvider(db, infraProvider); err != nil {
+	if err := CreateProvider(tx, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
 
@@ -63,11 +68,11 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 		CreatedBy: models.CreatedBySystem,
 	}
 	// this identity is used to create access keys for connectors
-	if err := CreateIdentity(db, connector); err != nil {
+	if err := CreateIdentity(tx, connector); err != nil {
 		return fmt.Errorf("failed to create connector identity while creating org: %w", err)
 	}
 
-	err = CreateGrant(db, &models.Grant{
+	err = CreateGrant(tx, &models.Grant{
 		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",

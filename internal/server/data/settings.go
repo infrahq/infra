@@ -75,10 +75,10 @@ func getSettingsForOrg(db *gorm.DB, orgID uid.ID) (*models.Settings, error) {
 	return &settings, nil
 }
 
-func SaveSettings(db *gorm.DB, settings *models.Settings) error {
+func SaveSettings(db GormTxn, settings *models.Settings) error {
 	// TODO: clean this up by having the query use the organization_id instead of the
 	// primary key in the WHERE.
-	existing, err := GetSettings(db)
+	existing, err := GetSettings(db.GormDB())
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreatePasswordResetToken(db *gorm.DB, user *models.Identity, ttl time.Duration) (*models.PasswordResetToken, error) {
+func CreatePasswordResetToken(db GormTxn, user *models.Identity, ttl time.Duration) (*models.PasswordResetToken, error) {
 	tries := 0
 retry:
 	token, err := generate.CryptoRandom(10, generate.CharsetAlphaNumeric)

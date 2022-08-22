@@ -22,7 +22,7 @@ func validateProvider(p *models.Provider) error {
 	}
 }
 
-func CreateProvider(db *gorm.DB, provider *models.Provider) error {
+func CreateProvider(db GormTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc)
 	return list[models.Provider](db, p, selectors...)
 }
 
-func SaveProvider(db *gorm.DB, provider *models.Provider) error {
+func SaveProvider(db GormTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}

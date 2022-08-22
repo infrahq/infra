@@ -11,7 +11,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models.Provider, newGroups []string) error {
+func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
+	db := tx.GormDB()
 	pu, err := GetProviderUser(db, provider.ID, user.ID)
 	if err != nil {
 		return err
@@ -23,7 +24,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 
 	pu.Groups = newGroups
 	pu.LastUpdate = time.Now().UTC()
-	if err := save(db, pu); err != nil {
+	if err := save(tx, pu); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
@@ -69,7 +70,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 				CreatedByProvider: provider.ID,
 			}
 
-			if err = CreateGroup(db, group); err != nil {
+			if err = CreateGroup(tx, group); err != nil {
 				return fmt.Errorf("create group: %w", err)
 			}
 			groupID = group.ID
@@ -94,7 +95,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	return nil
 }
 
-func CreateIdentity(db *gorm.DB, identity *models.Identity) error {
+func CreateIdentity(db GormTxn, identity *models.Identity) error {
 	return add(db, identity)
 }
 
@@ -141,6 +142,6 @@ func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Identity](db, ByIDs(ids))
 }
 
-func SaveIdentity(db *gorm.DB, identity *models.Identity) error {
+func SaveIdentity(db GormTxn, identity *models.Identity) error {
 	return save(db, identity)
 }

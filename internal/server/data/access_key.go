@@ -27,7 +27,7 @@ func secretChecksum(secret string) []byte {
 	return chksm[:]
 }
 
-func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
+func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
 	switch {
 	case accessKey.IssuedFor == 0:
 		return "", fmt.Errorf("issusedFor is required")
@@ -68,7 +68,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 			accessKey.ID = uid.New()
 		}
 
-		identityIssuedFor, err := GetIdentity(db, ByID(accessKey.IssuedFor))
+		identityIssuedFor, err := GetIdentity(db.GormDB(), ByID(accessKey.IssuedFor))
 		if err != nil {
 			return "", fmt.Errorf("key name from identity: %w", err)
 		}
@@ -83,7 +83,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 	return fmt.Sprintf("%s.%s", accessKey.KeyID, accessKey.Secret), nil
 }
 
-func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
+func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
 	if key.Secret != "" {
 		key.SecretChecksum = secretChecksum(key.Secret)
 	}
@@ -128,7 +128,8 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
 
-func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
+func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
+	db := tx.GormDB()
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
@@ -164,7 +165,7 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 			}
 			db.Statement.Context = WithOrg(db.Statement.Context, org)
 		}
-		if err := SaveAccessKey(db, t); err != nil {
+		if err := SaveAccessKey(tx, t); err != nil {
 			return nil, err
 		}
 	}
