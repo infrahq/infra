@@ -124,11 +124,11 @@ func addKindToProviders() *migrator.Migration {
 				return err
 			}
 
-			stmt = `UPDATE providers WHERE kind IS NULL AND name = ? SET kind = ?`
-			if _, err := tx.Exec(stmt, "infra", models.ProviderKindInfra); err != nil {
+			stmt = `UPDATE providers SET kind = ? WHERE kind IS NULL AND name = ?`
+			if _, err := tx.Exec(stmt, models.ProviderKindInfra, "infra"); err != nil {
 				return err
 			}
-			stmt = `UPDATE providers WHERE kind IS NULL SET kind = ?`
+			stmt = `UPDATE providers SET kind = ? WHERE kind IS NULL`
 			if _, err := tx.Exec(stmt, models.ProviderKindOkta); err != nil {
 				return err
 			}
@@ -196,8 +196,9 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 						return fmt.Errorf("could not get provider info: %w", err)
 					}
 
+					scopes := models.CommaSeparatedStrings(authServerInfo.ScopesSupported)
 					stmt := `UPDATE providers SET auth_url = ?, scopes = ? WHERE id = ?`
-					_, err = tx.Exec(stmt, authServerInfo.AuthURL, authServerInfo.ScopesSupported, provider.ID)
+					_, err = tx.Exec(stmt, authServerInfo.AuthURL, scopes, provider.ID)
 					if err != nil {
 						return err
 					}

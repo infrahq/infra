@@ -14,7 +14,6 @@ import (
 
 	"github.com/jackc/pgx/v4"
 	"github.com/rs/zerolog"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/golden"
@@ -36,9 +35,9 @@ func TestMigrations(t *testing.T) {
 
 	type testCase struct {
 		label    testCaseLabel
-		setup    func(t *testing.T, db *gorm.DB)
-		expected func(t *testing.T, db *gorm.DB)
-		cleanup  func(t *testing.T, db *gorm.DB)
+		setup    func(t *testing.T, db WriteTxn)
+		expected func(t *testing.T, db WriteTxn)
+		cleanup  func(t *testing.T, db WriteTxn)
 	}
 
 	run := func(t *testing.T, index int, tc testCase, db *DB) {
@@ -85,35 +84,35 @@ func TestMigrations(t *testing.T) {
 	testCases := []testCase{
 		{
 			label: testCaseLine("202204281130"),
-			expected: func(t *testing.T, tx *gorm.DB) {
+			expected: func(t *testing.T, tx WriteTxn) {
 				// dropped columns are tested by schema comparison
 			},
 		},
 		{
 			label: testCaseLine("202204291613"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// dropped columns are tested by schema comparison
 			},
 		},
 		{
 			label: testCaseLine("2022-06-08T10:27-fixed"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// dropped constraints are tested by schema comparison
 			},
 		},
 		{
 			label: testCaseLine("202206151027"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `INSERT INTO providers(name) VALUES ('infra'), ('okta');`
-				err := db.Exec(stmt).Error
+				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
+			cleanup: func(t *testing.T, db WriteTxn) {
 				stmt := `DELETE FROM providers`
-				err := db.Exec(stmt).Error
+				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				type provider struct {
 					Name string
 					Kind models.ProviderKind
@@ -121,7 +120,7 @@ func TestMigrations(t *testing.T) {
 
 				query := `SELECT name, kind FROM providers where deleted_at is null`
 				var actual []provider
-				rows, err := db.Raw(query).Rows()
+				rows, err := db.Query(query)
 				assert.NilError(t, err)
 
 				for rows.Next() {
@@ -140,32 +139,32 @@ func TestMigrations(t *testing.T) {
 		},
 		{
 			label: testCaseLine("202206161733"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				// integrity check
 				assert.Assert(t, migrator.HasTable(db, "trusted_certificates"))
 				assert.Assert(t, migrator.HasTable(db, "root_certificates"))
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				assert.Assert(t, !migrator.HasTable(db, "trusted_certificates"))
 				assert.Assert(t, !migrator.HasTable(db, "root_certificates"))
 			},
 		},
 		{
 			label: testCaseLine("202206281027"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980736, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'infra', '', '', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'infra', 1);
 INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client_id, client_secret, kind, created_by) VALUES (67301777540980737, '2022-07-05 17:13:14.172568+00', '2022-07-05 17:13:14.172568+00', NULL, 'okta', 'example.okta.com', 'client-id', 'AAAAEIRG2/PYF2erJG6cYHTybucGYWVzZ2NtBDjJTEEbL3Jvb3QvLmluZnJhL3NxbGl0ZTMuZGIua2V5DGt4MdtlZuxOUhZQTw', 'okta', 1);
 `
-				err := db.Exec(stmt).Error
+				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				err := db.Exec(`DELETE FROM providers;`).Error
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM providers;`)
 				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
-				rows, err := db.Raw(`SELECT name, auth_url, scopes FROM providers ORDER BY name`).Rows()
+			expected: func(t *testing.T, db WriteTxn) {
+				rows, err := db.Query(`SELECT name, auth_url, scopes FROM providers ORDER BY name`)
 				assert.NilError(t, err)
 
 				var actual []models.Provider
@@ -195,19 +194,20 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 		},
 		{
 			label: testCaseLine("202207041724"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO destinations (id, created_at, updated_at, name, unique_id)
 VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-destination', 'unique-id');`
-				err := db.Exec(stmt).Error
+				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				assert.NilError(t, db.Exec(`DELETE FROM destinations`).Error)
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM destinations`)
+				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				stmt := `SELECT id, name, updated_at, last_seen_at from destinations`
-				rows, err := db.Raw(stmt).Rows()
+				rows, err := db.Query(stmt)
 				assert.NilError(t, err)
 				defer rows.Close()
 
@@ -235,7 +235,7 @@ VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-
 		},
 		{
 			label: testCaseLine("202207081217"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 					INSERT INTO grants(id, subject, resource, privilege)
 					VALUES (10100, 'i:aaa', 'infra', 'admin'),
@@ -244,16 +244,16 @@ VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-
 					       (10103, 'i:aaa', 'infra', 'view'),
 						   (10104, 'i:aab', 'infra', 'admin');
 				`
-				err := db.Exec(stmt).Error
+				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				err := db.Exec(`DELETE FROM grants`).Error
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM grants`)
 				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				stmt := `SELECT id, subject, resource, privilege FROM grants`
-				rows, err := db.Raw(stmt).Rows()
+				rows, err := db.Query(stmt)
 				assert.NilError(t, err)
 				defer rows.Close()
 
@@ -296,17 +296,19 @@ VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-
 		},
 		{
 			label: testCaseLine("202207270000"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at, deleted_at, email, groups, last_update, redirect_url, access_token, refresh_token, expires_at) VALUES(75225930155761664,75225930151567361,75226263837810687,'2022-07-27 14:02:18.934641547+00:00','2022-07-27 14:02:19.547474589+00:00',NULL,'example@infrahq.com','','2022-07-27 14:02:19.54741888+00:00','http://localhost:8301','aaa','bbb','2022-07-27 15:02:18.420551838+00:00');
 INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at, deleted_at, email, groups, last_update, redirect_url, access_token, refresh_token, expires_at) VALUES(75225930155761664,75225930151567360,75226263837810688,'2022-07-27 14:02:18.934641547+00:00','2022-07-27 14:02:19.547474589+00:00','2022-07-27 14:00:59.448457344+00:00','example@infrahq.com','','2022-07-27 14:02:19.54741888+00:00','http://localhost:8301','aaa','bbb','2022-07-27 15:02:18.420551838+00:00');
 `
-				assert.NilError(t, db.Exec(stmt).Error)
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				assert.NilError(t, db.Exec(`DELETE FROM provider_users;`).Error)
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM provider_users;`)
+				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// there should only be one provider user from the infra provider
 				// the other user has a deleted_at time and was cleared
 				type providerUserDetails struct {
@@ -315,8 +317,15 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				}
 
 				var puDetails []providerUserDetails
-				err := db.Raw("SELECT email, provider_id FROM provider_users").Scan(&puDetails).Error
+				rows, err := db.Query("SELECT email, provider_id FROM provider_users")
 				assert.NilError(t, err)
+
+				for rows.Next() {
+					var u providerUserDetails
+					assert.NilError(t, rows.Scan(&u.Email, &u.ProviderID))
+					puDetails = append(puDetails, u)
+				}
+				assert.NilError(t, rows.Close())
 
 				assert.Equal(t, len(puDetails), 1)
 				assert.Equal(t, puDetails[0].Email, "example@infrahq.com")
@@ -325,21 +334,22 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 		},
 		{
 			label: testCaseLine("2022-07-28T12:46"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 				INSERT INTO identities (id, name, deleted_at) VALUES (100, 'deleted@test.com', '2022-07-27 14:02:18.934641547+00:00'), (101, 'user@test.com', NULL);
 				INSERT INTO groups (id, name) VALUES (102, 'Test');
 				INSERT INTO identities_groups (identity_id, group_id) VALUES (100, 102), (101, 102);`
 
-				assert.NilError(t, db.Exec(stmt).Error)
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				type IdentityGroup struct {
 					IdentityID uid.ID
 					GroupID    uid.ID
 				}
 				var relations []IdentityGroup
-				rows, err := db.Raw("SELECT identity_id, group_id FROM identities_groups").Rows()
+				rows, err := db.Query("SELECT identity_id, group_id FROM identities_groups")
 				assert.NilError(t, err)
 				defer rows.Close()
 
@@ -353,28 +363,31 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 				assert.Equal(t, len(relations), 1)
 				assert.DeepEqual(t, relations[0], IdentityGroup{IdentityID: 101, GroupID: 102})
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				assert.NilError(t, db.Exec(`DELETE FROM identities_groups;`).Error)
-				assert.NilError(t, db.Exec(`DELETE FROM identities;`).Error)
-				assert.NilError(t, db.Exec(`DELETE FROM groups;`).Error)
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM identities_groups;`)
+				assert.NilError(t, err)
+				_, err = db.Exec(`DELETE FROM identities;`)
+				assert.NilError(t, err)
+				_, err = db.Exec(`DELETE FROM groups;`)
+				assert.NilError(t, err)
 			},
 		},
 		{
 			label: testCaseLine("2022-07-21T18:28"),
-			setup: func(t *testing.T, db *gorm.DB) {
-				err := db.Exec(`INSERT INTO settings(id, created_at) VALUES(1, ?);`, time.Now()).Error
+			setup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`INSERT INTO settings(id, created_at) VALUES(1, ?);`, time.Now())
 				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
-				err := db.Exec(`DELETE FROM settings WHERE id=1;`).Error
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`DELETE FROM settings WHERE id=1;`)
 				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
-				row := db.Raw(`
+			expected: func(t *testing.T, db WriteTxn) {
+				row := db.QueryRow(`
 					SELECT lowercase_min, uppercase_min, number_min, symbol_min, length_min
 					FROM settings
 					LIMIT 1
-				`).Row()
+				`)
 
 				var settings models.Settings
 				err := row.Scan(
@@ -391,35 +404,37 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 		},
 		{
 			label: testCaseLine("2022-07-27T15:54"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// column changes are tested with schema comparison
 			},
 		},
 		{
 			label: testCaseLine("2022-08-04T17:72"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},
 		},
 		{
 			label: testCaseLine("2022-08-10T13:35"),
-			setup: func(t *testing.T, db *gorm.DB) {
+			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO providers(id, name) VALUES (12345, 'okta');
 INSERT INTO settings(id) VALUES(24567);
 `
-				assert.NilError(t, db.Exec(stmt).Error)
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
 			},
-			cleanup: func(t *testing.T, db *gorm.DB) {
+			cleanup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 DELETE FROM providers WHERE id=12345;
 DELETE FROM settings WHERE id=24567;
 `
-				assert.NilError(t, db.Exec(stmt).Error)
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
 			},
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				stmt := `SELECT id, name, created_at, updated_at FROM organizations`
-				rows, err := db.Raw(stmt).Rows()
+				rows, err := db.Query(stmt)
 				assert.NilError(t, err)
 
 				var orgs []models.Organization
@@ -446,7 +461,7 @@ DELETE FROM settings WHERE id=24567;
 
 				stmt = `SELECT id, organization_id FROM providers;`
 				p := &models.Provider{}
-				err = db.Raw(stmt).Row().Scan(&p.ID, &p.OrganizationID)
+				err = db.QueryRow(stmt).Scan(&p.ID, &p.OrganizationID)
 				assert.NilError(t, err)
 
 				expectedProvider := &models.Provider{
@@ -457,7 +472,7 @@ DELETE FROM settings WHERE id=24567;
 
 				stmt = `SELECT id, organization_id FROM settings;`
 				s := &models.Settings{}
-				err = db.Raw(stmt).Row().Scan(&s.ID, &s.OrganizationID)
+				err = db.QueryRow(stmt).Scan(&s.ID, &s.OrganizationID)
 				assert.NilError(t, err)
 
 				expectedSettings := &models.Settings{
@@ -469,13 +484,13 @@ DELETE FROM settings WHERE id=24567;
 		},
 		{
 			label: testCaseLine("2022-08-11T11:52"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},
 		},
 		{
 			label: testCaseLine("2022-08-12T11:05"),
-			expected: func(t *testing.T, tx *gorm.DB) {
+			expected: func(t *testing.T, tx WriteTxn) {
 				// dropped indexes are tested by schema comparison
 			},
 		},

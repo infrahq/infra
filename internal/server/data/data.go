@@ -92,6 +92,17 @@ func (d *DB) QueryRow(query string, args ...any) *sql.Row {
 	return d.DB.Raw(query, args...).Row()
 }
 
+type WriteTxn interface {
+	ReadTxn
+	Exec(sql string, values ...interface{}) (sql.Result, error)
+}
+
+type ReadTxn interface {
+	DriverName() string
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 // newRawDB creates a new database connection without running migrations.
 func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
