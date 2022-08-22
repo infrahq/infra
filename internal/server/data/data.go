@@ -152,6 +152,10 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
+func NewTransaction(db *gorm.DB, orgID uid.ID) *Transaction {
+	return &Transaction{DB: db, orgID: orgID}
+}
+
 // newRawDB creates a new database connection without running migrations.
 func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{

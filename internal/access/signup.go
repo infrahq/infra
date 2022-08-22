@@ -31,6 +31,8 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
 
+	db = data.NewTransaction(db.GormDB(), details.Org.ID)
+
 	// check the admin user's password requirements against our basic password requirements
 	err := checkPasswordRequirements(db, details.Password)
 	if err != nil {
