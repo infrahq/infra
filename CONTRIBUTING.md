@@ -121,20 +121,6 @@ server:
     dbName: infra-db
     dbUsername: username
     dbPassword: password
-
-    users:
-      - name: admin@local.dev
-        password: password
-
-    grants:
-      - user: admin@local.dev
-        role: admin
-        resource: infra
-
-connector:
-  enabled: true
-  config:
-    name: desktop
 ```
 
 See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
