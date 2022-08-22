@@ -12,7 +12,9 @@ This directory contains the source code for the Infra Dashboard.
   - Enable **Format on Save** in settings
 
 ## Develop
+
 Follow the instructions in the [test config file](./__test__/__files__/infra.yaml).
+
 ```
 npm install
 npm run dev
