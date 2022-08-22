@@ -12,8 +12,8 @@ test/update:
 	go test ./internal/cmd -test.update-golden
 
 dev:
-	docker buildx build . -t infrahq/infra:dev
-	docker buildx build ui -t infrahq/ui:dev
+	docker buildx build . --load -t infrahq/infra:dev
+	docker buildx build ui --load -t infrahq/ui:dev
 	kubectl config use-context docker-desktop
 	helm upgrade --install --wait  \
 		--set global.image.pullPolicy=Never \

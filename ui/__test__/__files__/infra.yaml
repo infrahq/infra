@@ -1,0 +1,11 @@
+# a test infra server configuration file for running the UI locally
+enableSignup: true
+baseDomain: localhost
+logLevel: debug
+# you will have to setup a database and update these values
+# docker run --publish 127.0.0.1:5432:5432 --name my-infra-db -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+dbHost: 127.0.0.1
+dbPort: 5432
+dbName: postgres
+dbUsername: postgres
+dbPassword: plaintext:mysecretpassword
