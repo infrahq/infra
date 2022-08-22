@@ -12,7 +12,7 @@ import (
 )
 
 func TestProvider(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		providerDevelop := models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 
 		err := db.Create(&providerDevelop).Error
@@ -33,7 +33,7 @@ func createProviders(t *testing.T, db *gorm.DB, providers ...models.Provider) {
 }
 
 func TestCreateProviderDuplicate(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
@@ -51,7 +51,7 @@ func TestCreateProviderDuplicate(t *testing.T) {
 }
 
 func TestGetProvider(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
@@ -67,7 +67,7 @@ func TestGetProvider(t *testing.T) {
 }
 
 func TestListProviders(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
@@ -86,7 +86,7 @@ func TestListProviders(t *testing.T) {
 }
 
 func TestDeleteProviders(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{}
 			providerProduction = models.Provider{}
@@ -150,7 +150,7 @@ func TestDeleteProviders(t *testing.T) {
 }
 
 func TestRecreateProviderSameDomain(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
@@ -169,7 +169,7 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 }
 
 func TestCountProvidersByKind(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "oidc", Kind: "oidc"}))
 		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta", Kind: "okta"}))
 		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta2", Kind: "okta"}))

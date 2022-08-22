@@ -16,7 +16,7 @@ import (
 )
 
 func TestIdentity(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		bond := models.Identity{Name: "jbond@infrahq.com"}
 
 		err := db.Create(&bond).Error
@@ -39,7 +39,7 @@ func createIdentities(t *testing.T, db *gorm.DB, identities ...*models.Identity)
 }
 
 func TestCreateDuplicateUser(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -56,7 +56,7 @@ func TestCreateDuplicateUser(t *testing.T) {
 }
 
 func TestGetIdentity(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -72,7 +72,7 @@ func TestGetIdentity(t *testing.T) {
 }
 
 func TestListIdentities(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -140,7 +140,7 @@ var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
 })
 
 func TestDeleteIdentity(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -169,7 +169,7 @@ func TestDeleteIdentity(t *testing.T) {
 }
 
 func TestDeleteIdentityWithGroups(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -194,7 +194,7 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 }
 
 func TestReCreateIdentitySameName(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -235,7 +235,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 		},
 	}
 
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		for i, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
 				// setup identity

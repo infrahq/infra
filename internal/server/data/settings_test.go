@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
@@ -14,7 +13,7 @@ import (
 )
 
 func TestInitializeSettings(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var settings *models.Settings
 		runStep(t, "first call creates new settings", func(t *testing.T) {
 			var err error

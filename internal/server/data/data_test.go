@@ -16,7 +16,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
+func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
@@ -25,7 +25,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
-	return db.DB
+	return db
 }
 
 var isEnvironmentCI = os.Getenv("CI") != ""
@@ -47,7 +47,7 @@ func postgresDriver(t *testing.T) gorm.Dialector {
 // and all supported DBs in CI.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
-func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
+func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
 		pgsql := postgresDriver(t)
 		db := setupDB(t, pgsql)
@@ -57,7 +57,7 @@ func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		id := uid.New()
 		g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
 		err := db.Create(g).Error
@@ -77,7 +77,7 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 }
 
 func TestPaginationSelector(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		alphabeticalIdentities := []string{}
 		for r := 'a'; r < 'a'+26; r++ {
 			alphabeticalIdentities = append(alphabeticalIdentities, string(r))
@@ -134,7 +134,7 @@ func TestDefaultSortFromType(t *testing.T) {
 
 func TestCreateTransactionError(t *testing.T) {
 	// on creation error (such as conflict) the database transaction should still be usable
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		err := db.Transaction(func(tx *gorm.DB) error {
 			g := &models.Grant{}
 			err := add(tx, g)

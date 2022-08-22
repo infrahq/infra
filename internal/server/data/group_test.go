@@ -12,7 +12,7 @@ import (
 )
 
 func TestGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		everyone := models.Group{Name: "Everyone"}
 
 		err := db.Create(&everyone).Error
@@ -27,7 +27,7 @@ func TestGroup(t *testing.T) {
 }
 
 func TestCreateGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		everyone := models.Group{Name: "Everyone"}
 
 		err := CreateGroup(db, &everyone)
@@ -48,7 +48,7 @@ func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
 }
 
 func TestCreateGroupDuplicate(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -63,7 +63,7 @@ func TestCreateGroupDuplicate(t *testing.T) {
 }
 
 func TestGetGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -79,7 +79,7 @@ func TestGetGroup(t *testing.T) {
 }
 
 func TestListGroups(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -135,7 +135,7 @@ var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
 })
 
 func TestDeleteGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -164,7 +164,7 @@ func TestDeleteGroup(t *testing.T) {
 }
 
 func TestRecreateGroupSameName(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
@@ -182,7 +182,7 @@ func TestRecreateGroupSameName(t *testing.T) {
 }
 
 func TestAddUsersToGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		var everyone = models.Group{Name: "Everyone"}
 		createGroups(t, db, &everyone)
 

@@ -4,14 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestDestinationSaveCreatedPersists(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		destination := &models.Destination{
 			Name: "example-cluster-1",
 		}
@@ -33,7 +32,7 @@ func TestDestinationSaveCreatedPersists(t *testing.T) {
 }
 
 func TestCountDestinationsByConnectedVersion(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()}))
 		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)}))
 		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "3", UniqueID: "3", Version: "0.1.0", LastSeenAt: time.Now()}))

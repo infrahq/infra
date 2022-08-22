@@ -14,7 +14,7 @@ import (
 )
 
 func TestCreateAccessKey(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		jerry := &models.Identity{Name: "jseinfeld@infrahq.com"}
 
 		err := CreateIdentity(db, jerry)
@@ -103,7 +103,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensi
 }
 
 func TestCheckAccessKeySecret(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createTestAccessKey(t, db, time.Hour*5)
 
 		_, err := ValidateAccessKey(db, body)
@@ -118,7 +118,7 @@ func TestCheckAccessKeySecret(t *testing.T) {
 }
 
 func TestDeleteAccessKey(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		_, token := createTestAccessKey(t, db, time.Minute*5)
 
 		_, err := GetAccessKey(db, ByID(token.ID))
@@ -136,7 +136,7 @@ func TestDeleteAccessKey(t *testing.T) {
 }
 
 func TestCheckAccessKeyExpired(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createTestAccessKey(t, db, -1*time.Hour)
 
 		_, err := ValidateAccessKey(db, body)
@@ -145,7 +145,7 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 }
 
 func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
 
 		_, err := ValidateAccessKey(db, body)
@@ -154,7 +154,7 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 }
 
 func TestListAccessKeys(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		user := &models.Identity{Name: "tmp@infrahq.com"}
 		err := CreateIdentity(db, user)
 		assert.NilError(t, err)

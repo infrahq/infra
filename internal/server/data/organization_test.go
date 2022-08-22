@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -15,7 +14,7 @@ import (
 var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func TestCreateOrganizationAndSetContext(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 
 		org := &models.Organization{Name: "syndicate", Domain: "syndicate-123"}
 
