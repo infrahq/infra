@@ -21,6 +21,8 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 		err := CreateOrganizationAndSetContext(db, org)
 		assert.NilError(t, err)
 
+		tx := &Transaction{DB: db.DB, orgID: org.ID}
+
 		// db context is set
 		ctxOrg := OrgFromContext(db.Statement.Context)
 		assert.DeepEqual(t, org, ctxOrg, cmpTimeWithDBPrecision)
@@ -31,7 +33,7 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 		assert.DeepEqual(t, org, readOrg, cmpTimeWithDBPrecision)
 
 		// infra provider is created
-		orgInfraIDP := InfraProvider(db)
+		orgInfraIDP := InfraProvider(tx)
 		assert.NilError(t, err)
 
 		expectedOrgInfraProviderIDP := &models.Provider{
@@ -45,7 +47,7 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 		assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP, cmpTimeWithDBPrecision)
 
 		// the org connector is created and granted approprite access
-		connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName))
+		connector, err := GetIdentity(tx, ByName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
 
 		expectedConnector := &models.Identity{
@@ -56,7 +58,7 @@ func TestCreateOrganizationAndSetContext(t *testing.T) {
 		}
 		assert.DeepEqual(t, connector, expectedConnector)
 
-		connectorGrant, err := GetGrant(db, BySubject(connector.PolyID()), ByPrivilege(models.InfraAdminRole), ByResource("infra"))
+		connectorGrant, err := GetGrant(tx, BySubject(connector.PolyID()), ByPrivilege(models.InfraAdminRole), ByResource("infra"))
 		assert.NilError(t, err)
 
 		expectedConnectorGrant := &models.Grant{
