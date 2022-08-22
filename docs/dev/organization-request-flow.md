@@ -1,6 +1,6 @@
 # Organization Request Flow
 
-The following diagram describes the process of loading the organization from the request, and how the various scenarios are handled with respect to authentication. Note that for "is org supplied?", the organization can come from a variety of places, (the request URL, `Infra-Organization` header, and access key) and that doesn't affect the rest of the flow.
+The following diagram describes the process of loading the organization from the request, and how the various scenarios are handled with respect to authentication. Note that for "is org supplied?", the organization can come from a variety of places, (the request URL, and access key) and that doesn't affect the rest of the flow.
 
 ```mermaid
 flowchart TD

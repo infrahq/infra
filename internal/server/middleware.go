@@ -80,27 +80,13 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				return
 			}
 
-			// Before changing anything here, make sure you read the org-selection workflow diagram.
-			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
-			org := data.OrgFromContext(c.Request.Context())
-
-			if org == nil {
-				if authned.Organization != nil {
-					org = authned.Organization
-				} else {
-					logging.Debugf("Org is required for request but is missing")
-					sendAPIError(c, internal.ErrBadRequest)
-					return
-				}
-			}
-
-			if authned.Organization != nil && authned.Organization.ID != org.ID {
-				logging.Debugf("requested organization does not match access key organization")
+			if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
+				logging.L.Warn().Err(err).Msg("org validation failed")
 				sendAPIError(c, internal.ErrBadRequest)
 				return
 			}
 
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
 			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 
 			rCtx := access.RequestContext{
@@ -123,6 +109,31 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	}
 }
 
+// validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
+// from the request are set they have the same ID. If only one is set no
+// error is returned.
+//
+// Returns the organization from any source that is not nil, or an error if the
+// two sources do not match.
+func validateOrgMatchesRequest(req *http.Request, tx *gorm.DB, accessKeyOrg *models.Organization) (*models.Organization, error) {
+	orgFromRequest, err := getOrgFromRequest(req, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	switch {
+	case orgFromRequest == nil:
+		return accessKeyOrg, nil
+	case accessKeyOrg == nil:
+		return orgFromRequest, nil
+	case orgFromRequest.ID != accessKeyOrg.ID:
+		return nil, fmt.Errorf("org from access key %v does not match org from request %v",
+			accessKeyOrg.ID, orgFromRequest.ID)
+	default:
+		return orgFromRequest, nil
+	}
+}
+
 func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		fn(tx)
@@ -137,7 +148,28 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
-			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+			// ignore errors, access key is not required
+			authned, _ := requireAccessKey(tx, c.Request)
+
+			org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
+			if err != nil {
+				logging.L.Warn().Err(err).Msg("org validation failed")
+				sendAPIError(c, internal.ErrBadRequest)
+				return
+			}
+
+			// See this diagram for more details about this request flow
+			// when an org is not specified.
+			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
+
+			// TODO: use an explicit setting for this, don't overload EnableSignup
+			if org == nil && !srv.options.EnableSignup { // is single tenant
+				org = srv.db.DefaultOrg
+			}
+			if org != nil {
+				c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
+				tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+			}
 
 			rCtx := access.RequestContext{
 				Request: c.Request,
@@ -157,35 +189,10 @@ func orgRequired() gin.HandlerFunc {
 
 		if org == nil {
 			sendAPIError(c, internal.ErrBadRequest)
-		}
-	}
-}
-
-func setOrganizationInCtx(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: use a transaction
-		org, err := getOrgFromRequest(c.Request, srv.DB())
-		if err != nil {
-			c.Next()
 			return
-		}
-
-		if org == nil && !srv.options.EnableSignup { // !saas
-			org = srv.db.DefaultOrg
-		}
-
-		if org != nil {
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 		}
 		c.Next()
 	}
-}
-
-func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
-	if orgName := req.Header.Get("Infra-Organization"); orgName != "" {
-		return data.GetOrganization(tx, data.ByName(orgName))
-	}
-	return getOrgFromHost(req, tx)
 }
 
 // requireAccessKey checks the bearer token is present and valid
@@ -272,7 +279,7 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 	return rCtx
 }
 
-func getOrgFromHost(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
 	host := req.Host
 
 	logging.Debugf("Host: %s", host)
