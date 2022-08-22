@@ -92,6 +92,11 @@ func (d *DB) QueryRow(query string, args ...any) *sql.Row {
 	return d.DB.Raw(query, args...).Row()
 }
 
+// OrganizationID returns 0, a whole DB should not be scoped to an org.
+func (d *DB) OrganizationID() uid.ID {
+	return 0
+}
+
 type WriteTxn interface {
 	ReadTxn
 	Exec(sql string, values ...interface{}) (sql.Result, error)
@@ -101,6 +106,41 @@ type ReadTxn interface {
 	DriverName() string
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
+
+	OrganizationID() uid.ID
+}
+
+// GormTxn is used as a shim in preparation for removing gorm.
+type GormTxn interface {
+	WriteTxn
+
+	GormDB() *gorm.DB
+}
+
+type Transaction struct {
+	*gorm.DB
+	orgID uid.ID
+}
+
+func (t *Transaction) OrganizationID() uid.ID {
+	return t.orgID
+}
+
+func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
+	db := t.DB.Exec(query, args...)
+	return driver.RowsAffected(db.RowsAffected), db.Error
+}
+
+func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
+	return t.DB.Raw(query, args...).Rows()
+}
+
+func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
+	return t.DB.Raw(query, args...).Row()
+}
+
+func (t *Transaction) GormDB() *gorm.DB {
+	return t.DB
 }
 
 // newRawDB creates a new database connection without running migrations.

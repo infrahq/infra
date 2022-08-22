@@ -122,12 +122,6 @@ func ByIdentityID(identityID uid.ID) SelectorFunc {
 	}
 }
 
-func ByUserID(userID uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("user_id = ?", userID)
-	}
-}
-
 func ByNotExpiredOrExtended() SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		query := strings.Builder{}
@@ -154,23 +148,9 @@ func CreatedBy(id uid.ID) SelectorFunc {
 	}
 }
 
-func OrderBy(order string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Order(order)
-	}
-}
-
 func Limit(limit int) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Limit(limit)
-	}
-}
-
-// NotCreatedBy filters out entities not created by the passed in ID
-func NotCreatedBy(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		// the created_by field is default 0 when not set by default
-		return db.Where("created_by != ?", id)
 	}
 }
 
