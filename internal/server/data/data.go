@@ -192,7 +192,7 @@ func initialize(db *DB) error {
 			Name:      models.DefaultOrganizationName,
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganizationAndSetContext(db, org); err != nil {
+		if err := CreateOrganization(db, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:

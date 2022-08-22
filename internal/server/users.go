@@ -12,7 +12,6 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -87,8 +86,9 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	if email.IsConfigured() {
-		org := data.MustGetOrgFromContext(c)
-		currentUser := access.GetRequestContext(c).Authenticated.User
+		rCtx := access.GetRequestContext(c)
+		org := rCtx.Authenticated.Organization
+		currentUser := rCtx.Authenticated.User
 
 		// hack because we don't have names.
 		fromName := buildNameFromEmail(currentUser.Name)

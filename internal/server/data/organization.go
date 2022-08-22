@@ -1,51 +1,20 @@
 package data
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-type orgCtxKey struct{}
-
-// OrgFromContext returns the Organization stored using WithOrg.
-func OrgFromContext(ctx context.Context) *models.Organization {
-	org, ok := ctx.Value(orgCtxKey{}).(*models.Organization)
-	if !ok {
-		return nil
-	}
-	return org
-}
-
-func MustGetOrgFromContext(ctx context.Context) *models.Organization {
-	org := OrgFromContext(ctx)
-	if org == nil {
-		panic("no organization found in context. this should never happen")
-	}
-	return org
-}
-
-// WithOrg sets an Organization in the context. The Organization will be used
-// by all query functions to insert, select, and modify entities within that
-// organization.
-func WithOrg(ctx context.Context, org *models.Organization) context.Context {
-	return context.WithValue(ctx, orgCtxKey{}, org)
-}
-
-// CreateOrganizationAndSetContext creates a new organization and sets the current db context to execute on this org
-func CreateOrganizationAndSetContext(tx GormTxn, org *models.Organization) error {
+// CreateOrganization creates a new organization and sets the current db context to execute on this org
+func CreateOrganization(tx GormTxn, org *models.Organization) error {
 	err := add(tx, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
 	}
 
-	db := tx.GormDB()
-	// TODO: remove
-	db.Statement.Context = WithOrg(db.Statement.Context, org)
-	// TODO: constructor?
-	tx = &Transaction{DB: db, orgID: org.ID}
+	tx = NewTransaction(tx.GormDB(), org.ID)
 
 	_, err = initializeSettings(tx)
 	if err != nil {

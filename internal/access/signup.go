@@ -27,7 +27,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
-	if err := data.CreateOrganizationAndSetContext(db, details.Org); err != nil {
+	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
 

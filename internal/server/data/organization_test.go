@@ -13,19 +13,15 @@ import (
 // PostgreSQL only has microsecond precision
 var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
-func TestCreateOrganizationAndSetContext(t *testing.T) {
+func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 
 		org := &models.Organization{Name: "syndicate", Domain: "syndicate-123"}
 
-		err := CreateOrganizationAndSetContext(db, org)
+		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
 
 		tx := &Transaction{DB: db.DB, orgID: org.ID}
-
-		// db context is set
-		ctxOrg := OrgFromContext(db.Statement.Context)
-		assert.DeepEqual(t, org, ctxOrg, cmpTimeWithDBPrecision)
 
 		// org is created
 		readOrg, err := GetOrganization(db, ByID(org.ID))

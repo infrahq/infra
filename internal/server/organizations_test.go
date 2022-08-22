@@ -21,7 +21,7 @@ func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
 			*orgs[i] = *o
 			continue
 		}
-		err = data.CreateOrganizationAndSetContext(db, orgs[i])
+		err = data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}
 }
