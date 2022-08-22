@@ -157,8 +157,7 @@ func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
 
-		// TODO: constructor
-		tx = &Transaction{DB: tx.GormDB(), orgID: t.OrganizationID}
+		tx = NewTransaction(tx.GormDB(), t.OrganizationID)
 		if err := SaveAccessKey(tx, t); err != nil {
 			return nil, err
 		}

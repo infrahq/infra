@@ -32,6 +32,10 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 	}
 
 	db = data.NewTransaction(db.GormDB(), details.Org.ID)
+	c.Set("db", db)
+	rCtx := GetRequestContext(c)
+	rCtx.DBTxn = db
+	c.Set(RequestContextKey, rCtx)
 
 	// check the admin user's password requirements against our basic password requirements
 	err := checkPasswordRequirements(db, details.Password)

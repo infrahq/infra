@@ -138,7 +138,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"ValidAuthCookie": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -162,7 +162,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"ValidSignupCookie": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -398,6 +398,7 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
 	createOrgs(t, db, otherOrg, org)
+	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	user := &models.Identity{
 		Name:               "userone@example.com",
@@ -521,6 +522,7 @@ func TestUnauthenticatedMiddleware(t *testing.T) {
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
 	createOrgs(t, db, otherOrg, org)
+	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	provider := &models.Provider{
 		Name:               "electric",

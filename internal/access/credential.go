@@ -111,13 +111,13 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 	return nil
 }
 
-func GetRequestContext(c *gin.Context) *RequestContext {
+func GetRequestContext(c *gin.Context) RequestContext {
 	if raw, ok := c.Get(RequestContextKey); ok {
 		if rCtx, ok := raw.(RequestContext); ok {
-			return &rCtx
+			return rCtx
 		}
 	}
-	return nil
+	return RequestContext{}
 }
 
 // list of valid special chars is from OWASP, wikipedia

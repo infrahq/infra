@@ -73,7 +73,9 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // possibly also of the destination.
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(db *gorm.DB) {
+
+			tx := data.NewTransaction(db, 0)
 			authned, err := requireAccessKey(c, tx, srv)
 			if err != nil {
 				sendAPIError(c, err)
@@ -86,9 +88,7 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				return
 			}
 
-			c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), authned.Organization))
-			tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
-
+			tx = data.NewTransaction(db, authned.Organization.ID)
 			rCtx := access.RequestContext{
 				Request:       c.Request,
 				DBTxn:         tx,
@@ -115,7 +115,7 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 //
 // Returns the organization from any source that is not nil, or an error if the
 // two sources do not match.
-func validateOrgMatchesRequest(req *http.Request, tx *gorm.DB, accessKeyOrg *models.Organization) (*models.Organization, error) {
+func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg *models.Organization) (*models.Organization, error) {
 	orgFromRequest, err := getOrgFromRequest(req, tx)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,8 @@ func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
 
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
+		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(db *gorm.DB) {
+			tx := data.NewTransaction(db, 0)
 			// ignore errors, access key is not required
 			authned, _ := requireAccessKey(c, tx, srv)
 
@@ -157,6 +158,7 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				sendAPIError(c, internal.ErrBadRequest)
 				return
 			}
+			authned.Organization = org
 
 			// See this diagram for more details about this request flow
 			// when an org is not specified.
@@ -167,13 +169,14 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				org = srv.db.DefaultOrg
 			}
 			if org != nil {
-				c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
-				tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+				authned.Organization = org
+				tx = data.NewTransaction(db, org.ID)
 			}
 
 			rCtx := access.RequestContext{
-				Request: c.Request,
-				DBTxn:   tx,
+				Request:       c.Request,
+				DBTxn:         tx,
+				Authenticated: authned,
 			}
 			c.Set(access.RequestContextKey, rCtx)
 			// TODO: remove once everything uses RequestContext
@@ -185,9 +188,9 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 
 func orgRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		org := data.OrgFromContext(c.Request.Context())
+		rCtx := getRequestContext(c)
 
-		if org == nil {
+		if rCtx.Authenticated.Organization == nil {
 			sendAPIError(c, internal.ErrBadRequest)
 			return
 		}
