@@ -166,8 +166,8 @@ func New(options Options) (*Server, error) {
 
 // DB returns an instance of a database connection pool that is used by the server.
 // It is primarily used by tests to create fixture data.
-func (s *Server) DB() *gorm.DB {
-	return s.db.DB
+func (s *Server) DB() data.GormTxn {
+	return s.db
 }
 
 func (s *Server) Run(ctx context.Context) error {
@@ -362,7 +362,7 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 var dbKeyName = "dbkey"
 
 // load encrypted db key from database
-func (s *Server) loadDBKey(db *gorm.DB) error {
+func (s *Server) loadDBKey(db data.GormTxn) error {
 	provider, ok := s.keys[s.options.DBEncryptionKeyProvider]
 	if !ok {
 		return fmt.Errorf("key provider %s not configured", s.options.DBEncryptionKeyProvider)
@@ -388,7 +388,7 @@ func (s *Server) loadDBKey(db *gorm.DB) error {
 }
 
 // creates db key
-func createDBKey(db *gorm.DB, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
+func createDBKey(db data.GormTxn, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
 	sKey, err := provider.GenerateDataKey(rootKeyId)
 	if err != nil {
 		return err

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
 
@@ -17,7 +16,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	run := func(db *gorm.DB, s string) []byte {
+	run := func(db data.GormTxn, s string) []byte {
 		patchProductVersion(t, "9.9.9")
 		registry := setupMetrics(db)
 
@@ -36,14 +35,14 @@ func TestMetrics(t *testing.T) {
 	}
 
 	t.Run("build info", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 		actual := run(db, `build_info({.*})? \d+`)
 		expected := `build_info{branch="main",commit="",date="",version="9.9.9"} 1`
 		assert.Equal(t, string(actual), expected)
 	})
 
 	t.Run("infra users", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 
 		assert.NilError(t, data.CreateIdentity(db, &models.Identity{Name: "1"}))
 		assert.NilError(t, data.CreateIdentity(db, &models.Identity{Name: "2"}))
@@ -54,7 +53,7 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("infra groups", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 
 		assert.NilError(t, data.CreateGroup(db, &models.Group{Name: "heroes"}))
 		assert.NilError(t, data.CreateGroup(db, &models.Group{Name: "villains"}))
@@ -64,14 +63,14 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("infra grants", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 
 		actual := run(db, `infra_grants({.*})? \d+`)
 		golden.Assert(t, string(actual), t.Name())
 	})
 
 	t.Run("infra providers", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 
 		assert.NilError(t, data.CreateProvider(db, &models.Provider{Name: "oidc", Kind: "oidc"}))
 		assert.NilError(t, data.CreateProvider(db, &models.Provider{Name: "okta", Kind: "okta"}))
@@ -84,7 +83,7 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("infra destinations", func(t *testing.T) {
-		db := setupDB(t).DB
+		db := setupDB(t)
 
 		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()}))
 		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)}))

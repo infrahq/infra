@@ -196,7 +196,7 @@ func orgRequired() gin.HandlerFunc {
 }
 
 // requireAccessKey checks the bearer token is present and valid
-func requireAccessKey(c *gin.Context, db *gorm.DB, srv *Server) (access.Authenticated, error) {
+func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Authenticated, error) {
 	var u access.Authenticated
 
 	bearer, err := reqBearerToken(c, srv.options.BaseDomain)
@@ -225,7 +225,7 @@ func requireAccessKey(c *gin.Context, db *gorm.DB, srv *Server) (access.Authenti
 	}
 
 	// now that the org is loaded scope all db calls to that org
-	db.Statement.Context = data.WithOrg(db.Statement.Context, org)
+	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {
@@ -263,7 +263,7 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 	return rCtx
 }
 
-func getOrgFromRequest(req *http.Request, tx *gorm.DB) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx data.GormTxn) (*models.Organization, error) {
 	host := req.Host
 
 	logging.Debugf("Host: %s", host)

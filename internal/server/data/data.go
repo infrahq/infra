@@ -28,7 +28,7 @@ import (
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, error) {
+func NewDB(connection gorm.Dialector, loadDBKey func(db GormTxn) error) (*DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
@@ -43,7 +43,7 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 			}
 			// TODO: use the passed in tx instead of dataDB once the queries
 			// used by loadDBKey are ported to sql
-			return loadDBKey(dataDB.DB)
+			return loadDBKey(dataDB)
 		},
 	}
 	m := migrator.New(dataDB, opts, migrations())
@@ -441,7 +441,8 @@ func deleteAll[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) error 
 }
 
 // GlobalCount gives the count of all records, not scoped by org.
-func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
+func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int64, error) {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}

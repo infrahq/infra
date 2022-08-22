@@ -608,8 +608,8 @@ func (s Server) loadConfig(config Config) error {
 		return err
 	}
 
-	return s.db.Transaction(func(tx *gorm.DB) error {
-		tx.Statement.Context = data.WithOrg(tx.Statement.Context, org)
+	return s.db.Transaction(func(db *gorm.DB) error {
+		tx := data.NewTransaction(db, org.ID)
 
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{
@@ -654,7 +654,7 @@ func (s Server) loadConfig(config Config) error {
 	})
 }
 
-func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
+func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {
 	keep := []uid.ID{}
 
 	for _, p := range providers {
@@ -674,7 +674,7 @@ func (s Server) loadProviders(db *gorm.DB, providers []Provider) error {
 	return nil
 }
 
-func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error) {
+func (Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, error) {
 	// provider kind is an optional field
 	kind, err := models.ParseProviderKind(input.Kind)
 	if err != nil {
@@ -748,7 +748,7 @@ func (Server) loadProvider(db *gorm.DB, input Provider) (*models.Provider, error
 	return provider, nil
 }
 
-func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
+func (s Server) loadGrants(db data.GormTxn, grants []Grant) error {
 	keep := make([]uid.ID, 0, len(grants))
 
 	for _, g := range grants {
@@ -768,7 +768,7 @@ func (s Server) loadGrants(db *gorm.DB, grants []Grant) error {
 	return nil
 }
 
-func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
+func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 	var id uid.PolymorphicID
 
 	switch {
@@ -840,7 +840,7 @@ func (Server) loadGrant(db *gorm.DB, input Grant) (*models.Grant, error) {
 	return grant, nil
 }
 
-func (s Server) loadUsers(db *gorm.DB, users []User) error {
+func (s Server) loadUsers(db data.GormTxn, users []User) error {
 	keep := make([]uid.ID, 0, len(users)+1)
 
 	for _, i := range users {
@@ -860,7 +860,7 @@ func (s Server) loadUsers(db *gorm.DB, users []User) error {
 	return nil
 }
 
-func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
+func (s Server) loadUser(db data.GormTxn, input User) (*models.Identity, error) {
 	identity, err := data.GetIdentity(db, data.ByName(input.Name))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
@@ -895,7 +895,7 @@ func (s Server) loadUser(db *gorm.DB, input User) (*models.Identity, error) {
 	return identity, nil
 }
 
-func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, password string) error {
+func (s Server) loadCredential(db data.GormTxn, identity *models.Identity, password string) error {
 	if password == "" {
 		return nil
 	}
@@ -941,7 +941,7 @@ func (s Server) loadCredential(db *gorm.DB, identity *models.Identity, password 
 	return nil
 }
 
-func (s Server) loadAccessKey(db *gorm.DB, identity *models.Identity, key string) error {
+func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key string) error {
 	if key == "" {
 		return nil
 	}

@@ -3,7 +3,6 @@ package server
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
@@ -11,11 +10,11 @@ import (
 	"github.com/infrahq/infra/metrics"
 )
 
-func setupMetrics(db *gorm.DB) *prometheus.Registry {
+func setupMetrics(db data.GormTxn) *prometheus.Registry {
 	registry := metrics.NewRegistry(productVersion())
 
-	if rawDB, err := db.DB(); err == nil {
-		registry.MustRegister(collectors.NewDBStatsCollector(rawDB, db.Dialector.Name()))
+	if sqlDB, err := db.GormDB().DB(); err == nil {
+		registry.MustRegister(collectors.NewDBStatsCollector(sqlDB, db.DriverName()))
 	}
 
 	registry.MustRegister(metrics.NewCollector(prometheus.Opts{

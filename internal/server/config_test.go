@@ -435,7 +435,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	err = s.db.Where("name = ?", "okta").First(&okta).Error
 	assert.NilError(t, err)
 
-	defaultOrg := data.MustGetOrgFromContext(s.DB().Statement.Context)
+	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              okta.Model,     // not relevant
 		CreatedBy:          okta.CreatedBy, // not relevant
@@ -848,7 +848,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err = s.db.Where("name = ?", "atko").First(&provider).Error
 	assert.NilError(t, err)
 
-	defaultOrg := data.MustGetOrgFromContext(s.DB().Statement.Context)
+	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              provider.Model,     // not relevant
 		CreatedBy:          provider.CreatedBy, // not relevant
@@ -939,11 +939,12 @@ func TestLoadAccessKey(t *testing.T) {
 }
 
 // getTestUserDetails gets the attributes of a user created from a config file
-func getTestUserDetails(db *gorm.DB, name string) (*models.Identity, *models.Credential, *models.AccessKey, error) {
+func getTestUserDetails(tx data.GormTxn, name string) (*models.Identity, *models.Credential, *models.AccessKey, error) {
 	var user models.Identity
 	var credential models.Credential
 	var accessKey models.AccessKey
 
+	db := tx.GormDB()
 	err := db.Where("name = ?", name).First(&user).Error
 	if err != nil {
 		return nil, nil, nil, err
