@@ -8,15 +8,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestSignup(t *testing.T) {
-	setup := func(t *testing.T) (*gin.Context, *gorm.DB) {
+	setup := func(t *testing.T) (*gin.Context, data.GormTxn) {
 		db := setupDB(t)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = (&http.Request{}).WithContext(context.Background())

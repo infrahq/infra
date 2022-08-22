@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
@@ -88,7 +87,7 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 	return data.DeleteGroups(db, selectors...)
 }
 
-func checkIdentitiesInList(db *gorm.DB, ids []uid.ID) ([]uid.ID, error) {
+func checkIdentitiesInList(db data.GormTxn, ids []uid.ID) ([]uid.ID, error) {
 	identities, err := data.ListIdentities(db, nil, data.ByIDs(ids))
 	if err != nil {
 		return nil, err

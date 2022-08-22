@@ -43,7 +43,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		return nil, HandleAuthErr(err, "user", "get", roles...)
 	}
 
-	return data.GetIdentity(db.Preload("Providers"), data.ByID(id))
+	return data.GetIdentity(db, data.Preload("Providers"), data.ByID(id))
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -122,6 +122,7 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 	}
 
 	selectors := []data.SelectorFunc{
+		data.Preload("Providers"),
 		data.ByOptionalName(name),
 		data.ByOptionalIDs(ids),
 		data.ByOptionalIdentityGroupID(groupID),
@@ -131,7 +132,7 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 		selectors = append(selectors, data.NotName(models.InternalInfraConnectorIdentityName))
 	}
 
-	return data.ListIdentities(db.Preload("Providers"), p, selectors...)
+	return data.ListIdentities(db, p, selectors...)
 }
 
 func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {

@@ -7,14 +7,12 @@ import (
 	"unicode"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
@@ -137,7 +135,7 @@ func hasMinimumCount(min int, password string, check func(rune) bool) bool {
 	return count >= min
 }
 
-func checkPasswordRequirements(db *gorm.DB, password string) error {
+func checkPasswordRequirements(db data.GormTxn, password string) error {
 	settings, err := data.GetSettings(db)
 	if err != nil {
 		return err

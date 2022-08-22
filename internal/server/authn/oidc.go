@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -31,7 +29,7 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 	}
 }
 
-func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *oidcAuthn) Authenticate(ctx context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
 	if err != nil {
 		return AuthenticatedIdentity{}, err
@@ -47,7 +45,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *gorm.DB, requestedExpi
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	identity, err := data.GetIdentity(db.Preload("Groups"), data.ByName(email))
+	identity, err := data.GetIdentity(db, data.Preload("Groups"), data.ByName(email))
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return AuthenticatedIdentity{}, fmt.Errorf("get user: %w", err)
@@ -91,6 +89,6 @@ func (a *oidcAuthn) Name() string {
 	return "oidc"
 }
 
-func (a *oidcAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
+func (a *oidcAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
 	return false, nil // not applicable to oidc
 }

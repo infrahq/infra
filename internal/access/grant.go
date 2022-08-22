@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -75,7 +74,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 	return data.ListGrants(db, p, selectors...)
 }
 
-func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
+func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
 	groups, err := data.ListGroups(db, &models.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
 	if err != nil {
 		return false
@@ -90,7 +89,7 @@ func userInGroup(db *gorm.DB, authnUserID uid.ID, groupID uid.ID) bool {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	var db *gorm.DB
+	var db data.GormTxn
 	var err error
 
 	if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {

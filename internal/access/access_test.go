@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -18,7 +17,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T) *gorm.DB {
+func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_access")
 	if driver == nil {
@@ -30,10 +29,10 @@ func setupDB(t *testing.T) *gorm.DB {
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
-	return db.DB
+	return db
 }
 
-func setupAccessTestContext(t *testing.T) (*gin.Context, *gorm.DB, *models.Provider) {
+func setupAccessTestContext(t *testing.T) (*gin.Context, *data.DB, *models.Provider) {
 	// setup db and context
 	db := setupDB(t)
 
@@ -173,7 +172,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db *data.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,
@@ -183,13 +182,13 @@ func grant(t *testing.T, db *gorm.DB, currentUser *models.Identity, subject uid.
 	assert.NilError(t, err)
 }
 
-func can(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
+func can(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, subject, privilege, resource)
 	assert.NilError(t, err)
 	assert.Assert(t, canAccess)
 }
 
-func cant(t *testing.T, db *gorm.DB, subject uid.PolymorphicID, privilege, resource string) {
+func cant(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
 	canAccess, err := Can(db, subject, privilege, resource)
 	assert.NilError(t, err)
 	assert.Assert(t, !canAccess)
