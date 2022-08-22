@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/ssoroka/slice"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -30,7 +29,7 @@ func TestIdentity(t *testing.T) {
 	})
 }
 
-func createIdentities(t *testing.T, db *gorm.DB, identities ...*models.Identity) {
+func createIdentities(t *testing.T, db GormTxn, identities ...*models.Identity) {
 	t.Helper()
 	for i := range identities {
 		err := CreateIdentity(db, identities[i])

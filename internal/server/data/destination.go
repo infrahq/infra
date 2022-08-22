@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -32,15 +30,15 @@ func SaveDestination(db GormTxn, destination *models.Destination) error {
 	return save(db, destination)
 }
 
-func GetDestination(db *gorm.DB, selectors ...SelectorFunc) (*models.Destination, error) {
+func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination, error) {
 	return get[models.Destination](db, selectors...)
 }
 
-func ListDestinations(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
+func ListDestinations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
 	return list[models.Destination](db, p, selectors...)
 }
 
-func DeleteDestinations(db *gorm.DB, selector SelectorFunc) error {
+func DeleteDestinations(db GormTxn, selector SelectorFunc) error {
 	toDelete, err := ListDestinations(db, nil, selector)
 	if err != nil {
 		return err
@@ -64,7 +62,8 @@ type destinationsCount struct {
 	Count     float64
 }
 
-func CountDestinationsByConnectedVersion(db *gorm.DB) ([]destinationsCount, error) {
+func CountDestinationsByConnectedVersion(tx GormTxn) ([]destinationsCount, error) {
+	db := tx.GormDB()
 	var results []destinationsCount
 	timeout := time.Now().Add(-5 * time.Minute)
 	if err := db.Raw("SELECT *, COUNT(*) AS count FROM (SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected FROM destinations WHERE deleted_at IS NULL) AS d GROUP BY version, connected", timeout).Scan(&results).Error; err != nil {

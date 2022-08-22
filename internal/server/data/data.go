@@ -180,7 +180,7 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 }
 
 func initialize(db *DB) error {
-	org, err := GetOrganization(db.DB, ByName(models.DefaultOrganizationName))
+	org, err := GetOrganization(db, ByName(models.DefaultOrganizationName))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
@@ -195,7 +195,7 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-	db.DefaultOrgSettings, err = getSettingsForOrg(db.DB, org.ID)
+	db.DefaultOrgSettings, err = getSettingsForOrg(db, org.ID)
 	if err != nil {
 		return fmt.Errorf("getting settings: %w", err)
 	}
@@ -234,14 +234,15 @@ func getDefaultSortFromType(t interface{}) string {
 	return "id ASC"
 }
 
-func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
+func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 
 	result := new(T)
 	if isOrgMember(result) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
@@ -274,13 +275,14 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](tx GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+	db := tx.GormDB()
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	if p != nil {
@@ -413,19 +415,21 @@ func handleError(err error) error {
 	return err
 }
 
-func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
+func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
+	db := tx.GormDB()
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 	return db.Delete(new(T), id).Error
 }
 
-func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error {
+func deleteAll[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) error {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	return db.Delete(new(T)).Error
@@ -447,9 +451,8 @@ func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (in
 
 // InfraProvider returns the infra provider for the organization set in the db
 // context.
-func InfraProvider(db *gorm.DB) *models.Provider {
-	org := MustGetOrgFromContext(db.Statement.Context)
-	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
+func InfraProvider(db GormTxn) *models.Provider {
+	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(db.OrganizationID()))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
 		return nil // unreachable, the line above panics
@@ -459,9 +462,8 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 
 // InfraConnectorIdentity returns the connector identity for the organization set
 // in the db context.
-func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
-	org := MustGetOrgFromContext(db.Statement.Context)
-	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(org.ID))
+func InfraConnectorIdentity(db GormTxn) *models.Identity {
+	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(db.OrganizationID()))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 		return nil // unreachable, the line above panics

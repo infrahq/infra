@@ -7,16 +7,13 @@ import (
 	"encoding/base64"
 
 	"gopkg.in/square/go-jose.v2"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func initializeSettings(db *gorm.DB) (*models.Settings, error) {
-	org := MustGetOrgFromContext(db.Statement.Context)
-
-	settings, err := GetSettings(db)
+func initializeSettings(tx GormTxn) (*models.Settings, error) {
+	settings, err := GetSettings(tx)
 	if settings != nil {
 		return settings, err
 	}
@@ -48,25 +45,26 @@ func initializeSettings(db *gorm.DB) (*models.Settings, error) {
 	}
 
 	settings = &models.Settings{
-		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		OrganizationMember: models.OrganizationMember{OrganizationID: tx.OrganizationID()},
 		PrivateJWK:         secs,
 		PublicJWK:          pubs,
 	}
 
+	db := tx.GormDB()
 	// Attrs() assigns the field iff the record is not found
-	if err := db.Where("organization_id = ?", org.ID).FirstOrCreate(&settings).Error; err != nil {
+	if err := db.Where("organization_id = ?", tx.OrganizationID()).FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
 
 	return settings, nil
 }
 
-func GetSettings(db *gorm.DB) (*models.Settings, error) {
-	org := MustGetOrgFromContext(db.Statement.Context)
-	return getSettingsForOrg(db, org.ID)
+func GetSettings(db GormTxn) (*models.Settings, error) {
+	return getSettingsForOrg(db, db.OrganizationID())
 }
 
-func getSettingsForOrg(db *gorm.DB, orgID uid.ID) (*models.Settings, error) {
+func getSettingsForOrg(tx GormTxn, orgID uid.ID) (*models.Settings, error) {
+	db := tx.GormDB()
 	var settings models.Settings
 	if err := db.Where("organization_id = ?", orgID).First(&settings).Error; err != nil {
 		return nil, err
@@ -78,7 +76,7 @@ func getSettingsForOrg(db *gorm.DB, orgID uid.ID) (*models.Settings, error) {
 func SaveSettings(db GormTxn, settings *models.Settings) error {
 	// TODO: clean this up by having the query use the organization_id instead of the
 	// primary key in the WHERE.
-	existing, err := GetSettings(db.GormDB())
+	existing, err := GetSettings(db)
 	if err != nil {
 		return err
 	}

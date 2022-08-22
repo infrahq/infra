@@ -68,7 +68,7 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 			accessKey.ID = uid.New()
 		}
 
-		identityIssuedFor, err := GetIdentity(db.GormDB(), ByID(accessKey.IssuedFor))
+		identityIssuedFor, err := GetIdentity(db, ByID(accessKey.IssuedFor))
 		if err != nil {
 			return "", fmt.Errorf("key name from identity: %w", err)
 		}
@@ -91,11 +91,12 @@ func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+func ListAccessKeys(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
 	return list[models.AccessKey](db, p, selectors...)
 }
 
-func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
+func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, error) {
+	db := tx.GormDB()
 	// GetAccessKey by keyID needs to not set an organization_id in the query.
 	// keyID should be globally unique.
 	for _, selector := range selectors {
@@ -111,11 +112,11 @@ func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, er
 	return result, nil
 }
 
-func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
+func DeleteAccessKey(db GormTxn, id uid.ID) error {
 	return delete[models.AccessKey](db, id)
 }
 
-func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteAccessKeys(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := list[models.AccessKey](db, nil, selectors...)
 	if err != nil {
 		return err
@@ -129,13 +130,12 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 }
 
 func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
-	db := tx.GormDB()
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(db, ByKeyID(keyID))
+	t, err := GetAccessKey(tx, ByKeyID(keyID))
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
@@ -156,15 +156,9 @@ func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-		// if the context wasn't set already, set it from the key so we can save
-		org := OrgFromContext(db.Statement.Context)
-		if org == nil {
-			org, err = GetOrganization(db, ByID(t.OrganizationID))
-			if err != nil {
-				return nil, fmt.Errorf("loading organization: %w", err)
-			}
-			db.Statement.Context = WithOrg(db.Statement.Context, org)
-		}
+
+		// TODO: constructor
+		tx = &Transaction{DB: tx.GormDB(), orgID: t.OrganizationID}
 		if err := SaveAccessKey(tx, t); err != nil {
 			return nil, err
 		}

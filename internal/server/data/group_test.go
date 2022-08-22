@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -39,7 +38,7 @@ func TestCreateGroup(t *testing.T) {
 	})
 }
 
-func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
+func createGroups(t *testing.T, db GormTxn, groups ...*models.Group) {
 	t.Helper()
 	for i := range groups {
 		err := CreateGroup(db, groups[i])

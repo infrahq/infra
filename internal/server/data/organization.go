@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -49,7 +47,7 @@ func CreateOrganizationAndSetContext(tx GormTxn, org *models.Organization) error
 	// TODO: constructor?
 	tx = &Transaction{DB: db, orgID: org.ID}
 
-	_, err = initializeSettings(db)
+	_, err = initializeSettings(tx)
 	if err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}
@@ -85,15 +83,15 @@ func CreateOrganizationAndSetContext(tx GormTxn, org *models.Organization) error
 	return nil
 }
 
-func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {
+func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organization, error) {
 	return get[models.Organization](db, selectors...)
 }
 
-func ListOrganizations(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
+func ListOrganizations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
 	return list[models.Organization](db, p, selectors...)
 }
 
-func DeleteOrganizations(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := GetOrganization(db, selectors...)
 	if err != nil {
 		return err

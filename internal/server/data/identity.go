@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ssoroka/slice"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -13,7 +12,7 @@ import (
 
 func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
 	db := tx.GormDB()
-	pu, err := GetProviderUser(db, provider.ID, user.ID)
+	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -99,19 +98,20 @@ func CreateIdentity(db GormTxn, identity *models.Identity) error {
 	return add(db, identity)
 }
 
-func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, error) {
+func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error) {
 	return get[models.Identity](db, selectors...)
 }
 
-func ListIdentities(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
+func ListIdentities(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
 	return list[models.Identity](db, p, selectors...)
 }
 
-func DeleteIdentity(db *gorm.DB, id uid.ID) error {
+func DeleteIdentity(db GormTxn, id uid.ID) error {
 	return delete[models.Identity](db, id)
 }
 
-func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
+	db := tx.GormDB()
 	toDelete, err := ListIdentities(db.Select("id"), nil, selectors...)
 	if err != nil {
 		return err
@@ -121,25 +121,25 @@ func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, i := range toDelete {
 		ids = append(ids, i.ID)
 
-		err := DeleteGrants(db, BySubject(i.PolyID()))
+		err := DeleteGrants(tx, BySubject(i.PolyID()))
 		if err != nil {
 			return err
 		}
 
-		groups, err := ListGroups(db, nil, ByGroupMember(i.ID))
+		groups, err := ListGroups(tx, nil, ByGroupMember(i.ID))
 		if err != nil {
 			return err
 		}
 
 		for _, group := range groups {
-			err = RemoveUsersFromGroup(db, group.ID, []uid.ID{i.ID})
+			err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	return deleteAll[models.Identity](db, ByIDs(ids))
+	return deleteAll[models.Identity](tx, ByIDs(ids))
 }
 
 func SaveIdentity(db GormTxn, identity *models.Identity) error {

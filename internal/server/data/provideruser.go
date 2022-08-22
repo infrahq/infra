@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
@@ -31,7 +29,7 @@ func validateProviderUser(u *models.ProviderUser) error {
 }
 
 func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
-	pu, err := get[models.ProviderUser](db.GormDB(), ByIdentityID(ident.ID), ByProviderID(provider.ID))
+	pu, err := get[models.ProviderUser](db, ByIdentityID(ident.ID), ByProviderID(provider.ID))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return nil, err
 	}
@@ -59,20 +57,20 @@ func UpdateProviderUser(db GormTxn, providerUser *models.ProviderUser) error {
 	return save(db, providerUser)
 }
 
-func ListProviderUsers(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
+func ListProviderUsers(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
 	return list[models.ProviderUser](db, p, selectors...)
 }
 
-func DeleteProviderUsers(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteProviderUsers(db GormTxn, selectors ...SelectorFunc) error {
 	return deleteAll[models.ProviderUser](db, selectors...)
 }
 
-func GetProviderUser(db *gorm.DB, providerID, userID uid.ID) (*models.ProviderUser, error) {
+func GetProviderUser(db GormTxn, providerID, userID uid.ID) (*models.ProviderUser, error) {
 	return get[models.ProviderUser](db, ByProviderID(providerID), ByIdentityID(userID))
 }
 
 func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
-	providerUser, err := GetProviderUser(tx.GormDB(), provider.ID, user.ID)
+	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}

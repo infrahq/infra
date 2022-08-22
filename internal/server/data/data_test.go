@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -135,7 +134,9 @@ func TestDefaultSortFromType(t *testing.T) {
 func TestCreateTransactionError(t *testing.T) {
 	// on creation error (such as conflict) the database transaction should still be usable
 	runDBTests(t, func(t *testing.T, db *DB) {
-		err := db.Transaction(func(tx *gorm.DB) error {
+		err := db.Transaction(func(txDB *gorm.DB) error {
+			tx := &Transaction{DB: txDB}
+
 			g := &models.Grant{}
 			err := add(tx, g)
 			if err != nil {
@@ -157,13 +158,8 @@ func TestCreateTransactionError(t *testing.T) {
 
 func TestSetOrg(t *testing.T) {
 	model := &models.AccessKey{}
-	org := &models.Organization{}
-	org.ID = 123456
 
-	db := &gorm.DB{}
-	db.Statement = &gorm.Statement{
-		Context: WithOrg(context.Background(), org),
-	}
-	setOrg(db, model)
+	tx := &Transaction{orgID: 123456}
+	setOrg(tx, model)
 	assert.Equal(t, model.OrganizationID, uid.ID(123456))
 }

@@ -21,7 +21,7 @@ func CreateEncryptionKey(db GormTxn, key *models.EncryptionKey) (*models.Encrypt
 	return key, nil
 }
 
-func GetEncryptionKey(db *gorm.DB, selector SelectorFunc) (result *models.EncryptionKey, err error) {
+func GetEncryptionKey(db GormTxn, selector SelectorFunc) (result *models.EncryptionKey, err error) {
 	return get[models.EncryptionKey](db, selector)
 }
 

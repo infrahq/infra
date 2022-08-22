@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -84,7 +83,7 @@ func TestCreateAccessKey(t *testing.T) {
 	})
 }
 
-func createAccessKeyWithExtensionDeadline(t *testing.T, db *gorm.DB, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
+func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
 	err := CreateIdentity(db, identity)
 	assert.NilError(t, err)
@@ -203,7 +202,7 @@ func TestListAccessKeys(t *testing.T) {
 	})
 }
 
-func createTestAccessKey(t *testing.T, db *gorm.DB, sessionDuration time.Duration) (string, *models.AccessKey) {
+func createTestAccessKey(t *testing.T, db GormTxn, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.Identity{Name: "tmp@infrahq.com"}
 	err := CreateIdentity(db, user)
 	assert.NilError(t, err)
