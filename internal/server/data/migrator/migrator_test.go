@@ -1,6 +1,8 @@
 package migrator
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"os"
 	"path/filepath"
@@ -20,44 +22,50 @@ type database struct {
 var migrations = []*Migration{
 	{
 		ID: "201608301400",
-		Migrate: func(tx *gorm.DB) error {
-			return tx.Exec(Person{}.Schema()).Error
+		Migrate: func(tx DB) error {
+			_, err := tx.Exec(Person{}.Schema())
+			return err
 		},
-		Rollback: func(tx *gorm.DB) error {
-			return tx.Exec(`DROP TABLE IF EXISTS people`).Error
+		Rollback: func(tx DB) error {
+			_, err := tx.Exec(`DROP TABLE IF EXISTS people`)
+			return err
 		},
 	},
 	{
 		ID: "201608301430",
-		Migrate: func(tx *gorm.DB) error {
-			return tx.Exec(Pet{}.Schema()).Error
+		Migrate: func(tx DB) error {
+			_, err := tx.Exec(Pet{}.Schema())
+			return err
 		},
-		Rollback: func(tx *gorm.DB) error {
-			return tx.Exec(`DROP TABLE IF EXISTS pets`).Error
+		Rollback: func(tx DB) error {
+			_, err := tx.Exec(`DROP TABLE IF EXISTS pets`)
+			return err
 		},
 	},
 }
 
 var extendedMigrations = append(migrations, &Migration{
 	ID: "201807221927",
-	Migrate: func(tx *gorm.DB) error {
-		return tx.Exec(Book{}.Schema()).Error
+	Migrate: func(tx DB) error {
+		_, err := tx.Exec(Book{}.Schema())
+		return err
 	},
-	Rollback: func(tx *gorm.DB) error {
-		return tx.Exec(`DROP TABLE IF EXISTS books`).Error
+	Rollback: func(tx DB) error {
+		_, err := tx.Exec(`DROP TABLE IF EXISTS books`)
+		return err
 	},
 })
 
 var failingMigration = []*Migration{
 	{
 		ID: "201904231300",
-		Migrate: func(tx *gorm.DB) error {
-			if err := tx.Exec(Book{}.Schema()).Error; err != nil {
+		Migrate: func(tx DB) error {
+			if _, err := tx.Exec(Book{}.Schema()); err != nil {
 				return err
 			}
 			return errors.New("this transaction should be rolled back")
 		},
-		Rollback: func(tx *gorm.DB) error {
+		Rollback: func(tx DB) error {
 			return nil
 		},
 	},
@@ -116,7 +124,7 @@ CREATE TABLE books (
 }
 
 func TestMigration_RunsNewMigrations(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		initEmptyMigrations(t, db)
 		m := New(db, DefaultOptions, migrations)
 
@@ -143,22 +151,30 @@ func TestMigration_RunsNewMigrations(t *testing.T) {
 	})
 }
 
-func initEmptyMigrations(t *testing.T, db *gorm.DB) {
+func initEmptyMigrations(t *testing.T, db DB) {
 	t.Helper()
 	m := New(db, DefaultOptions, nil)
 	err := m.Migrate()
 	assert.NilError(t, err)
 }
 
-func migrationIDs(t *testing.T, db *gorm.DB) []string {
+func migrationIDs(t *testing.T, db DB) []string {
 	var ids []string
-	err := db.Raw(`SELECT id from migrations`).Scan(&ids).Error
+	rows, err := db.Query(`SELECT id from migrations`)
 	assert.NilError(t, err)
+
+	for rows.Next() {
+		var id string
+		assert.NilError(t, rows.Scan(&id))
+		ids = append(ids, id)
+	}
+
+	assert.NilError(t, rows.Close())
 	return ids
 }
 
 func TestRollbackTo(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		initEmptyMigrations(t, db)
 		m := New(db, DefaultOptions, extendedMigrations)
 
@@ -183,13 +199,13 @@ func TestRollbackTo(t *testing.T) {
 }
 
 func TestInitSchemaNoMigrations(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		m := New(db, DefaultOptions, []*Migration{})
-		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.Exec(Person{}.Schema()).Error; err != nil {
+		m.options.InitSchema = func(tx DB) error {
+			if _, err := tx.Exec(Person{}.Schema()); err != nil {
 				return err
 			}
-			if err := tx.Exec(Pet{}.Schema()).Error; err != nil {
+			if _, err := tx.Exec(Pet{}.Schema()); err != nil {
 				return err
 			}
 			return nil
@@ -206,10 +222,10 @@ func TestInitSchemaNoMigrations(t *testing.T) {
 // then initSchema is executed and the migration IDs are stored,
 // even though the relevant migrations are not applied.
 func TestInitSchemaWithMigrations(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		m := New(db, DefaultOptions, migrations)
-		m.options.InitSchema = func(tx *gorm.DB) error {
-			if err := tx.Exec(Person{}.Schema()).Error; err != nil {
+		m.options.InitSchema = func(tx DB) error {
+			if _, err := tx.Exec(Person{}.Schema()); err != nil {
 				return err
 			}
 			return nil
@@ -239,19 +255,20 @@ CREATE TABLE cars (
 // If the schema has already been initialised,
 // then initSchema() is not executed, even if defined.
 func TestInitSchemaAlreadyInitialised(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		m := New(db, DefaultOptions, []*Migration{})
 
 		// Migrate with empty initialisation
-		m.options.InitSchema = func(tx *gorm.DB) error {
+		m.options.InitSchema = func(tx DB) error {
 			return nil
 		}
 		assert.NilError(t, m.Migrate())
 
 		// Then migrate again, this time with a non-empty initialisation
 		// This second initialisation should not happen!
-		m.options.InitSchema = func(tx *gorm.DB) error {
-			return tx.Exec(Car{}.Schema()).Error
+		m.options.InitSchema = func(tx DB) error {
+			_, err := tx.Exec(Car{}.Schema())
+			return err
 		}
 		assert.NilError(t, m.Migrate())
 
@@ -264,7 +281,7 @@ func TestInitSchemaAlreadyInitialised(t *testing.T) {
 // but any other migration has already been applied,
 // then initSchema() is not executed, even if defined.
 func TestInitSchemaExistingMigrations(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		m := New(db, DefaultOptions, migrations)
 
 		// Migrate without initialisation
@@ -272,8 +289,9 @@ func TestInitSchemaExistingMigrations(t *testing.T) {
 
 		// Then migrate again, this time with a non-empty initialisation
 		// This initialisation should not happen!
-		m.options.InitSchema = func(tx *gorm.DB) error {
-			return tx.Exec(Car{}.Schema()).Error
+		m.options.InitSchema = func(tx DB) error {
+			_, err := tx.Exec(Car{}.Schema())
+			return err
 		}
 		assert.NilError(t, m.Migrate())
 
@@ -284,10 +302,10 @@ func TestInitSchemaExistingMigrations(t *testing.T) {
 }
 
 func TestMissingID(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		migrationsMissingID := []*Migration{
 			{
-				Migrate: func(tx *gorm.DB) error {
+				Migrate: func(tx DB) error {
 					return nil
 				},
 			},
@@ -299,11 +317,11 @@ func TestMissingID(t *testing.T) {
 }
 
 func TestReservedID(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		migrationsReservedID := []*Migration{
 			{
 				ID: "SCHEMA_INIT",
-				Migrate: func(tx *gorm.DB) error {
+				Migrate: func(tx DB) error {
 					return nil
 				},
 			},
@@ -316,17 +334,17 @@ func TestReservedID(t *testing.T) {
 }
 
 func TestDuplicatedID(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		migrationsDuplicatedID := []*Migration{
 			{
 				ID: "201705061500",
-				Migrate: func(tx *gorm.DB) error {
+				Migrate: func(tx DB) error {
 					return nil
 				},
 			},
 			{
 				ID: "201705061500",
-				Migrate: func(tx *gorm.DB) error {
+				Migrate: func(tx DB) error {
 					return nil
 				},
 			},
@@ -338,54 +356,8 @@ func TestDuplicatedID(t *testing.T) {
 	})
 }
 
-func TestMigration_WithUseTransactions(t *testing.T) {
-	options := DefaultOptions
-	options.UseTransaction = true
-
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		initEmptyMigrations(t, db)
-		m := New(db, options, migrations)
-
-		err := m.Migrate()
-		assert.NilError(t, err)
-		assert.Assert(t, HasTable(db, "people"))
-		assert.Assert(t, HasTable(db, "pets"))
-		expected := []string{initSchemaMigrationID, "201608301400", "201608301430"}
-		assert.DeepEqual(t, migrationIDs(t, db), expected)
-
-		err = m.RollbackTo(migrations[len(migrations)-2].ID)
-		assert.NilError(t, err)
-		assert.Assert(t, HasTable(db, "people"))
-		assert.Assert(t, !HasTable(db, "pets"))
-		expected = []string{initSchemaMigrationID, "201608301400"}
-		assert.DeepEqual(t, migrationIDs(t, db), expected)
-
-		err = m.RollbackTo(initSchemaMigrationID)
-		assert.NilError(t, err)
-		assert.Assert(t, !HasTable(db, "people"))
-		assert.Assert(t, !HasTable(db, "pets"))
-		expected = []string{initSchemaMigrationID}
-		assert.DeepEqual(t, migrationIDs(t, db), expected)
-	})
-}
-
-func TestMigration_WithUseTransactionsShouldRollback(t *testing.T) {
-	options := DefaultOptions
-	options.UseTransaction = true
-
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		initEmptyMigrations(t, db)
-		m := New(db, options, failingMigration)
-
-		// Migration should return an error and not leave around a Book table
-		err := m.Migrate()
-		assert.ErrorContains(t, err, "this transaction should be rolled back")
-		assert.Assert(t, !HasTable(db, "books"))
-	})
-}
-
 func TestMigrate_WithUnknownMigrationsInTable(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		options := DefaultOptions
 		m := New(db, options, migrations)
 
@@ -397,14 +369,14 @@ func TestMigrate_WithUnknownMigrationsInTable(t *testing.T) {
 	})
 }
 
-func migrationCount(t *testing.T, db *gorm.DB) (count int64) {
+func migrationCount(t *testing.T, db DB) (count int64) {
 	t.Helper()
-	err := db.Raw(`SELECT count(id) from migrations`).Scan(&count).Error
+	err := db.QueryRow(`SELECT count(id) from migrations`).Scan(&count)
 	assert.NilError(t, err)
 	return count
 }
 
-func runDBTests(t *testing.T, fn func(t *testing.T, db *gorm.DB)) {
+func runDBTests(t *testing.T, fn func(t *testing.T, db DB)) {
 	dir := t.TempDir()
 
 	databases := []database{
@@ -423,20 +395,40 @@ func runDBTests(t *testing.T, fn func(t *testing.T, db *gorm.DB)) {
 			db, err := gorm.Open(database.driver, &gorm.Config{})
 			assert.NilError(t, err, "Could not connect to database %s, %v", database.dialect, err)
 
-			for _, table := range []string{"migrations", "people", "pets"} {
+			for _, table := range []string{"migrations", "people", "pets", "books"} {
 				err := db.Exec(`DROP TABLE IF EXISTS ` + table).Error
 				assert.NilError(t, err)
 			}
 
-			fn(t, db)
+			fn(t, gormDBShim{DB: db})
 		})
 	}
 }
 
+type gormDBShim struct {
+	*gorm.DB
+}
+
+func (d gormDBShim) DriverName() string {
+	return d.Dialector.Name()
+}
+
+func (d gormDBShim) Exec(query string, args ...any) (sql.Result, error) {
+	db := d.DB.Exec(query, args...)
+	return driver.RowsAffected(db.RowsAffected), db.Error
+}
+
+func (d gormDBShim) Query(query string, args ...any) (*sql.Rows, error) {
+	return d.DB.Raw(query, args...).Rows()
+}
+
+func (d gormDBShim) QueryRow(query string, args ...any) *sql.Row {
+	return d.DB.Raw(query, args...).Row()
+}
+
 // DefaultOptions used for tests
 var DefaultOptions = Options{
-	UseTransaction: false,
-	InitSchema: func(db *gorm.DB) error {
+	InitSchema: func(tx DB) error {
 		return nil
 	},
 }

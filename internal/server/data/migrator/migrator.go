@@ -1,10 +1,9 @@
 package migrator
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
-
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -13,19 +12,15 @@ const initSchemaMigrationID = "SCHEMA_INIT"
 
 // Options used by the Migrator to perform database migrations.
 type Options struct {
-	// UseTransaction indicates that Migrator should execute all migrations
-	// inside a single transaction.
-	UseTransaction bool
-
 	// InitSchema is used to create the database when no migrations table exists.
 	// This function should create all tables, and constraints. After this
 	// function is run, migrator will create the migrations table and populate
 	// it with the IDs of all the currently defined migrations.
-	InitSchema func(*gorm.DB) error
+	InitSchema func(DB) error
 
 	// LoadKey is an optional function to initialize an encryption key from the
 	// database, that is used to encrypt other fields.
-	LoadKey func(*gorm.DB) error
+	LoadKey func(DB) error
 }
 
 // Migration defines a database migration, and an optional rollback.
@@ -33,28 +28,36 @@ type Migration struct {
 	// ID is the migration identifier. Usually a timestamp like "2016-01-02T15:04".
 	ID string
 	// Migrate is a function that will br executed while running this migration.
-	Migrate func(*gorm.DB) error
+	Migrate func(DB) error
 	// Rollback will be executed on rollback. Can be nil.
-	Rollback func(*gorm.DB) error
+	Rollback func(DB) error
+}
+
+type DB interface {
+	// DriverName returns the name of the database driver.
+	DriverName() string
+
+	Exec(stmt string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 // Migrator performs database migrations.
 type Migrator struct {
-	db         *gorm.DB
-	tx         *gorm.DB
+	tx         DB
 	options    Options
 	migrations []*Migration
 }
 
 // New returns a new Migrator.
-func New(db *gorm.DB, options Options, migrations []*Migration) *Migrator {
+func New(db DB, options Options, migrations []*Migration) *Migrator {
 	if options.LoadKey == nil {
-		options.LoadKey = func(db *gorm.DB) error {
+		options.LoadKey = func(tx DB) error {
 			return nil
 		}
 	}
 	return &Migrator{
-		db:         db,
+		tx:         db,
 		options:    options,
 		migrations: migrations,
 	}
@@ -73,13 +76,9 @@ func (g *Migrator) Migrate() error {
 	if g.options.InitSchema == nil && len(g.migrations) == 0 {
 		return fmt.Errorf("there are no migrations")
 	}
-
 	if err := g.validate(); err != nil {
 		return err
 	}
-
-	rollback := g.begin()
-	defer rollback()
 
 	if err := g.createMigrationTableIfNotExists(); err != nil {
 		return err
@@ -90,10 +89,7 @@ func (g *Migrator) Migrate() error {
 	case err != nil:
 		return err
 	case initSchema:
-		if err := g.runInitSchema(); err != nil {
-			return err
-		}
-		return g.commit()
+		return g.runInitSchema()
 	}
 
 	if err := g.options.LoadKey(g.tx); err != nil {
@@ -105,7 +101,7 @@ func (g *Migrator) Migrate() error {
 			return err
 		}
 	}
-	return g.commit()
+	return nil
 }
 
 func (g *Migrator) validate() error {
@@ -149,9 +145,6 @@ func (g *Migrator) RollbackTo(migrationID string) error {
 		return err
 	}
 
-	rollback := g.begin()
-	defer rollback()
-
 	for i := len(g.migrations) - 1; i >= 0; i-- {
 		migration := g.migrations[i]
 		if migration.ID == migrationID {
@@ -166,7 +159,7 @@ func (g *Migrator) RollbackTo(migrationID string) error {
 			}
 		}
 	}
-	return g.commit()
+	return nil
 }
 
 func (g *Migrator) rollbackMigration(m *Migration) error {
@@ -177,7 +170,8 @@ func (g *Migrator) rollbackMigration(m *Migration) error {
 	if err := m.Rollback(g.tx); err != nil {
 		return err
 	}
-	return g.tx.Exec("DELETE FROM migrations WHERE id = ?", m.ID).Error
+	_, err := g.tx.Exec("DELETE FROM migrations WHERE id = ?", m.ID)
+	return err
 }
 
 func (g *Migrator) runInitSchema() error {
@@ -216,14 +210,15 @@ func (g *Migrator) createMigrationTableIfNotExists() error {
 		return nil
 	}
 
-	return g.tx.Exec("CREATE TABLE migrations (id VARCHAR(255) PRIMARY KEY)").Error
+	_, err := g.tx.Exec("CREATE TABLE migrations (id VARCHAR(255) PRIMARY KEY)")
+	return err
 }
 
 // TODO: select all values from the table once, instead of selecting each
 // individually
 func (g *Migrator) migrationRan(m *Migration) (bool, error) {
 	var count int64
-	err := g.tx.Raw(`SELECT count(id) FROM migrations WHERE id = ?`, m.ID).Scan(&count).Error
+	err := g.tx.QueryRow(`SELECT count(id) FROM migrations WHERE id = ?`, m.ID).Scan(&count)
 	return count > 0, err
 }
 
@@ -238,28 +233,11 @@ func (g *Migrator) mustInitializeSchema() (bool, error) {
 
 	// If the ID doesn't exist, we also want the list of migrations to be empty
 	var count int64
-	err = g.tx.Raw(`SELECT count(id) FROM migrations`).Scan(&count).Error
+	err = g.tx.QueryRow(`SELECT count(id) FROM migrations`).Scan(&count)
 	return count == 0, err
 }
 
 func (g *Migrator) insertMigration(id string) error {
-	return g.tx.Exec("INSERT INTO migrations (id) VALUES (?)", id).Error
-}
-
-func (g *Migrator) begin() func() {
-	if g.options.UseTransaction {
-		g.tx = g.db.Begin()
-		return func() {
-			g.tx.Rollback()
-		}
-	}
-	g.tx = g.db
-	return func() {}
-}
-
-func (g *Migrator) commit() error {
-	if g.options.UseTransaction {
-		return g.tx.Commit().Error
-	}
-	return nil
+	_, err := g.tx.Exec("INSERT INTO migrations (id) VALUES (?)", id)
+	return err
 }
