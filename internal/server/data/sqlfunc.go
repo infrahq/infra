@@ -27,13 +27,13 @@ func sqlFunctionsMigration() *migrator.Migration {
 				END IF;
 
 				IF id < 58 THEN
-					RETURN substring(encodeBase58Map FROM id FOR 1);
+					RETURN SUBSTRING(encodeBase58Map FROM id FOR 1);
 				END IF;
 
 				WHILE id > 0 LOOP
 					divisor := id / 58;
 					mod := (id - (58 * divisor));
-					encoded = concat(SUBSTRING(encodeBase58Map FROM cast(mod+1 as int) for 1), encoded);
+					encoded = CONCAT(SUBSTRING(encodeBase58Map FROM CAST(mod+1 as int) FOR 1), encoded);
 					id = id / 58;
 				END LOOP;
 			
@@ -66,7 +66,7 @@ func sqlFunctionsMigration() *migrator.Migration {
 						RAISE EXCEPTION 'invalid base58: value too large: %', encoded;
 					END IF;
 					result = result * 58;
-					pos := POSITION(substring(encoded FROM i FOR 1) in encodeBase58Map);
+					pos := POSITION(SUBSTRING(encoded FROM i FOR 1) in encodeBase58Map);
 					IF (pos <= 0) THEN
 						RAISE EXCEPTION 'invalid base58: byte % is out of range', i-1;
 					END IF;

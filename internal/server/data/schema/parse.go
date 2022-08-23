@@ -52,6 +52,10 @@ func ParseSchema(schema string) ([]Statement, error) {
 
 		switch state {
 		case scanSchemaForStartOfStatement:
+			if inCodeBlock {
+				panic("should not be in a code block at the start of a statement")
+			}
+
 			if isClientConnectionSetting(line) {
 				continue
 			}
@@ -65,7 +69,7 @@ func ParseSchema(schema string) ([]Statement, error) {
 
 			currentStmt.WriteString("\n" + line + "\n")
 
-			if !inCodeBlock && strings.HasSuffix(line, ";") {
+			if strings.HasSuffix(line, ";") {
 				endStatement()
 				continue
 			}
