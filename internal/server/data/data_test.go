@@ -135,7 +135,7 @@ func TestCreateTransactionError(t *testing.T) {
 	// on creation error (such as conflict) the database transaction should still be usable
 	runDBTests(t, func(t *testing.T, db *DB) {
 		err := db.Transaction(func(txDB *gorm.DB) error {
-			tx := &Transaction{DB: txDB}
+			tx := &Transaction{DB: txDB, orgID: 12345}
 
 			g := &models.Grant{}
 			err := add(tx, g)

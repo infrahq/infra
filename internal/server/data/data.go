@@ -132,6 +132,9 @@ func (t Transaction) DriverName() string {
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
+	if t.orgID == 0 {
+		panic("OrganizationID was not set")
+	}
 	return t.orgID
 }
 
