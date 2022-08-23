@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { useServerConfig } from '../../lib/serverconfig'
+
 import Login from '../../components/layouts/login'
 import ErrorMessage from '../../components/error-message'
 
@@ -13,6 +15,9 @@ export default function Signup() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
+
+  const { baseDomain } = useServerConfig()
+  console.log(baseDomain)
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -176,7 +181,7 @@ export default function Signup() {
         </div>
         <div className='my-2 w-full'>
           <label
-            htmlFor='orgDoman'
+            htmlFor='orgDomain'
             className='text-3xs uppercase text-gray-500'
           >
             Domain
@@ -198,7 +203,7 @@ export default function Signup() {
               }`}
             />
             <div className='mb-1 w-1/3 border border-gray-800 py-2 text-center text-2xs text-gray-500'>
-              .{window.location.host}
+              .{baseDomain}
             </div>
             {errors.domain && <ErrorMessage message={errors.domain} />}
           </div>
