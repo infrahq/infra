@@ -188,13 +188,13 @@ export default function Login() {
         >
           Login
         </button>
-        <div className='pt-2 flex flex-col space-y-4'>
+        <div className='flex flex-col space-y-4 pt-2'>
           {isEmailConfigured && (
-          <Link href='/password-reset'>
-            <a className='text-3xs text-violet-100 hover:border-violet-100'>
-              I forgot my password
-            </a>
-          </Link>
+            <Link href='/password-reset'>
+              <a className='text-3xs text-violet-100 hover:border-violet-100'>
+                I forgot my password
+              </a>
+            </Link>
           )}
 
           <Link href='/signup'>
