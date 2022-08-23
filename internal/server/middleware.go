@@ -225,6 +225,8 @@ func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Auth
 	}
 
 	// now that the org is loaded scope all db calls to that org
+	// TODO: set the orgID explicitly in the options passed to GetIdentity to
+	// remove the need for this NewTransaction call.
 	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))

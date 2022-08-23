@@ -17,7 +17,7 @@ func TestInitializeSettings(t *testing.T) {
 		var settings *models.Settings
 		runStep(t, "first call creates new settings", func(t *testing.T) {
 			var err error
-			settings, err = initializeSettings(db)
+			settings, err = initializeSettings(db, db.DefaultOrg.ID)
 			assert.NilError(t, err)
 
 			assert.Assert(t, settings.ID != 0)
@@ -26,7 +26,7 @@ func TestInitializeSettings(t *testing.T) {
 		})
 
 		runStep(t, "next call returns existing settings", func(t *testing.T) {
-			nextSettings, err := initializeSettings(db)
+			nextSettings, err := initializeSettings(db, db.DefaultOrg.ID)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, settings, nextSettings, cmpModel)
 		})

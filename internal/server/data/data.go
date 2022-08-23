@@ -135,9 +135,6 @@ func (t Transaction) DriverName() string {
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
-	if t.orgID == 0 {
-		panic("OrganizationID was not set")
-	}
 	return t.orgID
 }
 
@@ -275,12 +272,12 @@ func setOrg(tx ReadTxn, model any) {
 		return
 	}
 
-	member.SetOrganizationID(tx.OrganizationID())
+	member.SetOrganizationID(tx)
 }
 
 type orgMember interface {
 	IsOrganizationMember()
-	SetOrganizationID(id uid.ID)
+	SetOrganizationID(source models.OrganizationIDSource)
 }
 
 func isOrgMember(model any) bool {
