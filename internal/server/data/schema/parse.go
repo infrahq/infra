@@ -23,7 +23,6 @@ func ParseSchema(schema string) ([]Statement, error) {
 	var currentTable string
 	var currentStmt strings.Builder
 	var stmts []Statement
-	var inCodeBlock bool
 
 	endStatement := func() {
 		stmts = append(stmts, Statement{
@@ -43,19 +42,12 @@ func ParseSchema(schema string) ([]Statement, error) {
 		if strings.HasPrefix(line, "--") {
 			continue
 		}
-		if line == "" {
-			if inCodeBlock {
-				currentStmt.WriteString("\n")
-			}
-			continue
-		}
 
 		switch state {
 		case scanSchemaForStartOfStatement:
-			if inCodeBlock {
-				panic("should not be in a code block at the start of a statement")
+			if line == "" {
+				continue
 			}
-
 			if isClientConnectionSetting(line) {
 				continue
 			}
@@ -75,17 +67,25 @@ func ParseSchema(schema string) ([]Statement, error) {
 			}
 			state = scanSchemaForEndOfStatement
 
+		case scanSchemaInCodeBlock:
+			currentStmt.WriteString(line + "\n")
+
+			if strings.HasSuffix(line, "$$;") {
+				endStatement()
+			}
 		case scanSchemaForEndOfStatement:
+			if line == "" {
+				continue
+			}
+
 			line = strings.ReplaceAll(line, schemaNamePrefix, "")
 			currentStmt.WriteString(line + "\n")
 
-			if inCodeBlock && strings.HasSuffix(line, "$$;") {
-				inCodeBlock = false
-			} else if strings.HasSuffix(line, "AS $$") {
-				inCodeBlock = true
+			if strings.HasSuffix(line, "AS $$") {
+				state = scanSchemaInCodeBlock
+				continue
 			}
-			if !inCodeBlock && strings.HasSuffix(line, ";") {
-
+			if strings.HasSuffix(line, ";") {
 				endStatement()
 			}
 		}
@@ -95,7 +95,8 @@ func ParseSchema(schema string) ([]Statement, error) {
 
 const (
 	scanSchemaForStartOfStatement = iota
-	scanSchemaForEndOfStatement   = iota
+	scanSchemaForEndOfStatement
+	scanSchemaInCodeBlock
 )
 
 func isClientConnectionSetting(line string) bool {

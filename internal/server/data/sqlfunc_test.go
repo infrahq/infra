@@ -14,8 +14,6 @@ func TestSQLUidStrToIntRoundTrip(t *testing.T) {
 		err    string
 	}
 	db := setupDB(t, postgresDriver(t))
-	// err := sqlFunctionsMigration().Migrate(db)
-	// assert.NilError(t, err)
 
 	run := func(t *testing.T, tc testCase) {
 		var i int64
