@@ -17,7 +17,6 @@ export default function Signup() {
   const [errors, setErrors] = useState({})
 
   const { baseDomain } = useServerConfig()
-  console.log(baseDomain)
 
   async function onSubmit(e) {
     e.preventDefault()
