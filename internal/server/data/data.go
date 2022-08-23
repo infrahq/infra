@@ -119,6 +119,9 @@ type ReadTxn interface {
 type GormTxn interface {
 	WriteTxn
 
+	// GormDB returns the underlying reference to the gorm.DB struct.
+	// Do not use this in new code! Instead, write SQL using the stdlib\
+	// interface of Query, QueryRow, and Exec.
 	GormDB() *gorm.DB
 }
 
@@ -264,6 +267,8 @@ func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) 
 	return result, nil
 }
 
+// setOrg checks if model is an organization member, and sets the organizationID
+// from the transaction when it is an organization member.
 func setOrg(tx ReadTxn, model any) {
 	member, ok := model.(orgMember)
 	if !ok {
