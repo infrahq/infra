@@ -8,6 +8,8 @@ This directory contains the source code for the Infra Dashboard.
 - Install the following extensions if using Visual Studio Code:
   - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
   - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+    - After install, go to `View -> Command Palette`, type `Format Document With`
+    - Then `Configure Default Formatter...` and choose `Prettier - Code Formatter`
   - [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
   - Enable **Format on Save** in settings
 
