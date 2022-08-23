@@ -23,6 +23,7 @@ func ParseSchema(schema string) ([]Statement, error) {
 	var currentTable string
 	var currentStmt strings.Builder
 	var stmts []Statement
+	var inCodeBlock bool
 
 	endStatement := func() {
 		stmts = append(stmts, Statement{
@@ -38,9 +39,14 @@ func ParseSchema(schema string) ([]Statement, error) {
 	lines.Split(bufio.ScanLines)
 	for lines.Scan() {
 		line := lines.Text()
-
 		// skip comments and empty lines
-		if strings.HasPrefix(line, "--") || line == "" {
+		if strings.HasPrefix(line, "--") {
+			continue
+		}
+		if line == "" {
+			if inCodeBlock {
+				currentStmt.WriteString("\n")
+			}
 			continue
 		}
 
@@ -52,14 +58,14 @@ func ParseSchema(schema string) ([]Statement, error) {
 			if strings.HasPrefix(line, "CREATE SCHEMA") {
 				continue
 			}
-
 			var err error
 			if currentTable, line, err = parseStatementLine(line); err != nil {
 				return nil, err
 			}
 
 			currentStmt.WriteString("\n" + line + "\n")
-			if strings.HasSuffix(line, ";") {
+
+			if !inCodeBlock && strings.HasSuffix(line, ";") {
 				endStatement()
 				continue
 			}
@@ -69,7 +75,13 @@ func ParseSchema(schema string) ([]Statement, error) {
 			line = strings.ReplaceAll(line, schemaNamePrefix, "")
 			currentStmt.WriteString(line + "\n")
 
-			if strings.HasSuffix(line, ";") {
+			if inCodeBlock && strings.HasSuffix(line, "$$;") {
+				inCodeBlock = false
+			} else if strings.HasSuffix(line, "AS $$") {
+				inCodeBlock = true
+			}
+			if !inCodeBlock && strings.HasSuffix(line, ";") {
+
 				endStatement()
 			}
 		}
@@ -107,6 +119,7 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	case strings.HasPrefix(line, "CREATE SEQUENCE"):
 	case strings.HasPrefix(line, "ALTER SEQUENCE"):
 	case strings.HasPrefix(line, "CREATE UNIQUE INDEX"):
+	case strings.HasPrefix(line, "CREATE FUNCTION"):
 	default:
 		return "", "", fmt.Errorf("unexpected start of statement: %q", line)
 	}

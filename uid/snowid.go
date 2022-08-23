@@ -123,14 +123,9 @@ func (id ID) Bytes() []byte {
 	}
 
 	b := make([]byte, 0, 11)
-	for id >= 58 {
-		b = append(b, encodeBase58Map[id%58])
+	for id > 0 {
+		b = append([]byte{encodeBase58Map[id%58]}, b...)
 		id /= 58
-	}
-	b = append(b, encodeBase58Map[id])
-
-	for x, y := 0, len(b)-1; x < y; x, y = x+1, y-1 {
-		b[x], b[y] = b[y], b[x]
 	}
 
 	return b
