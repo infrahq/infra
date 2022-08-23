@@ -21,8 +21,6 @@ func run(args []string) error {
 	}
 	filename := args[0]
 
-	s := server.Server{}
-	routes := s.GenerateRoutes()
-
-	return server.WriteOpenAPIDocToFile(routes.OpenAPIDocument, internal.FullVersion(), filename)
+	doc := server.GenerateOpenAPIDoc()
+	return server.WriteOpenAPIDocToFile(doc, internal.FullVersion(), filename)
 }

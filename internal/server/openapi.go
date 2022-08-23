@@ -13,11 +13,18 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/validate"
 )
+
+func GenerateOpenAPIDoc() openapi3.T {
+	srv := newServer(Options{})
+	srv.metricsRegistry = prometheus.NewRegistry()
+	return srv.GenerateRoutes().OpenAPIDocument
+}
 
 var pathIDReplacer = regexp.MustCompile(`:\w+`)
 
