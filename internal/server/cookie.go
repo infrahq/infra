@@ -38,30 +38,11 @@ func setAuthCookie(c *gin.Context, domain, key string, expires time.Time) {
 		Secure:   secure,
 		HttpOnly: true, // not accessible by javascript
 	})
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     cookieLoginName,
-		Value:    "1",
-		MaxAge:   maxAge,
-		Path:     cookiePath,
-		Domain:   domain,
-		SameSite: http.SameSiteStrictMode,
-		Secure:   secure,
-		HttpOnly: true, // not accessible by javascript
-	})
 }
 
 func deleteAuthCookie(c *gin.Context, domain string) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     cookieAuthorizationName,
-		MaxAge:   cookieMaxAgeDeleteImmediately,
-		Path:     cookiePath,
-		Domain:   domain,
-		Secure:   true, // only over https
-		HttpOnly: true, // not accessible by javascript
-	})
-
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     cookieLoginName,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
 		Domain:   domain,
