@@ -332,7 +332,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 func TestAuthenticatedMiddleware(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	db := srv.DB()
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
 		Name:   "The Umbrella Academy",
@@ -455,7 +455,7 @@ func TestUnauthenticatedMiddleware(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true // multi-tenant environment
 	db := srv.DB()
-	routes := srv.GenerateRoutes(prometheus.NewRegistry())
+	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
 		Name:   "The Umbrella Academy",

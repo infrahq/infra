@@ -16,7 +16,7 @@ const (
 	cookieMaxAgeNoExpiry          = 0  // zero has special meaning of "no expiry"
 )
 
-func setAuthCookie(c *gin.Context, key string, expires time.Time) {
+func setAuthCookie(c *gin.Context, domain, key string, expires time.Time) {
 	maxAge := int(time.Until(expires).Seconds())
 	if maxAge == cookieMaxAgeNoExpiry {
 		maxAge = cookieMaxAgeDeleteImmediately
@@ -33,7 +33,7 @@ func setAuthCookie(c *gin.Context, key string, expires time.Time) {
 		Value:    url.QueryEscape(key),
 		MaxAge:   maxAge,
 		Path:     cookiePath,
-		Domain:   c.Request.Host,
+		Domain:   domain,
 		SameSite: http.SameSiteStrictMode,
 		Secure:   secure,
 		HttpOnly: true, // not accessible by javascript
@@ -43,19 +43,19 @@ func setAuthCookie(c *gin.Context, key string, expires time.Time) {
 		Value:    "1",
 		MaxAge:   maxAge,
 		Path:     cookiePath,
-		Domain:   c.Request.Host,
+		Domain:   domain,
 		SameSite: http.SameSiteStrictMode,
 		Secure:   secure,
 		HttpOnly: true, // not accessible by javascript
 	})
 }
 
-func deleteAuthCookie(c *gin.Context) {
+func deleteAuthCookie(c *gin.Context, domain string) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     cookieAuthorizationName,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
-		Domain:   c.Request.Host,
+		Domain:   domain,
 		Secure:   true, // only over https
 		HttpOnly: true, // not accessible by javascript
 	})
@@ -64,8 +64,23 @@ func deleteAuthCookie(c *gin.Context) {
 		Name:     cookieLoginName,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
-		Domain:   c.Request.Host,
+		Domain:   domain,
 		Secure:   true, // only over https
 		HttpOnly: true, // not accessible by javascript
 	})
+}
+
+// resendAuthCookie sets the auth and login cookies on the current host making the request
+func resendAuthCookie(c *gin.Context) error {
+	key := getRequestContext(c).Authenticated.AccessKey // this should have been set by the middleware
+	if key != nil {
+		bearer, err := reqBearerToken(c.Request)
+		if err != nil {
+			return err
+		}
+
+		setAuthCookie(c, c.Request.Host, bearer, key.ExpiresAt)
+	}
+
+	return nil
 }

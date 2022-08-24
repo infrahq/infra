@@ -198,26 +198,10 @@ func orgRequired() gin.HandlerFunc {
 // requireAccessKey checks the bearer token is present and valid
 func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, error) {
 	var u access.Authenticated
-	header := req.Header.Get("Authorization")
 
-	bearer := ""
-
-	parts := strings.Split(header, " ")
-	if len(parts) == 2 && parts[0] == "Bearer" {
-		bearer = parts[1]
-	} else {
-		// Fall back to checking cookies
-		cookie, err := getCookie(req, cookieAuthorizationName)
-		if err != nil {
-			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
-		}
-
-		bearer = cookie
-	}
-
-	// this will get caught by key validation, but check to be safe
-	if strings.TrimSpace(bearer) == "" {
-		return u, fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+	bearer, err := reqBearerToken(req)
+	if err != nil {
+		return u, err
 	}
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
@@ -303,4 +287,30 @@ hostLookup:
 		return nil, err
 	}
 	return org, nil
+}
+
+func reqBearerToken(req *http.Request) (string, error) {
+	header := req.Header.Get("Authorization")
+
+	bearer := ""
+
+	parts := strings.Split(header, " ")
+	if len(parts) == 2 && parts[0] == "Bearer" {
+		bearer = parts[1]
+	} else {
+		// Fall back to checking cookies
+		cookie, err := getCookie(req, cookieAuthorizationName)
+		if err != nil {
+			return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+		}
+
+		bearer = cookie
+	}
+
+	// this will get caught by key validation, but check to be safe
+	if strings.TrimSpace(bearer) == "" {
+		return "", fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+	}
+
+	return bearer, nil
 }

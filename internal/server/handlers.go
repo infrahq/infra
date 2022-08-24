@@ -124,7 +124,8 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, err
 	}
 
-	setAuthCookie(c, bearer, keyExpires)
+	// this cookie is set to send on all infra domains, make it expire quickly to prevent an unexpected org being set on requests to other orgs
+	setAuthCookie(c, a.server.options.BaseDomain, bearer, time.Now().Add(1*time.Minute))
 
 	a.t.User(identity.ID.String(), r.Name)
 	a.t.Alias(identity.ID.String())
@@ -134,6 +135,19 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		User:         identity.ToAPI(),
 		Organization: suDetails.Org.ToAPI(),
 	}, nil
+}
+
+// SignupSession exchanges a user's auth cookie for a domain specific auth cookie after sign-up
+func (a *API) SignupSession(c *gin.Context, r *api.EmptyRequest) (api.EmptyResponse, error) {
+	if !a.server.options.EnableSignup {
+		return api.EmptyResponse{}, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
+	}
+
+	if err := resendAuthCookie(c); err != nil {
+		return api.EmptyResponse{}, err
+	}
+
+	return api.EmptyResponse{}, nil
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
@@ -174,7 +188,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
 
-	setAuthCookie(c, bearer, key.ExpiresAt)
+	setAuthCookie(c, c.Request.Host, bearer, key.ExpiresAt)
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
@@ -187,7 +201,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteAuthCookie(c)
+	deleteAuthCookie(c, c.Request.Host)
 	return nil, nil
 }
 

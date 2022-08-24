@@ -48,7 +48,7 @@ export default function Signup() {
       // redirect to the new org subdomain
       let created = await res.json()
 
-      window.location = `${window.location.protocol}//${created?.organization?.domain}`
+      window.location = `${window.location.protocol}//${created?.organization?.domain}/signup/redirect`
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
