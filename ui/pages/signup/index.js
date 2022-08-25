@@ -164,7 +164,7 @@ export default function Signup() {
           <input
             required
             id='orgName'
-            placeholder='name your organization'
+            placeholder='enter your organization name'
             onChange={e => {
               setOrgName(e.target.value)
               setErrors({})
