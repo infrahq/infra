@@ -10,5 +10,6 @@ import (
 func (a *API) GetServerConfiguration(c *gin.Context, _ *api.EmptyRequest) (*api.ServerConfiguration, error) {
 	return &api.ServerConfiguration{
 		IsEmailConfigured: email.IsConfigured(),
+		BaseDomain:        a.server.options.BaseDomain,
 	}, nil
 }
