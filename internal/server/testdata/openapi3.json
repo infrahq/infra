@@ -914,6 +914,9 @@
       },
       "ServerConfiguration": {
         "properties": {
+          "baseDomain": {
+            "type": "string"
+          },
           "isEmailConfigured": {
             "type": "boolean"
           },
