@@ -28,7 +28,7 @@ import (
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, error) {
+func NewDB(connection gorm.Dialector, loadDBKey func(db GormTxn) error) (*DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
@@ -43,7 +43,7 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 			}
 			// TODO: use the passed in tx instead of dataDB once the queries
 			// used by loadDBKey are ported to sql
-			return loadDBKey(dataDB.DB)
+			return loadDBKey(dataDB)
 		},
 	}
 	m := migrator.New(dataDB, opts, migrations())
@@ -92,6 +92,16 @@ func (d *DB) QueryRow(query string, args ...any) *sql.Row {
 	return d.DB.Raw(query, args...).Row()
 }
 
+func (d *DB) OrganizationID() uid.ID {
+	// FIXME: this is a hack to keep our tests passing. The db should not
+	// be scoped to an org ID.
+	return d.DefaultOrg.ID
+}
+
+func (d *DB) GormDB() *gorm.DB {
+	return d.DB
+}
+
 type WriteTxn interface {
 	ReadTxn
 	Exec(sql string, values ...interface{}) (sql.Result, error)
@@ -101,6 +111,55 @@ type ReadTxn interface {
 	DriverName() string
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
+
+	OrganizationID() uid.ID
+}
+
+// GormTxn is used as a shim in preparation for removing gorm.
+type GormTxn interface {
+	WriteTxn
+
+	// GormDB returns the underlying reference to the gorm.DB struct.
+	// Do not use this in new code! Instead, write SQL using the stdlib\
+	// interface of Query, QueryRow, and Exec.
+	GormDB() *gorm.DB
+}
+
+type Transaction struct {
+	*gorm.DB
+	orgID uid.ID
+}
+
+func (t Transaction) DriverName() string {
+	return t.Dialector.Name()
+}
+
+func (t *Transaction) OrganizationID() uid.ID {
+	if t.orgID == 0 {
+		panic("OrganizationID was not set")
+	}
+	return t.orgID
+}
+
+func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
+	db := t.DB.Exec(query, args...)
+	return driver.RowsAffected(db.RowsAffected), db.Error
+}
+
+func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
+	return t.DB.Raw(query, args...).Rows()
+}
+
+func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
+	return t.DB.Raw(query, args...).Row()
+}
+
+func (t *Transaction) GormDB() *gorm.DB {
+	return t.DB
+}
+
+func NewTransaction(db *gorm.DB, orgID uid.ID) *Transaction {
+	return &Transaction{DB: db, orgID: orgID}
 }
 
 // newRawDB creates a new database connection without running migrations.
@@ -132,14 +191,14 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 }
 
 func initialize(db *DB) error {
-	org, err := GetOrganization(db.DB, ByName(models.DefaultOrganizationName))
+	org, err := GetOrganization(db, ByName(models.DefaultOrganizationName))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
 			Name:      models.DefaultOrganizationName,
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganizationAndSetContext(db.DB, org); err != nil {
+		if err := CreateOrganization(db, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:
@@ -147,7 +206,7 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-	db.DefaultOrgSettings, err = getSettingsForOrg(db.DB, org.ID)
+	db.DefaultOrgSettings, err = getSettingsForOrg(db, org.ID)
 	if err != nil {
 		return fmt.Errorf("getting settings: %w", err)
 	}
@@ -186,14 +245,15 @@ func getDefaultSortFromType(t interface{}) string {
 	return "id ASC"
 }
 
-func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error) {
+func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 
 	result := new(T)
 	if isOrgMember(result) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
@@ -207,13 +267,15 @@ func get[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (*T, error)
 	return result, nil
 }
 
-func setOrg(db *gorm.DB, model any) {
+// setOrg checks if model is an organization member, and sets the organizationID
+// from the transaction when it is an organization member.
+func setOrg(tx ReadTxn, model any) {
 	member, ok := model.(orgMember)
 	if !ok {
 		return
 	}
 
-	member.SetOrganizationID(MustGetOrgFromContext(db.Statement.Context).ID)
+	member.SetOrganizationID(tx.OrganizationID())
 }
 
 type orgMember interface {
@@ -226,13 +288,14 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](tx GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+	db := tx.GormDB()
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	if p != nil {
@@ -253,17 +316,19 @@ func list[T models.Modelable](db *gorm.DB, p *models.Pagination, selectors ...Se
 	return result, nil
 }
 
-func save[T models.Modelable](db *gorm.DB, model *T) error {
-	setOrg(db, model)
+func save[T models.Modelable](tx GormTxn, model *T) error {
+	db := tx.GormDB()
+	setOrg(tx, model)
 	err := db.Save(model).Error
 	return handleError(err)
 }
 
-func add[T models.Modelable](db *gorm.DB, model *T) error {
-	setOrg(db, model)
+func add[T models.Modelable](tx GormTxn, model *T) error {
+	db := tx.GormDB()
+	setOrg(tx, model)
 
 	var err error
-	if db.Name() == "postgres" {
+	if tx.DriverName() == "postgres" {
 		// failures on postgres need to be rolled back in order to
 		// continue using the same transaction
 		db.SavePoint("beforeCreate")
@@ -363,26 +428,29 @@ func handleError(err error) error {
 	return err
 }
 
-func delete[T models.Modelable](db *gorm.DB, id uid.ID) error {
+func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
+	db := tx.GormDB()
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 	return db.Delete(new(T), id).Error
 }
 
-func deleteAll[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) error {
+func deleteAll[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) error {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}
 	if isOrgMember(new(T)) {
-		db = ByOrgID(MustGetOrgFromContext(db.Statement.Context).ID)(db)
+		db = ByOrgID(tx.OrganizationID())(db)
 	}
 
 	return db.Delete(new(T)).Error
 }
 
 // GlobalCount gives the count of all records, not scoped by org.
-func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (int64, error) {
+func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int64, error) {
+	db := tx.GormDB()
 	for _, selector := range selectors {
 		db = selector(db)
 	}
@@ -397,9 +465,8 @@ func GlobalCount[T models.Modelable](db *gorm.DB, selectors ...SelectorFunc) (in
 
 // InfraProvider returns the infra provider for the organization set in the db
 // context.
-func InfraProvider(db *gorm.DB) *models.Provider {
-	org := MustGetOrgFromContext(db.Statement.Context)
-	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(org.ID))
+func InfraProvider(db GormTxn) *models.Provider {
+	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(db.OrganizationID()))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
 		return nil // unreachable, the line above panics
@@ -409,9 +476,8 @@ func InfraProvider(db *gorm.DB) *models.Provider {
 
 // InfraConnectorIdentity returns the connector identity for the organization set
 // in the db context.
-func InfraConnectorIdentity(db *gorm.DB) *models.Identity {
-	org := MustGetOrgFromContext(db.Statement.Context)
-	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(org.ID))
+func InfraConnectorIdentity(db GormTxn) *models.Identity {
+	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(db.OrganizationID()))
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 		return nil // unreachable, the line above panics

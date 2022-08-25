@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
@@ -46,7 +45,7 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
-func issueToken(t *testing.T, db *gorm.DB, identityName string, sessionDuration time.Duration) string {
+func issueToken(t *testing.T, db data.GormTxn, identityName string, sessionDuration time.Duration) string {
 	user := &models.Identity{Name: identityName}
 
 	err := data.CreateIdentity(db, user)
@@ -109,10 +108,10 @@ func TestDBTimeout(t *testing.T) {
 		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
-		db, ok := c.MustGet("db").(*gorm.DB)
+		db, ok := c.MustGet("db").(data.GormTxn)
 		assert.Check(t, ok)
 		cancel()
-		err := db.Exec("select 1;").Error
+		_, err := db.Exec("select 1;")
 		assert.Error(t, err, "context canceled")
 
 		c.Status(200)
@@ -122,12 +121,12 @@ func TestDBTimeout(t *testing.T) {
 
 func TestRequireAccessKey(t *testing.T) {
 	type testCase struct {
-		setup    func(t *testing.T, db *gorm.DB) *http.Request
+		setup    func(t *testing.T, db data.GormTxn) *http.Request
 		expected func(t *testing.T, authned access.Authenticated, err error)
 	}
 	cases := map[string]testCase{
 		"AccessKeyValid": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
@@ -139,7 +138,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"ValidAuthCookie": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -163,7 +162,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"ValidSignupCookie": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -187,7 +186,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"AccessKeyExpired": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*-1)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
@@ -198,7 +197,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"AccessKeyInvalidKey": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				secret := token[:models.AccessKeySecretLength]
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), secret)
@@ -211,7 +210,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"AccessKeyNoMatch": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := fmt.Sprintf("%s.%s", uid.New().String(), generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "Bearer "+authentication)
@@ -222,7 +221,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"AccessKeyInvalidSecret": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				token := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
 				authentication := fmt.Sprintf("%s.%s", strings.Split(token, ".")[0], generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric))
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -234,7 +233,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"UnknownAuthenticationMethod": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication, err := generate.CryptoRandom(32, generate.CharsetAlphaNumeric)
 				assert.NilError(t, err)
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -246,7 +245,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"NoAuthentication": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				// nil pointer if we don't seup the request header here
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				return r
@@ -256,7 +255,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"EmptyAuthentication": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", "")
 				return r
@@ -266,7 +265,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"EmptySpaceAuthentication": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 				r.Header.Add("Authorization", " ")
 				return r
@@ -276,7 +275,7 @@ func TestRequireAccessKey(t *testing.T) {
 			},
 		},
 		"EmptyCookieAuthentication": {
-			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				r := httptest.NewRequest(http.MethodGet, "/", nil)
 
 				r.AddCookie(&http.Cookie{
@@ -299,7 +298,7 @@ func TestRequireAccessKey(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			db := setupDB(t).DB
+			db := setupDB(t)
 
 			srv := &Server{
 				options: Options{
@@ -399,6 +398,7 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
 	createOrgs(t, db, otherOrg, org)
+	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	user := &models.Identity{
 		Name:               "userone@example.com",
@@ -522,6 +522,7 @@ func TestUnauthenticatedMiddleware(t *testing.T) {
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
 	createOrgs(t, db, otherOrg, org)
+	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	provider := &models.Provider{
 		Name:               "electric",

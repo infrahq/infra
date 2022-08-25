@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -24,7 +23,7 @@ func NewPasswordCredentialAuthentication(username, password string) LoginMethod 
 	}
 }
 
-func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db *gorm.DB, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	identity, err := data.GetIdentity(db, data.ByName(a.Username))
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("could not get identity for username: %w", err)
@@ -62,7 +61,7 @@ func (a *passwordCredentialAuthn) Name() string {
 	return "credentials"
 }
 
-func (a *passwordCredentialAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
+func (a *passwordCredentialAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
 	identity, err := data.GetIdentity(db, data.ByName(a.Username))
 	if err != nil {
 		return false, fmt.Errorf("could not get identity for username: %w", err)

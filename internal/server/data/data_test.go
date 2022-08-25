@@ -1,7 +1,6 @@
 package data
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
+func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
@@ -25,7 +24,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *gorm.DB {
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
-	return db.DB
+	return db
 }
 
 var isEnvironmentCI = os.Getenv("CI") != ""
@@ -47,7 +46,7 @@ func postgresDriver(t *testing.T) gorm.Dialector {
 // and all supported DBs in CI.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
-func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
+func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
 		pgsql := postgresDriver(t)
 		db := setupDB(t, pgsql)
@@ -57,7 +56,7 @@ func runDBTests(t *testing.T, run func(t *testing.T, db *gorm.DB)) {
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		id := uid.New()
 		g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
 		err := db.Create(g).Error
@@ -76,66 +75,8 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 	})
 }
 
-func TestDatabaseSelectors(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		// assert.NilError(t, initializeSchema(db))
-
-		org := OrgFromContext(db.Statement.Context)
-		assert.Assert(t, org != nil)
-		// mimic server.DatabaseMiddleware
-		withCtx := db.WithContext(context.Background())
-
-		// normally we don't want the default org to go through to the withCtx that the database middleware makes, but our tests won't work without it.
-		withCtx.Statement.Context = WithOrg(withCtx.Statement.Context, org)
-
-		org = OrgFromContext(withCtx.Statement.Context)
-		assert.Assert(t, org != nil)
-
-		assert.Assert(t, db != withCtx, "db=%p withCtx=%p", db, withCtx)
-
-		err := withCtx.Transaction(func(tx *gorm.DB) error {
-			assert.Assert(t, withCtx != tx, "db=%p tx=%p", withCtx, tx)
-
-			org = OrgFromContext(tx.Statement.Context)
-			assert.Assert(t, org != nil)
-
-			// query using one of our helpers and selectors
-			_, err := ListGrants(tx, nil, ByID(534))
-			assert.NilError(t, err)
-
-			// query with Model and Where
-			var groups []models.Group
-			qDB := tx.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-			assert.NilError(t, qDB.Error)
-			assert.Assert(t, tx != qDB, "tx=%p queryDB=%p", tx, qDB)
-
-			// Show that queries have not modified the original gorm.DB references
-			assert.Equal(t, len(db.Statement.Clauses), 0)
-			assert.Equal(t, len(withCtx.Statement.Clauses), 0)
-			assert.Equal(t, len(tx.Statement.Clauses), 0)
-			return nil
-		})
-		assert.NilError(t, err)
-
-		// query using one of our helpers and selectors
-		_, err = ListGrants(db, nil, ByID(534))
-		assert.NilError(t, err)
-
-		// query with Model and Where
-		var groups []models.Group
-		qDB := db.Model(&models.Group{}).Where("id = ?", 42).Find(&groups)
-		assert.NilError(t, qDB.Error)
-		assert.Assert(t, db != qDB, "db=%p queryDB=%p", db, qDB)
-		t.Logf("DB pointer: %p", qDB)
-
-		// Show that queries have not modified the original gorm.DB references
-		assert.Equal(t, len(db.Statement.Clauses), 0)
-		assert.Equal(t, len(withCtx.Statement.Clauses), 0)
-	})
-}
-
 func TestPaginationSelector(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		alphabeticalIdentities := []string{}
 		for r := 'a'; r < 'a'+26; r++ {
 			alphabeticalIdentities = append(alphabeticalIdentities, string(r))
@@ -192,8 +133,10 @@ func TestDefaultSortFromType(t *testing.T) {
 
 func TestCreateTransactionError(t *testing.T) {
 	// on creation error (such as conflict) the database transaction should still be usable
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
-		err := db.Transaction(func(tx *gorm.DB) error {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		err := db.Transaction(func(txDB *gorm.DB) error {
+			tx := &Transaction{DB: txDB, orgID: 12345}
+
 			g := &models.Grant{}
 			err := add(tx, g)
 			if err != nil {
@@ -215,13 +158,8 @@ func TestCreateTransactionError(t *testing.T) {
 
 func TestSetOrg(t *testing.T) {
 	model := &models.AccessKey{}
-	org := &models.Organization{}
-	org.ID = 123456
 
-	db := &gorm.DB{}
-	db.Statement = &gorm.Statement{
-		Context: WithOrg(context.Background(), org),
-	}
-	setOrg(db, model)
+	tx := &Transaction{orgID: 123456}
+	setOrg(tx, model)
 	assert.Equal(t, model.OrganizationID, uid.ID(123456))
 }

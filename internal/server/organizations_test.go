@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -14,7 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
+func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
 	t.Helper()
 	for i := range orgs {
 		o, err := data.GetOrganization(db, data.ByName(orgs[i].Name))
@@ -22,9 +21,8 @@ func createOrgs(t *testing.T, db *gorm.DB, orgs ...*models.Organization) {
 			*orgs[i] = *o
 			continue
 		}
-		err = data.CreateOrganizationAndSetContext(db, orgs[i])
+		err = data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
-		assert.DeepEqual(t, data.OrgFromContext(db.Statement.Context), orgs[i])
 	}
 }
 

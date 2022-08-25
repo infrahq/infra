@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreatePasswordResetToken(db *gorm.DB, user *models.Identity, ttl time.Duration) (*models.PasswordResetToken, error) {
+func CreatePasswordResetToken(db GormTxn, user *models.Identity, ttl time.Duration) (*models.PasswordResetToken, error) {
 	tries := 0
 retry:
 	token, err := generate.CryptoRandom(10, generate.CharsetAlphaNumeric)
@@ -40,7 +40,7 @@ retry:
 	return prt, nil
 }
 
-func GetPasswordResetTokenByToken(db *gorm.DB, token string) (*models.PasswordResetToken, error) {
+func GetPasswordResetTokenByToken(db GormTxn, token string) (*models.PasswordResetToken, error) {
 	prts, err := list[models.PasswordResetToken](db, &models.Pagination{Limit: 1}, func(db *gorm.DB) *gorm.DB {
 		return db.Where("token = ?", token)
 	})
@@ -60,6 +60,6 @@ func GetPasswordResetTokenByToken(db *gorm.DB, token string) (*models.PasswordRe
 	return &prts[0], nil
 }
 
-func DeletePasswordResetToken(db *gorm.DB, prt *models.PasswordResetToken) error {
+func DeletePasswordResetToken(db GormTxn, prt *models.PasswordResetToken) error {
 	return delete[models.PasswordResetToken](db, prt.ID)
 }

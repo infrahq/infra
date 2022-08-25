@@ -8,15 +8,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+// TODO: move this test coverage to the API handler
 func TestSignup(t *testing.T) {
-	setup := func(t *testing.T) (*gin.Context, *gorm.DB) {
+	setup := func(t *testing.T) (*gin.Context, data.GormTxn) {
 		db := setupDB(t)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = (&http.Request{}).WithContext(context.Background())
@@ -42,6 +43,10 @@ func TestSignup(t *testing.T) {
 		assert.Equal(t, identity.Name, user)
 		assert.Equal(t, identity.OrganizationID, org.ID)
 
+		// simulate a request
+		tx := data.NewTransaction(db.GormDB(), org.ID)
+		c.Set("db", tx)
+
 		// check "admin" user can login
 		userPassLogin := authn.NewPasswordCredentialAuthentication(user, pass)
 		key, _, requiresUpdate, err := Login(c, userPassLogin, time.Now().Add(time.Hour), time.Hour)
@@ -52,7 +57,7 @@ func TestSignup(t *testing.T) {
 
 		rCtx := RequestContext{
 			Authenticated: Authenticated{User: identity},
-			DBTxn:         db,
+			DBTxn:         tx,
 		}
 
 		// check "admin" can create token

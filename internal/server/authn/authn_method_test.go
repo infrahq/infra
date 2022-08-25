@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -15,7 +14,7 @@ import (
 	"github.com/infrahq/infra/internal/testing/patch"
 )
 
-func setupDB(t *testing.T) *gorm.DB {
+func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_authn")
 	if driver == nil {
@@ -28,7 +27,7 @@ func setupDB(t *testing.T) *gorm.DB {
 	db, err := data.NewDB(driver.Dialector, nil)
 	assert.NilError(t, err)
 
-	return db.DB
+	return db
 }
 
 func TestLogin(t *testing.T) {

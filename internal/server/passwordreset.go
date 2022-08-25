@@ -10,7 +10,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 )
 
@@ -25,7 +24,7 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 		return nil, err
 	}
 
-	org := data.MustGetOrgFromContext(c)
+	org := access.GetRequestContext(c).Authenticated.Organization
 
 	// send email
 	err = email.SendPasswordReset("", r.Email, email.PasswordResetData{

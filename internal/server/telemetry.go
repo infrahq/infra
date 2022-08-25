@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/segmentio/analytics-go.v3"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -19,11 +18,11 @@ type Properties = analytics.Properties
 
 type Telemetry struct {
 	client  analytics.Client
-	db      *gorm.DB
+	db      data.GormTxn
 	infraID uid.ID
 }
 
-func NewTelemetry(db *gorm.DB, infraID uid.ID) *Telemetry {
+func NewTelemetry(db data.GormTxn, infraID uid.ID) *Telemetry {
 	return &Telemetry{
 		client:  analytics.New(internal.TelemetryWriteKey),
 		db:      db,

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -18,7 +17,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func createIdentities(t *testing.T, db *gorm.DB, identities ...*models.Identity) {
+func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Identity) {
 	t.Helper()
 	for i := range identities {
 		err := data.CreateIdentity(db, identities[i])
@@ -26,7 +25,7 @@ func createIdentities(t *testing.T, db *gorm.DB, identities ...*models.Identity)
 	}
 }
 
-func createGroups(t *testing.T, db *gorm.DB, groups ...*models.Group) {
+func createGroups(t *testing.T, db data.GormTxn, groups ...*models.Group) {
 	t.Helper()
 	for i := range groups {
 		err := data.CreateGroup(db, groups[i])

@@ -3,7 +3,6 @@ package data
 import (
 	"testing"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -11,7 +10,7 @@ import (
 )
 
 func TestDuplicateGrant(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		g := models.Grant{
 			Model:     models.Model{ID: 1},
 			Subject:   "i:1234567",

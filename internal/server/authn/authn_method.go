@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -19,16 +17,16 @@ type AuthenticatedIdentity struct {
 }
 
 type LoginMethod interface {
-	Authenticate(ctx context.Context, db *gorm.DB, requestedExpiry time.Time) (AuthenticatedIdentity, error)
-	Name() string                             // Name returns the name of the authentication method used
-	RequiresUpdate(db *gorm.DB) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
+	Authenticate(ctx context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error)
+	Name() string                                 // Name returns the name of the authentication method used
+	RequiresUpdate(db data.GormTxn) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
 }
 
 type AuthScope struct {
 	PasswordResetOnly bool
 }
 
-func Login(ctx context.Context, db *gorm.DB, loginMethod LoginMethod, requestedExpiry time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
+func Login(ctx context.Context, db data.GormTxn, loginMethod LoginMethod, requestedExpiry time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
 	// challenge the user to authenticate
 	authenticated, err := loginMethod.Authenticate(ctx, db, requestedExpiry)
 	if err != nil {

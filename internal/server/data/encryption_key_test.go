@@ -3,14 +3,13 @@ package data
 import (
 	"testing"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func TestEncryptionKeys(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		k, err := CreateEncryptionKey(db, &models.EncryptionKey{
 			Name:      "foo",
 			Encrypted: []byte{0x00},

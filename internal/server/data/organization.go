@@ -1,50 +1,22 @@
 package data
 
 import (
-	"context"
 	"fmt"
-
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-type orgCtxKey struct{}
-
-// OrgFromContext returns the Organization stored using WithOrg.
-func OrgFromContext(ctx context.Context) *models.Organization {
-	org, ok := ctx.Value(orgCtxKey{}).(*models.Organization)
-	if !ok {
-		return nil
-	}
-	return org
-}
-
-func MustGetOrgFromContext(ctx context.Context) *models.Organization {
-	org := OrgFromContext(ctx)
-	if org == nil {
-		panic("no organization found in context. this should never happen")
-	}
-	return org
-}
-
-// WithOrg sets an Organization in the context. The Organization will be used
-// by all query functions to insert, select, and modify entities within that
-// organization.
-func WithOrg(ctx context.Context, org *models.Organization) context.Context {
-	return context.WithValue(ctx, orgCtxKey{}, org)
-}
-
-// CreateOrganizationAndSetContext creates a new organization and sets the current db context to execute on this org
-func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) error {
-	err := add(db, org)
+// CreateOrganization creates a new organization and sets the current db context to execute on this org
+func CreateOrganization(tx GormTxn, org *models.Organization) error {
+	err := add(tx, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
 	}
 
-	db.Statement.Context = WithOrg(db.Statement.Context, org)
-	_, err = initializeSettings(db)
+	tx = NewTransaction(tx.GormDB(), org.ID)
+
+	_, err = initializeSettings(tx)
 	if err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}
@@ -54,7 +26,7 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 		Kind:      models.ProviderKindInfra,
 		CreatedBy: models.CreatedBySystem,
 	}
-	if err := CreateProvider(db, infraProvider); err != nil {
+	if err := CreateProvider(tx, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
 
@@ -63,11 +35,11 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 		CreatedBy: models.CreatedBySystem,
 	}
 	// this identity is used to create access keys for connectors
-	if err := CreateIdentity(db, connector); err != nil {
+	if err := CreateIdentity(tx, connector); err != nil {
 		return fmt.Errorf("failed to create connector identity while creating org: %w", err)
 	}
 
-	err = CreateGrant(db, &models.Grant{
+	err = CreateGrant(tx, &models.Grant{
 		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
 		Privilege: models.InfraAdminRole,
 		Resource:  "infra",
@@ -80,15 +52,15 @@ func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) erro
 	return nil
 }
 
-func GetOrganization(db *gorm.DB, selectors ...SelectorFunc) (*models.Organization, error) {
+func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organization, error) {
 	return get[models.Organization](db, selectors...)
 }
 
-func ListOrganizations(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
+func ListOrganizations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
 	return list[models.Organization](db, p, selectors...)
 }
 
-func DeleteOrganizations(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := GetOrganization(db, selectors...)
 	if err != nil {
 		return err

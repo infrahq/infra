@@ -6,15 +6,14 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func getDB(c *gin.Context) *gorm.DB {
-	db, ok := c.MustGet("db").(*gorm.DB)
+func getDB(c *gin.Context) data.GormTxn {
+	db, ok := c.MustGet("db").(data.GormTxn)
 	if !ok {
 		return nil
 	}
@@ -23,7 +22,7 @@ func getDB(c *gin.Context) *gorm.DB {
 }
 
 // hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
-func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (*gorm.DB, error) {
+func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (data.GormTxn, error) {
 	owner, err := isResourceOwner(c, requestedResource)
 	if err != nil {
 		return nil, fmt.Errorf("owner lookup: %w", err)
@@ -39,7 +38,7 @@ func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner 
 const ResourceInfraAPI = "infra"
 
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
-func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (*gorm.DB, error) {
+func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
 	db := getDB(c)
 
 	identity := AuthenticatedIdentity(c)
@@ -127,7 +126,7 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 }
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
-func Can(db *gorm.DB, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
+func Can(db data.GormTxn, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
 	grants, err := data.ListGrants(db, &models.Pagination{Limit: 1}, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)

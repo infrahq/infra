@@ -11,8 +11,9 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models.Provider, newGroups []string) error {
-	pu, err := GetProviderUser(db, provider.ID, user.ID)
+func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
+	db := tx.GormDB()
+	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -23,7 +24,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 
 	pu.Groups = newGroups
 	pu.LastUpdate = time.Now().UTC()
-	if err := save(db, pu); err != nil {
+	if err := save(tx, pu); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
@@ -69,7 +70,7 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 				CreatedByProvider: provider.ID,
 			}
 
-			if err = CreateGroup(db, group); err != nil {
+			if err = CreateGroup(tx, group); err != nil {
 				return fmt.Errorf("create group: %w", err)
 			}
 			groupID = group.ID
@@ -94,24 +95,28 @@ func AssignIdentityToGroups(db *gorm.DB, user *models.Identity, provider *models
 	return nil
 }
 
-func CreateIdentity(db *gorm.DB, identity *models.Identity) error {
+func CreateIdentity(db GormTxn, identity *models.Identity) error {
 	return add(db, identity)
 }
 
-func GetIdentity(db *gorm.DB, selectors ...SelectorFunc) (*models.Identity, error) {
+func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error) {
 	return get[models.Identity](db, selectors...)
 }
 
-func ListIdentities(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
+func ListIdentities(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
 	return list[models.Identity](db, p, selectors...)
 }
 
-func DeleteIdentity(db *gorm.DB, id uid.ID) error {
+func DeleteIdentity(db GormTxn, id uid.ID) error {
 	return delete[models.Identity](db, id)
 }
 
-func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
-	toDelete, err := ListIdentities(db.Select("id"), nil, selectors...)
+func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
+	selectID := func(db *gorm.DB) *gorm.DB {
+		return db.Select("id")
+	}
+	selectors = append([]SelectorFunc{selectID}, selectors...)
+	toDelete, err := ListIdentities(tx, nil, selectors...)
 	if err != nil {
 		return err
 	}
@@ -120,27 +125,27 @@ func DeleteIdentities(db *gorm.DB, selectors ...SelectorFunc) error {
 	for _, i := range toDelete {
 		ids = append(ids, i.ID)
 
-		err := DeleteGrants(db, BySubject(i.PolyID()))
+		err := DeleteGrants(tx, BySubject(i.PolyID()))
 		if err != nil {
 			return err
 		}
 
-		groups, err := ListGroups(db, nil, ByGroupMember(i.ID))
+		groups, err := ListGroups(tx, nil, ByGroupMember(i.ID))
 		if err != nil {
 			return err
 		}
 
 		for _, group := range groups {
-			err = RemoveUsersFromGroup(db, group.ID, []uid.ID{i.ID})
+			err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	return deleteAll[models.Identity](db, ByIDs(ids))
+	return deleteAll[models.Identity](tx, ByIDs(ids))
 }
 
-func SaveIdentity(db *gorm.DB, identity *models.Identity) error {
+func SaveIdentity(db GormTxn, identity *models.Identity) error {
 	return save(db, identity)
 }

@@ -27,9 +27,15 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
-	if err := data.CreateOrganizationAndSetContext(db, details.Org); err != nil {
+	if err := data.CreateOrganization(db, details.Org); err != nil {
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
+
+	db = data.NewTransaction(db.GormDB(), details.Org.ID)
+	c.Set("db", db)
+	rCtx := GetRequestContext(c)
+	rCtx.DBTxn = db
+	c.Set(RequestContextKey, rCtx)
 
 	// check the admin user's password requirements against our basic password requirements
 	err := checkPasswordRequirements(db, details.Password)

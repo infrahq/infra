@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
@@ -30,7 +28,7 @@ func validateProviderUser(u *models.ProviderUser) error {
 	}
 }
 
-func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
+func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
 	pu, err := get[models.ProviderUser](db, ByIdentityID(ident.ID), ByProviderID(provider.ID))
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return nil, err
@@ -52,27 +50,27 @@ func CreateProviderUser(db *gorm.DB, provider *models.Provider, ident *models.Id
 	return pu, add(db, pu)
 }
 
-func UpdateProviderUser(db *gorm.DB, providerUser *models.ProviderUser) error {
+func UpdateProviderUser(db GormTxn, providerUser *models.ProviderUser) error {
 	if err := validateProviderUser(providerUser); err != nil {
 		return err
 	}
 	return save(db, providerUser)
 }
 
-func ListProviderUsers(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
+func ListProviderUsers(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
 	return list[models.ProviderUser](db, p, selectors...)
 }
 
-func DeleteProviderUsers(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteProviderUsers(db GormTxn, selectors ...SelectorFunc) error {
 	return deleteAll[models.ProviderUser](db, selectors...)
 }
 
-func GetProviderUser(db *gorm.DB, providerID, userID uid.ID) (*models.ProviderUser, error) {
+func GetProviderUser(db GormTxn, providerID, userID uid.ID) (*models.ProviderUser, error) {
 	return get[models.ProviderUser](db, ByProviderID(providerID), ByIdentityID(userID))
 }
 
-func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
-	providerUser, err := GetProviderUser(db, provider.ID, user.ID)
+func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -89,7 +87,7 @@ func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, p
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
 		providerUser.ExpiresAt = *expiry
 
-		err = UpdateProviderUser(db, providerUser)
+		err = UpdateProviderUser(tx, providerUser)
 		if err != nil {
 			return fmt.Errorf("update provider user on sync: %w", err)
 		}
@@ -100,7 +98,7 @@ func SyncProviderUser(ctx context.Context, db *gorm.DB, user *models.Identity, p
 		return fmt.Errorf("oidc user sync failed: %w", err)
 	}
 
-	if err := AssignIdentityToGroups(db, user, provider, info.Groups); err != nil {
+	if err := AssignIdentityToGroups(tx, user, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 

@@ -3,8 +3,7 @@ package access
 import (
 	"net/http"
 
-	"gorm.io/gorm"
-
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -14,7 +13,7 @@ const RequestContextKey = "requestContext"
 // like the authenticated user. It also provides a database transaction.
 type RequestContext struct {
 	Request       *http.Request
-	DBTxn         *gorm.DB
+	DBTxn         data.GormTxn
 	Authenticated Authenticated
 }
 

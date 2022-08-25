@@ -8,7 +8,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func CreateEncryptionKey(db *gorm.DB, key *models.EncryptionKey) (*models.EncryptionKey, error) {
+func CreateEncryptionKey(db GormTxn, key *models.EncryptionKey) (*models.EncryptionKey, error) {
 	if key.KeyID == 0 {
 		// not a security issue; just an identifier
 		key.KeyID = mathrand.Int31() // nolint:gosec
@@ -21,7 +21,7 @@ func CreateEncryptionKey(db *gorm.DB, key *models.EncryptionKey) (*models.Encryp
 	return key, nil
 }
 
-func GetEncryptionKey(db *gorm.DB, selector SelectorFunc) (result *models.EncryptionKey, err error) {
+func GetEncryptionKey(db GormTxn, selector SelectorFunc) (result *models.EncryptionKey, err error) {
 	return get[models.EncryptionKey](db, selector)
 }
 

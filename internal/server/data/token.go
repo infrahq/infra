@@ -6,7 +6,6 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/claims"
 	"github.com/infrahq/infra/internal/generate"
@@ -18,7 +17,7 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires time.Time) (string, error) {
+func createJWT(db GormTxn, identity *models.Identity, groups []string, expires time.Time) (string, error) {
 	settings, err := GetSettings(db)
 	if err != nil {
 		return "", err
@@ -63,7 +62,7 @@ func createJWT(db *gorm.DB, identity *models.Identity, groups []string, expires 
 	return raw, nil
 }
 
-func CreateIdentityToken(db *gorm.DB, identityID uid.ID) (token *models.Token, err error) {
+func CreateIdentityToken(db GormTxn, identityID uid.ID) (token *models.Token, err error) {
 	identity, err := GetIdentity(db, ByID(identityID))
 	if err != nil {
 		return nil, err

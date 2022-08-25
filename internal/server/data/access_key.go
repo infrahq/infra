@@ -27,7 +27,7 @@ func secretChecksum(secret string) []byte {
 	return chksm[:]
 }
 
-func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err error) {
+func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
 	switch {
 	case accessKey.IssuedFor == 0:
 		return "", fmt.Errorf("issusedFor is required")
@@ -83,7 +83,7 @@ func CreateAccessKey(db *gorm.DB, accessKey *models.AccessKey) (body string, err
 	return fmt.Sprintf("%s.%s", accessKey.KeyID, accessKey.Secret), nil
 }
 
-func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
+func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
 	if key.Secret != "" {
 		key.SecretChecksum = secretChecksum(key.Secret)
 	}
@@ -91,11 +91,12 @@ func SaveAccessKey(db *gorm.DB, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+func ListAccessKeys(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
 	return list[models.AccessKey](db, p, selectors...)
 }
 
-func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, error) {
+func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, error) {
+	db := tx.GormDB()
 	// GetAccessKey by keyID needs to not set an organization_id in the query.
 	// keyID should be globally unique.
 	for _, selector := range selectors {
@@ -111,11 +112,11 @@ func GetAccessKey(db *gorm.DB, selectors ...SelectorFunc) (*models.AccessKey, er
 	return result, nil
 }
 
-func DeleteAccessKey(db *gorm.DB, id uid.ID) error {
+func DeleteAccessKey(db GormTxn, id uid.ID) error {
 	return delete[models.AccessKey](db, id)
 }
 
-func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteAccessKeys(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := list[models.AccessKey](db, nil, selectors...)
 	if err != nil {
 		return err
@@ -128,13 +129,13 @@ func DeleteAccessKeys(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.AccessKey](db, ByIDs(ids))
 }
 
-func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) {
+func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(db, ByKeyID(keyID))
+	t, err := GetAccessKey(tx, ByKeyID(keyID))
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
@@ -155,16 +156,12 @@ func ValidateAccessKey(db *gorm.DB, authnKey string) (*models.AccessKey, error) 
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-		// if the context wasn't set already, set it from the key so we can save
-		org := OrgFromContext(db.Statement.Context)
-		if org == nil {
-			org, err = GetOrganization(db, ByID(t.OrganizationID))
-			if err != nil {
-				return nil, fmt.Errorf("loading organization: %w", err)
-			}
-			db.Statement.Context = WithOrg(db.Statement.Context, org)
-		}
-		if err := SaveAccessKey(db, t); err != nil {
+
+		// Set the orgID in the tx. This is only necessary because our data
+		// layer requires an orgID be set in the transaction. If we remove
+		// that requirement, we can remove this line as well.
+		tx = NewTransaction(tx.GormDB(), t.OrganizationID)
+		if err := SaveAccessKey(tx, t); err != nil {
 			return nil, err
 		}
 	}

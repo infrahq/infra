@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -59,7 +58,7 @@ func withSupportAdminGrant(_ *testing.T, opts *Options) {
 	})
 }
 
-func createAdmin(t *testing.T, db *gorm.DB) *models.Identity {
+func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 	user := &models.Identity{
 		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
 	}
@@ -76,7 +75,7 @@ func createAdmin(t *testing.T, db *gorm.DB) *models.Identity {
 	return user
 }
 
-func loginAs(db *gorm.DB, user *models.Identity) *gin.Context {
+func loginAs(db data.GormTxn, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
 	ctx.Set("db", db)
 	ctx.Set("identity", user)

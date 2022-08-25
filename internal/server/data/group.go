@@ -7,11 +7,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGroup(db *gorm.DB, group *models.Group) error {
+func CreateGroup(db GormTxn, group *models.Group) error {
 	return add(db, group)
 }
 
-func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
+func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
 	group, err := get[models.Group](db, selectors...)
 	if err != nil {
 		return nil, err
@@ -25,7 +25,7 @@ func GetGroup(db *gorm.DB, selectors ...SelectorFunc) (*models.Group, error) {
 	return group, nil
 }
 
-func ListGroups(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
+func ListGroups(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
 	groups, err := list[models.Group](db, p, selectors...)
 
 	if err != nil {
@@ -52,7 +52,7 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 	}
 }
 
-func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := ListGroups(db, nil, selectors...)
 	if err != nil {
 		return err
@@ -85,11 +85,11 @@ func DeleteGroups(db *gorm.DB, selectors ...SelectorFunc) error {
 	return deleteAll[models.Group](db, ByIDs(ids))
 }
 
-func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
+func AddUsersToGroup(db GormTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 	for _, id := range idsToAdd {
 		// This is effectively an "INSERT OR IGNORE" or "INSERT ... ON CONFLICT ... DO NOTHING" statement which
 		// works across both sqlite and postgres
-		err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id).Error
+		_, err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id)
 		if err != nil {
 			return err
 		}
@@ -97,9 +97,9 @@ func AddUsersToGroup(db *gorm.DB, groupID uid.ID, idsToAdd []uid.ID) error {
 	return nil
 }
 
-func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) error {
+func RemoveUsersFromGroup(db GormTxn, groupID uid.ID, idsToRemove []uid.ID) error {
 	for _, id := range idsToRemove {
-		err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID).Error
+		_, err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID)
 		if err != nil {
 			return err
 		}
@@ -107,7 +107,8 @@ func RemoveUsersFromGroup(db *gorm.DB, groupID uid.ID, idsToRemove []uid.ID) err
 	return nil
 }
 
-func CountUsersInGroup(db *gorm.DB, groupID uid.ID) (int64, error) {
+func CountUsersInGroup(tx GormTxn, groupID uid.ID) (int64, error) {
+	db := tx.GormDB()
 	var count int64
 	err := db.Table("identities_groups").Where("group_id = ?", groupID).Count(&count).Error
 	if err != nil {

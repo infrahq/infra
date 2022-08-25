@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -103,7 +102,7 @@ func responseBodyAPIErrorWithCode(code int32) func(t *testing.T, resp *httptest.
 	}
 }
 
-func createAccessKey(t *testing.T, db *gorm.DB, email string) (string, *models.Identity) {
+func createAccessKey(t *testing.T, db data.GormTxn, email string) (string, *models.Identity) {
 	t.Helper()
 	user := &models.Identity{Name: email}
 	err := data.CreateIdentity(db, user)

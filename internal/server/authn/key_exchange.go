@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -22,7 +20,7 @@ func NewKeyExchangeAuthentication(requestingAccessKey string) LoginMethod {
 	}
 }
 
-func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *gorm.DB, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *keyExchangeAuthn) Authenticate(_ context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	validatedRequestKey, err := data.ValidateAccessKey(db, a.RequestingAccessKey)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("invalid access key in exchange: %w", err)
@@ -51,6 +49,6 @@ func (a *keyExchangeAuthn) Name() string {
 	return "exchange"
 }
 
-func (a *keyExchangeAuthn) RequiresUpdate(db *gorm.DB) (bool, error) {
+func (a *keyExchangeAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
 	return false, nil // not applicable to key exchange
 }

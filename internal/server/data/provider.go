@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -22,29 +20,29 @@ func validateProvider(p *models.Provider) error {
 	}
 }
 
-func CreateProvider(db *gorm.DB, provider *models.Provider) error {
+func CreateProvider(db GormTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
 	return add(db, provider)
 }
 
-func GetProvider(db *gorm.DB, selectors ...SelectorFunc) (*models.Provider, error) {
+func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error) {
 	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
+func ListProviders(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
 	return list[models.Provider](db, p, selectors...)
 }
 
-func SaveProvider(db *gorm.DB, provider *models.Provider) error {
+func SaveProvider(db GormTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
 	return save(db, provider)
 }
 
-func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := ListProviders(db, nil, selectors...)
 	if err != nil {
 		return fmt.Errorf("listing providers: %w", err)
@@ -62,7 +60,7 @@ func DeleteProviders(db *gorm.DB, selectors ...SelectorFunc) error {
 		// if a user has no other providers, we need to remove the user.
 		userIDsToDelete := []uid.ID{}
 		for _, providerUser := range providerUsers {
-			user, err := GetIdentity(db.Preload("Providers"), ByID(providerUser.IdentityID))
+			user, err := GetIdentity(db, Preload("Providers"), ByID(providerUser.IdentityID))
 			if err != nil {
 				if errors.Is(err, internal.ErrNotFound) {
 					continue
@@ -98,7 +96,8 @@ type providersCount struct {
 	Count float64
 }
 
-func CountProvidersByKind(db *gorm.DB) ([]providersCount, error) {
+func CountProvidersByKind(tx GormTxn) ([]providersCount, error) {
+	db := tx.GormDB()
 	var results []providersCount
 	if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
 		return nil, err

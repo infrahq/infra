@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
@@ -49,7 +48,7 @@ var cmpEncryptedAtRestNotZero = cmp.Comparer(func(x, y models.EncryptedAtRest) b
 })
 
 func TestSyncProviderUser(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		provider := &models.Provider{
 			Name: "mockta",
 			Kind: models.ProviderKindOkta,
@@ -228,7 +227,7 @@ func TestSyncProviderUser(t *testing.T) {
 }
 
 func TestDeleteProviderUser(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db *DB) {
 		provider := &models.Provider{
 			Name: "mockta",
 			Kind: models.ProviderKindOkta,

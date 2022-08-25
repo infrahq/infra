@@ -44,7 +44,7 @@ func CreateOrganization(c *gin.Context, org *models.Organization) error {
 		return HandleAuthErr(err, "organizations", "create", models.InfraSupportAdminRole)
 	}
 
-	return data.CreateOrganizationAndSetContext(db, org)
+	return data.CreateOrganization(db, org)
 }
 
 func DeleteOrganization(c *gin.Context, id uid.ID) error {

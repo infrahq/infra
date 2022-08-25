@@ -10,7 +10,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGrant(db *gorm.DB, grant *models.Grant) error {
+func CreateGrant(db GormTxn, grant *models.Grant) error {
 	switch {
 	case grant.Subject == "":
 		return fmt.Errorf("subject is required")
@@ -22,15 +22,15 @@ func CreateGrant(db *gorm.DB, grant *models.Grant) error {
 	return add(db, grant)
 }
 
-func GetGrant(db *gorm.DB, selectors ...SelectorFunc) (*models.Grant, error) {
+func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {
 	return get[models.Grant](db, selectors...)
 }
 
-func ListGrants(db *gorm.DB, p *models.Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
+func ListGrants(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
 	return list[models.Grant](db, p, selectors...)
 }
 
-func DeleteGrants(db *gorm.DB, selectors ...SelectorFunc) error {
+func DeleteGrants(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := list[models.Grant](db, nil, selectors...)
 	if err != nil {
 		return err
