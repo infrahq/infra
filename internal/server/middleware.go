@@ -74,7 +74,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
-			authned, err := requireAccessKey(tx, c.Request)
+			authned, err := requireAccessKey(c, tx, srv)
 			if err != nil {
 				sendAPIError(c, err)
 				return
@@ -149,7 +149,7 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB(), func(tx *gorm.DB) {
 			// ignore errors, access key is not required
-			authned, _ := requireAccessKey(tx, c.Request)
+			authned, _ := requireAccessKey(c, tx, srv)
 
 			org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 			if err != nil {
@@ -196,28 +196,12 @@ func orgRequired() gin.HandlerFunc {
 }
 
 // requireAccessKey checks the bearer token is present and valid
-func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, error) {
+func requireAccessKey(c *gin.Context, db *gorm.DB, srv *Server) (access.Authenticated, error) {
 	var u access.Authenticated
-	header := req.Header.Get("Authorization")
 
-	bearer := ""
-
-	parts := strings.Split(header, " ")
-	if len(parts) == 2 && parts[0] == "Bearer" {
-		bearer = parts[1]
-	} else {
-		// Fall back to checking cookies
-		cookie, err := getCookie(req, cookieAuthorizationName)
-		if err != nil {
-			return u, fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
-		}
-
-		bearer = cookie
-	}
-
-	// this will get caught by key validation, but check to be safe
-	if strings.TrimSpace(bearer) == "" {
-		return u, fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+	bearer, err := reqBearerToken(c, srv.options.BaseDomain)
+	if err != nil {
+		return u, err
 	}
 
 	accessKey, err := data.ValidateAccessKey(db, bearer)
@@ -230,14 +214,14 @@ func requireAccessKey(db *gorm.DB, req *http.Request) (access.Authenticated, err
 
 	if accessKey.Scopes.Includes(models.ScopePasswordReset) {
 		// PUT /api/users/:id only
-		if req.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || req.Method != http.MethodPut {
+		if c.Request.URL.Path != "/api/users/"+accessKey.IssuedFor.String() || c.Request.Method != http.MethodPut {
 			return u, fmt.Errorf("%w: temporary passwords can only be used to set new passwords", internal.ErrUnauthorized)
 		}
 	}
 
 	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
 	if err != nil {
-		return u, fmt.Errorf("access kye org lookup: %w", err)
+		return u, fmt.Errorf("access key org lookup: %w", err)
 	}
 
 	// now that the org is loaded scope all db calls to that org
@@ -303,4 +287,37 @@ hostLookup:
 		return nil, err
 	}
 	return org, nil
+}
+
+func reqBearerToken(c *gin.Context, baseDomain string) (string, error) {
+	header := c.Request.Header.Get("Authorization")
+
+	bearer := ""
+
+	parts := strings.Split(header, " ")
+	if len(parts) == 2 && parts[0] == "Bearer" {
+		bearer = parts[1]
+	} else {
+		// Fall back to checking cookies
+		cookie, err := getCookie(c.Request, cookieAuthorizationName)
+		if err != nil {
+			logging.L.Trace().Msg("auth cookie not found, falling back to signup cookie")
+			cookie, err = getCookie(c.Request, cookieSignupName)
+			if err != nil {
+				return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+			}
+
+			// if this is the first request after sign-up we must exchange the signup cookie for an auth cookie
+			exchangeSignupCookieForSession(c, baseDomain)
+		}
+
+		bearer = cookie
+	}
+
+	// this will get caught by key validation, but check to be safe
+	if strings.TrimSpace(bearer) == "" {
+		return "", fmt.Errorf("%w: skipped validating empty token", internal.ErrUnauthorized)
+	}
+
+	return bearer, nil
 }
