@@ -26,7 +26,7 @@ jobs:
     outputs:
       component-name: ${{ steps.component-name.outputs.component-name }}
       container-image-name: ${{ steps.component-name.outputs.container-image-name }}
-      container-image-context: ${{ steps.component-context.outputs.container-image-context }}
+      container-image-context: ${{ steps.component-name.outputs.container-image-context }}
     steps:
       - id: component-name
         run: |

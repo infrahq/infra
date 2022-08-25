@@ -116,6 +116,7 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
 
+	// no auth required, org required, undocumented in api spec
 	add(a, noAuthnWithOrg, route[api.EmptyRequest, WellKnownJWKResponse]{
 		method:              http.MethodGet,
 		path:                "/.well-known/jwks.json",

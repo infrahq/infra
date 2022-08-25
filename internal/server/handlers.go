@@ -124,7 +124,20 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, err
 	}
 
-	setAuthCookie(c, bearer, keyExpires)
+	/*
+		This cookie is set to send on all infra domains, make it expire quickly to prevent an unexpected org being set on requests to other orgs.
+		This signup cookie sets the authentication for the next call made to the org and will be exchanged for a long-term auth cookie.
+		We have to set this short lived sign-up auth cookie to give the user a valid session on sign-up.
+		Since the signup is on the base domain we have to set this cookie there,
+		but we want auth cookies to only be sent to their respective orgs so they must be set on their org specific sub-domain after redirect.
+	*/
+	cookie := cookieConfig{
+		Name:    cookieSignupName,
+		Value:   bearer,
+		Domain:  a.server.options.BaseDomain,
+		Expires: time.Now().Add(1 * time.Minute),
+	}
+	setCookie(c, cookie)
 
 	a.t.User(identity.ID.String(), r.Name)
 	a.t.Alias(identity.ID.String())
@@ -174,7 +187,13 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
 	}
 
-	setAuthCookie(c, bearer, key.ExpiresAt)
+	cookie := cookieConfig{
+		Name:    cookieAuthorizationName,
+		Value:   bearer,
+		Domain:  c.Request.Host,
+		Expires: key.ExpiresAt,
+	}
+	setCookie(c, cookie)
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
@@ -187,7 +206,7 @@ func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, e
 		return nil, err
 	}
 
-	deleteAuthCookie(c)
+	deleteCookie(c, cookieAuthorizationName, c.Request.Host)
 	return nil, nil
 }
 
