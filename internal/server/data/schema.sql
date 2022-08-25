@@ -266,6 +266,10 @@ CREATE POLICY organization_policy ON identities USING ((EXISTS ( SELECT 1
    FROM identities identities_1
   WHERE (identities_1.organization_id = current_org()))));
 
+CREATE POLICY organization_policy ON password_reset_tokens USING ((EXISTS ( SELECT 1
+   FROM password_reset_tokens password_reset_tokens_1
+  WHERE (password_reset_tokens_1.organization_id = current_org()))));
+
 CREATE POLICY organization_policy ON providers USING ((EXISTS ( SELECT 1
    FROM providers providers_1
   WHERE (providers_1.organization_id = current_org()))));
@@ -273,6 +277,8 @@ CREATE POLICY organization_policy ON providers USING ((EXISTS ( SELECT 1
 CREATE POLICY organization_policy ON settings USING ((EXISTS ( SELECT 1
    FROM settings settings_1
   WHERE (settings_1.organization_id = current_org()))));
+
+ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE providers ENABLE ROW LEVEL SECURITY;
 

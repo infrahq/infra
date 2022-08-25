@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"database/sql"
 	_ "embed"
 	"errors"
 	"fmt"
@@ -573,9 +574,10 @@ func addRLSUser() *migrator.Migration {
 			logging.Infof("adding RLS user")
 			var val int
 			err := tx.QueryRow("SELECT 1 FROM pg_roles WHERE rolname = 'infra_user'").Scan(&val)
-			if err != nil {
+			if err != nil && err != sql.ErrNoRows {
 				return err
 			}
+
 			if val == 0 {
 				if _, err := tx.Exec("CREATE USER infra_user"); err != nil {
 					logging.Infof("Couldn't create infra_user")
@@ -607,9 +609,10 @@ func addRLSSchema() *migrator.Migration {
 		Migrate: func(tx migrator.DB) error {
 			var val int
 			err := tx.QueryRow("SELECT 1 FROM pg_proc WHERE proname = 'current_org'").Scan(&val)
-			if err != nil {
+			if err != nil && err != sql.ErrNoRows {
 				return err
 			}
+
 			if val == 0 {
 				if _, err := tx.Exec("CREATE FUNCTION current_org() RETURNS BIGINT AS $$ SELECT NULLIF(current_setting('app.current_org', TRUE), '')::BIGINT $$ LANGUAGE SQL SECURITY DEFINER"); err != nil {
 					logging.Infof("Couldn't create function current_org")
