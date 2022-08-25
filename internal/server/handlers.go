@@ -124,7 +124,13 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, err
 	}
 
-	// this cookie is set to send on all infra domains, make it expire quickly to prevent an unexpected org being set on requests to other orgs
+	/*
+		This cookie is set to send on all infra domains, make it expire quickly to prevent an unexpected org being set on requests to other orgs.
+		This signup cookie sets the authentication for the next call made to the org and will be exchanged for a long-term auth cookie.
+		We have to set this short lived sign-up auth cookie to give the user a valid session on sign-up.
+		Since the signup is on the base domain we have to set this cookie there,
+		but we want auth cookies to only be sent to their respective orgs so they must be set on their org specific sub-domain after redirect.
+	*/
 	cookie := cookieConfig{
 		Name:    cookieSignupName,
 		Value:   bearer,

@@ -301,9 +301,17 @@ func TestRequireAccessKey(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := setupDB(t).DB
 
-			req := tc.setup(t, db)
+			srv := &Server{
+				options: Options{
+					BaseDomain: "example.com",
+				},
+			}
 
-			authned, err := requireAccessKey(db, req)
+			req := tc.setup(t, db)
+			c, _ := gin.CreateTestContext(httptest.NewRecorder())
+			c.Request = req
+
+			authned, err := requireAccessKey(c, db, srv)
 			tc.expected(t, authned, err)
 		})
 	}
