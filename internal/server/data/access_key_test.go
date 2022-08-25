@@ -178,21 +178,6 @@ func TestCheckAccessKeySecret(t *testing.T) {
 	})
 }
 
-func TestDeleteAccessKey(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		_, token := createTestAccessKey(t, db, time.Minute*5)
-
-		_, err := GetAccessKey(db, ByID(token.ID))
-		assert.NilError(t, err)
-
-		err = DeleteAccessKey(db, token.ID)
-		assert.NilError(t, err)
-
-		_, err = GetAccessKey(db, ByID(token.ID))
-		assert.Error(t, err, "record not found")
-	})
-}
-
 func TestDeleteAccessKeys(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 
@@ -235,6 +220,23 @@ func TestDeleteAccessKeys(t *testing.T) {
 			createAccessKeys(t, tx, key1, key2, toKeep)
 
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByProviderID: provider.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+
+		t.Run("by id", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			key1 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByID: key1.ID})
 			assert.NilError(t, err)
 
 			remaining, err := ListAccessKeys(tx, nil)

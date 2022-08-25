@@ -129,11 +129,9 @@ func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, err
 	return result, nil
 }
 
-func DeleteAccessKey(db GormTxn, id uid.ID) error {
-	return delete[models.AccessKey](db, id)
-}
-
 type DeleteAccessKeysOptions struct {
+	// ByID instructs DeleteAccessKeys to delete the key with this ID.
+	ByID uid.ID
 	// ByUserID instructs DeleteAccessKeys to delete keys issued for this user.
 	ByUserID uid.ID
 	// ByProviderID instructs DeleteAccessKeys to delete keys issued by this
@@ -145,6 +143,8 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	query := Query("UPDATE access_keys")
 	query.B("SET deleted_at = ? WHERE", time.Now())
 	switch {
+	case opts.ByID != 0:
+		query.B("id = ?", opts.ByID)
 	case opts.ByUserID != 0:
 		query.B("issued_for = ?", opts.ByUserID)
 	case opts.ByProviderID != 0:
