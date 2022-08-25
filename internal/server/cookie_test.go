@@ -23,7 +23,7 @@ func TestResendAuthCookie(t *testing.T) {
 	}
 	maxAge := int(time.Until(time.Now().Add(5 * time.Second)).Seconds())
 	req.AddCookie(&http.Cookie{
-		Name:     cookieAuthorizationName,
+		Name:     cookieSignupName,
 		Value:    "aaa",
 		MaxAge:   maxAge,
 		Path:     cookiePath,
@@ -49,7 +49,7 @@ func TestResendAuthCookie(t *testing.T) {
 	assert.Equal(t, len(c.Writer.Header()["Set-Cookie"]), 2)
 	expectedCookies := []string{
 		"auth=aaa; Path=/; Domain=dev.example.com; Max-Age=299; HttpOnly; SameSite=Strict",
-		"login=1; Path=/; Domain=dev.example.com; Max-Age=299; HttpOnly; SameSite=Strict",
+		"auth=; Path=/; Domain=example.com; Max-Age=0; HttpOnly; Secure",
 	}
 	assert.DeepEqual(t, c.Writer.Header()["Set-Cookie"], expectedCookies)
 }
