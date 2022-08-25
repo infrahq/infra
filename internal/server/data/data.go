@@ -1,6 +1,8 @@
 package data
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"net/url"
@@ -31,17 +33,23 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db *gorm.DB) error) (*DB, e
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
+	dataDB := &DB{DB: db}
 
 	opts := migrator.Options{
 		InitSchema: initializeSchema,
-		LoadKey:    loadDBKey,
+		LoadKey: func(tx migrator.DB) error {
+			if loadDBKey == nil {
+				return nil
+			}
+			// TODO: use the passed in tx instead of dataDB once the queries
+			// used by loadDBKey are ported to sql
+			return loadDBKey(dataDB.DB)
+		},
 	}
-	m := migrator.New(db, opts, migrations())
+	m := migrator.New(dataDB, opts, migrations())
 	if err := m.Migrate(); err != nil {
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
-
-	dataDB := &DB{DB: db}
 	if err := initialize(dataDB); err != nil {
 		return nil, fmt.Errorf("initialize database: %w", err)
 	}
@@ -59,12 +67,40 @@ type DB struct {
 	DefaultOrgSettings *models.Settings
 }
 
-func (db *DB) Close() error {
-	sqlDB, err := db.DB.DB()
+func (d *DB) Close() error {
+	sqlDB, err := d.DB.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get database conn to close: %w", err)
 	}
 	return sqlDB.Close()
+}
+
+func (d *DB) DriverName() string {
+	return d.Dialector.Name()
+}
+
+func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	db := d.DB.Exec(query, args...)
+	return driver.RowsAffected(db.RowsAffected), db.Error
+}
+
+func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	return d.DB.Raw(query, args...).Rows()
+}
+
+func (d *DB) QueryRow(query string, args ...any) *sql.Row {
+	return d.DB.Raw(query, args...).Row()
+}
+
+type WriteTxn interface {
+	ReadTxn
+	Exec(sql string, values ...interface{}) (sql.Result, error)
+}
+
+type ReadTxn interface {
+	DriverName() string
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
 }
 
 // newRawDB creates a new database connection without running migrations.

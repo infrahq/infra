@@ -3,17 +3,16 @@ package migrator
 import (
 	"testing"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 )
 
-func setupExampleTable(t *testing.T, db *gorm.DB) {
+func setupExampleTable(t *testing.T, db DB) {
 	t.Helper()
-	if db.Dialector.Name() == "sqlite" {
+	if db.DriverName() == "sqlite" {
 		t.Skip("does not work with sqlite")
 	}
 
-	db.Exec("DROP TABLE example")
+	_, _ = db.Exec("DROP TABLE example")
 
 	var exampleTable = `
 CREATE TABLE example (
@@ -22,15 +21,15 @@ CREATE TABLE example (
 );
 ALTER TABLE example ADD CONSTRAINT example_pkey PRIMARY KEY (id);
 `
-	err := db.Exec(exampleTable).Error
+	_, err := db.Exec(exampleTable)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
-		db.Exec("DROP TABLE example")
+		_, _ = db.Exec("DROP TABLE example")
 	})
 }
 
 func TestHasTable(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		setupExampleTable(t, db)
 
 		assert.Assert(t, HasTable(db, "example"))
@@ -39,7 +38,7 @@ func TestHasTable(t *testing.T) {
 }
 
 func TestHasColumn(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		setupExampleTable(t, db)
 
 		assert.Assert(t, HasColumn(db, "example", "id"))
@@ -50,7 +49,7 @@ func TestHasColumn(t *testing.T) {
 }
 
 func TestHasConstraint(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *gorm.DB) {
+	runDBTests(t, func(t *testing.T, db DB) {
 		setupExampleTable(t, db)
 
 		assert.Assert(t, HasConstraint(db, "example", "example_pkey"))

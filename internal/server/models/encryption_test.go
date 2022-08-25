@@ -34,7 +34,8 @@ func TestEncryptedAtRest(t *testing.T) {
 	db, err := data.NewDB(driver, nil)
 	assert.NilError(t, err)
 
-	assert.NilError(t, db.Exec(StructForTesting{}.Schema()).Error)
+	_, err = db.Exec(StructForTesting{}.Schema())
+	assert.NilError(t, err)
 
 	id := uid.New()
 
