@@ -64,6 +64,8 @@ func migrations() []*migrator.Migration {
 		addDefaultOrganization(),
 		addOrganizationDomain(),
 		dropOrganizationNameIndex(),
+		addRLSUser(),
+		addRLSSchema(),
 		// next one here
 	}
 }
@@ -78,6 +80,11 @@ func initializeSchema(db migrator.DB) error {
 			panic("unexpected DB type, remove this with gorm")
 		}
 		return autoMigrateSchema(dataDB.DB)
+	}
+
+	// add Row Level Security user separately because it won't be part of the db schema
+	if err := addRLSUser().Migrate(db); err != nil {
+		return err
 	}
 
 	if _, err := db.Exec(schemaSQL); err != nil {
@@ -555,6 +562,86 @@ func dropOrganizationNameIndex() *migrator.Migration {
 		Migrate: func(tx migrator.DB) error {
 			_, err := tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`)
 			return err
+		},
+	}
+}
+
+func addRLSUser() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-15T15:19",
+		Migrate: func(tx migrator.DB) error {
+			logging.Infof("adding RLS user")
+			var val int
+			err := tx.QueryRow("SELECT 1 FROM pg_roles WHERE rolname = 'infra_user'").Scan(&val)
+			if err != nil {
+				return err
+			}
+			if val == 0 {
+				if _, err := tx.Exec("CREATE USER infra_user"); err != nil {
+					logging.Infof("Couldn't create infra_user")
+					return err
+				}
+				// TODO: Properly store/set the user password
+				if _, err := tx.Exec("ALTER USER infra_user WITH PASSWORD 'changemetoanythingelse'"); err != nil {
+					logging.Infof("Couldn't create infra_user")
+					return err
+				}
+
+				if _, err := tx.Exec("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO infra_user"); err != nil {
+					logging.Infof("Couldn't grant privs for tables to infra_user")
+					return err
+				}
+				if _, err := tx.Exec("GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO infra_user"); err != nil {
+					logging.Infof("Couldn't grant privs for sequences to infra_user")
+					return err
+				}
+			}
+			return nil
+		},
+	}
+}
+
+func addRLSSchema() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-15T15:20",
+		Migrate: func(tx migrator.DB) error {
+			var val int
+			err := tx.QueryRow("SELECT 1 FROM pg_proc WHERE proname = 'current_org'").Scan(&val)
+			if err != nil {
+				return err
+			}
+			if val == 0 {
+				if _, err := tx.Exec("CREATE FUNCTION current_org() RETURNS BIGINT AS $$ SELECT NULLIF(current_setting('app.current_org', TRUE), '')::BIGINT $$ LANGUAGE SQL SECURITY DEFINER"); err != nil {
+					logging.Infof("Couldn't create function current_org")
+					return err
+				}
+			} else {
+				logging.Infof("Found current_org function")
+			}
+
+			tbls := []string{
+				"access_keys",
+				"credentials",
+				"destinations",
+				"grants",
+				"groups",
+				"identities",
+				"providers",
+				"settings",
+				"password_reset_tokens",
+			}
+
+			for _, tbl := range tbls {
+				if _, err := tx.Exec(fmt.Sprintf("CREATE POLICY organization_policy ON %s USING(EXISTS(SELECT 1 FROM %s WHERE organization_id = current_org()))", tbl, tbl)); err != nil {
+					logging.Infof("Couldn't create org policy on table '%s'", tbl)
+					return err
+				}
+				if _, err := tx.Exec(fmt.Sprintf("ALTER TABLE %s ENABLE ROW LEVEL SECURITY", tbl)); err != nil {
+					logging.Infof("Couldn't enable RLS on table '%s'", tbl)
+					return err
+				}
+			}
+			return nil
 		},
 	}
 }

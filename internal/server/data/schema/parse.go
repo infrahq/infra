@@ -107,6 +107,8 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	case strings.HasPrefix(line, "CREATE SEQUENCE"):
 	case strings.HasPrefix(line, "ALTER SEQUENCE"):
 	case strings.HasPrefix(line, "CREATE UNIQUE INDEX"):
+	case strings.HasPrefix(line, "CREATE FUNCTION"):
+	case strings.HasPrefix(line, "CREATE POLICY"):
 	default:
 		return "", "", fmt.Errorf("unexpected start of statement: %q", line)
 	}

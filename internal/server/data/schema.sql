@@ -4,6 +4,10 @@
 --     go test -run TestMigrations ./internal/server/data -update
 --
 
+CREATE FUNCTION current_org() RETURNS bigint
+    LANGUAGE sql SECURITY DEFINER
+    AS $$ SELECT NULLIF(current_setting('app.current_org', TRUE), '')::BIGINT $$;
+
 CREATE TABLE access_keys (
     id bigint NOT NULL,
     created_at timestamp with time zone,
@@ -225,3 +229,51 @@ CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USI
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
+
+ALTER TABLE access_keys ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE credentials ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE destinations ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE grants ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE identities ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY organization_policy ON access_keys USING ((EXISTS ( SELECT 1
+   FROM access_keys access_keys_1
+  WHERE (access_keys_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON credentials USING ((EXISTS ( SELECT 1
+   FROM credentials credentials_1
+  WHERE (credentials_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON destinations USING ((EXISTS ( SELECT 1
+   FROM destinations destinations_1
+  WHERE (destinations_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON grants USING ((EXISTS ( SELECT 1
+   FROM grants grants_1
+  WHERE (grants_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON groups USING ((EXISTS ( SELECT 1
+   FROM groups groups_1
+  WHERE (groups_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON identities USING ((EXISTS ( SELECT 1
+   FROM identities identities_1
+  WHERE (identities_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON providers USING ((EXISTS ( SELECT 1
+   FROM providers providers_1
+  WHERE (providers_1.organization_id = current_org()))));
+
+CREATE POLICY organization_policy ON settings USING ((EXISTS ( SELECT 1
+   FROM settings settings_1
+  WHERE (settings_1.organization_id = current_org()))));
+
+ALTER TABLE providers ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE settings ENABLE ROW LEVEL SECURITY;

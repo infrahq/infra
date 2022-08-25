@@ -494,6 +494,23 @@ DELETE FROM settings WHERE id=24567;
 				// dropped indexes are tested by schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-08-15T15:19"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				stmt := `SELECT 1 FROM pg_roles WHERE rolname = 'infra_user'`
+				var val int
+				err := tx.QueryRow(stmt).Scan(&val)
+				assert.NilError(t, err)
+				assert.Equal(t, val, 1)
+
+			},
+		},
+		{
+			label: testCaseLine("2022-08-15T15:20"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// functions + schema changes are tested by schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
