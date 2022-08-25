@@ -169,6 +169,11 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			if org != nil {
 				c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 				tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
+				err = data.SetCurrentOrgRLS(srv.db.DB, org)
+				if err != nil {
+					logging.L.Warn().Err(err).Msg("couldn't set org for rls")
+					return
+				}
 			}
 
 			rCtx := access.RequestContext{

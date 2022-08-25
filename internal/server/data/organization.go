@@ -36,11 +36,25 @@ func WithOrg(ctx context.Context, org *models.Organization) context.Context {
 	return context.WithValue(ctx, orgCtxKey{}, org)
 }
 
+// SetCurrentOrgRLS sets the organization in the database for Row Level Security
+func SetCurrentOrgRLS(db *gorm.DB, org *models.Organization) error {
+	if db.Name() == "postgres" {
+		if err := db.Exec(fmt.Sprintf("SET app.current_org = %d", org.ID)).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CreateOrganizationAndSetContext creates a new organization and sets the current db context to execute on this org
 func CreateOrganizationAndSetContext(db *gorm.DB, org *models.Organization) error {
 	err := add(db, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
+	}
+
+	if err = SetCurrentOrgRLS(db, org); err != nil {
+		return fmt.Errorf("setting RLS for new org: %w", err)
 	}
 
 	db.Statement.Context = WithOrg(db.Statement.Context, org)

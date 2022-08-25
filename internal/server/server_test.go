@@ -49,7 +49,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	return s
 }
 
-func TestGetPostgresConnectionURL(t *testing.T) {
+func TestGetPrivPostgresConnectionURL(t *testing.T) {
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
 	r := newServer(Options{})
@@ -57,44 +57,67 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
 	r.secrets["plaintext"] = f
 
-	url, err := r.getPostgresConnectionString()
+	url, err := r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 
 	assert.Assert(t, is.Len(url, 0))
 
 	r.options.DBHost = "localhost"
 
-	url, err = r.getPostgresConnectionString()
+	url, err = r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 
 	assert.Equal(t, "host=localhost", url)
 
 	r.options.DBPort = 5432
 
-	url, err = r.getPostgresConnectionString()
+	url, err = r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost port=5432", url)
 
 	r.options.DBUsername = "user"
 
-	url, err = r.getPostgresConnectionString()
+	url, err = r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 
 	assert.Equal(t, "host=localhost user=user port=5432", url)
 
 	r.options.DBPassword = "plaintext:secret"
 
-	url, err = r.getPostgresConnectionString()
+	url, err = r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 
 	assert.Equal(t, "host=localhost user=user password=secret port=5432", url)
 
 	r.options.DBName = "postgres"
 
-	url, err = r.getPostgresConnectionString()
+	url, err = r.getPrivPostgresConnectionString()
 	assert.NilError(t, err)
 
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
+}
+
+func TestGetUnprivPostgresConnectionURL(t *testing.T) {
+	r := newServer(Options{})
+
+	url := r.getUnprivPostgresConnectionString()
+	assert.Equal(t, "host=localhost user=infra_user password=changemetoanythingelse", url)
+
+	r.options.DBHost = "somehost.com"
+	url = r.getUnprivPostgresConnectionString()
+	assert.Equal(t, "host=somehost.com user=infra_user password=changemetoanythingelse", url)
+
+	r.options.DBPort = 5432
+	url = r.getUnprivPostgresConnectionString()
+	assert.Equal(t, "host=somehost.com user=infra_user password=changemetoanythingelse port=5432", url)
+
+	r.options.DBName = "somedb"
+	url = r.getUnprivPostgresConnectionString()
+	assert.Equal(t, "host=somehost.com user=infra_user password=changemetoanythingelse port=5432 dbname=somedb", url)
+
+	r.options.DBParameters = "xyz"
+	url = r.getUnprivPostgresConnectionString()
+	assert.Equal(t, "host=somehost.com user=infra_user password=changemetoanythingelse port=5432 dbname=somedb xyz", url)
 }
 
 func TestServer_Run(t *testing.T) {

@@ -135,12 +135,12 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("key config: %w", err)
 	}
 
-	driver, err := server.getDatabaseDriver()
+	privDriver, err := server.getPrivDatabaseDriver()
 	if err != nil {
-		return nil, fmt.Errorf("driver: %w", err)
+		return nil, fmt.Errorf("priv driver: %w", err)
 	}
 
-	db, err := data.NewDB(driver, server.loadDBKey)
+	db, err := data.NewDB(privDriver, server.loadDBKey)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -308,8 +308,8 @@ type routine struct {
 	stop func()
 }
 
-func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
-	pgDSN, err := s.getPostgresConnectionString()
+func (s *Server) getPrivDatabaseDriver() (gorm.Dialector, error) {
+	pgDSN, err := s.getPrivPostgresConnectionString()
 	if err != nil {
 		return nil, fmt.Errorf("postgres: %w", err)
 	}
@@ -321,8 +321,8 @@ func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
 	return data.NewSQLiteDriver(s.options.DBFile)
 }
 
-// getPostgresConnectionString parses postgres configuration options and returns the connection string
-func (s *Server) getPostgresConnectionString() (string, error) {
+// getPrivPostgresConnectionString parses postgres configuration options and returns the connection string
+func (s *Server) getPrivPostgresConnectionString() (string, error) {
 	var pgConn strings.Builder
 	pgConn.WriteString(s.options.DBConnectionString)
 
@@ -357,6 +357,33 @@ func (s *Server) getPostgresConnectionString() (string, error) {
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil
+}
+
+// getUnprivPostgresConnectionString creates a connection string which can be used for Row Level Security
+func (s *Server) getUnprivPostgresConnectionString() string {
+	var pgConn strings.Builder
+
+	if s.options.DBHost != "" {
+		fmt.Fprintf(&pgConn, "host=%s ", s.options.DBHost)
+	} else {
+		fmt.Fprintf(&pgConn, "host=localhost ")
+	}
+
+	fmt.Fprintf(&pgConn, "user=%s ", "infra_user")
+	fmt.Fprintf(&pgConn, "password=%s ", "changemetoanythingelse")
+
+	if s.options.DBPort > 0 {
+		fmt.Fprintf(&pgConn, "port=%d ", s.options.DBPort)
+	}
+
+	if s.options.DBName != "" {
+		fmt.Fprintf(&pgConn, "dbname=%s ", s.options.DBName)
+	}
+
+	if s.options.DBParameters != "" {
+		fmt.Fprintf(&pgConn, "%s", s.options.DBParameters)
+	}
+	return strings.TrimSpace(pgConn.String())
 }
 
 var dbKeyName = "dbkey"
