@@ -37,7 +37,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.DB, *models.Provi
 	db := setupDB(t)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", db)
+	c.Set(RequestContextKey, RequestContext{DBTxn: db})
 
 	admin := &models.Identity{Name: "admin@example.com"}
 	err := data.CreateIdentity(db, admin)
@@ -106,7 +106,7 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set("db", db)
+	c.Set(RequestContextKey, RequestContext{DBTxn: db})
 	c.Set("identity", tom)
 
 	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
@@ -133,7 +133,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 		assert.NilError(t, err)
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Set("db", db)
+		c.Set(RequestContextKey, RequestContext{DBTxn: db})
 		c.Set("identity", testIdentity)
 
 		return c
