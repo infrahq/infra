@@ -109,9 +109,8 @@ func TestDBTimeout(t *testing.T) {
 	)
 	router.GET("/", func(c *gin.Context) {
 		rCtx := getRequestContext(c)
-		db := rCtx.DBTxn
 		cancel()
-		_, err := db.Exec("select 1;")
+		_, err := rCtx.DBTxn.Exec("select 1;")
 		assert.Error(t, err, "context canceled")
 
 		c.Status(200)
@@ -344,7 +343,8 @@ func TestRequireAccessKey(t *testing.T) {
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Request = req
 
-			authned, err := requireAccessKey(c, db, srv)
+			tx := data.NewTransaction(db.GormDB(), 0)
+			authned, err := requireAccessKey(c, tx, srv)
 			tc.expected(t, authned, err)
 		})
 	}

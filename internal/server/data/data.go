@@ -155,6 +155,14 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
+// WithOrgID returns a copy of the Transaction with the OrganizationID set to
+// orgID.
+func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
+	newTxn := *t
+	newTxn.orgID = orgID
+	return &newTxn
+}
+
 func NewTransaction(db *gorm.DB, orgID uid.ID) *Transaction {
 	return &Transaction{DB: db, orgID: orgID}
 }

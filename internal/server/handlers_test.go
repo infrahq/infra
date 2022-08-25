@@ -78,7 +78,8 @@ func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 
 func loginAs(db data.GormTxn, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
-	ctx.Set(access.RequestContextKey, access.RequestContext{DBTxn: db})
+	tx := data.NewTransaction(db.GormDB(), db.OrganizationID())
+	ctx.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
 	ctx.Set("identity", user)
 	return ctx
 }

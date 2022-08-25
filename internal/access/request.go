@@ -13,7 +13,7 @@ const RequestContextKey = "requestContext"
 // like the authenticated user. It also provides a database transaction.
 type RequestContext struct {
 	Request       *http.Request
-	DBTxn         data.GormTxn
+	DBTxn         *data.Transaction
 	Authenticated Authenticated
 }
 
