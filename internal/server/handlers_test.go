@@ -13,6 +13,7 @@ import (
 	gocmp "github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/server/data"
@@ -77,7 +78,7 @@ func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 
 func loginAs(db data.GormTxn, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
-	ctx.Set("db", db)
+	ctx.Set(access.RequestContextKey, access.RequestContext{DBTxn: db})
 	ctx.Set("identity", user)
 	return ctx
 }

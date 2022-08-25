@@ -108,8 +108,8 @@ func TestDBTimeout(t *testing.T) {
 		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
-		db, ok := c.MustGet("db").(data.GormTxn)
-		assert.Check(t, ok)
+		rCtx := getRequestContext(c)
+		db := rCtx.DBTxn
 		cancel()
 		_, err := db.Exec("select 1;")
 		assert.Error(t, err, "context canceled")

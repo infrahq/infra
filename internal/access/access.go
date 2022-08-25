@@ -12,13 +12,10 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// TODO: replace calls to this function with GetRequestContext once the
+// data interface has stabilized.
 func getDB(c *gin.Context) data.GormTxn {
-	db, ok := c.MustGet("db").(data.GormTxn)
-	if !ok {
-		return nil
-	}
-
-	return db
+	return GetRequestContext(c).DBTxn
 }
 
 // hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it

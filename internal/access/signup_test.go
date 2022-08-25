@@ -21,7 +21,7 @@ func TestSignup(t *testing.T) {
 		db := setupDB(t)
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		c.Request = (&http.Request{}).WithContext(context.Background())
-		c.Set("db", db)
+		c.Set(RequestContextKey, RequestContext{DBTxn: db})
 		return c, db
 	}
 

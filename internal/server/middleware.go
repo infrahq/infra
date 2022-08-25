@@ -98,7 +98,6 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 
 			// TODO: remove once everything uses RequestContext
 			c.Set("identity", authned.User)
-			c.Set("db", tx)
 
 			if err := handleInfraDestinationHeader(c); err != nil {
 				sendAPIError(c, err)
@@ -179,8 +178,6 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				Authenticated: authned,
 			}
 			c.Set(access.RequestContextKey, rCtx)
-			// TODO: remove once everything uses RequestContext
-			c.Set("db", tx)
 			c.Next()
 		})
 	}
