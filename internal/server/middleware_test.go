@@ -138,6 +138,54 @@ func TestRequireAccessKey(t *testing.T) {
 				assert.Equal(t, actual.User.Name, "existing@infrahq.com")
 			},
 		},
+		"ValidAuthCookie": {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+				r.AddCookie(&http.Cookie{
+					Name:     cookieAuthorizationName,
+					Value:    authentication,
+					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
+					Path:     cookiePath,
+					SameSite: http.SameSiteStrictMode,
+					Secure:   true,
+					HttpOnly: true,
+				})
+
+				r.Header.Add("Authorization", " ")
+				return r
+			},
+			expected: func(t *testing.T, actual access.Authenticated, err error) {
+				assert.NilError(t, err)
+				assert.Equal(t, actual.User.Name, "existing@infrahq.com")
+			},
+		},
+		"ValidSignupCookie": {
+			setup: func(t *testing.T, db *gorm.DB) *http.Request {
+				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+
+				r.AddCookie(&http.Cookie{
+					Name:     cookieSignupName,
+					Value:    authentication,
+					MaxAge:   int(time.Until(time.Now().Add(time.Minute * 1)).Seconds()),
+					Path:     cookiePath,
+					SameSite: http.SameSiteStrictMode,
+					Secure:   true,
+					HttpOnly: true,
+				})
+
+				r.Header.Add("Authorization", " ")
+				return r
+			},
+			expected: func(t *testing.T, actual access.Authenticated, err error) {
+				assert.NilError(t, err)
+				assert.Equal(t, actual.User.Name, "existing@infrahq.com")
+			},
+		},
 		"AccessKeyExpired": {
 			setup: func(t *testing.T, db *gorm.DB) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*-1)

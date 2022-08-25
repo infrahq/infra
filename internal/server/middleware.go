@@ -170,6 +170,8 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 				c.Request = c.Request.WithContext(data.WithOrg(c.Request.Context(), org))
 				tx.Statement.Context = c.Request.Context() // TODO: remove with gorm
 			}
+			// if this is the first request after sign-up we must exchange the signup cookie for an auth cookie
+			exchangeSignupCookieForSession(c, srv.options.BaseDomain)
 
 			rCtx := access.RequestContext{
 				Request: c.Request,
@@ -301,7 +303,11 @@ func reqBearerToken(req *http.Request) (string, error) {
 		// Fall back to checking cookies
 		cookie, err := getCookie(req, cookieAuthorizationName)
 		if err != nil {
-			return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+			logging.L.Trace().Msg("auth cookie not found, falling back to signup cookie")
+			cookie, err = getCookie(req, cookieSignupName)
+			if err != nil {
+				return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
+			}
 		}
 
 		bearer = cookie

@@ -6,18 +6,27 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
 const (
 	cookieAuthorizationName       = "auth"
-	cookieLoginName               = "login"
+	cookieSignupName              = "signup"
 	cookiePath                    = "/"
 	cookieMaxAgeDeleteImmediately = -1 // <0: delete immediately
 	cookieMaxAgeNoExpiry          = 0  // zero has special meaning of "no expiry"
 )
 
-func setAuthCookie(c *gin.Context, domain, key string, expires time.Time) {
-	maxAge := int(time.Until(expires).Seconds())
+type cookieConfig struct {
+	Name    string
+	Value   string
+	Domain  string
+	Expires time.Time
+}
+
+func setCookie(c *gin.Context, config cookieConfig) {
+	maxAge := int(time.Until(config.Expires).Seconds())
 	if maxAge == cookieMaxAgeNoExpiry {
 		maxAge = cookieMaxAgeDeleteImmediately
 	}
@@ -29,18 +38,18 @@ func setAuthCookie(c *gin.Context, domain, key string, expires time.Time) {
 	}
 
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     cookieAuthorizationName,
-		Value:    url.QueryEscape(key),
+		Name:     config.Name,
+		Value:    url.QueryEscape(config.Value),
 		MaxAge:   maxAge,
 		Path:     cookiePath,
-		Domain:   domain,
+		Domain:   config.Domain,
 		SameSite: http.SameSiteStrictMode,
 		Secure:   secure,
 		HttpOnly: true, // not accessible by javascript
 	})
 }
 
-func deleteAuthCookie(c *gin.Context, domain string) {
+func deleteCookie(c *gin.Context, name, domain string) {
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     cookieAuthorizationName,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
@@ -51,17 +60,22 @@ func deleteAuthCookie(c *gin.Context, domain string) {
 	})
 }
 
-// resendAuthCookie sets the auth and login cookies on the current host making the request
-func resendAuthCookie(c *gin.Context) error {
+// exchangeSignupCookieForSession sets the auth cookie on the current host making the request
+func exchangeSignupCookieForSession(c *gin.Context, baseDomain string) {
 	key := getRequestContext(c).Authenticated.AccessKey // this should have been set by the middleware
 	if key != nil {
-		bearer, err := reqBearerToken(c.Request)
+		signupCookie, err := getCookie(c.Request, cookieSignupName)
 		if err != nil {
-			return err
+			logging.L.Trace().Err(err).Msg("failed to find signup cookie, this may be expected")
+			return
 		}
-
-		setAuthCookie(c, c.Request.Host, bearer, key.ExpiresAt)
+		conf := cookieConfig{
+			Name:    cookieAuthorizationName,
+			Value:   signupCookie,
+			Domain:  c.Request.Host,
+			Expires: key.ExpiresAt,
+		}
+		setCookie(c, conf)
+		deleteCookie(c, cookieSignupName, baseDomain)
 	}
-
-	return nil
 }

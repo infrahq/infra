@@ -44,8 +44,7 @@ func TestResendAuthCookie(t *testing.T) {
 	}
 	c.Set(access.RequestContextKey, rCtx)
 
-	err := resendAuthCookie(c)
-	assert.NilError(t, err)
+	exchangeSignupCookieForSession(c, baseDomain)
 
 	assert.Equal(t, len(c.Writer.Header()["Set-Cookie"]), 2)
 	expectedCookies := []string{

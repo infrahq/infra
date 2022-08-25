@@ -75,14 +75,13 @@ func TestAPI_Login(t *testing.T) {
 				assert.NilError(t, err)
 
 				assert.Assert(t, loginResp.AccessKey != "")
-				assert.Equal(t, len(resp.Result().Cookies()), 2)
+				assert.Equal(t, len(resp.Result().Cookies()), 1)
 
 				cookies := make(map[string]string)
 				for _, c := range resp.Result().Cookies() {
 					cookies[c.Name] = c.Value
 				}
 
-				assert.Equal(t, cookies["login"], "1")
 				assert.Equal(t, cookies["auth"], loginResp.AccessKey) // make sure the cookie matches the response
 				assert.Equal(t, loginResp.UserID, user.ID)
 				assert.Equal(t, loginResp.Name, "steve")

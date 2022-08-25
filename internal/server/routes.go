@@ -99,15 +99,6 @@ func (s *Server) GenerateRoutes() Routes {
 
 	authn.GET("/api/debug/pprof/*profile", pprofHandler)
 
-	// auth required, org required, undocumented in api spec
-	add(a, authn, route[api.EmptyRequest, api.EmptyResponse]{
-		method:            http.MethodGet,
-		path:              "/api/signup/session",
-		handler:           a.SignupSession,
-		omitFromDocs:      true,
-		omitFromTelemetry: true,
-	})
-
 	// no auth required, org not required
 	noAuthnNoOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
 	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
