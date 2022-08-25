@@ -77,6 +77,7 @@ func insert(tx WriteTxn, item Insertable) error {
 	if err := item.OnInsert(); err != nil {
 		return err
 	}
+	setOrg(tx, item)
 
 	query := Query("INSERT INTO")
 	query.B(item.Table())

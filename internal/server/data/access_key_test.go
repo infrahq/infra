@@ -18,22 +18,27 @@ import (
 
 func TestCreateAccessKey(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		jerry := &models.Identity{Name: "jseinfeld@infrahq.com"}
+		org := &models.Organization{Name: "something", Domain: "example.com"}
+		assert.NilError(t, CreateOrganization(db, org))
 
-		err := CreateIdentity(db, jerry)
+		tx := txnForTestCase(t, db, org.ID)
+
+		jerry := &models.Identity{Name: "jseinfeld@infrahq.com"}
+		err := CreateIdentity(tx, jerry)
 		assert.NilError(t, err)
 
-		infraProviderID := InfraProvider(db).ID
+		infraProviderID := InfraProvider(tx).ID
 
 		t.Run("all default values", func(t *testing.T) {
 			key := &models.AccessKey{
 				IssuedFor:  jerry.ID,
 				ProviderID: infraProviderID,
 			}
-			pair, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 
 			expected := &models.AccessKey{
+				OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 				Model: models.Model{
 					ID:        uid.ID(12345),
 					CreatedAt: time.Now(),
@@ -51,7 +56,7 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(db, ByID(key.ID))
+			fromDB, err := GetAccessKey(tx, ByID(key.ID))
 			assert.NilError(t, err)
 
 			// fromDB should not have the secret value
@@ -76,12 +81,12 @@ func TestCreateAccessKey(t *testing.T) {
 				Secret:            "012345678901234567890123",
 				Scopes:            []string{"first", "third"},
 			}
-			pair, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(db, ByID(key.ID))
+			fromDB, err := GetAccessKey(tx, ByID(key.ID))
 			assert.NilError(t, err)
 			// fromDB should not have the secret value
 			key.Secret = ""
@@ -92,9 +97,9 @@ func TestCreateAccessKey(t *testing.T) {
 			key := &models.AccessKey{
 				KeyID:      "too-short",
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: InfraProvider(tx).ID,
 			}
-			_, err := CreateAccessKey(db, key)
+			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid key length")
 		})
 
@@ -102,9 +107,9 @@ func TestCreateAccessKey(t *testing.T) {
 			key := &models.AccessKey{
 				Secret:     "too-short",
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: InfraProvider(tx).ID,
 			}
-			_, err := CreateAccessKey(db, key)
+			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid secret length")
 		})
 	})
@@ -190,6 +195,7 @@ func TestDeleteAccessKey(t *testing.T) {
 
 func TestDeleteAccessKeys(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
+
 		provider := &models.Provider{Name: "azure", Kind: models.ProviderKindAzure}
 		otherProvider := &models.Provider{Name: "other", Kind: models.ProviderKindGoogle}
 		createProviders(t, db, provider, otherProvider)
@@ -204,7 +210,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 		})
 
 		t.Run("by user id", func(t *testing.T) {
-			tx := txnForTestCase(t, db)
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
 			key2 := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
 			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
@@ -222,7 +228,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 		})
 
 		t.Run("by provider id", func(t *testing.T) {
-			tx := txnForTestCase(t, db)
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
 			key2 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
 			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}

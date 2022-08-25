@@ -23,15 +23,15 @@ func (a accessKeyTable) Table() string {
 }
 
 func (a accessKeyTable) Columns() []string {
-	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "provider_id", "scopes", "secret_checksum", "updated_at"}
+	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "organization_id", "provider_id", "scopes", "secret_checksum", "updated_at"}
 }
 
 func (a accessKeyTable) Values() []any {
-	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
+	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.OrganizationID, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
 }
 
 func (a *accessKeyTable) ScanFields() []any {
-	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
+	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.OrganizationID, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
 }
 
 var (
@@ -152,6 +152,7 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	default:
 		return fmt.Errorf("DeleteAccessKeys requires an ID to delete")
 	}
+	query.B("AND organization_id = ?", tx.OrganizationID())
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
