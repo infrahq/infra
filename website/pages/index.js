@@ -15,7 +15,7 @@ import Layout from '../components/layout'
 function Card() {
   const trans = (x, y, s) =>
     `perspective(1000px) rotateX(${x}deg) rotateY(${y}deg) scale(${s})`
-  const filter = (x, y) => `hue-rotate(${(x + y * 2) * 6}deg)`
+  const filter = (x, y) => `hue-rotate(${(x + y * 2) * 12}deg)`
   const cardRef = useRef(null)
   const calc = (x, y, rect) => [
     -(y - rect.top - rect.height / 2) / 16,
@@ -33,7 +33,7 @@ function Card() {
   return (
     <animated.div
       ref={cardRef}
-      className='drag-none group relative hidden flex-none select-none flex-col items-start justify-between rounded-3xl border border-white border-opacity-40 bg-white shadow-[0_30px_85px_0px_rgba(0,0,0,0.07)] transition-shadow duration-200 hover:shadow-[0_30px_100px_0px_rgba(0,0,0,0.1)] lg:flex'
+      className={`drag-none group relative hidden flex-none select-none flex-col items-start justify-between rounded-3xl bg-[url('/images/bg.png')] bg-clip-text shadow-[0_30px_85px_0px_rgba(0,0,0,0.07)] transition-shadow duration-200 hover:shadow-[0_30px_100px_0px_rgba(0,0,0,0.1)] lg:flex`}
       onMouseLeave={() => set([0, 0, 1])}
       onMouseMove={e => {
         const rect = cardRef.current.getBoundingClientRect()
@@ -46,22 +46,9 @@ function Card() {
         height: '280px',
       }}
     >
-      <div className='mx-4 my-4 flex items-center justify-between self-stretch'>
+      <div className='mx-5 my-5 flex items-center justify-end self-stretch text-transparent'>
         <svg
-          className='text-zinc mt-2 ml-2 h-11 fill-current text-gray-100'
-          viewBox='0 0 104 100'
-          fill='none'
-          xmlns='http://www.w3.org/2000/svg'
-        >
-          <path
-            fillRule='evenodd'
-            clipRule='evenodd'
-            className='shadow-inner'
-            d='M50.0007 0C77.6146 0 100 22.3861 100 50C100 77.6146 77.6146 100 50.0007 100C22.3861 100 0 77.6146 0 50C0 22.3861 22.3861 0 50.0007 0ZM53.4929 68.711C51.6706 65.6557 49.0631 66.951 48.2908 67.4116C47.4589 67.9082 45.2735 69.9019 46.9061 72.6395C48.5388 75.377 48.3423 75.0471 50.1375 78.0576C51.9334 81.0682 54.612 79.9308 55.429 79.4437C56.2467 78.9559 58.4193 76.9703 56.7284 74.1332C55.1795 71.5375 53.7565 69.1528 53.5256 68.7657L53.4929 68.711ZM70.2752 31.1596C60.0587 16.5628 42.3388 18.192 32.5274 24.854C25.8763 29.3705 13.4167 44.3345 26.026 62.9148C26.2133 63.1907 26.3988 63.4595 26.584 63.7239L26.8061 64.0394C27.1393 64.5099 27.4731 64.97 27.8153 65.436L28.0448 65.7477C30.0075 68.4077 32.2983 71.3735 36.3556 77.618C39.6155 82.1636 45.661 78.0664 42.7229 73.5818C42.6851 73.524 42.6473 73.4664 42.6096 73.4088L42.2704 72.8924C42.1573 72.7206 42.0442 72.549 41.9307 72.3772L41.7029 72.0329C39.5312 68.7561 37.1111 65.2569 31.9292 58.149C25.041 48.7007 28.1958 36.966 37.1787 30.8704C46.1616 24.7741 58.7919 27.7209 64.0109 35.4113C65.233 37.2119 67.6887 37.1123 69.2339 36.065C70.7785 35.0163 71.3388 32.6798 70.2752 31.1596ZM51.4565 45.1109C48.3619 41.1458 42.4397 45.7843 45.2179 49.3456C53.9231 60.5078 56.6972 65.7566 61.2733 73.6272C63.7033 77.8077 70.3124 74.4326 67.5539 69.3654C64.7283 64.1755 57.6687 53.0702 51.4565 45.1109ZM59.5059 36.3495C56.3951 32.5708 47.484 29.0697 39.2185 34.6796C30.953 40.2882 32.4895 50.479 34.4764 53.7585C36.7892 57.5752 37.5926 58.968 40.5917 62.7691C43.6341 66.6265 50.1741 62.9913 46.8682 58.51C44.7905 55.6946 41.4249 51.3881 40.6438 49.2609C38.1813 42.5427 47.839 36.0223 53.0153 40.866C58.9483 46.419 67.4442 61.1344 70.1411 65.7241C72.7153 70.1024 78.9708 65.9077 76.572 61.7069C71.6091 52.3981 62.6167 40.1276 59.5059 36.3495ZM77.2298 40.5937C75.232 37.6495 72.7045 39.0952 71.9607 39.6006C71.1586 40.1439 69.0944 42.2623 70.8842 44.8995C72.6733 47.5375 72.4579 47.2191 74.4265 50.1199C76.3952 53.02 79.0027 51.7288 79.7899 51.1943C80.577 50.6598 82.6304 48.551 80.7755 45.8175C78.9207 43.084 77.2298 40.5937 77.2298 40.5937Z'
-          />
-        </svg>
-        <svg
-          className='h-7 self-start fill-current text-gray-400 transition-colors duration-150 group-hover:text-blue-500'
+          className={`h-7 self-start fill-current text-black transition-colors duration-150`}
           viewBox='0 0 178 42'
           xmlns='http://www.w3.org/2000/svg'
         >
@@ -91,7 +78,7 @@ function Card() {
           />
         </svg>
       </div>
-      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono text-gray-500 transition-colors duration-150 group-hover:text-blue-500'>
+      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono font-medium text-transparent'>
         <div className='col-span-2 text-xs uppercase tracking-wide'>user</div>
         <div className='col-span-6 text-xs tracking-wide'>user@acme.com</div>
         <div className='col-span-2 text-xs uppercase tracking-wide'>groups</div>
