@@ -100,12 +100,13 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 	return fmt.Sprintf("%s.%s", accessKey.KeyID, accessKey.Secret), nil
 }
 
-func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
+func UpdateAccessKey(tx WriteTxn, key *models.AccessKey) error {
 	if key.Secret != "" {
 		key.SecretChecksum = secretChecksum(key.Secret)
 	}
+	// TODO: we should perform the same validation as Create
 
-	return save(db, key)
+	return update(tx, (*accessKeyTable)(key))
 }
 
 func ListAccessKeys(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
@@ -185,7 +186,7 @@ func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-		if err := SaveAccessKey(tx, t); err != nil {
+		if err := UpdateAccessKey(tx, t); err != nil {
 			return nil, err
 		}
 	}

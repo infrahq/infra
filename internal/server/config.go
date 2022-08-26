@@ -999,7 +999,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 
 	accessKey.Secret = secret
 
-	if err := data.SaveAccessKey(db, accessKey); err != nil {
+	if err := data.UpdateAccessKey(db, accessKey); err != nil {
 		return err
 	}
 

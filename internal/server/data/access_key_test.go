@@ -349,3 +349,58 @@ func createTestAccessKey(t *testing.T, db GormTxn, sessionDuration time.Duration
 
 	return body, token
 }
+
+func TestUpdateAccessKey(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		provider := InfraProvider(tx)
+
+		key := func() *models.AccessKey {
+			created := time.Date(2022, 1, 2, 3, 4, 5, 0, time.UTC)
+			return &models.AccessKey{
+				Model: models.Model{
+					ID:        123456,
+					CreatedAt: created,
+					UpdatedAt: created,
+				},
+				Name:              "this-is-my-key",
+				IssuedFor:         212121,
+				ProviderID:        provider.ID,
+				ExpiresAt:         time.Date(2022, 2, 1, 2, 3, 4, 0, time.UTC),
+				ExtensionDeadline: time.Date(2022, 2, 1, 4, 3, 4, 0, time.UTC),
+				Extension:         2 * time.Hour,
+				KeyID:             "the-key-id",
+				Secret:            "the-key-secret-is-thatok",
+				Scopes:            models.CommaSeparatedStrings{"one", "two"},
+			}
+		}
+
+		orig := key()
+		_, err := CreateAccessKey(tx, orig)
+		assert.NilError(t, err)
+
+		newSecret := "the-key-secret-is-123456"
+		orig.Secret = newSecret
+		orig.Scopes = nil
+
+		err = UpdateAccessKey(tx, orig)
+		assert.NilError(t, err)
+
+		actual, err := GetAccessKey(tx, ByID(orig.ID))
+		assert.NilError(t, err)
+
+		expected := key()
+		expected.UpdatedAt = time.Now()
+		expected.Secret = ""
+		expected.SecretChecksum = secretChecksum(newSecret)
+		expected.Scopes = nil
+		expected.OrganizationID = db.DefaultOrg.ID
+
+		keyCmp := cmp.Options{
+			cmp.FilterPath(opt.PathField(models.Model{}, "UpdatedAt"), opt.TimeWithThreshold(2*time.Second)),
+			cmpopts.EquateEmpty(),
+		}
+		assert.DeepEqual(t, actual, expected, keyCmp)
+	})
+}
