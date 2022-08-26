@@ -223,13 +223,13 @@ func TestAPI_ListGrants(t *testing.T) {
 
 				expected := []api.Grant{
 					{
-						User:      admin.ID,
-						Privilege: "admin",
+						User:      connector.ID,
+						Privilege: "connector",
 						Resource:  "infra",
 					},
 					{
-						User:      connector.ID,
-						Privilege: "connector",
+						User:      admin.ID,
+						Privilege: "admin",
 						Resource:  "infra",
 					},
 					{

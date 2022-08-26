@@ -3,14 +3,12 @@ package server
 import (
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/assert/opt"
@@ -300,15 +298,17 @@ func TestLoadConfigEmpty(t *testing.T) {
 	err := s.loadConfig(Config{})
 	assert.NilError(t, err)
 
+	defaultOrg := s.db.DefaultOrg
+
 	var providers, grants int64
 
-	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), providers) // internal infra provider only
 
-	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
-	assert.Equal(t, int64(1), grants)
+	assert.Equal(t, int64(1), grants) // connector grant only
 }
 
 func TestLoadConfigInvalid(t *testing.T) {
@@ -431,11 +431,12 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
+	defaultOrg := s.db.DefaultOrg
+
 	var okta models.Provider
-	err = s.db.Where("name = ?", "okta").First(&okta).Error
+	err = s.db.Raw("SELECT * FROM providers WHERE name = 'okta' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&okta).Error
 	assert.NilError(t, err)
 
-	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              okta.Model,     // not relevant
 		CreatedBy:          okta.CreatedBy, // not relevant
@@ -461,7 +462,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.DeepEqual(t, okta, expected, cmpProvider)
 
 	var azure models.Provider
-	err = s.db.Where("name = ?", "azure").First(&azure).Error
+	err = s.db.Raw("SELECT * FROM providers WHERE name = 'azure' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&azure).Error
 	assert.NilError(t, err)
 
 	expected = models.Provider{
@@ -480,7 +481,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.DeepEqual(t, azure, expected, cmpProvider)
 
 	var google models.Provider
-	err = s.db.Where("name = ?", "google").First(&google).Error
+	err = s.db.Raw("SELECT * FROM providers WHERE name = 'google' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&google).Error
 	assert.NilError(t, err)
 
 	expected = models.Provider{
@@ -529,25 +530,21 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	user, _, _, err := getTestUserDetails(s.DB(), "bob")
-	assert.NilError(t, err)
+	user, _, _ := getTestDefaultOrgUserDetails(t, s, "bob")
 	assert.Equal(t, "bob", user.Name)
 
-	user, creds, _, err := getTestUserDetails(s.DB(), "alice")
-	assert.NilError(t, err)
+	user, creds, _ := getTestDefaultOrgUserDetails(t, s, "alice")
 	assert.Equal(t, "alice", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
 
-	user, _, key, err := getTestUserDetails(s.DB(), "sue")
-	assert.NilError(t, err)
+	user, _, key := getTestDefaultOrgUserDetails(t, s, "sue")
 	assert.Equal(t, "sue", user.Name)
 	assert.Equal(t, key.KeyID, "aaaaaaaaaa")
 	chksm := sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
 	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
 
-	user, creds, key, err = getTestUserDetails(s.DB(), "jim")
-	assert.NilError(t, err)
+	user, creds, key = getTestDefaultOrgUserDetails(t, s, "jim")
 	assert.Equal(t, "jim", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
@@ -571,15 +568,17 @@ func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var user models.Identity
-	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
-	var grant models.Grant
-	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
+	var user *models.Identity
+	err = s.db.Raw("SELECT * FROM identities WHERE name = 'test@example.com' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&user).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "connect", grant.Privilege)
-	assert.Equal(t, "test-cluster", grant.Resource)
+	assert.Assert(t, user != nil)
+
+	var grant *models.Grant
+	err = s.db.Raw("SELECT * FROM grants WHERE subject = ? AND privilege = ? AND resource = ? AND organization_id = ? LIMIT 1;", uid.NewIdentityPolymorphicID(user.ID), "connect", "test-cluster", defaultOrg.ID).Scan(&grant).Error
+	assert.NilError(t, err)
+	assert.Assert(t, grant != nil)
 }
 
 func TestLoadConfigWithUserGrants(t *testing.T) {
@@ -598,19 +597,22 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var provider models.Provider
-	err = s.db.Where("name = ?", models.InternalInfraProviderName).First(&provider).Error
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
-	var user models.Identity
+	var provider *models.Provider
+	err = s.db.Raw("SELECT * FROM providers WHERE name = ? AND organization_id = ? LIMIT 1;", models.InternalInfraProviderName, defaultOrg.ID).Scan(&provider).Error
+	assert.NilError(t, err)
+	assert.Assert(t, provider != nil)
+
+	var user *models.Identity
 	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
 	assert.NilError(t, err)
+	assert.Assert(t, user != nil)
 
-	var grant models.Grant
-	err = s.db.Where("subject = ?", uid.NewIdentityPolymorphicID(user.ID)).First(&grant).Error
+	var grant *models.Grant
+	err = s.db.Raw("SELECT * FROM grants WHERE subject = ? AND privilege = ? AND resource = ? AND organization_id = ? LIMIT 1;", uid.NewIdentityPolymorphicID(user.ID), "admin", "test-cluster", defaultOrg.ID).Scan(&grant).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "admin", grant.Privilege)
-	assert.Equal(t, "test-cluster", grant.Resource)
+	assert.Assert(t, grant != nil)
 }
 
 func TestLoadConfigWithGroupGrants(t *testing.T) {
@@ -629,15 +631,17 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var group models.Group
-	err = s.db.Where("name = ?", "Everyone").First(&group).Error
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
-	var grant models.Grant
-	err = s.db.Where("subject = ?", uid.NewGroupPolymorphicID(group.ID)).First(&grant).Error
+	var group *models.Group
+	err = s.db.Raw("SELECT * FROM groups WHERE name = 'Everyone' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&group).Error
 	assert.NilError(t, err)
-	assert.Equal(t, "admin", grant.Privilege)
-	assert.Equal(t, "test-cluster", grant.Resource)
+	assert.Assert(t, group != nil)
+
+	var grant *models.Grant
+	err = s.db.Raw("SELECT * FROM grants WHERE subject = ? AND privilege = ? AND resource = ? AND organization_id = ? LIMIT 1;", uid.NewGroupPolymorphicID(group.ID), "admin", "test-cluster", defaultOrg.ID).Scan(&grant).Error
+	assert.NilError(t, err)
+	assert.Assert(t, grant != nil)
 }
 
 func TestLoadConfigPruneConfig(t *testing.T) {
@@ -671,25 +675,27 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var providers, grants, groups, providerUsers int64
+	defaultOrg := s.db.DefaultOrg
 
-	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	var providers, grants, identities, groups, providerUsers int64
+
+	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(2), providers) // okta and infra providers
 
-	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(3), grants) // 2 from config, 1 internal connector
 
-	identities, err := data.ListIdentities(s.DB(), nil)
+	err = s.db.Raw("SELECT COUNT(*) FROM identities WHERE organization_id = ?;", defaultOrg.ID).Scan(&identities).Error
 	assert.NilError(t, err)
-	assert.Equal(t, 2, len(identities))
+	assert.Equal(t, int64(2), identities)
 
-	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM groups WHERE organization_id = ?;", defaultOrg.ID).Scan(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups)
 
-	err = s.db.Model(&models.ProviderUser{}).Count(&providerUsers).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM provider_users").Scan(&providerUsers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(0), providerUsers)
 
@@ -710,19 +716,19 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	err = s.loadConfig(newConfig)
 	assert.NilError(t, err)
 
-	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(2), providers) // infra and new okta
 
-	err = s.db.Model(&models.Grant{}).Count(&grants).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM grants WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), grants) // connector
 
-	identities, err = data.ListIdentities(s.DB(), nil)
+	err = s.db.Raw("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities).Error
 	assert.NilError(t, err)
-	assert.Equal(t, 1, len(identities))
+	assert.Equal(t, int64(1), identities)
 
-	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM groups WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups)
 }
@@ -771,14 +777,16 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	var providers, groups, credentials, accessKeys int64
+	var providers, identities, groups, credentials, accessKeys int64
 
-	err = s.db.Model(&models.Provider{}).Count(&providers).Error
+	defaultOrg := s.db.DefaultOrg
+
+	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(2), providers) // infra and okta
 
 	grants := make([]models.Grant, 0)
-	err = s.db.Find(&grants).Error
+	err = s.db.Raw("SELECT * FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
 	assert.Assert(t, is.Len(grants, 3)) // 2 from config, 1 internal connector
 
@@ -796,19 +804,19 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 0)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err := data.ListIdentities(s.DB(), nil)
+	err = s.db.Raw("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities).Error
 	assert.NilError(t, err)
-	assert.Equal(t, 5, len(identities)) // john@example.com, sarah@example.com, test@example.com, connector, r2d2, c3po
+	assert.Equal(t, int64(5), identities)
 
-	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM groups WHERE organization_id = ?;", defaultOrg.ID).Scan(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups) // Everyone
 
-	err = s.db.Model(&models.Credential{}).Count(&credentials).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM credentials WHERE organization_id = ?;", defaultOrg.ID).Scan(&credentials).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), credentials) // sarah@example.com
 
-	err = s.db.Model(&models.AccessKey{}).Count(&accessKeys).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM access_keys WHERE organization_id = ?;", defaultOrg.ID).Scan(&accessKeys).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), accessKeys) // c3po
 
@@ -845,10 +853,9 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, int64(2), providers) // infra and atko
 
 	var provider models.Provider
-	err = s.db.Where("name = ?", "atko").First(&provider).Error
+	err = s.db.Raw("SELECT * FROM providers WHERE name = 'atko' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&provider).Error
 	assert.NilError(t, err)
 
-	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              provider.Model,     // not relevant
 		CreatedBy:          provider.CreatedBy, // not relevant
@@ -874,7 +881,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.DeepEqual(t, provider, expected, cmpProvider)
 
 	grants = make([]models.Grant, 0)
-	err = s.db.Find(&grants).Error
+	err = s.db.Raw("SELECT * FROM grants WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
 	assert.Assert(t, is.Len(grants, 3))
 
@@ -892,21 +899,23 @@ func TestLoadConfigUpdate(t *testing.T) {
 	assert.Equal(t, privileges["view"], 2)
 	assert.Equal(t, privileges["connector"], 1)
 
-	identities, err = data.ListIdentities(s.DB(), nil)
+	err = s.db.Raw("SELECT COUNT(*) FROM identities WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&identities).Error
 	assert.NilError(t, err)
-	assert.Equal(t, 2, len(identities))
+	assert.Equal(t, int64(2), identities)
 
-	var user models.Identity
-	err = s.db.Where("name = ?", "test@example.com").First(&user).Error
+	var user *models.Identity
+	err = s.db.Raw("SELECT * FROM identities WHERE name = 'test@example.com' AND organization_id = ? AND deleted_at IS null LIMIT 1;", defaultOrg.ID).Scan(&user).Error
 	assert.NilError(t, err)
+	assert.Assert(t, user != nil)
 
-	err = s.db.Model(&models.Group{}).Count(&groups).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM groups WHERE organization_id = ? AND deleted_at IS null;", defaultOrg.ID).Scan(&groups).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), groups)
 
-	var group models.Group
-	err = s.db.Where("name = ?", "Everyone").First(&group).Error
+	var group *models.Group
+	err = s.db.Raw("SELECT * FROM groups WHERE name = 'Everyone' AND organization_id = ? AND deleted_at IS null LIMIT 1;", defaultOrg.ID).Scan(&group).Error
 	assert.NilError(t, err)
+	assert.Assert(t, group != nil)
 }
 
 func TestLoadAccessKey(t *testing.T) {
@@ -938,27 +947,23 @@ func TestLoadAccessKey(t *testing.T) {
 	})
 }
 
-// getTestUserDetails gets the attributes of a user created from a config file
-func getTestUserDetails(tx data.GormTxn, name string) (*models.Identity, *models.Credential, *models.AccessKey, error) {
+// getTestDefaultOrgUserDetails gets the attributes of a user created from a config file
+func getTestDefaultOrgUserDetails(t *testing.T, server *Server, name string) (*models.Identity, *models.Credential, *models.AccessKey) {
 	var user models.Identity
 	var credential models.Credential
 	var accessKey models.AccessKey
 
-	db := tx.GormDB()
-	err := db.Where("name = ?", name).First(&user).Error
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	db := server.DB().GormDB()
+	defaultOrg := server.db.DefaultOrg
 
-	err = db.Where("identity_id = ?", user.ID).First(&credential).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, nil, err
-	}
+	err := db.Raw("SELECT * FROM identities WHERE name = ? AND organization_id = ? LIMIT 1;", name, defaultOrg.ID).Scan(&user).Error
+	assert.NilError(t, err)
 
-	err = db.Where("issued_for = ?", user.ID).First(&accessKey).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, nil, err
-	}
+	err = db.Raw("SELECT * FROM credentials WHERE identity_id = ? AND organization_id = ? LIMIT 1;", user.ID, defaultOrg.ID).Scan(&credential).Error
+	assert.NilError(t, err)
 
-	return &user, &credential, &accessKey, nil
+	err = db.Raw("SELECT * FROM access_keys WHERE issued_for = ? AND organization_id = ? LIMIT 1;", user.ID, defaultOrg.ID).Scan(&accessKey).Error
+	assert.NilError(t, err)
+
+	return &user, &credential, &accessKey
 }
