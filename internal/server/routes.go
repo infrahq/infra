@@ -118,12 +118,12 @@ func (s *Server) GenerateRoutes() Routes {
 
 	// no auth required, org required, undocumented in api spec
 	add(a, noAuthnWithOrg, route[api.EmptyRequest, WellKnownJWKResponse]{
-		method:              http.MethodGet,
-		path:                "/.well-known/jwks.json",
-		handler:             wellKnownJWKsHandler,
-		omitFromDocs:        true,
-		omitFromTelemetry:   true,
-		infraHeaderOptional: true,
+		method:                     http.MethodGet,
+		path:                       "/.well-known/jwks.json",
+		handler:                    wellKnownJWKsHandler,
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
 	})
 
 	a.deprecatedRoutes(noAuthnNoOrg)
@@ -140,12 +140,12 @@ func (s *Server) GenerateRoutes() Routes {
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
-	method              string
-	path                string
-	handler             HandlerFunc[Req, Res]
-	omitFromDocs        bool
-	omitFromTelemetry   bool
-	infraHeaderOptional bool
+	method                     string
+	path                       string
+	handler                    HandlerFunc[Req, Res]
+	omitFromDocs               bool
+	omitFromTelemetry          bool
+	infraVersionHeaderOptional bool
 }
 
 func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
@@ -155,26 +155,32 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 		a.register(openAPIRouteDefinition(route))
 	}
 
-	wrappedHandler := func(c *gin.Context) {
-		if !route.infraHeaderOptional {
+	handler := func(c *gin.Context) {
+		if err := wrapRoute(a, route)(c); err != nil {
+			sendAPIError(c, err)
+		}
+	}
+	bindRoute(a, r, route.method, route.path, handler)
+}
+
+func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) error {
+	return func(c *gin.Context) error {
+		if !route.infraVersionHeaderOptional {
 			if _, err := requestVersion(c.Request); err != nil {
-				sendAPIError(c, err)
-				return
+				return err
 			}
 		}
 
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
+			return err
 		}
 
 		trimWhitespace(req)
 
 		resp, err := route.handler(c, req)
 		if err != nil {
-			sendAPIError(c, err)
-			return
+			return err
 		}
 
 		if !route.omitFromTelemetry {
@@ -189,9 +195,8 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 		}
 
 		c.JSON(statusCode, resp)
+		return nil
 	}
-
-	bindRoute(a, r, route.method, route.path, wrappedHandler)
 }
 
 type statusCoder interface {
