@@ -106,6 +106,8 @@ func update(tx WriteTxn, item Updatable) error {
 	if err := item.OnUpdate(); err != nil {
 		return err
 	}
+	setOrg(tx, item)
+
 	query := Query("UPDATE")
 	query.B(item.Table())
 	query.B("SET")
