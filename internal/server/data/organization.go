@@ -41,7 +41,7 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 
 	err = CreateGrant(tx, &models.Grant{
 		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
-		Privilege: models.InfraAdminRole,
+		Privilege: models.InfraConnectorRole,
 		Resource:  "infra",
 		CreatedBy: models.CreatedBySystem,
 	})

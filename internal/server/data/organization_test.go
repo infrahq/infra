@@ -15,7 +15,6 @@ var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-
 		org := &models.Organization{Name: "syndicate", Domain: "syndicate-123"}
 
 		err := CreateOrganization(db, org)
@@ -54,14 +53,13 @@ func TestCreateOrganization(t *testing.T) {
 		}
 		assert.DeepEqual(t, connector, expectedConnector)
 
-		connectorGrant, err := GetGrant(tx, BySubject(connector.PolyID()), ByPrivilege(models.InfraAdminRole), ByResource("infra"))
+		connectorGrant, err := GetGrant(tx, BySubject(connector.PolyID()), ByPrivilege(models.InfraConnectorRole), ByResource("infra"))
 		assert.NilError(t, err)
-
 		expectedConnectorGrant := &models.Grant{
 			Model:              connectorGrant.Model,
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 			Subject:            connector.PolyID(),
-			Privilege:          models.InfraAdminRole,
+			Privilege:          models.InfraConnectorRole,
 			Resource:           "infra",
 			CreatedBy:          models.CreatedBySystem,
 		}
