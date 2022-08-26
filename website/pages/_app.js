@@ -43,7 +43,7 @@ export default function App({ Component, pageProps }) {
         <meta property='og:title' content='Infra' />
         <meta
           property='og:description'
-          content='Single sign-on for your infrastructure'
+          content='Connect your team to your infrastructure'
         />
         <meta property='og:image' content='/images/og.png' />
       </Head>

@@ -36,7 +36,7 @@ export default function Code({ children, language = 'none' }) {
         }`}
       >
         {copied ? (
-          <CheckIcon className='h-3 w-4 text-green-500' />
+          <CheckIcon className='h-4 w-4 text-green-500' />
         ) : (
           <Square2StackIcon className='h-4 w-4' />
         )}

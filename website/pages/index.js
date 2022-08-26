@@ -99,14 +99,10 @@ export default function Index() {
     <>
       <Head>
         <title>Infra - Infrastructure Access</title>
-        <meta
-          property='og:title'
-          content='Single sign-on for your infrastructure'
-          key='title'
-        />
+        <meta property='og:title' content='Infrastructure Access' key='title' />
         <meta
           property='og:description'
-          content='Infra enables single sign-on for your infrastructure'
+          content='Connect your team to your infrastructure'
         />
       </Head>
       <section className='flex flex-1 flex-col px-4'>
