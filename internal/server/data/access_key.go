@@ -3,14 +3,10 @@ package data
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -113,21 +109,22 @@ func ListAccessKeys(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]mod
 	return list[models.AccessKey](db, p, selectors...)
 }
 
-func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, error) {
-	db := tx.GormDB()
-	// GetAccessKey by keyID needs to not set an organization_id in the query.
-	// keyID should be globally unique.
-	for _, selector := range selectors {
-		db = selector(db)
+// GetAccessKey using the keyID. Note that the keyID is globally unique, so
+// this query is not scoped by an organization_id.
+func GetAccessKey(tx ReadTxn, keyID string) (*models.AccessKey, error) {
+	accessKey := &accessKeyTable{}
+	query := Query("SELECT")
+	query.B(columnsForSelect("", accessKey.Columns()))
+	query.B("FROM")
+	query.B(accessKey.Table())
+	query.B("WHERE deleted_at is null")
+	query.B("AND key_id = ?", keyID)
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
 	}
-	result := new(models.AccessKey)
-	if err := db.Model(result).First(result).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-		return nil, err
-	}
-	return result, nil
+	return (*models.AccessKey)(accessKey), nil
 }
 
 type DeleteAccessKeysOptions struct {
@@ -159,13 +156,14 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	return err
 }
 
-func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
+// TODO: move this to access package?
+func ValidateAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(tx, ByKeyID(keyID))
+	t, err := GetAccessKey(tx, keyID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}

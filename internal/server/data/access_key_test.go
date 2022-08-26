@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -56,7 +57,7 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(tx, ByID(key.ID))
+			fromDB, err := GetAccessKey(tx, key.KeyID)
 			assert.NilError(t, err)
 
 			// fromDB should not have the secret value
@@ -86,7 +87,7 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(tx, ByID(key.ID))
+			fromDB, err := GetAccessKey(tx, key.KeyID)
 			assert.NilError(t, err)
 			// fromDB should not have the secret value
 			key.Secret = ""
@@ -387,7 +388,7 @@ func TestUpdateAccessKey(t *testing.T) {
 		err = UpdateAccessKey(tx, orig)
 		assert.NilError(t, err)
 
-		actual, err := GetAccessKey(tx, ByID(orig.ID))
+		actual, err := GetAccessKey(tx, orig.KeyID)
 		assert.NilError(t, err)
 
 		expected := key()
@@ -402,5 +403,44 @@ func TestUpdateAccessKey(t *testing.T) {
 			cmpopts.EquateEmpty(),
 		}
 		assert.DeepEqual(t, actual, expected, keyCmp)
+	})
+}
+
+func TestGetAccessKey(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		ak := &models.AccessKey{
+			Name:       "the-key",
+			IssuedFor:  600600,
+			ProviderID: 700700,
+		}
+
+		other := &models.AccessKey{
+			Name:       "the-other-key",
+			IssuedFor:  600600,
+			ProviderID: 700700,
+		}
+
+		createAccessKeys(t, db, ak, other)
+
+		t.Run("found", func(t *testing.T) {
+			actual, err := GetAccessKey(db, ak.KeyID)
+			assert.NilError(t, err)
+			expected := *ak
+			expected.Secret = ""
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
+		})
+
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetAccessKey(db, "not-this-key-id")
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
+		t.Run("not found soft deleted", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByID: ak.ID})
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, ak.KeyID)
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }

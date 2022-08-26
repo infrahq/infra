@@ -81,12 +81,6 @@ func ByProviderID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByKeyID(key string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("key_id = ?", key)
-	}
-}
-
 func ByOptionalSubject(polymorphicID uid.PolymorphicID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if polymorphicID == "" {
@@ -109,12 +103,6 @@ func ByOptionalIssuedFor(id uid.ID) SelectorFunc {
 			return db
 		}
 
-		return db.Where("issued_for = ?", id)
-	}
-}
-
-func ByIssuedFor(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("issued_for = ?", id)
 	}
 }

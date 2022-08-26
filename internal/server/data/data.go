@@ -451,6 +451,20 @@ func handleError(err error) error {
 	return err
 }
 
+func handleReadError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return internal.ErrNotFound
+	case errors.Is(err, sql.ErrNoRows):
+		return internal.ErrNotFound
+	}
+	return err
+}
+
 func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
 	db := tx.GormDB()
 	if isOrgMember(new(T)) {
