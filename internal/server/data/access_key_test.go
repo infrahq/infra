@@ -201,7 +201,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
 			createAccessKeys(t, tx, key1, key2, toKeep)
 
-			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByUserID: user.ID})
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID})
 			assert.NilError(t, err)
 
 			remaining, err := ListAccessKeys(tx, nil)

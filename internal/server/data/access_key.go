@@ -132,8 +132,8 @@ func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, err
 type DeleteAccessKeysOptions struct {
 	// ByID instructs DeleteAccessKeys to delete the key with this ID.
 	ByID uid.ID
-	// ByUserID instructs DeleteAccessKeys to delete keys issued for this user.
-	ByUserID uid.ID
+	// ByIssuedForID instructs DeleteAccessKeys to delete keys issued for this user.
+	ByIssuedForID uid.ID
 	// ByProviderID instructs DeleteAccessKeys to delete keys issued by this
 	// provider.
 	ByProviderID uid.ID
@@ -145,8 +145,8 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 	switch {
 	case opts.ByID != 0:
 		query.B("id = ?", opts.ByID)
-	case opts.ByUserID != 0:
-		query.B("issued_for = ?", opts.ByUserID)
+	case opts.ByIssuedForID != 0:
+		query.B("issued_for = ?", opts.ByIssuedForID)
 	case opts.ByProviderID != 0:
 		query.B("provider_id = ?", opts.ByProviderID)
 	default:
