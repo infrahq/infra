@@ -298,16 +298,15 @@ func TestLoadConfigEmpty(t *testing.T) {
 	err := s.loadConfig(Config{})
 	assert.NilError(t, err)
 
-	org, err := data.GetOrganization(s.DB(), data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var providers, grants int64
 
-	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", org.ID).Scan(&providers).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), providers) // internal infra provider only
 
-	err = s.db.Raw("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", org.ID).Scan(&grants).Error
+	err = s.db.Raw("SELECT COUNT(*) FROM grants WHERE organization_id = ?;", defaultOrg.ID).Scan(&grants).Error
 	assert.NilError(t, err)
 	assert.Equal(t, int64(1), grants) // connector grant only
 }
@@ -531,21 +530,21 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	user, _, _ := getTestDefaultOrgUserDetails(t, s.DB(), "bob")
+	user, _, _ := getTestDefaultOrgUserDetails(t, s, "bob")
 	assert.Equal(t, "bob", user.Name)
 
-	user, creds, _ := getTestDefaultOrgUserDetails(t, s.DB(), "alice")
+	user, creds, _ := getTestDefaultOrgUserDetails(t, s, "alice")
 	assert.Equal(t, "alice", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
 
-	user, _, key := getTestDefaultOrgUserDetails(t, s.DB(), "sue")
+	user, _, key := getTestDefaultOrgUserDetails(t, s, "sue")
 	assert.Equal(t, "sue", user.Name)
 	assert.Equal(t, key.KeyID, "aaaaaaaaaa")
 	chksm := sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
 	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
 
-	user, creds, key = getTestDefaultOrgUserDetails(t, s.DB(), "jim")
+	user, creds, key = getTestDefaultOrgUserDetails(t, s, "jim")
 	assert.Equal(t, "jim", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
@@ -949,16 +948,15 @@ func TestLoadAccessKey(t *testing.T) {
 }
 
 // getTestDefaultOrgUserDetails gets the attributes of a user created from a config file
-func getTestDefaultOrgUserDetails(t *testing.T, tx data.GormTxn, name string) (*models.Identity, *models.Credential, *models.AccessKey) {
+func getTestDefaultOrgUserDetails(t *testing.T, server *Server, name string) (*models.Identity, *models.Credential, *models.AccessKey) {
 	var user models.Identity
 	var credential models.Credential
 	var accessKey models.AccessKey
 
-	db := tx.GormDB()
-	defaultOrg, err := data.GetOrganization(tx, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	db := server.DB().GormDB()
+	defaultOrg := server.db.DefaultOrg
 
-	err = db.Raw("SELECT * FROM identities WHERE name = ? AND organization_id = ? LIMIT 1;", name, defaultOrg.ID).Scan(&user).Error
+	err := db.Raw("SELECT * FROM identities WHERE name = ? AND organization_id = ? LIMIT 1;", name, defaultOrg.ID).Scan(&user).Error
 	assert.NilError(t, err)
 
 	err = db.Raw("SELECT * FROM credentials WHERE identity_id = ? AND organization_id = ? LIMIT 1;", user.ID, defaultOrg.ID).Scan(&credential).Error
