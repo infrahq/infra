@@ -41,8 +41,11 @@ export default function Nav() {
               </Link>
             ))}
             <Link href='/docs/getting-started/quickstart'>
-              <a className='ml-4 inline-flex flex-none items-center rounded-full bg-blue-500 py-2.5 px-3.5 text-[14px] font-semibold leading-3 text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
-                Get Started
+              <a className='group ml-4 inline-flex flex-none items-center rounded-full bg-blue-500 py-2.5 px-3.5 text-[14px] font-semibold leading-3 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
+                Get Started{' '}
+                <span className='ml-1 transition-transform group-hover:translate-x-0.5'>
+                  ›
+                </span>
               </a>
             </Link>
           </nav>

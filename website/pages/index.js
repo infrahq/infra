@@ -6,7 +6,7 @@ import {
   StarIcon,
   IdentificationIcon,
   ArrowPathIcon,
-  BoltIcon,
+  CommandLineIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 
@@ -48,8 +48,8 @@ function Card() {
     >
       <div className='mx-4 my-4 flex items-center justify-between self-stretch'>
         <svg
-          className='text-zinc mt-2 ml-2 h-11 fill-current text-zinc-50'
-          viewBox='0 0 100 100'
+          className='text-zinc mt-2 ml-2 h-11 fill-current text-gray-100'
+          viewBox='0 0 104 100'
           fill='none'
           xmlns='http://www.w3.org/2000/svg'
         >
@@ -131,17 +131,20 @@ export default function Index() {
               Connect your team to your infrastructure.
             </h1>
             <h2 className='text-md max-w-xl text-gray-600 md:text-2xl'>
-              Infra is the easiest way to manage access to Kubernetes, with
-              support for more coming soon.
+              Infra is the easiest way to manage access to Kubernetes, with more
+              integrations coming soon.
             </h2>
-            <div className='z-40 my-5 flex items-center space-x-2 text-base'>
+            <div className='z-40 my-6 flex items-center space-x-2 text-base'>
               <Link href='/docs/getting-started/quickstart'>
-                <a className='rounded-full bg-blue-500 py-1.5 px-4 text-base font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
-                  Get Started
+                <a className='group relative rounded-full bg-blue-500 py-1.5 px-4 text-base font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
+                  Get Started{' '}
+                  <span className='inline-block transition-transform group-hover:translate-x-0.5'>
+                    ›
+                  </span>
                 </a>
               </Link>
               <Link href='https://github.com/infrahq/infra'>
-                <a className='flex items-center rounded-full border border-gray-300 py-1.5 px-3 text-base font-semibold text-gray-500 hover:border-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-4 md:text-lg'>
+                <a className='flex items-center rounded-full border border-gray-300 py-1.5 px-3 text-base font-semibold text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-4 md:text-lg'>
                   <StarIcon className='relative mr-1.5 h-5 stroke-current' />{' '}
                   Star on GitHub
                 </a>
@@ -154,9 +157,9 @@ export default function Index() {
       <section className='mb-12 flex flex-1 flex-col px-4'>
         <div className='mx-auto grid w-full max-w-7xl grid-cols-2 gap-12 md:grid-cols-4'>
           <div>
-            <BoltIcon className='h-7 stroke-1 text-gray-700' />
+            <CommandLineIcon className='h-7 stroke-1 text-gray-700' />
             <h3 className='my-1.5 text-sm font-medium'>
-              Discover &amp; access in one place
+              Discover &amp; access infrastructure
             </h3>
             <p className='text-sm text-gray-500'>
               Share and discover access in minutes. Infra makes connecting to
