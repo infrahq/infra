@@ -432,14 +432,12 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	defaultOrg, err := data.GetOrganization(s.DB(), data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var okta models.Provider
 	err = s.db.Raw("SELECT * FROM providers WHERE name = 'okta' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&okta).Error
 	assert.NilError(t, err)
 
-	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              okta.Model,     // not relevant
 		CreatedBy:          okta.CreatedBy, // not relevant
@@ -571,8 +569,7 @@ func TestLoadConfigWithUserGrants_OptionalRole(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	defaultOrg, err := data.GetOrganization(s.db.DB, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var user *models.Identity
 	err = s.db.Raw("SELECT * FROM identities WHERE name = 'test@example.com' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&user).Error
@@ -601,8 +598,7 @@ func TestLoadConfigWithUserGrants(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	defaultOrg, err := data.GetOrganization(s.db.DB, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var provider *models.Provider
 	err = s.db.Raw("SELECT * FROM providers WHERE name = ? AND organization_id = ? LIMIT 1;", models.InternalInfraProviderName, defaultOrg.ID).Scan(&provider).Error
@@ -636,8 +632,7 @@ func TestLoadConfigWithGroupGrants(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	defaultOrg, err := data.GetOrganization(s.db.DB, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var group *models.Group
 	err = s.db.Raw("SELECT * FROM groups WHERE name = 'Everyone' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&group).Error
@@ -681,8 +676,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	defaultOrg, err := data.GetOrganization(s.db.DB, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	var providers, grants, identities, groups, providerUsers int64
 
@@ -786,8 +780,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 
 	var providers, identities, groups, credentials, accessKeys int64
 
-	defaultOrg, err := data.GetOrganization(s.db.DB, data.ByName(models.DefaultOrganizationName))
-	assert.NilError(t, err)
+	defaultOrg := s.db.DefaultOrg
 
 	err = s.db.Raw("SELECT COUNT(*) FROM providers WHERE organization_id = ?;", defaultOrg.ID).Scan(&providers).Error
 	assert.NilError(t, err)
@@ -864,7 +857,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 	err = s.db.Raw("SELECT * FROM providers WHERE name = 'atko' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&provider).Error
 	assert.NilError(t, err)
 
-	defaultOrg := s.db.DefaultOrg
 	expected := models.Provider{
 		Model:              provider.Model,     // not relevant
 		CreatedBy:          provider.CreatedBy, // not relevant
