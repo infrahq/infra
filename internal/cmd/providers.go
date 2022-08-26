@@ -37,9 +37,9 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 }
 
 type providerAPIOptions struct {
-	PrivateKey       string
-	ClientEmail      string
-	DomainAdminEmail string
+	PrivateKey                string
+	ClientEmail               string
+	WorkspaceDomainAdminEmail string
 }
 
 func (o providerAPIOptions) Validate(providerKind string) error {
@@ -49,7 +49,7 @@ func (o providerAPIOptions) Validate(providerKind string) error {
 		if o.ClientEmail != "" {
 			inapplicableFields = append(inapplicableFields, "clientEmail")
 		}
-		if o.DomainAdminEmail != "" {
+		if o.WorkspaceDomainAdminEmail != "" {
 			inapplicableFields = append(inapplicableFields, "domainAdminEmail")
 		}
 		if o.PrivateKey != "" {
@@ -69,7 +69,7 @@ type providerEditOptions struct {
 }
 
 func (o providerEditOptions) Validate(providerKind string) error {
-	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.DomainAdminEmail == "" {
+	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
 		return fmt.Errorf("Please specify a field to update.'\n\n%s", newProvidersEditCmd(nil).UsageString())
 	}
 
@@ -90,7 +90,7 @@ func newProvidersEditCmd(cli *CLI) *cobra.Command {
 $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN
 
 # Connect Google to Infra with group sync
-$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com
+$ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --workspace-domain-admin admin@example.com
 `,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -101,7 +101,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "Set a new client secret")
 	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.WorkspaceDomainAdminEmail, "workspace-domain-admin", "", "The email of your Google workspace domain admin")
 	return cmd
 }
 
@@ -200,7 +200,7 @@ PROVIDER is a short unique name of the identity provider being added (eg. okta)`
 $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --kind okta
 
 # Connect Google to Infra with group sync
-$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --domain-admin admin@example.com --kind google`,
+$ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --workspace-domain-admin admin@example.com --kind google`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
@@ -216,7 +216,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 				return err
 			}
 
-			privateKey, err := parsePrivateKey(opts.ProviderAPIOptions.PrivateKey)
+			err = parsePrivateKey(&opts.ProviderAPIOptions)
 			if err != nil {
 				return err
 			}
@@ -229,9 +229,9 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 				ClientSecret: opts.ClientSecret,
 				Kind:         opts.Kind,
 				API: &api.ProviderAPICredentials{
-					PrivateKey:       api.PEM(privateKey),
+					PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
 					ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
-					DomainAdminEmail: opts.ProviderAPIOptions.DomainAdminEmail,
+					DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
 				},
 			})
 			if err != nil {
@@ -253,9 +253,9 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
-	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google")
-	cmd.Flags().StringVar(&opts.ProviderAPIOptions.DomainAdminEmail, "domain-admin", "", "The email of your Google workspace domain admin")
+	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API, can be a file or the key string directly")
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google") // this is only needed with the private key is not a file
+	cmd.Flags().StringVar(&opts.ProviderAPIOptions.WorkspaceDomainAdminEmail, "workspace-domain-admin", "", "The email of your Google Workspace domain admin")
 	return cmd
 }
 
@@ -281,7 +281,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		return err
 	}
 
-	privateKey, err := parsePrivateKey(opts.ProviderAPIOptions.PrivateKey)
+	err = parsePrivateKey(&opts.ProviderAPIOptions)
 	if err != nil {
 		return err
 	}
@@ -295,9 +295,9 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		ClientSecret: opts.ClientSecret,
 		Kind:         provider.Kind,
 		API: &api.ProviderAPICredentials{
-			PrivateKey:       api.PEM(privateKey),
+			PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
 			ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
-			DomainAdminEmail: opts.ProviderAPIOptions.DomainAdminEmail,
+			DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
 		},
 	})
 
@@ -378,20 +378,29 @@ func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
 	return &providers.Items[0], nil
 }
 
-func parsePrivateKey(key string) (string, error) {
-	if json.Valid([]byte(key)) {
+// parsePrivateKey checks if a service account key file was passed in and parses information from it
+func parsePrivateKey(opts *providerAPIOptions) error {
+	if json.Valid([]byte(opts.PrivateKey)) {
 		// this is the google service account key file
 		jsonContents := map[string]string{}
-		if err := json.Unmarshal([]byte(key), &jsonContents); err != nil {
-			return "", err
+		if err := json.Unmarshal([]byte(opts.PrivateKey), &jsonContents); err != nil {
+			return err
+		}
+
+		if opts.ClientEmail == "" {
+			// client email is required in the file
+			if jsonContents["client_email"] == "" {
+				return fmt.Errorf("no service account client email specified or in key file, this is required")
+			}
+			opts.ClientEmail = jsonContents["client_email"]
 		}
 
 		if jsonContents["private_key"] == "" {
-			return "", fmt.Errorf("invalid service account json file provided")
+			return fmt.Errorf("invalid service account json file provided")
 		}
 
 		// overwrite the full private key file with just the key
-		return jsonContents["private_key"], nil
+		opts.PrivateKey = jsonContents["private_key"]
 	}
-	return key, nil
+	return nil
 }

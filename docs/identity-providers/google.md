@@ -13,9 +13,8 @@ infra providers add google \
   --url accounts.google.com \
   --client-id <your google client id> \
   --client-secret <your google client secret> \
-  --service-account-key <your google service account's private key> \
-  --service-account-email <your google service account's email> \
-  --domain-admin <your google workspace domain admin's email> \
+  --service-account-key <path to your google service account's private key file> \
+  --workspace-domain-admin <your google workspace domain admin's email> \
   --kind google
 ```
 
@@ -61,7 +60,7 @@ infra providers add google \
     - Select the **JSON** key type and click **CREATE**.
     - A private key JSON file will automatically download, note the **private_key** in this file. This will be the `service-account-key` in the `providers add` command.
   ![Service account key](../images/google-setup/connect-users-google-9.png)
-10. You are now finished with configuration in the Google Cloud admin console. Open the Google Workspace admin console and navigate to **Security > Access and Data Controls > API Controls > Domain-wide Delegation**.
+10. You are now finished with configuration in the Google Cloud admin console. Open the Google Workspace admin console and navigate to **Security > Access and Data Controls > API Controls > Manage Domain-wide Delegation**.
   ![API controls](../images/google-setup/connect-users-google-10.png)
   - Click **Manage Domain Wide Delegation**
   - Click **Add new**.
