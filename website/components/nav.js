@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
-import { Bars2Icon } from '@heroicons/react/24/outline'
+import { Bars2Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 const links = [
   {
@@ -53,7 +53,11 @@ export default function Nav() {
             className='-mr-4 flex flex-row items-center space-x-12 py-2 px-4 text-base text-black md:hidden'
             onClick={() => setOpen(!open)}
           >
-            <Bars2Icon className='h-6 w-6' />
+            {open ? (
+              <XMarkIcon className='h-6 w-6' />
+            ) : (
+              <Bars2Icon className='h-6 w-6' />
+            )}
           </div>
         </div>
       </div>

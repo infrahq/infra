@@ -33,7 +33,7 @@ function Card() {
   return (
     <animated.div
       ref={cardRef}
-      className={`drag-none group relative hidden flex-none select-none flex-col items-start justify-between rounded-3xl bg-[url('/images/bg.png')] bg-clip-text shadow-[0_30px_85px_0px_rgba(0,0,0,0.07)] transition-shadow duration-200 hover:shadow-[0_30px_100px_0px_rgba(0,0,0,0.1)] lg:flex`}
+      className={`drag-none group relative right-12 hidden h-[260px] w-[480px] flex-none select-none flex-col items-start justify-between rounded-3xl bg-[url('/images/bg.png')] bg-clip-text shadow-[0_30px_85px_0px_rgba(0,0,0,0.07)] transition-shadow duration-200 hover:shadow-[0_30px_100px_0px_rgba(0,0,0,0.1)] lg:flex xl:h-[280px] xl:w-[512px]`}
       onMouseLeave={() => set([0, 0, 1])}
       onMouseMove={e => {
         const rect = cardRef.current.getBoundingClientRect()
@@ -42,11 +42,9 @@ function Card() {
       style={{
         transform: props.xys.to(trans),
         filter: props.xys.to(filter),
-        width: '512px',
-        height: '280px',
       }}
     >
-      <div className='mx-5 my-5 flex items-center justify-end self-stretch text-transparent'>
+      <div className='mx-5 my-5 flex items-center justify-end self-stretch'>
         <svg
           className={`h-7 self-start fill-current text-black transition-colors duration-150`}
           viewBox='0 0 178 42'
@@ -78,7 +76,7 @@ function Card() {
           />
         </svg>
       </div>
-      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono font-medium text-transparent'>
+      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono font-medium text-gray-500 transition-colors group-hover:text-transparent'>
         <div className='col-span-2 text-xs uppercase tracking-wide'>user</div>
         <div className='col-span-6 text-xs tracking-wide'>user@acme.com</div>
         <div className='col-span-2 text-xs uppercase tracking-wide'>groups</div>
@@ -146,11 +144,11 @@ export default function Index() {
           <div>
             <CommandLineIcon className='h-7 stroke-1 text-gray-700' />
             <h3 className='my-1.5 text-sm font-medium'>
-              Discover &amp; access infrastructure
+              Access that just works
             </h3>
             <p className='text-sm text-gray-500'>
-              Share and discover access in minutes. Infra makes connecting to
-              infrastructure in a single place fast and easy.
+              Discover and access to infrastructure hosted anywhere, in a single
+              place.
             </p>
           </div>
           <div>
@@ -159,8 +157,8 @@ export default function Index() {
               Keep credentials up to date
             </h3>
             <p className='text-sm text-gray-500'>
-              No more out-of-date configurations or credentials. Infra provides
-              short-lived credentials on the fly to all team members.
+              No more out-of-date configurations. Infra automatically refreshes
+              credentials.
             </p>
           </div>
           <div>
@@ -176,7 +174,7 @@ export default function Index() {
           <div>
             <ShieldCheckIcon className='h-7 stroke-1 text-gray-700' />
             <h3 className='my-1.5 text-sm font-medium'>
-              Secure, least-privilege access
+              Secure &amp; easy to use
             </h3>
             <p className='text-sm text-gray-500'>
               Provide short-lived and fine-grained access to specific
