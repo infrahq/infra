@@ -51,22 +51,18 @@ infra providers add google \
    - Enter a **Service account ID** then click **Done**.
    - Click on the service account you just created to view the **Service account details**. Note the service account's **Unique ID**, this will be used in step 10.
 7. Navigate to **APIs and Services > Enabled APIs & services**.
-
-- Click **ENABLE APIS AND SERVICES**.
-- Search for **Admin SDK API**.
-- Click **Admin SDK API** in the results.
-- Click **ENABLE**.
-  ![Enabled Admin SDK API](../images/google-setup/connect-users-google-8.png)
-
-9. Navigate to **IAM & Admin > Service Accounts** click on the service account you just created and navigate to the **KEYS** tab.
+   - Click **ENABLE APIS AND SERVICES**.
+   - Search for **Admin SDK API**.
+   - Click **Admin SDK API** in the results.
+   - Click **ENABLE**. ![Enabled Admin SDK API](../images/google-setup/connect-users-google-8.png)
+8. Navigate to **IAM & Admin > Service Accounts** click on the service account you just created and navigate to the **KEYS** tab.
    - Click **ADD KEY > Create new key**.
    - Select the **JSON** key type and click **CREATE**.
    - A private key JSON file will automatically download, note the **private_key** in this file. This will be the `service-account-key` in the `providers add` command.
      ![Service account key](../images/google-setup/connect-users-google-9.png)
-10. You are now finished with configuration in the Google Cloud admin console. Open the Google Workspace admin console and navigate to **Security > Access and Data Controls > API Controls > Manage Domain-wide Delegation**.
-    ![API controls](../images/google-setup/connect-users-google-10.png)
-
-- Click **Manage Domain Wide Delegation**
-- Click **Add new**.
-- For **Client ID** enter the service account's unique ID noted in step 6.
-- For **OAuth scopes** enter **https://www.googleapis.com/auth/admin.directory.group.readonly**.
+9. You are now finished with configuration in the Google Cloud admin console. Open the Google Workspace admin console and navigate to **Security > Access and Data Controls > API Controls > Manage Domain-wide Delegation**.
+   ![API controls](../images/google-setup/connect-users-google-10.png)
+   - Click **Manage Domain Wide Delegation**
+   - Click **Add new**.
+   - For **Client ID** enter the service account's unique ID noted in step 6.
+   - For **OAuth scopes** enter **https://www.googleapis.com/auth/admin.directory.group.readonly**.
