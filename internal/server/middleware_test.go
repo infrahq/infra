@@ -554,6 +554,7 @@ func TestAuthenticateRequest(t *testing.T) {
 func TestValidateRequestOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true // multi-tenant environment
+	srv.options.BaseDomain = "example.com"
 	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
