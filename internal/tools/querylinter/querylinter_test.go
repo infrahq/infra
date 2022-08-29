@@ -1,7 +1,6 @@
 package querylinter
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -12,10 +11,8 @@ import (
 )
 
 func TestAnalyzer_WithDataPkg(t *testing.T) {
-	c := icmd.Command("go", "run", "./cmd", "../../../uid")
-	result := icmd.RunCmd(c)
-	fmt.Println(result.String())
-	t.Fail()
+	c := icmd.Command("go", "run", "./cmd", "../../server/data")
+	icmd.RunCmd(c).Assert(t, icmd.Success)
 }
 
 func TestAnalyzer(t *testing.T) {

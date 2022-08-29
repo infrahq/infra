@@ -1,7 +1,6 @@
 package querylinter
 
 import (
-	"flag"
 	"fmt"
 	"go/ast"
 
@@ -10,9 +9,8 @@ import (
 )
 
 var Analyzer = &analysis.Analyzer{
-	Name:  "queryBuilderLinter",
-	Doc:   "checks for unsafe use of querybuilder.Builder",
-	Flags: flag.FlagSet{},
+	Name: "queryBuilderLinter",
+	Doc:  "checks for unsafe use of querybuilder.Builder",
 	Run: func(pass *analysis.Pass) (interface{}, error) {
 		return nil, run(pass)
 	},
@@ -44,8 +42,10 @@ func run(pass *analysis.Pass) error {
 }
 
 var (
-	constructorName = "NewQuery"
-	buildFuncName   = "B"
+	constructorName           = "NewQuery"
+	buildFuncName             = "B"
+	pkgName                   = "querybuilder"
+	buildFuncReceiverTypeName = "*github.com/infrahq/infra/internal/server/data/querybuilder.Builder"
 )
 
 func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
@@ -87,7 +87,7 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 		return nil
 	}
 
-	if fnSe.Sel.Name != buildFuncName {
+	if !isBuildMethod(pass, fnSe) {
 		return nil
 	}
 
@@ -113,9 +113,14 @@ func checkConstructorNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
 		return
 	}
 
-	switch parent := cursor.Parent().(type) {
-	case *ast.CallExpr:
-		if parent.Fun == se {
+	if xIdent, ok := se.X.(*ast.Ident); ok {
+		if xIdent.Name != pkgName {
+			return
+		}
+	}
+
+	if callExpr, ok := cursor.Parent().(*ast.CallExpr); ok {
+		if callExpr.Fun == se {
 			return
 		}
 	}
@@ -130,17 +135,30 @@ func checkBNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
 		return
 	}
 
-	if se.Sel.Name != buildFuncName {
+	if !isBuildMethod(pass, se) {
 		return
 	}
 
-	switch parent := cursor.Parent().(type) {
-	case *ast.CallExpr:
-		if parent.Fun == se {
+	if callExpr, ok := cursor.Parent().(*ast.CallExpr); ok {
+		if callExpr.Fun == se {
 			return
 		}
 	}
 
 	pass.Reportf(se.Sel.Pos(), "Builder.%v must be called directly, not assigned to a variable or passed to a function",
 		buildFuncName)
+}
+
+func isBuildMethod(pass *analysis.Pass, se *ast.SelectorExpr) bool {
+	if se.Sel.Name != buildFuncName {
+		return false
+	}
+
+	selection := pass.TypesInfo.Selections[se]
+	if selection == nil || selection.Recv() == nil {
+		// not a method call
+		return false
+	}
+
+	return selection.Recv().String() == buildFuncReceiverTypeName
 }

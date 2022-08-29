@@ -39,3 +39,7 @@ var couldBeFromAnywhere string
 func receiveConstructFunc(_ func(string) *querybuilder.Builder) {}
 
 func receiveQueryBuilderFunc(_ func(string, ...any)) {}
+
+func sneakyInjection(qb *querybuilder.Builder) {
+	qb.B(couldBeFromAnywhere) // want `argument to Builder.B must be a string literal`
+}
