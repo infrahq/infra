@@ -18,7 +18,7 @@ export default function Nav() {
 
   return (
     <header
-      className={`top-0 z-50 mx-auto flex w-full flex-col items-center bg-white/90 p-4 backdrop-blur-lg transition-colors duration-150 md:sticky ${
+      className={`top-0 z-50 mx-auto flex w-full flex-col items-center bg-white/90 py-4 px-6 backdrop-blur-lg transition-colors duration-150 md:sticky ${
         open ? 'fixed bg-white' : 'bg-white/90 backdrop-blur-lg'
       }`}
     >

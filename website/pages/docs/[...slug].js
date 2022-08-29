@@ -15,7 +15,7 @@ export default function Docs({ markdoc, title }) {
   return (
     <>
       <Head>
-        <title>{title} - Infra Documentation</title>
+        <title>{`${title} - Infra Documentation`}</title>
         <meta property='og:title' content={title} key='title' />
         <meta property='og:url' content='https://infrahq.com' />
         <meta property='og:description' content='Infra Documentation' />

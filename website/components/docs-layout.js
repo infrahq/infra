@@ -147,7 +147,7 @@ export default function DocsLayout({ children, items = [], headings = [] }) {
   }, [children, headings])
 
   return (
-    <div className='px-4'>
+    <div className='px-6'>
       <div className='mx-auto flex h-full w-full max-w-7xl flex-col md:flex-row'>
         <ul className='sticky top-20 hidden min-h-0 flex-none flex-col self-start overflow-y-auto py-8 pr-6 text-sm text-zinc-600 md:flex md:w-48 md:flex-none xl:w-56'>
           {items.map(i => (

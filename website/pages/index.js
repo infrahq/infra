@@ -105,7 +105,7 @@ export default function Index() {
           content='Connect your team to your infrastructure'
         />
       </Head>
-      <section className='flex flex-1 flex-col px-4'>
+      <section className='flex flex-1 flex-col px-6'>
         <div className='relative mx-auto my-24 flex w-full max-w-7xl flex-1 items-center justify-between space-x-16'>
           <div className='flex max-w-2xl flex-1 flex-col'>
             <h1 className='my-4 overflow-visible text-3xl font-bold tracking-tight md:text-6xl'>
@@ -135,7 +135,7 @@ export default function Index() {
           <Card />
         </div>
       </section>
-      <section className='mb-12 flex flex-1 flex-col px-4'>
+      <section className='mb-12 flex flex-1 flex-col px-6'>
         <div className='mx-auto grid w-full max-w-7xl grid-cols-2 gap-12 md:grid-cols-4'>
           <div>
             <CommandLineIcon className='h-7 stroke-1 text-gray-700' />
@@ -163,8 +163,8 @@ export default function Index() {
               Import users &amp; groups
             </h3>
             <p className='text-sm text-gray-500'>
-              Automatically on-board and off-board users via existing identity
-              providers such as Google, Okta &amp; more.
+              On-board and off-board users via identity providers such as Google
+              and Google.
             </p>
           </div>
           <div>

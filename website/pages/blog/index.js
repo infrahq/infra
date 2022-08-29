@@ -17,7 +17,7 @@ export default function Blog({ posts }) {
         <meta property='og:url' content='https://infrahq.com/blog' />
         <meta property='og:description' content='Infra Blog' />
       </Head>
-      <section className='mx-auto w-full max-w-2xl p-4'>
+      <section className='mx-auto w-full max-w-2xl p-6'>
         <div className='mt-6 mb-24 md:mt-32'>
           <h1 className='my-2 text-3xl font-bold tracking-tight md:my-6 md:text-5xl'>
             Infra Blog
