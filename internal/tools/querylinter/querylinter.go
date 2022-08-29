@@ -6,6 +6,7 @@ import (
 	"go/ast"
 
 	"golang.org/x/tools/go/analysis"
+	"golang.org/x/tools/go/ast/astutil"
 )
 
 var Analyzer = &analysis.Analyzer{
@@ -21,7 +22,8 @@ func run(pass *analysis.Pass) error {
 	var err error
 
 	for _, file := range pass.Files {
-		ast.Inspect(file, func(node ast.Node) bool {
+		inspect := func(cursor *astutil.Cursor) bool {
+			node := cursor.Node()
 			if node == nil {
 				return true
 			}
@@ -31,19 +33,23 @@ func run(pass *analysis.Pass) error {
 			if err = checkB(pass, node); err != nil {
 				return false
 			}
+
+			checkConstructorNotACallExpr(pass, cursor)
+			checkBNotACallExpr(pass, cursor)
 			return true
-		})
+		}
+		astutil.Apply(file, inspect, nil)
 	}
 	return err
 }
 
 // TODO:
-// look for newQuery or queryBuilder.B being assigned to variables
 // look for direct access to queryBuilder.query
 
 var (
 	constructorName = "newQuery"
 	buildFuncName   = "B"
+	structName      = "queryBuilder"
 )
 
 func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
@@ -99,4 +105,50 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 		return nil
 	}
 	return nil
+}
+
+func checkConstructorNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
+	ident, ok := cursor.Node().(*ast.Ident)
+	if !ok {
+		return
+	}
+
+	if ident.Name != constructorName {
+		return
+	}
+
+	switch parent := cursor.Parent().(type) {
+	case *ast.FuncDecl:
+		if parent.Name == ident {
+			return
+		}
+	case *ast.CallExpr:
+		if parent.Fun == ident {
+			return
+		}
+	}
+
+	pass.Reportf(ident.Pos(), "%v must be called directly, not assigned to a variable or passed to a function",
+		constructorName)
+}
+
+func checkBNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
+	se, ok := cursor.Node().(*ast.SelectorExpr)
+	if !ok {
+		return
+	}
+
+	if se.Sel.Name != buildFuncName {
+		return
+	}
+
+	switch parent := cursor.Parent().(type) {
+	case *ast.CallExpr:
+		if parent.Fun == se {
+			return
+		}
+	}
+
+	pass.Reportf(se.Sel.Pos(), "%v.%v must be called directly, not assigned to a variable or passed to a function",
+		structName, buildFuncName)
 }
