@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.6.6",
-    "@heroicons/react": "^1.0.6",
+    "@heroicons/react": "^2.0.8",
     "@markdoc/markdoc": "^0.1.2",
     "@segment/snippet": "^4.15.3",
     "copy-to-clipboard": "^3.3.2",
