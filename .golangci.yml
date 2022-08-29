@@ -16,6 +16,11 @@ linters-settings:
     disabled-checks:
       - singleCaseSwitch
 
+  custom:
+    querylinter:
+      path: ./querylinter.so
+      description: Look for incorrect use of querybuilder.Builder
+
 issues:
   exclude-rules:
     - linters: [staticcheck]
@@ -44,6 +49,7 @@ linters:
     - nakedret
     - nilerr
     - noctx
+    - querylinter
     - revive
     - rowserrcheck
     - sqlclosecheck
