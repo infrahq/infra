@@ -2,6 +2,7 @@ package querylinter
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"golang.org/x/tools/go/analysis/analysistest"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestAnalyzer_WithDataPkg(t *testing.T) {
-	c := icmd.Command("go", "run", "./cmd", "../../server/data")
+	c := icmd.Command("go", "run", "./cmd", "../../../uid")
 	result := icmd.RunCmd(c)
 	fmt.Println(result.String())
 	t.Fail()
@@ -19,12 +20,20 @@ func TestAnalyzer_WithDataPkg(t *testing.T) {
 
 func TestAnalyzer(t *testing.T) {
 	files := map[string]string{
-		"example/problems.go": string(golden.Get(t, "problems.go")),
+		"github.com/infrahq/infra/example/problems.go":                          string(golden.Get(t, "problems.go")),
+		"github.com/infrahq/infra/internal/server/data/querybuilder/builder.go": readFile(t, "../../server/data/querybuilder/builder.go"),
 	}
 
 	dir, cleanup, err := analysistest.WriteFiles(files)
 	assert.NilError(t, err)
 	t.Cleanup(cleanup)
 
-	analysistest.Run(t, dir, Analyzer, "example")
+	analysistest.Run(t, dir, Analyzer, "github.com/infrahq/infra/example")
+}
+
+func readFile(t *testing.T, p string) string {
+	t.Helper()
+	raw, err := os.ReadFile(p)
+	assert.NilError(t, err)
+	return string(raw)
 }

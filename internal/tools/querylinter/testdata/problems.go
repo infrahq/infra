@@ -2,46 +2,32 @@ package example
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 )
 
-// copied from data package
-type queryBuilder struct {
-	query strings.Builder
-}
-
-func newQuery(stmt string) *queryBuilder {
-	q := &queryBuilder{}
-	q.query.WriteString(stmt + " ")
-	return q
-}
-
-func (q *queryBuilder) B(clause string, args ...interface{}) {
-	q.query.WriteString(clause + " ")
-}
-
 func ListThings() {
-	qb := newQuery("ok")
+	qb := querybuilder.NewQuery("ok")
 
-	newQuery("bad" + "concat")         // want `argument to newQuery must be a string literal`
-	newQuery(fmt.Sprintf("func call")) // want `argument to newQuery must be a string literal`
-	newQuery("lit" + giveStr())        // want `argument to newQuery must be a string literal`
-	newQuery(giveStr())                // want `argument to newQuery must be a string literal`
-	newQuery(couldBeFromAnywhere)      // want `argument to newQuery must be a string literal`
+	querybuilder.NewQuery("bad" + "concat")         // want `argument to NewQuery must be a string literal`
+	querybuilder.NewQuery(fmt.Sprintf("func call")) // want `argument to NewQuery must be a string literal`
+	querybuilder.NewQuery("lit" + giveStr())        // want `argument to NewQuery must be a string literal`
+	querybuilder.NewQuery(giveStr())                // want `argument to NewQuery must be a string literal`
+	querybuilder.NewQuery(couldBeFromAnywhere)      // want `argument to NewQuery must be a string literal`
 
 	qb.B("ok")
-	qb.B(fmt.Sprintf("func call")) // want `argument to queryBuilder.B must be a string literal`
-	qb.B("lit" + giveStr())        // want `argument to queryBuilder.B must be a string literal`
-	qb.B(giveStr())                // want `argument to queryBuilder.B must be a string literal`
-	qb.B(couldBeFromAnywhere)      // want `argument to queryBuilder.B must be a string literal`
+	qb.B(fmt.Sprintf("func call")) // want `argument to Builder.B must be a string literal`
+	qb.B("lit" + giveStr())        // want `argument to Builder.B must be a string literal`
+	qb.B(giveStr())                // want `argument to Builder.B must be a string literal`
+	qb.B(couldBeFromAnywhere)      // want `argument to Builder.B must be a string literal`
 
-	nQ := newQuery // want `newQuery must be called directly`
+	nQ := querybuilder.NewQuery // want `NewQuery must be called directly`
 	nQ(couldBeFromAnywhere)
-	receiveConstructFunc(newQuery) // want `newQuery must be called directly`
+	receiveConstructFunc(querybuilder.NewQuery) // want `NewQuery must be called directly`
 
-	b := qb.B // want `queryBuilder.B must be called directly`
+	b := qb.B // want `Builder.B must be called directly`
 	b(couldBeFromAnywhere)
-	receiveQueryBuilderFunc(qb.B) // want `queryBuilder.B must be called directly`
+	receiveQueryBuilderFunc(qb.B) // want `Builder.B must be called directly`
 }
 
 func giveStr() string {
@@ -50,6 +36,6 @@ func giveStr() string {
 
 var couldBeFromAnywhere string
 
-func receiveConstructFunc(fn func(string) *queryBuilder) {}
+func receiveConstructFunc(_ func(string) *querybuilder.Builder) {}
 
-func receiveQueryBuilderFunc(fn func(string, ...any)) {}
+func receiveQueryBuilderFunc(_ func(string, ...any)) {}

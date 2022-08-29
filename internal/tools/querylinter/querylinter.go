@@ -11,7 +11,7 @@ import (
 
 var Analyzer = &analysis.Analyzer{
 	Name:  "queryBuilderLinter",
-	Doc:   "checks for unsafe use of data.queryBuilder",
+	Doc:   "checks for unsafe use of querybuilder.Builder",
 	Flags: flag.FlagSet{},
 	Run: func(pass *analysis.Pass) (interface{}, error) {
 		return nil, run(pass)
@@ -43,13 +43,9 @@ func run(pass *analysis.Pass) error {
 	return err
 }
 
-// TODO:
-// look for direct access to queryBuilder.query
-
 var (
-	constructorName = "newQuery"
+	constructorName = "NewQuery"
 	buildFuncName   = "B"
-	structName      = "queryBuilder"
 )
 
 func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
@@ -58,12 +54,12 @@ func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
 		return nil
 	}
 
-	fnIdent, ok := call.Fun.(*ast.Ident)
+	se, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return nil
 	}
 
-	if fnIdent.Name != constructorName {
+	if se.Sel.Name != constructorName {
 		return nil
 	}
 
@@ -100,7 +96,7 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 	}
 
 	if _, ok := call.Args[0].(*ast.BasicLit); !ok {
-		pass.Reportf(call.Pos(), "argument to queryBuilder.%v must be a string literal, not %T",
+		pass.Reportf(call.Pos(), "argument to Builder.%v must be a string literal, not %T",
 			buildFuncName, call.Args[0])
 		return nil
 	}
@@ -108,27 +104,23 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 }
 
 func checkConstructorNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
-	ident, ok := cursor.Node().(*ast.Ident)
+	se, ok := cursor.Node().(*ast.SelectorExpr)
 	if !ok {
 		return
 	}
 
-	if ident.Name != constructorName {
+	if se.Sel.Name != constructorName {
 		return
 	}
 
 	switch parent := cursor.Parent().(type) {
-	case *ast.FuncDecl:
-		if parent.Name == ident {
-			return
-		}
 	case *ast.CallExpr:
-		if parent.Fun == ident {
+		if parent.Fun == se {
 			return
 		}
 	}
 
-	pass.Reportf(ident.Pos(), "%v must be called directly, not assigned to a variable or passed to a function",
+	pass.Reportf(se.Sel.Pos(), "%v must be called directly, not assigned to a variable or passed to a function",
 		constructorName)
 }
 
@@ -149,6 +141,6 @@ func checkBNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
 		}
 	}
 
-	pass.Reportf(se.Sel.Pos(), "%v.%v must be called directly, not assigned to a variable or passed to a function",
-		structName, buildFuncName)
+	pass.Reportf(se.Sel.Pos(), "Builder.%v must be called directly, not assigned to a variable or passed to a function",
+		buildFuncName)
 }
