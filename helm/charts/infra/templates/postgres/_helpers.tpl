@@ -120,5 +120,5 @@ postgres 'envFrom' values. Merges global and local values.
 Infer whether postgres should be deployed based on postgres.enabled, server.enabled, and external postgres connection configurations.
 */}}
 {{- define "postgres.enabled" -}}
-{{- and .Values.postgres.enabled .Values.server.enabled (not .Values.server.config.dbHost) }}
+{{- and .Values.postgres.enabled (include "server.enabled" . | eq "true") (not .Values.server.config.dbHost) }}
 {{- end }}
