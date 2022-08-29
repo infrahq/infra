@@ -18,7 +18,9 @@ dev:
 	helm upgrade --install --wait  \
 		--set global.image.pullPolicy=Never \
 		--set global.image.tag=dev \
-		--set global.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev)$$(docker images -q infrahq/ui:dev) \
+		--set server.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		--set connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		--set ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
 		infra ./helm/charts/infra \
 		$(flags)
 
