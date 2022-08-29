@@ -2,8 +2,23 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import copy from 'copy-to-clipboard'
+import yaml from 'js-yaml'
 
 import Fullscreen from '../../components/layouts/fullscreen'
+import { useServerConfig } from '../../lib/serverconfig'
+
+function download(values) {
+  const blob = new Blob([values], { type: 'application/yaml' })
+  const href = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+
+  link.href = href
+  link.setAttribute('download', 'values.yaml')
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(href)
+}
 
 export default function DestinationsAdd() {
   const [name, setName] = useState('')
@@ -11,7 +26,10 @@ export default function DestinationsAdd() {
   const [submitted, setSubmitted] = useState(false)
   const [accessKey, setAccessKey] = useState('')
   const [connected, setConnected] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [valuesDownloaded, setValuesDownloaded] = useState(false)
+  const [valuesCopied, setValuesCopied] = useState(false)
+  const [commandCopied, setCommandCopied] = useState(false)
+  const { baseDomain } = useServerConfig()
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -66,16 +84,22 @@ export default function DestinationsAdd() {
     setSubmitted(true)
   }
 
-  const server = window.location.host
-  let command = `helm install infra-connector infrahq/infra \\
-    --set connector.config.accessKey=${accessKey} \\
-    --set connector.config.server=${server} \\
-    --set connector.config.name=${name}`
+  const server = baseDomain ? `api.${baseDomain}` : window.location.host
+  const values = {
+    connector: {
+      config: {
+        server: server,
+        name: name,
+      },
+    },
+  }
 
   if (window.location.protocol !== 'https:') {
-    command += ` \\
-    --set connector.config.skipTLSVerify=true`
+    values.connector.config.skipTLSVerify = true
   }
+
+  const valuesYaml = yaml.dump(values)
+  const command = `helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
 
   return (
     <div>
@@ -90,7 +114,7 @@ export default function DestinationsAdd() {
         />
         <h1 className='text-2xs capitalize'>Connect infrastructure</h1>
       </header>
-      <form onSubmit={onSubmit} className='mb-10 flex space-x-2 px-4'>
+      <form onSubmit={onSubmit} className='mb-6 flex space-x-2 px-4'>
         <div className='flex-1'>
           <label className='text-3xs uppercase text-gray-400'>
             Cluster Name
@@ -124,25 +148,60 @@ export default function DestinationsAdd() {
         }`}
       >
         <h2 className='mb-2 px-4 text-2xs text-gray-100'>
-          Run this command on your Kubernetes cluster:
+          Copy or download this starter Helm values file. For more information
+          and configuration values, see the{' '}
+          <Link href='https://github.com/infrahq/infra/tree/main/helm/charts/infra'>
+            Helm chart
+          </Link>
+          .
         </h2>
         <pre
-          className={`min-h-[120px] bg-gray-900 p-4 text-2xs text-gray-300 ${
+          className={`bg-gray-900 p-4 text-2xs text-gray-300 ${
             submitted ? 'overflow-auto' : 'overflow-hidden'
           }`}
         >
+          {submitted ? valuesYaml : ''}
+        </pre>
+        <span className='self-end'>
+          <button
+            className='mt-2 mb-3 py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
+            disabled={valuesDownloaded}
+            onClick={() => {
+              download(valuesYaml)
+              setValuesDownloaded(true)
+              setTimeout(() => setValuesDownloaded(false), 3000)
+            }}
+          >
+            {valuesDownloaded ? '✓ Downloaded' : 'Download'}
+          </button>
+          <button
+            className='mt-2 mb-3 mr-2 py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
+            disabled={valuesCopied}
+            onClick={() => {
+              copy(valuesYaml)
+              setValuesCopied(true)
+              setTimeout(() => setValuesCopied(false), 3000)
+            }}
+          >
+            {valuesCopied ? '✓ Copied' : 'Copy'}
+          </button>
+        </span>
+        <h2 className='mb-2 px-4 text-2xs text-gray-100'>
+          Run this command on your Kubernetes cluster:
+        </h2>
+        <pre className={`overflow-auto bg-gray-900 p-4 text-2xs text-gray-300`}>
           {submitted ? command : ''}
         </pre>
         <button
           className='mt-2 mb-3 mr-2 self-end py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
-          disabled={copied}
+          disabled={commandCopied}
           onClick={() => {
             copy(command)
-            setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
+            setCommandCopied(true)
+            setTimeout(() => setCommandCopied(false), 3000)
           }}
         >
-          {copied ? '✓ Copied' : 'Copy command'}
+          {commandCopied ? '✓ Copied' : 'Copy'}
         </button>
         <p className='px-4 text-2xs text-gray-500'>
           Your cluster will be detected automatically.
