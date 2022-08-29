@@ -1,5 +1,7 @@
 package data
 
+import "github.com/infrahq/infra/internal/server/data/querybuilder"
+
 // Internal Pagination Data
 type Pagination struct {
 	Page       int
@@ -13,7 +15,7 @@ func (p *Pagination) SetTotalCount(count int) {
 	}
 }
 
-func (p *Pagination) PaginateQuery(query *queryBuilder) {
+func (p *Pagination) PaginateQuery(query *querybuilder.Query) {
 	if p.Page == 0 && p.Limit == 0 {
 		return
 	}

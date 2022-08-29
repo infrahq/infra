@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -114,8 +115,8 @@ type ListAccessKeyOptions struct {
 
 func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, error) {
 	table := &accessKeyTable{}
-	query := Query("SELECT")
-	query.B(columnsForSelect("k", table.Columns()))
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect("k", table))
 	query.B(", u.name")
 	if opts.Pagination != nil {
 		query.B(", count(*) OVER()")
@@ -168,8 +169,8 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 // this query is not scoped by an organization_id.
 func GetAccessKey(tx ReadTxn, keyID string) (*models.AccessKey, error) {
 	accessKey := &accessKeyTable{}
-	query := Query("SELECT")
-	query.B(columnsForSelect("", accessKey.Columns()))
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect("", accessKey))
 	query.B("FROM")
 	query.B(accessKey.Table())
 	query.B("WHERE deleted_at is null")
@@ -193,7 +194,7 @@ type DeleteAccessKeysOptions struct {
 }
 
 func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
-	query := Query("UPDATE access_keys")
+	query := querybuilder.New("UPDATE access_keys")
 	query.B("SET deleted_at = ? WHERE", time.Now())
 	switch {
 	case opts.ByID != 0:
