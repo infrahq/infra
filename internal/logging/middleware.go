@@ -40,28 +40,29 @@ func Middleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		method := c.Request.Method
-		log := L.With().
+		event := L.With().
 			Str("method", method).
 			Str("path", c.Request.URL.Path).
 			Str("localAddr", c.Request.Host).
-			Str("remoteAddr", c.Request.RemoteAddr).
-			Str("userAgent", c.Request.UserAgent()).
-			Int64("contentLength", c.Request.ContentLength).
-			Logger()
+			Str("remoteAddr", c.ClientIP()).
+			Str("userAgent", c.Request.UserAgent())
 
+		if c.Request.ContentLength > 0 {
+			event = event.Int64("contentLength", c.Request.ContentLength)
+		}
+
+		logger := event.Logger()
 		begin := time.Now()
 
 		c.Next()
 
 		status := c.Writer.Status()
-
 		// sample logs for successful GET request if the log level is INFO or above
 		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
-			log = log.Sample(sampler.Get(c.Request.Method, c.FullPath()))
+			logger = logger.Sample(sampler.Get(c.Request.Method, c.FullPath()))
 		}
 
-		log.Info().
-			Dur("elapsed", time.Since(begin)).
+		logger.Info().Dur("elapsed", time.Since(begin)).
 			Int("statusCode", status).
 			Int("size", c.Writer.Size()).
 			Msg("")
