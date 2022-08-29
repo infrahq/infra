@@ -3,6 +3,7 @@ package querylinter
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/ast/astutil"
@@ -34,6 +35,8 @@ func run(pass *analysis.Pass) error {
 
 			checkConstructorNotACallExpr(pass, cursor)
 			checkBNotACallExpr(pass, cursor)
+
+			checkColumnMethodImplementations(pass, node)
 			return true
 		}
 		astutil.Apply(file, inspect, nil)
@@ -45,6 +48,7 @@ var (
 	constructorName           = "NewQuery"
 	buildFuncName             = "B"
 	pkgName                   = "querybuilder"
+	columnsMethodName         = "Columns"
 	buildFuncReceiverTypeName = "*github.com/infrahq/infra/internal/server/data/querybuilder.Builder"
 )
 
@@ -95,11 +99,22 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 		return fmt.Errorf("unexpected argument count %v to queryBuilder.%v", count, buildFuncName)
 	}
 
-	if _, ok := call.Args[0].(*ast.BasicLit); !ok {
-		pass.Reportf(call.Pos(), "argument to Builder.%v must be a string literal, not %T",
-			buildFuncName, call.Args[0])
+	switch arg := call.Args[0].(type) {
+	case *ast.BasicLit:
 		return nil
+	case *ast.CallExpr:
+		if id, ok := arg.Fun.(*ast.Ident); ok {
+			switch id.Name {
+			case "columnsForSelect", "columnsForInsert", "placeholderForColumns", "columnsForUpdate":
+				// these functions should all accept a Table method, and only add the value of
+				// Columns, which we check to ensure always return string literals.
+				return nil
+			}
+		}
 	}
+
+	pass.Reportf(call.Pos(), "argument to Builder.%v must be a string literal, not %T",
+		buildFuncName, call.Args[0])
 	return nil
 }
 
@@ -161,4 +176,68 @@ func isBuildMethod(pass *analysis.Pass, se *ast.SelectorExpr) bool {
 	}
 
 	return selection.Recv().String() == buildFuncReceiverTypeName
+}
+
+func checkColumnMethodImplementations(pass *analysis.Pass, node ast.Node) {
+	decl, ok := node.(*ast.FuncDecl)
+	if !ok {
+		return
+	}
+
+	if decl.Name == nil || decl.Name.Name != columnsMethodName {
+		return
+	}
+
+	if !isColumnsExpectedSignature(decl) {
+		return
+	}
+
+	if count := len(decl.Body.List); count != 1 {
+		pass.ReportRangef(decl.Body, "Columns method must only return a single slice literal")
+		return
+	}
+
+	ret, ok := decl.Body.List[0].(*ast.ReturnStmt)
+	if !ok {
+		pass.Reportf(decl.Body.List[0].Pos(), "Columns method must return as only expression")
+		return
+	}
+
+	lit, ok := ret.Results[0].(*ast.CompositeLit)
+	if !ok {
+		pass.Reportf(ret.Results[0].Pos(), "Columns method must return a slice literal")
+		return
+	}
+
+	for _, element := range lit.Elts {
+		stringLit, ok := element.(*ast.BasicLit)
+		if !ok || stringLit.Kind != token.STRING {
+			pass.Reportf(element.Pos(), "Columns method return value must contain only string literals")
+		}
+	}
+	return
+}
+
+func isColumnsExpectedSignature(decl *ast.FuncDecl) bool {
+	if len(decl.Recv.List) != 1 {
+		// not a method
+		return false
+	}
+
+	if len(decl.Type.Params.List) != 0 || len(decl.Type.Results.List) != 1 {
+		// wrong number of parameters or return values
+		return false
+	}
+
+	arrayType, ok := decl.Type.Results.List[0].Type.(*ast.ArrayType)
+	if !ok {
+		return false
+	}
+
+	ident, ok := arrayType.Elt.(*ast.Ident)
+	if !ok {
+		return false
+	}
+
+	return ident.Name == "string"
 }

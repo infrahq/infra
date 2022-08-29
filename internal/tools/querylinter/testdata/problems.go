@@ -43,3 +43,27 @@ func receiveQueryBuilderFunc(_ func(string, ...any)) {}
 func sneakyInjection(qb *querybuilder.Builder) {
 	qb.B(couldBeFromAnywhere) // want `argument to Builder.B must be a string literal`
 }
+
+type exampleOne struct{}
+
+func (exampleOne) Columns() []string { // want `Columns method must only return a single slice literal`
+	// comments are ok
+	a := []string{}
+	return a
+}
+
+type exampleTwo struct{}
+
+func (exampleTwo) Columns() []string {
+	return exampleOne{}.Columns() // want `Columns method must return a slice literal`
+}
+
+type exampleThree struct{}
+
+func (exampleThree) Columns() []string {
+	return []string{
+		"ok",
+		couldBeFromAnywhere, // want `Columns method return value must contain only string literals`
+		giveStr(),           // want `Columns method return value must contain only string literals`
+	}
+}

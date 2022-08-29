@@ -9,7 +9,14 @@ import (
 
 type Table interface {
 	Table() string
-	// Columns returns the names of the tables columns.
+	// Columns returns the names of the table's columns. Columns must return
+	// a slice literal where every item in the slice is a string literal.
+	// The value returned by Columns is used as a trusted string in queries and
+	// will not be escaped. internal/tools/querylinter will vet all
+	// implementations of this method to ensure that only string literals are
+	// returned.
+	// If the definition of this method changes then internal/tools/querylinter
+	// must be updated accordingly.
 	Columns() []string
 }
 
@@ -61,10 +68,20 @@ func insert(tx WriteTxn, item Insertable) error {
 	return handleError(err)
 }
 
+// columnsForInsert is a privileged function that is not checked by
+// internal/tools/querylinter. If the arguments to this function change
+// the linter will likely need to be updated.
+// The return value must only include trusted strings from the source code,
+// never untrusted user input.
 func columnsForInsert(table Table) string {
 	return strings.Join(table.Columns(), ", ")
 }
 
+// placeholderForColumns is a privileged function that is not checked by
+// internal/tools/querylinter. If the arguments to this function change
+// the linter will likely need to be updated.
+// The return value must only include trusted strings from the source code,
+// never untrusted user input.
 func placeholderForColumns(table Table) string {
 	columns := table.Columns()
 	result := make([]string, len(columns))
@@ -89,10 +106,20 @@ func update(tx WriteTxn, item Updatable) error {
 	return handleError(err)
 }
 
+// columnsForUpdate is a privileged function that is not checked by
+// internal/tools/querylinter. If the arguments to this function change
+// the linter will likely need to be updated.
+// The return value must only include trusted strings from the source code,
+// never untrusted user input.
 func columnsForUpdate(table Table) string {
 	return strings.Join(table.Columns(), " = ?, ") + " = ?"
 }
 
+// columnsForSelect is a privileged function that is not checked by
+// internal/tools/querylinter. If the arguments to this function change
+// the linter will likely need to be updated.
+// The return value must only include trusted strings from the source code,
+// never untrusted user input.
 func columnsForSelect(tableAlias string, table Table) string {
 	if tableAlias == "" {
 		return strings.Join(table.Columns(), ", ")
