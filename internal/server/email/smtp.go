@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"net/smtp"
 	"strings"
 	"sync"
 	"time"
@@ -60,36 +61,18 @@ func (c *Client) connect() (err error) {
 		}
 	}()
 
-	c.reader = bufio.NewReader(c.Conn)
-	var b []byte
-	b, err = c.reader.Peek(3)
+	auth := smtp.PlainAuth("", "apikey", SendgridAPIKey, SMTPServer)
+
+	client, err := smtp.NewClient(conn, SMTPServer)
 	if err != nil {
-		return fmt.Errorf("peek: %w", err)
-	}
-	if string(b) == "220" { // 220 server ready
-		// read line and throw away
-		if _, err = c.readln(""); err != nil {
-			return err
-		}
-	}
-	if err = c.writeln("AUTH LOGIN"); err != nil {
 		return err
 	}
-	if _, err = c.readln("334 " + base64encode("Username:")); err != nil {
+
+	if err = client.Auth(auth); err != nil {
 		return err
 	}
-	if err = c.writeln(base64encode("apikey")); err != nil {
-		return err
-	}
-	if _, err = c.readln("334 " + base64encode("Password:")); err != nil {
-		return err
-	}
-	if err = c.writeln(base64encode(SendgridAPIKey)); err != nil {
-		return err
-	}
-	if _, err = c.readln("235 Authentication successful"); err != nil {
-		return err
-	}
+
+	c.reader = bufio.NewReader(c.Conn)
 
 	return nil
 }
@@ -159,14 +142,14 @@ func SendSMTP(msg Message) error {
 	if err := client.writeln(fmt.Sprintf("MAIL FROM: %s", msg.FromAddress)); err != nil {
 		return fmt.Errorf("write mail from: %w", err)
 	}
-	if _, err := client.readln("250 Sender address accepted"); err != nil {
+	if _, err := client.readln("250 "); err != nil { // Sender address accepted
 		return err
 	}
 
 	if err := client.writeln(fmt.Sprintf("RCPT TO: %s", msg.ToAddress)); err != nil {
 		return fmt.Errorf("write rcpt to: %w", err)
 	}
-	if _, err := client.readln("250 Recipient address accepted"); err != nil {
+	if _, err := client.readln("250 "); err != nil { // Recipient address accepted
 		return err
 	}
 
@@ -231,7 +214,8 @@ func SendSMTP(msg Message) error {
 	if err != nil {
 		return fmt.Errorf("reading send result: %w", err)
 	}
-	if !strings.HasPrefix(result, "250 Ok") {
+
+	if !strings.HasPrefix(result, "250 ") { // Ok
 		return fmt.Errorf("expected 250 Ok result, but got %q", result)
 	}
 	return nil

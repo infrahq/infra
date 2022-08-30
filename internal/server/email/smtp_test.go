@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/base64"
+	"fmt"
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 )
@@ -64,24 +66,28 @@ var (
 func successCase(t *testing.T, c net.Conn) {
 	reader := bufio.NewReader(c)
 	read := func(msg string) string {
+		c.SetDeadline(time.Now().Add(5 * time.Second))
 		s, err := reader.ReadString('\n')
+		assert.NilError(t, err, fmt.Sprintf("waiting for read %q", msg))
 		s = strings.TrimRight(s, "\r\n")
-		assert.NilError(t, err)
 		if msg != "" {
-			assert.Equal(t, s, msg)
+			assert.Assert(t, strings.HasPrefix(s, msg))
 		}
 		return s
 	}
 	write := func(s string) {
+		c.SetDeadline(time.Now().Add(5 * time.Second))
 		_, err := c.Write([]byte(s + "\r\n"))
-		assert.NilError(t, err)
+		assert.NilError(t, err, fmt.Sprintf("waiting for write %q", s))
 	}
 	write("220 server ready")
-	read("AUTH LOGIN")
-	write("334 VXNlcm5hbWU6")
-	read("YXBpa2V5")
-	write("334 UGFzc3dvcmQ6")
-	read("YXBpLWtleQ==")
+	read("EHLO")
+	write("250 Hi")
+	msg := read("AUTH PLAIN")
+	msg = strings.TrimPrefix(msg, "AUTH PLAIN ")
+	decoded, err := base64.StdEncoding.DecodeString(msg)
+	assert.NilError(t, err)
+	assert.Equal(t, "\x00apikey\x00api-key", string(decoded))
 	write("235 Authentication successful")
 	assert.Assert(t, strings.HasPrefix(read(""), "MAIL FROM: "))
 	write("250 Sender address accepted")
