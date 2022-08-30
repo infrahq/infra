@@ -53,5 +53,5 @@ func TestResendAuthCookie(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, matched)
 
-	assert.Equal(t, "auth=; Path=/; Domain=example.com; Max-Age=0; HttpOnly; Secure", c.Writer.Header()["Set-Cookie"][1])
+	assert.Equal(t, "signup=; Path=/; Domain=example.com; Max-Age=0; HttpOnly; Secure", c.Writer.Header()["Set-Cookie"][1])
 }
