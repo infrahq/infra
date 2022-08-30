@@ -38,37 +38,53 @@ func ParseSchema(schema string) ([]Statement, error) {
 	lines.Split(bufio.ScanLines)
 	for lines.Scan() {
 		line := lines.Text()
-
 		// skip comments and empty lines
-		if strings.HasPrefix(line, "--") || line == "" {
+		if strings.HasPrefix(line, "--") {
 			continue
 		}
 
 		switch state {
 		case scanSchemaForStartOfStatement:
+			if line == "" {
+				continue
+			}
 			if isClientConnectionSetting(line) {
 				continue
 			}
 			if strings.HasPrefix(line, "CREATE SCHEMA") {
 				continue
 			}
-
 			var err error
 			if currentTable, line, err = parseStatementLine(line); err != nil {
 				return nil, err
 			}
 
 			currentStmt.WriteString("\n" + line + "\n")
+
 			if strings.HasSuffix(line, ";") {
 				endStatement()
 				continue
 			}
 			state = scanSchemaForEndOfStatement
 
+		case scanSchemaInCodeBlock:
+			currentStmt.WriteString(line + "\n")
+
+			if strings.HasSuffix(line, "$$;") {
+				endStatement()
+			}
 		case scanSchemaForEndOfStatement:
+			if line == "" {
+				continue
+			}
+
 			line = strings.ReplaceAll(line, schemaNamePrefix, "")
 			currentStmt.WriteString(line + "\n")
 
+			if strings.HasSuffix(line, "AS $$") {
+				state = scanSchemaInCodeBlock
+				continue
+			}
 			if strings.HasSuffix(line, ";") {
 				endStatement()
 			}
@@ -79,7 +95,8 @@ func ParseSchema(schema string) ([]Statement, error) {
 
 const (
 	scanSchemaForStartOfStatement = iota
-	scanSchemaForEndOfStatement   = iota
+	scanSchemaForEndOfStatement
+	scanSchemaInCodeBlock
 )
 
 func isClientConnectionSetting(line string) bool {
@@ -107,6 +124,7 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	case strings.HasPrefix(line, "CREATE SEQUENCE"):
 	case strings.HasPrefix(line, "ALTER SEQUENCE"):
 	case strings.HasPrefix(line, "CREATE UNIQUE INDEX"):
+	case strings.HasPrefix(line, "CREATE FUNCTION"):
 	default:
 		return "", "", fmt.Errorf("unexpected start of statement: %q", line)
 	}

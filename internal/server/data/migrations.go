@@ -64,6 +64,7 @@ func migrations() []*migrator.Migration {
 		addDefaultOrganization(),
 		addOrganizationDomain(),
 		dropOrganizationNameIndex(),
+		sqlFunctionsMigration(),
 		// next one here
 	}
 }

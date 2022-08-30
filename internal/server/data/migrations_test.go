@@ -494,6 +494,12 @@ DELETE FROM settings WHERE id=24567;
 				// dropped indexes are tested by schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-08-22T14:58:00Z"),
+			expected: func(t *testing.T, db *gorm.DB) {
+				// tested elsewhere
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
