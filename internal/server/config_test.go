@@ -395,6 +395,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	s := setupServer(t)
 
 	config := Config{
+		DefaultOrganizationDomain: "super.example.com",
 		Providers: []Provider{
 			{
 				Name:         "okta",
@@ -432,6 +433,10 @@ func TestLoadConfigWithProviders(t *testing.T) {
 	assert.NilError(t, err)
 
 	defaultOrg := s.db.DefaultOrg
+
+	updatedOrg, err := data.GetOrganization(s.db, data.ByID(defaultOrg.ID))
+	assert.NilError(t, err)
+	assert.Equal(t, updatedOrg.Domain, "super.example.com")
 
 	var okta models.Provider
 	err = s.db.Raw("SELECT * FROM providers WHERE name = 'okta' AND organization_id = ? LIMIT 1;", defaultOrg.ID).Scan(&okta).Error

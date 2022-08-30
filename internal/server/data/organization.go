@@ -73,3 +73,7 @@ func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
 
 	return delete[models.Organization](db, toDelete.ID)
 }
+
+func UpdateOrganization(tx GormTxn, org *models.Organization) error {
+	return save(tx, org)
+}
