@@ -35,6 +35,11 @@ func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 				validate.Numbers,
 				validate.Dash,
 			},
+			FirstCharacterRange: []validate.CharRange{
+				validate.AlphabetLower,
+				validate.AlphabetUpper,
+				validate.Numbers,
+			},
 		},
 	}
 }

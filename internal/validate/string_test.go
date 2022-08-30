@@ -16,11 +16,12 @@ type StringExample struct {
 func (s StringExample) ValidationRules() []ValidationRule {
 	return []ValidationRule{
 		&StringRule{
-			Value:           s.Field,
-			Name:            "strField",
-			MinLength:       2,
-			MaxLength:       10,
-			CharacterRanges: []CharRange{AlphabetLower},
+			Value:               s.Field,
+			Name:                "strField",
+			MinLength:           2,
+			MaxLength:           10,
+			CharacterRanges:     []CharRange{AlphabetLower, AlphabetUpper},
+			FirstCharacterRange: []CharRange{AlphabetLower},
 		},
 	}
 }
@@ -61,6 +62,17 @@ func TestStringRule_Validate(t *testing.T) {
 				"length of string is 12, must be no more than 10",
 				`character ' ' at position 6 is not allowed`,
 			},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
+	t.Run("first character range", func(t *testing.T) {
+		r := StringExample{Field: "NotValid"}
+		err := Validate(r)
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"strField": {"first character 'N' is not allowed"},
 		}
 		assert.DeepEqual(t, verr, expected)
 	})

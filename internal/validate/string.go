@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -20,8 +21,12 @@ type StringRule struct {
 	MaxLength int
 
 	// CharacterRanges is a list of character ranges. Every rune in value
-	// must bet within one of these ranges.
+	// must be within one of these ranges.
 	CharacterRanges []CharRange
+
+	// FirstCharacterRange is a list of character ranges. The first rune in
+	// value must be within one of these ranges.
+	FirstCharacterRange []CharRange
 }
 
 type CharRange struct {
@@ -84,6 +89,13 @@ func (s StringRule) Validate() *Failure {
 
 	if s.MaxLength > 0 && len(value) > s.MaxLength {
 		add("length of string is %d, must be no more than %d", len(value), s.MaxLength)
+	}
+
+	if len(s.FirstCharacterRange) > 0 {
+		first, _ := utf8.DecodeRuneInString(value)
+		if !inRange(s.FirstCharacterRange, first) {
+			add("first character %q is not allowed", first)
+		}
 	}
 
 	if len(s.CharacterRanges) > 0 {
