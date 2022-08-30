@@ -23,6 +23,14 @@ jest.mock('swr', () => {
   }
 })
 
+jest.mock('next/router', () => ({
+  useRouter() {
+    return {
+      query: {},
+    }
+  },
+}))
+
 const providers = {
   data: {
     items: [
