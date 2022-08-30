@@ -1,15 +1,13 @@
 package data
 
 import (
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/server/data/migrator"
 )
 
 func sqlFunctionsMigration() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-22T14:58:00Z",
-		Migrate: func(db *gorm.DB) error {
+		Migrate: func(tx migrator.DB) error {
 			sql := `
 			CREATE FUNCTION uidIntToStr(id BIGINT) RETURNS text
 			LANGUAGE PLPGSQL
@@ -81,7 +79,8 @@ func sqlFunctionsMigration() *migrator.Migration {
 			
 			END; $$;
 			`
-			return db.Exec(sql).Error
+			_, err := tx.Exec(sql)
+			return err
 
 		},
 	}
