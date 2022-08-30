@@ -1,4 +1,4 @@
-package logging
+package server
 
 import (
 	"net/http"
@@ -8,18 +8,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+
+	"github.com/infrahq/infra/internal/logging"
 )
 
-type Sampler struct {
+type logSampler struct {
 	fn       func() zerolog.Sampler
 	samplers sync.Map
 }
 
-func NewSampler(fn func() zerolog.Sampler) *Sampler {
-	return &Sampler{fn: fn}
+func newLogSampler(fn func() zerolog.Sampler) *logSampler {
+	return &logSampler{fn: fn}
 }
 
-func (c *Sampler) Get(fields ...string) zerolog.Sampler {
+func (c *logSampler) Get(fields ...string) zerolog.Sampler {
 	key := strings.Join(fields, "-")
 	raw, ok := c.samplers.Load(key)
 	if !ok {
@@ -30,8 +32,8 @@ func (c *Sampler) Get(fields ...string) zerolog.Sampler {
 	return raw.(zerolog.Sampler) // nolint:forcetypeassert
 }
 
-func Middleware() gin.HandlerFunc {
-	sampler := NewSampler(func() zerolog.Sampler {
+func loggingMiddleware() gin.HandlerFunc {
+	sampler := newLogSampler(func() zerolog.Sampler {
 		return &zerolog.BurstSampler{
 			Burst:  1,
 			Period: 7 * time.Second,
@@ -40,7 +42,7 @@ func Middleware() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		method := c.Request.Method
-		event := L.With().
+		event := logging.L.With().
 			Str("method", method).
 			Str("path", c.Request.URL.Path).
 			Str("localAddr", c.Request.Host).
