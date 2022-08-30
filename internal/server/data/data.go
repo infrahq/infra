@@ -347,6 +347,12 @@ type UniqueConstraintError struct {
 	Column string
 }
 
+// these are tables whose names need the 'an' article rather than 'a'
+var anArticleTableName = map[string]bool{
+	"access key":   true,
+	"organization": true,
+}
+
 func (e UniqueConstraintError) Error() string {
 	table := e.Table
 	switch table {
@@ -360,10 +366,15 @@ func (e UniqueConstraintError) Error() string {
 		table = strings.TrimSuffix(table, "s")
 	}
 
-	if e.Column == "" {
-		return fmt.Sprintf("a %v with that value already exists", table)
+	article := "a"
+	if anArticleTableName[table] {
+		article = "an"
 	}
-	return fmt.Sprintf("a %v with that %v already exists", table, e.Column)
+
+	if e.Column == "" {
+		return fmt.Sprintf("%s %v with that value already exists", article, table)
+	}
+	return fmt.Sprintf("%s %v with that %v already exists", article, table, e.Column)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it
