@@ -51,7 +51,7 @@ func setCookie(c *gin.Context, config cookieConfig) {
 
 func deleteCookie(c *gin.Context, name, domain string) {
 	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     cookieAuthorizationName,
+		Name:     name,
 		MaxAge:   cookieMaxAgeDeleteImmediately,
 		Path:     cookiePath,
 		Domain:   domain,
@@ -61,21 +61,21 @@ func deleteCookie(c *gin.Context, name, domain string) {
 }
 
 // exchangeSignupCookieForSession sets the auth cookie on the current host making the request
-func exchangeSignupCookieForSession(c *gin.Context, baseDomain string) {
-	key := getRequestContext(c).Authenticated.AccessKey // this should have been set by the middleware
-	if key != nil {
-		signupCookie, err := getCookie(c.Request, cookieSignupName)
-		if err != nil {
-			logging.L.Trace().Err(err).Msg("failed to find signup cookie, this may be expected")
-			return
-		}
-		conf := cookieConfig{
-			Name:    cookieAuthorizationName,
-			Value:   signupCookie,
-			Domain:  c.Request.Host,
-			Expires: key.ExpiresAt,
-		}
-		setCookie(c, conf)
-		deleteCookie(c, cookieSignupName, baseDomain)
+func exchangeSignupCookieForSession(c *gin.Context, opts Options) {
+	signupCookie, err := getCookie(c.Request, cookieSignupName)
+	if err != nil {
+		logging.L.Trace().Err(err).Msg("failed to find signup cookie, this may be expected")
+		return
 	}
+
+	exp := time.Now().UTC().Add(opts.SessionDuration)
+
+	conf := cookieConfig{
+		Name:    cookieAuthorizationName,
+		Value:   signupCookie,
+		Domain:  c.Request.Host,
+		Expires: exp,
+	}
+	setCookie(c, conf)
+	deleteCookie(c, cookieSignupName, opts.BaseDomain)
 }

@@ -198,7 +198,7 @@ func orgRequired() gin.HandlerFunc {
 func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Authenticated, error) {
 	var u access.Authenticated
 
-	bearer, err := reqBearerToken(c, srv.options.BaseDomain)
+	bearer, err := reqBearerToken(c, srv.options)
 	if err != nil {
 		return u, err
 	}
@@ -288,7 +288,7 @@ hostLookup:
 	return org, nil
 }
 
-func reqBearerToken(c *gin.Context, baseDomain string) (string, error) {
+func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 	header := c.Request.Header.Get("Authorization")
 
 	bearer := ""
@@ -305,7 +305,7 @@ func reqBearerToken(c *gin.Context, baseDomain string) (string, error) {
 		*/
 		cookie, err := getCookie(c.Request, cookieSignupName)
 		if err == nil {
-			exchangeSignupCookieForSession(c, baseDomain)
+			exchangeSignupCookieForSession(c, opts)
 		} else {
 			logging.L.Trace().Err(err).Msg("sign-up cookie not found, falling back to auth cookie")
 
