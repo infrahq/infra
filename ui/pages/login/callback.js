@@ -9,7 +9,7 @@ export default function Callback() {
   const { code, state } = router.query
 
   useEffect(() => {
-    async function login({ providerID, code, redirectURL }) {
+    async function login({ providerID, code, redirectURL, next }) {
       await fetch('/api/login', {
         method: 'POST',
         body: JSON.stringify({
@@ -22,11 +22,19 @@ export default function Callback() {
       })
 
       await mutate('/api/users/self')
-      router.replace('/')
+
+      if (next) {
+        router.replace(`/${next}`)
+      } else {
+        router.replace('/')
+      }
+
+      window.localStorage.removeItem('next')
     }
 
     const providerID = window.localStorage.getItem('providerID')
     const redirectURL = window.localStorage.getItem('redirectURL')
+    const next = window.localStorage.getItem('next')
 
     if (
       state === window.localStorage.getItem('state') &&
@@ -38,6 +46,7 @@ export default function Callback() {
         providerID,
         code,
         redirectURL,
+        next,
       })
       window.localStorage.removeItem('providerID')
       window.localStorage.removeItem('state')
@@ -50,7 +59,8 @@ export default function Callback() {
   }
 
   if (!state || !code) {
-    router.replace('/login')
+    const next = window.localStorage.getItem('next')
+    next ? router.replace(`/login?next=${next}`) : router.replace('/login')
     return null
   }
 

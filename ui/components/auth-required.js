@@ -4,15 +4,19 @@ import useSWR from 'swr'
 export default function AuthRequired({ children }) {
   const { data: auth, error } = useSWR('/api/users/self')
   const router = useRouter()
+  const { asPath } = router
 
   if (!auth && !error) {
-    return null
+    return undefined
   }
 
   if (!auth?.id) {
-    router.replace('/login')
-    return null
+    if (asPath !== '/destinations' && asPath !== '/') {
+      router.replace(`/login?next=${encodeURIComponent(asPath)}`)
+    } else {
+      router.replace('/login')
+    }
+    return undefined
   }
-
   return children
 }
