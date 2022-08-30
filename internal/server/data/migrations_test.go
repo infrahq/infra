@@ -496,7 +496,7 @@ DELETE FROM settings WHERE id=24567;
 		},
 		{
 			label: testCaseLine("2022-08-22T14:58:00Z"),
-			expected: func(t *testing.T, db *gorm.DB) {
+			expected: func(t *testing.T, tx WriteTxn) {
 				// tested elsewhere
 			},
 		},
