@@ -16,11 +16,11 @@ dev:
 	docker buildx build ui --load -t infrahq/ui:dev
 	kubectl config use-context docker-desktop
 	helm upgrade --install --wait  \
-		--set global.image.pullPolicy=Never \
-		--set global.image.tag=dev \
-		--set server.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
-		--set connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
-		--set ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
+		--set-string global.image.pullPolicy=Never \
+		--set-string global.image.tag=dev \
+		--set-string server.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		--set-string connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
+		--set-string ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
 		infra ./helm/charts/infra \
 		$(flags)
 
