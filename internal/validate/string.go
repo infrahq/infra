@@ -24,16 +24,6 @@ type StringRule struct {
 	CharacterRanges []CharRange
 }
 
-func String(name, value string, min, max int, charset ...CharRange) StringRule {
-	return StringRule{
-		Name:            name,
-		Value:           value,
-		MinLength:       min,
-		MaxLength:       max,
-		CharacterRanges: charset,
-	}
-}
-
 type CharRange struct {
 	Low  rune
 	High rune

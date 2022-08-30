@@ -21,8 +21,13 @@ type VerifiedResetPasswordRequest struct {
 func (r VerifiedResetPasswordRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("token", r.Token),
-		validate.String("token", r.Token, 10, 10, validate.AlphaNumeric...),
+		validate.StringRule{
+			Name:            "token",
+			Value:           r.Token,
+			MinLength:       10,
+			MaxLength:       10,
+			CharacterRanges: validate.AlphaNumeric,
+		},
 		validate.Required("password", r.Password),
-		// todo: validate password meets org's criteria
 	}
 }
