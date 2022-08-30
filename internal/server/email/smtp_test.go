@@ -66,7 +66,7 @@ var (
 func successCase(t *testing.T, c net.Conn) {
 	reader := bufio.NewReader(c)
 	read := func(msg string) string {
-		c.SetDeadline(time.Now().Add(5 * time.Second))
+		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 		s, err := reader.ReadString('\n')
 		assert.NilError(t, err, fmt.Sprintf("waiting for read %q", msg))
 		s = strings.TrimRight(s, "\r\n")
@@ -76,7 +76,7 @@ func successCase(t *testing.T, c net.Conn) {
 		return s
 	}
 	write := func(s string) {
-		c.SetDeadline(time.Now().Add(5 * time.Second))
+		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 		_, err := c.Write([]byte(s + "\r\n"))
 		assert.NilError(t, err, fmt.Sprintf("waiting for write %q", s))
 	}
