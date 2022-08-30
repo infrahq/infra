@@ -28,6 +28,8 @@ type ExampleRequest struct {
 	TooHigh int
 
 	Kind string
+
+	Unique string
 }
 
 func (r ExampleRequest) ValidationRules() []ValidationRule {
@@ -63,6 +65,7 @@ func (r ExampleRequest) ValidationRules() []ValidationRule {
 		IntRule{Name: "tooLow", Value: r.TooLow, Min: Int(20)},
 		IntRule{Name: "tooHigh", Value: r.TooHigh, Max: Int(20)},
 		Enum("kind", r.Kind, []string{"fruit", "legume", "grain"}),
+		ReservedStrings("unique", r.Unique, []string{"special"}),
 	}
 }
 
@@ -93,6 +96,7 @@ func TestValidate_AllRules(t *testing.T) {
 			TooLow:     2,
 			TooHigh:    22,
 			Kind:       "fish",
+			Unique:     "special",
 		}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -113,6 +117,7 @@ func TestValidate_AllRules(t *testing.T) {
 			"tooHigh":    {"value 22 must be at most 20"},
 			"tooLow":     {"value 2 must be at least 20"},
 			"kind":       {"must be one of (fruit, legume, grain)"},
+			"unique":     {"special is reserved and can not be used"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})

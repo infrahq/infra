@@ -132,7 +132,6 @@ func TestEnum_Validate(t *testing.T) {
 			"kind": {"must be one of (fruit, legume, grain)"},
 		}
 		assert.DeepEqual(t, verr, expected)
-
 	})
 }
 
@@ -152,4 +151,33 @@ func TestEnum_DescribeSchema(t *testing.T) {
 		},
 	}
 	assert.DeepEqual(t, schema, expected, cmpSchema)
+}
+
+type ReservedExample struct {
+	Value string
+}
+
+func (e ReservedExample) ValidationRules() []ValidationRule {
+	words := []string{"cars", "boats", "vans"}
+	return []ValidationRule{
+		ReservedStrings("name", e.Value, words),
+	}
+}
+
+func TestReserved_Validate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		err := Validate(ReservedExample{Value: "ok"})
+		assert.NilError(t, err)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		err := Validate(ReservedExample{Value: "cars"})
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"name": {"cars is reserved and can not be used"},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
 }

@@ -37,6 +37,34 @@ func TestAPI_Signup(t *testing.T) {
 
 	testCases := []testCase{
 		{
+			name: "invalid subdomain",
+			setup: func(t *testing.T) api.SignupRequest {
+				return api.SignupRequest{
+					Name:     "admin@example.com",
+					Password: "thispasswordisgreat",
+					Org: api.SignupOrg{
+						Name:      "My org is awesome",
+						Subdomain: "h@",
+					},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "org.subDomain", Errors: []string{
+						"length of string is 2, must be at least 3",
+						"character '@' at position 1 is not allowed",
+					}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
 			name: "missing name, password, and org",
 			setup: func(t *testing.T) api.SignupRequest {
 				return api.SignupRequest{}

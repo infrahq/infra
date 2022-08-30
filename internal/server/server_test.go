@@ -342,7 +342,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		Password: passwd,
 		Org: api.SignupOrg{
 			Name:      "infrahq",
-			Subdomain: "infra",
+			Subdomain: "myorg",
 		},
 	}
 	err := json.NewEncoder(&buf).Encode(signupReq)

@@ -4827,6 +4827,9 @@
                         "type": "string"
                       },
                       "subDomain": {
+                        "format": "[a-zA-Z0-9\\-]",
+                        "maxLength": 63,
+                        "minLength": 3,
                         "type": "string"
                       }
                     },

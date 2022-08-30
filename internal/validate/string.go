@@ -141,3 +141,30 @@ func (e enum) DescribeSchema(parent *openapi3.Schema) {
 		schema.Enum = append(schema.Enum, v)
 	}
 }
+
+// ReservedStrings returns a validation that checks that value does not match
+// any of the strings in values.
+func ReservedStrings(name string, value string, values []string) ValidationRule {
+	return reserved{Name: name, Value: value, Reserved: values}
+}
+
+type reserved struct {
+	Name     string
+	Value    string
+	Reserved []string
+}
+
+func (r reserved) Validate() *Failure {
+	if r.Value == "" {
+		return nil
+	}
+	for _, notAllowed := range r.Reserved {
+		if r.Value == notAllowed {
+			msg := fmt.Sprintf("%v is reserved and can not be used", r.Value)
+			return fail(r.Name, msg)
+		}
+	}
+	return nil
+}
+
+func (r reserved) DescribeSchema(_ *openapi3.Schema) {}

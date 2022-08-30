@@ -12,10 +12,30 @@ type SignupOrg struct {
 	Subdomain string `json:"subDomain"`
 }
 
+var reservedSubDomains = []string{
+	"infra", "infrahq", "auth", "authz", "authn",
+	"api", "www", "ftp", "ssh", "info", "help", "about",
+	"grants", "connector", "login", "signup",
+	"system", "admin", "email", "bastion",
+}
+
 func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", r.Name),
 		validate.Required("subDomain", r.Subdomain),
+		validate.ReservedStrings("subDomain", r.Subdomain, reservedSubDomains),
+		validate.StringRule{
+			Name:      "subDomain",
+			Value:     r.Subdomain,
+			MinLength: 3,
+			MaxLength: 63,
+			CharacterRanges: []validate.CharRange{
+				validate.AlphabetLower,
+				validate.AlphabetUpper,
+				validate.Numbers,
+				validate.Dash,
+			},
+		},
 	}
 }
 
