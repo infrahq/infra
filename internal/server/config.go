@@ -603,11 +603,8 @@ func (s Server) loadConfig(config Config) error {
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
-	org, err := data.GetOrganization(s.DB(), data.ByName(models.DefaultOrganizationName))
-	if err != nil {
-		return err
-	}
 
+	org := s.db.DefaultOrg
 	return s.db.Transaction(func(db *gorm.DB) error {
 		tx := data.NewTransaction(db, org.ID)
 

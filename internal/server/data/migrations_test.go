@@ -500,6 +500,22 @@ DELETE FROM settings WHERE id=24567;
 				// tested elsewhere
 			},
 		},
+		{
+			label: testCaseLine("2022-08-30T11:45"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				stmt := `SELECT id, name, domain FROM organizations`
+				org := &models.Organization{}
+				err := tx.QueryRow(stmt).Scan(&org.ID, &org.Name, (*nullString)(&org.Domain))
+				assert.NilError(t, err)
+
+				expected := &models.Organization{
+					Model:  models.Model{ID: defaultOrganizationID},
+					Domain: "",
+					Name:   "Default",
+				}
+				assert.DeepEqual(t, org, expected)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -654,4 +670,13 @@ func writeSchema(t *testing.T, raw string) {
 	// nolint:gosec
 	err = os.WriteFile("schema.sql", out.Bytes(), 0o644)
 	assert.NilError(t, err)
+}
+
+type nullString string
+
+func (n *nullString) Scan(value any) error {
+	ns := &sql.NullString{}
+	err := ns.Scan(value)
+	*n = nullString(ns.String)
+	return err
 }

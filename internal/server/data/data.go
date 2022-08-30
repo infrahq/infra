@@ -190,12 +190,15 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	return db, nil
 }
 
+const defaultOrganizationID = 1000
+
 func initialize(db *DB) error {
-	org, err := GetOrganization(db, ByName(models.DefaultOrganizationName))
+	org, err := GetOrganization(db, ByID(defaultOrganizationID))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
-			Name:      models.DefaultOrganizationName,
+			Model:     models.Model{ID: defaultOrganizationID},
+			Name:      "Default",
 			CreatedBy: models.CreatedBySystem,
 		}
 		if err := CreateOrganization(db, org); err != nil {
