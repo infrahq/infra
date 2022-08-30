@@ -71,7 +71,7 @@ spec:
           command: [sh, -c]
           args:
             - |
-              DB_FILE=/var/lib/infrahq/server/sqlite3.deb
+              DB_FILE=/var/lib/infrahq/server/sqlite3.db
               if [ -f "$DB_FILE" ]; then
                 apk add --no-cache sqlite
                 # perform a basic migration but drop any encrypted fields. these items will need to be recreated. only resource
