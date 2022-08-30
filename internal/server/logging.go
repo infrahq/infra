@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -41,8 +42,19 @@ func loggingMiddleware() gin.HandlerFunc {
 	})
 
 	return func(c *gin.Context) {
+		begin := time.Now()
+		c.Next()
+
 		method := c.Request.Method
-		event := logging.L.With().
+		status := c.Writer.Status()
+		logger := logging.L.Logger
+
+		// sample logs for successful GET request if the log level is INFO or above
+		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
+			logger = logger.Sample(sampler.Get(c.Request.Method, c.FullPath()))
+		}
+
+		event := logger.Info().
 			Str("method", method).
 			Str("path", c.Request.URL.Path).
 			Str("localAddr", c.Request.Host).
@@ -53,20 +65,17 @@ func loggingMiddleware() gin.HandlerFunc {
 			event = event.Int64("contentLength", c.Request.ContentLength)
 		}
 
-		logger := event.Logger()
-		begin := time.Now()
-
-		c.Next()
-
-		status := c.Writer.Status()
-		// sample logs for successful GET request if the log level is INFO or above
-		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
-			logger = logger.Sample(sampler.Get(c.Request.Method, c.FullPath()))
+		rCtx := access.GetRequestContext(c)
+		if user := rCtx.Authenticated.User; user != nil {
+			event = event.Str("userID", user.ID.String())
+		}
+		if org := rCtx.Authenticated.Organization; org != nil {
+			event = event.Str("orgID", org.ID.String())
 		}
 
-		logger.Info().Dur("elapsed", time.Since(begin)).
+		event.Dur("elapsed", time.Since(begin)).
 			Int("statusCode", status).
 			Int("size", c.Writer.Size()).
-			Msg("")
+			Msg("API request completed")
 	}
 }
