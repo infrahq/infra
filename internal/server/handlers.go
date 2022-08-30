@@ -140,7 +140,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	setCookie(c, cookie)
 
 	a.t.User(identity.ID.String(), r.Name)
-	a.t.Alias(identity.ID.String())
+	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
 	return &api.SignupResponse{
@@ -151,11 +151,13 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	var loginMethod authn.LoginMethod
+	var name string
 
 	switch {
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
+		name = r.PasswordCredentials.Name
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
@@ -194,6 +196,15 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		Expires: key.ExpiresAt,
 	}
 	setCookie(c, cookie)
+
+	if name == "" {
+		user, err := access.GetIdentity(c, key.IssuedFor)
+		if err == nil {
+			name = user.Name
+		}
+	}
+	a.t.User(key.IssuedFor.String(), name)
+	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
 
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
