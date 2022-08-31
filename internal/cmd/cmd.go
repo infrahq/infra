@@ -97,7 +97,7 @@ func defaultAPIClient() (*api.Client, error) {
 		if config.isExpired() {
 			return nil, Error{Message: "Access key is expired, please login again", OriginalError: ErrAccessKeyExpired}
 		}
-		return nil, Error{Message: "Missing access key, must login or provide an INFRA_ACCESS_KEY", OriginalError: ErrAccessKeyMissing}
+		return nil, Error{Message: "Missing access key, must login or set INFRA_ACCESS_KEY in your environment", OriginalError: ErrAccessKeyMissing}
 	}
 
 	if envServer, ok := os.LookupEnv("INFRA_SERVER"); ok {
