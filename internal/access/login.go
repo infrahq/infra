@@ -17,13 +17,5 @@ func Login(c *gin.Context, loginMethod authn.LoginMethod, keyExpiresAt time.Time
 		return nil, "", false, err
 	}
 
-	// In the case of username/password credentials,
-	// the login may fail if the password presented was a one-time password that has been used.
-	// This can be removed when #1441 is resolved
-	requiresUpdate, err := loginMethod.RequiresUpdate(db)
-	if err != nil {
-		return nil, "", false, err
-	}
-
-	return result.AccessKey, result.Bearer, requiresUpdate, nil
+	return result.AccessKey, result.Bearer, result.CredentialUpdateRequired, nil
 }

@@ -14,12 +14,14 @@ type AuthenticatedIdentity struct {
 	Provider      *models.Provider
 	SessionExpiry time.Time
 	AuthScope     AuthScope
+	// CredentialUpdateRequired indicates that the login used credentials that
+	// must be updated because they will no longer be valid after this login.
+	CredentialUpdateRequired bool
 }
 
 type LoginMethod interface {
 	Authenticate(ctx context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error)
-	Name() string                                 // Name returns the name of the authentication method used
-	RequiresUpdate(db data.GormTxn) (bool, error) // Temporary way to check for one time password re-use, remove with #1441
+	Name() string // Name returns the name of the authentication method used
 }
 
 type AuthScope struct {
@@ -27,9 +29,10 @@ type AuthScope struct {
 }
 
 type LoginResult struct {
-	AccessKey *models.AccessKey
-	Bearer    string
-	User      *models.Identity
+	AccessKey                *models.AccessKey
+	Bearer                   string
+	User                     *models.Identity
+	CredentialUpdateRequired bool
 }
 
 func Login(
@@ -71,8 +74,9 @@ func Login(
 	}
 
 	return LoginResult{
-		AccessKey: accessKey,
-		Bearer:    bearer,
-		User:      authenticated.Identity,
+		AccessKey:                accessKey,
+		Bearer:                   bearer,
+		User:                     authenticated.Identity,
+		CredentialUpdateRequired: authenticated.CredentialUpdateRequired,
 	}, nil
 }
