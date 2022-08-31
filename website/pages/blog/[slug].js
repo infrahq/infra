@@ -20,14 +20,14 @@ export default function Blog({ markdoc, date, author, title }) {
         <meta property='og:url' content='https://infrahq.com' />
         <meta property='og:description' content={`${title} - Infra Blog`} />
       </Head>
-      <section className='mx-auto my-6 w-full max-w-2xl p-6 md:my-20'>
+      <section className='mx-auto my-6 w-full max-w-3xl p-6 md:my-20'>
         <Link href='/blog'>
           <a className='mb-10 flex items-baseline font-medium text-blue-500'>
             <ArrowLeftIcon className='mr-2 h-3' /> Infra Blog
           </a>
         </Link>
         <div key={title}>
-          <h1 className='mb-3 text-3xl font-semibold tracking-tight'>
+          <h1 className='mb-3 text-5xl font-semibold tracking-tight'>
             {title}
           </h1>
           <h2 className='flex items-baseline text-sm font-semibold text-gray-500'>

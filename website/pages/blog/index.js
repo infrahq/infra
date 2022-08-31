@@ -17,8 +17,8 @@ export default function Blog({ posts }) {
         <meta property='og:url' content='https://infrahq.com/blog' />
         <meta property='og:description' content='Infra Blog' />
       </Head>
-      <section className='mx-auto w-full max-w-2xl p-6'>
-        <div className='mt-6 mb-24 md:mt-32'>
+      <section className='mx-auto w-full max-w-3xl p-6'>
+        <div className='my-16'>
           <h1 className='my-2 text-3xl font-bold tracking-tight md:my-6 md:text-5xl'>
             Infra Blog
           </h1>
@@ -36,7 +36,7 @@ export default function Blog({ posts }) {
         </div>
         {posts.map(p => (
           <div key={p.title}>
-            <h1 className='mb-4 text-3xl font-semibold tracking-tight'>
+            <h1 className='mb-4 text-4xl font-semibold tracking-tight'>
               <Link href={p.href}>
                 <a>{p.title}</a>
               </Link>

@@ -181,7 +181,7 @@ export default function DocsLayout({ children, items = [], headings = [] }) {
           </div>
         </div>
         <aside className='left-full ml-6 hidden w-48 lg:ml-8 lg:block xl:ml-12'>
-          <div className='sticky top-32 mb-32 overflow-y-scroll text-xs text-zinc-500'>
+          <div className='sticky top-32 mb-32 overflow-y-auto text-xs text-zinc-500'>
             {headings.length > 0 && (
               <>
                 <h2 className='mb-2 font-semibold tracking-tight text-black'>
