@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 	"time"
 
@@ -44,12 +45,14 @@ func TestResendAuthCookie(t *testing.T) {
 	}
 	c.Set(access.RequestContextKey, rCtx)
 
-	exchangeSignupCookieForSession(c, baseDomain)
+	bearer := exchangeSignupCookieForSession(c, Options{SessionDuration: 1 * time.Minute, BaseDomain: baseDomain})
+	assert.Equal(t, "aaa", bearer)
 
 	assert.Equal(t, len(c.Writer.Header()["Set-Cookie"]), 2)
-	expectedCookies := []string{
-		"auth=aaa; Path=/; Domain=dev.example.com; Max-Age=299; HttpOnly; SameSite=Strict",
-		"auth=; Path=/; Domain=example.com; Max-Age=0; HttpOnly; Secure",
-	}
-	assert.DeepEqual(t, c.Writer.Header()["Set-Cookie"], expectedCookies)
+
+	matched, err := regexp.MatchString("auth=aaa; Path=/; Domain=dev.example.com; Max-Age=\\d\\d; HttpOnly; SameSite=Strict", c.Writer.Header()["Set-Cookie"][0])
+	assert.NilError(t, err)
+	assert.Assert(t, matched)
+
+	assert.Equal(t, "signup=; Path=/; Domain=example.com; Max-Age=0; HttpOnly; Secure", c.Writer.Header()["Set-Cookie"][1])
 }
