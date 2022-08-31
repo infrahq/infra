@@ -22,8 +22,9 @@ type authenticator struct {
 	key         *jose.JSONWebKey
 	lastChecked time.Time
 
-	client  httpClient
-	baseURL string
+	client          httpClient
+	baseURL         string
+	serverAccessKey string
 }
 
 type httpClient interface {
@@ -33,8 +34,9 @@ type httpClient interface {
 func newAuthenticator(url string, options Options) *authenticator {
 	transport := httpTransportFromOptions(options.Server)
 	return &authenticator{
-		client:  &http.Client{Transport: transport},
-		baseURL: url,
+		client:          &http.Client{Transport: transport},
+		baseURL:         url,
+		serverAccessKey: options.Server.AccessKey,
 	}
 }
 
@@ -94,6 +96,7 @@ func (j *authenticator) getJWK() (*jose.JSONWebKey, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Authorization", "Bearer "+j.serverAccessKey)
 
 	res, err := j.client.Do(req)
 	if err != nil {
