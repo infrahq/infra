@@ -45,7 +45,8 @@ func TestResendAuthCookie(t *testing.T) {
 	}
 	c.Set(access.RequestContextKey, rCtx)
 
-	exchangeSignupCookieForSession(c, Options{SessionDuration: 1 * time.Minute, BaseDomain: baseDomain})
+	bearer := exchangeSignupCookieForSession(c, Options{SessionDuration: 1 * time.Minute, BaseDomain: baseDomain})
+	assert.Equal(t, "aaa", bearer)
 
 	assert.Equal(t, len(c.Writer.Header()["Set-Cookie"]), 2)
 

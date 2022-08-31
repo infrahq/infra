@@ -61,11 +61,11 @@ func deleteCookie(c *gin.Context, name, domain string) {
 }
 
 // exchangeSignupCookieForSession sets the auth cookie on the current host making the request
-func exchangeSignupCookieForSession(c *gin.Context, opts Options) {
+func exchangeSignupCookieForSession(c *gin.Context, opts Options) string {
 	signupCookie, err := getCookie(c.Request, cookieSignupName)
 	if err != nil {
 		logging.L.Trace().Err(err).Msg("failed to find signup cookie, this may be expected")
-		return
+		return ""
 	}
 
 	exp := time.Now().UTC().Add(opts.SessionDuration)
@@ -78,4 +78,6 @@ func exchangeSignupCookieForSession(c *gin.Context, opts Options) {
 	}
 	setCookie(c, conf)
 	deleteCookie(c, cookieSignupName, opts.BaseDomain)
+
+	return signupCookie
 }
