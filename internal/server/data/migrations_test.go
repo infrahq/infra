@@ -502,6 +502,27 @@ DELETE FROM settings WHERE id=24567;
 		},
 		{
 			label: testCaseLine("2022-08-30T11:45"),
+			setup: func(t *testing.T, db WriteTxn) {
+				var originalOrgID uid.ID
+				err := db.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+				assert.NilError(t, err)
+
+				stmt := ` INSERT INTO providers(id, name, organization_id) VALUES (12345, 'okta', ?)`
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO settings(id, organization_id) VALUES(24567, ?); `
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				stmt := `
+DELETE FROM providers WHERE id=12345;
+DELETE FROM settings WHERE id=24567;
+`
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
+			},
 			expected: func(t *testing.T, tx WriteTxn) {
 				stmt := `SELECT id, name, domain FROM organizations`
 				org := &models.Organization{}
@@ -514,6 +535,28 @@ DELETE FROM settings WHERE id=24567;
 					Name:   "Default",
 				}
 				assert.DeepEqual(t, org, expected)
+
+				stmt = `SELECT id, organization_id FROM providers;`
+				p := &models.Provider{}
+				err = tx.QueryRow(stmt).Scan(&p.ID, &p.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedProvider := &models.Provider{
+					Model:              models.Model{ID: 12345},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, p, expectedProvider)
+
+				stmt = `SELECT id, organization_id FROM settings;`
+				s := &models.Settings{}
+				err = tx.QueryRow(stmt).Scan(&s.ID, &s.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedSettings := &models.Settings{
+					Model:              models.Model{ID: 24567},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, s, expectedSettings)
 			},
 		},
 	}
