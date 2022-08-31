@@ -163,7 +163,7 @@ export default function Index() {
               Import users &amp; groups
             </h3>
             <p className='text-sm text-gray-500'>
-              On-board and off-board users via identity providers such as Google
+              On-board and off-board users via identity providers such as Okta
               and Google.
             </p>
           </div>
