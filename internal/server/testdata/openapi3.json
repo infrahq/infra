@@ -4827,9 +4827,16 @@
                         "type": "string"
                       },
                       "subDomain": {
+                        "format": "[a-zA-Z0-9\\-]",
+                        "maxLength": 63,
+                        "minLength": 3,
                         "type": "string"
                       }
                     },
+                    "required": [
+                      "name",
+                      "subDomain"
+                    ],
                     "type": "object"
                   },
                   "password": {
@@ -4838,9 +4845,7 @@
                 },
                 "required": [
                   "name",
-                  "password",
-                  "org.name",
-                  "org.subDomain"
+                  "password"
                 ],
                 "type": "object"
               }
