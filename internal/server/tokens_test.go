@@ -77,6 +77,31 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.Assert(t, respBody.Token != "")
 			},
 		},
+		"infra provider user with expired extension deadline on the access key": {
+			setup: func(t *testing.T, req *http.Request) {
+				user := &models.Identity{
+					Name: "spike2@example.com",
+				}
+				err := data.CreateIdentity(srv.DB(), user)
+				assert.NilError(t, err)
+				_, err = data.CreateProviderUser(srv.DB(), data.InfraProvider(srv.DB()), user)
+				assert.NilError(t, err)
+
+				key := &models.AccessKey{
+					IssuedFor:         user.ID,
+					ProviderID:        data.InfraProvider(srv.DB()).ID,
+					ExpiresAt:         time.Now().Add(10 * time.Second),
+					ExtensionDeadline: time.Now(),
+				}
+				accessKey, err := data.CreateAccessKey(srv.DB(), key)
+				assert.NilError(t, err)
+
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
 		"access key directly created for user not in infra provider": {
 			setup: func(t *testing.T, req *http.Request) {
 				user := &models.Identity{

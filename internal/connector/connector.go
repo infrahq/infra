@@ -132,6 +132,9 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	client := &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
@@ -143,10 +146,11 @@ func Run(ctx context.Context, options Options) error {
 		Headers: http.Header{
 			"Infra-Destination": {chksm},
 		},
+		OnUnauthorized: func() {
+			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
+			cancel()
+		},
 	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	// TODO: make polling time configurable
 	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
@@ -211,6 +215,9 @@ func Run(ctx context.Context, options Options) error {
 		TLSConfig:         tlsConfig,
 		Handler:           router,
 		ErrorLog:          httpErrorLog,
+		BaseContext: func(l net.Listener) context.Context {
+			return ctx
+		},
 	}
 
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)

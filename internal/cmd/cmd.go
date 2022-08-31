@@ -84,10 +84,20 @@ func defaultAPIClient() (*api.Client, error) {
 	}
 
 	server := config.Host
-	accessKey := config.AccessKey
+	var accessKey string
+	if !config.isExpired() {
+		accessKey = config.AccessKey
+	}
 
 	if envAccessKey, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
 		accessKey = envAccessKey
+	}
+
+	if len(accessKey) == 0 {
+		if config.isExpired() {
+			return nil, Error{Message: "Access key is expired, please login again", OriginalError: ErrAccessKeyExpired}
+		}
+		return nil, Error{Message: "Missing access key, must login or provide an INFRA_ACCESS_KEY", OriginalError: ErrAccessKeyMissing}
 	}
 
 	if envServer, ok := os.LookupEnv("INFRA_SERVER"); ok {
@@ -107,6 +117,42 @@ func apiClient(host string, accessKey string, transport *http.Transport) *api.Cl
 			Timeout:   60 * time.Second,
 			Transport: transport,
 		},
+		OnUnauthorized: logoutCurrent,
+	}
+}
+
+func logoutCurrent() {
+	config, err := readConfig()
+	if err != nil {
+		logging.Debugf("logging out: read config: %s", err)
+		return
+	}
+
+	var host *ClientHostConfig
+	for i := range config.Hosts {
+		if config.Hosts[i].Current {
+			host = &config.Hosts[i]
+			break
+		}
+	}
+
+	if host == nil {
+		return
+	}
+
+	host.AccessKey = ""
+	host.Expires = api.Time{}
+	host.UserID = 0
+	host.Name = ""
+
+	if err := clearKubeconfig(); err != nil {
+		logging.Debugf("logging out: clear kube config: %s", err)
+		return
+	}
+
+	if err := writeConfig(config); err != nil {
+		logging.Debugf("logging out: write config: %s", err)
+		return
 	}
 }
 
