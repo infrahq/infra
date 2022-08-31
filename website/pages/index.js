@@ -173,8 +173,8 @@ export default function Index() {
               Secure &amp; easy to use
             </h3>
             <p className='text-sm text-gray-500'>
-              Provide short-lived and fine-grained access to specific
-              infrastructure resources.
+              Deploy in minutes. Provide fine-grained access to individual
+              resources.
             </p>
           </div>
         </div>
