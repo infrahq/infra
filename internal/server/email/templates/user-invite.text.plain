@@ -1,0 +1,6 @@
+{{.FromUserName}} has invited you to Infra!
+
+Infra is the simplest way to manage infrastructure access.
+
+Log in to access your infrastructure:
+  {{.Link}}

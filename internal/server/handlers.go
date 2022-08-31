@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 )
@@ -142,6 +143,14 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	a.t.User(identity.ID.String(), r.Name)
 	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
 	a.t.Event("signup", identity.ID.String(), Properties{})
+
+	err = email.SendSignupEmail("", r.Name, email.SignupData{
+		Link: fmt.Sprintf("https://%s/login", r.Org.Subdomain),
+	})
+	if err != nil {
+		// if email failed, continue on anyway.
+		logging.L.Error().Err(err).Msg("could not send signup email")
+	}
 
 	return &api.SignupResponse{
 		User:         identity.ToAPI(),

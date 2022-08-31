@@ -46,7 +46,6 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/pdevine/go-asciisprite v0.1.6
 	github.com/rs/zerolog v1.27.0
-	github.com/sendgrid/sendgrid-go v3.11.1+incompatible
 	github.com/spf13/pflag v1.0.5
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
@@ -72,7 +71,6 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect

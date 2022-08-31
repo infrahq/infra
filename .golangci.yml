@@ -24,7 +24,6 @@ issues:
 linters:
   enable:
     - asciicheck
-    - deadcode
     - durationcheck
     - errcheck
     - errorlint
@@ -47,10 +46,8 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - structcheck
     - typecheck
     - unused
-    - varcheck
     - wastedassign
   disable:
     - scopelint

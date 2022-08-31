@@ -5,7 +5,5 @@ type PasswordResetData struct {
 }
 
 func SendPasswordReset(name, address string, data PasswordResetData) error {
-	return SendTemplate(name, address, EmailTemplatePasswordReset, map[string]interface{}{
-		"link": data.Link,
-	})
+	return SendTemplate(name, address, EmailTemplatePasswordReset, data)
 }

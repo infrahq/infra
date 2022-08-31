@@ -56,6 +56,7 @@ type Options struct {
 	EmailFromAddress string
 	EmailFromName    string
 	SendgridApiKey   string
+	SMTPServer       string
 
 	// BaseDomain of the server, which is appended to the organization slug to
 	// create a unique hostname for each organization.
@@ -422,5 +423,8 @@ func configureEmail(options Options) {
 	}
 	if len(options.SendgridApiKey) > 0 {
 		email.SendgridAPIKey = options.SendgridApiKey
+	}
+	if len(options.SMTPServer) > 0 {
+		email.SMTPServer = options.SMTPServer
 	}
 }
