@@ -143,7 +143,7 @@ export default function Index() {
               Access that just works
             </h3>
             <p className='text-sm text-gray-500'>
-              Discover and access to infrastructure hosted anywhere, in a single
+              Discover and access infrastructure hosted anywhere, in a single
               place.
             </p>
           </div>
@@ -163,7 +163,7 @@ export default function Index() {
               Import users &amp; groups
             </h3>
             <p className='text-sm text-gray-500'>
-              On-board and off-board users via identity providers such as Google
+              On-board and off-board users via identity providers such as Okta
               and Google.
             </p>
           </div>
@@ -173,8 +173,8 @@ export default function Index() {
               Secure &amp; easy to use
             </h3>
             <p className='text-sm text-gray-500'>
-              Provide short-lived and fine-grained access to specific
-              infrastructure resources.
+              Deploy in minutes. Provide fine-grained access to individual
+              resources.
             </p>
           </div>
         </div>
