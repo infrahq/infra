@@ -84,11 +84,11 @@ func (s StringRule) Validate() *Failure {
 		problems = append(problems, fmt.Sprintf(format, args...))
 	}
 	if s.MinLength > 0 && len(value) < s.MinLength {
-		add("length of string is %d, must be at least %d", len(value), s.MinLength)
+		add("%s must be at least %d characters", s.Name, s.MinLength)
 	}
 
 	if s.MaxLength > 0 && len(value) > s.MaxLength {
-		add("length of string is %d, must be no more than %d", len(value), s.MaxLength)
+		add("%s can be at most %d characters", s.Name, s.MaxLength)
 	}
 
 	if len(s.FirstCharacterRange) > 0 {

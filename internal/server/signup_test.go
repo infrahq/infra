@@ -9,6 +9,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 )
 
@@ -60,11 +61,42 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "org.subDomain", Errors: []string{
-						"length of string is 2, must be at least 3",
+						"subDomain must be at least 3 characters",
 						"character '@' at position 1 is not allowed",
 					}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
+			name: "invalid password",
+			setup: func(t *testing.T) api.SignupRequest {
+				return api.SignupRequest{
+					Name:     "admin@example.com",
+					Password: "short",
+					Org: api.SignupOrg{
+						Name:      "My org is awesome",
+						Subdomain: "hello",
+					},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{FieldName: "password", Errors: []string{
+						"password must be at least 8 characters",
+					}},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+
+				// the org should have been rolled back
+				_, err = data.GetOrganization(srv.DB(), data.ByDomain("hello.example.com"))
+				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},
 		{

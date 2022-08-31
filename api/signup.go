@@ -55,5 +55,12 @@ func (r SignupRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("name", r.Name),
 		validate.Email("name", r.Name),
 		validate.Required("password", r.Password),
+		// check the admin user's password requirements against our basic password requirements
+		validate.StringRule{
+			Name:      "password",
+			Value:     r.Password,
+			MinLength: 8,
+			MaxLength: 253,
+		},
 	}
 }

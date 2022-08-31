@@ -37,12 +37,6 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 	rCtx.DBTxn = db
 	c.Set(RequestContextKey, rCtx)
 
-	// check the admin user's password requirements against our basic password requirements
-	err := checkPasswordRequirements(db, details.Password)
-	if err != nil {
-		return nil, "", err
-	}
-
 	identity := &models.Identity{
 		Name: details.Name,
 	}

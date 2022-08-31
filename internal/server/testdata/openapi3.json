@@ -4840,6 +4840,8 @@
                     "type": "object"
                   },
                   "password": {
+                    "maxLength": 253,
+                    "minLength": 8,
                     "type": "string"
                   }
                 },
