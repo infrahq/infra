@@ -10,7 +10,7 @@ function Layout({ children }) {
   const { data: auth } = useSWR('/api/users/self')
   const { data: version } = useSWR('/api/version')
   const { admin, loading } = useAdmin()
-  const { mutate } = useSWRConfig()
+  const { cache } = useSWRConfig()
 
   const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
 
@@ -22,7 +22,7 @@ function Layout({ children }) {
     await fetch('/api/logout', {
       method: 'POST',
     })
-    await mutate('/api/users/self', async () => undefined)
+    cache.clear()
     router.replace('/login')
   }
 
