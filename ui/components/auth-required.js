@@ -7,7 +7,7 @@ export default function AuthRequired({ children }) {
   const { asPath } = router
 
   if (!auth && !error) {
-    return undefined
+    return null
   }
 
   if (!auth?.id) {
@@ -16,7 +16,7 @@ export default function AuthRequired({ children }) {
     } else {
       router.replace('/login')
     }
-    return undefined
+    return null
   }
   return children
 }

@@ -103,11 +103,9 @@ export default function Login() {
       const data = await res.json()
 
       if (data.passwordUpdateRequired) {
-        const query = next ? { user: data.userID, next } : { user: data.userID }
-
         router.replace({
           pathname: '/login/finish',
-          query,
+          query: next ? { user: data.userID, next } : { user: data.userID },
         })
 
         return false
