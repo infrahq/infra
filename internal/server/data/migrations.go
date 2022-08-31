@@ -65,6 +65,7 @@ func migrations() []*migrator.Migration {
 		addOrganizationDomain(),
 		dropOrganizationNameIndex(),
 		sqlFunctionsMigration(),
+		setDefaultOrgID(),
 		// next one here
 	}
 }
@@ -555,6 +556,16 @@ func dropOrganizationNameIndex() *migrator.Migration {
 		ID: "2022-08-12T11:05",
 		Migrate: func(tx migrator.DB) error {
 			_, err := tx.Exec(`DROP INDEX IF EXISTS idx_organizations_name`)
+			return err
+		},
+	}
+}
+
+func setDefaultOrgID() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-08-30T11:45",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`UPDATE organizations set id=? WHERE name='Default'`, defaultOrganizationID)
 			return err
 		},
 	}

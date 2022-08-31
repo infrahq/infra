@@ -163,3 +163,13 @@ func TestSetOrg(t *testing.T) {
 	setOrg(tx, model)
 	assert.Equal(t, model.OrganizationID, uid.ID(123456))
 }
+
+func TestNewDB(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		assert.Equal(t, db.DefaultOrg.ID, uid.ID(defaultOrganizationID))
+
+		org, err := GetOrganization(db, ByID(defaultOrganizationID))
+		assert.NilError(t, err)
+		assert.DeepEqual(t, org, db.DefaultOrg, cmpTimeWithDBPrecision)
+	})
+}
