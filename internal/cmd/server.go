@@ -46,13 +46,6 @@ func newServerCmd() *cobra.Command {
 
 			options.TLSCache = tlsCache
 
-			dbFile, err := canonicalPath(options.DBFile)
-			if err != nil {
-				return err
-			}
-
-			options.DBFile = dbFile
-
 			dbEncryptionKey, err := canonicalPath(options.DBEncryptionKey)
 			if err != nil {
 				return err
@@ -93,7 +86,6 @@ func defaultServerOptions(infraDir string) server.Options {
 	return server.Options{
 		Version:                  0.2, // update this as the config version changes
 		TLSCache:                 filepath.Join(infraDir, "cache"),
-		DBFile:                   filepath.Join(infraDir, "sqlite3.db"),
 		DBEncryptionKey:          filepath.Join(infraDir, "sqlite3.db.key"),
 		DBEncryptionKeyProvider:  "native",
 		EnableTelemetry:          true,

@@ -220,9 +220,8 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 
 	// TODO: why do tests fail when the same schemaSuffix is used?
 	suffix := "_cmd_" + t.Name()
-	if pgDriver := database.PostgresDriver(t, suffix); pgDriver != nil {
-		opts.DBConnectionString = pgDriver.DSN
-	}
+	pgDriver := database.PostgresDriver(t, suffix)
+	opts.DBConnectionString = pgDriver.DSN
 }
 
 func TestLoginCmd_TLSVerify(t *testing.T) {

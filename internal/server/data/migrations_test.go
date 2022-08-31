@@ -22,6 +22,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/data/schema"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
@@ -575,7 +576,7 @@ DELETE FROM settings WHERE id=24567;
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		patch.ModelsSymmetricKey(t)
-		rawDB, err := newRawDB(postgresDriver(t))
+		rawDB, err := newRawDB(database.PostgresDriver(t, "").Dialector)
 		assert.NilError(t, err)
 
 		db := &DB{DB: rawDB}
@@ -589,7 +590,7 @@ DELETE FROM settings WHERE id=24567;
 		assert.NilError(t, err)
 	})
 
-	db, err := newRawDB(postgresDriver(t))
+	db, err := newRawDB(database.PostgresDriver(t, "").Dialector)
 	assert.NilError(t, err)
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {
@@ -645,6 +646,8 @@ type testCaseLabel struct {
 	Name string
 	Line string
 }
+
+var isEnvironmentCI = os.Getenv("CI") != ""
 
 func dumpSchema(t *testing.T, conn string) string {
 	t.Helper()

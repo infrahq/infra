@@ -105,11 +105,8 @@ func TestServer_Run(t *testing.T) {
 		},
 	}
 
-	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
-		opts.DBConnectionString = driver.DSN
-	} else {
-		opts.DBFile = filepath.Join(dir, "sqlite3.db")
-	}
+	driver := database.PostgresDriver(t, "_server_run")
+	opts.DBConnectionString = driver.DSN
 
 	srv, err := New(opts)
 	assert.NilError(t, err)
@@ -206,11 +203,8 @@ func TestServer_Run_UIProxy(t *testing.T) {
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 
-	if driver := database.PostgresDriver(t, "_server_run"); driver != nil {
-		opts.DBConnectionString = driver.DSN
-	} else {
-		opts.DBFile = filepath.Join(dir, "sqlite3.db")
-	}
+	driver := database.PostgresDriver(t, "_server_run")
+	opts.DBConnectionString = driver.DSN
 
 	srv, err := New(opts)
 	assert.NilError(t, err)

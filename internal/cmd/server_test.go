@@ -15,6 +15,7 @@ import (
 
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/testing/database"
 )
 
 func TestServerCmd_LoadOptions(t *testing.T) {
@@ -317,9 +318,11 @@ users:
 }
 
 func TestServerCmd_WithSecretsConfig(t *testing.T) {
+	pgDriver := database.PostgresDriver(t, "cmd_server")
 	patchRunServer(t, noServerRun)
 
 	content := `
+      dbConnectionString: ` + pgDriver.DSN + `
       addr:
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"

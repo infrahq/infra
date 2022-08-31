@@ -2,7 +2,6 @@ package data
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -29,29 +28,14 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	return db
 }
 
-var isEnvironmentCI = os.Getenv("CI") != ""
-
-// postgresDriver requires postgres to be available in a CI environment, and
-// marks the test as skipped when not in CI environment.
-func postgresDriver(t *testing.T) gorm.Dialector {
-	driver := database.PostgresDriver(t, "")
-	switch {
-	case driver == nil && isEnvironmentCI:
-		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
-	case driver == nil:
-		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
-	}
-	return driver.Dialector
-}
-
 // runDBTests against all supported databases. Defaults to only sqlite locally,
 // and all supported DBs in CI.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := postgresDriver(t)
-		db := setupDB(t, pgsql)
+		pgsql := database.PostgresDriver(t, "")
+		db := setupDB(t, pgsql.Dialector)
 		run(t, db)
 		db.Rollback()
 	})
