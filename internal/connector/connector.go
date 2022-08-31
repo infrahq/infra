@@ -227,7 +227,8 @@ func Run(ctx context.Context, options Options) error {
 		<-ctx.Done()
 		shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
 		defer shutdownCancel()
-		tlsServer.Shutdown(shutdownCtx)
+		err = tlsServer.Shutdown(shutdownCtx)
+		logging.Warnf("shutdown: %s", err)
 		wg.Done()
 	}()
 
