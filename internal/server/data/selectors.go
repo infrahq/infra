@@ -51,6 +51,9 @@ func ByOptionalIDs(ids []uid.ID) SelectorFunc {
 }
 
 func ByOrgID(orgID uid.ID) SelectorFunc {
+	if orgID == 0 {
+		panic("OrganizationID was not set")
+	}
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("organization_id = ?", orgID)
 	}

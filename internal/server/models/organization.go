@@ -28,8 +28,15 @@ type OrganizationMember struct {
 
 func (OrganizationMember) IsOrganizationMember() {}
 
-func (o *OrganizationMember) SetOrganizationID(id uid.ID) {
+type OrganizationIDSource interface {
+	OrganizationID() uid.ID
+}
+
+func (o *OrganizationMember) SetOrganizationID(source OrganizationIDSource) {
 	if o.OrganizationID == 0 {
-		o.OrganizationID = id
+		o.OrganizationID = source.OrganizationID()
+	}
+	if o.OrganizationID == 0 {
+		panic("OrganizationID was not set")
 	}
 }
