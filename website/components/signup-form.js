@@ -46,7 +46,7 @@ export default function SignupForm() {
 
   if (submitted) {
     return (
-      <p className='ml-4 flex items-center text-lg text-white'>
+      <p className='ml-4 flex items-center'>
         {`You're on the list. We'll be in touch!`}
       </p>
     )
