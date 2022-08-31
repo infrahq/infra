@@ -21,6 +21,7 @@ func TestAPI_Signup(t *testing.T) {
 
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true
+	srv.options.BaseDomain = "exampledomain.com"
 	routes := srv.GenerateRoutes()
 
 	run := func(t *testing.T, tc testCase) {
@@ -132,7 +133,7 @@ func TestAPI_Signup(t *testing.T) {
 				assert.Equal(t, respBody.Organization.Name, "acme")
 
 				// the organization exists
-				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme.example.com"))
+				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme.exampledomain.com"))
 				assert.NilError(t, err)
 				assert.Equal(t, org.ID, respBody.Organization.ID)
 

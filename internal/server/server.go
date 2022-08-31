@@ -57,6 +57,8 @@ type Options struct {
 	EmailFromName    string
 	SendgridApiKey   string
 
+	// BaseDomain of the server, which is appended to the organization slug to
+	// create a unique hostname for each organization.
 	BaseDomain string
 
 	Keys    []KeyProvider
@@ -113,9 +115,6 @@ type Addrs struct {
 
 // newServer creates a Server with base dependencies initialized to zero values.
 func newServer(options Options) *Server {
-	if options.BaseDomain == "" {
-		options.BaseDomain = "example.com"
-	}
 	return &Server{
 		options: options,
 		secrets: map[string]secrets.SecretStorage{},

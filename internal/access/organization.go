@@ -1,7 +1,6 @@
 package access
 
 import (
-	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -56,14 +55,6 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 	return data.DeleteOrganizations(db, data.ByID(id))
 }
 
-var domainNameReplacer = regexp.MustCompile(`[^\da-zA-Z-]`)
-
 func SanitizedDomain(subDomain, serverBaseDomain string) string {
-	sanitizedDomain := domainNameReplacer.ReplaceAllStringFunc(subDomain, func(s string) string {
-		if s == " " {
-			return "-"
-		}
-		return ""
-	})
-	return strings.ToLower(sanitizedDomain) + "." + serverBaseDomain
+	return strings.ToLower(subDomain) + "." + serverBaseDomain
 }
