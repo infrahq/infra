@@ -52,48 +52,38 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 func TestGetPostgresConnectionURL(t *testing.T) {
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
 
-	r := newServer(Options{})
+	storage := map[string]secrets.SecretStorage{
+		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
+	}
+	options := Options{}
 
-	f := secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{})
-	r.secrets["plaintext"] = f
-
-	url, err := r.getPostgresConnectionString()
+	url, err := getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
-
 	assert.Assert(t, is.Len(url, 0))
 
-	r.options.DBHost = "localhost"
-
-	url, err = r.getPostgresConnectionString()
+	options.DBHost = "localhost"
+	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
-
 	assert.Equal(t, "host=localhost", url)
 
-	r.options.DBPort = 5432
-
-	url, err = r.getPostgresConnectionString()
+	options.DBPort = 5432
+	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost port=5432", url)
 
-	r.options.DBUsername = "user"
-
-	url, err = r.getPostgresConnectionString()
+	options.DBUsername = "user"
+	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
-
 	assert.Equal(t, "host=localhost user=user port=5432", url)
 
-	r.options.DBPassword = "plaintext:secret"
-
-	url, err = r.getPostgresConnectionString()
+	options.DBPassword = "plaintext:secret"
+	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
-
 	assert.Equal(t, "host=localhost user=user password=secret port=5432", url)
 
-	r.options.DBName = "postgres"
-
-	url, err = r.getPostgresConnectionString()
+	options.DBName = "postgres"
+	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
-
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
 }
 
