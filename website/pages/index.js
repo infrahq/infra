@@ -143,7 +143,7 @@ export default function Index() {
               Access that just works
             </h3>
             <p className='text-sm text-gray-500'>
-              Discover and access to infrastructure hosted anywhere, in a single
+              Discover and access infrastructure hosted anywhere, in a single
               place.
             </p>
           </div>
