@@ -22,8 +22,8 @@ type SignupDetails struct {
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
 func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details SignupDetails) (*models.Identity, string, error) {
-	// no authorization is setup yet
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
@@ -32,8 +32,6 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 	}
 
 	db = data.NewTransaction(db.GormDB(), details.Org.ID)
-	c.Set("db", db)
-	rCtx := GetRequestContext(c)
 	rCtx.DBTxn = db
 	c.Set(RequestContextKey, rCtx)
 
@@ -86,6 +84,10 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create access key after sign-up: %w", err)
 	}
+
+	// Update the request context so that logging middleware can include the userID
+	rCtx.Authenticated.User = identity
+	c.Set(RequestContextKey, rCtx)
 
 	return identity, bearer, nil
 }

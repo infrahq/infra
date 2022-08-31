@@ -159,14 +159,13 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	var loginMethod authn.LoginMethod
-	var name string
+	rCtx := getRequestContext(c)
 
+	var loginMethod authn.LoginMethod
 	switch {
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
-		name = r.PasswordCredentials.Name
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
@@ -187,7 +186,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// do the actual login now that we know the method selected
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
-	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	result, err := access.Login(rCtx, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
@@ -200,24 +199,28 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	cookie := cookieConfig{
 		Name:    cookieAuthorizationName,
-		Value:   bearer,
+		Value:   result.Bearer,
 		Domain:  c.Request.Host,
-		Expires: key.ExpiresAt,
+		Expires: result.AccessKey.ExpiresAt,
 	}
 	setCookie(c, cookie)
 
-	if name == "" {
-		user, err := access.GetIdentity(c, key.IssuedFor)
-		if err == nil {
-			name = user.Name
-		}
-	}
-	a.t.User(key.IssuedFor.String(), name)
+	key := result.AccessKey
+	a.t.User(key.IssuedFor.String(), result.User.Name)
 	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
-
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
-	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(key.ExpiresAt), PasswordUpdateRequired: requiresUpdate}, nil
+	// Update the request context so that logging middleware can include the userID
+	rCtx.Authenticated.User = result.User
+	c.Set(access.RequestContextKey, rCtx)
+
+	return &api.LoginResponse{
+		UserID:                 key.IssuedFor,
+		Name:                   key.IssuedForIdentity.Name,
+		AccessKey:              result.Bearer,
+		Expires:                api.Time(key.ExpiresAt),
+		PasswordUpdateRequired: result.CredentialUpdateRequired,
+	}, nil
 }
 
 func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
