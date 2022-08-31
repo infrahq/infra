@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -215,14 +216,24 @@ func Run(ctx context.Context, options Options) error {
 		TLSConfig:         tlsConfig,
 		Handler:           router,
 		ErrorLog:          httpErrorLog,
-		BaseContext: func(l net.Listener) context.Context {
-			return ctx
-		},
 	}
 
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
-	return tlsServer.ListenAndServeTLS("", "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		// listen for shutdown from main context.
+		<-ctx.Done()
+		shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
+		defer shutdownCancel()
+		tlsServer.Shutdown(shutdownCtx)
+		wg.Done()
+	}()
+
+	err = tlsServer.ListenAndServeTLS("", "")
+	wg.Wait() // must wait for shutdown to complete.
+	return err
 }
 
 func httpTransportFromOptions(opts ServerOptions) *http.Transport {

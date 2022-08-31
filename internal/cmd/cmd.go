@@ -95,9 +95,9 @@ func defaultAPIClient() (*api.Client, error) {
 
 	if len(accessKey) == 0 {
 		if config.isExpired() {
-			return nil, Error{Message: "Access key is expired, please login again", OriginalError: ErrAccessKeyExpired}
+			return nil, Error{Message: "Access key is expired, please `infra login` again", OriginalError: ErrAccessKeyExpired}
 		}
-		return nil, Error{Message: "Missing access key, must login or set INFRA_ACCESS_KEY in your environment", OriginalError: ErrAccessKeyMissing}
+		return nil, Error{Message: "Missing access key, must `infra login` or set INFRA_ACCESS_KEY in your environment", OriginalError: ErrAccessKeyMissing}
 	}
 
 	if envServer, ok := os.LookupEnv("INFRA_SERVER"); ok {
@@ -144,11 +144,6 @@ func logoutCurrent() {
 	host.Expires = api.Time{}
 	host.UserID = 0
 	host.Name = ""
-
-	if err := clearKubeconfig(); err != nil {
-		logging.Debugf("logging out: clear kube config: %s", err)
-		return
-	}
 
 	if err := writeConfig(config); err != nil {
 		logging.Debugf("logging out: write config: %s", err)
