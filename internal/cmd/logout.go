@@ -63,25 +63,25 @@ $ infra logout --all --clear`,
 }
 
 func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
-	if !hostConfig.isLoggedIn() {
-		logging.Debugf("requested but not logged in to server [%s]", hostConfig.Host)
-		return false
-	}
-
 	client := apiClient(hostConfig.Host, hostConfig.AccessKey, httpTransportForHostConfig(hostConfig))
 
-	hostConfig.AccessKey = ""
-	hostConfig.UserID = 0
-	hostConfig.Name = ""
+	defer func() {
+		hostConfig.AccessKey = ""
+		hostConfig.UserID = 0
+		hostConfig.Name = ""
+		hostConfig.Expires = api.Time{}
+	}()
 
-	err := client.Logout()
-	switch {
-	case api.ErrorStatusCode(err) == http.StatusUnauthorized:
-		logging.Debugf("err: %s", err)
-		return false
-	case err != nil:
-		logging.Debugf("err: %s", err)
-		return false
+	if hostConfig.isLoggedIn() {
+		err := client.Logout()
+		switch {
+		case api.ErrorStatusCode(err) == http.StatusUnauthorized:
+			logging.Debugf("err: %s", err)
+			return false
+		case err != nil:
+			logging.Debugf("err: %s", err)
+			return false
+		}
 	}
 
 	logging.Debugf("logged out of server [%s]", hostConfig.Host)

@@ -13,6 +13,7 @@ import (
 	"net/http/httputil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -132,6 +133,9 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	client := &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
@@ -143,10 +147,11 @@ func Run(ctx context.Context, options Options) error {
 		Headers: http.Header{
 			"Infra-Destination": {chksm},
 		},
+		OnUnauthorized: func() {
+			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
+			cancel()
+		},
 	}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
 	// TODO: make polling time configurable
 	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
@@ -215,7 +220,21 @@ func Run(ctx context.Context, options Options) error {
 
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
-	return tlsServer.ListenAndServeTLS("", "")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		// listen for shutdown from main context.
+		<-ctx.Done()
+		shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
+		defer shutdownCancel()
+		err = tlsServer.Shutdown(shutdownCtx)
+		logging.Warnf("shutdown: %s", err)
+		wg.Done()
+	}()
+
+	err = tlsServer.ListenAndServeTLS("", "")
+	wg.Wait() // must wait for shutdown to complete.
+	return err
 }
 
 func httpTransportFromOptions(opts ServerOptions) *http.Transport {

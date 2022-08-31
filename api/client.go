@@ -36,6 +36,9 @@ type Client struct {
 	HTTP      http.Client
 	// Headers are HTTP headers that will be added to every request made by the Client.
 	Headers http.Header
+	// OnUnauthorized is a callback hook for the client to get notified of a 401 Unauthorized response to any query.
+	// This is useful as clients often need to discard expired access keys.
+	OnUnauthorized func()
 }
 
 // checkError checks the resp for an error code, and returns an api.Error with
@@ -108,6 +111,9 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 	}
 
 	resp, err := client.HTTP.Do(req)
+	if resp != nil && resp.StatusCode == 401 && client.OnUnauthorized != nil {
+		defer client.OnUnauthorized()
+	}
 	if err != nil {
 		if connError := HandleConnError(err); connError != nil {
 			return nil, connError
