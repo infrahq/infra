@@ -77,7 +77,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.IMAGE }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}:edge
           cache-to: type=inline
 
   synchronize:
