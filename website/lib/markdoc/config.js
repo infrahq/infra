@@ -38,10 +38,10 @@ export const config = {
           attributes.href.startsWith('./') ||
           attributes.href.startsWith('../')
         ) {
-          attributes.href = path.join(
-            path.dirname(node.location.file),
-            attributes.href?.replace('.md', '')
+          const base = path.dirname(
+            node.location.file.replace(path.join(process.cwd(), '..'), '')
           )
+          attributes.href = path.join(base, attributes.href?.replace('.md', ''))
         }
 
         return new Tag(this.render, attributes, children)
@@ -58,20 +58,26 @@ export const config = {
       },
       transform(node, config) {
         const attributes = node.transformAttributes(config)
+
+        if (
+          attributes?.src?.startsWith('http://') ||
+          attributes?.src?.startsWith('https://')
+        ) {
+          return new Tag('img', attributes)
+        }
+
         const filepath = path.join(
-          process.cwd(),
-          '..',
-          node.location.file,
-          '..',
+          path.dirname(node.location.file),
           attributes.src
         )
-        const destination = path.join(
-          process.cwd(),
-          'public',
-          node.location.file,
-          '..',
-          attributes.src
+
+        const destinationPath = path.join(
+          '/',
+          'x',
+          filepath.replace(path.join(process.cwd(), '..'), '')
         )
+
+        const destination = path.join(process.cwd(), 'public', destinationPath)
 
         if (fs.statSync(filepath).isFile()) {
           const dirname = path.dirname(destination)
@@ -86,7 +92,7 @@ export const config = {
           attributes.layout = 'fill'
         }
 
-        attributes.src = path.join(node.location.file, '..', attributes.src)
+        attributes.src = destinationPath
         return new Tag(this.render, attributes)
       },
     },
@@ -158,13 +164,7 @@ export const config = {
         let partial = partials[file]
 
         if (!partial) {
-          const filepath = path.join(
-            process.cwd(),
-            '..',
-            node.location.file,
-            '..',
-            file
-          )
+          const filepath = path.join(path.dirname(node.location.file), file)
 
           if (!fs.existsSync(filepath)) {
             return null

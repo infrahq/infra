@@ -7,23 +7,22 @@ position: 1
 
 ## Introduction
 
-![introduction](../images/introduction.svg)
-
-Infra manages access to infrastructure such as Kubernetes. It integrates with existing identity providers such as Okta to automatically grant & revoke access to the right users and groups at the right time.
+Infra is a service for managing secure access to infrastructure such as Kubernetes. It integrates with existing identity providers such as Okta to automatically grant & revoke access to the right users and groups at the right time.
 
 ### Features
 
-* **Discover & access** infrastructure via a single command: `infra login`
-* **No more out-of-sync credentials** for users (e.g. Kubeconfig)
-* **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
-* **Fine-grained** access to specific resources that works with existing RBAC rules
-* **API-first design** for managing access as code or via existing tooling
-* [**Open-source**](https://github.com/infrahq/infra) and can be deployed anywhere
+- **Discover & access** infrastructure via a single command: `infra login`
+- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
+- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
+- **Fine-grained** access to specific resources that works with existing RBAC rules
+- **API-first design** for managing access as code or via existing tooling
+- [**Open-source**](https://github.com/infrahq/infra) and can be deployed anywhere
 
-Coming soon:
-* **Dynamic access** to coordinate access with systems like PagerDuty
-* **Access requests** to eliminate static access
-* **Audit logs** for who did what, when
+### Coming Soon
+
+- **Dynamic access** to coordinate access with systems like PagerDuty
+- **Access requests** to eliminate static access
+- **Audit logs** for who did what, when
 
 ### Walkthrough
 
@@ -218,6 +217,6 @@ Identity providers are external sources of [users](#users) and [groups](#groups)
 
 ## Next Steps
 
-* Get up and running with the [Quickstart](./quickstart.md) guide
-* [Install Infra](../install/install-on-kubernetes.md) on Kubernetes
-* Read about the [Architecture](../reference/architecture.md)
+- Get up and running with the [Quickstart](./quickstart.md) guide
+- [Install Infra](../install/install-on-kubernetes.md) on Kubernetes
+- Read about the [Architecture](../reference/architecture.md)

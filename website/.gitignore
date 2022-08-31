@@ -34,8 +34,8 @@ yarn-error.log*
 # vercel
 .vercel
 
-# docs assets
-public/docs
+# generated assets
+public/x
 public/sitemap.xml
 public/robots.txt
 

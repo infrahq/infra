@@ -15,7 +15,7 @@ position: 2
 Deploy Infra via `helm`:
 
 ```
-helm repo add infrahq https://helm.infrahq.com/
+helm repo add infrahq https://helm.infrahq.com
 helm repo update
 helm install infra infrahq/infra
 ```
