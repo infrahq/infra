@@ -55,22 +55,22 @@ func TestLogin(t *testing.T) {
 
 	t.Run("failed login does not create access key", func(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication(username, "invalid password")
-		_, bearer, err := Login(ctx, db, authn, time.Now().Add(1*time.Minute), time.Minute)
+		result, err := Login(ctx, db, authn, time.Now().Add(1*time.Minute), time.Minute)
 
 		assert.ErrorContains(t, err, "failed to login")
-		assert.Equal(t, bearer, "")
+		assert.Equal(t, result.Bearer, "")
 	})
 
 	t.Run("successful login does creates access key for authenticated identity", func(t *testing.T) {
 		authn := NewPasswordCredentialAuthentication("gohan@example.com", password)
 		exp := time.Now().Add(1 * time.Minute)
 		ext := 1 * time.Minute
-		key, bearer, err := Login(ctx, db, authn, exp, ext)
-
+		result, err := Login(ctx, db, authn, exp, ext)
 		assert.NilError(t, err)
-		assert.Assert(t, bearer != "")
-		assert.Equal(t, key.IssuedFor, user.ID)
-		assert.Equal(t, key.ExpiresAt, exp)
-		assert.Equal(t, key.Extension, ext)
+		assert.Assert(t, result.Bearer != "")
+		assert.Equal(t, result.AccessKey.IssuedFor, user.ID)
+		assert.Equal(t, result.AccessKey.ExpiresAt, exp)
+		assert.Equal(t, result.AccessKey.Extension, ext)
+		assert.Equal(t, result.User.ID, user.ID)
 	})
 }

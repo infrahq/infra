@@ -26,11 +26,23 @@ type AuthScope struct {
 	PasswordResetOnly bool
 }
 
-func Login(ctx context.Context, db data.GormTxn, loginMethod LoginMethod, requestedExpiry time.Time, keyExtension time.Duration) (*models.AccessKey, string, error) {
+type LoginResult struct {
+	AccessKey *models.AccessKey
+	Bearer    string
+	User      *models.Identity
+}
+
+func Login(
+	ctx context.Context,
+	db data.GormTxn,
+	loginMethod LoginMethod,
+	requestedExpiry time.Time,
+	keyExtension time.Duration,
+) (LoginResult, error) {
 	// challenge the user to authenticate
 	authenticated, err := loginMethod.Authenticate(ctx, db, requestedExpiry)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to login: %w", err)
+		return LoginResult{}, fmt.Errorf("failed to login: %w", err)
 	}
 
 	// login authentication was successful, create an access key for the user
@@ -50,13 +62,17 @@ func Login(ctx context.Context, db data.GormTxn, loginMethod LoginMethod, reques
 
 	bearer, err := data.CreateAccessKey(db, accessKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to create access key after login: %w", err)
+		return LoginResult{}, fmt.Errorf("failed to create access key after login: %w", err)
 	}
 
 	authenticated.Identity.LastSeenAt = time.Now().UTC()
 	if err := data.SaveIdentity(db, authenticated.Identity); err != nil {
-		return nil, "", fmt.Errorf("login failed to update last seen: %w", err)
+		return LoginResult{}, fmt.Errorf("login failed to update last seen: %w", err)
 	}
 
-	return accessKey, bearer, nil
+	return LoginResult{
+		AccessKey: accessKey,
+		Bearer:    bearer,
+		User:      authenticated.Identity,
+	}, nil
 }

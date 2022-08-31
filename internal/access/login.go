@@ -12,7 +12,7 @@ import (
 // Login uses a login method to authenticate a user
 func Login(c *gin.Context, loginMethod authn.LoginMethod, keyExpiresAt time.Time, keyExtension time.Duration) (*models.AccessKey, string, bool, error) {
 	db := getDB(c)
-	key, bearer, err := authn.Login(c.Request.Context(), db, loginMethod, keyExpiresAt, keyExtension)
+	result, err := authn.Login(c.Request.Context(), db, loginMethod, keyExpiresAt, keyExtension)
 	if err != nil {
 		return nil, "", false, err
 	}
@@ -25,5 +25,5 @@ func Login(c *gin.Context, loginMethod authn.LoginMethod, keyExpiresAt time.Time
 		return nil, "", false, err
 	}
 
-	return key, bearer, requiresUpdate, nil
+	return result.AccessKey, result.Bearer, requiresUpdate, nil
 }
