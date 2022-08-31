@@ -35,7 +35,9 @@ type Client struct {
 	AccessKey string
 	HTTP      http.Client
 	// Headers are HTTP headers that will be added to every request made by the Client.
-	Headers        http.Header
+	Headers http.Header
+	// OnUnauthorized is a callback hook for the client to get notified of a 401 Unauthorized response to any query.
+	// This is useful as clients often need to discard expired access keys.
 	OnUnauthorized func()
 }
 
