@@ -85,6 +85,16 @@ func TestGetPostgresConnectionURL(t *testing.T) {
 	url, err = getPostgresConnectionString(options, storage)
 	assert.NilError(t, err)
 	assert.Equal(t, "host=localhost user=user password=secret port=5432 dbname=postgres", url)
+
+	t.Run("connection string with password from secrets", func(t *testing.T) {
+		options := Options{
+			DBConnectionString: "host=localhost user=user port=5432",
+			DBPassword:         "plaintext:foo",
+		}
+		dsn, err := getPostgresConnectionString(options, storage)
+		assert.NilError(t, err)
+		assert.Equal(t, "host=localhost user=user port=5432 password=foo", dsn)
+	})
 }
 
 func TestServer_Run(t *testing.T) {

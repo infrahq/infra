@@ -321,36 +321,37 @@ func getDatabaseDriver(options Options, secretStorage map[string]secrets.SecretS
 // getPostgresConnectionString parses postgres configuration options and returns the connection string
 func getPostgresConnectionString(options Options, secretStorage map[string]secrets.SecretStorage) (string, error) {
 	var pgConn strings.Builder
-	pgConn.WriteString(options.DBConnectionString)
+	pgConn.WriteString(options.DBConnectionString + " ")
 
 	if options.DBHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
 		fmt.Fprintf(&pgConn, "host=%s ", options.DBHost)
+	}
 
-		if options.DBUsername != "" {
-			fmt.Fprintf(&pgConn, "user=%s ", options.DBUsername)
+	if options.DBUsername != "" {
+		fmt.Fprintf(&pgConn, "user=%s ", options.DBUsername)
+	}
 
-			if options.DBPassword != "" {
-				pass, err := secrets.GetSecret(options.DBPassword, secretStorage)
-				if err != nil {
-					return "", fmt.Errorf("postgres secret: %w", err)
-				}
-
-				fmt.Fprintf(&pgConn, "password=%s ", pass)
-			}
+	if options.DBPassword != "" {
+		pass, err := secrets.GetSecret(options.DBPassword, secretStorage)
+		if err != nil {
+			return "", fmt.Errorf("postgres secret: %w", err)
 		}
 
-		if options.DBPort > 0 {
-			fmt.Fprintf(&pgConn, "port=%d ", options.DBPort)
-		}
+		fmt.Fprintf(&pgConn, "password=%s ", pass)
+	}
 
-		if options.DBName != "" {
-			fmt.Fprintf(&pgConn, "dbname=%s ", options.DBName)
-		}
+	if options.DBPort > 0 {
+		fmt.Fprintf(&pgConn, "port=%d ", options.DBPort)
+	}
 
-		if options.DBParameters != "" {
-			fmt.Fprint(&pgConn, options.DBParameters)
-		}
+	if options.DBName != "" {
+		fmt.Fprintf(&pgConn, "dbname=%s ", options.DBName)
+	}
+
+	// TODO: deprecate DBParameters now that we accept DBConnectionString
+	if options.DBParameters != "" {
+		fmt.Fprint(&pgConn, options.DBParameters)
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil
