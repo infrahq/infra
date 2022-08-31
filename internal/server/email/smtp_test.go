@@ -16,7 +16,7 @@ import (
 func setupClient(srv net.Listener) {
 	SendgridAPIKey = "api-key"
 	SMTPServer = srv.Addr().String()
-	client = &Client{skipTLSVerify: true}
+	testClient = &Client{skipTLSVerify: true}
 }
 
 func setupSMTPServer(t *testing.T, handler func(t *testing.T, c net.Conn)) net.Listener {
@@ -68,10 +68,14 @@ func successCase(t *testing.T, c net.Conn) {
 	read := func(msg string) string {
 		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 		s, err := reader.ReadString('\n')
+		t.Log("Read:", s, err)
 		assert.NilError(t, err, fmt.Sprintf("waiting for read %q", msg))
 		s = strings.TrimRight(s, "\r\n")
 		if msg != "" {
-			assert.Assert(t, strings.HasPrefix(s, msg))
+			if !strings.HasPrefix(s, msg) {
+				t.Errorf("expected %q to match message %q", s, msg)
+				t.FailNow()
+			}
 		}
 		return s
 	}
@@ -79,6 +83,9 @@ func successCase(t *testing.T, c net.Conn) {
 		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 		_, err := c.Write([]byte(s + "\r\n"))
 		assert.NilError(t, err, fmt.Sprintf("waiting for write %q", s))
+		if err != nil {
+			t.FailNow()
+		}
 	}
 	write("220 server ready")
 	read("EHLO")
@@ -89,9 +96,9 @@ func successCase(t *testing.T, c net.Conn) {
 	assert.NilError(t, err)
 	assert.Equal(t, "\x00apikey\x00api-key", string(decoded))
 	write("235 Authentication successful")
-	assert.Assert(t, strings.HasPrefix(read(""), "MAIL FROM: "))
+	assert.Assert(t, strings.HasPrefix(read(""), "MAIL FROM:"))
 	write("250 Sender address accepted")
-	assert.Assert(t, strings.HasPrefix(read(""), "RCPT TO: "))
+	assert.Assert(t, strings.HasPrefix(read(""), "RCPT TO:"))
 	write("250 Recipient address accepted")
 	read("DATA")
 	write("354 Ready")
@@ -134,6 +141,8 @@ func successCase(t *testing.T, c net.Conn) {
 		}
 	}
 	write("250 Ok")
+	read("QUIT")
+	write("221 bye!")
 }
 
 func TestSendEmail(t *testing.T) {

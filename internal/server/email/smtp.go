@@ -1,20 +1,17 @@
 package email
 
 import (
-	"bufio"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/smtp"
-	"strings"
-	"sync"
 	"time"
 )
 
 type Client struct {
 	*tls.Conn
-	reader *bufio.Reader
-	sync.Mutex
+	Client        *smtp.Client
 	skipTLSVerify bool
 }
 
@@ -28,7 +25,7 @@ type Message struct {
 	HTMLBody    []byte
 }
 
-var client = &Client{}
+var testClient = &Client{}
 
 func (c *Client) connect() (err error) {
 	if c.Conn != nil {
@@ -68,11 +65,11 @@ func (c *Client) connect() (err error) {
 		return err
 	}
 
+	c.Client = client
+
 	if err = client.Auth(auth); err != nil {
 		return err
 	}
-
-	c.reader = bufio.NewReader(c.Conn)
 
 	return nil
 }
@@ -81,142 +78,83 @@ func base64encode(s string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-// readln reads a line of text ending in \n. if expected is empty it returns the result.
-// if expected is not empty, the read string must match or start with the expected string
-func (c *Client) readln(expected string) (result string, err error) {
-	defer func() {
-		if err != nil {
-			c.Conn = nil
-		}
-	}()
-
-	if err := c.SetDeadline(time.Now().Add(30 * time.Second)); err != nil {
-		return "", fmt.Errorf("set deadline: %w", err)
-	}
-
-	s, err := c.reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-
-	s = strings.TrimRight(s, "\r\n")
-
-	if expected != "" && !strings.HasPrefix(s, expected) {
-		return s, fmt.Errorf("Unexpected value read: %q while waiting for %q", s, expected)
-	}
-
-	return s, nil
-}
-
-func (c *Client) writeln(s string) (err error) {
-	defer func() {
-		if err != nil {
-			c.Conn = nil
-		}
-	}()
-
-	s += "\r\n"
-	if err = c.SetWriteDeadline(time.Now().Add(30 * time.Second)); err != nil {
-		return fmt.Errorf("set write deadline: %w", err)
-	}
-	written, err := c.Write([]byte(s))
-	if err != nil {
-		return fmt.Errorf("write auth login: %w", err)
-	}
-	if written != len(s) {
-		return fmt.Errorf("partial write %d bytes of %d", written, len(s))
-	}
-
-	return nil
+func writeln(w io.WriteCloser, s string, args ...any) error {
+	_, err := w.Write([]byte(fmt.Sprintf(s, args...) + "\r\n"))
+	return err
 }
 
 // SendSMTP sends an email message
 func SendSMTP(msg Message) error {
-	client.Lock()
-	defer client.Unlock()
+	client := &Client{} // setup a new client for each smtp send
+
+	if testClient != nil {
+		client = testClient
+	}
 
 	if err := client.connect(); err != nil {
 		return err
 	}
 
-	if err := client.writeln(fmt.Sprintf("MAIL FROM: %s", msg.FromAddress)); err != nil {
-		return fmt.Errorf("write mail from: %w", err)
-	}
-	if _, err := client.readln("250 "); err != nil { // Sender address accepted
+	if err := client.Client.Mail(msg.FromAddress); err != nil {
 		return err
 	}
-
-	if err := client.writeln(fmt.Sprintf("RCPT TO: %s", msg.ToAddress)); err != nil {
-		return fmt.Errorf("write rcpt to: %w", err)
-	}
-	if _, err := client.readln("250 "); err != nil { // Recipient address accepted
+	if err := client.Client.Rcpt(msg.ToAddress); err != nil {
 		return err
 	}
-
-	if err := client.writeln("DATA"); err != nil {
-		return err
-	}
-	if _, err := client.readln("354 "); err != nil {
+	w, err := client.Client.Data()
+	if err != nil {
 		return err
 	}
 
 	if len(msg.ToName) > 0 {
-		if err := client.writeln(fmt.Sprintf("To: %q <%s>", msg.ToName, msg.ToAddress)); err != nil {
+		if err := writeln(w, "To: %q <%s>", msg.ToName, msg.ToAddress); err != nil {
 			return fmt.Errorf("write to: %w", err)
 		}
 	}
 	if len(msg.FromName) > 0 {
-		if err := client.writeln(fmt.Sprintf("From: %q <%s>", msg.FromName, msg.FromAddress)); err != nil {
+		if err := writeln(w, "From: %q <%s>", msg.FromName, msg.FromAddress); err != nil {
 			return fmt.Errorf("write from: %w", err)
 		}
 	}
 	if len(msg.Subject) > 0 {
-		if err := client.writeln(fmt.Sprintf("Subject: %s", msg.Subject)); err != nil {
+		if err := writeln(w, "Subject: %s", msg.Subject); err != nil {
 			return fmt.Errorf("write subject: %w", err)
 		}
 	}
 
 	// mime multipart
-	if err := client.writeln("MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=c3VwYWhpbmZyYQ\r\n"); err != nil {
+	if err := writeln(w, "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=c3VwYWhpbmZyYQ\r\n"); err != nil {
 		return err
 	}
 
 	// plain
 	if len(msg.PlainBody) > 0 {
-		if err := client.writeln("--c3VwYWhpbmZyYQ\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n"); err != nil {
+		if err := writeln(w, "--c3VwYWhpbmZyYQ\r\nContent-Type: text/plain\r\nContent-Transfer-Encoding: base64\r\n"); err != nil {
 			return err
 		}
-		if err := client.writeln(base64encode(string(msg.PlainBody))); err != nil {
+		if err := writeln(w, base64encode(string(msg.PlainBody))); err != nil {
 			return err
 		}
 	}
 
 	// html
 	if len(msg.HTMLBody) > 0 {
-		if err := client.writeln("--c3VwYWhpbmZyYQ\r\nContent-Type: text/html\r\nContent-Transfer-Encoding: base64\r\n"); err != nil {
+		if err := writeln(w, "--c3VwYWhpbmZyYQ\r\nContent-Type: text/html\r\nContent-Transfer-Encoding: base64\r\n"); err != nil {
 			return err
 		}
-		if err := client.writeln(base64encode(string(msg.HTMLBody))); err != nil {
+		if err := writeln(w, base64encode(string(msg.HTMLBody))); err != nil {
 			return err
 		}
 	}
 
 	// end mime
-	if err := client.writeln("--c3VwYWhpbmZyYQ--\r\n"); err != nil {
+	if err := writeln(w, "--c3VwYWhpbmZyYQ--\r\n"); err != nil {
 		return err
 	}
 
-	if err := client.writeln("."); err != nil {
-		return fmt.Errorf("write send line: %w", err)
+	if err := w.Close(); err != nil {
+		return err
 	}
 
-	result, err := client.readln("")
-	if err != nil {
-		return fmt.Errorf("reading send result: %w", err)
-	}
-
-	if !strings.HasPrefix(result, "250 ") { // Ok
-		return fmt.Errorf("expected 250 Ok result, but got %q", result)
-	}
-	return nil
+	return client.Client.Quit()
 }
