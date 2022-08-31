@@ -63,7 +63,6 @@ func newServerCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Server configuration file")
 	cmd.Flags().String("tls-cache", "", "Directory to cache TLS certificates")
-	cmd.Flags().String("db-file", "", "Path to SQLite 3 database")
 	cmd.Flags().String("db-name", "", "Database name")
 	cmd.Flags().String("db-host", "", "Database host")
 	cmd.Flags().Int("db-port", 0, "Database port")

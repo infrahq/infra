@@ -127,7 +127,6 @@ enableSignup: false    # default is true
 sessionDuration: 3m
 sessionExtensionDeadline: 1m
 
-dbFile: /db/file
 dbEncryptionKey: /this-is-the-path
 dbEncryptionKeyProvider: the-provider
 dbHost: the-host
@@ -200,7 +199,6 @@ users:
 
 					DBEncryptionKey:         "/this-is-the-path",
 					DBEncryptionKeyProvider: "the-provider",
-					DBFile:                  "/db/file",
 					DBHost:                  "the-host",
 					DBPort:                  5432,
 					DBParameters:            "sslmode=require",
@@ -286,7 +284,6 @@ users:
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				cmd.SetArgs([]string{
 					"--db-name", "database-name",
-					"--db-file", "/home/user/database-filename",
 					"--db-port", "12345",
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
@@ -298,7 +295,6 @@ users:
 			expected: func(t *testing.T) server.Options {
 				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.DBName = "database-name"
-				expected.DBFile = "/home/user/database-filename"
 				expected.DBHost = "thehostname"
 				expected.DBPort = 12345
 				expected.EnableTelemetry = false

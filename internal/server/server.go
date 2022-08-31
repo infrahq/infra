@@ -41,7 +41,6 @@ type Options struct {
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
 
-	DBFile                  string
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string
 	DBHost                  string
@@ -314,7 +313,7 @@ func getDatabaseDriver(options Options, secretStorage map[string]secrets.SecretS
 	case err != nil:
 		return nil, fmt.Errorf("postgres: %w", err)
 	case pgDSN == "":
-		return nil, fmt.Errorf("missing a postgreSQL connection options")
+		return nil, fmt.Errorf("missing postgreSQL connection options")
 	}
 	return postgres.Open(pgDSN), nil
 }
