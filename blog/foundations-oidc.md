@@ -31,4 +31,4 @@ Assuming you have the access required to perform the action you ran, you will ge
 
 And that is how OIDC works in the context of Infra. This post is also available as a video on our YouTube channel.
 
-{% youtube src="https://www.youtube-nocookie.com/embed/gGPyOUtXoKE" title="What is OIDC and why is it relevant to Infra?" /%}
+{% youtube id="gGPyOUtXoKE" /%}

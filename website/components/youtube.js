@@ -1,7 +1,7 @@
-export default function Youtube(props) {
+export default function Youtube({ id }) {
   return (
     <iframe
-      {...props}
+      src={'https://www.youtube-nocookie.com/embed/' + id}
       frameBorder='0'
       allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
       allowFullScreen

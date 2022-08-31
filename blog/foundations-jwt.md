@@ -55,4 +55,4 @@ And that is what a JWT is and how they are used in Infra.
 
 If you would like to see a video version of this document, check out this from our YouTube channel.
 
-{% youtube src="https://www.youtube-nocookie.com/embed/UuKXMDHzcPc" title="Infra Fundamentals: JSON Web Tokens" /%}
+{% youtube id="UuKXMDHzcPc"  /%}
