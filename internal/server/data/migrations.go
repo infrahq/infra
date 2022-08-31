@@ -565,8 +565,35 @@ func setDefaultOrgID() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-30T11:45",
 		Migrate: func(tx migrator.DB) error {
-			_, err := tx.Exec(`UPDATE organizations set id=? WHERE name='Default'`, defaultOrganizationID)
-			return err
+			var originalOrgID uid.ID
+			err := tx.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+			if err != nil {
+				return err
+			}
+
+			_, err = tx.Exec(`UPDATE organizations set id=? WHERE id=?`, defaultOrganizationID, originalOrgID)
+			if err != nil {
+				return err
+			}
+
+			// postgres only allows a single statement when using parameters
+			for _, stmt := range []string{
+				`UPDATE access_keys SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE credentials SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE destinations SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE grants SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE groups SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE identities SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE providers SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE settings SET organization_id = ? WHERE organization_id = ?;`,
+				`UPDATE password_reset_tokens SET organization_id = ?  WHERE organization_id = ?;`,
+			} {
+				if _, err := tx.Exec(stmt, defaultOrganizationID, originalOrgID); err != nil {
+					return err
+				}
+			}
+			return nil
+
 		},
 	}
 }
