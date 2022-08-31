@@ -104,6 +104,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
+	post(a, noAuthnNoOrg, "/api/forgot-domain-request", a.RequestForgotDomains)
 
 	// no auth required, org required
 	noAuthnWithOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server), orgRequired())
