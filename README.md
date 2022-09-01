@@ -29,12 +29,38 @@ Infra manages access to infrastructure such as Kubernetes, with support for [mor
 
 ## Install
 
+Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
+
+```yaml
+server:
+  config:
+    users:
+      - name: admin@example.com
+        password: SetThisPassword! #note this password is now set as plaintext in this file
+
+  # Create a "admin@example.com" user and set a password passed in as a file. The file will need
+  # to be mounted into the pod using `volumes` and `volumeMounts`.
+    # - name: admin@example.com
+    #   password: file:/var/run/secrets/admin@example.com
+
+  # Create an "admin@example.com" user and set a password passed in as an environment variable.
+  # The environment variable will need to be injected into the pod using `env` or `envFrom`.
+    # - name: admin@example.com
+    #   password: env:ADMIN_PASSWORD
+
+    grants:
+      - user: admin@example.com
+        role: admin
+        resource: infra
+```
+
+
 Install Infra via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra
+helm update --install infra infrahq/infra
 ```
 
 Next, find the exposed hostname:
