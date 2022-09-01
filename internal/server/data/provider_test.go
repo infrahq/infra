@@ -214,11 +214,13 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 
 func TestCountProvidersByKind(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "oidc", Kind: "oidc"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta", Kind: "okta"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta2", Kind: "okta"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "azure", Kind: "azure"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "google", Kind: "google"}))
+		createProviders(t, db,
+			&models.Provider{Name: "oidc", Kind: "oidc"},
+			&models.Provider{Name: "okta", Kind: "okta"},
+			&models.Provider{Name: "okta2", Kind: "okta"},
+			&models.Provider{Name: "azure", Kind: "azure"},
+			&models.Provider{Name: "google", Kind: "google"},
+		)
 
 		actual, err := CountProvidersByKind(db)
 		assert.NilError(t, err)

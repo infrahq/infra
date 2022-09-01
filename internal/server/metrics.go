@@ -78,7 +78,10 @@ func setupMetrics(db data.GormTxn) *prometheus.Registry {
 
 		values := make([]metrics.Metric, 0, len(results))
 		for _, result := range results {
-			values = append(values, metrics.Metric{Count: float64(result.Count), LabelValues: []string{result.Kind}})
+			values = append(values, metrics.Metric{
+				Count:       result.Count,
+				LabelValues: []string{result.Kind},
+			})
 		}
 
 		return values
