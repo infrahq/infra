@@ -73,6 +73,14 @@ func (d *DB) Close() error {
 	return sqlDB.Close()
 }
 
+func (d *DB) SQLdb() *sql.DB {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		panic("DB must have an sql.DB ConnPool")
+	}
+	return sqlDB
+}
+
 func (d *DB) DriverName() string {
 	return d.Dialector.Name()
 }
