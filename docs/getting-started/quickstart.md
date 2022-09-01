@@ -12,12 +12,33 @@ position: 2
 
 ## Deploy Infra
 
+Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
+
+```yaml
+server:
+  config:
+    users:
+      - name: admin@example.com
+        password: SetThisPassword!
+
+    grants:
+      - user: admin@example.com
+        role: admin
+        resource: infra
+```
+
+{% callout type="info" %}
+
+In this example we are setting a password in plaintext. Refer to the [Helm Reference](../reference/helm-reference.md) doc to learn more about using secrets in the Helm values file.
+
+{% /callout %}
+
 Deploy Infra via `helm`:
 
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra
+helm upgrade --install infra infrahq/infra --values values.yaml
 ```
 
 ## Access the Infra Dashboard
@@ -30,7 +51,7 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 Visit this hostname in your browser to access the Infra Dashboard:
 
-![welcome](../images/welcome.png)
+![welcome](../images/uilogin.png)
 
 {% callout type="info" %}
 
@@ -45,60 +66,7 @@ Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup y
 
 {% /callout %}
 
-## Logging in via Infra CLI
-
-Install Infra CLI:
-
-{% partial file="../partials/cli-install.md" /%}
-
-Login to Infra as the admin user you created earlier:
-
-```
-infra login <load balancer hostname>
-```
-
-{% callout type="info" %}
-You may be prompted to verify the fingerprint of the server's TLS certificate. The fingerprint can be found in the server logs:
-
-```
-kubectl logs --tail=-1 -l 'app.kubernetes.io/name=infra-server' | grep fingerprint
-```
-
-{% /callout %}
-
-## Connecting a Kubernetes cluster
-
-Download the CA certificate that was generated for Infra and save it to a file. This certificate will be used by the CLI and by connectors to establish secure TLS communication:
-
-```
-kubectl get secrets/infra-server-ca --template='{{index .data "ca.crt"}}' | base64 --decode > infra.ca
-```
-
-Generate a connector key (note: this key is valid for 30 days, but can be extended via `--ttl`):
-
-```
-infra keys add connector
-```
-
-Next, use this access key to connect your cluster via `helm`:
-
-```
-helm upgrade --install infra-connector infrahq/infra \
-  --set connector.config.name=<cluster name> \
-  --set connector.config.server=<load balancer hostname> \
-  --set connector.config.accessKey=<connector key> \
-  --set-file connector.config.serverTrustedCertificate=infra.ca
-```
-
-{% callout type="info" %}
-
-It may take a few minutes for the cluster to connect. You can verify the connection by running `infra destinations list` and by looking at the connector logs:
-
-```
-kubectl logs -l 'app.kubernetes.io/name=infra-connector'
-```
-
-{% /callout %}
+After logging in to the UI, navigate to **Clusters**. Click the **+ Cluster** button at the top right. Enter a name for the cluster and click **Next**. Copy the command shown in the UI and paste it into your terminal and press Enter to run the command. This will add the Kubernetes Connector.
 
 ## Next Steps
 
