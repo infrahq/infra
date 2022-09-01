@@ -8,25 +8,22 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
-	//"github.com/infrahq/infra/internal/server/email"
+	"github.com/infrahq/infra/internal/server/email"
 )
 
 func (a *API) RequestForgotDomains(c *gin.Context, r *api.ForgotDomainRequest) (*api.EmptyResponse, error) {
-	logging.Infof("forgot domain")
 	domains, err := access.ForgotDomainRequest(c, r.Email)
 
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
-			logging.Infof("No orgs found for user %s", r.Email)
 			return nil, nil // This is okay. we don't notify the user if we failed to find the email.
 		}
 		return nil, err
 	}
 
-	// TODO: Send the email
-	for _, d := range domains {
-		logging.Infof("Forgot domain: %s -- '%s' '%s'", r.Email, d.OrganizationName, d.OrganizationDomain)
+	err = email.SendForgotDomains("", r.Email, email.ForgottenDomainData{Domains: domains})
+	if err != nil {
+		return nil, err
 	}
 
 	return nil, nil

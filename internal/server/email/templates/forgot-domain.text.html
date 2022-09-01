@@ -1,0 +1,5 @@
+
+<p>Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.</p>
+
+{{range $v := .Domains}}<p><a href="https://{{$v.OrganizationDomain}}/login">{{$v.OrganizationDomain}}</a></p>
+{{end}}

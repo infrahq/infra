@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/infrahq/infra/internal/server/models"
 	"gotest.tools/v3/assert"
 )
 
@@ -191,6 +192,22 @@ func TestSendSignup(t *testing.T) {
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
 		Link: "https://supahdomain.example.com/login",
+	})
+	assert.NilError(t, err)
+}
+
+func TestSendForgotDomain(t *testing.T) {
+	srv := setupSMTPServer(t, successCase)
+	setupClient(srv)
+
+	err := SendTemplate("", "hannibal@ateam.org", EmailTemplateForgottenDomains, ForgottenDomainData{
+		Domains: []models.ForgottenDomain{
+			models.ForgottenDomain{
+				OrganizationName:   "A Team",
+				OrganizationDomain: "ateam.infrahq.com",
+				LastSeenAt:         time.Now(),
+			},
+		},
 	})
 	assert.NilError(t, err)
 }

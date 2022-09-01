@@ -7,8 +7,10 @@ import (
 func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDomain, error) {
 	var results []models.ForgottenDomain
 
-	// TODO - use tx.QueryRow and remove .Error and iterate through the rows
 	rows, err := tx.Query("SELECT organizations.name, organizations.domain, identities.last_seen_at FROM identities, organizations WHERE identities.organization_id = organizations.id AND identities.name = ?", email)
+	if err != nil {
+		return results, err
+	}
 	defer rows.Close()
 
 	for rows.Next() {
