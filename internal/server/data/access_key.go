@@ -105,8 +105,61 @@ func UpdateAccessKey(tx WriteTxn, key *models.AccessKey) error {
 	return update(tx, (*accessKeyTable)(key))
 }
 
-func ListAccessKeys(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
-	return list[models.AccessKey](db, p, selectors...)
+type ListAccessKeyOptions struct {
+	IncludeExpired bool
+	ByIssuedForID  uid.ID
+	ByName         string
+	Pagination     *Pagination
+}
+
+func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, error) {
+	table := &accessKeyTable{}
+	query := Query("SELECT")
+	query.B(columnsForSelect("k", table.Columns()))
+	query.B(", u.name")
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM access_keys AS k INNER JOIN identities AS u")
+	query.B("ON k.issued_for = u.id")
+	query.B("WHERE k.deleted_at is null AND u.deleted_at is null")
+
+	if !opts.IncludeExpired {
+		// TODO: can we remove the need to check for both the zero value and nil?
+		now, zero := time.Now(), time.Time{}
+		query.B("AND (expires_at > ? OR expires_at = ? OR expires_at is null)", now, zero)
+		query.B("AND (extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
+	}
+	if opts.ByIssuedForID != 0 {
+		query.B("AND k.issued_for = ?", opts.ByIssuedForID)
+	}
+	if opts.ByName != "" {
+		query.B("AND k.name = ?", opts.ByName)
+	}
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.AccessKey
+	for rows.Next() {
+		var key models.AccessKey
+		fields := append((*accessKeyTable)(&key).ScanFields(), &key.IssuedForName)
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+		result = append(result, key)
+	}
+	return result, rows.Err()
 }
 
 // GetAccessKey using the keyID. Note that the keyID is globally unique, so

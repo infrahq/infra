@@ -20,9 +20,9 @@ type AccessKey struct {
 	OrganizationMember
 	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
 	// IssuedFor is the ID of the user that this access key was created for
-	IssuedFor         uid.ID
-	IssuedForIdentity *Identity `gorm:"foreignKey:IssuedFor" db:"-"`
-	ProviderID        uid.ID
+	IssuedFor     uid.ID
+	IssuedForName string
+	ProviderID    uid.ID
 
 	ExpiresAt         time.Time
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
@@ -36,17 +36,12 @@ type AccessKey struct {
 }
 
 func (ak *AccessKey) ToAPI() *api.AccessKey {
-	issuedForName := ""
-	if ak.IssuedForIdentity != nil {
-		issuedForName = ak.IssuedForIdentity.Name
-	}
-
 	return &api.AccessKey{
 		ID:                ak.ID,
 		Name:              ak.Name,
 		Created:           api.Time(ak.CreatedAt),
 		IssuedFor:         ak.IssuedFor,
-		IssuedForName:     issuedForName,
+		IssuedForName:     ak.IssuedForName,
 		ProviderID:        ak.ProviderID,
 		Expires:           api.Time(ak.ExpiresAt),
 		ExtensionDeadline: api.Time(ak.ExtensionDeadline),

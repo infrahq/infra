@@ -205,7 +205,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID})
 			assert.NilError(t, err)
 
-			remaining, err := ListAccessKeys(tx, nil)
+			remaining, err := ListAccessKeys(tx, ListAccessKeyOptions{})
 			assert.NilError(t, err)
 			expected := []models.AccessKey{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -223,7 +223,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByProviderID: provider.ID})
 			assert.NilError(t, err)
 
-			remaining, err := ListAccessKeys(tx, nil)
+			remaining, err := ListAccessKeys(tx, ListAccessKeyOptions{})
 			assert.NilError(t, err)
 			expected := []models.AccessKey{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -240,7 +240,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByID: key1.ID})
 			assert.NilError(t, err)
 
-			remaining, err := ListAccessKeys(tx, nil)
+			remaining, err := ListAccessKeys(tx, ListAccessKeyOptions{})
 			assert.NilError(t, err)
 			expected := []models.AccessKey{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -287,50 +287,173 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 func TestListAccessKeys(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		user := &models.Identity{Name: "tmp@infrahq.com"}
-		err := CreateIdentity(db, user)
-		assert.NilError(t, err)
+		otherUser := &models.Identity{Name: "admin@infrahq.com"}
+		createIdentities(t, db, user, otherUser)
 
-		token := &models.AccessKey{
+		first := &models.AccessKey{
 			Name:       "first",
-			Model:      models.Model{ID: 0},
+			Model:      models.Model{ID: 5},
 			IssuedFor:  user.ID,
 			ProviderID: InfraProvider(db).ID,
 			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
 			KeyID:      "1234567890",
 		}
-		_, err = CreateAccessKey(db, token)
-		assert.NilError(t, err)
-
-		token = &models.AccessKey{
+		second := &models.AccessKey{
 			Name:       "second",
-			Model:      models.Model{ID: 1},
+			Model:      models.Model{ID: 6},
 			IssuedFor:  user.ID,
 			ProviderID: InfraProvider(db).ID,
 			ExpiresAt:  time.Now().Add(-time.Hour).UTC(),
 			KeyID:      "1234567891",
 		}
-		_, err = CreateAccessKey(db, token)
-		assert.NilError(t, err)
-
-		token = &models.AccessKey{
+		third := &models.AccessKey{
 			Name:              "third",
-			Model:             models.Model{ID: 2},
+			Model:             models.Model{ID: 7},
 			IssuedFor:         user.ID,
 			ProviderID:        InfraProvider(db).ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
 			ExtensionDeadline: time.Now().Add(-time.Hour).UTC(),
 			KeyID:             "1234567892",
 		}
-		_, err = CreateAccessKey(db, token)
-		assert.NilError(t, err)
+		deleted := &models.AccessKey{
+			Name:              "forth",
+			Model:             models.Model{ID: 8},
+			IssuedFor:         user.ID,
+			ProviderID:        InfraProvider(db).ID,
+			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
+			ExtensionDeadline: time.Now().Add(time.Hour).UTC(),
+			KeyID:             "1234567893",
+		}
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
 
-		keys, err := ListAccessKeys(db, nil, ByNotExpiredOrExtended())
-		assert.NilError(t, err)
-		assert.Equal(t, len(keys), 1)
+		forth := &models.AccessKey{
+			Name:       "forth",
+			Model:      models.Model{ID: 9},
+			IssuedFor:  otherUser.ID,
+			ProviderID: InfraProvider(db).ID,
+			ExpiresAt:  time.Now().Add(time.Hour).UTC(),
+			KeyID:      "1234567894",
+		}
 
-		keys, err = ListAccessKeys(db, nil)
-		assert.NilError(t, err)
-		assert.Equal(t, len(keys), 3)
+		createAccessKeys(t, db, first, second, third, forth, deleted)
+
+		cmpAccessKeyShallow := cmp.Comparer(func(x, y models.AccessKey) bool {
+			return x.ID == y.ID && x.IssuedForName == y.IssuedForName
+		})
+
+		t.Run("default", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("include expired", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{IncludeExpired: true})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("by name", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByName: "first"})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("by issued for user", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByIssuedForID: user.ID})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("by name and expired", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
+				ByName:         "second",
+				IncludeExpired: true,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("by issued for an expired", func(t *testing.T) {
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
+				ByIssuedForID:  user.ID,
+				IncludeExpired: true,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 6}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+		})
+
+		t.Run("include expired with pagination", func(t *testing.T) {
+			page := &Pagination{Page: 2, Limit: 2}
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
+				IncludeExpired: true,
+				Pagination:     page,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 7}, IssuedForName: "tmp@infrahq.com"},
+				{Model: models.Model{ID: 9}, IssuedForName: "admin@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+			expectedPage := &Pagination{
+				Page:       2,
+				Limit:      2,
+				TotalCount: 4,
+			}
+			assert.DeepEqual(t, page, expectedPage)
+		})
+
+		t.Run("by issued for with pagination", func(t *testing.T) {
+			page := &Pagination{Page: 1, Limit: 2}
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
+				ByIssuedForID: user.ID,
+				Pagination:    page,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 5}, IssuedForName: "tmp@infrahq.com"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
+			expectedPage := &Pagination{
+				Page:       1,
+				Limit:      2,
+				TotalCount: 1,
+			}
+			assert.DeepEqual(t, page, expectedPage)
+		})
 	})
 }
 

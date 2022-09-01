@@ -1,6 +1,8 @@
 package server
 
 import (
+	"math"
+
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 )
@@ -31,6 +33,6 @@ func PaginationToResponse(p data.Pagination) api.PaginationResponse {
 		Page:       p.Page,
 		Limit:      p.Limit,
 		TotalCount: p.TotalCount,
-		TotalPages: p.TotalPages,
+		TotalPages: int(math.Ceil(float64(p.TotalCount) / float64(p.Limit))),
 	}
 }

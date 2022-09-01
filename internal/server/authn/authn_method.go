@@ -52,7 +52,7 @@ func Login(
 
 	accessKey := &models.AccessKey{
 		IssuedFor:         authenticated.Identity.ID,
-		IssuedForIdentity: authenticated.Identity,
+		IssuedForName:     authenticated.Identity.Name,
 		ProviderID:        authenticated.Provider.ID,
 		ExpiresAt:         authenticated.SessionExpiry,
 		ExtensionDeadline: time.Now().UTC().Add(keyExtension),
