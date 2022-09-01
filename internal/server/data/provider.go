@@ -31,7 +31,7 @@ func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error
 	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
+func ListProviders(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
 	return list[models.Provider](db, p, selectors...)
 }
 

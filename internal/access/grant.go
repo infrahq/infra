@@ -19,7 +19,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.ByID(id))
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *models.Pagination) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *data.Pagination) ([]models.Grant, error) {
 	selectors := []data.SelectorFunc{
 		data.ByOptionalResource(resource),
 		data.ByOptionalPrivilege(privilege),
@@ -75,7 +75,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 }
 
 func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
-	groups, err := data.ListGroups(db, &models.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
+	groups, err := data.ListGroups(db, &data.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
 	if err != nil {
 		return false
 	}

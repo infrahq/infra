@@ -57,7 +57,7 @@ func UpdateProviderUser(db GormTxn, providerUser *models.ProviderUser) error {
 	return save(db, providerUser)
 }
 
-func ListProviderUsers(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
+func ListProviderUsers(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
 	return list[models.ProviderUser](db, p, selectors...)
 }
 

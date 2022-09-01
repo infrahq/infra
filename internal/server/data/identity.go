@@ -103,7 +103,7 @@ func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error
 	return get[models.Identity](db, selectors...)
 }
 
-func ListIdentities(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
+func ListIdentities(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
 	return list[models.Identity](db, p, selectors...)
 }
 

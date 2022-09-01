@@ -25,7 +25,7 @@ func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
 	return group, nil
 }
 
-func ListGroups(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
+func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
 	groups, err := list[models.Group](db, p, selectors...)
 
 	if err != nil {
