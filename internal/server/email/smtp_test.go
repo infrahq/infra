@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func setupClient(srv net.Listener) {
@@ -202,7 +203,7 @@ func TestSendForgotDomain(t *testing.T) {
 
 	err := SendTemplate("", "hannibal@ateam.org", EmailTemplateForgottenDomains, ForgottenDomainData{
 		Domains: []models.ForgottenDomain{
-			models.ForgottenDomain{
+			{
 				OrganizationName:   "A Team",
 				OrganizationDomain: "ateam.infrahq.com",
 				LastSeenAt:         time.Now(),

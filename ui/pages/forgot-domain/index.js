@@ -37,7 +37,8 @@ export default function ForgotDomain() {
         <h1 className='text-base font-bold leading-snug'>Forgot Domain</h1>
         {submitted ? (
           <p className='my-3 max-w-[260px] text-xs text-gray-300'>
-            Please check your email to find a list of organizations which match your email address.
+            Please check your email to find a list of organizations which match
+            your email address.
           </p>
         ) : (
           <>
@@ -92,7 +93,7 @@ export default function ForgotDomain() {
           </>
         )}
       </>
-  </>
+    </>
   )
 }
 
