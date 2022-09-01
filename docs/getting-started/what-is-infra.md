@@ -26,7 +26,7 @@ Infra is a service for managing secure access to infrastructure such as Kubernet
 
 ### Walkthrough
 
-{% youtube src="https://www.youtube-nocookie.com/embed/kxlIDUPu-AY" title="Getting Started with Infra" /%}
+{% youtube id="kxlIDUPu-AY" /%}
 
 ## Use Cases
 
