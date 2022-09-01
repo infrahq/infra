@@ -117,7 +117,7 @@ func TestGetRoute(t *testing.T) {
 		Header: map[string][]string{},
 	}
 	c.Request.Header.Set("Infra-Version", apiVersionLatest)
-	r := e.Group("/")
+	r := rg(e.Group("/"))
 
 	get(&API{}, r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 		return &api.EmptyResponse{}, nil

@@ -54,7 +54,7 @@ func (s *Server) GenerateRoutes() Routes {
 	apiGroup := router.Group("/", metrics.Middleware(s.metricsRegistry))
 
 	// auth required, org required
-	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
+	authn := &routeGroup{RouterGroup: apiGroup.Group("/")}
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -97,16 +97,23 @@ func (s *Server) GenerateRoutes() Routes {
 
 	put(a, authn, "/api/settings", a.UpdateSettings)
 
-	authn.GET("/api/debug/pprof/*profile", pprofHandler)
+	add(a, authn, route[api.EmptyRequest, *api.EmptyResponse]{
+		method:                     http.MethodGet,
+		path:                       "/api/debug/pprof/*profile",
+		handler:                    pprofHandler,
+		omitFromTelemetry:          true,
+		omitFromDocs:               true,
+		infraVersionHeaderOptional: true,
+	})
 
 	// no auth required, org not required
-	noAuthnNoOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
+	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
 	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 
 	// no auth required, org required
-	noAuthnWithOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server), orgRequired())
+	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true}
 
 	post(a, noAuthnWithOrg, "/api/login", a.Login)
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
@@ -146,21 +153,34 @@ type route[Req, Res any] struct {
 	omitFromDocs               bool
 	omitFromTelemetry          bool
 	infraVersionHeaderOptional bool
+	noAuthentication           bool
+	noOrgRequired              bool
 }
 
-func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
-	route.path = path.Join(r.BasePath(), route.path)
+// TODO: replace this when routes are defined as package-level vars instead of
+// constructed from the get, post, put, del helper functions.
+type routeGroup struct {
+	*gin.RouterGroup
+	noAuthentication bool
+	noOrgRequired    bool
+}
+
+func add[Req, Res any](a *API, group *routeGroup, route route[Req, Res]) {
+	route.path = path.Join(group.BasePath(), route.path)
 
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(route))
 	}
+
+	route.noAuthentication = group.noAuthentication
+	route.noOrgRequired = group.noOrgRequired
 
 	handler := func(c *gin.Context) {
 		if err := wrapRoute(a, route)(c); err != nil {
 			sendAPIError(c, err)
 		}
 	}
-	bindRoute(a, r, route.method, route.path, handler)
+	bindRoute(a, group, route.method, route.path, handler)
 }
 
 func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) error {
@@ -230,7 +250,7 @@ func defaultResponseCodeForMethod(method string) int {
 	}
 }
 
-func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{
 		method:            http.MethodGet,
 		path:              path,
@@ -239,23 +259,23 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerF
 	})
 }
 
-func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func post[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPost, path: path, handler: handler})
 }
 
-func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func put[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPut, path: path, handler: handler})
 }
 
-func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func patch[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPatch, path: path, handler: handler})
 }
 
-func del[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
 }
 
-func addDeprecated[Req, Res any](a *API, r *gin.RouterGroup, method string, path string, handler HandlerFunc[Req, Res]) {
+func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{
 		method:            method,
 		path:              path,
