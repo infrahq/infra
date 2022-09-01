@@ -247,14 +247,7 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
 		}
 
-		statusCode := defaultResponseCodeForMethod(route.method)
-		if c, ok := any(resp).(statusCoder); ok {
-			if code := c.StatusCode(); code != 0 {
-				statusCode = code
-			}
-		}
-
-		c.JSON(statusCode, resp)
+		c.JSON(responseStatusCode(route.method, resp), resp)
 		return nil
 	}
 }
@@ -279,7 +272,12 @@ func trimWhitespace(req interface{}) {
 	}
 }
 
-func defaultResponseCodeForMethod(method string) int {
+func responseStatusCode(method string, resp any) int {
+	if c, ok := resp.(statusCoder); ok {
+		if code := c.StatusCode(); code != 0 {
+			return code
+		}
+	}
 	switch method {
 	case http.MethodPost:
 		return http.StatusCreated
