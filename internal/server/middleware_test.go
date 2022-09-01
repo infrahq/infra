@@ -89,7 +89,6 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 }
 
 func TestDBTimeout(t *testing.T) {
-	t.Skip()
 	var ctx context.Context
 	var cancel context.CancelFunc
 
@@ -104,9 +103,19 @@ func TestDBTimeout(t *testing.T) {
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
+
+			tx, err := srv.db.Begin(c.Request.Context())
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			defer func() {
+				_ = tx.Rollback()
+			}()
+
+			c.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
 			c.Next()
 		},
-		//unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
 		rCtx := getRequestContext(c)

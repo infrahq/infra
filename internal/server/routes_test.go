@@ -17,6 +17,8 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -108,30 +110,6 @@ func TestBindsEmptyRequest(t *testing.T) {
 	assert.NilError(t, err)
 }
 
-func TestGetRoute(t *testing.T) {
-	w := httptest.NewRecorder()
-	c, e := gin.CreateTestContext(w)
-	uri, _ := url.Parse("/")
-	c.Request = &http.Request{
-		URL:    uri,
-		Header: map[string][]string{},
-	}
-	c.Request.Header.Set("Infra-Version", apiVersionLatest)
-	r := rg(e.Group("/"))
-
-	get(&API{}, r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
-		return &api.EmptyResponse{}, nil
-	})
-
-	routes := e.Routes()
-
-	for _, route := range routes {
-		route.HandlerFunc(c)
-	}
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
 func TestTimestampAndDurationSerialization(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
@@ -204,6 +182,79 @@ func TestTrimWhitespace(t *testing.T) {
 		Resource:  "kubernetes.production.*",
 	}
 	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
+}
+
+func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
+	srv := newServer(Options{})
+	srv.db = setupDB(t)
+
+	router := gin.New()
+
+	r := route[api.EmptyRequest, *api.EmptyResponse]{
+		method: "POST",
+		path:   "/do",
+		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			rCtx := getRequestContext(c)
+
+			user := &models.Identity{
+				Model:              models.Model{ID: 1555},
+				Name:               "user@example.com",
+				OrganizationMember: models.OrganizationMember{OrganizationID: srv.db.DefaultOrg.ID},
+			}
+			if err := data.CreateIdentity(rCtx.DBTxn, user); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("this failed")
+		},
+		infraVersionHeaderOptional: true,
+		noAuthentication:           true,
+		noOrgRequired:              true,
+	}
+
+	api := &API{server: srv}
+	add(api, rg(router.Group("/")), r)
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/do", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+
+	// The user should not exist, because the txn was rollbed back
+	_, err := data.GetIdentity(srv.db, data.ByID(uid.ID(1555)))
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+}
+
+func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
+	srv := newServer(Options{})
+	srv.db = setupDB(t)
+
+	router := gin.New()
+
+	r := route[api.EmptyRequest, *api.EmptyResponse]{
+		method: "POST",
+		path:   "/do",
+		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			rCtx := getRequestContext(c)
+
+			// Commit the transaction so that the call in wrapRoute returns an error
+			err := rCtx.DBTxn.Commit()
+			return nil, err
+		},
+		infraVersionHeaderOptional: true,
+		noAuthentication:           true,
+		noOrgRequired:              true,
+	}
+
+	api := &API{server: srv}
+	add(api, rg(router.Group("/")), r)
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/do", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 }
 
 func TestInfraVersionHeader(t *testing.T) {

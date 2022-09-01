@@ -70,40 +70,31 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // authenticatedMiddleware is applied to all routes that require authentication.
 // It validates the access key, and updates the lastSeenAt of the user, and
 // possibly also of the destination.
-func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: https://github.com/infrahq/infra/issues/2697
-		_ = withDBTxn(c.Request.Context(), srv.db, func(tx *data.Transaction) error {
-			authned, err := requireAccessKey(c, tx, srv)
-			if err != nil {
-				sendAPIError(c, err)
-				return err
-			}
-
-			if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
-				logging.L.Warn().Err(err).Msg("org validation failed")
-				sendAPIError(c, internal.ErrBadRequest)
-				return err
-			}
-
-			rCtx := access.RequestContext{
-				Request:       c.Request,
-				DBTxn:         tx.WithOrgID(authned.Organization.ID),
-				Authenticated: authned,
-			}
-			c.Set(access.RequestContextKey, rCtx)
-
-			// TODO: remove once everything uses RequestContext
-			c.Set("identity", authned.User)
-
-			if err := handleInfraDestinationHeader(c); err != nil {
-				sendAPIError(c, err)
-				return err
-			}
-			c.Next()
-			return nil // TODO: https://github.com/infrahq/infra/issues/3076
-		})
+func authenticatedMiddleware(c *gin.Context, tx *data.Transaction, srv *Server) error {
+	authned, err := requireAccessKey(c, tx, srv)
+	if err != nil {
+		return err
 	}
+
+	if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
+		logging.L.Warn().Err(err).Msg("org validation failed")
+		return internal.ErrBadRequest
+	}
+
+	rCtx := access.RequestContext{
+		Request:       c.Request,
+		DBTxn:         tx.WithOrgID(authned.Organization.ID),
+		Authenticated: authned,
+	}
+	c.Set(access.RequestContextKey, rCtx)
+
+	// TODO: remove once everything uses RequestContext
+	c.Set("identity", authned.User)
+
+	if err := handleInfraDestinationHeader(c); err != nil {
+		return err
+	}
+	return nil
 }
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
@@ -157,56 +148,37 @@ func withDBTxn(ctx context.Context, db *data.DB, fn func(tx *data.Transaction) e
 	return err
 }
 
-func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// TODO: https://github.com/infrahq/infra/issues/2697
-		_ = withDBTxn(c.Request.Context(), srv.db, func(tx *data.Transaction) error {
-			// ignore errors, access key is not required
-			authned, _ := requireAccessKey(c, tx, srv)
+func unauthenticatedMiddleware(c *gin.Context, tx *data.Transaction, srv *Server) error {
+	// ignore errors, access key is not required
+	authned, _ := requireAccessKey(c, tx, srv)
 
-			org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
-			if err != nil {
-				logging.L.Warn().Err(err).Msg("org validation failed")
-				sendAPIError(c, internal.ErrBadRequest)
-				return internal.ErrBadRequest
-			}
-			authned.Organization = org
-
-			// See this diagram for more details about this request flow
-			// when an org is not specified.
-			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
-
-			// TODO: use an explicit setting for this, don't overload EnableSignup
-			if org == nil && !srv.options.EnableSignup { // is single tenant
-				org = srv.db.DefaultOrg
-			}
-			if org != nil {
-				authned.Organization = org
-				tx = tx.WithOrgID(authned.Organization.ID)
-			}
-
-			rCtx := access.RequestContext{
-				Request:       c.Request,
-				DBTxn:         tx,
-				Authenticated: authned,
-			}
-			c.Set(access.RequestContextKey, rCtx)
-			c.Next()
-			return nil // TODO: https://github.com/infrahq/infra/issues/3076
-		})
+	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
+	if err != nil {
+		logging.L.Warn().Err(err).Msg("org validation failed")
+		return internal.ErrBadRequest
 	}
-}
+	authned.Organization = org
 
-func orgRequired() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rCtx := getRequestContext(c)
+	// See this diagram for more details about this request flow
+	// when an org is not specified.
+	// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
 
-		if rCtx.Authenticated.Organization == nil {
-			sendAPIError(c, internal.ErrBadRequest)
-			return
-		}
-		c.Next()
+	// TODO: use an explicit setting for this, don't overload EnableSignup
+	if org == nil && !srv.options.EnableSignup { // is single tenant
+		org = srv.db.DefaultOrg
 	}
+	if org != nil {
+		authned.Organization = org
+		tx = tx.WithOrgID(authned.Organization.ID)
+	}
+
+	rCtx := access.RequestContext{
+		Request:       c.Request,
+		DBTxn:         tx,
+		Authenticated: authned,
+	}
+	c.Set(access.RequestContextKey, rCtx)
+	return nil
 }
 
 // requireAccessKey checks the bearer token is present and valid

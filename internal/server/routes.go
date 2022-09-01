@@ -180,7 +180,7 @@ func add[Req, Res any](a *API, group *routeGroup, route route[Req, Res]) {
 			sendAPIError(c, err)
 		}
 	}
-	bindRoute(a, group, route.method, route.path, handler)
+	bindRoute(a, group.RouterGroup, route.method, route.path, handler)
 }
 
 func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) error {
@@ -188,6 +188,36 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if !route.infraVersionHeaderOptional {
 			if _, err := requestVersion(c.Request); err != nil {
 				return err
+			}
+		}
+
+		tx, err := a.server.db.Begin(c.Request.Context())
+		if err != nil {
+			return err
+		}
+		// See https://github.com/golang/go/issues/25448 for why this does not use
+		// recover.
+		var committed bool
+		defer func() {
+			if !committed {
+				if err := tx.Rollback(); err != nil {
+					logging.L.Error().Err(err).Msg("failed to rollback database transaction")
+				}
+			}
+		}()
+
+		if route.noAuthentication {
+			err = unauthenticatedMiddleware(c, tx, a.server)
+		} else {
+			err = authenticatedMiddleware(c, tx, a.server)
+		}
+		if err != nil {
+			return err
+		}
+
+		if !route.noOrgRequired {
+			if org := getRequestContext(c).Authenticated.Organization; org == nil {
+				return internal.ErrBadRequest
 			}
 		}
 
@@ -202,6 +232,11 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if err != nil {
 			return err
 		}
+
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		committed = true
 
 		if !route.omitFromTelemetry {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})

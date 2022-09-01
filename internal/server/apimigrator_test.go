@@ -48,7 +48,7 @@ func TestAddRequestRewrite(t *testing.T) {
 }
 
 func rg(g *gin.RouterGroup) *routeGroup {
-	return &routeGroup{RouterGroup: g}
+	return &routeGroup{RouterGroup: g, noAuthentication: true, noOrgRequired: true}
 }
 
 func TestStackedAddRequestRewrite(t *testing.T) {
