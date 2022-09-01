@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -73,17 +72,18 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // possibly also of the destination.
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(tx *data.Transaction) {
+		// TODO: https://github.com/infrahq/infra/issues/2697
+		_ = withDBTxn(c.Request.Context(), srv.db, func(tx *data.Transaction) error {
 			authned, err := requireAccessKey(c, tx, srv)
 			if err != nil {
 				sendAPIError(c, err)
-				return
+				return err
 			}
 
 			if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
 				logging.L.Warn().Err(err).Msg("org validation failed")
 				sendAPIError(c, internal.ErrBadRequest)
-				return
+				return err
 			}
 
 			rCtx := access.RequestContext{
@@ -98,9 +98,10 @@ func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 
 			if err := handleInfraDestinationHeader(c); err != nil {
 				sendAPIError(c, err)
-				return
+				return err
 			}
 			c.Next()
+			return nil // TODO: https://github.com/infrahq/infra/issues/3076
 		})
 	}
 }
@@ -130,20 +131,36 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 	}
 }
 
-func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *data.Transaction)) {
-	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		fn(data.NewTransaction(tx, 0))
-		return nil
-	})
-	// TODO: https://github.com/infrahq/infra/issues/2697
+func withDBTxn(ctx context.Context, db *data.DB, fn func(tx *data.Transaction) error) error {
+	tx, err := db.Begin(ctx)
 	if err != nil {
-		logging.L.Error().Err(err).Msg("failed to commit database transaction")
+		return err
 	}
+
+	// See https://github.com/golang/go/issues/25448 for why this does not use
+	// recover.
+	var success bool
+
+	defer func() {
+		if success {
+			err = tx.Commit()
+		} else {
+			err = tx.Rollback()
+		}
+		if err != nil {
+			logging.L.Error().Err(err).Msg("failed to commit database transaction")
+		}
+	}()
+
+	err = fn(tx)
+	success = err == nil
+	return err
 }
 
 func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(tx *data.Transaction) {
+		// TODO: https://github.com/infrahq/infra/issues/2697
+		_ = withDBTxn(c.Request.Context(), srv.db, func(tx *data.Transaction) error {
 			// ignore errors, access key is not required
 			authned, _ := requireAccessKey(c, tx, srv)
 
@@ -151,7 +168,7 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			if err != nil {
 				logging.L.Warn().Err(err).Msg("org validation failed")
 				sendAPIError(c, internal.ErrBadRequest)
-				return
+				return internal.ErrBadRequest
 			}
 			authned.Organization = org
 
@@ -175,6 +192,7 @@ func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
 			}
 			c.Set(access.RequestContextKey, rCtx)
 			c.Next()
+			return nil // TODO: https://github.com/infrahq/infra/issues/3076
 		})
 	}
 }

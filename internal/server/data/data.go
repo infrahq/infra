@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -102,6 +103,15 @@ func (d *DB) GormDB() *gorm.DB {
 	return d.DB
 }
 
+// TODO: accept sql.TxOptions when we remove gorm
+func (d *DB) Begin(ctx context.Context) (*Transaction, error) {
+	tx := d.DB.WithContext(ctx).Begin()
+	if err := tx.Error; err != nil {
+		return nil, err
+	}
+	return &Transaction{DB: tx}, nil
+}
+
 type WriteTxn interface {
 	ReadTxn
 	Exec(sql string, values ...interface{}) (sql.Result, error)
@@ -155,16 +165,20 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
+func (t *Transaction) Rollback() error {
+	return t.DB.Rollback().Error
+}
+
+func (t *Transaction) Commit() error {
+	return t.DB.Commit().Error
+}
+
 // WithOrgID returns a copy of the Transaction with the OrganizationID set to
 // orgID.
 func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 	newTxn := *t
 	newTxn.orgID = orgID
 	return &newTxn
-}
-
-func NewTransaction(db *gorm.DB, orgID uid.ID) *Transaction {
-	return &Transaction{DB: db, orgID: orgID}
 }
 
 // newRawDB creates a new database connection without running migrations.

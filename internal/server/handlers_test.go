@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -76,12 +77,21 @@ func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 	return user
 }
 
-func loginAs(db data.GormTxn, user *models.Identity) *gin.Context {
+func loginAs(tx *data.Transaction, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
-	tx := data.NewTransaction(db.GormDB(), db.OrganizationID())
 	ctx.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
 	ctx.Set("identity", user)
 	return ctx
+}
+
+func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		assert.NilError(t, tx.Rollback())
+	})
+	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
 func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {

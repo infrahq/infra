@@ -11,7 +11,6 @@ import (
 
 	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -606,8 +605,8 @@ func (s Server) loadConfig(config Config) error {
 	}
 
 	org := s.db.DefaultOrg
-	return s.db.Transaction(func(db *gorm.DB) error {
-		tx := data.NewTransaction(db, org.ID)
+	return withDBTxn(context.Background(), s.db, func(tx *data.Transaction) error {
+		tx = tx.WithOrgID(org.ID)
 
 		if config.DefaultOrganizationDomain != org.Domain {
 			org.Domain = config.DefaultOrganizationDomain
