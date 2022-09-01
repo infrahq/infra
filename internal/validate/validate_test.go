@@ -111,8 +111,8 @@ func TestValidate_AllRules(t *testing.T) {
 			},
 			"emailAddr":  {"invalid email address"},
 			"emailOther": {`email address must not contain display name "Display Name"`},
-			"tooFew":     {"tooFew must be at least 5 characters"},
-			"tooMany":    {"tooMany can be at most 5 characters"},
+			"tooFew":     {"must be at least 5 characters"},
+			"tooMany":    {"can be at most 5 characters"},
 			"wrongOnes":  {"character 'C' at position 2 is not allowed"},
 			"tooHigh":    {"value 22 must be at most 20"},
 			"tooLow":     {"value 2 must be at least 20"},
@@ -183,14 +183,14 @@ func TestValidate_Traversal(t *testing.T) {
 		assert.Assert(t, errors.As(err, &fieldError))
 		expected := Error{
 			"":    {"one of (first, second, third) is required"},
-			"any": {"any can be at most 3 characters"},
+			"any": {"can be at most 3 characters"},
 			"sub.nested": {
 				"only one of (either, or) can have a value",
 				"one of (first, second, third) is required",
 			},
 			"sub.nested.id": {"is required"},
 			"sub.ok":        {"is required"},
-			"tooFew":        {"tooFew must be at least 5 characters"},
+			"tooFew":        {"must be at least 5 characters"},
 			"many":          {"one of (first, second, third) is required"},
 			"many.id":       {"is required"},
 		}

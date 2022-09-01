@@ -61,7 +61,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "org.subDomain", Errors: []string{
-						"subDomain must be at least 3 characters",
+						"must be at least 3 characters",
 						"character '@' at position 1 is not allowed",
 					}},
 				}
@@ -89,13 +89,13 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "password", Errors: []string{
-						"password must be at least 8 characters",
+						"must be at least 8 characters",
 					}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 
 				// the org should have been rolled back
-				_, err = data.GetOrganization(srv.DB(), data.ByDomain("hello.example.com"))
+				_, err = data.GetOrganization(srv.DB(), data.ByDomain("hello.exampledomain.com"))
 				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},
