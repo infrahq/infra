@@ -38,7 +38,7 @@ Deploy Infra via `helm`:
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra --values values.yaml
+helm upgrade --install infra infrahq/infra --values values.yaml
 ```
 
 ## Access the Infra Dashboard
