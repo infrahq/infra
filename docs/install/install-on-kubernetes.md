@@ -17,7 +17,18 @@ Install Infra via `helm`:
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra
+cat <<EOF | helm install infra infrahq/infra -f-
+server:
+  config:
+    users:
+      - name: admin@example.com
+        password: SetThisPassword!
+
+    grants:
+      - user: admin@example.com
+        role: admin
+        resource: infra
+EOF
 ```
 
 Find your load balancer endpoint:
