@@ -46,7 +46,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	// This group of middleware will apply to everything, including the UI
 	router.Use(
-		logging.Middleware(),
+		loggingMiddleware(),
 		TimeoutMiddleware(1*time.Minute),
 	)
 

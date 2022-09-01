@@ -1,4 +1,4 @@
-package logging
+package server
 
 import (
 	"bytes"
@@ -11,14 +11,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
-func TestMiddleware(t *testing.T) {
+func TestLoggingMiddleware(t *testing.T) {
 	setup := func(t *testing.T, writer io.Writer) *gin.Engine {
-		PatchLogger(t, writer)
+		logging.PatchLogger(t, writer)
 
 		router := gin.New()
-		router.Use(Middleware())
+		router.Use(loggingMiddleware())
 
 		router.GET("/good/:id", func(c *gin.Context) {})
 		router.POST("/good/:id", func(c *gin.Context) {})
@@ -28,6 +33,16 @@ func TestMiddleware(t *testing.T) {
 		})
 		router.GET("/broken", func(c *gin.Context) {
 			c.Status(http.StatusInternalServerError)
+		})
+
+		router.GET("/authned", func(c *gin.Context) {
+			// simulate authenticatedMiddleware
+			c.Set(access.RequestContextKey, access.RequestContext{
+				Authenticated: access.Authenticated{
+					User:         &models.Identity{Model: models.Model{ID: 12345}},
+					Organization: &models.Organization{Model: models.Model{ID: 2323}},
+				},
+			})
 		})
 
 		return router
@@ -78,6 +93,27 @@ func TestMiddleware(t *testing.T) {
 		}
 		assert.DeepEqual(t, actual, expected)
 	})
+
+	t.Run("with userID and orgID", func(t *testing.T) {
+		b := &bytes.Buffer{}
+		router := setup(t, b)
+		resp := httptest.NewRecorder()
+
+		router.ServeHTTP(resp, httptest.NewRequest("GET", "/authned", nil))
+
+		actual := decodeLogs(t, b)
+		expected := []logEntry{
+			{
+				Method:     "GET",
+				Path:       "/authned",
+				StatusCode: 200,
+				Level:      "info",
+				UserID:     uid.ID(12345),
+				OrgID:      uid.ID(2323),
+			},
+		}
+		assert.DeepEqual(t, actual, expected)
+	})
 }
 
 func decodeLogs(t *testing.T, input io.Reader) []logEntry {
@@ -100,4 +136,6 @@ type logEntry struct {
 	Path       string `json:"path"`
 	StatusCode int    `json:"statusCode"`
 	Level      string `json:"level"`
+	UserID     uid.ID `json:"userID"`
+	OrgID      uid.ID `json:"orgID"`
 }
