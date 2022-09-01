@@ -202,14 +202,9 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if err != nil {
 			return err
 		}
-		// See https://github.com/golang/go/issues/25448 for why this does not use
-		// recover.
-		var committed bool
 		defer func() {
-			if !committed {
-				if err := tx.Rollback(); err != nil {
-					logging.L.Error().Err(err).Msg("failed to rollback database transaction")
-				}
+			if err := tx.Rollback(); err != nil {
+				logging.L.Error().Err(err).Msg("failed to rollback database transaction")
 			}
 		}()
 
@@ -241,7 +236,6 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		committed = true
 
 		if !route.omitFromTelemetry {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})

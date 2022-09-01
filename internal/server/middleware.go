@@ -127,32 +127,6 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 	}
 }
 
-func withDBTxn(ctx context.Context, db *data.DB, fn func(tx *data.Transaction) error) error {
-	tx, err := db.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	// See https://github.com/golang/go/issues/25448 for why this does not use
-	// recover.
-	var success bool
-
-	defer func() {
-		if success {
-			err = tx.Commit()
-		} else {
-			err = tx.Rollback()
-		}
-		if err != nil {
-			logging.L.Error().Err(err).Msg("failed to commit database transaction")
-		}
-	}()
-
-	err = fn(tx)
-	success = err == nil
-	return err
-}
-
 // validateRequestOrganization is the alternative to authenticateRequest used
 // for routes that don't require authentication. It checks for an optional
 // access key, and if one does not exist, finds the organizationID from the

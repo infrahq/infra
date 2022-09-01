@@ -11,6 +11,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
 
@@ -109,7 +110,7 @@ func (d *DB) Begin(ctx context.Context) (*Transaction, error) {
 	if err := tx.Error; err != nil {
 		return nil, err
 	}
-	return &Transaction{DB: tx}, nil
+	return &Transaction{DB: tx, committed: new(atomic.Bool)}, nil
 }
 
 type WriteTxn interface {
@@ -137,10 +138,11 @@ type GormTxn interface {
 
 type Transaction struct {
 	*gorm.DB
-	orgID uid.ID
+	orgID     uid.ID
+	committed *atomic.Bool
 }
 
-func (t Transaction) DriverName() string {
+func (t *Transaction) DriverName() string {
 	return t.Dialector.Name()
 }
 
@@ -165,16 +167,26 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
+// Rollback the transaction. If the transaction was already committed than do
+// nothing.
 func (t *Transaction) Rollback() error {
+	if t.committed.Load() {
+		return nil
+	}
 	return t.DB.Rollback().Error
 }
 
 func (t *Transaction) Commit() error {
-	return t.DB.Commit().Error
+	err := t.DB.Commit().Error
+	if err == nil {
+		t.committed.Store(true)
+	}
+	return err
 }
 
-// WithOrgID returns a copy of the Transaction with the OrganizationID set to
-// orgID.
+// WithOrgID returns a shallow copy of the Transaction with the OrganizationID
+// set to orgID. Note that the underlying database transaction and commit state
+// is shared with the new copy.
 func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 	newTxn := *t
 	newTxn.orgID = orgID
