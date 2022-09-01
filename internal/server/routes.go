@@ -229,11 +229,9 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		}
 
 		req := new(Req)
-		if err := bind(c, req); err != nil {
+		if err := readRequest(c, req); err != nil {
 			return err
 		}
-
-		trimWhitespace(req)
 
 		resp, err := route.handler(c, req)
 		if err != nil {
@@ -327,7 +325,7 @@ func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path stri
 	})
 }
 
-func bind(c *gin.Context, req interface{}) error {
+func readRequest(c *gin.Context, req interface{}) error {
 	if err := c.ShouldBindUri(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
@@ -348,6 +346,7 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
+	trimWhitespace(req)
 	return nil
 }
 
