@@ -22,6 +22,7 @@ type Telemetry struct {
 	infraID uid.ID
 }
 
+// todo: store global settings like email/signup configured
 func NewTelemetry(db data.GormTxn, infraID uid.ID) *Telemetry {
 	return &Telemetry{
 		client:  analytics.New(internal.TelemetryWriteKey),
@@ -132,20 +133,6 @@ func (t *Telemetry) Event(event string, userId string, properties ...map[string]
 	}
 }
 
-func (t *Telemetry) Alias(id string) {
-	if t == nil {
-		return
-	}
-	err := t.Enqueue(analytics.Alias{
-		PreviousId: t.infraID.String(),
-		UserId:     id,
-		Timestamp:  time.Now().UTC(),
-	})
-	if err != nil {
-		logging.Debugf("%s", err.Error())
-	}
-}
-
 func (t *Telemetry) User(id string, name string) {
 	if t == nil {
 		return
@@ -153,6 +140,34 @@ func (t *Telemetry) User(id string, name string) {
 	err := t.Enqueue(analytics.Identify{
 		UserId:    id,
 		Traits:    analytics.NewTraits().SetEmail(name),
+		Timestamp: time.Now().UTC(),
+	})
+	if err != nil {
+		logging.Debugf("%s", err.Error())
+	}
+}
+
+func (t *Telemetry) Org(id, userID, name string) {
+	if t == nil {
+		return
+	}
+	err := t.Enqueue(analytics.Group{
+		GroupId:   id,
+		Traits:    analytics.NewTraits().SetName(name),
+		Timestamp: time.Now().UTC(),
+	})
+	if err != nil {
+		logging.Debugf("%s", err.Error())
+	}
+}
+
+func (t *Telemetry) OrgMembership(orgID, userID string) {
+	if t == nil {
+		return
+	}
+	err := t.Enqueue(analytics.Group{
+		GroupId:   orgID,
+		UserId:    userID,
 		Timestamp: time.Now().UTC(),
 	})
 	if err != nil {

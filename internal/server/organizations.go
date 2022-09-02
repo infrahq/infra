@@ -9,13 +9,13 @@ import (
 )
 
 func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest) (*api.ListResponse[api.Organization], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	orgs, err := access.ListOrganizations(c, r.Name, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(orgs, models.PaginationToResponse(p), func(org models.Organization) api.Organization {
+	result := api.NewListResponse(orgs, PaginationToResponse(p), func(org models.Organization) api.Organization {
 		return *org.ToAPI()
 	})
 
@@ -47,6 +47,8 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 	if err != nil {
 		return nil, err
 	}
+
+	a.t.Org(org.ID.String(), authIdent.ID.String(), org.Name)
 
 	return org.ToAPI(), nil
 }

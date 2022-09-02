@@ -34,7 +34,7 @@ func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination,
 	return get[models.Destination](db, selectors...)
 }
 
-func ListDestinations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
+func ListDestinations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
 	return list[models.Destination](db, p, selectors...)
 }
 

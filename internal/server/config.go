@@ -80,9 +80,10 @@ func (u User) ValidationRules() []validate.ValidationRule {
 }
 
 type Config struct {
-	Providers []Provider
-	Grants    []Grant
-	Users     []User
+	DefaultOrganizationDomain string
+	Providers                 []Provider
+	Grants                    []Grant
+	Users                     []User
 }
 
 func (c Config) ValidationRules() []validate.ValidationRule {
@@ -603,13 +604,17 @@ func (s Server) loadConfig(config Config) error {
 	if err := validate.Validate(config); err != nil {
 		return err
 	}
-	org, err := data.GetOrganization(s.DB(), data.ByName(models.DefaultOrganizationName))
-	if err != nil {
-		return err
-	}
 
+	org := s.db.DefaultOrg
 	return s.db.Transaction(func(db *gorm.DB) error {
 		tx := data.NewTransaction(db, org.ID)
+
+		if config.DefaultOrganizationDomain != org.Domain {
+			org.Domain = config.DefaultOrganizationDomain
+			if err := data.UpdateOrganization(tx, org); err != nil {
+				return fmt.Errorf("update default org domain: %w", err)
+			}
+		}
 
 		// inject internal infra provider
 		config.Providers = append(config.Providers, Provider{

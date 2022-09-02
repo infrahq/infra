@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
@@ -61,7 +62,7 @@ func TestGetProvider(t *testing.T) {
 
 		provider, err := GetProvider(db, ByName("okta-development"))
 		assert.NilError(t, err)
-		assert.Assert(t, 0 != provider.ID)
+		assert.Assert(t, provider.ID != 0)
 		assert.Equal(t, providerDevelop.URL, provider.URL)
 	})
 }
@@ -94,6 +95,7 @@ func TestDeleteProviders(t *testing.T) {
 			user               = &models.Identity{}
 			i                  = 0
 		)
+
 		setup := func() {
 			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com", Kind: models.ProviderKindOkta}
@@ -111,6 +113,7 @@ func TestDeleteProviders(t *testing.T) {
 			user = &models.Identity{Name: "joe@example.com"}
 			err = CreateIdentity(db, user)
 			assert.NilError(t, err)
+
 			pu, err = CreateProviderUser(db, &providerDevelop, user)
 			assert.NilError(t, err)
 		}
@@ -132,6 +135,46 @@ func TestDeleteProviders(t *testing.T) {
 				_, err = GetIdentity(db, ByID(pu.IdentityID))
 				assert.Error(t, err, "record not found")
 			})
+		})
+
+		t.Run("access keys issued using deleted provider are revoked", func(t *testing.T) {
+			setup()
+
+			key := &models.AccessKey{
+				Name:       "test key",
+				IssuedFor:  user.ID,
+				ProviderID: providerDevelop.ID,
+				ExpiresAt:  time.Now().Add(5 * time.Minute),
+			}
+
+			_, err := CreateAccessKey(db, key)
+			assert.NilError(t, err)
+
+			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, ByID(key.ID))
+			assert.ErrorContains(t, err, "record not found")
+		})
+
+		t.Run("access keys issued using different provider from deleted are NOT revoked", func(t *testing.T) {
+			setup()
+
+			key := &models.AccessKey{
+				Name:       "test key",
+				IssuedFor:  user.ID,
+				ProviderID: providerProduction.ID,
+				ExpiresAt:  time.Now().Add(5 * time.Minute),
+			}
+
+			_, err := CreateAccessKey(db, key)
+			assert.NilError(t, err)
+
+			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, ByID(key.ID))
+			assert.NilError(t, err)
 		})
 
 		t.Run("user is not removed if there are other providerUsers", func(t *testing.T) {

@@ -41,7 +41,9 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 			tc.setup(t, req)
 		}
 
-		opts := Options{Server: ServerOptions{SkipTLSVerify: true}}
+		opts := Options{
+			Server: ServerOptions{SkipTLSVerify: true, AccessKey: "the-access-key"},
+		}
 		authn := newAuthenticator("https://127.0.0.1:12345", opts)
 		authn.client = tc.fakeClient
 
@@ -168,7 +170,7 @@ type fakeClient struct {
 	err error
 }
 
-func (f fakeClient) Do(_ *http.Request) (*http.Response, error) {
+func (f fakeClient) Do(req *http.Request) (*http.Response, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -179,6 +181,10 @@ func (f fakeClient) Do(_ *http.Request) (*http.Response, error) {
 	err := json.NewEncoder(&buf).Encode(r)
 	if err != nil {
 		return nil, err
+	}
+
+	if authHeader := req.Header.Get("Authorization"); authHeader != "Bearer the-access-key" {
+		return nil, fmt.Errorf("missing authorization header or wrong access key: %v", authHeader)
 	}
 
 	resp := &http.Response{

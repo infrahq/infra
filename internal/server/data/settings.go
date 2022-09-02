@@ -12,8 +12,8 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func initializeSettings(tx GormTxn) (*models.Settings, error) {
-	settings, err := GetSettings(tx)
+func initializeSettings(tx GormTxn, orgID uid.ID) (*models.Settings, error) {
+	settings, err := getSettingsForOrg(tx, orgID)
 	if settings != nil {
 		return settings, err
 	}
@@ -45,14 +45,14 @@ func initializeSettings(tx GormTxn) (*models.Settings, error) {
 	}
 
 	settings = &models.Settings{
-		OrganizationMember: models.OrganizationMember{OrganizationID: tx.OrganizationID()},
+		OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
 		PrivateJWK:         secs,
 		PublicJWK:          pubs,
 	}
 
 	db := tx.GormDB()
-	// Attrs() assigns the field iff the record is not found
-	if err := db.Where("organization_id = ?", tx.OrganizationID()).FirstOrCreate(&settings).Error; err != nil {
+	db = ByOrgID(orgID)(db)
+	if err := db.FirstOrCreate(&settings).Error; err != nil {
 		return nil, err
 	}
 
@@ -65,8 +65,9 @@ func GetSettings(db GormTxn) (*models.Settings, error) {
 
 func getSettingsForOrg(tx GormTxn, orgID uid.ID) (*models.Settings, error) {
 	db := tx.GormDB()
+	db = ByOrgID(orgID)(db)
 	var settings models.Settings
-	if err := db.Where("organization_id = ?", orgID).First(&settings).Error; err != nil {
+	if err := db.First(&settings).Error; err != nil {
 		return nil, err
 	}
 

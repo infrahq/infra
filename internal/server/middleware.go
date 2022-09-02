@@ -44,7 +44,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 
 	// TODO: use GetDestination(ByUniqueID())
-	destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{Limit: 1})
+	destinations, err := access.ListDestinations(c, uniqueID, "", &data.Pagination{Limit: 1})
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,6 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(db *gorm.DB) {
-
 			tx := data.NewTransaction(db, 0)
 			authned, err := requireAccessKey(c, tx, srv)
 			if err != nil {
@@ -199,7 +198,7 @@ func orgRequired() gin.HandlerFunc {
 func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Authenticated, error) {
 	var u access.Authenticated
 
-	bearer, err := reqBearerToken(c, srv.options.BaseDomain)
+	bearer, err := reqBearerToken(c, srv.options)
 	if err != nil {
 		return u, err
 	}
@@ -225,6 +224,8 @@ func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Auth
 	}
 
 	// now that the org is loaded scope all db calls to that org
+	// TODO: set the orgID explicitly in the options passed to GetIdentity to
+	// remove the need for this NewTransaction call.
 	db = data.NewTransaction(db.GormDB(), org.ID)
 
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
@@ -289,7 +290,7 @@ hostLookup:
 	return org, nil
 }
 
-func reqBearerToken(c *gin.Context, baseDomain string) (string, error) {
+func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 	header := c.Request.Header.Get("Authorization")
 
 	bearer := ""
@@ -298,17 +299,21 @@ func reqBearerToken(c *gin.Context, baseDomain string) (string, error) {
 	if len(parts) == 2 && parts[0] == "Bearer" {
 		bearer = parts[1]
 	} else {
-		// Fall back to checking cookies
-		cookie, err := getCookie(c.Request, cookieAuthorizationName)
-		if err != nil {
-			logging.L.Trace().Msg("auth cookie not found, falling back to signup cookie")
-			cookie, err = getCookie(c.Request, cookieSignupName)
+		/*
+		 Fallback to checking cookies.
+		 The 'signup' cookie is set when a new org is created, check for it first.
+		 Signup takes priority over the auth cookie to ensure a new signup always get the correct session.
+		 If this isn't a new org, check for the 'auth' cookie which contains an access key.
+		*/
+		cookie := exchangeSignupCookieForSession(c, opts)
+		if cookie == "" {
+			logging.L.Trace().Msg("sign-up cookie not found, falling back to auth cookie")
+
+			var err error
+			cookie, err = getCookie(c.Request, cookieAuthorizationName)
 			if err != nil {
 				return "", fmt.Errorf("%w: valid token not found in request", internal.ErrUnauthorized)
 			}
-
-			// if this is the first request after sign-up we must exchange the signup cookie for an auth cookie
-			exchangeSignupCookieForSession(c, baseDomain)
 		}
 
 		bearer = cookie

@@ -52,32 +52,9 @@ Download the [latest][1] release from GitHub, unpack the file, and add the binar
 {% /tab %}
 {% /tabs %}
 
+## Upgrade Infra Server and Connector
+
+See the Helm [README.md][2] for details.
+
 [1]: https://github.com/infrahq/infra/releases/latest
-
-## Upgrade Infra Server
-
-1. Update the Helm repository
-
-    ```
-    helm repo update infrahq
-    ```
-
-2. Upgrade Infra via `helm upgrade`:
-
-    ```
-    helm upgrade infra infrahq/infra
-    ```
-
-## Upgrade Infra Connector
-
-1. Update the Helm repository
-
-    ```
-    helm repo update infrahq
-    ```
-
-2. Upgrade Infra iva `helm upgrade`:
-
-    ```
-    helm upgrade infra-connector infrahq/infra
-    ```
+[2]: https://github.com/infrahq/infra/tree/main/helm/charts/infra

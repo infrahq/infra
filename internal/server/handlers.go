@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 )
@@ -63,13 +64,13 @@ func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResp
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(accessKeys, models.PaginationToResponse(p), func(accessKey models.AccessKey) api.AccessKey {
+	result := api.NewListResponse(accessKeys, PaginationToResponse(p), func(accessKey models.AccessKey) api.AccessKey {
 		return *accessKey.ToAPI()
 	})
 
@@ -140,8 +141,16 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	setCookie(c, cookie)
 
 	a.t.User(identity.ID.String(), r.Name)
-	a.t.Alias(identity.ID.String())
+	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
 	a.t.Event("signup", identity.ID.String(), Properties{})
+
+	err = email.SendSignupEmail("", r.Name, email.SignupData{
+		Link: fmt.Sprintf("https://%s/login", suDetails.Org.Domain),
+	})
+	if err != nil {
+		// if email failed, continue on anyway.
+		logging.L.Error().Err(err).Msg("could not send signup email")
+	}
 
 	return &api.SignupResponse{
 		User:         identity.ToAPI(),
@@ -150,8 +159,9 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	var loginMethod authn.LoginMethod
+	rCtx := getRequestContext(c)
 
+	var loginMethod authn.LoginMethod
 	switch {
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
@@ -176,7 +186,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// do the actual login now that we know the method selected
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
-	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	result, err := authn.Login(rCtx.Request.Context(), rCtx.DBTxn, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
@@ -189,15 +199,28 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	cookie := cookieConfig{
 		Name:    cookieAuthorizationName,
-		Value:   bearer,
+		Value:   result.Bearer,
 		Domain:  c.Request.Host,
-		Expires: key.ExpiresAt,
+		Expires: result.AccessKey.ExpiresAt,
 	}
 	setCookie(c, cookie)
 
+	key := result.AccessKey
+	a.t.User(key.IssuedFor.String(), result.User.Name)
+	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
-	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(key.ExpiresAt), PasswordUpdateRequired: requiresUpdate}, nil
+	// Update the request context so that logging middleware can include the userID
+	rCtx.Authenticated.User = result.User
+	c.Set(access.RequestContextKey, rCtx)
+
+	return &api.LoginResponse{
+		UserID:                 key.IssuedFor,
+		Name:                   key.IssuedForIdentity.Name,
+		AccessKey:              result.Bearer,
+		Expires:                api.Time(key.ExpiresAt),
+		PasswordUpdateRequired: result.CredentialUpdateRequired,
+	}, nil
 }
 
 func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {

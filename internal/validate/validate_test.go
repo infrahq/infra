@@ -28,6 +28,8 @@ type ExampleRequest struct {
 	TooHigh int
 
 	Kind string
+
+	Unique string
 }
 
 func (r ExampleRequest) ValidationRules() []ValidationRule {
@@ -63,6 +65,7 @@ func (r ExampleRequest) ValidationRules() []ValidationRule {
 		IntRule{Name: "tooLow", Value: r.TooLow, Min: Int(20)},
 		IntRule{Name: "tooHigh", Value: r.TooHigh, Max: Int(20)},
 		Enum("kind", r.Kind, []string{"fruit", "legume", "grain"}),
+		ReservedStrings("unique", r.Unique, []string{"special"}),
 	}
 }
 
@@ -93,6 +96,7 @@ func TestValidate_AllRules(t *testing.T) {
 			TooLow:     2,
 			TooHigh:    22,
 			Kind:       "fish",
+			Unique:     "special",
 		}
 		err := Validate(r)
 		assert.ErrorContains(t, err, "validation failed: ")
@@ -107,12 +111,13 @@ func TestValidate_AllRules(t *testing.T) {
 			},
 			"emailAddr":  {"invalid email address"},
 			"emailOther": {`email address must not contain display name "Display Name"`},
-			"tooFew":     {"length of string is 1, must be at least 5"},
-			"tooMany":    {"length of string is 6, must be no more than 5"},
+			"tooFew":     {"must be at least 5 characters"},
+			"tooMany":    {"can be at most 5 characters"},
 			"wrongOnes":  {"character 'C' at position 2 is not allowed"},
 			"tooHigh":    {"value 22 must be at most 20"},
 			"tooLow":     {"value 2 must be at least 20"},
 			"kind":       {"must be one of (fruit, legume, grain)"},
+			"unique":     {"special is reserved and can not be used"},
 		}
 		assert.DeepEqual(t, fieldError, expected)
 	})
@@ -178,14 +183,14 @@ func TestValidate_Traversal(t *testing.T) {
 		assert.Assert(t, errors.As(err, &fieldError))
 		expected := Error{
 			"":    {"one of (first, second, third) is required"},
-			"any": {"length of string is 6, must be no more than 3"},
+			"any": {"can be at most 3 characters"},
 			"sub.nested": {
 				"only one of (either, or) can have a value",
 				"one of (first, second, third) is required",
 			},
 			"sub.nested.id": {"is required"},
 			"sub.ok":        {"is required"},
-			"tooFew":        {"length of string is 1, must be at least 5"},
+			"tooFew":        {"must be at least 5 characters"},
 			"many":          {"one of (first, second, third) is required"},
 			"many.id":       {"is required"},
 		}

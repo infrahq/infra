@@ -84,7 +84,7 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
-		p := models.Pagination{Page: 1, Limit: 10}
+		p := Pagination{Page: 1, Limit: 10}
 
 		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
@@ -162,4 +162,14 @@ func TestSetOrg(t *testing.T) {
 	tx := &Transaction{orgID: 123456}
 	setOrg(tx, model)
 	assert.Equal(t, model.OrganizationID, uid.ID(123456))
+}
+
+func TestNewDB(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		assert.Equal(t, db.DefaultOrg.ID, uid.ID(defaultOrganizationID))
+
+		org, err := GetOrganization(db, ByID(defaultOrganizationID))
+		assert.NilError(t, err)
+		assert.DeepEqual(t, org, db.DefaultOrg, cmpTimeWithDBPrecision)
+	})
 }

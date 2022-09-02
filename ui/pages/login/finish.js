@@ -16,10 +16,14 @@ export default function Finish() {
   const { mutate } = useSWRConfig()
 
   const { query } = router
-  const { user } = query
+  const { next, user } = query
 
   if (!user) {
-    router.replace('/login')
+    if (next) {
+      router.replace(`/login?next=${next}`)
+    } else {
+      router.replace('/login')
+    }
   }
 
   async function finish(e) {
@@ -44,7 +48,11 @@ export default function Finish() {
 
       await mutate('/api/users/self')
 
-      await router.replace('/')
+      if (next) {
+        router.replace(`/login?next=${next}`)
+      } else {
+        router.replace('/login')
+      }
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}

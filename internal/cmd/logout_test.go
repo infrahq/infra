@@ -188,6 +188,7 @@ func TestLogout(t *testing.T) {
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].UserID = 0
+		expected.Hosts[0].Expires = api.Time{}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -209,6 +210,7 @@ func TestLogout(t *testing.T) {
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].UserID = 0
+		expected.Hosts[0].Expires = api.Time{}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
@@ -230,6 +232,7 @@ func TestLogout(t *testing.T) {
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].UserID = 0
+		expected.Hosts[0].Expires = api.Time{}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		kubeconfig := expectedKubeCfg
@@ -272,9 +275,11 @@ func TestLogout(t *testing.T) {
 		expected.Hosts[0].AccessKey = ""
 		expected.Hosts[0].Name = ""
 		expected.Hosts[0].UserID = 0
+		expected.Hosts[0].Expires = api.Time{}
 		expected.Hosts[1].AccessKey = ""
 		expected.Hosts[1].Name = ""
 		expected.Hosts[1].UserID = 0
+		expected.Hosts[1].Expires = api.Time{}
 		assert.DeepEqual(t, &expected, updatedCfg)
 
 		updatedKubeCfg, err := clientConfig().RawConfig()

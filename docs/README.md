@@ -19,8 +19,8 @@ Then visit `http://localhost:3000/docs`
 
 ## Front matter
 
-* `position`: the position in the list
-* `title:` the title to display
+- `position`: the position in the list
+- `title:` the title to display
 
 Example article with front matter:
 
@@ -41,7 +41,7 @@ Category directories are denoted by adding a `.category` file in the directory.
 
 Categories can have the same [front matter](#front-matter) as pages, with the following additional fields in their `.category` file:
 
-* `links` a list of links to other pages
+- `links` a list of links to other pages
 
 For example:
 
@@ -69,7 +69,6 @@ Categories can be pages, too, by creating a `README.md` file in the category's d
 Callouts are in-article tooltips:
 
 ```md
-
 {% callout type="info" %}
 For your information
 {% /callout %}
@@ -81,7 +80,6 @@ This is your final warning
 {% callout type="success" %}
 Congratulations
 {% /callout %}
-
 ```
 
 ### Tabs
@@ -111,9 +109,7 @@ Linux instructions
 Youtube videos are embeddable:
 
 ```md
-
-{% youtube src="https://www.youtube-nocookie.com/embed/kxlIDUPu-AY" title="Getting Started with Infra" /%}
-
+{% youtube id="kxlIDUPu-AY /%}
 ```
 
 ### Partials
@@ -129,8 +125,5 @@ This content can be included in different pages.
 Then use this partial:
 
 ```md
-
 {% partial file="partial.md" /%}
-
 ```
-

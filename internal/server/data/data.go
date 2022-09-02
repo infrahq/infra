@@ -135,9 +135,6 @@ func (t Transaction) DriverName() string {
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
-	if t.orgID == 0 {
-		panic("OrganizationID was not set")
-	}
 	return t.orgID
 }
 
@@ -190,12 +187,15 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 	return db, nil
 }
 
+const defaultOrganizationID = 1000
+
 func initialize(db *DB) error {
-	org, err := GetOrganization(db, ByName(models.DefaultOrganizationName))
+	org, err := GetOrganization(db, ByID(defaultOrganizationID))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
-			Name:      models.DefaultOrganizationName,
+			Model:     models.Model{ID: defaultOrganizationID},
+			Name:      "Default",
 			CreatedBy: models.CreatedBySystem,
 		}
 		if err := CreateOrganization(db, org); err != nil {
@@ -275,12 +275,12 @@ func setOrg(tx ReadTxn, model any) {
 		return
 	}
 
-	member.SetOrganizationID(tx.OrganizationID())
+	member.SetOrganizationID(tx)
 }
 
 type orgMember interface {
 	IsOrganizationMember()
-	SetOrganizationID(id uid.ID)
+	SetOrganizationID(source models.OrganizationIDSource)
 }
 
 func isOrgMember(model any) bool {
@@ -288,7 +288,7 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func list[T models.Modelable](tx GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](tx GormTxn, p *Pagination, selectors ...SelectorFunc) ([]T, error) {
 	db := tx.GormDB()
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
@@ -347,6 +347,12 @@ type UniqueConstraintError struct {
 	Column string
 }
 
+// these are tables whose names need the 'an' article rather than 'a'
+var anArticleTableName = map[string]bool{
+	"access key":   true,
+	"organization": true,
+}
+
 func (e UniqueConstraintError) Error() string {
 	table := e.Table
 	switch table {
@@ -360,10 +366,15 @@ func (e UniqueConstraintError) Error() string {
 		table = strings.TrimSuffix(table, "s")
 	}
 
-	if e.Column == "" {
-		return fmt.Sprintf("a %v with that value already exists", table)
+	article := "a"
+	if anArticleTableName[table] {
+		article = "an"
 	}
-	return fmt.Sprintf("a %v with that %v already exists", table, e.Column)
+
+	if e.Column == "" {
+		return fmt.Sprintf("%s %v with that value already exists", article, table)
+	}
+	return fmt.Sprintf("%s %v with that %v already exists", article, table, e.Column)
 }
 
 // handleError looks for well known DB errors. If the error is recognized it

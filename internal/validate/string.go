@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -20,18 +21,12 @@ type StringRule struct {
 	MaxLength int
 
 	// CharacterRanges is a list of character ranges. Every rune in value
-	// must bet within one of these ranges.
+	// must be within one of these ranges.
 	CharacterRanges []CharRange
-}
 
-func String(name, value string, min, max int, charset ...CharRange) StringRule {
-	return StringRule{
-		Name:            name,
-		Value:           value,
-		MinLength:       min,
-		MaxLength:       max,
-		CharacterRanges: charset,
-	}
+	// FirstCharacterRange is a list of character ranges. The first rune in
+	// value must be within one of these ranges.
+	FirstCharacterRange []CharRange
 }
 
 type CharRange struct {
@@ -89,11 +84,18 @@ func (s StringRule) Validate() *Failure {
 		problems = append(problems, fmt.Sprintf(format, args...))
 	}
 	if s.MinLength > 0 && len(value) < s.MinLength {
-		add("length of string is %d, must be at least %d", len(value), s.MinLength)
+		add("must be at least %d characters", s.MinLength)
 	}
 
 	if s.MaxLength > 0 && len(value) > s.MaxLength {
-		add("length of string is %d, must be no more than %d", len(value), s.MaxLength)
+		add("can be at most %d characters", s.MaxLength)
+	}
+
+	if len(s.FirstCharacterRange) > 0 {
+		first, _ := utf8.DecodeRuneInString(value)
+		if !inRange(s.FirstCharacterRange, first) {
+			add("first character %q is not allowed", first)
+		}
 	}
 
 	if len(s.CharacterRanges) > 0 {
@@ -151,3 +153,30 @@ func (e enum) DescribeSchema(parent *openapi3.Schema) {
 		schema.Enum = append(schema.Enum, v)
 	}
 }
+
+// ReservedStrings returns a validation that checks that value does not match
+// any of the strings in values.
+func ReservedStrings(name string, value string, values []string) ValidationRule {
+	return reserved{Name: name, Value: value, Reserved: values}
+}
+
+type reserved struct {
+	Name     string
+	Value    string
+	Reserved []string
+}
+
+func (r reserved) Validate() *Failure {
+	if r.Value == "" {
+		return nil
+	}
+	for _, notAllowed := range r.Reserved {
+		if r.Value == notAllowed {
+			msg := fmt.Sprintf("%v is reserved and can not be used", r.Value)
+			return fail(r.Name, msg)
+		}
+	}
+	return nil
+}
+
+func (r reserved) DescribeSchema(_ *openapi3.Schema) {}

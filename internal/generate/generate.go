@@ -25,6 +25,8 @@ func CryptoRandom(n int, charset string) (string, error) {
 
 	bytes := make([]byte, n)
 	for i := range bytes {
+		// linter is mistaken about which package this is
+		// nolint: gosec
 		bigint, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
 			return "", fmt.Errorf("couldn't generate random string of len %d: %w", n, err)

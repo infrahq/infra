@@ -91,7 +91,7 @@ func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+func ListAccessKeys(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
 	return list[models.AccessKey](db, p, selectors...)
 }
 
@@ -156,11 +156,6 @@ func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-
-		// Set the orgID in the tx. This is only necessary because our data
-		// layer requires an orgID be set in the transaction. If we remove
-		// that requirement, we can remove this line as well.
-		tx = NewTransaction(tx.GormDB(), t.OrganizationID)
 		if err := SaveAccessKey(tx, t); err != nil {
 			return nil, err
 		}

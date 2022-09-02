@@ -61,8 +61,10 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.Assert(t, len(tokens) > 0)
 	token := tokens[len(tokens)-1]
 
+	resetData, ok := email.TestDataSent[0].(email.PasswordResetData)
+	assert.Assert(t, ok)
 	// TODO: fix test so that we can verify the domain; default org has blank domain
-	assert.Equal(t, email.TestDataSent[0]["link"], "https:///password-reset?token="+token)
+	assert.Equal(t, resetData.Link, "https:///password-reset?token="+token)
 
 	// reset the password with the token
 	body, err = json.Marshal(&api.VerifiedResetPasswordRequest{

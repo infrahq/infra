@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
-import { MenuIcon, XIcon } from '@heroicons/react/outline'
+import { Bars2Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 const links = [
   {
@@ -8,97 +8,68 @@ const links = [
     text: 'Documentation',
   },
   {
-    href: 'https://blog.infrahq.com',
+    href: '/blog',
     text: 'Blog',
-  },
-  {
-    href: '/about',
-    text: 'About',
   },
 ]
 
-export default function Nav({ docs = false }) {
+export default function Nav() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className='sticky top-0 z-50 mx-auto flex w-full max-w-screen-2xl flex-col items-center bg-black/90 px-6 py-5 text-white backdrop-blur-lg md:px-8'>
-      <div className='flex w-full flex-1 items-center justify-between'>
+    <header
+      className={`top-0 z-50 mx-auto flex w-full flex-col items-center bg-white/90 py-4 px-6 backdrop-blur-lg transition-colors duration-150 md:sticky ${
+        open ? 'fixed bg-white' : 'bg-white/90 backdrop-blur-lg'
+      }`}
+    >
+      <div className='flex w-full max-w-7xl flex-1 items-center justify-between'>
         <Link href='/'>
-          <a className='flex'>
+          <a className='flex-none'>
             <img
               alt='infra logo'
-              src='/images/logo-white.svg'
-              className='mb-1 h-5'
+              src='/images/logo.svg'
+              className='h-8'
               draggable='false'
             />
-            {docs && (
-              <img
-                alt='infra docs'
-                className='ml-0.5 h-5'
-                src='/images/logo-docs.svg'
-              />
-            )}
           </a>
         </Link>
-        <nav className='hidden flex-row items-center space-x-12 md:flex'>
-          {links.map(l => (
-            <Link key={l.text} href={l.href}>
-              <a>{l.text}</a>
+        <div className='flex'>
+          <nav className='relative top-0.5 flex-1 items-baseline text-[15px] font-medium leading-none'>
+            {links.map(l => (
+              <Link key={l.text} href={l.href}>
+                <a className='mx-4 hidden md:inline'>{l.text}</a>
+              </Link>
+            ))}
+            <Link href='/docs/getting-started/quickstart'>
+              <a className='group ml-4 inline-flex flex-none items-center rounded-full bg-blue-500 py-2.5 px-3.5 text-[14px] font-semibold leading-3 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
+                Get Started{' '}
+                <span className='ml-1 transition-transform group-hover:translate-x-0.5'>
+                  ›
+                </span>
+              </a>
             </Link>
-          ))}
-          <Link href='https://github.com/infrahq/infra'>
-            <a>
-              <div className='overflow-hidden rounded-full bg-gradient-to-tr from-cyan-100 to-pink-300'>
-                <button className='m-px flex items-center rounded-full bg-black py-1.5 pl-2 pr-3 hover:bg-gray-900'>
-                  <img
-                    alt='github logo'
-                    className='h-5 pr-2'
-                    src='/images/github.svg'
-                  />{' '}
-                  Open in GitHub
-                </button>
-              </div>
-            </a>
-          </Link>
-        </nav>
-        <div
-          className='-mr-4 flex flex-row items-center space-x-12 py-2 px-4 text-base md:hidden'
-          onClick={() => setOpen(!open)}
-        >
-          {open ? (
-            <XIcon className='h-6 w-6 text-zinc-200' />
-          ) : (
-            <MenuIcon className='h-6 w-6 text-zinc-200' />
-          )}
+          </nav>
+          <div
+            className='-mr-4 flex flex-row items-center space-x-12 py-2 px-4 text-base text-black md:hidden'
+            onClick={() => setOpen(!open)}
+          >
+            {open ? (
+              <XMarkIcon className='h-6 w-6' />
+            ) : (
+              <Bars2Icon className='h-6 w-6' />
+            )}
+          </div>
         </div>
       </div>
-      <nav
-        className={`relative z-10 flex w-full flex-col justify-around space-y-6 py-5 text-lg font-thin ${
-          open ? '' : 'hidden'
-        }`}
-      >
-        {links.map(l => (
-          <Link key={l.text} href={l.href}>
-            <a onClick={() => setOpen(false)} className='w-full py-2'>
-              {l.text}
-            </a>
-          </Link>
-        ))}
-        <Link href='https://github.com/infrahq/infra'>
-          <a>
-            <div className='inline-flex overflow-hidden rounded-full bg-gradient-to-tr from-cyan-100 to-pink-300'>
-              <button className='m-px flex items-center rounded-full bg-black py-1.5 pl-3 pr-4 hover:bg-gray-900'>
-                <img
-                  alt='github logo'
-                  className='h-5 pr-2'
-                  src='/images/github.svg'
-                />{' '}
-                Open in GitHub
-              </button>
-            </div>
-          </a>
-        </Link>
-      </nav>
+      {open && (
+        <nav className='absolute top-full flex h-screen w-full flex-1 flex-col space-y-10 bg-white p-4 text-[15px] font-medium leading-none backdrop-blur-lg md:hidden'>
+          {links.map(l => (
+            <Link key={l.text} href={l.href}>
+              <a onClick={() => setOpen(false)}>{l.text}</a>
+            </Link>
+          ))}
+        </nav>
+      )}
     </header>
   )
 }

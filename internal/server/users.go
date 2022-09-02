@@ -2,28 +2,27 @@ package server
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, r.ShowSystem, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(users, models.PaginationToResponse(p), func(identity models.Identity) api.User {
+	result := api.NewListResponse(users, PaginationToResponse(p), func(identity models.Identity) api.User {
 		return *identity.ToAPI()
 	})
 
@@ -52,7 +51,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &models.Pagination{Limit: 2})
+	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &data.Pagination{Limit: 2})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
@@ -85,21 +84,24 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, fmt.Errorf("create credential: %w", err)
 	}
 
+	a.t.User(user.ID.String(), user.Name)
+	a.t.OrgMembership(user.OrganizationID.String(), user.ID.String())
+	a.t.Event("create_user", user.ID.String(), Properties{})
+
 	if email.IsConfigured() {
 		rCtx := access.GetRequestContext(c)
 		org := rCtx.Authenticated.Organization
 		currentUser := rCtx.Authenticated.User
 
 		// hack because we don't have names.
-		fromName := buildNameFromEmail(currentUser.Name)
-		toName := buildNameFromEmail(user.Name)
+		fromName := email.BuildNameFromEmail(currentUser.Name)
 
 		token, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}
 
-		err = email.SendUserInvite(toName, user.Name, email.UserInviteData{
+		err = email.SendUserInvite("", user.Name, email.UserInviteData{
 			FromUserName: fromName,
 			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})
@@ -111,12 +113,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	return resp, nil
-}
-
-func buildNameFromEmail(email string) (name string) {
-	return strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
-		return strings.ToUpper(s[0:1]) + s[1:]
-	}), " ")
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {

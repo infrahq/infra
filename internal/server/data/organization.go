@@ -14,25 +14,25 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 		return fmt.Errorf("creating org: %w", err)
 	}
 
-	tx = NewTransaction(tx.GormDB(), org.ID)
-
-	_, err = initializeSettings(tx)
+	_, err = initializeSettings(tx, org.ID)
 	if err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}
 
 	infraProvider := &models.Provider{
-		Name:      models.InternalInfraProviderName,
-		Kind:      models.ProviderKindInfra,
-		CreatedBy: models.CreatedBySystem,
+		Name:               models.InternalInfraProviderName,
+		Kind:               models.ProviderKindInfra,
+		CreatedBy:          models.CreatedBySystem,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
 	if err := CreateProvider(tx, infraProvider); err != nil {
 		return fmt.Errorf("failed to create infra provider: %w", err)
 	}
 
 	connector := &models.Identity{
-		Name:      models.InternalInfraConnectorIdentityName,
-		CreatedBy: models.CreatedBySystem,
+		Name:               models.InternalInfraConnectorIdentityName,
+		CreatedBy:          models.CreatedBySystem,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
 	// this identity is used to create access keys for connectors
 	if err := CreateIdentity(tx, connector); err != nil {
@@ -40,10 +40,11 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 	}
 
 	err = CreateGrant(tx, &models.Grant{
-		Subject:   uid.NewIdentityPolymorphicID(connector.ID),
-		Privilege: models.InfraConnectorRole,
-		Resource:  "infra",
-		CreatedBy: models.CreatedBySystem,
+		Subject:            uid.NewIdentityPolymorphicID(connector.ID),
+		Privilege:          models.InfraConnectorRole,
+		Resource:           "infra",
+		CreatedBy:          models.CreatedBySystem,
+		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	})
 	if err != nil {
 		return fmt.Errorf("failed to grant connector role creating org: %w", err)
@@ -56,7 +57,7 @@ func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organizatio
 	return get[models.Organization](db, selectors...)
 }
 
-func ListOrganizations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
+func ListOrganizations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
 	return list[models.Organization](db, p, selectors...)
 }
 
@@ -72,4 +73,8 @@ func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
 	//   * Delete users
 
 	return delete[models.Organization](db, toDelete.ID)
+}
+
+func UpdateOrganization(tx GormTxn, org *models.Organization) error {
+	return save(tx, org)
 }

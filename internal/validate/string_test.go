@@ -16,11 +16,12 @@ type StringExample struct {
 func (s StringExample) ValidationRules() []ValidationRule {
 	return []ValidationRule{
 		&StringRule{
-			Value:           s.Field,
-			Name:            "strField",
-			MinLength:       2,
-			MaxLength:       10,
-			CharacterRanges: []CharRange{AlphabetLower},
+			Value:               s.Field,
+			Name:                "strField",
+			MinLength:           2,
+			MaxLength:           10,
+			CharacterRanges:     []CharRange{AlphabetLower, AlphabetUpper},
+			FirstCharacterRange: []CharRange{AlphabetLower},
 		},
 	}
 }
@@ -29,12 +30,12 @@ func TestStringRule_Validate(t *testing.T) {
 	t.Run("min length", func(t *testing.T) {
 		r := StringExample{Field: "a"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length of string is 1, must be at least 2")
+		assert.ErrorContains(t, err, "must be at least 2 characters")
 	})
 	t.Run("max length", func(t *testing.T) {
 		r := StringExample{Field: "abcdefghijklm"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length of string is 13, must be no more than 10")
+		assert.ErrorContains(t, err, "can be at most 10 characters")
 	})
 	t.Run("character ranges", func(t *testing.T) {
 		r := StringExample{Field: "almost~valid"}
@@ -44,7 +45,7 @@ func TestStringRule_Validate(t *testing.T) {
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
 			"strField": {
-				"length of string is 12, must be no more than 10",
+				"can be at most 10 characters",
 				"character '~' at position 6 is not allowed",
 			},
 		}
@@ -58,9 +59,20 @@ func TestStringRule_Validate(t *testing.T) {
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
 			"strField": {
-				"length of string is 12, must be no more than 10",
+				"can be at most 10 characters",
 				`character ' ' at position 6 is not allowed`,
 			},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
+	t.Run("first character range", func(t *testing.T) {
+		r := StringExample{Field: "NotValid"}
+		err := Validate(r)
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"strField": {"first character 'N' is not allowed"},
 		}
 		assert.DeepEqual(t, verr, expected)
 	})
@@ -132,7 +144,6 @@ func TestEnum_Validate(t *testing.T) {
 			"kind": {"must be one of (fruit, legume, grain)"},
 		}
 		assert.DeepEqual(t, verr, expected)
-
 	})
 }
 
@@ -152,4 +163,33 @@ func TestEnum_DescribeSchema(t *testing.T) {
 		},
 	}
 	assert.DeepEqual(t, schema, expected, cmpSchema)
+}
+
+type ReservedExample struct {
+	Value string
+}
+
+func (e ReservedExample) ValidationRules() []ValidationRule {
+	words := []string{"cars", "boats", "vans"}
+	return []ValidationRule{
+		ReservedStrings("name", e.Value, words),
+	}
+}
+
+func TestReserved_Validate(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		err := Validate(ReservedExample{Value: "ok"})
+		assert.NilError(t, err)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		err := Validate(ReservedExample{Value: "cars"})
+
+		var verr Error
+		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
+		expected := Error{
+			"name": {"cars is reserved and can not be used"},
+		}
+		assert.DeepEqual(t, verr, expected)
+	})
 }

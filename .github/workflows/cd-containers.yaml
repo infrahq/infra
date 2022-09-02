@@ -24,36 +24,37 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
-      component-name: ${{ steps.component-name.outputs.component-name }}
-      container-image-name: ${{ steps.component-name.outputs.container-image-name }}
-      container-image-context: ${{ steps.component-name.outputs.container-image-context }}
+      components: ${{ steps.components.outputs.components }}
+      release-name: ${{ steps.release-name.outputs.release-name }}
     steps:
-      - id: component-name
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - id: components
         run: |
-          COMPONENT_NAME=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.component-name }} | awk '{ print $NF }' )
-          if [ "$COMPONENT_NAME" = "core" ]; then
-            CONTAINER_IMAGE_NAME='infrahq/infra'
-            CONTAINER_IMAGE_CONTEXT='.'
-          elif [ "$COMPONENT_NAME" = "ui" ]; then
-            CONTAINER_IMAGE_NAME='infrahq/ui'
-            CONTAINER_IMAGE_CONTEXT='ui'
-          else 
-            echo Missing Infra component name.
-            exit 1
-          fi
+          COMPONENT_NAME=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.component-name }} | awk '{ print $NF }')
+          case $COMPONENT_NAME in
+            core) COMPONENTS='[{"name":"core","container-image-name":"infrahq/infra","container-image-context":"."}]' ;;
+            ui) COMPONENTS='[{"name":"ui","container-image-name":"infrahq/ui","container-image-context":"ui"}]' ;;
+            *) COMPONENTS='[{"name":"core","container-image-name":"infrahq/infra","container-image-context":"."},{"name":"ui","container-image-name":"infrahq/ui","container-image-context":"ui"}]' ;;
+          esac
 
-          echo "::notice ::Infra component name $COMPONENT_NAME"
-          echo "::set-output name=component-name::$COMPONENT_NAME"
-          echo "::set-output name=container-image-name::$CONTAINER_IMAGE_NAME"
-          echo "::set-output name=container-image-context::$CONTAINER_IMAGE_CONTEXT"
+          echo "::set-output name=components::$COMPONENTS"
+      - id: release-name
+        run: |
+          RELEASE_NAME=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '$(git describe --tags)' }}
+          echo "::set-output name=release-name::${RELEASE_NAME#v}"
 
   build:
     runs-on: ubuntu-latest
     needs: [prepare]
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      matrix:
+        component: ${{ fromJson(needs.prepare.outputs.components) }}
     env:
-      IMAGE: ${{ needs.prepare.outputs.container-image-name }}
-      CONTEXT: ${{ needs.prepare.outputs.container-image-context }}
+      IMAGE: ${{ matrix.component.container-image-name }}
+      CONTEXT: ${{ matrix.component.container-image-context }}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/login-action@v2
@@ -75,23 +76,27 @@ jobs:
           context: ${{ env.CONTEXT }}
           push: true
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILDVERSION=${{ needs.prepare.outputs.release-name }}
+            TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.IMAGE }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE }}:edge
           cache-to: type=inline
 
   synchronize:
     runs-on: ubuntu-latest
     needs: [prepare, build]
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ !contains(fromJson('["workflow_run","tag"]'), github.event_name) || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
+        component: ${{ fromJson(needs.prepare.outputs.components) }}
         environment:
           - name: Development
           - name: Production
     environment: ${{ matrix.environment.name }}
     concurrency:
-      group: ${{ github.workflow }}-synchronize-${{ matrix.environment.name }}-${{ needs.prepare.outputs.component-name }}
+      group: ${{ github.workflow }}-synchronize-${{ matrix.environment.name }}-${{ matrix.component.name }}
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
@@ -105,5 +110,4 @@ jobs:
           argocd-tools: |
             argocd-image-updater
       - run: |
-          echo Syncing Infra component-name ${{ needs.prepare.outputs.component-name }}
-          argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ needs.prepare.outputs.component-name }}
+          argocd-image-updater run --once --match-application-label=ci.infrahq.com/component=${{ matrix.component.name }}

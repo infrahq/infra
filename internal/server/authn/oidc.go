@@ -88,7 +88,3 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db data.GormTxn, requested
 func (a *oidcAuthn) Name() string {
 	return "oidc"
 }
-
-func (a *oidcAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
-	return false, nil // not applicable to oidc
-}

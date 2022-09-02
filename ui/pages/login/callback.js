@@ -14,8 +14,7 @@ export default function Callback() {
 
   useEffect(() => {
     const cookies = new Cookies()
-
-    async function login({ providerID, code, redirectURL }) {
+    async function login({ providerID, code, redirectURL, next }) {
       await fetch('/api/login', {
         method: 'POST',
         body: JSON.stringify({
@@ -28,7 +27,14 @@ export default function Callback() {
       })
 
       await mutate('/api/users/self')
-      router.replace('/')
+
+      if (next) {
+        router.replace(`/${next}`)
+      } else {
+        router.replace('/')
+      }
+      window.localStorage.removeItem('next')
+
       let visitedOrgs = cookies.get('orgs') || []
       if (visitedOrgs.findIndex(x => x.url === window.location.origin) === -1) {
         visitedOrgs.push({
@@ -45,6 +51,7 @@ export default function Callback() {
 
     const providerID = window.localStorage.getItem('providerID')
     const redirectURL = window.localStorage.getItem('redirectURL')
+    const next = window.localStorage.getItem('next')
 
     if (
       state === window.localStorage.getItem('state') &&
@@ -56,6 +63,7 @@ export default function Callback() {
         providerID,
         code,
         redirectURL,
+        next,
       })
       window.localStorage.removeItem('providerID')
       window.localStorage.removeItem('state')
@@ -68,7 +76,8 @@ export default function Callback() {
   }
 
   if (!state || !code) {
-    router.replace('/login')
+    const next = window.localStorage.getItem('next')
+    next ? router.replace(`/login?next=${next}`) : router.replace('/login')
     return null
   }
 

@@ -71,16 +71,21 @@ spec:
           command: [sh, -c]
           args:
             - |
-              apk add --no-cache sqlite
-              # perform a basic migration but drop any encrypted fields. these items will need to be recreated. only resource
-              # relevant to the end user are tokens and providers.
-              sqlite3 /var/lib/infrahq/server/sqlite3.db .dump \
-                | sed -e '/PRAGMA foreign_keys=OFF/d' -e 's/`/"/g' -e 's/datetime/timestamp/g' -e 's/integer/bigint/g' -e 's/blob/bytea/g' -e "s/X'\([0-9a-f]*\)'/'\\\x\1'/g" -e "s/replace('\(.*\)','\\\n',char(10))/'\1'/g" \
-                >/mnt/initdb/00-dump.sql
-              # update the credentials table and convert the one_time_password numeric to a boolean
-              echo 'ALTER TABLE credentials ALTER COLUMN one_time_password TYPE bool USING (one_time_password::int::bool);' >/mnt/initdb/10-cast-numeric.sql
-              # clean up the database. rename it instead of deleting it in case it's needed for a rollback.
-              mv /var/lib/infrahq/server/sqlite3.db /var/lib/infrahq/server/sqlite3.db.1
+              DB_FILE=/var/lib/infrahq/server/sqlite3.db
+              if [ -f "$DB_FILE" ]; then
+                apk add --no-cache sqlite
+                # perform a basic migration but drop any encrypted fields. these items will need to be recreated. only resource
+                # relevant to the end user are tokens and providers.
+                sqlite3 $DB_FILE .dump \
+                  | sed -e '/PRAGMA foreign_keys=OFF/d' -e 's/`/"/g' -e 's/datetime/timestamp/g' -e 's/integer/bigint/g' -e 's/blob/bytea/g' -e "s/X'\([0-9a-f]*\)'/'\\\x\1'/g" -e "s/replace('\(.*\)','\\\n',char(10))/'\1'/g" \
+                  >/mnt/initdb/00-dump.sql
+                if grep 'CREATE TABLE credentials' 00-dump.sql; then
+                  # update the credentials table and convert the one_time_password numeric to a boolean
+                  echo 'ALTER TABLE credentials ALTER COLUMN one_time_password TYPE bool USING (one_time_password::int::bool);' >/mnt/initdb/10-cast-numeric.sql
+                fi
+                # clean up the database. rename it instead of deleting it in case it's needed for a rollback.
+                mv $DB_FILE $DB_FILE.1
+              fi
           volumeMounts:
             - name: initdb
               mountPath: /mnt/initdb

@@ -12,9 +12,11 @@ import (
 
 var (
 	//lint:ignore ST1005, user facing error
-	ErrConfigNotFound = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
-	ErrUserNotFound   = errors.New(`user not found`)
-	ErrGroupNotFound  = errors.New(`group not found`)
+	ErrConfigNotFound   = errors.New(`Could not read local credentials. Are you logged in? Use "infra login" to login`)
+	ErrUserNotFound     = errors.New(`user not found`)
+	ErrGroupNotFound    = errors.New(`group not found`)
+	ErrAccessKeyExpired = errors.New(`access key expired`)
+	ErrAccessKeyMissing = errors.New(`access key missing`)
 )
 
 type LoginError struct {

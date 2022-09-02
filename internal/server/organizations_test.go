@@ -16,12 +16,7 @@ import (
 func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
 	t.Helper()
 	for i := range orgs {
-		o, err := data.GetOrganization(db, data.ByName(orgs[i].Name))
-		if err == nil {
-			*orgs[i] = *o
-			continue
-		}
-		err = data.CreateOrganization(db, orgs[i])
+		err := data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}
 }
@@ -227,7 +222,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListOrganizations(srv.DB(), &models.Pagination{}, data.ByID(first.ID))
+				actual, err := data.ListOrganizations(srv.DB(), &data.Pagination{}, data.ByID(first.ID))
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},

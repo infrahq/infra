@@ -494,6 +494,71 @@ DELETE FROM settings WHERE id=24567;
 				// dropped indexes are tested by schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-08-22T14:58:00Z"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// tested elsewhere
+			},
+		},
+		{
+			label: testCaseLine("2022-08-30T11:45"),
+			setup: func(t *testing.T, db WriteTxn) {
+				var originalOrgID uid.ID
+				err := db.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+				assert.NilError(t, err)
+
+				stmt := ` INSERT INTO providers(id, name, organization_id) VALUES (12345, 'okta', ?)`
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO settings(id, organization_id) VALUES(24567, ?); `
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				stmt := `
+DELETE FROM providers WHERE id=12345;
+DELETE FROM settings WHERE id=24567;
+`
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				stmt := `SELECT id, name, domain FROM organizations`
+				org := &models.Organization{}
+				err := tx.QueryRow(stmt).Scan(&org.ID, &org.Name, (*nullString)(&org.Domain))
+				assert.NilError(t, err)
+
+				expected := &models.Organization{
+					Model:  models.Model{ID: defaultOrganizationID},
+					Domain: "",
+					Name:   "Default",
+				}
+				assert.DeepEqual(t, org, expected)
+
+				stmt = `SELECT id, organization_id FROM providers;`
+				p := &models.Provider{}
+				err = tx.QueryRow(stmt).Scan(&p.ID, &p.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedProvider := &models.Provider{
+					Model:              models.Model{ID: 12345},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, p, expectedProvider)
+
+				stmt = `SELECT id, organization_id FROM settings;`
+				s := &models.Settings{}
+				err = tx.QueryRow(stmt).Scan(&s.ID, &s.OrganizationID)
+				assert.NilError(t, err)
+
+				expectedSettings := &models.Settings{
+					Model:              models.Model{ID: 24567},
+					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				}
+				assert.DeepEqual(t, s, expectedSettings)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -648,4 +713,13 @@ func writeSchema(t *testing.T, raw string) {
 	// nolint:gosec
 	err = os.WriteFile("schema.sql", out.Bytes(), 0o644)
 	assert.NilError(t, err)
+}
+
+type nullString string
+
+func (n *nullString) Scan(value any) error {
+	ns := &sql.NullString{}
+	err := ns.Scan(value)
+	*n = nullString(ns.String)
+	return err
 }
