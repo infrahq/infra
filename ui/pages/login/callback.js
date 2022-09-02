@@ -1,14 +1,20 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
+import Cookies from 'universal-cookie'
+import { useServerConfig } from '../../lib/serverconfig'
 
 export default function Callback() {
   const { mutate } = useSWRConfig()
+  const { baseDomain } = useServerConfig()
+
   const router = useRouter()
   const { isReady } = router
   const { code, state } = router.query
 
   useEffect(() => {
+    const cookies = new Cookies()
+
     async function login({ providerID, code, redirectURL, next }) {
       await fetch('/api/login', {
         method: 'POST',
@@ -28,8 +34,20 @@ export default function Callback() {
       } else {
         router.replace('/')
       }
-
       window.localStorage.removeItem('next')
+
+      let visitedOrgs = cookies.get('orgs') || []
+      if (visitedOrgs.findIndex(x => x.url === window.location.origin) === -1) {
+        visitedOrgs.push({
+          name: window.location.host.split('.')[0],
+          url: window.location.origin,
+        })
+
+        cookies.set('orgs', visitedOrgs, {
+          path: '/',
+          domain: `.${baseDomain}`,
+        })
+      }
     }
 
     const providerID = window.localStorage.getItem('providerID')
@@ -52,7 +70,7 @@ export default function Callback() {
       window.localStorage.removeItem('state')
       window.localStorage.removeItem('redirectURL')
     }
-  }, [code, state, mutate, router])
+  }, [code, state, mutate, router, baseDomain])
 
   if (!isReady) {
     return null
