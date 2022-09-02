@@ -67,10 +67,15 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 }
 
-// authenticatedMiddleware is applied to all routes that require authentication.
-// It validates the access key, and updates the lastSeenAt of the user, and
-// possibly also of the destination.
-func authenticatedMiddleware(c *gin.Context, tx *data.Transaction, srv *Server) error {
+// authenticateRequest is call for requests to routes that require authentication.
+// It validates the access key and organization, updates the lastSeenAt of the user,
+// and may also update the lastSeenAt of the destination if the appropriate header
+// is set.
+// authenticateRequest is also responsible for adding RequestContext to the
+// gin.Context.
+// See validateRequestOrganization for a related function used for unauthenticated
+// routes.
+func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) error {
 	authned, err := requireAccessKey(c, tx, srv)
 	if err != nil {
 		return err
@@ -148,7 +153,14 @@ func withDBTxn(ctx context.Context, db *data.DB, fn func(tx *data.Transaction) e
 	return err
 }
 
-func unauthenticatedMiddleware(c *gin.Context, tx *data.Transaction, srv *Server) error {
+// validateRequestOrganization is the alternative to authenticateRequest used
+// for routes that don't require authentication. It checks for an optional
+// access key, and if one does not exist, finds the organizationID from the
+// hostname in the request.
+//
+// validateRequestOrganization is also responsible for adding RequestContext to the
+// gin.Context.
+func validateRequestOrganization(c *gin.Context, tx *data.Transaction, srv *Server) error {
 	// ignore errors, access key is not required
 	authned, _ := requireAccessKey(c, tx, srv)
 

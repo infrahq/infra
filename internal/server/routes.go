@@ -183,6 +183,13 @@ func add[Req, Res any](a *API, group *routeGroup, route route[Req, Res]) {
 	bindRoute(a, group.RouterGroup, route.method, route.path, handler)
 }
 
+// wrapRoute builds a gin.HandlerFunc from a route. The returned function
+// provides functionality that is applicable to a large number of routes
+// (similar to middleware).
+// The returned function handles validation of the infra version header, manages
+// a request scoped database transaction, authenticates the request, reads the
+// request fields into a request struct, and returns an HTTP response with a
+// status code and response body built from the response type.
 func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) error {
 	return func(c *gin.Context) error {
 		if !route.infraVersionHeaderOptional {
@@ -207,9 +214,9 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		}()
 
 		if route.noAuthentication {
-			err = unauthenticatedMiddleware(c, tx, a.server)
+			err = validateRequestOrganization(c, tx, a.server)
 		} else {
-			err = authenticatedMiddleware(c, tx, a.server)
+			err = authenticateRequest(c, tx, a.server)
 		}
 		if err != nil {
 			return err

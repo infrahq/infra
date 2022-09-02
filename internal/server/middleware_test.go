@@ -429,7 +429,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 }
 
-func TestAuthenticatedMiddleware(t *testing.T) {
+func TestAuthenticateRequest(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
@@ -556,7 +556,7 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 	}
 }
 
-func TestUnauthenticatedMiddleware(t *testing.T) {
+func TestValidateRequestOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true // multi-tenant environment
 	routes := srv.GenerateRoutes()
