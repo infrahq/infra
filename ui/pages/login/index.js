@@ -125,8 +125,8 @@ export default function Login() {
     <>
       <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
       <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-        Welcome back. Login with your credentials{' '}
-        {providers?.length > 0 && 'or via your identity provider.'}
+        Welcome back. Login with your credentials
+        {providers?.length > 0 && ' or via your identity provider'}.
       </h2>
       {providers?.length > 0 && (
         <>
