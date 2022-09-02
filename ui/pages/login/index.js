@@ -2,6 +2,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useServerConfig } from '../../lib/serverconfig'
+import Cookies from 'universal-cookie'
 
 import Link from 'next/link'
 
@@ -74,7 +75,8 @@ export default function Login() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { isEmailConfigured } = useServerConfig()
+  const { baseDomain, isEmailConfigured } = useServerConfig()
+  const cookies = new Cookies()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -107,6 +109,14 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
+      let visitedOrgs = cookies.get('orgs') || []
+      if (visitedOrgs.findIndex(x => x.url === window.location.origin) === -1) {
+        visitedOrgs.push({
+          name: window.location.host.split('.')[0],
+          url: window.location.origin,
+        })
+      }
+      cookies.set('orgs', visitedOrgs, { path: '/', domain: `.${baseDomain}` })
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')
