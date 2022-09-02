@@ -25,7 +25,7 @@ type Message struct {
 	HTMLBody    []byte
 }
 
-var testClient = &Client{}
+var testClient *Client = nil
 
 func (c *Client) connect() (err error) {
 	if c.Conn != nil {
