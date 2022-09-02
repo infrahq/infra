@@ -186,7 +186,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// do the actual login now that we know the method selected
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
-	result, err := access.Login(rCtx, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	result, err := authn.Login(rCtx.Request.Context(), rCtx.DBTxn, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
