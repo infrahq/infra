@@ -196,7 +196,7 @@ export default function Login() {
         </button>
         {isEmailConfigured && (
           <Link href='/password-reset'>
-            <a className='text-3xs text-violet-100 hover:border-violet-100'>
+            <a className='mt-3 text-3xs text-violet-100 hover:border-violet-100'>
               I forgot my password
             </a>
           </Link>
