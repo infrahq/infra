@@ -18,7 +18,7 @@ linters-settings:
 
   custom:
     querylinter:
-      path: ./querylinter.so
+      path: ./internal/tools/querylinter/cmd/querylinter.so
       description: Look for incorrect use of querybuilder.Builder
 
 issues:

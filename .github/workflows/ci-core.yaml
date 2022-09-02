@@ -58,6 +58,10 @@ jobs:
         env:
           POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
 
+      - name: go test querylinter
+        working-directory: ./internal/tools/querylinter
+        run: ~/go/bin/gotestsum -ftestname ./...
+
       - name: Check that tests leave a clean git checkout
         run: |
           # show and check changes to committed files
