@@ -65,14 +65,6 @@ export default function PasswordReset() {
               <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
                 Please enter your email.
               </h2>
-              <div className='relative mt-4 w-full'>
-                <div
-                  className='absolute inset-0 flex items-center'
-                  aria-hidden='true'
-                >
-                  <div className='w-full border-t border-gray-800' />
-                </div>
-              </div>
               <form
                 onSubmit={onSubmit}
                 className='relative flex w-full max-w-sm flex-col'
