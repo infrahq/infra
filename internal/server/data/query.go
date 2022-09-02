@@ -120,9 +120,7 @@ func columnsForUpdate(table Table) string {
 // the linter will likely need to be updated.
 // The return value must only include trusted strings from the source code,
 // never untrusted user input.
-func columnsForSelect(tableAlias string, table Table) string {
-	if tableAlias == "" {
-		return strings.Join(table.Columns(), ", ")
-	}
-	return tableAlias + "." + strings.Join(table.Columns(), ", "+tableAlias+".")
+func columnsForSelect(table Table) string {
+	name := table.Table()
+	return name + "." + strings.Join(table.Columns(), ", "+name+".")
 }

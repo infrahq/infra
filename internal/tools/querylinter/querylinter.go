@@ -26,7 +26,7 @@ func run(pass *analysis.Pass) error {
 			if node == nil {
 				return true
 			}
-			if err = checkNewQuery(pass, node); err != nil {
+			if err = checkNewQuery(pass, node, file.Imports); err != nil {
 				return false
 			}
 			if err = checkB(pass, node); err != nil {
@@ -45,15 +45,16 @@ func run(pass *analysis.Pass) error {
 }
 
 var (
-	constructorName           = "NewQuery"
+	constructorName           = "New"
 	buildFuncName             = "B"
 	pkgName                   = "querybuilder"
 	columnsMethodName         = "Columns"
 	tableMethodName           = "Table"
-	buildFuncReceiverTypeName = "*github.com/infrahq/infra/internal/server/data/querybuilder.Builder"
+	packagePath               = "github.com/infrahq/infra/internal/server/data/" + pkgName
+	buildFuncReceiverTypeName = "*" + packagePath + ".Query"
 )
 
-func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
+func checkNewQuery(pass *analysis.Pass, node ast.Node, imports []*ast.ImportSpec) error {
 	call, ok := node.(*ast.CallExpr)
 	if !ok {
 		return nil
@@ -65,6 +66,17 @@ func checkNewQuery(pass *analysis.Pass, node ast.Node) error {
 	}
 
 	if se.Sel.Name != constructorName {
+		return nil
+	}
+
+	importedName := pkgName
+	for _, importSpec := range imports {
+		if importSpec.Path.Value == packagePath && importSpec.Name != nil {
+			importedName = importSpec.Name.Name
+		}
+	}
+
+	if xIdent, ok := se.X.(*ast.Ident); !ok || xIdent.Name != importedName {
 		return nil
 	}
 
@@ -118,7 +130,7 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 		}
 	}
 
-	pass.Reportf(call.Pos(), "argument to Builder.%v must be a string literal, not %T",
+	pass.Reportf(call.Pos(), "first argument to Query.%v must be a string literal, not %T",
 		buildFuncName, call.Args[0])
 	return nil
 }
@@ -179,7 +191,7 @@ func checkBNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
 		}
 	}
 
-	pass.Reportf(se.Sel.Pos(), "Builder.%v must be called directly, not assigned to a variable or passed to a function",
+	pass.Reportf(se.Sel.Pos(), "Query.%v must be called directly, not assigned to a variable or passed to a function",
 		buildFuncName)
 }
 
