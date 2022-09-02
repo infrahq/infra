@@ -83,7 +83,7 @@ func TestCreateAccessKey(t *testing.T) {
 	})
 }
 
-func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, exensionDeadline time.Duration) (string, *models.AccessKey) {
+func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, extensionDeadline time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
 	err := CreateIdentity(db, identity)
 	assert.NilError(t, err)
@@ -92,7 +92,7 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, exensio
 		IssuedFor:         identity.ID,
 		ProviderID:        InfraProvider(db).ID,
 		ExpiresAt:         time.Now().Add(ttl),
-		ExtensionDeadline: time.Now().Add(exensionDeadline).UTC(),
+		ExtensionDeadline: time.Now().Add(extensionDeadline).UTC(),
 	}
 
 	body, err := CreateAccessKey(db, token)
