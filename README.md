@@ -60,7 +60,7 @@ Install Infra via `helm`:
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm update --install infra infrahq/infra
+helm update --install infra infrahq/infra --values values.yaml
 ```
 
 Next, find the exposed hostname:
