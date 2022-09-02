@@ -145,7 +145,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
 	err = email.SendSignupEmail("", r.Name, email.SignupData{
-		Link: fmt.Sprintf("https://%s/login", r.Org.Subdomain),
+		Link: fmt.Sprintf("https://%s/login", suDetails.Org.Domain),
 	})
 	if err != nil {
 		// if email failed, continue on anyway.

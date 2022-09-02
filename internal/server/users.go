@@ -2,11 +2,9 @@ package server
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -95,15 +93,14 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		currentUser := rCtx.Authenticated.User
 
 		// hack because we don't have names.
-		fromName := buildNameFromEmail(currentUser.Name)
-		toName := buildNameFromEmail(user.Name)
+		fromName := email.BuildNameFromEmail(currentUser.Name)
 
 		token, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}
 
-		err = email.SendUserInvite(toName, user.Name, email.UserInviteData{
+		err = email.SendUserInvite("", user.Name, email.UserInviteData{
 			FromUserName: fromName,
 			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})
@@ -115,12 +112,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	}
 
 	return resp, nil
-}
-
-func buildNameFromEmail(email string) (name string) {
-	return strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
-		return strings.ToUpper(s[0:1]) + s[1:]
-	}), " ")
 }
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {

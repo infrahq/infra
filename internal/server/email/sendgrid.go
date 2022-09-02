@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	texttemplate "text/template"
+
+	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -65,6 +68,11 @@ func SendTemplate(name, address string, template EmailTemplate, data any) error 
 		return ErrNotConfigured
 	}
 
+	if name == "" {
+		// until we have real user names
+		name = BuildNameFromEmail(address)
+	}
+
 	details, ok := emailTemplates[template]
 	if !ok {
 		return ErrUnknownTemplate
@@ -110,4 +118,14 @@ func SendTemplate(name, address string, template EmailTemplate, data any) error 
 	}
 
 	return nil
+}
+
+func BuildNameFromEmail(email string) (name string) {
+	name = strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
+		return strings.ToUpper(s[0:1]) + s[1:]
+	}), " ")
+	if name == "Mail" {
+		name = "Admin"
+	}
+	return name
 }
