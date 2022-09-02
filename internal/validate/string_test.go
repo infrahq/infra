@@ -30,12 +30,12 @@ func TestStringRule_Validate(t *testing.T) {
 	t.Run("min length", func(t *testing.T) {
 		r := StringExample{Field: "a"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length of string is 1, must be at least 2")
+		assert.ErrorContains(t, err, "must be at least 2 characters")
 	})
 	t.Run("max length", func(t *testing.T) {
 		r := StringExample{Field: "abcdefghijklm"}
 		err := Validate(r)
-		assert.ErrorContains(t, err, "length of string is 13, must be no more than 10")
+		assert.ErrorContains(t, err, "can be at most 10 characters")
 	})
 	t.Run("character ranges", func(t *testing.T) {
 		r := StringExample{Field: "almost~valid"}
@@ -45,7 +45,7 @@ func TestStringRule_Validate(t *testing.T) {
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
 			"strField": {
-				"length of string is 12, must be no more than 10",
+				"can be at most 10 characters",
 				"character '~' at position 6 is not allowed",
 			},
 		}
@@ -59,7 +59,7 @@ func TestStringRule_Validate(t *testing.T) {
 		assert.Assert(t, errors.As(err, &verr), "wrong type %T", err)
 		expected := Error{
 			"strField": {
-				"length of string is 12, must be no more than 10",
+				"can be at most 10 characters",
 				`character ' ' at position 6 is not allowed`,
 			},
 		}
