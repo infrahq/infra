@@ -97,7 +97,7 @@ type providersCount struct {
 }
 
 func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
-	rows, err := tx.Query("SELECT kind, COUNT(*) as count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind")
+	rows, err := tx.Query("SELECT kind, COUNT(*) AS count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind")
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
 		stmt := `DELETE FROM identities_groups WHERE identity_id = ? AND group_id in (
-		   SELECT id from groups where name in (?))`
+		   SELECT id FROM groups WHERE name IN (?))`
 		if _, err := tx.Exec(stmt, user.ID, groupsToBeRemoved); err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 	}
 	var addIDs []idNamePair
 
-	stmt := `SELECT id, name FROM groups WHERE name in (?)`
+	stmt := `SELECT id, name FROM groups WHERE name IN (?)`
 	rows, err := tx.Query(stmt, groupsToBeAdded)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 
 		if len(ids) == 0 {
 			// add user to group
-			_, err = tx.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID)
+			_, err = tx.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", user.ID, groupID)
 			if err != nil {
 				return fmt.Errorf("insert: %w", handleError(err))
 			}
