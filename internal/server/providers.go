@@ -18,13 +18,13 @@ import (
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
 	exclude := []models.ProviderKind{models.ProviderKindInfra}
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	providers, err := access.ListProviders(c, r.Name, exclude, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(providers, models.PaginationToResponse(p), func(provider models.Provider) api.Provider {
+	result := api.NewListResponse(providers, PaginationToResponse(p), func(provider models.Provider) api.Provider {
 		return *provider.ToAPI()
 	})
 

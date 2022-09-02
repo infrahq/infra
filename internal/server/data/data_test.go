@@ -84,7 +84,7 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
-		p := models.Pagination{Page: 1, Limit: 10}
+		p := Pagination{Page: 1, Limit: 10}
 
 		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)

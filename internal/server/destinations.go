@@ -11,13 +11,13 @@ import (
 )
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(destinations, models.PaginationToResponse(p), func(destination models.Destination) api.Destination {
+	result := api.NewListResponse(destinations, PaginationToResponse(p), func(destination models.Destination) api.Destination {
 		return *destination.ToAPI()
 	})
 

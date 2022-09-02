@@ -26,7 +26,7 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	return data.GetProvider(db, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *models.Pagination) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *data.Pagination) ([]models.Provider, error) {
 	db := getDB(c)
 
 	selectors := []data.SelectorFunc{

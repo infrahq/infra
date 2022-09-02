@@ -91,7 +91,7 @@ func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
 	return save(db, key)
 }
 
-func ListAccessKeys(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
+func ListAccessKeys(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
 	return list[models.AccessKey](db, p, selectors...)
 }
 

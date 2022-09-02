@@ -44,7 +44,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 
 	// TODO: use GetDestination(ByUniqueID())
-	destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{Limit: 1})
+	destinations, err := access.ListDestinations(c, uniqueID, "", &data.Pagination{Limit: 1})
 	if err != nil {
 		return err
 	}

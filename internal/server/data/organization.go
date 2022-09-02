@@ -57,7 +57,7 @@ func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organizatio
 	return get[models.Organization](db, selectors...)
 }
 
-func ListOrganizations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
+func ListOrganizations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
 	return list[models.Organization](db, p, selectors...)
 }
 

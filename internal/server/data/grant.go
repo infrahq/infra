@@ -26,7 +26,7 @@ func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {
 	return get[models.Grant](db, selectors...)
 }
 
-func ListGrants(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
+func ListGrants(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
 	return list[models.Grant](db, p, selectors...)
 }
 

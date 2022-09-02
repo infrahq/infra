@@ -15,7 +15,7 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 	// no auth required
 	db := getDB(c)
 
-	users, err := data.ListIdentities(db, &models.Pagination{Limit: 1}, data.ByName(email))
+	users, err := data.ListIdentities(db, &data.Pagination{Limit: 1}, data.ByName(email))
 	if err != nil {
 		return "", err
 	}

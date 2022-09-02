@@ -288,7 +288,7 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func list[T models.Modelable](tx GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](tx GormTxn, p *Pagination, selectors ...SelectorFunc) ([]T, error) {
 	db := tx.GormDB()
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
