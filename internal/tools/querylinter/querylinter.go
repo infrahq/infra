@@ -35,8 +35,8 @@ func run(pass *analysis.Pass) error {
 
 			checkConstructorNotACallExpr(pass, cursor)
 			checkBNotACallExpr(pass, cursor)
-
 			checkColumnMethodImplementations(pass, node)
+			checkTableMethodImplementations(pass, node)
 			return true
 		}
 		astutil.Apply(file, inspect, nil)
@@ -49,6 +49,7 @@ var (
 	buildFuncName             = "B"
 	pkgName                   = "querybuilder"
 	columnsMethodName         = "Columns"
+	tableMethodName           = "Table"
 	buildFuncReceiverTypeName = "*github.com/infrahq/infra/internal/server/data/querybuilder.Builder"
 )
 
@@ -111,11 +112,29 @@ func checkB(pass *analysis.Pass, node ast.Node) error {
 				return nil
 			}
 		}
+
+		if isTableMethod(arg) {
+			return nil
+		}
 	}
 
 	pass.Reportf(call.Pos(), "argument to Builder.%v must be a string literal, not %T",
 		buildFuncName, call.Args[0])
 	return nil
+}
+
+func isTableMethod(callExpr *ast.CallExpr) bool {
+	sel, ok := callExpr.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if sel.Sel.Name != tableMethodName {
+		return false
+	}
+	if len(callExpr.Args) != 0 {
+		return false
+	}
+	return true
 }
 
 func checkConstructorNotACallExpr(pass *analysis.Pass, cursor *astutil.Cursor) {
@@ -239,5 +258,56 @@ func isColumnsExpectedSignature(decl *ast.FuncDecl) bool {
 		return false
 	}
 
+	return ident.Name == "string"
+}
+
+func checkTableMethodImplementations(pass *analysis.Pass, node ast.Node) {
+	decl, ok := node.(*ast.FuncDecl)
+	if !ok {
+		return
+	}
+
+	if decl.Name == nil || decl.Name.Name != tableMethodName {
+		return
+	}
+
+	if !isTableExpectedSignature(decl) {
+		return
+	}
+
+	if count := len(decl.Body.List); count != 1 {
+		pass.ReportRangef(decl.Body, "Table method must only return a string literal")
+		return
+	}
+
+	ret, ok := decl.Body.List[0].(*ast.ReturnStmt)
+	if !ok {
+		pass.Reportf(decl.Body.List[0].Pos(), "Table method must return as only expression")
+		return
+	}
+
+	lit, ok := ret.Results[0].(*ast.BasicLit)
+	if !ok || lit.Kind != token.STRING {
+		pass.Reportf(ret.Results[0].Pos(), "Table method must return a string literal")
+		return
+	}
+	return
+}
+
+func isTableExpectedSignature(decl *ast.FuncDecl) bool {
+	if len(decl.Recv.List) != 1 {
+		// not a method
+		return false
+	}
+
+	if len(decl.Type.Params.List) != 0 || len(decl.Type.Results.List) != 1 {
+		// wrong number of parameters or return values
+		return false
+	}
+
+	ident, ok := decl.Type.Results.List[0].Type.(*ast.Ident)
+	if !ok {
+		return false
+	}
 	return ident.Name == "string"
 }
