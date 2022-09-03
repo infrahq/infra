@@ -12,6 +12,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -206,7 +207,7 @@ func TestSendForgotDomain(t *testing.T) {
 			{
 				OrganizationName:   "A Team",
 				OrganizationDomain: "ateam.infrahq.com",
-				LastSeenAt:         time.Now(),
+				LastSeenAt:         format.HumanTime(time.Now(), "never"),
 			},
 		},
 	})

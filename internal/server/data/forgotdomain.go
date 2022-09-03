@@ -1,6 +1,9 @@
 package data
 
 import (
+	"time"
+
+	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -15,9 +18,11 @@ func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDo
 
 	for rows.Next() {
 		var r models.ForgottenDomain
-		if err := rows.Scan(&r.OrganizationName, &r.OrganizationDomain, &r.LastSeenAt); err != nil {
+		var lastSeenAt time.Time
+		if err := rows.Scan(&r.OrganizationName, &r.OrganizationDomain, &lastSeenAt); err != nil {
 			return results, err
 		}
+		r.LastSeenAt = format.HumanTime(lastSeenAt, "never")
 		results = append(results, r)
 	}
 

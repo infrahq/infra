@@ -1,5 +1,5 @@
 Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.
 
 You can sign in to your organization here:
-{{range $v := .Domains}}  https://{{$v.OrganizationDomain}}/login 
+{{range $v := .Domains}}  {{$v.OrganizationName}}	https://{{$v.OrganizationDomain}}/login 	(last seen {{$v.LastSeenAt}})
 {{end}}

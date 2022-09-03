@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
-	"gotest.tools/v3/assert/opt"
 
+	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -37,7 +36,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Assert(t, len(results) == 1)
 
-			assert.DeepEqual(t, results[0], models.ForgottenDomain{OrganizationName: orgA.Name, OrganizationDomain: orgA.Domain, LastSeenAt: time.Now()}, domainCmpModel)
+			assert.DeepEqual(t, results[0], models.ForgottenDomain{OrganizationName: orgA.Name, OrganizationDomain: orgA.Domain, LastSeenAt: format.HumanTime(time.Now(), "never")})
 		})
 
 		userB := &models.Identity{Name: "john.smith@ateam.com", OrganizationMember: models.OrganizationMember{OrganizationID: orgB.ID}}
@@ -56,8 +55,4 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 		})
 
 	})
-}
-
-var domainCmpModel = cmp.Options{
-	cmp.FilterPath(opt.PathField(models.ForgottenDomain{}, "LastSeenAt"), opt.TimeWithThreshold(2*time.Second)),
 }

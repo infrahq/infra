@@ -78,6 +78,11 @@ func SendTemplate(name, address string, template EmailTemplate, data any) error 
 		return fmt.Errorf("rendering subject: %w", err)
 	}
 
+	if name == "" {
+		// until we have real user names
+		name = BuildNameFromEmail(address)
+	}
+
 	msg := Message{
 		FromName:    FromName,
 		FromAddress: FromAddress,
@@ -111,11 +116,6 @@ func SendTemplate(name, address string, template EmailTemplate, data any) error 
 
 	if len(SendgridAPIKey) == 0 {
 		return ErrNotConfigured
-	}
-
-	if name == "" {
-		// until we have real user names
-		name = BuildNameFromEmail(address)
 	}
 
 	// TODO: handle rate limiting, retries, understanding which errors are retryable, send queues, whatever

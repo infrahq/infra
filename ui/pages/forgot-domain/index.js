@@ -79,7 +79,7 @@ export default function ForgotDomain() {
                 />
               </div>
               <button
-                disabled={!email}
+                disabled={!email || submitted}
                 className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
               >
                 Submit
