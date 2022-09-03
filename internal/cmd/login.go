@@ -23,6 +23,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/types"
+	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -561,7 +562,7 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
 	formatTime := func(t time.Time) string {
-		return fmt.Sprintf("%v (%v)", HumanTime(t, "none"), t.Format(time.RFC1123))
+		return fmt.Sprintf("%v (%v)", format.HumanTime(t, "none"), t.Format(time.RFC1123))
 	}
 	title := "Certificate"
 	if cert.IsCA {
