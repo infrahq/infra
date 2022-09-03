@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
@@ -100,10 +101,10 @@ $ infra keys add connector
 
 			var expMsg strings.Builder
 			expMsg.WriteString("This key will expire in ")
-			expMsg.WriteString(ExactDuration(options.TTL))
+			expMsg.WriteString(format.ExactDuration(options.TTL))
 			if !resp.Expires.Equal(resp.ExtensionDeadline) {
 				expMsg.WriteString(", and must be used every ")
-				expMsg.WriteString(ExactDuration(options.ExtensionDeadline))
+				expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
 				expMsg.WriteString(" to remain valid")
 			}
 			cli.Output("Issued access key %q for %q", resp.Name, userName)
@@ -235,9 +236,9 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				rows = append(rows, row{
 					Name:              k.Name,
 					IssuedFor:         name,
-					Created:           HumanTime(k.Created.Time(), "never"),
-					Expires:           HumanTime(k.Expires.Time(), "never"),
-					ExtensionDeadline: HumanTime(k.ExtensionDeadline.Time(), "never"),
+					Created:           format.HumanTime(k.Created.Time(), "never"),
+					Expires:           format.HumanTime(k.Expires.Time(), "never"),
+					ExtensionDeadline: format.HumanTime(k.ExtensionDeadline.Time(), "never"),
 				})
 			}
 

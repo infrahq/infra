@@ -1,4 +1,4 @@
-package cmd
+package format
 
 import (
 	"testing"
