@@ -14,7 +14,7 @@
   "dependencies": {
     "@headlessui/react": "^1.6.6",
     "@heroicons/react": "^2.0.0",
-    "@markdoc/markdoc": "^0.1.4",
+    "@markdoc/markdoc": "^0.1.7",
     "@react-spring/web": "^9.5.2",
     "@segment/snippet": "^4.15.3",
     "copy-to-clipboard": "^3.3.2",
