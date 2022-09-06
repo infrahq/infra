@@ -112,11 +112,18 @@ func update(tx WriteTxn, item Updatable) error {
 	query.B(item.Table())
 	query.B("SET")
 	query.B(columnsForUpdate(item.Columns()), item.Values()...)
-	query.B("WHERE id = ?;", item.Primary())
+	query.B("WHERE deleted_at is null AND id = ?;", item.Primary())
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
 
 func columnsForUpdate(columns []string) string {
 	return strings.Join(columns, " = ?, ") + " = ?"
+}
+
+func columnsForSelect(tableAlias string, columns []string) string {
+	if tableAlias == "" {
+		return strings.Join(columns, ", ")
+	}
+	return tableAlias + "." + strings.Join(columns, ", "+tableAlias+".")
 }

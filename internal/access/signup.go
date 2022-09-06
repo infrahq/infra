@@ -75,10 +75,10 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 
 	// grant the user a session on initial sign-up
 	accessKey := &models.AccessKey{
-		IssuedFor:         identity.ID,
-		IssuedForIdentity: identity,
-		ProviderID:        data.InfraProvider(db).ID,
-		ExpiresAt:         keyExpiresAt,
+		IssuedFor:     identity.ID,
+		IssuedForName: identity.Name,
+		ProviderID:    data.InfraProvider(db).ID,
+		ExpiresAt:     keyExpiresAt,
 	}
 
 	bearer, err := data.CreateAccessKey(db, accessKey)

@@ -968,7 +968,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 		return fmt.Errorf("invalid access key format")
 	}
 
-	accessKey, err := data.GetAccessKey(db, data.ByKeyID(keyID))
+	accessKey, err := data.GetAccessKey(db, keyID)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err
@@ -999,7 +999,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 
 	accessKey.Secret = secret
 
-	if err := data.SaveAccessKey(db, accessKey); err != nil {
+	if err := data.UpdateAccessKey(db, accessKey); err != nil {
 		return err
 	}
 

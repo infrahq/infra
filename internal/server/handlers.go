@@ -216,7 +216,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	return &api.LoginResponse{
 		UserID:                 key.IssuedFor,
-		Name:                   key.IssuedForIdentity.Name,
+		Name:                   key.IssuedForName,
 		AccessKey:              result.Bearer,
 		Expires:                api.Time(key.ExpiresAt),
 		PasswordUpdateRequired: result.CredentialUpdateRequired,

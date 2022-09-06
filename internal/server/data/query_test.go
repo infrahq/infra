@@ -67,7 +67,7 @@ func TestUpdate(t *testing.T) {
 	tx := &txnCapture{}
 	err := update(tx, e)
 	assert.NilError(t, err)
-	expected := `UPDATE examples SET id = ?, first = ?, age = ? WHERE id = ?; `
+	expected := `UPDATE examples SET id = ?, first = ?, age = ? WHERE deleted_at is null AND id = ?; `
 	assert.Equal(t, tx.query, expected)
 	expectedArgs := []any{uid.ID(123), "first", 111, uid.ID(123)}
 	assert.DeepEqual(t, tx.args, expectedArgs)

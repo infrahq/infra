@@ -100,7 +100,7 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 			if rCtx, ok := raw.(RequestContext); ok {
 				if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
 					accessKey.Scopes = models.CommaSeparatedStrings{}
-					if err = data.SaveAccessKey(db, accessKey); err != nil {
+					if err = data.UpdateAccessKey(db, accessKey); err != nil {
 						return fmt.Errorf("updating access key: %w", err)
 					}
 				}
