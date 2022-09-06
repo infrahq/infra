@@ -605,57 +605,65 @@ func (s Server) loadConfig(config Config) error {
 	}
 
 	org := s.db.DefaultOrg
-	return withDBTxn(context.Background(), s.db, func(tx *data.Transaction) error {
-		tx = tx.WithOrgID(org.ID)
 
-		if config.DefaultOrganizationDomain != org.Domain {
-			org.Domain = config.DefaultOrganizationDomain
-			if err := data.UpdateOrganization(tx, org); err != nil {
-				return fmt.Errorf("update default org domain: %w", err)
-			}
+	tx, err := s.db.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			logging.L.Error().Err(err).Msg("failed to rollback database transaction")
 		}
+	}()
+	tx = tx.WithOrgID(org.ID)
 
-		// inject internal infra provider
-		config.Providers = append(config.Providers, Provider{
-			Name: models.InternalInfraProviderName,
-			Kind: models.ProviderKindInfra.String(),
-		})
-
-		config.Users = append(config.Users, User{
-			Name: models.InternalInfraConnectorIdentityName,
-		})
-
-		config.Grants = append(config.Grants, Grant{
-			User:     models.InternalInfraConnectorIdentityName,
-			Role:     models.InfraConnectorRole,
-			Resource: "infra",
-		})
-
-		if err := s.loadProviders(tx, config.Providers); err != nil {
-			return fmt.Errorf("load providers: %w", err)
+	if config.DefaultOrganizationDomain != org.Domain {
+		org.Domain = config.DefaultOrganizationDomain
+		if err := data.UpdateOrganization(tx, org); err != nil {
+			return fmt.Errorf("update default org domain: %w", err)
 		}
+	}
 
-		// extract users from grants and add them to users
-		for _, g := range config.Grants {
-			switch {
-			case g.User != "":
-				config.Users = append(config.Users, User{Name: g.User})
-			case g.Machine != "":
-				logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
-				config.Users = append(config.Users, User{Name: g.Machine})
-			}
-		}
-
-		if err := s.loadUsers(tx, config.Users); err != nil {
-			return fmt.Errorf("load users: %w", err)
-		}
-
-		if err := s.loadGrants(tx, config.Grants); err != nil {
-			return fmt.Errorf("load grants: %w", err)
-		}
-
-		return nil
+	// inject internal infra provider
+	config.Providers = append(config.Providers, Provider{
+		Name: models.InternalInfraProviderName,
+		Kind: models.ProviderKindInfra.String(),
 	})
+
+	config.Users = append(config.Users, User{
+		Name: models.InternalInfraConnectorIdentityName,
+	})
+
+	config.Grants = append(config.Grants, Grant{
+		User:     models.InternalInfraConnectorIdentityName,
+		Role:     models.InfraConnectorRole,
+		Resource: "infra",
+	})
+
+	if err := s.loadProviders(tx, config.Providers); err != nil {
+		return fmt.Errorf("load providers: %w", err)
+	}
+
+	// extract users from grants and add them to users
+	for _, g := range config.Grants {
+		switch {
+		case g.User != "":
+			config.Users = append(config.Users, User{Name: g.User})
+		case g.Machine != "":
+			logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
+			config.Users = append(config.Users, User{Name: g.Machine})
+		}
+	}
+
+	if err := s.loadUsers(tx, config.Users); err != nil {
+		return fmt.Errorf("load users: %w", err)
+	}
+
+	if err := s.loadGrants(tx, config.Grants); err != nil {
+		return fmt.Errorf("load grants: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {

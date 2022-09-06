@@ -66,7 +66,7 @@ func addRequestRewrite[oldReq any, newReq any](api *API, method, path, version s
 
 			oldReqObj := new(oldReq)
 
-			err = bind(c, oldReqObj)
+			err = readRequest(c, oldReqObj)
 			if err != nil {
 				sendAPIError(c, err)
 				return

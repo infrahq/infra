@@ -22,7 +22,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func TestBindsQuery(t *testing.T) {
+func TestReadRequest_FromQuery(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo?alpha=beta")
@@ -32,13 +32,13 @@ func TestBindsQuery(t *testing.T) {
 	r := &struct {
 		Alpha string `form:"alpha"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "beta", r.Alpha)
 }
 
-func TestBindsJSON(t *testing.T) {
+func TestReadRequest_JSON(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
@@ -55,13 +55,13 @@ func TestBindsJSON(t *testing.T) {
 	r := &struct {
 		Alpha string `json:"alpha"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "zeta", r.Alpha)
 }
 
-func TestBindsUUIDs(t *testing.T) {
+func TestReadRequest_UUIDs(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo/e4d97df2")
@@ -70,13 +70,13 @@ func TestBindsUUIDs(t *testing.T) {
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df2"})
 	r := &api.Resource{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "e4d97df2", r.ID.String())
 }
 
-func TestBindsSnowflake(t *testing.T) {
+func TestReadRequest_Snowflake(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	id := uid.New()
@@ -91,14 +91,14 @@ func TestBindsSnowflake(t *testing.T) {
 		ID     uid.ID `uri:"id"`
 		FormID uid.ID `form:"form_id"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, id, r.ID)
 	assert.Equal(t, id2, r.FormID)
 }
 
-func TestBindsEmptyRequest(t *testing.T) {
+func TestReadRequest_EmptyRequest(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
@@ -106,7 +106,7 @@ func TestBindsEmptyRequest(t *testing.T) {
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &api.EmptyRequest{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 }
 
@@ -129,7 +129,7 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 		Deadline  api.Time     `json:"deadline"`
 		Extension api.Duration `json:"extension"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	expected := time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC)

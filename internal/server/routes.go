@@ -202,14 +202,9 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if err != nil {
 			return err
 		}
-		// See https://github.com/golang/go/issues/25448 for why this does not use
-		// recover.
-		var committed bool
 		defer func() {
-			if !committed {
-				if err := tx.Rollback(); err != nil {
-					logging.L.Error().Err(err).Msg("failed to rollback database transaction")
-				}
+			if err := tx.Rollback(); err != nil {
+				logging.L.Error().Err(err).Msg("failed to rollback database transaction")
 			}
 		}()
 
@@ -229,11 +224,9 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		}
 
 		req := new(Req)
-		if err := bind(c, req); err != nil {
+		if err := readRequest(c, req); err != nil {
 			return err
 		}
-
-		trimWhitespace(req)
 
 		resp, err := route.handler(c, req)
 		if err != nil {
@@ -243,20 +236,12 @@ func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) e
 		if err := tx.Commit(); err != nil {
 			return err
 		}
-		committed = true
 
 		if !route.omitFromTelemetry {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
 		}
 
-		statusCode := defaultResponseCodeForMethod(route.method)
-		if c, ok := any(resp).(statusCoder); ok {
-			if code := c.StatusCode(); code != 0 {
-				statusCode = code
-			}
-		}
-
-		c.JSON(statusCode, resp)
+		c.JSON(responseStatusCode(route.method, resp), resp)
 		return nil
 	}
 }
@@ -281,7 +266,12 @@ func trimWhitespace(req interface{}) {
 	}
 }
 
-func defaultResponseCodeForMethod(method string) int {
+func responseStatusCode(method string, resp any) int {
+	if c, ok := resp.(statusCoder); ok {
+		if code := c.StatusCode(); code != 0 {
+			return code
+		}
+	}
 	switch method {
 	case http.MethodPost:
 		return http.StatusCreated
@@ -327,7 +317,7 @@ func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path stri
 	})
 }
 
-func bind(c *gin.Context, req interface{}) error {
+func readRequest(c *gin.Context, req interface{}) error {
 	if err := c.ShouldBindUri(req); err != nil {
 		return fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
@@ -348,6 +338,7 @@ func bind(c *gin.Context, req interface{}) error {
 		}
 	}
 
+	trimWhitespace(req)
 	return nil
 }
 
