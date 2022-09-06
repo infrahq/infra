@@ -167,7 +167,7 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
-// Rollback the transaction. If the transaction was already committed than do
+// Rollback the transaction. If the transaction was already committed then do
 // nothing.
 func (t *Transaction) Rollback() error {
 	if t.committed.Load() {
