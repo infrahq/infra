@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/database"
@@ -171,5 +173,50 @@ func TestNewDB(t *testing.T) {
 		org, err := GetOrganization(db, ByID(defaultOrganizationID))
 		assert.NilError(t, err)
 		assert.DeepEqual(t, org, db.DefaultOrg, cmpTimeWithDBPrecision)
+	})
+}
+
+func TestDB_Begin(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("rollback", func(t *testing.T) {
+			ctx := context.Background()
+			tx, err := db.Begin(ctx)
+			assert.NilError(t, err)
+			tx = tx.WithOrgID(db.DefaultOrg.ID)
+
+			user := &models.Identity{Name: "something@example.com"}
+			err = CreateIdentity(tx, user)
+			assert.NilError(t, err)
+
+			assert.NilError(t, tx.Rollback())
+
+			// using the tx fails
+			_, err = GetIdentity(tx, ByID(user.ID))
+			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
+
+			// using the db shows to show the rollback worked
+			_, err = GetIdentity(db, ByID(user.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("commit", func(t *testing.T) {
+			ctx := context.Background()
+			tx, err := db.Begin(ctx)
+			assert.NilError(t, err)
+			tx = tx.WithOrgID(db.DefaultOrg.ID)
+
+			user := &models.Identity{Name: "something@example.com"}
+			err = CreateIdentity(tx, user)
+			assert.NilError(t, err)
+
+			assert.NilError(t, tx.Commit())
+
+			// using the tx fails
+			_, err = GetIdentity(tx, ByID(user.ID))
+			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
+
+			// using the db shows the commit worked
+			_, err = GetIdentity(db, ByID(user.ID))
+			assert.NilError(t, err)
+		})
 	})
 }

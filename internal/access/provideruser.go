@@ -7,17 +7,10 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+// TODO: remove this, it should be part of creating an identity
 func CreateProviderUser(c *gin.Context, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
 	// does not need authorization check, this function should only be called internally
 	db := getDB(c)
 
 	return data.CreateProviderUser(db, provider, ident)
-}
-
-// UpdateProviderUser overwrites an existing set of provider tokens
-func UpdateProviderUser(c *gin.Context, providerToken *models.ProviderUser) error {
-	// does not need authorization check, this function should only be called internally
-	db := getDB(c)
-
-	return data.UpdateProviderUser(db, providerToken)
 }
