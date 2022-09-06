@@ -28,7 +28,7 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^14.4.3",
-    "@types/react": "18.0.17",
+    "@types/react": "18.0.18",
     "autoprefixer": "^10.4.8",
     "concurrently": "^7.3.0",
     "eslint": "^8.23.0",
