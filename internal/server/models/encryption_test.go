@@ -8,6 +8,7 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
@@ -20,7 +21,7 @@ type StructForTesting struct {
 func (s StructForTesting) Schema() string {
 	return `
 CREATE TABLE struct_for_testings (
-	id integer PRIMARY KEY,
+	id bigint PRIMARY KEY,
 	a_secret text
 );`
 }
@@ -28,10 +29,8 @@ CREATE TABLE struct_for_testings (
 func TestEncryptedAtRest(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-
-	db, err := data.NewDB(driver, nil)
+	pg := database.PostgresDriver(t, "_models")
+	db, err := data.NewDB(pg.Dialector, nil)
 	assert.NilError(t, err)
 
 	_, err = db.Exec(StructForTesting{}.Schema())

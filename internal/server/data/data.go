@@ -6,9 +6,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
-	"path"
 	"reflect"
 	"strings"
 	"time"
@@ -16,7 +13,6 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -233,24 +229,6 @@ func initialize(db *DB) error {
 		return fmt.Errorf("getting settings: %w", err)
 	}
 	return nil
-}
-
-func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
-	if !strings.HasPrefix(connection, "file::memory") {
-		if err := os.MkdirAll(path.Dir(connection), os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-	uri, err := url.Parse(connection)
-	if err != nil {
-		return nil, err
-	}
-	query := uri.Query()
-	query.Add("_journal_mode", "WAL")
-	uri.RawQuery = query.Encode()
-	connection = uri.String()
-
-	return sqlite.Open(connection), nil
 }
 
 func getDefaultSortFromType(t interface{}) string {

@@ -28,8 +28,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	return db
 }
 
-// runDBTests against all supported databases. Defaults to only sqlite locally,
-// and all supported DBs in CI.
+// runDBTests against all supported databases.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
