@@ -36,7 +36,7 @@ func TestLoggingMiddleware(t *testing.T) {
 		})
 
 		router.GET("/authned", func(c *gin.Context) {
-			// simulate authenticatedMiddleware
+			// simulate authenticateRequest
 			c.Set(access.RequestContextKey, access.RequestContext{
 				Authenticated: access.Authenticated{
 					User:         &models.Identity{Model: models.Model{ID: 12345}},

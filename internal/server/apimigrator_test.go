@@ -34,7 +34,7 @@ func TestAddRequestRewrite(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/test", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
+	get(a, rg(router.Group("/")), "/test", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
 		assert.Equal(t, req.VegetableCount, 12)
 		return nil, nil
 	})
@@ -45,6 +45,10 @@ func TestAddRequestRewrite(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, resp.Result().StatusCode, 200)
+}
+
+func rg(g *gin.RouterGroup) *routeGroup {
+	return &routeGroup{RouterGroup: g, noAuthentication: true, noOrgRequired: true}
 }
 
 func TestStackedAddRequestRewrite(t *testing.T) {
@@ -65,7 +69,7 @@ func TestStackedAddRequestRewrite(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/test", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
+	get(a, rg(router.Group("/")), "/test", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
 		assert.Equal(t, req.VegetableCount, 24)
 		return nil, nil
 	})
@@ -86,7 +90,7 @@ func TestRedirect(t *testing.T) {
 
 	addRedirect(a, http.MethodGet, "/test", "/supertest", "0.1.0")
 
-	get(a, router.Group("/"), "/supertest", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
+	get(a, rg(router.Group("/")), "/supertest", func(c *gin.Context, req *upgradedTestRequest) (*api.EmptyResponse, error) {
 		assert.Assert(t, req.VegetableCount == 17)
 		return nil, nil
 	})
@@ -119,7 +123,7 @@ func TestRedirectOfRequestAndResponseRewrite(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/test", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/test", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
 		assert.Equal(t, req.VegetableCount, 12)
 
 		return &upgradedResponse{
@@ -162,7 +166,7 @@ func TestRedirectOfRequestAndResponseRewriteWithStackedRedirects(t *testing.T) {
 	addRedirect(a, "get", "/test", "/superbettertest", "0.1.2")
 	addRedirect(a, "get", "/superbettertest", "/awesometest", "0.1.3")
 
-	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
 		assert.Equal(t, req.VegetableCount, 12)
 
 		return &upgradedResponse{
@@ -252,7 +256,7 @@ func TestRewriteOfRedirectedRoute(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
 		assert.Equal(t, req.VegetableCount, 12)
 
 		return &upgradedResponse{
@@ -314,7 +318,7 @@ func TestRedirectWithPathVariable(t *testing.T) {
 	id := uid.New()
 	addRedirect(a, "get", "/identity/:id", "/user/:id", "0.1.0")
 
-	get(a, router.Group("/"), "/user/:id", func(c *gin.Context, req *getUserRequest) (*api.EmptyResponse, error) {
+	get(a, rg(router.Group("/")), "/user/:id", func(c *gin.Context, req *getUserRequest) (*api.EmptyResponse, error) {
 		assert.Equal(t, req.ID, id)
 
 		return nil, nil
@@ -349,7 +353,7 @@ func TestAddResponseRewrite(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
 		return &upgradedResponse{
 			Loafers:  3,
 			Sneakers: 5,
@@ -405,7 +409,7 @@ func TestStackedResponseRewrites(t *testing.T) {
 		}
 	})
 
-	get(a, router.Group("/"), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/test", func(c *gin.Context, _ *api.EmptyRequest) (*upgradedResponse, error) {
 		return &upgradedResponse{
 			Loafers:  3,
 			Sneakers: 5,
@@ -439,7 +443,7 @@ func TestRedirectWithARequestRewriteToQueryParameter(t *testing.T) {
 		c.Next()
 	})
 
-	get(a, router.Group("/"), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
+	get(a, rg(router.Group("/")), "/awesometest", func(c *gin.Context, req *upgradedTestRequest) (*upgradedResponse, error) {
 		assert.Equal(t, req.VegetableCount, 152)
 
 		return &upgradedResponse{

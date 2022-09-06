@@ -54,7 +54,7 @@ func (s *Server) GenerateRoutes() Routes {
 	apiGroup := router.Group("/", metrics.Middleware(s.metricsRegistry))
 
 	// auth required, org required
-	authn := apiGroup.Group("/", authenticatedMiddleware(a.server))
+	authn := &routeGroup{RouterGroup: apiGroup.Group("/")}
 
 	get(a, authn, "/api/users", a.ListUsers)
 	post(a, authn, "/api/users", a.CreateUser)
@@ -97,16 +97,23 @@ func (s *Server) GenerateRoutes() Routes {
 
 	put(a, authn, "/api/settings", a.UpdateSettings)
 
-	authn.GET("/api/debug/pprof/*profile", pprofHandler)
+	add(a, authn, route[api.EmptyRequest, *api.EmptyResponse]{
+		method:                     http.MethodGet,
+		path:                       "/api/debug/pprof/*profile",
+		handler:                    pprofHandler,
+		omitFromTelemetry:          true,
+		omitFromDocs:               true,
+		infraVersionHeaderOptional: true,
+	})
 
 	// no auth required, org not required
-	noAuthnNoOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server))
+	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
 	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 
 	// no auth required, org required
-	noAuthnWithOrg := apiGroup.Group("/", unauthenticatedMiddleware(a.server), orgRequired())
+	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true}
 
 	post(a, noAuthnWithOrg, "/api/login", a.Login)
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
@@ -118,12 +125,12 @@ func (s *Server) GenerateRoutes() Routes {
 
 	// no auth required, org required, undocumented in api spec
 	add(a, noAuthnWithOrg, route[api.EmptyRequest, WellKnownJWKResponse]{
-		method:              http.MethodGet,
-		path:                "/.well-known/jwks.json",
-		handler:             wellKnownJWKsHandler,
-		omitFromDocs:        true,
-		omitFromTelemetry:   true,
-		infraHeaderOptional: true,
+		method:                     http.MethodGet,
+		path:                       "/.well-known/jwks.json",
+		handler:                    wellKnownJWKsHandler,
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
 	})
 
 	a.deprecatedRoutes(noAuthnNoOrg)
@@ -140,42 +147,103 @@ func (s *Server) GenerateRoutes() Routes {
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
-	method              string
-	path                string
-	handler             HandlerFunc[Req, Res]
-	omitFromDocs        bool
-	omitFromTelemetry   bool
-	infraHeaderOptional bool
+	method                     string
+	path                       string
+	handler                    HandlerFunc[Req, Res]
+	omitFromDocs               bool
+	omitFromTelemetry          bool
+	infraVersionHeaderOptional bool
+	noAuthentication           bool
+	noOrgRequired              bool
 }
 
-func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
-	route.path = path.Join(r.BasePath(), route.path)
+// TODO: replace this when routes are defined as package-level vars instead of
+// constructed from the get, post, put, del helper functions.
+type routeGroup struct {
+	*gin.RouterGroup
+	noAuthentication bool
+	noOrgRequired    bool
+}
+
+func add[Req, Res any](a *API, group *routeGroup, route route[Req, Res]) {
+	route.path = path.Join(group.BasePath(), route.path)
 
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(route))
 	}
 
-	wrappedHandler := func(c *gin.Context) {
-		if !route.infraHeaderOptional {
+	route.noAuthentication = group.noAuthentication
+	route.noOrgRequired = group.noOrgRequired
+
+	handler := func(c *gin.Context) {
+		if err := wrapRoute(a, route)(c); err != nil {
+			sendAPIError(c, err)
+		}
+	}
+	bindRoute(a, group.RouterGroup, route.method, route.path, handler)
+}
+
+// wrapRoute builds a gin.HandlerFunc from a route. The returned function
+// provides functionality that is applicable to a large number of routes
+// (similar to middleware).
+// The returned function handles validation of the infra version header, manages
+// a request scoped database transaction, authenticates the request, reads the
+// request fields into a request struct, and returns an HTTP response with a
+// status code and response body built from the response type.
+func wrapRoute[Req, Res any](a *API, route route[Req, Res]) func(*gin.Context) error {
+	return func(c *gin.Context) error {
+		if !route.infraVersionHeaderOptional {
 			if _, err := requestVersion(c.Request); err != nil {
-				sendAPIError(c, err)
-				return
+				return err
+			}
+		}
+
+		tx, err := a.server.db.Begin(c.Request.Context())
+		if err != nil {
+			return err
+		}
+		// See https://github.com/golang/go/issues/25448 for why this does not use
+		// recover.
+		var committed bool
+		defer func() {
+			if !committed {
+				if err := tx.Rollback(); err != nil {
+					logging.L.Error().Err(err).Msg("failed to rollback database transaction")
+				}
+			}
+		}()
+
+		if route.noAuthentication {
+			err = validateRequestOrganization(c, tx, a.server)
+		} else {
+			err = authenticateRequest(c, tx, a.server)
+		}
+		if err != nil {
+			return err
+		}
+
+		if !route.noOrgRequired {
+			if org := getRequestContext(c).Authenticated.Organization; org == nil {
+				return internal.ErrBadRequest
 			}
 		}
 
 		req := new(Req)
 		if err := bind(c, req); err != nil {
-			sendAPIError(c, err)
-			return
+			return err
 		}
 
 		trimWhitespace(req)
 
 		resp, err := route.handler(c, req)
 		if err != nil {
-			sendAPIError(c, err)
-			return
+			return err
 		}
+
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+		committed = true
 
 		if !route.omitFromTelemetry {
 			a.t.RouteEvent(c, route.path, Properties{"method": strings.ToLower(route.method)})
@@ -189,9 +257,8 @@ func add[Req, Res any](a *API, r *gin.RouterGroup, route route[Req, Res]) {
 		}
 
 		c.JSON(statusCode, resp)
+		return nil
 	}
-
-	bindRoute(a, r, route.method, route.path, wrappedHandler)
 }
 
 type statusCoder interface {
@@ -225,7 +292,7 @@ func defaultResponseCodeForMethod(method string) int {
 	}
 }
 
-func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{
 		method:            http.MethodGet,
 		path:              path,
@@ -234,23 +301,23 @@ func get[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerF
 	})
 }
 
-func post[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func post[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPost, path: path, handler: handler})
 }
 
-func put[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func put[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPut, path: path, handler: handler})
 }
 
-func patch[Req, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func patch[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodPatch, path: path, handler: handler})
 }
 
-func del[Req any, Res any](a *API, r *gin.RouterGroup, path string, handler HandlerFunc[Req, Res]) {
+func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{method: http.MethodDelete, path: path, handler: handler})
 }
 
-func addDeprecated[Req, Res any](a *API, r *gin.RouterGroup, method string, path string, handler HandlerFunc[Req, Res]) {
+func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, route[Req, Res]{
 		method:            method,
 		path:              path,

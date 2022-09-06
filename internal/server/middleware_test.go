@@ -103,9 +103,19 @@ func TestDBTimeout(t *testing.T) {
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
+
+			tx, err := srv.db.Begin(c.Request.Context())
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			defer func() {
+				_ = tx.Rollback()
+			}()
+
+			c.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
 			c.Next()
 		},
-		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
 		rCtx := getRequestContext(c)
@@ -381,8 +391,9 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		assert.NilError(t, err)
 
 		r := httptest.NewRequest("GET", "/api/grants", nil)
-		r.Header.Add("Infra-Destination", destination.UniqueID)
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
+		r.Header.Set("Infra-Version", apiVersionLatest)
+		r.Header.Set("Infra-Destination", destination.UniqueID)
+		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
 		w := httptest.NewRecorder()
 		routes.ServeHTTP(w, r)
 
@@ -418,7 +429,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 }
 
-func TestAuthenticatedMiddleware(t *testing.T) {
+func TestAuthenticateRequest(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
@@ -545,7 +556,7 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 	}
 }
 
-func TestUnauthenticatedMiddleware(t *testing.T) {
+func TestValidateRequestOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true // multi-tenant environment
 	routes := srv.GenerateRoutes()

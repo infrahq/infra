@@ -25,7 +25,7 @@ func (a *API) addRewrites() {
 func (a *API) addRedirects() {
 }
 
-func (a *API) deprecatedRoutes(noAuthnNoOrg *gin.RouterGroup) {
+func (a *API) deprecatedRoutes(noAuthnNoOrg *routeGroup) {
 	// CLI clients before v0.14.4 rely on sign-up being false to continue with login
 	type SignupEnabledResponse struct {
 		Enabled bool `json:"enabled"`
