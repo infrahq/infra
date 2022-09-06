@@ -2,16 +2,11 @@ package data
 
 import (
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
-
-// PostgreSQL only has microsecond precision
-var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {

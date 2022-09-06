@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -16,6 +15,24 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+type accessKeyTable models.AccessKey
+
+func (a accessKeyTable) Table() string {
+	return "access_keys"
+}
+
+func (a accessKeyTable) Columns() []string {
+	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "organization_id", "provider_id", "scopes", "secret_checksum", "updated_at"}
+}
+
+func (a accessKeyTable) Values() []any {
+	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.OrganizationID, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
+}
+
+func (a *accessKeyTable) ScanFields() []any {
+	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.OrganizationID, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
+}
 
 var (
 	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
@@ -76,7 +93,7 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
-	if err := add(db, accessKey); err != nil {
+	if err := insert(db, (*accessKeyTable)(accessKey)); err != nil {
 		return "", err
 	}
 
@@ -112,21 +129,33 @@ func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, err
 	return result, nil
 }
 
-func DeleteAccessKey(db GormTxn, id uid.ID) error {
-	return delete[models.AccessKey](db, id)
+type DeleteAccessKeysOptions struct {
+	// ByID instructs DeleteAccessKeys to delete the key with this ID.
+	ByID uid.ID
+	// ByIssuedForID instructs DeleteAccessKeys to delete keys issued for this user.
+	ByIssuedForID uid.ID
+	// ByProviderID instructs DeleteAccessKeys to delete keys issued by this
+	// provider.
+	ByProviderID uid.ID
 }
 
-func DeleteAccessKeys(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, nil, selectors...)
-	if err != nil {
-		return err
+func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
+	query := Query("UPDATE access_keys")
+	query.B("SET deleted_at = ? WHERE", time.Now())
+	switch {
+	case opts.ByID != 0:
+		query.B("id = ?", opts.ByID)
+	case opts.ByIssuedForID != 0:
+		query.B("issued_for = ?", opts.ByIssuedForID)
+	case opts.ByProviderID != 0:
+		query.B("provider_id = ?", opts.ByProviderID)
+	default:
+		return fmt.Errorf("DeleteAccessKeys requires an ID to delete")
 	}
+	query.B("AND organization_id = ?", tx.OrganizationID())
 
-	ids := slice.Map[models.AccessKey, uid.ID](toDelete, func(k models.AccessKey) uid.ID {
-		return k.ID
-	})
-
-	return deleteAll[models.AccessKey](db, ByIDs(ids))
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
 }
 
 func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {

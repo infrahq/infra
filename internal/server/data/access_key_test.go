@@ -6,68 +6,100 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestCreateAccessKey(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		jerry := &models.Identity{Name: "jseinfeld@infrahq.com"}
+		org := &models.Organization{Name: "something", Domain: "example.com"}
+		assert.NilError(t, CreateOrganization(db, org))
 
-		err := CreateIdentity(db, jerry)
+		tx := txnForTestCase(t, db, org.ID)
+
+		jerry := &models.Identity{Name: "jseinfeld@infrahq.com"}
+		err := CreateIdentity(tx, jerry)
 		assert.NilError(t, err)
 
-		t.Run("no key id set", func(t *testing.T) {
+		infraProviderID := InfraProvider(tx).ID
+
+		t.Run("all default values", func(t *testing.T) {
 			key := &models.AccessKey{
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: infraProviderID,
 			}
-			_, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
-			assert.Assert(t, key.KeyID != "")
+
+			expected := &models.AccessKey{
+				OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+				Model: models.Model{
+					ID:        uid.ID(12345),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				IssuedFor:      jerry.ID,
+				ProviderID:     infraProviderID,
+				KeyID:          "<any-string>",
+				Secret:         "<any-string>",
+				ExpiresAt:      time.Now().Add(12 * time.Hour),
+				Name:           fmt.Sprintf("%s-%s", jerry.Name, key.ID.String()),
+				SecretChecksum: secretChecksum(key.Secret),
+			}
+			assert.DeepEqual(t, key, expected, cmpAccessKey)
+			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
+
+			// check that we can fetch the same value from the db
+			fromDB, err := GetAccessKey(tx, ByID(key.ID))
+			assert.NilError(t, err)
+
+			// fromDB should not have the secret value
+			key.Secret = ""
+			assert.DeepEqual(t, fromDB, key, cmpopts.EquateEmpty(), cmpTimeWithDBPrecision)
 		})
 
-		t.Run("no key secret set", func(t *testing.T) {
+		t.Run("all values", func(t *testing.T) {
 			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				Model: models.Model{
+					ID:        uid.ID(512512),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				Name:              "the-key",
+				IssuedFor:         jerry.ID,
+				ProviderID:        infraProviderID,
+				ExpiresAt:         time.Now().Add(time.Hour),
+				Extension:         3 * time.Hour,
+				ExtensionDeadline: time.Now().Add(time.Minute),
+				KeyID:             "0123456789",
+				Secret:            "012345678901234567890123",
+				Scopes:            []string{"first", "third"},
 			}
-			_, err := CreateAccessKey(db, key)
+			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
-			assert.Assert(t, key.Secret != "")
-		})
+			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
-		t.Run("no expiry set", func(t *testing.T) {
-			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
-			}
-			_, err := CreateAccessKey(db, key)
+			// check that we can fetch the same value from the db
+			fromDB, err := GetAccessKey(tx, ByID(key.ID))
 			assert.NilError(t, err)
-			assert.Assert(t, !key.ExpiresAt.IsZero())
-		})
-
-		t.Run("no name set", func(t *testing.T) {
-			key := &models.AccessKey{
-				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
-			}
-			_, err := CreateAccessKey(db, key)
-			assert.NilError(t, err)
-
-			expected := fmt.Sprintf("%s-%s", jerry.Name, key.ID.String())
-			assert.Equal(t, key.Name, expected)
+			// fromDB should not have the secret value
+			key.Secret = ""
+			assert.DeepEqual(t, fromDB, key, cmpTimeWithDBPrecision)
 		})
 
 		t.Run("invalid specified key id length", func(t *testing.T) {
 			key := &models.AccessKey{
 				KeyID:      "too-short",
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: InfraProvider(tx).ID,
 			}
-			_, err := CreateAccessKey(db, key)
+			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid key length")
 		})
 
@@ -75,13 +107,43 @@ func TestCreateAccessKey(t *testing.T) {
 			key := &models.AccessKey{
 				Secret:     "too-short",
 				IssuedFor:  jerry.ID,
-				ProviderID: InfraProvider(db).ID,
+				ProviderID: InfraProvider(tx).ID,
 			}
-			_, err := CreateAccessKey(db, key)
+			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid secret length")
 		})
 	})
 }
+
+var cmpModel = cmp.Options{
+	cmp.FilterPath(opt.PathField(models.Model{}, "ID"), anyValidUID),
+	cmp.FilterPath(opt.PathField(models.Model{}, "CreatedAt"), opt.TimeWithThreshold(2*time.Second)),
+	cmp.FilterPath(opt.PathField(models.Model{}, "UpdatedAt"), opt.TimeWithThreshold(2*time.Second)),
+}
+
+var cmpAccessKey = cmp.Options{
+	cmpModel,
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "KeyID"), nonZeroString),
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "Secret"), nonZeroString),
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "ExpiresAt"), opt.TimeWithThreshold(time.Second)),
+}
+
+var nonZeroString = cmp.Comparer(func(x, y string) bool {
+	if x == "" || y == "" {
+		return false
+	}
+	if x == "<any-string>" || y == "<any-string>" {
+		return true
+	}
+	return false
+})
+
+var anyValidUID = cmp.Comparer(func(x, y uid.ID) bool {
+	return x > 0 && y > 0
+})
+
+// PostgreSQL only has microsecond precision
+var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, extensionDeadline time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
@@ -116,23 +178,92 @@ func TestCheckAccessKeySecret(t *testing.T) {
 	})
 }
 
-func TestDeleteAccessKey(t *testing.T) {
+func TestDeleteAccessKeys(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		_, token := createTestAccessKey(t, db, time.Minute*5)
 
-		_, err := GetAccessKey(db, ByID(token.ID))
-		assert.NilError(t, err)
+		provider := &models.Provider{Name: "azure", Kind: models.ProviderKindAzure}
+		otherProvider := &models.Provider{Name: "other", Kind: models.ProviderKindGoogle}
+		createProviders(t, db, provider, otherProvider)
 
-		err = DeleteAccessKey(db, token.ID)
-		assert.NilError(t, err)
+		user := &models.Identity{Name: "main@example.com"}
+		otherUser := &models.Identity{Name: "other@example.com"}
+		createIdentities(t, db, user, otherUser)
 
-		_, err = GetAccessKey(db, ByID(token.ID))
-		assert.Error(t, err, "record not found")
+		t.Run("empty options", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{})
+			assert.ErrorContains(t, err, "requires an ID to delete")
+		})
 
-		err = DeleteAccessKeys(db, ByID(token.ID))
-		assert.NilError(t, err)
+		t.Run("by user id", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			toKeep := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, key2, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: user.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+
+		t.Run("by provider id", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			key1 := &models.AccessKey{IssuedFor: user.ID, ProviderID: provider.ID}
+			key2 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, key2, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByProviderID: provider.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
+
+		t.Run("by id", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			key1 := &models.AccessKey{IssuedFor: otherUser.ID, ProviderID: provider.ID}
+			toKeep := &models.AccessKey{IssuedFor: user.ID, ProviderID: otherProvider.ID}
+			createAccessKeys(t, tx, key1, toKeep)
+
+			err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByID: key1.ID})
+			assert.NilError(t, err)
+
+			remaining, err := ListAccessKeys(tx, nil)
+			assert.NilError(t, err)
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, remaining, expected, cmpModelByID)
+		})
 	})
 }
+
+func createAccessKeys(t *testing.T, db GormTxn, keys ...*models.AccessKey) {
+	t.Helper()
+	for i := range keys {
+		_, err := CreateAccessKey(db, keys[i])
+		assert.NilError(t, err)
+	}
+}
+
+type primaryKeyable interface {
+	Primary() uid.ID
+}
+
+var cmpModelByID = cmp.Comparer(func(x, y primaryKeyable) bool {
+	return x.Primary() == y.Primary()
+})
 
 func TestCheckAccessKeyExpired(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -194,11 +325,11 @@ func TestListAccessKeys(t *testing.T) {
 
 		keys, err := ListAccessKeys(db, nil, ByNotExpiredOrExtended())
 		assert.NilError(t, err)
-		assert.Assert(t, len(keys) == 1)
+		assert.Equal(t, len(keys), 1)
 
 		keys, err = ListAccessKeys(db, nil)
 		assert.NilError(t, err)
-		assert.Assert(t, len(keys) == 3)
+		assert.Equal(t, len(keys), 3)
 	})
 }
 

@@ -39,3 +39,23 @@ func (m *Model) BeforeCreate(_ *gorm.DB) error {
 
 	return nil
 }
+
+func (m Model) Primary() uid.ID {
+	return m.ID
+}
+
+func (m *Model) OnInsert() error {
+	if m.ID == 0 {
+		m.ID = uid.New()
+	}
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = time.Now()
+	}
+	m.UpdatedAt = m.CreatedAt
+	return nil
+}
+
+func (m *Model) OnUpdate() error {
+	m.UpdatedAt = time.Now()
+	return nil
+}
