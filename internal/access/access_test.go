@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http/httptest"
@@ -32,15 +33,16 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
-func setupAccessTestContext(t *testing.T) (*gin.Context, *data.DB, *models.Provider) {
+func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *models.Provider) {
 	// setup db and context
 	db := setupDB(t)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set(RequestContextKey, RequestContext{DBTxn: db})
+	tx := txnForTestCase(t, db)
+	c.Set(RequestContextKey, RequestContext{DBTxn: tx})
 
 	admin := &models.Identity{Name: "admin@example.com"}
-	err := data.CreateIdentity(db, admin)
+	err := data.CreateIdentity(tx, admin)
 	assert.NilError(t, err)
 
 	c.Set("identity", admin)
@@ -50,12 +52,22 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.DB, *models.Provi
 		Privilege: models.InfraAdminRole,
 		Resource:  ResourceInfraAPI,
 	}
-	err = data.CreateGrant(db, adminGrant)
+	err = data.CreateGrant(tx, adminGrant)
 	assert.NilError(t, err)
 
-	provider := data.InfraProvider(db)
+	provider := data.InfraProvider(tx)
 
-	return c, db, provider
+	return c, tx, provider
+}
+
+func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		assert.NilError(t, tx.Rollback())
+	})
+	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
 var (
@@ -106,14 +118,15 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set(RequestContextKey, RequestContext{DBTxn: db})
+	tx := txnForTestCase(t, db)
+	c.Set(RequestContextKey, RequestContext{DBTxn: tx})
 	c.Set("identity", tom)
 
 	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 	assert.Assert(t, authDB == nil)
 
-	grant(t, db, tom, tomsGroup.PolyID(), models.InfraAdminRole, "infra")
+	grant(t, tx, tom, tomsGroup.PolyID(), models.InfraAdminRole, "infra")
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
 	assert.NilError(t, err)
@@ -133,7 +146,8 @@ func TestInfraRequireInfraRole(t *testing.T) {
 		assert.NilError(t, err)
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Set(RequestContextKey, RequestContext{DBTxn: db})
+		tx := txnForTestCase(t, db)
+		c.Set(RequestContextKey, RequestContext{DBTxn: tx})
 		c.Set("identity", testIdentity)
 
 		return c
@@ -172,7 +186,7 @@ func TestInfraRequireInfraRole(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db *data.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db data.GormTxn, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,

@@ -31,8 +31,9 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
 
-	db = data.NewTransaction(db.GormDB(), details.Org.ID)
+	db = db.WithOrgID(details.Org.ID)
 	rCtx.DBTxn = db
+	rCtx.Authenticated.Organization = details.Org
 	c.Set(RequestContextKey, rCtx)
 
 	identity := &models.Identity{
@@ -48,7 +49,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("hash password on sign-up: %w", err)
 	}
 
-	_, err = CreateProviderUser(c, InfraProvider(c), identity)
+	_, err = data.CreateProviderUser(db, data.InfraProvider(db), identity)
 	if err != nil {
 		return nil, "", fmt.Errorf("create provider user on sign-up: %w", err)
 	}

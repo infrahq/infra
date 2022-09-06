@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +10,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
-	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
@@ -151,20 +149,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.NilError(t, err)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
-				rCtx := access.RequestContext{
-					Request: req,
-					DBTxn:   srv.DB(),
-					Authenticated: access.Authenticated{
-						AccessKey: key,
-						User:      user,
-					},
-				}
-
-				// nolint: staticcheck
-				ctx = context.WithValue(ctx, access.RequestContextKey, rCtx)
-
 				*req = *req.WithContext(ctx)
-
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -203,20 +188,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.NilError(t, err)
 
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{UserInfoRevoked: true})
-				rCtx := access.RequestContext{
-					Request: req,
-					DBTxn:   srv.DB(),
-					Authenticated: access.Authenticated{
-						AccessKey: key,
-						User:      user,
-					},
-				}
-
-				// nolint: staticcheck
-				ctx = context.WithValue(ctx, access.RequestContextKey, rCtx)
-
 				*req = *req.WithContext(ctx)
-
 				req.Header.Set("Authorization", "Bearer "+accessKey)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {

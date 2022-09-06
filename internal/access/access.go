@@ -13,7 +13,7 @@ import (
 
 // TODO: replace calls to this function with GetRequestContext once the
 // data interface has stabilized.
-func getDB(c *gin.Context) data.GormTxn {
+func getDB(c *gin.Context) *data.Transaction {
 	return GetRequestContext(c).DBTxn
 }
 
