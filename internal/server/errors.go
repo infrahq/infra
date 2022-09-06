@@ -97,6 +97,10 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusBadGateway
 		resp.Message = err.Error()
 
+	case errors.Is(err, internal.ErrTooManyRequests):
+		resp.Code = http.StatusTooManyRequests
+		resp.Message = err.Error()
+
 	case errors.Is(err, context.DeadlineExceeded):
 		resp.Code = http.StatusGatewayTimeout // not ideal, but StatusRequestTimeout isn't intended for this.
 		resp.Message = "request timed out"
