@@ -29,11 +29,6 @@ import (
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_server")
-	if driver == nil {
-		lite, err := data.NewSQLiteDriver("file::memory:")
-		assert.NilError(t, err)
-		driver = &database.Driver{Dialector: lite}
-	}
 
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)

@@ -12,8 +12,12 @@ import (
 type TestingT interface {
 	assert.TestingT
 	Cleanup(func())
+	Fatal(...any)
+	Skip(...any)
 	Helper()
 }
+
+var isEnvironmentCI = os.Getenv("CI") != ""
 
 // PostgresDriver returns a driver for connecting to postgres based on the
 // POSTGRESQL_CONNECTION environment variable. The value should be a postgres
@@ -25,8 +29,11 @@ type TestingT interface {
 func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	t.Helper()
 	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
-	if !ok {
-		return nil
+	switch {
+	case !ok && isEnvironmentCI:
+		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
+	case !ok:
+		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
 	}
 
 	suffix := strings.NewReplacer("--", "", ";", "", "/", "").Replace(schemaSuffix)
