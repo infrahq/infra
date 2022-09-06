@@ -9,6 +9,7 @@ export default function ForgotDomain() {
 
   async function onSubmit(e) {
     e.preventDefault()
+    setSubmitted(true)
 
     try {
       const res = await fetch('/api/forgot-domain-request', {
@@ -23,7 +24,6 @@ export default function ForgotDomain() {
       }
 
       await res.json()
-      setSubmitted(true)
     } catch (e) {
       console.error(e)
     }
