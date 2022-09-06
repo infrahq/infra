@@ -48,7 +48,6 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	user := &models.Identity{Name: r.Name}
-	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
 	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &data.Pagination{Limit: 2})
@@ -71,11 +70,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	resp := &api.CreateUserResponse{
 		ID:   user.ID,
 		Name: user.Name,
-	}
-
-	_, err = access.CreateProviderUser(c, infraProvider, user)
-	if err != nil {
-		return nil, fmt.Errorf("creating provider user: %w", err)
 	}
 
 	// Always create a temporary password for infra users.
@@ -126,10 +120,6 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 	if err != nil {
 		return nil, err
 	}
-
-	// if the user is an admin, we could be required to create the infra user, so create the provider_user if it's missing.
-	_, _ = access.CreateProviderUser(c, access.InfraProvider(c), identity)
-
 	return identity.ToAPI(), nil
 }
 
