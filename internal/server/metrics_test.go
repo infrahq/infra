@@ -16,7 +16,7 @@ import (
 )
 
 func TestMetrics(t *testing.T) {
-	run := func(db data.GormTxn, s string) []byte {
+	run := func(db *data.DB, s string) []byte {
 		patchProductVersion(t, "9.9.9")
 		registry := setupMetrics(db)
 

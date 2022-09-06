@@ -107,6 +107,7 @@ func RemoveUsersFromGroup(db GormTxn, groupID uid.ID, idsToRemove []uid.ID) erro
 	return nil
 }
 
+// TODO: do this with a join in ListGroups and GetGroup
 func CountUsersInGroup(tx GormTxn, groupID uid.ID) (int64, error) {
 	db := tx.GormDB()
 	var count int64

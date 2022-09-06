@@ -144,7 +144,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 	server.db = db
-	server.metricsRegistry = setupMetrics(server.DB())
+	server.metricsRegistry = setupMetrics(server.db)
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)

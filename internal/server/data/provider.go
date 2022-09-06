@@ -96,12 +96,21 @@ type providersCount struct {
 	Count float64
 }
 
-func CountProvidersByKind(tx GormTxn) ([]providersCount, error) {
-	db := tx.GormDB()
-	var results []providersCount
-	if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
+func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
+	rows, err := tx.Query("SELECT kind, COUNT(*) AS count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind")
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return results, nil
+	var results []providersCount
+	for rows.Next() {
+		var item providersCount
+		if err := rows.Scan(&item.Kind, &item.Count); err != nil {
+			return nil, err
+		}
+		results = append(results, item)
+	}
+
+	return results, rows.Err()
 }
