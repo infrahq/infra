@@ -217,6 +217,5 @@ Identity providers are external sources of [users](#users) and [groups](#groups)
 
 ## Next Steps
 
-- Get up and running with the [Quickstart](./quickstart.md) guide
-- [Install Infra](../install/install-on-kubernetes.md) on Kubernetes
+- [Deploy Infra](./deploy.md)
 - Read about the [Architecture](../reference/architecture.md)

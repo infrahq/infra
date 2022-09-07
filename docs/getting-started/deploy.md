@@ -1,39 +1,48 @@
 ---
-title: Quickstart
+title: Deploy Infra
 position: 2
 ---
 
-# Quickstart
+# Deploy Infra
 
 ## Prerequisites
 
 - Install [helm](https://helm.sh/docs/intro/install/) (v3+)
 - Kubernetes (v1.14+)
 
-## Deploy Infra
+## Install Infra via `helm`
 
-Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
+### Create an admin password
+
+First, create an admin password via `kubectl`:
+
+```bash
+kubectl create secret generic infra-admin-credentials \
+  --from-literal=INFRA_ADMIN_PASSWORD='SetAPassword!'
+```
+
+### Write a `values.yaml` file
+
+Create a `values.yaml` file to define the first user. Update the admin username accordingly:
 
 ```yaml
 server:
   config:
     users:
-      - name: admin@example.com
-        password: SetThisPassword!
+      - name: admin@example.com # edit me
+        password: env:INFRA_ADMIN_PASSWORD
 
     grants:
       - user: admin@example.com
         role: admin
         resource: infra
+
+  envFrom:
+    - secretRef:
+        name: infra-admin-credentials
 ```
 
-{% callout type="info" %}
-
-In this example we are setting a password in plaintext. Refer to the [Helm Reference](../reference/helm-reference.md) doc to learn more about using secrets in the Helm values file.
-
-{% /callout %}
-
-Deploy Infra via `helm`:
+### Deploy Infra via `helm`
 
 ```
 helm repo add infrahq https://helm.infrahq.com
@@ -65,8 +74,6 @@ Otherwise you'll need to configure the LoadBalancer with a static IP and hostnam
 Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup your own TLS certificates for Infra.
 
 {% /callout %}
-
-After logging in to the UI, navigate to **Clusters**. Click the **+ Cluster** button at the top right. Enter a name for the cluster and click **Next**. Copy the command shown in the UI and paste it into your terminal and press Enter to run the command. This will add the Kubernetes Connector.
 
 ## Next Steps
 

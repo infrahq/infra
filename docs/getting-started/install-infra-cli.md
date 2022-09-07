@@ -1,5 +1,5 @@
 ---
-position: 1
+position: 3
 ---
 
 # Install Infra CLI
