@@ -58,7 +58,7 @@ func insert(tx WriteTxn, item Insertable) error {
 	query.B(placeholderForColumns(item), item.Values()...)
 	query.B(");")
 	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	return handleError(err)
 }
 
 func columnsForInsert(table Table) string {
@@ -86,7 +86,7 @@ func update(tx WriteTxn, item Updatable) error {
 	query.B(columnsForUpdate(item), item.Values()...)
 	query.B("WHERE deleted_at is null AND id = ?;", item.Primary())
 	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	return handleError(err)
 }
 
 func columnsForUpdate(table Table) string {

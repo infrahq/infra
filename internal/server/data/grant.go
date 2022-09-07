@@ -10,25 +10,25 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type grantTable models.Grant
+type grantsTable models.Grant
 
-func (g grantTable) Table() string {
+func (g grantsTable) Table() string {
 	return "grants"
 }
 
-func (g grantTable) Columns() []string {
+func (g grantsTable) Columns() []string {
 	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "resource", "subject", "updated_at"}
 }
 
-func (g grantTable) Values() []any {
+func (g grantsTable) Values() []any {
 	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Resource, g.Subject, g.UpdatedAt}
 }
 
-func (g *grantTable) ScanFields() []any {
+func (g *grantsTable) ScanFields() []any {
 	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject, &g.UpdatedAt}
 }
 
-func CreateGrant(db GormTxn, grant *models.Grant) error {
+func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 	switch {
 	case grant.Subject == "":
 		return fmt.Errorf("subject is required")
@@ -37,7 +37,8 @@ func CreateGrant(db GormTxn, grant *models.Grant) error {
 	case grant.Resource == "":
 		return fmt.Errorf("resource is required")
 	}
-	return add(db, grant)
+
+	return insert(tx, (*grantsTable)(grant))
 }
 
 func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {
