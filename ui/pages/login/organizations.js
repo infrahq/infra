@@ -1,5 +1,6 @@
-import LoginLayout from '../../components/layouts/login'
 import Cookies from 'universal-cookie'
+
+import LoginLayout from '../../components/layouts/login'
 
 export default function PreLogin() {
   const cookies = new Cookies()

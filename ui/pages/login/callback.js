@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 import Cookies from 'universal-cookie'
+
 import { useServerConfig } from '../../lib/serverconfig'
 
 export default function Callback() {

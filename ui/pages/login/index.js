@@ -1,12 +1,11 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { useServerConfig } from '../../lib/serverconfig'
 import Cookies from 'universal-cookie'
-
 import Link from 'next/link'
 
 import { providers as providersList } from '../../lib/providers'
+import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
 
