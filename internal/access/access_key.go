@@ -36,6 +36,10 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 		return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
 	}
 
+	if accessKey.ProviderID == 0 {
+		accessKey.ProviderID = data.InfraProvider(db).ID
+	}
+
 	body, err = data.CreateAccessKey(db, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
