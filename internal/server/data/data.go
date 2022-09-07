@@ -228,7 +228,13 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 const defaultOrganizationID = 1000
 
 func initialize(db *DB) error {
-	org, err := GetOrganization(db, ByID(defaultOrganizationID))
+	tx, err := db.Begin(context.TODO())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	org, err := GetOrganization(tx, ByID(defaultOrganizationID))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
@@ -236,7 +242,7 @@ func initialize(db *DB) error {
 			Name:      "Default",
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganization(db, org); err != nil {
+		if err := CreateOrganization(tx, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:
@@ -244,11 +250,11 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-	db.DefaultOrgSettings, err = getSettingsForOrg(db, org.ID)
+	db.DefaultOrgSettings, err = getSettingsForOrg(tx, org.ID)
 	if err != nil {
 		return fmt.Errorf("getting settings: %w", err)
 	}
-	return nil
+	return tx.Commit()
 }
 
 func getDefaultSortFromType(t interface{}) string {

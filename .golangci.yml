@@ -20,6 +20,8 @@ issues:
   exclude-rules:
     - linters: [staticcheck]
       text: "\"io/ioutil\" has been deprecated"
+    - linters: [errcheck]
+      text: "tx\\.Rollback"
 
 linters:
   enable:
