@@ -10,6 +10,24 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type grantTable models.Grant
+
+func (g grantTable) Table() string {
+	return "grants"
+}
+
+func (g grantTable) Columns() []string {
+	return []string{"created_at", "created_by", "deleted_at", "id", "organization_id", "privilege", "resource", "subject", "updated_at"}
+}
+
+func (g grantTable) Values() []any {
+	return []any{g.CreatedAt, g.CreatedBy, g.DeletedAt, g.ID, g.OrganizationID, g.Privilege, g.Resource, g.Subject, g.UpdatedAt}
+}
+
+func (g *grantTable) ScanFields() []any {
+	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject, &g.UpdatedAt}
+}
+
 func CreateGrant(db GormTxn, grant *models.Grant) error {
 	switch {
 	case grant.Subject == "":
