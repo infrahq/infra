@@ -1,5 +1,4 @@
 import Cookies from 'universal-cookie'
-import Link from 'next/link'
 
 import LoginLayout from '../../components/layouts/login'
 
