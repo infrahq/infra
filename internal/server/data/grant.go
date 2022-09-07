@@ -64,8 +64,46 @@ func isPgErrorCode(err error, code string) bool {
 	return errors.As(err, &pgError) && pgError.Code == code
 }
 
-func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {
-	return get[models.Grant](db, selectors...)
+type GetGrantOptions struct {
+	// ByID instructs GetGrant to return the grant with this primary key ID.
+	// When set all other fields on this struct are ignored.
+	ByID uid.ID
+
+	// BySubject instructs GetGrant to return the grant with this subject. Must
+	// be used with ByPrivilege, and ByResource.
+	BySubject uid.PolymorphicID
+	// ByPrivilege instructs GetGrant to return the grant with this privilege. Must
+	// be used with BySubject, and ByResource.
+	ByPrivilege string
+	// ByResource instructs GetGrant to return the grant with this resource. Must
+	// be used with BySubject, and ByPrivilege.
+	ByResource string
+}
+
+func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
+	table := &grantsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	query.B("FROM grants")
+	query.B("WHERE organization_id = ?", tx.OrganizationID())
+	query.B("AND deleted_at is null")
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.BySubject != "":
+		query.B("AND subject = ?", opts.BySubject)
+		query.B("AND privilege = ?", opts.ByPrivilege)
+		query.B("AND resource = ?", opts.ByResource)
+	default:
+		return nil, fmt.Errorf("GetGrant requires an ID or subject")
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(table.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.Grant)(table), nil
 }
 
 func ListGrants(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {

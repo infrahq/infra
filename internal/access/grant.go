@@ -16,7 +16,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
-	return data.GetGrant(db, data.ByID(id))
+	return data.GetGrant(db, data.GetGrantOptions{ByID: id})
 }
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *data.Pagination) ([]models.Grant, error) {

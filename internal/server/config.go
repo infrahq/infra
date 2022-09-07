@@ -834,7 +834,11 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 		input.Role = models.BasePermissionConnect
 	}
 
-	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	grant, err := data.GetGrant(db, data.GetGrantOptions{
+		BySubject:   id,
+		ByResource:  input.Resource,
+		ByPrivilege: input.Role,
+	})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err

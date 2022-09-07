@@ -8,6 +8,7 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -163,4 +164,97 @@ func createGrants(t *testing.T, tx WriteTxn, grants ...*models.Grant) {
 	for _, grant := range grants {
 		assert.NilError(t, CreateGrant(tx, grant))
 	}
+}
+
+func TestGetGrant(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		grant1 := &models.Grant{
+			Subject:   "i:any1",
+			Privilege: "view",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		grant2 := &models.Grant{
+			Subject:   "i:any2",
+			Privilege: "view",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		createGrants(t, tx, grant1, grant2)
+
+		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(tx, otherOrg))
+		other := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "any"}
+		createGrants(t, tx.WithOrgID(otherOrg.ID), other)
+
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetGrant(tx, GetGrantOptions{})
+			assert.ErrorContains(t, err, "GetGrant requires an ID")
+		})
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetGrant(tx, GetGrantOptions{ByID: uid.ID(404)})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("not found soft deleted", func(t *testing.T) {
+			deleted := &models.Grant{
+				Model:              models.Model{ID: 1234},
+				OrganizationMember: models.OrganizationMember{},
+				Subject:            "i:someone",
+				Privilege:          "view",
+				Resource:           "any",
+			}
+			deleted.DeletedAt.Time = time.Now()
+			deleted.DeletedAt.Valid = true
+			createGrants(t, tx, deleted)
+
+			_, err := GetGrant(tx, GetGrantOptions{ByID: uid.ID(1234)})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("wrong org", func(t *testing.T) {
+			_, err := GetGrant(tx, GetGrantOptions{ByID: uid.ID(other.ID)})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("by id", func(t *testing.T) {
+			actual, err := GetGrant(tx, GetGrantOptions{ByID: grant1.ID})
+			assert.NilError(t, err)
+
+			expected := &models.Grant{
+				Model: models.Model{
+					ID:        grant1.ID,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
+				Subject:            "i:any1",
+				Privilege:          "view",
+				Resource:           "any",
+				CreatedBy:          uid.ID(777),
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+		t.Run("by subject, privilege, resource", func(t *testing.T) {
+			actual, err := GetGrant(tx, GetGrantOptions{
+				BySubject:   "i:any1",
+				ByPrivilege: "view",
+				ByResource:  "any",
+			})
+			assert.NilError(t, err)
+
+			expected := &models.Grant{
+				Model: models.Model{
+					ID:        grant1.ID,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: db.DefaultOrg.ID},
+				Subject:            "i:any1",
+				Privilege:          "view",
+				Resource:           "any",
+				CreatedBy:          uid.ID(777),
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+	})
 }

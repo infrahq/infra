@@ -48,7 +48,11 @@ func TestCreateOrganization(t *testing.T) {
 		}
 		assert.DeepEqual(t, connector, expectedConnector)
 
-		connectorGrant, err := GetGrant(tx, BySubject(connector.PolyID()), ByPrivilege(models.InfraConnectorRole), ByResource("infra"))
+		connectorGrant, err := GetGrant(tx, GetGrantOptions{
+			BySubject:   connector.PolyID(),
+			ByPrivilege: models.InfraConnectorRole,
+			ByResource:  "infra",
+		})
 		assert.NilError(t, err)
 		expectedConnectorGrant := &models.Grant{
 			Model:              connectorGrant.Model,
