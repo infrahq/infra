@@ -15,13 +15,15 @@ export default function Organizations() {
       </h2>
       <>
         {organizations?.map(o => (
-          <Link href={`//${o.url}`} key={o.name}>
-            <a className='mt-1 mb-1 w-full rounded-lg border border-violet-300 px-4 py-3 text-center text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'>
-              {o.url}
-              <br />
-              {o.user}
-            </a>
-          </Link>
+          <a
+            href={`//${o.url}`}
+            key={o.name}
+            className='mt-1 mb-1 w-full rounded-lg border border-violet-300 px-4 py-3 text-center text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+          >
+            {o.url}
+            <br />
+            {o.user}
+          </a>
         ))}
       </>
     </>
