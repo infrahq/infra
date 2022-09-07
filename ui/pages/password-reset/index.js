@@ -9,7 +9,6 @@ export default function PasswordReset() {
   const { token } = router.query
 
   const [email, setEmail] = useState('')
-  const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
 
   async function onSubmit(e) {
@@ -83,11 +82,8 @@ export default function PasswordReset() {
                     placeholder='enter your email'
                     onChange={e => {
                       setEmail(e.target.value)
-                      setError('')
                     }}
-                    className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none ${
-                      error ? 'border-pink-500/60' : ''
-                    }`}
+                    className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none`}
                   />
                 </div>
                 <button
@@ -96,11 +92,6 @@ export default function PasswordReset() {
                 >
                   Submit
                 </button>
-                {error && (
-                  <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
-                    {error}
-                  </p>
-                )}
               </form>
             </>
           )}
