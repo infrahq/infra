@@ -1,8 +1,11 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -38,7 +41,25 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 		return fmt.Errorf("resource is required")
 	}
 
-	return insert(tx, (*grantsTable)(grant))
+	// Use a savepoint so that we can query for the duplicate grant on conflict
+	if _, err := tx.Exec("SAVEPOINT beforeCreate"); err != nil {
+		// ignore "not in a transaction" error, because outside of a transaction
+		// the db conn can continue to be used after the conflict error.
+		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
+			return err
+		}
+	}
+	if err := insert(tx, (*grantsTable)(grant)); err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeCreate")
+		return handleError(err)
+	}
+	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
+	return nil
+}
+
+func isPgErrorCode(err error, code string) bool {
+	pgError := &pgconn.PgError{}
+	return errors.As(err, &pgError) && pgError.Code == code
 }
 
 func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {

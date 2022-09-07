@@ -8,12 +8,11 @@ import (
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
-	"github.com/infrahq/infra/uid"
-
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
-func TestCreateGrant_DuplicateGrant(t *testing.T) {
+func TestCreateGrant(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		t.Run("success", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
