@@ -233,7 +233,7 @@ export default function Signup() {
           and{' '}
           <a
             className='underline'
-            href='https://infrahq.com/legal/privacy'
+            href='https://infrahq.com/privacy'
             target='_blank'
             rel='noreferrer'
           >
