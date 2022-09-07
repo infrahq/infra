@@ -291,7 +291,7 @@ func TestListAccessKeys(t *testing.T) {
 		createIdentities(t, db, user, otherUser)
 
 		first := &models.AccessKey{
-			Name:       "first",
+			Name:       "alpha",
 			Model:      models.Model{ID: 5},
 			IssuedFor:  user.ID,
 			ProviderID: InfraProvider(db).ID,
@@ -299,7 +299,7 @@ func TestListAccessKeys(t *testing.T) {
 			KeyID:      "1234567890",
 		}
 		second := &models.AccessKey{
-			Name:       "second",
+			Name:       "beta",
 			Model:      models.Model{ID: 6},
 			IssuedFor:  user.ID,
 			ProviderID: InfraProvider(db).ID,
@@ -307,7 +307,7 @@ func TestListAccessKeys(t *testing.T) {
 			KeyID:      "1234567891",
 		}
 		third := &models.AccessKey{
-			Name:              "third",
+			Name:              "charlie",
 			Model:             models.Model{ID: 7},
 			IssuedFor:         user.ID,
 			ProviderID:        InfraProvider(db).ID,
@@ -316,7 +316,7 @@ func TestListAccessKeys(t *testing.T) {
 			KeyID:             "1234567892",
 		}
 		deleted := &models.AccessKey{
-			Name:              "forth",
+			Name:              "delta",
 			Model:             models.Model{ID: 8},
 			IssuedFor:         user.ID,
 			ProviderID:        InfraProvider(db).ID,
@@ -328,7 +328,7 @@ func TestListAccessKeys(t *testing.T) {
 		deleted.DeletedAt.Valid = true
 
 		forth := &models.AccessKey{
-			Name:       "forth",
+			Name:       "delta",
 			Model:      models.Model{ID: 9},
 			IssuedFor:  otherUser.ID,
 			ProviderID: InfraProvider(db).ID,
@@ -336,10 +336,47 @@ func TestListAccessKeys(t *testing.T) {
 			KeyID:      "1234567894",
 		}
 
-		createAccessKeys(t, db, first, second, third, forth, deleted)
+		createAccessKeys(t, db, forth, third, second, first, deleted)
+
+		otherOrg := &models.Organization{Name: "other", Domain: "ok.example.com"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
+
+		t.Run("setup other org", func(t *testing.T) {
+			tx := txnForTestCase(t, db, otherOrg.ID)
+
+			otherOrgUser := &models.Identity{
+				Name:               "gamma@other.org",
+				OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
+			}
+			assert.NilError(t, CreateIdentity(tx, otherOrgUser))
+
+			otherOrgKey := &models.AccessKey{
+				Model:              models.Model{ID: 17},
+				OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
+				Name:               "epsilon",
+				IssuedFor:          otherOrgUser.ID,
+				ProviderID:         InfraProvider(tx).ID,
+				ExpiresAt:          time.Now().Add(time.Hour).UTC(),
+				KeyID:              "2234567800",
+			}
+			createAccessKeys(t, tx, otherOrgKey)
+			assert.NilError(t, tx.Commit())
+		})
 
 		cmpAccessKeyShallow := cmp.Comparer(func(x, y models.AccessKey) bool {
 			return x.ID == y.ID && x.IssuedForName == y.IssuedForName
+		})
+
+		t.Run("default other org ID", func(t *testing.T) {
+			tx := txnForTestCase(t, db, otherOrg.ID)
+
+			actual, err := ListAccessKeys(tx, ListAccessKeyOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.AccessKey{
+				{Model: models.Model{ID: 17}, IssuedForName: "gamma@other.org"},
+			}
+			assert.DeepEqual(t, actual, expected, cmpAccessKeyShallow)
 		})
 
 		t.Run("default", func(t *testing.T) {
@@ -367,7 +404,7 @@ func TestListAccessKeys(t *testing.T) {
 		})
 
 		t.Run("by name", func(t *testing.T) {
-			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByName: "first"})
+			actual, err := ListAccessKeys(db, ListAccessKeyOptions{ByName: "alpha"})
 			assert.NilError(t, err)
 
 			expected := []models.AccessKey{
@@ -388,7 +425,7 @@ func TestListAccessKeys(t *testing.T) {
 
 		t.Run("by name and expired", func(t *testing.T) {
 			actual, err := ListAccessKeys(db, ListAccessKeyOptions{
-				ByName:         "second",
+				ByName:         "beta",
 				IncludeExpired: true,
 			})
 			assert.NilError(t, err)
