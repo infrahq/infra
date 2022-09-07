@@ -7,9 +7,7 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -106,8 +104,91 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 	return (*models.Grant)(table), nil
 }
 
-func ListGrants(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
-	return list[models.Grant](db, p, selectors...)
+type ListGrantsOptions struct {
+	BySubject   uid.PolymorphicID
+	ByPrivilege string
+	ByResource  string
+
+	// IncludeInheritedFromGroups instructs ListGrants to include grants from
+	// groups where the user is a member. This option can only be used when
+	// BySubject is a non-zero userID.
+	IncludeInheritedFromGroups bool
+
+	// ExcludeCreatedBySystem instructs ListGrants to exclude grants where the
+	// CreatedBy is models.CreatedBySystem.
+	ExcludeCreatedBySystem bool
+
+	Pagination *Pagination
+}
+
+func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
+	table := grantsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM grants")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.BySubject != "" {
+		if !opts.IncludeInheritedFromGroups {
+			query.B("AND subject = ?", opts.BySubject)
+		} else {
+			subjects := []string{opts.BySubject.String()}
+
+			userID, err := opts.BySubject.ID()
+			if err != nil || !opts.BySubject.IsIdentity() {
+				return nil, fmt.Errorf("IncludeInheritedFromGroups requires a userId subject")
+			}
+			// FIXME: store userID and groupID as a field on the grants table so
+			// that we can replace this with a sub-select or join.
+			groupIDs, err := groupIDsForUser(tx, userID)
+			if err != nil {
+				return nil, err
+			}
+			for _, id := range groupIDs {
+				subjects = append(subjects, uid.NewGroupPolymorphicID(id).String())
+			}
+			query.B(`AND subject IN (?)`, subjects)
+		}
+	}
+	if opts.ByPrivilege != "" {
+		query.B("AND privilege = ?", opts.ByPrivilege)
+	}
+	if opts.ByResource != "" {
+		query.B("AND resource = ?", opts.ByResource)
+	}
+	if opts.ExcludeCreatedBySystem {
+		query.B("AND created_by <> ?", models.CreatedBySystem)
+	}
+
+	query.B("ORDER BY id ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.Grant
+	for rows.Next() {
+		var grant models.Grant
+
+		fields := (*grantsTable)(&grant).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+		result = append(result, grant)
+	}
+	return result, rows.Err()
 }
 
 type DeleteGrantsOptions struct {
@@ -150,66 +231,4 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
-}
-
-func ByOptionalPrivilege(s string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if s == "" {
-			return db
-		}
-
-		return db.Where("privilege = ?", s)
-	}
-}
-
-func GrantsInheritedBySubject(subjectID uid.PolymorphicID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		switch {
-		case subjectID.IsIdentity():
-			userID, err := subjectID.ID()
-			if err != nil {
-				logging.Errorf("invalid subject id %q", subjectID)
-				return db.Where("1 = 0")
-			}
-			var groupIDs []uid.ID
-			err = db.Session(&gorm.Session{NewDB: true}).Raw("select distinct group_id from identities_groups where identity_id = ?", userID).Pluck("group_id", &groupIDs).Error
-			if err != nil {
-				logging.Errorf("GrantsInheritedByUser: %s", err)
-				_ = db.AddError(err)
-				return db.Where("1 = 0")
-			}
-
-			subjects := []string{subjectID.String()}
-			for _, groupID := range groupIDs {
-				subjects = append(subjects, uid.NewGroupPolymorphicID(groupID).String())
-			}
-			return db.Where("subject in (?)", subjects)
-		case subjectID.IsGroup():
-			return BySubject(subjectID)(db)
-		default:
-			panic("unhandled subject type")
-		}
-	}
-}
-
-func ByPrivilege(s string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("privilege = ?", s)
-	}
-}
-
-func ByOptionalResource(s string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if s == "" {
-			return db
-		}
-
-		return db.Where("resource = ?", s)
-	}
-}
-
-func ByResource(s string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("resource = ?", s)
-	}
 }

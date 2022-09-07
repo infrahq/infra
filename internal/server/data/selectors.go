@@ -78,22 +78,6 @@ func ByProviderID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByOptionalSubject(polymorphicID uid.PolymorphicID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if polymorphicID == "" {
-			return db
-		}
-
-		return db.Where("subject = ?", string(polymorphicID))
-	}
-}
-
-func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("subject = ?", string(polymorphicID))
-	}
-}
-
 func ByIdentityID(identityID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("identity_id = ?", identityID)
@@ -144,12 +128,6 @@ func ByProviderKind(kind models.ProviderKind) SelectorFunc {
 func NotPrivilege(privilege string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("privilege = ?", privilege)
-	}
-}
-
-func NotInfraConnector() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where(`NOT (privilege = 'connector' AND resource = 'infra')`)
 	}
 }
 

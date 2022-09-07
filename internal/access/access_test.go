@@ -86,11 +86,11 @@ func TestBasicGrant(t *testing.T) {
 	cant(t, db, "i:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
 	cant(t, db, "i:bob", "write", "infra.groups")
 
-	grant(t, db, tom, "i:alice", "read", "infra.machines")
-	can(t, db, "i:alice", "read", "infra.machines")
-	cant(t, db, "i:alice", "read", "infra")
-	cant(t, db, "i:alice", "read", "infra.machines.1")
-	cant(t, db, "i:alice", "write", "infra.machines")
+	grant(t, db, tom, "i:a11ce", "read", "infra.machines")
+	can(t, db, "i:a11ce", "read", "infra.machines")
+	cant(t, db, "i:a11ce", "read", "infra")
+	cant(t, db, "i:a11ce", "read", "infra.machines.1")
+	cant(t, db, "i:a11ce", "write", "infra.machines")
 }
 
 func TestUsersGroupGrant(t *testing.T) {
@@ -192,6 +192,7 @@ func grant(t *testing.T, db data.GormTxn, currentUser *models.Identity, subject 
 }
 
 func can(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
+	t.Helper()
 	canAccess, err := Can(db, subject, privilege, resource)
 	assert.NilError(t, err)
 	assert.Assert(t, canAccess)

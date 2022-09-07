@@ -42,6 +42,8 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error
 		return nil, fmt.Errorf("no active identity")
 	}
 
+	// TODO: use privilege in (...) instead of iterating over roles
+	// TODO: check for test coverage that uses permission from a group
 	for _, role := range oneOfRoles {
 		ok, err := Can(db, identity.PolyID(), role, ResourceInfraAPI)
 		if err != nil {
@@ -52,26 +54,6 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error
 			return db, nil
 		}
 	}
-
-	// check if they belong to a group that is authorized
-	groups, err := data.ListGroups(db, nil, data.ByGroupMember(identity.ID))
-	if err != nil {
-		return nil, fmt.Errorf("auth user groups: %w", err)
-	}
-
-	for _, group := range groups {
-		for _, role := range oneOfRoles {
-			ok, err := Can(db, group.PolyID(), role, ResourceInfraAPI)
-			if err != nil {
-				return nil, err
-			}
-
-			if ok {
-				return db, nil
-			}
-		}
-	}
-
 	return nil, ErrNotAuthorized
 }
 
@@ -123,7 +105,13 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
 func Can(db data.GormTxn, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := data.ListGrants(db, &data.Pagination{Limit: 1}, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
+	grants, err := data.ListGrants(db, data.ListGrantsOptions{
+		Pagination:                 &data.Pagination{Limit: 1},
+		BySubject:                  identity,
+		ByPrivilege:                privilege,
+		ByResource:                 resource,
+		IncludeInheritedFromGroups: true,
+	})
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)
 	}

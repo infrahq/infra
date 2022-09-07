@@ -175,7 +175,7 @@ func TestTrimWhitespace(t *testing.T) {
 	err = json.Unmarshal(resp.Body.Bytes(), rb)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(rb.Items), 2)
+	assert.Equal(t, len(rb.Items), 2, rb.Items)
 	expected := api.Grant{
 		User:      userID,
 		Privilege: "admin",
