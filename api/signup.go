@@ -1,6 +1,12 @@
 package api
 
-import "github.com/infrahq/infra/internal/validate"
+import (
+	_ "embed"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/infrahq/infra/internal/validate"
+)
 
 type SignupResponse struct {
 	User         *User         `json:"user"`
@@ -12,22 +18,33 @@ type SignupOrg struct {
 	Subdomain string `json:"subDomain"`
 }
 
-var reservedSubDomains = []string{
-	"infra", "infrahq", "auth", "authz", "authn",
-	"api", "www", "ftp", "ssh", "info", "help", "about",
-	"grants", "connector", "login", "signup",
-	"system", "admin", "email", "bastion",
+type reservedSubdomainData struct {
+	Reject           []string `yaml:"reject"`
+	RequiresApproval []string `yaml:"requires-approval"`
+}
+
+var reservedSubdomains []string
+
+//go:embed restricted_subdomains.yaml
+var reservedSubdomainsYaml []byte
+
+func init() {
+	var reserved reservedSubdomainData
+	if err := yaml.Unmarshal(reservedSubdomainsYaml, &reserved); err != nil {
+		panic(err)
+	}
+	reservedSubdomains = append(reservedSubdomains, reserved.Reject...)
+	reservedSubdomains = append(reservedSubdomains, reserved.RequiresApproval...)
 }
 
 func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("name", r.Name),
 		validate.Required("subDomain", r.Subdomain),
-		validate.ReservedStrings("subDomain", r.Subdomain, reservedSubDomains),
 		validate.StringRule{
 			Name:      "subDomain",
 			Value:     r.Subdomain,
-			MinLength: 3,
+			MinLength: 6,
 			MaxLength: 63,
 			CharacterRanges: []validate.CharRange{
 				validate.AlphabetLower,
@@ -41,6 +58,7 @@ func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 				validate.Numbers,
 			},
 		},
+		validate.ReservedStrings("subDomain", r.Subdomain, reservedSubdomains),
 	}
 }
 
