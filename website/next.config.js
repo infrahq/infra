@@ -80,6 +80,18 @@ module.exports = {
         destination: '/docs/reference/how-infra-works',
         permanent: true,
       },
+      {
+        source: '/terms',
+        destination:
+          'https://infrahq.notion.site/Terms-of-Service-6f3a635c638f4cb59f04df509208b1a3',
+        permanent: false,
+      },
+      {
+        source: '/privacy',
+        destination:
+          'https://infrahq.notion.site/Privacy-Policy-1b320c4f95904f9a83931d01a326a10b',
+        permanent: false,
+      },
     ]
   },
   images: {
