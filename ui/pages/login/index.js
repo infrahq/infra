@@ -116,13 +116,16 @@ export default function Login() {
       await mutate('/api/users/self')
       router.replace('/')
       let visitedOrgs = cookies.get('orgs') || []
-      if (!visitedOrgs.find(x => x.url === window.location.origin)) {
+
+      if (!visitedOrgs.find(x => x.url === window.location.host)) {
         visitedOrgs.push({
-          name: window.location.host.split('.')[0],
           url: window.location.host,
         })
       }
-      cookies.set('orgs', visitedOrgs, { path: '/', domain: `.${baseDomain}` })
+      cookies.set('orgs', visitedOrgs, {
+        path: '/',
+        domain: `.${baseDomain}`,
+      })
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')

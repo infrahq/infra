@@ -37,10 +37,9 @@ export default function Callback() {
       window.localStorage.removeItem('next')
 
       let visitedOrgs = cookies.get('orgs') || []
-      if (visitedOrgs.findIndex(x => x.url === window.location.origin) === -1) {
+      if (!visitedOrgs.find(x => x.url === window.location.host)) {
         visitedOrgs.push({
-          name: window.location.host.split('.')[0],
-          url: window.location.origin,
+          url: window.location.host,
         })
 
         cookies.set('orgs', visitedOrgs, {
