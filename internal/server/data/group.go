@@ -62,7 +62,7 @@ func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
 	for _, g := range toDelete {
 		ids = append(ids, g.ID)
 
-		err := DeleteGrants(db, BySubject(g.PolyID()))
+		err := DeleteGrants(db, DeleteGrantsOptions{BySubject: g.PolyID()})
 		if err != nil {
 			return err
 		}

@@ -115,5 +115,5 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteGrants(db, data.ByID(id))
+	return data.DeleteGrants(db, data.DeleteGrantsOptions{ByID: id})
 }

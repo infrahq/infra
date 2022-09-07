@@ -773,7 +773,10 @@ func (s Server) loadGrants(db data.GormTxn, grants []Grant) error {
 	}
 
 	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteGrants(db, data.DeleteGrantsOptions{
+		NotIDs:      keep,
+		ByCreatedBy: models.CreatedBySystem,
+	}); err != nil {
 		return err
 	}
 
