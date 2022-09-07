@@ -220,6 +220,27 @@ export default function Signup() {
         >
           Get Started
         </button>
+        <div className='my-3 text-center text-2xs text-gray-400'>
+          By continuing, you agree to Infra&apos;s{' '}
+          <a
+            className='underline'
+            href='https://infrahq.com/terms'
+            target='_blank'
+            rel='noreferrer'
+          >
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a
+            className='underline'
+            href='https://infrahq.com/privacy'
+            target='_blank'
+            rel='noreferrer'
+          >
+            Privacy Policy
+          </a>
+          .
+        </div>
         {error && <ErrorMessage message={error} center />}
       </form>
     </>
