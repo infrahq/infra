@@ -37,6 +37,10 @@ func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 	dataDB := &DB{DB: db}
+	tx, err := dataDB.Begin(context.TODO())
+	if err != nil {
+		return nil, err
+	}
 
 	opts := migrator.Options{
 		InitSchema: initializeSchema,
@@ -47,10 +51,17 @@ func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
 			return loadDBKey(tx, dbOpts.EncryptionKeyProvider, dbOpts.RootKeyID)
 		},
 	}
-	m := migrator.New(dataDB, opts, migrations())
+	m := migrator.New(tx, opts, migrations())
 	if err := m.Migrate(); err != nil {
+		if err := tx.Rollback(); err != nil {
+			logging.L.Warn().Err(err).Msg("failed to rollback")
+		}
 		return nil, fmt.Errorf("migration failed: %w", err)
 	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit migrations: %w", err)
+	}
+
 	if err := initialize(dataDB); err != nil {
 		return nil, fmt.Errorf("initialize database: %w", err)
 	}
