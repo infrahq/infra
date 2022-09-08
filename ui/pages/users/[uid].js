@@ -196,7 +196,7 @@ export default function UserDetail() {
                                   {g.resource}
                                 </div>
                               </td>
-                              <td className='py-4 px-3'>
+                              <td className='py-4 px-3 text-right'>
                                 {g.user !== user.id ? (
                                   <div className='flex items-center justify-end space-x-6'>
                                     <Tooltip
