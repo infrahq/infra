@@ -1,9 +1,13 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	mathrand "math/rand"
 
+	"github.com/infrahq/secrets"
+
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -56,4 +60,52 @@ func GetEncryptionKeyByName(tx ReadTxn, name string) (*models.EncryptionKey, err
 		return nil, handleReadError(err)
 	}
 	return (*models.EncryptionKey)(table), nil
+}
+
+type EncryptionKeyProvider interface {
+	GenerateDataKey(rootKeyID string) (*secrets.SymmetricKey, error)
+	DecryptDataKey(rootKeyID string, keyData []byte) (*secrets.SymmetricKey, error)
+}
+
+var dbKeyName = "dbkey"
+
+func loadDBKey(db GormTxn, provider EncryptionKeyProvider, rootKeyId string) error {
+	keyRec, err := GetEncryptionKeyByName(db, dbKeyName)
+	if err != nil {
+		if errors.Is(err, internal.ErrNotFound) {
+			return createDBKey(db, provider, rootKeyId)
+		}
+
+		return err
+	}
+
+	sKey, err := provider.DecryptDataKey(rootKeyId, keyRec.Encrypted)
+	if err != nil {
+		return err
+	}
+
+	models.SymmetricKey = sKey
+
+	return nil
+}
+
+func createDBKey(db GormTxn, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
+	sKey, err := provider.GenerateDataKey(rootKeyId)
+	if err != nil {
+		return err
+	}
+
+	key := &models.EncryptionKey{
+		Name:      dbKeyName,
+		Encrypted: sKey.Encrypted,
+		Algorithm: sKey.Algorithm,
+		RootKeyID: sKey.RootKeyID,
+	}
+	if err = CreateEncryptionKey(db, key); err != nil {
+		return err
+	}
+
+	models.SymmetricKey = sKey
+
+	return nil
 }

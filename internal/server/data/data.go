@@ -24,7 +24,8 @@ import (
 )
 
 type NewDBOptions struct {
-	LoadDBKey func(db GormTxn) error
+	EncryptionKeyProvider EncryptionKeyProvider
+	RootKeyID             string
 }
 
 // NewDB creates a new database connection and runs any required database migrations
@@ -40,12 +41,12 @@ func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
 	opts := migrator.Options{
 		InitSchema: initializeSchema,
 		LoadKey: func(tx migrator.DB) error {
-			if dbOpts.LoadDBKey == nil {
+			if dbOpts.EncryptionKeyProvider == nil {
 				return nil
 			}
 			// TODO: use the passed in tx instead of dataDB once the queries
 			// used by loadDBKey are ported to sql
-			return dbOpts.LoadDBKey(dataDB)
+			return loadDBKey(dataDB, dbOpts.EncryptionKeyProvider, dbOpts.RootKeyID)
 		},
 	}
 	m := migrator.New(dataDB, opts, migrations())

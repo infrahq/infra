@@ -25,7 +25,6 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -151,8 +150,13 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
+	dbKeyProvider, ok := server.keys[options.DBEncryptionKeyProvider]
+	if !ok {
+		return nil, fmt.Errorf("key provider %s not configured", options.DBEncryptionKeyProvider)
+	}
 	db, err := data.NewDB(driver, data.NewDBOptions{
-		LoadDBKey: server.loadDBKey,
+		EncryptionKeyProvider: dbKeyProvider,
+		RootKeyID:             options.DBEncryptionKey,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
@@ -369,56 +373,6 @@ func getPostgresConnectionString(options Options, secretStorage map[string]secre
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil
-}
-
-var dbKeyName = "dbkey"
-
-// load encrypted db key from database
-func (s *Server) loadDBKey(db data.GormTxn) error {
-	provider, ok := s.keys[s.options.DBEncryptionKeyProvider]
-	if !ok {
-		return fmt.Errorf("key provider %s not configured", s.options.DBEncryptionKeyProvider)
-	}
-
-	keyRec, err := data.GetEncryptionKeyByName(db, dbKeyName)
-	if err != nil {
-		if errors.Is(err, internal.ErrNotFound) {
-			return createDBKey(db, provider, s.options.DBEncryptionKey)
-		}
-
-		return err
-	}
-
-	sKey, err := provider.DecryptDataKey(s.options.DBEncryptionKey, keyRec.Encrypted)
-	if err != nil {
-		return err
-	}
-
-	models.SymmetricKey = sKey
-
-	return nil
-}
-
-// creates db key
-func createDBKey(db data.GormTxn, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
-	sKey, err := provider.GenerateDataKey(rootKeyId)
-	if err != nil {
-		return err
-	}
-
-	key := &models.EncryptionKey{
-		Name:      dbKeyName,
-		Encrypted: sKey.Encrypted,
-		Algorithm: sKey.Algorithm,
-		RootKeyID: sKey.RootKeyID,
-	}
-	if err := data.CreateEncryptionKey(db, key); err != nil {
-		return err
-	}
-
-	models.SymmetricKey = sKey
-
-	return nil
 }
 
 func configureEmail(options Options) {
