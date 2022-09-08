@@ -11,6 +11,7 @@ import EmptyData from '../../components/empty-data'
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 import RoleSelect from '../../components/role-select'
+import Tooltip from '../../components/tooltip'
 
 function UserGroupsTable({
   groups,
@@ -190,21 +191,24 @@ export default function UserDetail() {
                           })
                           .map(g => (
                             <tr key={g.id} className='border-b border-gray-200'>
-                              <td className='whitespace-nowrap py-4 text-xs font-medium'>
-                                <div className='truncate font-medium text-gray-900'>
+                              <td className='whitespace-nowrap py-4'>
+                                <div className='truncate text-sm font-medium text-gray-900'>
                                   {g.resource}
                                 </div>
                               </td>
-                              <td className='py-4 px-3 text-right text-sm text-gray-500'>
+                              <td className='py-4 px-3'>
                                 {g.user !== user.id ? (
-                                  <div className='flex justify-end space-x-6'>
-                                    <div
-                                      title='This access is inherited by a group and cannot be edited here'
-                                      className='relative mx-1 self-center rounded border border-gray-800 bg-gray-800 px-2 pt-px text-2xs text-gray-400'
+                                  <div className='flex items-center justify-end space-x-6'>
+                                    <Tooltip
+                                      message='This access is inherited by a group and
+                                        cannot be edited here'
+                                      direction='left'
                                     >
-                                      inherited
-                                    </div>
-                                    <div className='relative py-2 text-2xs text-gray-400'>
+                                      <p className='flex rounded-full bg-gray-900 px-2 text-xs font-semibold leading-5 text-gray-200'>
+                                        inherited
+                                      </p>
+                                    </Tooltip>
+                                    <div className='relative py-2 text-sm text-gray-700'>
                                       {g.privilege}
                                     </div>
                                   </div>

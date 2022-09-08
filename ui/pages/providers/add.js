@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useSWRConfig } from 'swr'
+import { InformationCircleIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
@@ -9,11 +10,11 @@ import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Tooltip from '../../components/tooltip'
 
-function Provider({ kind, name, selected }) {
+function Provider({ kind, name, currentKind }) {
   return (
     <div
       className={`${
-        selected ? 'bg-gray-100' : 'bg-white'
+        kind === currentKind ? 'bg-gray-200' : 'bg-white'
       } flex cursor-pointer select-none items-center rounded-lg border border-gray-300 bg-transparent px-3
         py-4 hover:bg-gray-100`}
     >
@@ -47,10 +48,11 @@ export default function ProvidersAddDetails() {
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [name, setName] = useState(type)
+  const [name, setName] = useState(
+    type === undefined ? providers[0].kind : type
+  )
 
   useEffect(() => {
-    setName(type)
     setURL(type === 'google' ? 'accounts.google.com' : '')
   }, [type])
 
@@ -194,7 +196,7 @@ export default function ProvidersAddDetails() {
                               router.replace(`/providers/add?type=${p.kind}`)
                             }}
                           >
-                            <Provider {...p} selected={p.kind === kind} />
+                            <Provider {...p} currentKind={kind} />
                           </div>
                         )
                     )}
@@ -247,7 +249,6 @@ export default function ProvidersAddDetails() {
                     </label>
                     <input
                       required
-                      autoFocus
                       type='url'
                       value={url}
                       onChange={e => {
@@ -330,9 +331,11 @@ export default function ProvidersAddDetails() {
                   <div className='sm:col-span-6 lg:col-span-5'>
                     <label className='flex text-2xs font-medium text-gray-700'>
                       Private Key
-                      <Tooltip>
-                        upload the private key json file that was created for
-                        your service account
+                      <Tooltip
+                        message='upload the private key json file that was created for
+                        your service account'
+                      >
+                        <InformationCircleIcon className='mx-1 h-4 w-4' />
                       </Tooltip>
                     </label>
 

@@ -18,7 +18,7 @@ function parent(resource = '') {
 function ConnectSection({ roles, resource, kind = 'resource' }) {
   return (
     <div>
-      <p className='my-4 text-2xs leading-normal'>
+      <p className='my-4 text-sm leading-normal text-gray-500'>
         Connect to this {kind} via the{' '}
         <a
           target='_blank'
@@ -51,7 +51,7 @@ function NamespacesTable({ resources, destinationId }) {
             <td className='whitespace-nowrap'>
               <a
                 href={`/destinations/${destinationId}/${resource}`}
-                className='block hover:bg-gray-50'
+                className='block hover:bg-gray-100'
               >
                 <div className='py-4'>
                   <div className='flex items-center justify-between'>

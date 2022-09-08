@@ -1,12 +1,14 @@
-import { InformationCircleIcon } from '@heroicons/react/outline'
-
-export default function Tooltip({ children }) {
+export default function Tooltip({ children, message, direction = 'right' }) {
   return (
-    <div class='group relative flex'>
-      <InformationCircleIcon className='ml-0.5 inline h-4 w-4' />
-      <div class='absolute bottom-0 mb-6 hidden flex-col group-hover:flex'>
-        <span class='whitespace-no-wrap relative z-10 block w-[20rem] bg-black p-2 text-xs leading-none text-white shadow-lg'>
-          {children}
+    <div className='group relative flex'>
+      {children}
+      <div className='absolute bottom-0 mb-6 hidden flex-col group-hover:flex'>
+        <span
+          className={`absolute ${
+            direction === 'left' ? '-left-60' : '-left-0'
+          } -top-2 z-10 hidden w-[20rem] -translate-y-full rounded-lg bg-black p-2 text-left text-xs text-white group-hover:flex`}
+        >
+          {message}
         </span>
       </div>
     </div>

@@ -297,7 +297,7 @@ function Layout({ children }) {
                   className='relative inline-block bg-white text-left'
                 >
                   <span className='sr-only'>Open current user menu</span>
-                  <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-blue-500'>
+                  <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-500'>
                     <span className='text-center text-xs font-semibold capitalize leading-none text-white'>
                       {auth?.name?.[0]}
                     </span>
