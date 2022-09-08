@@ -71,7 +71,7 @@ function UserOneTimePassword({ isEmailConfigured, password, onSubmit }) {
       <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
         <button
           onClick={onSubmit}
-          className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-2xs font-medium text-gray-700 shadow-sm hover:bg-gray-50'
+          className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-2xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
         >
           Add Another
         </button>

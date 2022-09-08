@@ -51,7 +51,7 @@ export default function RoleSelect({
       }}
     >
       <div className='relative'>
-        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs hover:cursor-pointer hover:bg-gray-50 focus:outline-none'>
+        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
           <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
             <ChevronDownIcon
               className='h-4 w-4 stroke-1 text-gray-700'
@@ -71,7 +71,7 @@ export default function RoleSelect({
                 key={r}
                 className={({ active }) =>
                   `${
-                    active ? 'bg-gray-300' : ''
+                    active ? 'bg-gray-100' : ''
                   } relative cursor-default select-none py-2 px-3`
                 }
                 value={r}
@@ -102,7 +102,7 @@ export default function RoleSelect({
               className={({ active }) =>
                 `${
                   active ? 'bg-gray-300' : ''
-                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-300 py-2 px-3 hover:bg-gray-300`
+                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-300 py-2 px-3 hover:bg-gray-100`
               }
               value={OPTION_REMOVE}
             >

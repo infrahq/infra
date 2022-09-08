@@ -45,9 +45,9 @@ export default function DeleteModal({
             >
               <Dialog.Panel className='relative transform overflow-hidden rounded-lg bg-white px-4 pt-5 pb-4 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6'>
                 <div>
-                  <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100'>
+                  <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
                     <TrashIcon
-                      className='h-6 w-6 text-blue-600'
+                      className='h-6 w-6 text-red-600'
                       aria-hidden='true'
                     />
                   </div>
@@ -66,7 +66,7 @@ export default function DeleteModal({
                 <div className='mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'>
                   <button
                     type='button'
-                    className='inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm'
+                    className='inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm'
                     onClick={() => onSubmit()}
                   >
                     {primaryButtonText}

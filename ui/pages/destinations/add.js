@@ -15,6 +15,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 
 import Dashboard from '../../components/layouts/dashboard'
 import ErrorMessage from '../../components/error-message'
+import Tooltip from '../../components/tooltip'
 
 function download(values) {
   const blob = new Blob([values], { type: 'application/yaml' })
@@ -45,11 +46,11 @@ export default function DestinationsAdd() {
     { id: 0, name: 'Name Cluster', status: 'current' },
     { id: 1, name: 'Helm Values File', status: 'upcoming' },
     {
-      id: 1,
+      id: 2,
       name: 'Kubernetes Command',
       status: 'upcoming',
     },
-    { id: 2, name: 'Connect', status: 'upcoming' },
+    { id: 3, name: 'Connect', status: 'upcoming' },
   ])
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -66,6 +67,7 @@ export default function DestinationsAdd() {
           let newSteps = steps
           newSteps.forEach(s => (s.status = 'complete'))
           setSteps(newSteps)
+          setCurrentStep(3)
           clearInterval(interval)
         }
       }, 5000)
@@ -254,8 +256,8 @@ export default function DestinationsAdd() {
                   Helm Values File
                 </h3>
                 <p className='mt-1 text-sm text-gray-500'>
-                  Copy or download this starter Helm values file. For more
-                  information and configuration values, see the{' '}
+                  Copy this starter Helm values file. For more information and
+                  configuration values, see the{' '}
                   <a
                     className='font-medium text-blue-600 underline hover:text-blue-500'
                     target='_blank'
@@ -267,34 +269,14 @@ export default function DestinationsAdd() {
                   .
                 </p>
               </div>
-
-              <pre className='min-h-[120px] overflow-auto rounded-md bg-gray-900 p-4 px-4 py-3 text-2xs leading-normal text-gray-300'>
-                {valuesYaml}
-              </pre>
-              <div className='flex items-center justify-start space-x-6'>
+              <div className='group relative my-4 flex'>
+                <pre className='min-h-[120px] w-full overflow-auto rounded-md bg-gray-900 p-4 text-2xs leading-normal text-gray-300'>
+                  {valuesYaml}
+                </pre>
                 <button
-                  className='border-0 py-2 text-4xs uppercase hover:cursor-pointer hover:text-gray-400 disabled:pointer-events-none disabled:opacity-30'
-                  disabled={valuesDownloaded}
-                  onClick={() => {
-                    download(valuesYaml)
-                    setValuesDownloaded(true)
-                    setTimeout(() => setValuesDownloaded(false), 3000)
-                  }}
-                >
-                  {valuesDownloaded ? (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <FolderOpenIcon className='h-5 w-5' />
-                      <p>Downloaded </p>
-                    </div>
-                  ) : (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <FolderDownloadIcon className='h-5 w-5' />
-                      <p>Download </p>
-                    </div>
-                  )}
-                </button>
-                <button
-                  className='border-0 py-2 text-4xs uppercase hover:cursor-pointer hover:text-gray-400 disabled:pointer-events-none disabled:opacity-30'
+                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
+                    valuesCopied ? 'opacity-100' : 'group-hover:opacity-100'
+                  }`}
                   disabled={valuesCopied}
                   onClick={() => {
                     copy(valuesYaml)
@@ -303,15 +285,9 @@ export default function DestinationsAdd() {
                   }}
                 >
                   {valuesCopied ? (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <ClipboardCheckIcon className='h-5 w-5' />
-                      <p>Copied </p>
-                    </div>
+                    <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
                   ) : (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <ClipboardCopyIcon className='h-5 w-5' />
-                      <p>Copy </p>
-                    </div>
+                    <ClipboardCopyIcon className='h-4 w-4' />
                   )}
                 </button>
               </div>
@@ -348,13 +324,14 @@ export default function DestinationsAdd() {
                   Run this on your terminal
                 </p>
               </div>
-
-              <pre className='h-10 overflow-auto rounded-md bg-gray-900 p-4 px-4 py-3 text-2xs leading-normal text-gray-300'>
-                {command}
-              </pre>
-              <div className='flex items-center justify-start'>
+              <div className='group relative my-4 flex'>
+                <pre className='h-12 w-full overflow-auto rounded-md bg-gray-900 p-4 text-2xs leading-normal text-gray-300'>
+                  {command}
+                </pre>
                 <button
-                  className='border-0 py-2 text-4xs uppercase hover:cursor-pointer hover:text-gray-400 disabled:pointer-events-none disabled:opacity-30'
+                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
+                    commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
+                  }`}
                   disabled={commandCopied}
                   onClick={() => {
                     copy(command)
@@ -363,15 +340,9 @@ export default function DestinationsAdd() {
                   }}
                 >
                   {commandCopied ? (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <ClipboardCheckIcon className='h-5 w-5' />
-                      <p>Copied </p>
-                    </div>
+                    <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
                   ) : (
-                    <div className='flex flex-row items-center space-x-2 pb-5'>
-                      <ClipboardCopyIcon className='h-5 w-5' />
-                      <p>Copy Command </p>
-                    </div>
+                    <ClipboardCopyIcon className='h-4 w-4' />
                   )}
                 </button>
               </div>
