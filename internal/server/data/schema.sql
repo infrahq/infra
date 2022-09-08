@@ -197,7 +197,9 @@ CREATE TABLE identities (
 
 CREATE TABLE identities_groups (
     identity_id bigint NOT NULL,
-    group_id bigint NOT NULL
+    group_id bigint NOT NULL,
+    provider_id bigint NOT NULL,
+    provider_group_name text NOT NULL
 );
 
 CREATE TABLE organizations (
@@ -218,11 +220,24 @@ CREATE TABLE password_reset_tokens (
     organization_id bigint
 );
 
+CREATE TABLE provider_groups (
+    organization_id bigint NOT NULL,
+    provider_id bigint NOT NULL,
+    name text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+CREATE TABLE provider_groups_provider_users (
+    provider_id bigint NOT NULL,
+    provider_group_name text NOT NULL,
+    provider_user_identity_id bigint NOT NULL
+);
+
 CREATE TABLE provider_users (
     identity_id bigint NOT NULL,
     provider_id bigint NOT NULL,
     email text,
-    groups text,
     last_update timestamp with time zone,
     redirect_url text,
     access_token text,
@@ -292,9 +307,6 @@ ALTER TABLE ONLY grants
 ALTER TABLE ONLY groups
     ADD CONSTRAINT groups_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY identities_groups
-    ADD CONSTRAINT identities_groups_pkey PRIMARY KEY (identity_id, group_id);
-
 ALTER TABLE ONLY identities
     ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
 
@@ -335,6 +347,8 @@ CREATE INDEX idx_grants_update_index ON grants USING btree (organization_id, upd
 
 CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
+CREATE UNIQUE INDEX idx_identities_groups ON identities_groups USING btree (identity_id, group_id, provider_id, provider_group_name);
+
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (organization_id, verification_token) WHERE (deleted_at IS NULL);
@@ -342,6 +356,10 @@ CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (organizat
 CREATE UNIQUE INDEX idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
+
+CREATE UNIQUE INDEX idx_provider_group_names ON provider_groups USING btree (name, provider_id, organization_id);
+
+CREATE UNIQUE INDEX idx_provider_groups_provider_users ON provider_groups_provider_users USING btree (provider_group_name, provider_id, provider_user_identity_id);
 
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 

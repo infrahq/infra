@@ -191,6 +191,8 @@ func TestAPI_ListUsers(t *testing.T) {
 		Groups: []models.Group{humans},
 	}
 	createIdentities(t, srv.DB(), &anotherID)
+	err := data.AddUsersToGroup(srv.DB(), humans.ID, humans.Name, data.InfraProvider(srv.DB()).ID, []uid.ID{anotherID.ID})
+	assert.NilError(t, err)
 
 	createID := func(t *testing.T, name string) uid.ID {
 		t.Helper()

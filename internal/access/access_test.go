@@ -102,13 +102,13 @@ func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 	err := data.CreateIdentity(db, tom)
 	assert.NilError(t, err)
 
-	_, err = data.CreateProviderUser(db, provider, tom)
+	providedTom, err := data.CreateProviderUser(db, provider, tom)
 	assert.NilError(t, err)
 
 	err = data.CreateGroup(db, tomsGroup)
 	assert.NilError(t, err)
 
-	err = data.AssignIdentityToGroups(db, tom, provider, []string{tomsGroup.Name})
+	err = data.AssignUserToProviderGroups(db, providedTom, provider, []string{tomsGroup.Name})
 	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())

@@ -14,10 +14,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-var cmpModelsGroupShallow = cmp.Comparer(func(x, y models.Group) bool {
-	return x.Name == y.Name && x.OrganizationID == y.OrganizationID
-})
-
 func TestCreateIdentity(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		t.Run("success", func(t *testing.T) {
@@ -47,7 +43,7 @@ func createIdentities(t *testing.T, db GormTxn, identities ...*models.Identity) 
 		assert.NilError(t, err, user.Name)
 
 		for _, group := range user.Groups {
-			err = AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
+			err = AddUsersToGroup(db, group.ID, group.Name, InfraProvider(db).ID, []uid.ID{user.ID})
 			assert.NilError(t, err)
 		}
 	}
@@ -148,6 +144,7 @@ func TestListIdentities(t *testing.T) {
 		var (
 			bond = models.Identity{
 				Name:      "jbond@infrahq.com",
+				Groups:    []models.Group{everyone},
 				Providers: providers,
 			}
 			salt = models.Identity{
@@ -167,6 +164,9 @@ func TestListIdentities(t *testing.T) {
 			}
 		)
 		createIdentities(t, db, &bond, &salt, &bourne, &bauer)
+
+		assert.NilError(t, AddUsersToGroup(db, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{bond.ID, bourne.ID, bauer.ID}))
+		assert.NilError(t, AddUsersToGroup(db, product.ID, product.Name, InfraProvider(db).ID, []uid.ID{bourne.ID}))
 
 		connector := InfraConnectorIdentity(db)
 
@@ -208,7 +208,7 @@ func TestListIdentities(t *testing.T) {
 		t.Run("filter identities by group", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
-			expected := []models.Identity{bauer, bourne}
+			expected := []models.Identity{bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
@@ -341,7 +341,7 @@ func TestDeleteIdentities(t *testing.T) {
 				}
 				err = CreateGroup(tx, group)
 				assert.NilError(t, err)
-				err = AddUsersToGroup(tx, group.ID, []uid.ID{bond.ID})
+				err = AddUsersToGroup(tx, group.ID, group.Name, InfraProvider(tx).ID, []uid.ID{bond.ID})
 				assert.NilError(t, err)
 
 				err = CreateGrant(tx, &models.Grant{Subject: bond.PolyID(), Privilege: "admin", Resource: "infra"})
@@ -595,7 +595,7 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
-		err = AddUsersToGroup(db, group.ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
+		err = AddUsersToGroup(db, group.ID, group.Name, InfraProvider(db).ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
 		assert.NilError(t, err)
 
 		opts := DeleteIdentitiesOptions{
@@ -613,17 +613,17 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 
 func TestAssignIdentityToGroups(t *testing.T) {
 	tests := []struct {
-		Name           string
-		StartingGroups []string       // groups identity starts with
-		ExistingGroups []string       // groups from last provider sync
-		IncomingGroups []string       // groups from this provider sync
-		ExpectedGroups []models.Group // groups identity should have at end
+		Name                   string
+		StartingGroups         []string       // groups identity starts with
+		ExistingProviderGroups []string       // provider groups this identity is in from last provider sync
+		IncomingProviderGroups []string       // provider groups this identity is in from this provider sync
+		ExpectedGroups         []models.Group // groups identity should have at end
 	}{
 		{
-			Name:           "test where the provider is trying to add a group the identity doesn't have elsewhere",
-			StartingGroups: []string{"foo"},
-			ExistingGroups: []string{},
-			IncomingGroups: []string{"foo2"},
+			Name:                   "test where the provider is trying to add a group the identity doesn't have elsewhere",
+			StartingGroups:         []string{"foo"},
+			ExistingProviderGroups: []string{},
+			IncomingProviderGroups: []string{"foo2"},
 			ExpectedGroups: []models.Group{
 				{
 					Name: "foo",
@@ -640,10 +640,10 @@ func TestAssignIdentityToGroups(t *testing.T) {
 			},
 		},
 		{
-			Name:           "test where the provider is trying to add a group the identity has from elsewhere",
-			StartingGroups: []string{"foo"},
-			ExistingGroups: []string{},
-			IncomingGroups: []string{"foo", "foo2"},
+			Name:                   "test where the provider is trying to add a group the identity has from elsewhere",
+			StartingGroups:         []string{"foo"},
+			ExistingProviderGroups: []string{},
+			IncomingProviderGroups: []string{"foo", "foo2"},
 			ExpectedGroups: []models.Group{
 				{
 					Name: "foo",
@@ -660,13 +660,62 @@ func TestAssignIdentityToGroups(t *testing.T) {
 			},
 		},
 		{
-			Name:           "test where the group with the same name exists in another org",
-			StartingGroups: []string{},
-			ExistingGroups: []string{},
-			IncomingGroups: []string{"Everyone"},
+			Name:                   "test where the group with the same name exists in another org",
+			StartingGroups:         []string{},
+			ExistingProviderGroups: []string{},
+			IncomingProviderGroups: []string{"Everyone"},
 			ExpectedGroups: []models.Group{
 				{
 					Name: "Everyone",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
+		{
+			Name:                   "test where the user is in no groups before the provider sync",
+			StartingGroups:         []string{},
+			ExistingProviderGroups: []string{},
+			IncomingProviderGroups: []string{"foo"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
+		{
+			Name:                   "test where the user is in no groups after the provider sync",
+			StartingGroups:         []string{},
+			ExistingProviderGroups: []string{"foo"},
+			IncomingProviderGroups: []string{},
+			ExpectedGroups:         []models.Group{},
+		},
+		{
+			Name:                   "test where the user is in no provider groups after the provider sync",
+			StartingGroups:         []string{"foo"},
+			ExistingProviderGroups: []string{"foo 1"},
+			IncomingProviderGroups: []string{},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
+		{
+			Name:                   "test when there is a comma in a group name",
+			StartingGroups:         []string{},
+			ExistingProviderGroups: []string{},
+			IncomingProviderGroups: []string{"my, group"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "my, group",
 					OrganizationMember: models.OrganizationMember{
 						OrganizationID: 1000,
 					},
@@ -690,6 +739,8 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				err := CreateIdentity(db, identity)
 				assert.NilError(t, err)
 
+				provider := InfraProvider(db)
+
 				// setup identity's groups
 				for _, gn := range test.StartingGroups {
 					g, err := GetGroup(db, ByName(gn))
@@ -698,19 +749,17 @@ func TestAssignIdentityToGroups(t *testing.T) {
 						err = CreateGroup(db, g)
 						assert.NilError(t, err)
 					}
-					assert.NilError(t, AddUsersToGroup(db, g.ID, []uid.ID{identity.ID}))
+					assert.NilError(t, AddUsersToGroup(db, g.ID, g.Name, provider.ID, []uid.ID{identity.ID}))
 				}
 
 				// setup providerUser record
-				provider := InfraProvider(db)
 				pu, err := CreateProviderUser(db, provider, identity)
 				assert.NilError(t, err)
 
-				pu.Groups = test.ExistingGroups
-				err = UpdateProviderUser(db, pu)
+				err = AssignUserToProviderGroups(db, pu, provider, test.ExistingProviderGroups)
 				assert.NilError(t, err)
 
-				err = AssignIdentityToGroups(db, identity, provider, test.IncomingGroups)
+				err = AssignUserToProviderGroups(db, pu, provider, test.IncomingProviderGroups)
 				assert.NilError(t, err)
 
 				// check the result

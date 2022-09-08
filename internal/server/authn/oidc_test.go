@@ -71,11 +71,14 @@ func TestOIDCAuthenticate(t *testing.T) {
 		// user should be created
 		assert.Equal(t, authnIdentity.Identity.Name, "bruce@example.com")
 
+		syncGroups, err := data.ListGroups(db, nil, data.ByGroupMember(authnIdentity.Identity.ID))
+		assert.NilError(t, err)
+
 		groups := make(map[string]bool)
-		for _, g := range authnIdentity.Identity.Groups {
+		for _, g := range syncGroups {
 			groups[g.Name] = true
 		}
-		assert.Assert(t, len(authnIdentity.Identity.Groups) == 2)
+		assert.Equal(t, len(syncGroups), 2)
 		assert.Equal(t, groups["Everyone"], true)
 		assert.Equal(t, groups["developers"], true)
 
@@ -198,22 +201,12 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
 
-				for _, name := range []string{"Foo", "existing3"} {
-					group := &models.Group{Name: name}
-					err = data.CreateGroup(db, group)
-					assert.NilError(t, err)
-					err = data.AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
-					assert.NilError(t, err)
-				}
-
-				g, err := data.GetGroup(db, data.ByName("Foo"))
+				group := &models.Group{Name: "Foo"}
+				err = data.CreateGroup(db, group)
 				assert.NilError(t, err)
-				assert.Assert(t, g != nil)
 
-				user, err = data.GetIdentity(db, data.GetIdentityOptions{ByID: user.ID, LoadGroups: true})
+				err = data.AddUsersToGroup(db, group.ID, group.Name, data.InfraProvider(db).ID, []uid.ID{user.ID})
 				assert.NilError(t, err)
-				assert.Assert(t, user != nil)
-				assert.Equal(t, len(user.Groups), 2)
 
 				p, err := data.GetProvider(db, data.ByName("mockoidc"))
 				assert.NilError(t, err)
@@ -221,8 +214,8 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				pu, err := data.CreateProviderUser(db, p, user)
 				assert.NilError(t, err)
 
-				pu.Groups = []string{"existing3"}
-				assert.NilError(t, data.UpdateProviderUser(db, pu))
+				err = data.AssignUserToProviderGroups(db, pu, p, []string{"existing3"})
+				assert.NilError(t, err)
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "eugwnw@example.com",
@@ -234,7 +227,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.Equal(t, "mockoidc", a.Provider.Name)
 				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 
-				assert.Assert(t, len(a.Identity.Groups) == 3)
+				assert.Equal(t, len(a.Identity.Groups), 3)
 
 				var groupNames []string
 				for _, g := range a.Identity.Groups {
@@ -261,15 +254,12 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
 			assert.NilError(t, err)
-			tc.expected(t, a)
 
-			if err == nil {
-				// make sure the associations are still set when you reload the object.
-				u, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: a.Identity.ID, LoadGroups: true})
-				assert.NilError(t, err)
-				a.Identity = u
-				tc.expected(t, a)
-			}
+			syncGroups, err := data.ListGroups(db, nil, data.ByGroupMember(a.Identity.ID))
+			assert.NilError(t, err)
+			a.Identity.Groups = syncGroups
+
+			tc.expected(t, a)
 		})
 	}
 }

@@ -33,99 +33,75 @@ func (i *identitiesTable) ScanFields() []any {
 	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
-func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
-	pu, err := GetProviderUser(tx, provider.ID, user.ID)
+func AssignUserToProviderGroups(tx GormTxn, providerUser *models.ProviderUser, provider *models.Provider, newGroupNames []string) error {
+	// before applying new groups, see which groups this user is currently known to be in for this provider
+	previousUserGroupsForProvider, err := ListProviderGroups(tx, ListProviderGroupOptions{ByProviderID: provider.ID, ByMemberIdentityID: providerUser.IdentityID})
 	if err != nil {
-		return err
+		return fmt.Errorf("current user idp groups: %w", err)
 	}
 
-	oldGroups := pu.Groups
-	groupsToBeRemoved := slice.Subtract(oldGroups, newGroups)
-	groupsToBeAdded := slice.Subtract(newGroups, oldGroups)
-
-	pu.Groups = newGroups
-	pu.LastUpdate = time.Now().UTC()
-	if err := UpdateProviderUser(tx, pu); err != nil {
-		return fmt.Errorf("save: %w", err)
+	// get all the groups this user was previously known to have at this provider for comparison to the new group names
+	oldGroupNames := []string{}
+	for _, g := range previousUserGroupsForProvider {
+		oldGroupNames = append(oldGroupNames, g.Name)
 	}
 
-	// remove user from groups
+	groupsToBeRemoved := slice.Subtract(oldGroupNames, newGroupNames)
+	groupsToBeAdded := slice.Subtract(newGroupNames, oldGroupNames)
+
 	if len(groupsToBeRemoved) > 0 {
-		stmt := `DELETE FROM identities_groups WHERE identity_id = ? AND group_id in (
-		   SELECT id FROM groups WHERE organization_id = ? AND name IN (?))`
-		if _, err := tx.Exec(stmt, user.ID, tx.OrganizationID(), groupsToBeRemoved); err != nil {
-			return err
+		if err := removeMemberFromProviderGroups(tx, providerUser, groupsToBeRemoved); err != nil {
+			return fmt.Errorf("remove previous idp groups: %w", err)
 		}
-		for _, name := range groupsToBeRemoved {
-			for i, g := range user.Groups {
-				if g.Name == name {
-					// remove from list
-					user.Groups = append(user.Groups[:i], user.Groups[i+1:]...)
+	}
+
+	if len(groupsToBeAdded) > 0 {
+		infraGroups := []models.Group{}
+		// make sure all the groups and provider groups exist, then add the membership relation
+		for _, name := range groupsToBeAdded {
+			// check if provider group with this name exists
+			_, err = GetProviderGroup(tx, provider.ID, name)
+			if err != nil {
+				if !errors.Is(err, internal.ErrNotFound) {
+					return err
+				}
+
+				// this is the first time this provider group has been seen, create it
+				providerGroup := &models.ProviderGroup{
+					ProviderID: provider.ID,
+					Name:       name,
+				}
+
+				if err := CreateProviderGroup(tx, providerGroup); err != nil {
+					return err
 				}
 			}
-		}
-	}
-
-	type idNamePair struct {
-		ID   uid.ID
-		Name string
-	}
-
-	stmt := `SELECT id, name FROM groups WHERE deleted_at is null AND name IN (?) AND organization_id = ?`
-	rows, err := tx.Query(stmt, groupsToBeAdded, tx.OrganizationID())
-	if err != nil {
-		return err
-	}
-	addIDs, err := scanRows(rows, func(item *idNamePair) []any {
-		return []any{&item.ID, &item.Name}
-	})
-	if err != nil {
-		return err
-	}
-
-	for _, name := range groupsToBeAdded {
-		// find or create group
-		var groupID uid.ID
-		found := false
-		for _, obj := range addIDs {
-			if obj.Name == name {
-				found = true
-				groupID = obj.ID
-				break
-			}
-		}
-		if !found {
-			group := &models.Group{
-				Name:              name,
-				CreatedByProvider: provider.ID,
-			}
-
-			if err = CreateGroup(tx, group); err != nil {
-				return fmt.Errorf("create group: %w", err)
-			}
-			groupID = group.ID
-		}
-
-		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID)
-		if err != nil {
-			return err
-		}
-		ids, err := scanRows(rows, func(item *uid.ID) []any {
-			return []any{item}
-		})
-		if err != nil {
-			return err
-		}
-
-		if len(ids) == 0 {
-			// add user to group
-			_, err = tx.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", user.ID, groupID)
+			// check if an infra group with this name exists
+			infraGroup, err := GetGroup(tx, ByName(name))
 			if err != nil {
-				return fmt.Errorf("insert: %w", handleError(err))
-			}
-		}
+				if !errors.Is(err, internal.ErrNotFound) {
+					return err
+				}
+				// this is the first time this group has been seen, create the infra version of this group
+				infraGroup = &models.Group{
+					Name:              name,
+					CreatedByProvider: provider.ID,
+				}
 
-		user.Groups = append(user.Groups, models.Group{Model: models.Model{ID: groupID}, Name: name})
+				if err := CreateGroup(tx, infraGroup); err != nil {
+					return err
+				}
+			}
+			infraGroups = append(infraGroups, *infraGroup)
+		}
+		// now that we know all the groups and provider groups exist in our database set the user as a member
+		if err := addMemberToProviderGroups(tx, providerUser, groupsToBeAdded); err != nil {
+			return fmt.Errorf("update existing provider groups: %w", err)
+		}
+		// automatically map the identity provider group to the infra group with the same name
+		if err := AddUserToGroups(tx, providerUser.ProviderID, providerUser.IdentityID, infraGroups); err != nil {
+			return err
+		}
 	}
 
 	return nil

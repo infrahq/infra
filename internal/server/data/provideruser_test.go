@@ -99,7 +99,6 @@ func TestSyncProviderUser(t *testing.T) {
 
 					expected := models.ProviderUser{
 						Email:        "hello@example.com",
-						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,
 						IdentityID:   user.ID,
 						RedirectURL:  "http://example.com",
@@ -150,7 +149,7 @@ func TestSyncProviderUser(t *testing.T) {
 				},
 				oidcClient: &mockOIDCImplementation{
 					UserEmailResp:  "sync@example.com",
-					UserGroupsResp: []string{"Everyone", "Developers"},
+					UserGroupsResp: []string{"Sync Group 1", "Sync Group 2"},
 				},
 				verifyFunc: func(t *testing.T, err error, user *models.Identity) {
 					assert.NilError(t, err)
@@ -158,9 +157,8 @@ func TestSyncProviderUser(t *testing.T) {
 					pu, err := GetProviderUser(db, provider.ID, user.ID)
 					assert.NilError(t, err)
 
-					expected := models.ProviderUser{
+					expectedProviderUser := models.ProviderUser{
 						Email:        "sync@example.com",
-						Groups:       models.CommaSeparatedStrings{"Everyone", "Developers"},
 						ProviderID:   provider.ID,
 						IdentityID:   user.ID,
 						RedirectURL:  "http://example.com",
@@ -183,29 +181,34 @@ func TestSyncProviderUser(t *testing.T) {
 							cmpEncryptedAtRestNotZero),
 					}
 
-					assert.DeepEqual(t, *pu, expected, cmpProviderUser)
+					assert.DeepEqual(t, *pu, expectedProviderUser, cmpProviderUser)
 
-					assert.Assert(t, len(pu.Groups) == 2)
+					pgs, err := ListProviderGroups(db, ListProviderGroupOptions{ByMemberIdentityID: pu.IdentityID})
+					assert.NilError(t, err)
+
+					assert.Assert(t, len(pgs) == 2)
 
 					puGroups := make(map[string]bool)
-					for _, g := range pu.Groups {
-						puGroups[g] = true
+					for _, g := range pgs {
+						puGroups[g.Name] = true
 					}
 
-					assert.Assert(t, puGroups["Everyone"])
-					assert.Assert(t, puGroups["Developers"])
+					assert.Assert(t, puGroups["Sync Group 1"])
+					assert.Assert(t, puGroups["Sync Group 2"])
 
 					// check that the direct user-to-group relation was updated
 					storedGroups, err := ListGroups(db, nil, ByGroupMember(pu.IdentityID))
 					assert.NilError(t, err)
+
+					assert.Assert(t, len(storedGroups) == 2)
 
 					userGroups := make(map[string]bool)
 					for _, g := range storedGroups {
 						userGroups[g.Name] = true
 					}
 
-					assert.Assert(t, userGroups["Everyone"])
-					assert.Assert(t, userGroups["Developers"])
+					assert.Assert(t, userGroups["Sync Group 1"])
+					assert.Assert(t, userGroups["Sync Group 2"])
 				},
 			},
 		}
@@ -368,8 +371,6 @@ func createTestProviderUser(t *testing.T, tx *Transaction, provider *models.Prov
 
 	pu, err := CreateProviderUser(tx, provider, user)
 	assert.NilError(t, err)
-
-	pu.Groups = models.CommaSeparatedStrings{}
 
 	return *pu
 }

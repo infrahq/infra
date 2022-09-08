@@ -74,7 +74,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		err := data.CreateGroup(srv.DB(), group)
 		assert.NilError(t, err)
 
-		err = data.AddUsersToGroup(srv.DB(), group.ID, users)
+		err = data.AddUsersToGroup(srv.DB(), group.ID, group.Name, data.InfraProvider(srv.DB()).ID, users)
 		assert.NilError(t, err)
 
 		return group.ID
@@ -544,7 +544,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		err := data.CreateGroup(srv.DB(), group)
 		assert.NilError(t, err)
 
-		err = data.AddUsersToGroup(srv.DB(), group.ID, users)
+		err = data.AddUsersToGroup(srv.DB(), group.ID, group.Name, data.InfraProvider(srv.DB()).ID, users)
 		assert.NilError(t, err)
 
 		return group.ID

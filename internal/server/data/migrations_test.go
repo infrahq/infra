@@ -813,6 +813,143 @@ DELETE FROM settings WHERE id=24567;
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-10-03T13:00"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				// setup provider, groups, and identites for multiple orgs, make sure no group membership is moved across those orgs
+				var originalOrgID uid.ID
+				err := tx.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+				assert.NilError(t, err)
+
+				anotherOrgID := uid.New()
+
+				stmt := `INSERT INTO providers(id, name, organization_id) VALUES (?, ?, ?)`
+				_, err = tx.Exec(stmt, 12345, "okta", originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 54321, "azure", originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 1000, "infra", originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 12346, "okta", anotherOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 1001, "infra", anotherOrgID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO groups(id, name, organization_id) VALUES (?, ?, ?)`
+				_, err = tx.Exec(stmt, 23456, "Developers", originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 65432, "Everyone", originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 23457, "Developers", anotherOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 75432, "Ops", anotherOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 77777, "Local", anotherOrgID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO identities(id, name, organization_id) VALUES (?, 'hello@infrahq.com', ?)`
+				_, err = tx.Exec(stmt, 34567, originalOrgID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34568, anotherOrgID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO identities_groups(identity_id, group_id) VALUES (?, ?)`
+				_, err = tx.Exec(stmt, 34567, 23456)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34567, 65432)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34568, 23457)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34568, 75432)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34568, 77777)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO provider_users(identity_id, provider_id, email, groups) VALUES (?, ?, 'hello@infrahq.com', ?)`
+				_, err = tx.Exec(stmt, 34567, 12345, "Developers,Everyone")
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34567, 54321, "Developers")
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, 34568, 12346, "Developers,Ops")
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				stmt := `
+					DELETE FROM providers;
+					DELETE FROM groups;
+					DELETE FROM identities;
+					DELETE FROM provider_users;
+					DELETE FROM provider_groups;
+					DELETE FROM provider_groups_provider_users;
+					DELETE FROM identities_groups;
+				`
+				_, err := tx.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				// check that the provider groups exist for their respective providers
+				stmt := `SELECT provider_id, name FROM provider_groups`
+				pgs := []models.ProviderGroup{}
+				rows, err := tx.Query(stmt)
+				assert.NilError(t, err)
+				for rows.Next() {
+					var pg models.ProviderGroup
+					err = rows.Scan(&pg.ProviderID, &pg.Name)
+					assert.NilError(t, err)
+					pgs = append(pgs, pg)
+				}
+
+				expectedProviderGroups := []models.ProviderGroup{
+					{
+						Name:       "Developers",
+						ProviderID: 12345,
+					},
+					{
+						Name:       "Everyone",
+						ProviderID: 12345,
+					},
+					{
+						Name:       "Developers",
+						ProviderID: 54321,
+					},
+					{
+						Name:       "Developers",
+						ProviderID: 12346,
+					},
+					{
+						Name:       "Ops",
+						ProviderID: 12346,
+					},
+				}
+				assert.DeepEqual(t, pgs, expectedProviderGroups)
+
+				// check the relation of group to provider group
+				var count int
+				err = tx.QueryRow(`SELECT COUNT(*) FROM identities_groups WHERE group_id=23456`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 2) // 1 from okta, 1 from azure, for default org
+				err = tx.QueryRow(`SELECT COUNT(*) FROM identities_groups WHERE group_id=65432`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 1) // 1 from okta, default org
+				err = tx.QueryRow(`SELECT COUNT(*) FROM identities_groups WHERE group_id=23457`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 1) // 1 from okta, other org
+				err = tx.QueryRow(`SELECT COUNT(*) FROM identities_groups WHERE group_id=75432`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 1) // 1 from okta, other org
+				err = tx.QueryRow(`SELECT COUNT(*) FROM identities_groups WHERE group_id=77777`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 1) // 1 from infra, other org
+
+				// check that the users of the provider groups have the correct identity relation
+				err = tx.QueryRow(`SELECT COUNT(*) FROM provider_groups_provider_users WHERE provider_user_identity_id=34567`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 3) // 2 from okta, 1 from azure, default org
+				err = tx.QueryRow(`SELECT COUNT(*) FROM provider_groups_provider_users WHERE provider_user_identity_id=34568`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 2) // 2 from okta, other org
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

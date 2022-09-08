@@ -23,7 +23,7 @@ func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Ident
 		err := data.CreateIdentity(db, identities[i])
 		assert.NilError(t, err, identities[i].Name)
 		for _, g := range identities[i].Groups {
-			err := data.AddUsersToGroup(db, g.ID, []uid.ID{identities[i].ID})
+			err := data.AddUsersToGroup(db, g.ID, g.Name, data.InfraProvider(db).ID, []uid.ID{identities[i].ID})
 			assert.NilError(t, err)
 		}
 		assert.NilError(t, err, identities[i].Name)
@@ -51,17 +51,19 @@ func TestAPI_ListGroups(t *testing.T) {
 	createGroups(t, srv.DB(), &humans, &second, &others)
 
 	var (
-		idInGroup = models.Identity{
-			Name:   "inagroup@example.com",
-			Groups: []models.Group{humans, second},
-		}
-		idOther = models.Identity{
-			Name:   "other@example.com",
-			Groups: []models.Group{others},
-		}
+		idInGroup = models.Identity{Name: "inagroup@example.com"}
+		idOther   = models.Identity{Name: "other@example.com"}
 	)
 
 	createIdentities(t, srv.DB(), &idInGroup, &idOther)
+
+	provider := data.InfraProvider(srv.db).ID
+	err := data.AddUsersToGroup(srv.db, humans.ID, humans.Name, provider, []uid.ID{idInGroup.ID})
+	assert.NilError(t, err)
+	err = data.AddUsersToGroup(srv.db, second.ID, second.Name, provider, []uid.ID{idInGroup.ID})
+	assert.NilError(t, err)
+	err = data.AddUsersToGroup(srv.db, others.ID, others.Name, provider, []uid.ID{idOther.ID})
+	assert.NilError(t, err)
 
 	token := &models.AccessKey{
 		IssuedFor:  idInGroup.ID,
@@ -430,7 +432,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			urlPath: fmt.Sprintf("/api/groups/%s/users", humans.ID.String()),
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-				err := data.AddUsersToGroup(srv.DB(), humans.ID, []uid.ID{first.ID, second.ID})
+				err := data.AddUsersToGroup(srv.DB(), humans.ID, humans.Name, data.InfraProvider(srv.DB()).ID, []uid.ID{first.ID, second.ID})
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {

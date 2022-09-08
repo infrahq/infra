@@ -387,9 +387,9 @@ func TestListGrants(t *testing.T) {
 		userID, err := uid.Parse([]byte("userchar"))
 		assert.NilError(t, err)
 
-		assert.NilError(t, AddUsersToGroup(tx, uid.ID(111), []uid.ID{userID}))
-		assert.NilError(t, AddUsersToGroup(tx, uid.ID(112), []uid.ID{userID}))
-		assert.NilError(t, AddUsersToGroup(tx, uid.ID(113), []uid.ID{uid.ID(777)}))
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(111), "name-111", InfraProvider(db).ID, []uid.ID{userID}))
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(112), "name-111", InfraProvider(db).ID, []uid.ID{userID}))
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(113), "name-111", InfraProvider(db).ID, []uid.ID{uid.ID(777)}))
 
 		gGrant1 := &models.Grant{
 			Subject:   uid.NewGroupPolymorphicID(111),

@@ -21,15 +21,15 @@ func (p providerUserTable) Table() string {
 }
 
 func (p providerUserTable) Columns() []string {
-	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at", "given_name", "family_name", "active"}
+	return []string{"identity_id", "provider_id", "email", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at", "given_name", "family_name", "active"}
 }
 
 func (p providerUserTable) Values() []any {
-	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt, p.GivenName, p.FamilyName, p.Active}
+	return []any{p.IdentityID, p.ProviderID, p.Email, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt, p.GivenName, p.FamilyName, p.Active}
 }
 
 func (p *providerUserTable) ScanFields() []any {
-	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt, &p.GivenName, &p.FamilyName, &p.Active}
+	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt, &p.GivenName, &p.FamilyName, &p.Active}
 }
 
 func (p *providerUserTable) OnInsert() error {
@@ -199,7 +199,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 	return (*models.ProviderUser)(pu), nil
 }
 
-func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
 	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
@@ -216,6 +216,7 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, p
 
 		providerUser.AccessToken = models.EncryptedAtRest(accessToken)
 		providerUser.ExpiresAt = *expiry
+		providerUser.LastUpdate = time.Now().UTC()
 
 		err = UpdateProviderUser(tx, providerUser)
 		if err != nil {
@@ -228,7 +229,7 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, p
 		return fmt.Errorf("oidc user sync failed: %w", err)
 	}
 
-	if err := AssignIdentityToGroups(tx, user, provider, info.Groups); err != nil {
+	if err := AssignUserToProviderGroups(tx, providerUser, provider, info.Groups); err != nil {
 		return fmt.Errorf("assign identity to groups: %w", err)
 	}
 

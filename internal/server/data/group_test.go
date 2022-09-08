@@ -96,6 +96,12 @@ func TestListGroups(t *testing.T) {
 			Groups: []models.Group{everyone, product},
 		}
 		createIdentities(t, db, &firstUser, &secondUser)
+		err := AddUsersToGroup(db, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{firstUser.ID, secondUser.ID})
+		assert.NilError(t, err)
+		err = AddUsersToGroup(db, engineers.ID, engineers.Name, InfraProvider(db).ID, []uid.ID{firstUser.ID})
+		assert.NilError(t, err)
+		err = AddUsersToGroup(db, product.ID, product.Name, InfraProvider(db).ID, []uid.ID{secondUser.ID})
+		assert.NilError(t, err)
 
 		t.Run("all", func(t *testing.T) {
 			actual, err := ListGroups(db, nil)
@@ -226,19 +232,15 @@ func TestAddUsersToGroup(t *testing.T) {
 		createGroups(t, db, &everyone, &other)
 
 		var (
-			bond = models.Identity{
-				Name:   "jbond@infrahq.com",
-				Groups: []models.Group{everyone},
-			}
+			bond   = models.Identity{Name: "jbond@infrahq.com"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com"}
 			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
-			forth  = models.Identity{
-				Name:   "forth@example.com",
-				Groups: []models.Group{everyone},
-			}
+			forth  = models.Identity{Name: "forth@example.com"}
 		)
 
 		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
+		err := AddUsersToGroup(db, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{bond.ID, forth.ID})
+		assert.NilError(t, err)
 
 		t.Run("add identities to group", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
@@ -246,7 +248,7 @@ func TestAddUsersToGroup(t *testing.T) {
 			expected := []models.Identity{forth, bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID, forth.ID})
+			err = AddUsersToGroup(db, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{bourne.ID, bauer.ID, forth.ID})
 			assert.NilError(t, err)
 
 			actual, err = ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
@@ -286,6 +288,10 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 			Groups: []models.Group{everyone},
 		}
 		createIdentities(t, tx, &bond, &bourne, &bauer, &forth)
+		err := AddUsersToGroup(tx, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{bond.ID, bourne.ID, bauer.ID, forth.ID})
+		assert.NilError(t, err)
+		err = AddUsersToGroup(tx, other.ID, other.Name, InfraProvider(db).ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
+		assert.NilError(t, err)
 
 		users, err := ListIdentities(tx, ListIdentityOptions{ByGroupID: everyone.ID})
 		assert.NilError(t, err)
@@ -307,5 +313,35 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		assert.NilError(t, err)
 		expected = []models.Identity{bauer, bond, bourne}
 		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+	})
+}
+
+func TestCountUsersInGroup(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		everyone := models.Group{Name: "Everyone"}
+		createGroups(t, db, &everyone)
+
+		mockta := &models.Provider{Name: "mokta", Kind: models.ProviderKindOkta}
+		err := CreateProvider(db, mockta)
+		assert.NilError(t, err)
+
+		var (
+			bond   = models.Identity{Name: "jbond@infrahq.com"}
+			bourne = models.Identity{Name: "jbourne@infrahq.com"}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+			forth  = models.Identity{Name: "forth@example.com"}
+		)
+
+		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
+		err = AddUsersToGroup(db, everyone.ID, everyone.Name, InfraProvider(db).ID, []uid.ID{bond.ID, forth.ID})
+		assert.NilError(t, err)
+		err = AddUsersToGroup(db, everyone.ID, everyone.Name, mockta.ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
+		assert.NilError(t, err)
+
+		t.Run("count users in group", func(t *testing.T) {
+			count, err := CountUsersInGroup(db, everyone.ID)
+			assert.NilError(t, err)
+			assert.Equal(t, int(count), 4)
+		})
 	})
 }
