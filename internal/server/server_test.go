@@ -206,6 +206,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 		DBEncryptionKey:         filepath.Join(dir, "sqlite3.db.key"),
 		TLSCache:                filepath.Join(dir, "tlscache"),
 		EnableSignup:            true,
+		BaseDomain:              "example.com",
 		TLS: TLSOptions{
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
 			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
@@ -321,6 +322,7 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 func TestServer_PersistSignupUser(t *testing.T) {
 	s := setupServer(t, func(_ *testing.T, opts *Options) {
 		opts.EnableSignup = true
+		opts.BaseDomain = "example.com"
 		opts.SessionDuration = time.Minute
 		opts.SessionExtensionDeadline = time.Minute
 	})

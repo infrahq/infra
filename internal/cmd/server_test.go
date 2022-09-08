@@ -301,6 +301,7 @@ users:
 				expected.SessionDuration = 3 * time.Minute
 				expected.SessionExtensionDeadline = 1 * time.Minute
 				expected.EnableSignup = false
+				expected.BaseDomain = ""
 				return expected
 			},
 		},
