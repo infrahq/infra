@@ -7,8 +7,6 @@ import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
 
-import LoginLayout from '../../components/layouts/login'
-
 export default function Callback() {
   const { mutate } = useSWRConfig()
   const { baseDomain } = useServerConfig()
