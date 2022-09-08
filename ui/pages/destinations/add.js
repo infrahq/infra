@@ -7,28 +7,12 @@ import {
   CheckCircleIcon,
   ClipboardCheckIcon,
   ClipboardCopyIcon,
-  FolderDownloadIcon,
-  FolderOpenIcon,
 } from '@heroicons/react/outline'
 
 import { useServerConfig } from '../../lib/serverconfig'
-
+import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 import ErrorMessage from '../../components/error-message'
-import Tooltip from '../../components/tooltip'
-
-function download(values) {
-  const blob = new Blob([values], { type: 'application/yaml' })
-  const href = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-
-  link.href = href
-  link.setAttribute('download', 'values.yaml')
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(href)
-}
 
 export default function DestinationsAdd() {
   const [name, setName] = useState('')
@@ -37,7 +21,6 @@ export default function DestinationsAdd() {
   const [accessKey, setAccessKey] = useState('')
   const [connected, setConnected] = useState(false)
   const [commandCopied, setCommandCopied] = useState(false)
-  const [valuesDownloaded, setValuesDownloaded] = useState(false)
   const [valuesCopied, setValuesCopied] = useState(false)
 
   const { baseDomain } = useServerConfig()
@@ -159,6 +142,12 @@ export default function DestinationsAdd() {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
+      <Breadcrumbs>
+        <Link href='/destinations'>
+          <a>Clusters</a>
+        </Link>
+        Connect a cluster
+      </Breadcrumbs>
       <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
         <nav aria-label='Progress' className='py-10'>
           <ol

@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import EmptyTable from '../../components/empty-table'
 import Dashboard from '../../components/layouts/dashboard'
 import Pagination from '../../components/pagination'
@@ -131,6 +132,7 @@ export default function Users() {
       <Head>
         <title>Users - Infra</title>
       </Head>
+      <Breadcrumbs>Users</Breadcrumbs>
       <div className='py-6'>
         <PageHeader buttonHref={admin && '/users/add'} buttonLabel='User' />
       </div>

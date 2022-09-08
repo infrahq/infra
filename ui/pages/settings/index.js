@@ -4,6 +4,7 @@ import Head from 'next/head'
 
 import { sortBySubject } from '../../lib/grants'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
@@ -105,6 +106,7 @@ export default function Settings() {
       <Head>
         <title>Settings - Infra</title>
       </Head>
+      <Breadcrumbs>Settings</Breadcrumbs>
       <div className='flex flex-1 flex-col'>
         <h1 className='text-lg font-medium'>Infra Administrators</h1>
         <p className='mt-1 text-sm text-gray-500'>

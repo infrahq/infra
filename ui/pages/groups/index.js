@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 import EmptyTable from '../../components/empty-table'
 import Pagination from '../../components/pagination'
@@ -16,6 +17,7 @@ function GroupTable({ groups }) {
 
   return (
     <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
+      <Breadcrumbs>Groups</Breadcrumbs>
       <table className='min-w-full divide-y divide-gray-300'>
         <thead className='bg-gray-50'>
           <tr>

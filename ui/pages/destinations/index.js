@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 
 import { useAdmin } from '../../lib/admin'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 import EmptyTable from '../../components/empty-table'
 import Pagination from '../../components/pagination'
@@ -146,6 +147,7 @@ export default function Destinations() {
       <Head>
         <title>Clusters - Infra</title>
       </Head>
+      <Breadcrumbs>{'Clusters'}</Breadcrumbs>
       <div className='py-6'>
         <PageHeader
           buttonHref={admin && '/destinations/add'}

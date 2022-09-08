@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { useState, useRef } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
 import { useRouter } from 'next/router'
-import { UserGroupIcon } from '@heroicons/react/outline'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import ErrorMessage from '../../components/error-message'
 import TypeaheadCombobox from '../../components/typeahead-combobox'
 import Dashboard from '../../components/layouts/dashboard'
@@ -131,6 +131,12 @@ export default function GroupsAdd() {
       <Head>
         <title>Create Group</title>
       </Head>
+      <Breadcrumbs>
+        <Link href='/groups'>
+          <a>Groups</a>
+        </Link>
+        Add a group
+      </Breadcrumbs>
       <div className='space-y-4 px-4 py-5 md:px-6 xl:px-0'>
         <div className='flex flex-col'>
           <div className='mt-6 flex flex-col space-y-1'>

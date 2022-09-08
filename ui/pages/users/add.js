@@ -1,9 +1,9 @@
-import { UserIcon } from '@heroicons/react/outline'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useServerConfig } from '../../lib/serverconfig'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 
@@ -158,6 +158,12 @@ export default function UsersAdd() {
       <Head>
         <title>Add User</title>
       </Head>
+      <Breadcrumbs>
+        <Link href='/users'>
+          <a>Users</a>
+        </Link>
+        Add a user
+      </Breadcrumbs>
       <div className='space-y-4 px-4 py-5 md:px-6 xl:px-0'>
         {state === 'add' && (
           <AddUser

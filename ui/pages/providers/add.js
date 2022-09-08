@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { InformationCircleIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Tooltip from '../../components/tooltip'
@@ -162,6 +164,12 @@ export default function ProvidersAddDetails() {
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
+      <Breadcrumbs>
+        <Link href='/providers'>
+          <a>Providers</a>
+        </Link>
+        Connect a provider
+      </Breadcrumbs>
       <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
         <form
           onSubmit={onSubmit}

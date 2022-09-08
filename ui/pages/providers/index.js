@@ -6,6 +6,7 @@ import { useState } from 'react'
 
 import { useAdmin } from '../../lib/admin'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 import EmptyTable from '../../components/empty-table'
 import Pagination from '../../components/pagination'
@@ -134,6 +135,7 @@ export default function Providers() {
       <Head>
         <title>Identity Providers - Infra</title>
       </Head>
+      <Breadcrumbs>Providers</Breadcrumbs>
       <div className='py-6'>
         <PageHeader
           buttonHref={admin && '/providers/add'}

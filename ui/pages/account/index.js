@@ -5,6 +5,7 @@ import { CheckCircleIcon } from '@heroicons/react/outline'
 import { XIcon } from '@heroicons/react/solid'
 import { Transition } from '@headlessui/react'
 
+import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 
 function PasswordReset({ onReset = () => {} }) {
@@ -145,6 +146,7 @@ export default function Account() {
       <Head>
         <title>Account - Infra</title>
       </Head>
+      <Breadcrumbs>Account</Breadcrumbs>
       <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
         <div className='px-4 sm:px-6 xl:px-0'>
           {auth && hasInfraProvider && (

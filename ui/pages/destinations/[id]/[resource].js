@@ -1,9 +1,12 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import Head from 'next/head'
+import Link from 'next/link'
 
 import { useAdmin } from '../../../lib/admin'
 
+import Breadcrumbs from '../../../components/breadcrumbs'
 import AccessTable from '../../../components/access-table'
 import Dashboard from '../../../components/layouts/dashboard'
 import GrantForm from '../../../components/grant-form'
@@ -48,6 +51,18 @@ export default function ResourceDetail() {
 
   return (
     <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
+      <Head>
+        <title>{destination?.name} - Infra</title>
+      </Head>
+      <Breadcrumbs>
+        <Link href='/destinations'>
+          <a>Clusters</a>
+        </Link>
+        <Link href={`/destinations/${parentDestinationId}`}>
+          <a>{destination?.name}</a>
+        </Link>
+        {resource}
+      </Breadcrumbs>
       {!loading && (
         <div className='px-4 sm:px-6 md:px-0'>
           <div className='flex min-h-0 flex-1 flex-col px-0 md:px-6 xl:px-0'>

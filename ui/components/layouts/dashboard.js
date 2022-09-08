@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { Fragment, useState, useEffect, forwardRef } from 'react'
+import { Fragment, useState, useContext, forwardRef } from 'react'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 import { Dialog, Transition, Menu } from '@headlessui/react'
+import { BreadcrumbsContext } from '../breadcrumbs'
 import {
   ChipIcon,
   UserGroupIcon,
@@ -89,40 +90,42 @@ function SidebarNav({ children, open, setOpen }) {
   )
 }
 
+function Breadcrumbs() {
+  let [breadcrumbs] = useContext(BreadcrumbsContext)
+
+  if (!Array.isArray(breadcrumbs)) {
+    breadcrumbs = [breadcrumbs]
+  }
+
+  return (
+    <div className='flex items-center space-x-3 text-sm'>
+      {breadcrumbs.map((bc, index) => (
+        <div className='flex items-center' key={index}>
+          <span
+            className={`${
+              index === breadcrumbs.length - 1 ? 'font-medium' : ''
+            }`}
+          >
+            {bc}
+          </span>
+          {index < breadcrumbs.length - 1 && (
+            <ChevronRightIcon className='ml-3 h-3.5 w-3.5 text-gray-400' />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Layout({ children }) {
   const router = useRouter()
-  const { asPath } = router
 
   const { data: auth } = useSWR('/api/users/self')
   const { admin, loading } = useAdmin()
   const { cache } = useSWRConfig()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [asPathList, setAsPathList] = useState([
-    ...new Set(
-      asPath
-        .split('/')
-        .filter(n => n)
-        .map(name => {
-          return name.split('?')[0]
-        })
-    ),
-  ])
-
-  useEffect(
-    () =>
-      setAsPathList([
-        ...new Set(
-          asPath
-            .split('/')
-            .filter(n => n)
-            .map(name => {
-              return name.split('?')[0]
-            })
-        ),
-      ]),
-    [asPath]
-  )
+  const [breadcrumbs, setBreadcrumbs] = useState([])
 
   const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
 
@@ -234,7 +237,7 @@ function Layout({ children }) {
   }
 
   return (
-    <div>
+    <BreadcrumbsContext.Provider value={[breadcrumbs, setBreadcrumbs]}>
       <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
         <Nav navigation={navigation} admin={admin} />
       </SidebarNav>
@@ -256,40 +259,7 @@ function Layout({ children }) {
             </button>
             <div className='flex flex-1 justify-between px-4 md:px-6 xl:px-0'>
               <div className='mx-auto flex flex-1 items-center'>
-                {!router.pathname.startsWith('/account') &&
-                  asPathList?.map((item, index, arr) => {
-                    const href = arr.slice(0, index + 1).join('/')
-                    const currentPath = [
-                      ...new Set(
-                        asPath
-                          .split('/')
-                          .filter(n => n)
-                          .map(name => {
-                            return name.split('?')[0]
-                          })
-                      ),
-                    ].join('/')
-
-                    const current = currentPath === href
-
-                    return (
-                      <Link key={item} href={`/${href}`}>
-                        <a
-                          className={`flex items-center text-sm hover:text-gray-500 ${
-                            current ? 'text-gray-900' : 'text-gray-400'
-                          }`}
-                        >
-                          {item}{' '}
-                          {index !== arr.length - 1 && (
-                            <span className='mx-2'>
-                              {' '}
-                              <ChevronRightIcon className='h-3.5' />{' '}
-                            </span>
-                          )}
-                        </a>
-                      </Link>
-                    )
-                  })}
+                <Breadcrumbs />
               </div>
               <div className='ml-4 flex items-center md:ml-6'>
                 <Menu
@@ -349,7 +319,7 @@ function Layout({ children }) {
           <main className='flex-1'>{children}</main>
         </div>
       </div>
-    </div>
+    </BreadcrumbsContext.Provider>
   )
 }
 
