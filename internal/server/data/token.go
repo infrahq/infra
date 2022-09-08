@@ -24,7 +24,7 @@ func createJWT(db GormTxn, identity *models.Identity, groups []string, expires t
 	}
 
 	var sec jose.JSONWebKey
-	if err := sec.UnmarshalJSON(settings.PrivateJWK); err != nil {
+	if err := sec.UnmarshalJSON([]byte(settings.PrivateJWK)); err != nil {
 		return "", err
 	}
 
