@@ -44,26 +44,28 @@ function ConnectSection({ roles, resource, kind = 'resource' }) {
 
 function NamespacesTable({ resources, destinationId }) {
   return (
-    <div className='overflow-hidden bg-white shadow sm:rounded-md'>
-      <ul role='list' className='divide-y divide-gray-200'>
+    <table className='min-w-full divide-y divide-gray-300'>
+      <tbody className='bg-white'>
         {resources.map(resource => (
-          <li key={resource}>
-            <a
-              href={`/destinations/${destinationId}/${resource}`}
-              className='block hover:bg-gray-50'
-            >
-              <div className='px-4 py-4 sm:px-6'>
-                <div className='flex items-center justify-between'>
-                  <p className='truncate text-sm font-medium text-gray-900'>
-                    {resource}
-                  </p>
+          <tr key={resource} className='border-b border-gray-200'>
+            <td className='whitespace-nowrap'>
+              <a
+                href={`/destinations/${destinationId}/${resource}`}
+                className='block hover:bg-gray-50'
+              >
+                <div className='py-4'>
+                  <div className='flex items-center justify-between'>
+                    <p className='truncate text-sm font-medium text-gray-900'>
+                      {resource}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </a>
-          </li>
+              </a>
+            </td>
+          </tr>
         ))}
-      </ul>
-    </div>
+      </tbody>
+    </table>
   )
 }
 
@@ -130,10 +132,6 @@ export default function DestinationDetail() {
                       </h1>
                     </div>
                     <dl className='mt-6 flex flex-col sm:flex-row sm:flex-wrap'>
-                      <dt className='sr-only'>Cluster Id</dt>
-                      <dd className='flex items-center text-sm font-medium text-gray-500 sm:mr-6'>
-                        {destination?.id}
-                      </dd>
                       <dt className='sr-only'>Number of namespace</dt>
                       <dd className='mt-3 flex items-center text-sm font-medium text-gray-500 sm:mr-6 sm:mt-0'>
                         {destination.resources ? (
@@ -156,11 +154,11 @@ export default function DestinationDetail() {
                         <div
                           className={`h-2 w-2 flex-none rounded-full ${
                             destination.connected
-                              ? 'bg-green-400'
+                              ? 'bg-green-500'
                               : 'bg-gray-600'
                           }`}
                         />
-                        <span className='flex-none px-2 text-gray-400'>
+                        <span className='flex-none px-2 text-gray-500'>
                           {destination.connected ? 'Connected' : 'Disconnected'}
                         </span>
                       </dd>
@@ -189,7 +187,7 @@ export default function DestinationDetail() {
                       </>
                     }
                   >
-                    Remove this cluster
+                    Remove cluster
                   </RemoveButton>
                 )}
               </div>
@@ -201,14 +199,10 @@ export default function DestinationDetail() {
                 <h2 className='text-md border-b border-gray-200 py-2 font-medium text-gray-500'>
                   Namespaces
                 </h2>
-                <div className='space-y-6'>
-                  <div className='mt-6'>
-                    <NamespacesTable
-                      resources={destination?.resources}
-                      destinationId={destinationId}
-                    />
-                  </div>
-                </div>
+                <NamespacesTable
+                  resources={destination?.resources}
+                  destinationId={destinationId}
+                />
               </div>
             )}
             {admin && (

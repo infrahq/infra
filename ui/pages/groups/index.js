@@ -48,11 +48,11 @@ function GroupTable({ groups }) {
             >
               <td className='w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6'>
                 <div className='flex items-center py-1.5'>
-                  <div className='text-2xs sm:max-w-[10rem]'>{group.name}</div>
+                  <div className='text-sm sm:max-w-[10rem]'>{group.name}</div>
                 </div>
                 <dl className='font-normal sm:hidden'>
                   <dt className='sr-only sm:hidden'>Users</dt>
-                  <dd className='mt-1 text-gray-500 sm:hidden'>
+                  <dd className='mt-1 text-gray-700 sm:hidden'>
                     <>
                       {group.totalUsers === undefined ? (
                         '-'
@@ -65,7 +65,7 @@ function GroupTable({ groups }) {
                     </>
                   </dd>
                   <dt className='sr-only sm:hidden'>Created</dt>
-                  <dd className='mt-1 text-gray-500 sm:hidden'>
+                  <dd className='mt-1 text-gray-700 sm:hidden'>
                     {group?.created ? (
                       <>created {dayjs(group.created).fromNow()}</>
                     ) : (
@@ -74,7 +74,7 @@ function GroupTable({ groups }) {
                   </dd>
                 </dl>
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 <div className='flex items-center py-2'>
                   {group.totalUsers === undefined ? (
                     '-'
@@ -86,7 +86,7 @@ function GroupTable({ groups }) {
                   )}
                 </div>
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 <div className='flex items-center py-2'>
                   {group?.created ? <>{dayjs(group.created).fromNow()}</> : '-'}
                 </div>
@@ -111,8 +111,10 @@ export default function Groups() {
 
   return (
     <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-      <Head>Groups - Infra</Head>
-      <div className='pb-6'>
+      <Head>
+        <title>Groups - Infra</title>
+      </Head>
+      <div className='py-6'>
         <PageHeader buttonHref={admin && '/groups/add'} buttonLabel='Group' />
       </div>
       <div className='px-4 sm:px-6 md:px-0'>

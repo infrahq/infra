@@ -5,7 +5,6 @@ import copy from 'copy-to-clipboard'
 import yaml from 'js-yaml'
 import {
   CheckCircleIcon,
-  ChipIcon,
   ClipboardCheckIcon,
   ClipboardCopyIcon,
   FolderDownloadIcon,
@@ -159,10 +158,6 @@ export default function DestinationsAdd() {
         <title>Add Infrastructure - Infra</title>
       </Head>
       <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-        <div className='flex flex-row items-center space-x-2'>
-          <ChipIcon className='h-6 w-6' />
-          <h1 className='text-base'>Connect Infrastructure</h1>
-        </div>
         <nav aria-label='Progress' className='py-10'>
           <ol
             role='list'
@@ -222,9 +217,9 @@ export default function DestinationsAdd() {
           {currentStep >= 0 && (
             <form onSubmit={onSubmit} className='flex flex-col'>
               <div className='flex flex-col space-y-1'>
-                <h3 className='text-sm font-medium leading-6 text-gray-900'>
+                <label className='text-2xs font-medium text-gray-700'>
                   Name the Cluster
-                </h3>
+                </label>
                 <input
                   required
                   type='text'
@@ -235,7 +230,7 @@ export default function DestinationsAdd() {
                     setError('')
                     setName(e.target.value)
                   }}
-                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-30 sm:text-sm ${
                     error ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -243,7 +238,7 @@ export default function DestinationsAdd() {
               </div>
               <div className='mt-6 flex flex-row items-center justify-end'>
                 <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
                   disabled={!name || currentStep !== 0}
                   type='submit'
                 >
@@ -258,7 +253,7 @@ export default function DestinationsAdd() {
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Helm Values File
                 </h3>
-                <p className='mt-1 text-xs text-gray-500'>
+                <p className='mt-1 text-sm text-gray-500'>
                   Copy or download this starter Helm values file. For more
                   information and configuration values, see the{' '}
                   <a
@@ -322,7 +317,7 @@ export default function DestinationsAdd() {
               </div>
               <div className='mt-6 flex flex-row items-center justify-end'>
                 <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
                   type='button'
                   disabled={currentStep !== 1}
                   onClick={() => {
@@ -349,7 +344,7 @@ export default function DestinationsAdd() {
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Kubernetes Command
                 </h3>
-                <p className='mt-1 text-xs text-gray-400'>
+                <p className='mt-1 text-sm text-gray-500'>
                   Run this on your terminal
                 </p>
               </div>
@@ -382,7 +377,7 @@ export default function DestinationsAdd() {
               </div>
               <div className='mt-6 flex flex-row items-center justify-end'>
                 <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
                   type='button'
                   disabled={currentStep !== 2}
                   onClick={() => {
@@ -406,7 +401,7 @@ export default function DestinationsAdd() {
           {currentStep >= 3 && (
             <section>
               <div className='pb-2'>
-                <h3 className='text-sm font-medium leading-6 text-gray-900'>
+                <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Connect
                 </h3>
                 <p className='mt-1 text-sm text-gray-500'>
@@ -417,7 +412,7 @@ export default function DestinationsAdd() {
               </div>
               {connected ? (
                 <footer className='my-4 flex flex-col space-y-3'>
-                  <h3 className='text-xs text-gray-500'>✓ Connected</h3>
+                  <h3 className='text-sm text-black'>✓ Connected</h3>
                   <div className='flex items-center justify-end'>
                     <Link href='/destinations'>
                       <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
@@ -428,7 +423,7 @@ export default function DestinationsAdd() {
                 </footer>
               ) : (
                 <footer className='my-7 flex items-center'>
-                  <h3 className='mr-3 text-xs text-gray-500'>
+                  <h3 className='mr-3 text-sm text-black'>
                     Waiting for connection
                   </h3>
                   {submitted && (

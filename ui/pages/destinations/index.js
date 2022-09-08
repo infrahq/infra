@@ -53,7 +53,7 @@ function DestinationTable({ destinations }) {
             >
               <td className='w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6'>
                 <div className='flex items-center py-1.5'>
-                  <div className='text-2xs sm:max-w-[10rem]'>
+                  <div className='text-sm sm:max-w-[10rem]'>
                     {destination.name}
                   </div>
                 </div>
@@ -80,30 +80,30 @@ function DestinationTable({ destinations }) {
                     <div className='flex items-center py-2'>
                       <div
                         className={`h-2 w-2 flex-none rounded-full ${
-                          destination.connected ? 'bg-green-400' : 'bg-gray-600'
+                          destination.connected ? 'bg-green-500' : 'bg-gray-600'
                         }`}
                       />
-                      <span className='flex-none px-2 text-gray-400'>
+                      <span className='flex-none px-2 text-gray-700'>
                         {destination.connected ? 'Connected' : 'Disconnected'}
                       </span>
                     </div>
                   </dd>
                 </dl>
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:max-w-[10rem] lg:table-cell'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:max-w-[10rem] lg:table-cell'>
                 {destination.resources ? destination.resources.length : '-'}
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:max-w-[10rem] lg:table-cell'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:max-w-[10rem] lg:table-cell'>
                 {destination?.version ? <>{destination.version}</> : '-'}
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 <div className='flex items-center py-2'>
                   <div
                     className={`h-2 w-2 flex-none rounded-full ${
-                      destination.connected ? 'bg-green-400' : 'bg-gray-600'
+                      destination.connected ? 'bg-green-500' : 'bg-gray-600'
                     }`}
                   />
-                  <span className='flex-none px-2 text-gray-400'>
+                  <span className='flex-none px-2 text-gray-700'>
                     {destination.connected ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export default function Destinations() {
       <Head>
         <title>Clusters - Infra</title>
       </Head>
-      <div className='pb-6'>
+      <div className='py-6'>
         <PageHeader
           buttonHref={admin && '/destinations/add'}
           buttonLabel='Cluster'

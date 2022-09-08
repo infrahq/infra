@@ -42,11 +42,6 @@ export default function ResourceDetail() {
     setRoles(destination?.roles?.filter(r => r != 'cluster-admin'))
   }, [destination, resource])
 
-  console.log(inherited)
-  console.log(parent(namespaceResource))
-  console.log(parentDestinationId)
-  console.log(roles)
-
   const loading = [!adminLoading, users, groups, grants, destination].some(
     x => !x
   )

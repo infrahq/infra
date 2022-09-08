@@ -27,7 +27,7 @@ function UserTable({ users }) {
             </th>
             <th
               scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell'
+              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell'
             >
               Providers
             </th>
@@ -54,10 +54,10 @@ function UserTable({ users }) {
             >
               <td className='w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6'>
                 <div className='flex items-center py-1.5'>
-                  <div className='text-2xs sm:max-w-[10rem]'>{user.name}</div>
+                  <div className='text-sm sm:max-w-[10rem]'>{user.name}</div>
                 </div>
                 <dl className='font-normal lg:hidden'>
-                  <dt className='sr-only'>Providers</dt>
+                  <dt className='sr-only sm:hidden'>Providers</dt>
                   <dd className='mt-1 text-gray-700'>
                     {user.providerNames?.map((provider, index) => (
                       <span key={provider}>
@@ -67,7 +67,7 @@ function UserTable({ users }) {
                     ))}
                   </dd>
                   <dt className='sr-only sm:hidden'>Last Seen</dt>
-                  <dd className='mt-1 truncate text-gray-500 sm:hidden'>
+                  <dd className='mt-1 truncate text-gray-700 sm:hidden'>
                     {user?.lastSeenAt ? (
                       <>{dayjs(user.lastSeenAt).fromNow()}</>
                     ) : (
@@ -75,7 +75,7 @@ function UserTable({ users }) {
                     )}
                   </dd>
                   <dt className='sr-only sm:hidden'>Created</dt>
-                  <dd className='mt-1 text-gray-500 sm:hidden'>
+                  <dd className='mt-1 text-gray-700 sm:hidden'>
                     {user?.created ? (
                       <>created {dayjs(user.created).fromNow()}</>
                     ) : (
@@ -84,7 +84,7 @@ function UserTable({ users }) {
                   </dd>
                 </dl>
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:max-w-[10rem] lg:table-cell'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:max-w-[10rem] lg:table-cell'>
                 {user.providerNames?.map((provider, index) => (
                   <span key={provider}>
                     {provider}
@@ -92,7 +92,7 @@ function UserTable({ users }) {
                   </span>
                 ))}
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 <div className='flex items-center py-2'>
                   {user?.lastSeenAt ? (
                     <>{dayjs(user.lastSeenAt).fromNow()}</>
@@ -101,7 +101,7 @@ function UserTable({ users }) {
                   )}
                 </div>
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 <div className='flex items-center py-2'>
                   {user?.created ? <>{dayjs(user.created).fromNow()}</> : '-'}
                 </div>
@@ -131,7 +131,7 @@ export default function Users() {
       <Head>
         <title>Users - Infra</title>
       </Head>
-      <div className='pb-6'>
+      <div className='py-6'>
         <PageHeader buttonHref={admin && '/users/add'} buttonLabel='User' />
       </div>
       <div className='px-4 sm:px-6 md:px-0'>

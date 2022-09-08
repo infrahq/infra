@@ -100,10 +100,6 @@ export default function UserDetail() {
                       </h1>
                     </div>
                     <dl className='mt-6 flex flex-col sm:flex-row sm:flex-wrap'>
-                      <dt className='sr-only'>Group Id</dt>
-                      <dd className='flex items-center text-sm font-medium text-gray-500 sm:mr-6'>
-                        {user?.id}
-                      </dd>
                       <dt className='sr-only'>Providers</dt>
                       <dd className='mt-3 flex items-center text-sm font-medium text-gray-500 sm:mr-6 sm:mt-0'>
                         <ViewGridIcon
@@ -134,7 +130,7 @@ export default function UserDetail() {
                       </>
                     }
                   >
-                    Remove this user
+                    Remove user
                   </RemoveButton>
                 )}
               </div>

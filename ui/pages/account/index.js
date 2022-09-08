@@ -66,9 +66,12 @@ function PasswordReset({ onReset = () => {} }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className='flex max-w-md flex-col'>
+    <form onSubmit={onSubmit} className='flex flex-col'>
       <div className='relative my-2 w-full'>
-        <label htmlFor='password' className='text-sm font-medium'>
+        <label
+          htmlFor='password'
+          className='text-2xs font-medium text-gray-700'
+        >
           New Password
         </label>
         <input
@@ -90,7 +93,10 @@ function PasswordReset({ onReset = () => {} }) {
         )}
       </div>
       <div className='relative my-2 w-full'>
-        <label htmlFor='confirm-password' className='text-sm font-medium'>
+        <label
+          htmlFor='confirm-password'
+          className='text-2xs font-medium text-gray-700'
+        >
           Confirm New Password
         </label>
         <input

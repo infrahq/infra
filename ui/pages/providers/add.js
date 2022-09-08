@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useSWRConfig } from 'swr'
-import { InformationCircleIcon, ViewGridIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
@@ -163,14 +161,9 @@ export default function ProvidersAddDetails() {
         <title>Add Identity Provider - {kind}</title>
       </Head>
       <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-        <div className='flex flex-row items-center space-x-2 pb-5'>
-          <ViewGridIcon className='h-6 w-6' />
-          <h1 className='text-base'>Connect an Identity Provider</h1>
-        </div>
-
         <form
           onSubmit={onSubmit}
-          className='space-y-8 divide-y divide-gray-200'
+          className='mt-6 space-y-8 divide-y divide-gray-200'
         >
           <div className='space-y-8'>
             <div className='max-w-4xl space-y-1'>
@@ -235,9 +228,9 @@ export default function ProvidersAddDetails() {
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Additional Information
                 </h3>
-                <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-400'>
+                <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
                   <a
-                    className='underline hover:text-gray-500'
+                    className='underline hover:text-gray-600'
                     target='_blank'
                     href={docLink()}
                     rel='noreferrer'
@@ -318,15 +311,15 @@ export default function ProvidersAddDetails() {
 
             {kind === 'google' && (
               <div className='max-w-4xl space-y-1 pt-8'>
-                <div className='pb-6'>
+                <div className='py-6'>
                   <h3 className='text-base font-medium leading-6 text-gray-900'>
                     Optional Information for Google Groups
                   </h3>
-                  <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-400'>
+                  <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
                     <a
-                      className='text-gray-400 underline hover:text-gray-500'
+                      className='underline hover:text-gray-600'
                       target='_blank'
-                      href='https://infrahq.com/docs/identity-providers/google#groups' /* TODO: make sure this link works*/
+                      href='https://infrahq.com/docs/identity-providers/google#groups'
                       rel='noreferrer'
                     >
                       learn more
@@ -387,11 +380,6 @@ export default function ProvidersAddDetails() {
 
           <div className='pt-5 pb-3'>
             <div className='flex items-center justify-end space-x-3'>
-              <Link href='/providers'>
-                <a className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-2xs font-medium text-gray-700 shadow-sm hover:bg-gray-50'>
-                  Cancel
-                </a>
-              </Link>
               <button
                 type='submit'
                 disabled={!name || !url || !clientID || !clientSecret}

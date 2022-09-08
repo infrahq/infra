@@ -10,12 +10,6 @@ import Dashboard from '../../components/layouts/dashboard'
 function AddUser({ email, onChange, onKeyDown, onSubmit, error }) {
   return (
     <form onSubmit={onSubmit} className='flex flex-col'>
-      <div className='flex flex-row items-center space-x-2'>
-        <UserIcon className='h-5 w-5' />
-        <div>
-          <h1 className='text-base'>Add User</h1>
-        </div>
-      </div>
       <div className='mt-6 flex flex-col space-y-1'>
         <div className='mt-4'>
           <label className='text-2xs font-medium text-gray-700'>
@@ -51,36 +45,30 @@ function AddUser({ email, onChange, onKeyDown, onSubmit, error }) {
 function UserOneTimePassword({ isEmailConfigured, password, onSubmit }) {
   return (
     <div className='flex flex-col'>
-      <div className='flex flex-row items-center space-x-2'>
-        <UserIcon className='h-5 w-5' />
-        <div>
-          <h1 className='text-base'>Add User</h1>
-        </div>
-      </div>
       {isEmailConfigured ? (
-        <h2 className='mt-5 text-2xs'>
+        <h2 className='mt-5 text-sm'>
           User added. The user has been emailed a link inviting them to join.
         </h2>
       ) : (
         <div>
-          <h2 className='mt-5 text-2xs'>
+          <h2 className='mt-5 text-sm'>
             User added. Send the user this temporary password for their initial
             login. This password will not be shown again.
           </h2>
-          <div className='mt-6 flex flex-col space-y-1'>
-            <label className='text-3xs uppercase text-gray-400'>
+          <div className='mt-6 flex flex-col space-y-3'>
+            <label className='text-2xs font-medium text-gray-700'>
               Temporary Password
             </label>
             <input
               readOnly
               value={password}
-              className='my-0 w-full bg-transparent py-2 font-mono text-3xs focus:outline-none'
+              className='round-md my-0 w-full bg-gray-100 p-2 font-mono text-xs focus:outline-none'
             />
           </div>
         </div>
       )}
 
-      <div className='mt-6 flex flex-row items-center justify-start space-x-3'>
+      <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
         <button
           onClick={onSubmit}
           className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-2xs font-medium text-gray-700 shadow-sm hover:bg-gray-50'

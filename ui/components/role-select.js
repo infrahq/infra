@@ -51,19 +51,19 @@ export default function RoleSelect({
       }}
     >
       <div className='relative'>
-        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-200 bg-white py-2 pl-3 pr-8 text-left text-2xs focus:outline-none'>
+        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs hover:cursor-pointer hover:bg-gray-50 focus:outline-none'>
           <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
             <ChevronDownIcon
-              className='h-4 w-4 stroke-1 text-gray-400'
+              className='h-4 w-4 stroke-1 text-gray-700'
               aria-hidden='true'
             />
           </span>
-          <span className='block truncate text-gray-500'>{role}</span>
+          <span className='block truncate text-gray-700'>{role}</span>
         </Listbox.Button>
         <Listbox.Options
           className={`absolute z-10 w-48 ${
             direction === 'right' ? '' : 'right-0'
-          } mt-2 overflow-auto rounded-md border border-gray-200 bg-white text-2xs text-black ring-1 ring-black ring-opacity-5 focus:outline-none`}
+          } mt-2 overflow-auto rounded-md border border-gray-300 bg-white text-xs text-black ring-1 ring-black ring-opacity-5 focus:outline-none`}
         >
           <div className={`max-h-64 overflow-auto ${remove ? 'mb-9' : ''}`}>
             {roles?.map(r => (
@@ -88,7 +88,7 @@ export default function RoleSelect({
                           />
                         )}
                       </div>
-                      <div className='text-3xs text-gray-400'>
+                      <div className='text-3xs text-gray-600'>
                         {descriptions[r]}
                       </div>
                     </div>
@@ -102,7 +102,7 @@ export default function RoleSelect({
               className={({ active }) =>
                 `${
                   active ? 'bg-gray-300' : ''
-                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-200 py-2 px-3 hover:bg-gray-300`
+                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-300 py-2 px-3 hover:bg-gray-300`
               }
               value={OPTION_REMOVE}
             >

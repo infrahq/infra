@@ -31,34 +31,29 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
   return (
     <div className='-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8'>
       <div className='inline-block min-w-full py-2 px-4 align-middle md:px-6 lg:px-8'>
-        <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
+        <h2 className='text-md border-b border-gray-200 py-2 font-medium text-gray-500'>
+          Infra Admin
+        </h2>
+        <div>
           <table className='min-w-full divide-y divide-gray-300'>
-            <thead className='bg-gray-50'>
-              <tr>
-                <th
-                  scope='col'
-                  className='py-3.5 pl-4 pr-3 text-left text-xs font-semibold text-gray-900 sm:pl-6'
-                >
-                  Infra Admin
-                </th>
-              </tr>
-            </thead>
             <tbody className='bg-white'>
               {grantsList?.map(grant => (
-                <tr key={grant.id}>
-                  <td className='whitespace-nowrap py-4 pl-4 pr-3 text-xs font-medium sm:pl-6'>
-                    <div>{grant.name}</div>
-                    <div>
-                      <button
-                        onClick={() => {
-                          setDeleteId(grant.id)
-                          setOpen(true)
-                        }}
-                        className='cursor-pointer text-4xs uppercase text-gray-800 hover:text-gray-400'
-                      >
-                        Revoke
-                      </button>
+                <tr key={grant.id} className='border-b border-gray-200'>
+                  <td className='whitespace-nowrap py-4'>
+                    <div className='truncate text-sm font-medium text-gray-900'>
+                      {grant.name}
                     </div>
+                  </td>
+                  <td className='py-4 text-right'>
+                    <button
+                      onClick={() => {
+                        setDeleteId(grant.id)
+                        setOpen(true)
+                      }}
+                      className='cursor-pointer pr-4 text-xs text-blue-600 hover:text-blue-900'
+                    >
+                      Revoke
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -160,14 +160,10 @@ export default function GroupDetail() {
                       </h1>
                     </div>
                     <dl className='mt-6 flex flex-col sm:flex-row sm:flex-wrap'>
-                      <dt className='sr-only'>Group Id</dt>
-                      <dd className='flex items-center text-sm font-medium text-gray-500 sm:mr-6'>
-                        {group?.id}
-                      </dd>
                       <dt className='sr-only'>Number of users</dt>
                       <dd className='mt-3 flex items-center text-sm font-medium text-gray-500 sm:mr-6 sm:mt-0'>
                         <UserIcon
-                          className='mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400'
+                          className='mr-1.5 h-[18px] w-[18px] flex-shrink text-gray-500'
                           aria-hidden='true'
                         />
                         {group?.totalUsers}{' '}
@@ -196,7 +192,7 @@ export default function GroupDetail() {
                       </>
                     }
                   >
-                    Remove this group
+                    Remove group
                   </RemoveButton>
                 )}
               </div>

@@ -133,12 +133,6 @@ export default function GroupsAdd() {
       </Head>
       <div className='space-y-4 px-4 py-5 md:px-6 xl:px-0'>
         <div className='flex flex-col'>
-          <div className='flex flex-row items-center space-x-2'>
-            <UserGroupIcon className='h-6 w-6' />
-            <div>
-              <h1 className='text-base'>Create Group</h1>
-            </div>
-          </div>
           <div className='mt-6 flex flex-col space-y-1'>
             <div className='mt-4'>
               <label className='text-2xs font-medium text-gray-700'>

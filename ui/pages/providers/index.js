@@ -56,7 +56,7 @@ function ProviderTable({ providers, mutate }) {
                       src={`/providers/${provider.kind}.svg`}
                     />
                   </div>
-                  <div className='ml-3 truncate py-1 text-2xs sm:max-w-[10rem]'>
+                  <div className='ml-3 truncate py-1 text-sm sm:max-w-[10rem]'>
                     {provider.name}
                   </div>
                 </div>
@@ -66,15 +66,15 @@ function ProviderTable({ providers, mutate }) {
                     {provider.url}
                   </dd>
                   <dt className='sr-only sm:hidden'>Client Id</dt>
-                  <dd className='mt-1 truncate text-gray-500 sm:hidden'>
+                  <dd className='mt-1 truncate text-gray-700 sm:hidden'>
                     {provider.clientID}
                   </dd>
                 </dl>
               </td>
-              <td className='hidden px-3 py-4 text-sm text-gray-500 sm:max-w-[10rem] lg:table-cell'>
+              <td className='hidden px-3 py-4 text-sm text-gray-700 sm:max-w-[10rem] lg:table-cell'>
                 {provider.url}
               </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-500 sm:table-cell sm:max-w-[10rem]'>
+              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
                 {provider.clientID}
               </td>
               <td className='py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6'>
@@ -134,7 +134,7 @@ export default function Providers() {
       <Head>
         <title>Identity Providers - Infra</title>
       </Head>
-      <div className='pb-6'>
+      <div className='py-6'>
         <PageHeader
           buttonHref={admin && '/providers/add'}
           buttonLabel='Provider'

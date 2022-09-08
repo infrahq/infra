@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
+
 import AuthRequired from '../auth-required'
 
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
@@ -141,41 +142,36 @@ function Layout({ children }) {
     {
       name: 'Clusters',
       href: '/destinations',
-      testIcon: ChipIcon,
+      heroIcon: ChipIcon,
       icon: '/destinations.svg',
-      heroIcon: <ChipIcon />,
     },
     {
       name: 'Providers',
       href: '/providers',
       icon: '/providers.svg',
       admin: true,
-      testIcon: ViewGridIcon,
-      heroIcon: <ViewGridIcon />,
+      heroIcon: ViewGridIcon,
     },
     {
       name: 'Groups',
       href: '/groups',
       icon: '/groups.svg',
       admin: true,
-      testIcon: UserGroupIcon,
-      heroIcon: <UserGroupIcon />,
+      heroIcon: UserGroupIcon,
     },
     {
       name: 'Users',
       href: '/users',
       icon: '/users.svg',
       admin: true,
-      testIcon: UserIcon,
-      heroIcon: <UserIcon />,
+      heroIcon: UserIcon,
     },
     {
       name: 'Settings',
       href: '/settings',
       icon: '/providers.svg',
       admin: true,
-      testIcon: CogIcon,
-      heroIcon: <CogIcon />,
+      heroIcon: CogIcon,
     },
   ]
 
@@ -220,10 +216,10 @@ function Layout({ children }) {
                           }
                         group flex items-center rounded-md py-2 text-sm font-medium`}
                 >
-                  <item.testIcon
+                  <item.heroIcon
                     className={`
 
-                            mr-3 h-5 w-5 flex-shrink-0
+                            mr-3 h-5 w-5 flex-shrink
                           `}
                     aria-hidden='true'
                   />
@@ -279,7 +275,7 @@ function Layout({ children }) {
                     return (
                       <Link key={item} href={`/${href}`}>
                         <a
-                          className={`flex items-center text-sm capitalize hover:text-gray-500 ${
+                          className={`flex items-center text-sm hover:text-gray-500 ${
                             current ? 'text-gray-900' : 'text-gray-400'
                           }`}
                         >
