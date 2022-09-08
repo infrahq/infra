@@ -47,8 +47,9 @@ func TestMigrations(t *testing.T) {
 			t.Fatalf("there are more test cases than migrations")
 		}
 		mgs := allMigrations[:index+1]
+		currentMigration := mgs[len(mgs)-1]
 
-		if mID := mgs[len(mgs)-1].ID; mID != tc.label.Name {
+		if mID := currentMigration.ID; mID != tc.label.Name {
 			t.Error("the list of test cases is not in the same order as the list of migrations")
 			t.Fatalf("test case %v was run with migration ID %v", tc.label.Name, mID)
 		}
@@ -79,6 +80,10 @@ func TestMigrations(t *testing.T) {
 		err := m.Migrate()
 		assert.NilError(t, err)
 
+		t.Run("run again to check idempotency", func(t *testing.T) {
+			err := currentMigration.Migrate(db)
+			assert.NilError(t, err)
+		})
 		tc.expected(t, db)
 	}
 

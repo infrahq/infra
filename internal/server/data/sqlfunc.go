@@ -8,6 +8,10 @@ func sqlFunctionsMigration() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-22T14:58:00Z",
 		Migrate: func(tx migrator.DB) error {
+			if migrator.HasFunction(tx, "uidIntToStr") {
+				return nil
+			}
+
 			sql := `
 			CREATE FUNCTION uidIntToStr(id BIGINT) RETURNS text
 			LANGUAGE PLPGSQL
@@ -81,7 +85,6 @@ func sqlFunctionsMigration() *migrator.Migration {
 			`
 			_, err := tx.Exec(sql)
 			return err
-
 		},
 	}
 }

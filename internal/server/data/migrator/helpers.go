@@ -1,6 +1,10 @@
 package migrator
 
-import "github.com/infrahq/infra/internal/logging"
+import (
+	"strings"
+
+	"github.com/infrahq/infra/internal/logging"
+)
 
 // HasTable returns true if the database has a table with name. Returns
 // false if the table does not exist, or if there was a failure querying the
@@ -77,6 +81,25 @@ func HasConstraint(tx DB, table string, constraint string) bool {
 
 	if err := tx.QueryRow(stmt, table, constraint).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if constraint exists")
+		return false
+	}
+	return count != 0
+}
+
+// HasFunction returns true if the database already has the function. Returns
+// false if the database table does not have the function, or if there was a
+// failure querying the database.
+func HasFunction(tx DB, funcName string) bool {
+	stmt := `
+		SELECT count(*)
+		FROM pg_proc
+		INNER JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid
+		WHERE proname = ? AND nspname = CURRENT_SCHEMA()`
+
+	var count int
+	// function names are stored in lowercase, so convert to lowercase
+	if err := tx.QueryRow(stmt, strings.ToLower(funcName)).Scan(&count); err != nil {
+		logging.L.Warn().Err(err).Msg("failed to check if function exists")
 		return false
 	}
 	return count != 0
