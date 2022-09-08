@@ -32,7 +32,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	rCtx := getRequestContext(c)
 
 	if rCtx.Authenticated.User != nil {
-		err := a.UpdateIdentityInfoFromProvider(c)
+		err := a.UpdateIdentityInfoFromProvider(rCtx)
 		if err != nil {
 			// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 			return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
@@ -85,7 +85,6 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	accessKey := &models.AccessKey{
 		IssuedFor:         r.UserID,
 		Name:              r.Name,
-		ProviderID:        access.InfraProvider(c).ID,
 		ExpiresAt:         time.Now().UTC().Add(time.Duration(r.TTL)),
 		Extension:         time.Duration(r.ExtensionDeadline),
 		ExtensionDeadline: time.Now().UTC().Add(time.Duration(r.ExtensionDeadline)),
@@ -238,18 +237,14 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 }
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	rCtx := getRequestContext(c)
-
-	if rCtx.Authenticated.AccessKey.ProviderID == access.InfraProvider(c).ID {
-		// no external verification needed
-		logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
-		return nil
-	}
-
+func (a *API) UpdateIdentityInfoFromProvider(rCtx access.RequestContext) error {
 	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx)
 	if err != nil {
 		return err
+	}
+
+	if provider.Kind == models.ProviderKindInfra {
+		return nil
 	}
 
 	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)

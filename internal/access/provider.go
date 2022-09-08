@@ -63,9 +63,3 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 
 	return data.DeleteProviders(db, data.ByID(id))
 }
-
-func InfraProvider(c *gin.Context) *models.Provider {
-	db := getDB(c)
-
-	return data.InfraProvider(db)
-}
