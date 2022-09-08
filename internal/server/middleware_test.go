@@ -31,7 +31,7 @@ func setupDB(t *testing.T) *data.DB {
 	driver := database.PostgresDriver(t, "_server")
 
 	tpatch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver.Dialector, nil)
+	db, err := data.NewDB(driver.Dialector, data.NewDBOptions{})
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, db.Close())

@@ -20,7 +20,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
-	db, err := NewDB(driver, nil)
+	db, err := NewDB(driver, NewDBOptions{})
 	assert.NilError(t, err)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))

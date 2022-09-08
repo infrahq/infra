@@ -23,10 +23,14 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type NewDBOptions struct {
+	LoadDBKey func(db GormTxn) error
+}
+
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, loadDBKey func(db GormTxn) error) (*DB, error) {
+func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
 	db, err := newRawDB(connection)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
@@ -36,12 +40,12 @@ func NewDB(connection gorm.Dialector, loadDBKey func(db GormTxn) error) (*DB, er
 	opts := migrator.Options{
 		InitSchema: initializeSchema,
 		LoadKey: func(tx migrator.DB) error {
-			if loadDBKey == nil {
+			if dbOpts.LoadDBKey == nil {
 				return nil
 			}
 			// TODO: use the passed in tx instead of dataDB once the queries
 			// used by loadDBKey are ported to sql
-			return loadDBKey(dataDB)
+			return dbOpts.LoadDBKey(dataDB)
 		},
 	}
 	m := migrator.New(dataDB, opts, migrations())
@@ -211,16 +215,10 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, fmt.Errorf("getting db driver: %w", err)
 	}
 
-	if connection.Name() == "sqlite" {
-		// avoid issues with concurrent writes by telling gorm
-		// not to open multiple connections in the connection pool
-		sqlDB.SetMaxOpenConns(1)
-	} else {
-		// TODO: make these configurable from server config
-		sqlDB.SetMaxIdleConns(900)
-		sqlDB.SetMaxOpenConns(1000)
-		sqlDB.SetConnMaxIdleTime(5 * time.Minute)
-	}
+	// TODO: make these configurable from server config
+	sqlDB.SetMaxIdleConns(900)
+	sqlDB.SetMaxOpenConns(1000)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	return db, nil
 }

@@ -151,7 +151,9 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
 
-	db, err := data.NewDB(driver, server.loadDBKey)
+	db, err := data.NewDB(driver, data.NewDBOptions{
+		LoadDBKey: server.loadDBKey,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
