@@ -106,6 +106,9 @@ func SendSMTP(msg Message) error {
 		return err
 	}
 
+	if err := writeln(w, `X-SMTPAPI: {"filters":{"bypass_list_management":{"settings":{"enable":1}}}}`); err != nil {
+		return fmt.Errorf("mail header: %w", err)
+	}
 	if len(msg.ToName) > 0 {
 		if err := writeln(w, "To: %q <%s>", msg.ToName, msg.ToAddress); err != nil {
 			return fmt.Errorf("write to: %w", err)
