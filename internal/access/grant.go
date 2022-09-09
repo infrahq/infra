@@ -21,6 +21,7 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 
 func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *data.Pagination) ([]models.Grant, error) {
 	rCtx := GetRequestContext(c)
+
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	_, err := RequireInfraRole(c, roles...)
 	err = HandleAuthErr(err, "grants", "list", roles...)
@@ -67,13 +68,13 @@ func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	var db data.GormTxn
-	var err error
+	rCtx := GetRequestContext(c)
 
+	var err error
 	if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
-		db, err = RequireInfraRole(c, models.InfraSupportAdminRole)
+		_, err = RequireInfraRole(c, models.InfraSupportAdminRole)
 	} else {
-		db, err = RequireInfraRole(c, models.InfraAdminRole)
+		_, err = RequireInfraRole(c, models.InfraAdminRole)
 	}
 
 	if err != nil {
@@ -81,10 +82,9 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	}
 
 	// TODO: CreatedBy should be set automatically
-	creator := AuthenticatedIdentity(c)
-	grant.CreatedBy = creator.ID
+	grant.CreatedBy = rCtx.Authenticated.User.ID
 
-	return data.CreateGrant(db, grant)
+	return data.CreateGrant(rCtx.DBTxn, grant)
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {

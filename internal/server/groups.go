@@ -36,7 +36,7 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 		Name: r.Name,
 	}
 
-	authIdent := access.AuthenticatedIdentity(c)
+	authIdent := getRequestContext(c).Authenticated.User
 	if authIdent != nil {
 		group.CreatedBy = authIdent.ID
 	}

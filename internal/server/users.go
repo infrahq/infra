@@ -31,7 +31,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 
 func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 	if r.ID.IsSelf {
-		iden := access.AuthenticatedIdentity(c)
+		iden := access.GetRequestContext(c).Authenticated.User
 		if iden == nil {
 			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
 		}
