@@ -37,7 +37,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.3.0
 	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.100.0
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
 	github.com/iancoleman/strcase v0.2.0
 	github.com/infrahq/secrets v0.0.0-20220419190655-ce9f012a8941
