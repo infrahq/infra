@@ -8,6 +8,7 @@ import (
 	"github.com/infrahq/secrets"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -30,7 +31,12 @@ func (e *encryptionKeysTable) ScanFields() []any {
 	return []any{&e.Algorithm, &e.CreatedAt, &e.DeletedAt, &e.Encrypted, &e.ID, &e.KeyID, &e.Name, &e.RootKeyID, &e.UpdatedAt}
 }
 
-func CreateEncryptionKey(tx WriteTxn, key *models.EncryptionKey) error {
+// StdlibTxn is a transaction that uses only the methods from the database/sql
+// package. It excludes the metadata that exists on the ReadTxn and WriteTxn.
+// StdlibTxn is for tables that are not scoped to an org.
+type StdlibTxn migrator.DB
+
+func CreateEncryptionKey(tx StdlibTxn, key *models.EncryptionKey) error {
 	switch {
 	case key.Name == "":
 		return fmt.Errorf("a name is required for EncryptionKey")
@@ -44,10 +50,20 @@ func CreateEncryptionKey(tx WriteTxn, key *models.EncryptionKey) error {
 		key.KeyID = mathrand.Int31() // nolint:gosec
 	}
 
-	return insert(tx, (*encryptionKeysTable)(key))
+	item := (*encryptionKeysTable)(key)
+	if err := item.OnInsert(); err != nil {
+		return err
+	}
+	query := querybuilder.New("INSERT INTO encryption_keys (")
+	query.B(columnsForInsert(item))
+	query.B(") VALUES (")
+	query.B(placeholderForColumns(item), item.Values()...)
+	query.B(");")
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
-func GetEncryptionKeyByName(tx ReadTxn, name string) (*models.EncryptionKey, error) {
+func GetEncryptionKeyByName(tx StdlibTxn, name string) (*models.EncryptionKey, error) {
 	table := &encryptionKeysTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
@@ -69,13 +85,12 @@ type EncryptionKeyProvider interface {
 
 var dbKeyName = "dbkey"
 
-func loadDBKey(db GormTxn, provider EncryptionKeyProvider, rootKeyId string) error {
-	keyRec, err := GetEncryptionKeyByName(db, dbKeyName)
+func loadDBKey(tx StdlibTxn, provider EncryptionKeyProvider, rootKeyId string) error {
+	keyRec, err := GetEncryptionKeyByName(tx, dbKeyName)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
-			return createDBKey(db, provider, rootKeyId)
+			return createDBKey(tx, provider, rootKeyId)
 		}
-
 		return err
 	}
 
@@ -85,11 +100,10 @@ func loadDBKey(db GormTxn, provider EncryptionKeyProvider, rootKeyId string) err
 	}
 
 	models.SymmetricKey = sKey
-
 	return nil
 }
 
-func createDBKey(db GormTxn, provider secrets.SymmetricKeyProvider, rootKeyId string) error {
+func createDBKey(tx StdlibTxn, provider EncryptionKeyProvider, rootKeyId string) error {
 	sKey, err := provider.GenerateDataKey(rootKeyId)
 	if err != nil {
 		return err
@@ -101,11 +115,10 @@ func createDBKey(db GormTxn, provider secrets.SymmetricKeyProvider, rootKeyId st
 		Algorithm: sKey.Algorithm,
 		RootKeyID: sKey.RootKeyID,
 	}
-	if err = CreateEncryptionKey(db, key); err != nil {
+	if err = CreateEncryptionKey(tx, key); err != nil {
 		return err
 	}
 
 	models.SymmetricKey = sKey
-
 	return nil
 }
