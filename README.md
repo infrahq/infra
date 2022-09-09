@@ -39,7 +39,7 @@ Infra manages access to infrastructure such as Kubernetes, with support for [mor
 
 ## Documentation
 
-- [Deploy Infra](https://infrahq.com/docs/getting-started/install)
+- [Deploy Infra](https://infrahq.com/docs/getting-started/deploy)
 - [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)
