@@ -7,7 +7,8 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.server.config "addr" "tls" "providers" "grants" "users" "identities" "secrets" "keys" }}
+{{- range $key, $val := omit .Values.server.config "addr" "ui" "providers" "grants" "users" "identities" "secrets" "keys" }}
+{{- if $val }}
 {{- if kindIs "invalid" $val }}
     # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
@@ -20,6 +21,7 @@ data:
     {{ $key }}: {{ tpl $val $ }}
 {{- else }}
     {{ $key }}: {{ $val }}
+{{- end }}
 {{- end }}
 {{- end }}
 

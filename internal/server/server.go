@@ -124,6 +124,10 @@ func newServer(options Options) *Server {
 
 // New creates a Server, and initializes it. The returned Server is ready to run.
 func New(options Options) (*Server, error) {
+	if options.EnableSignup && options.BaseDomain == "" {
+		return nil, errors.New("cannot enable signup without setting base domain")
+	}
+
 	server := newServer(options)
 
 	if err := importSecrets(options.Secrets, server.secrets); err != nil {

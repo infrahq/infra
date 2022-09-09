@@ -42,10 +42,16 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 		return "", err
 	}
 
+	_, err = data.CreateProviderUser(db, data.InfraProvider(db), &user)
+	if err != nil {
+		return "", fmt.Errorf("creating provider user: %w", err)
+	}
+
 	return tmpPassword, nil
 }
 
 func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string) error {
+	rCtx := GetRequestContext(c)
 	_, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
 		return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
@@ -56,7 +62,14 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return err
 	}
 
-	return updateCredential(c, user, newPassword, isSelf)
+	if err := updateCredential(c, user, newPassword, isSelf); err != nil {
+		return err
+	}
+
+	// if the request is from an admin, the infra user may not exist yet, so create the
+	// provider_user if it's missing.
+	_, _ = data.CreateProviderUser(rCtx.DBTxn, data.InfraProvider(rCtx.DBTxn), user)
+	return nil
 }
 
 func updateCredential(c *gin.Context, user *models.Identity, newPassword string, isSelf bool) error {

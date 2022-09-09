@@ -92,6 +92,31 @@ module.exports = {
           'https://infrahq.notion.site/Privacy-Policy-1b320c4f95904f9a83931d01a326a10b',
         permanent: false,
       },
+      {
+        source: '/docs/getting-started/key-concepts',
+        destination: '/docs/reference/how-infra-works',
+        permanent: true,
+      },
+      {
+        source: '/docs/getting-started/quickstart',
+        destination: '/docs/getting-started/deploy',
+        permanent: true,
+      },
+      {
+        source: '/docs/install/install-on-kubernetes',
+        destination: '/docs/getting-started/deploy',
+        permanent: true,
+      },
+      {
+        source: '/docs/install/install-infra-cli',
+        destination: '/docs/getting-started/install-infra-cli',
+        permanent: true,
+      },
+      {
+        source: '/docs/install/upgrade',
+        destination: '/docs/getting-started/upgrade',
+        permanent: true,
+      },
     ]
   },
   images: {

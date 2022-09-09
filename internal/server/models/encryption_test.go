@@ -61,3 +61,33 @@ func TestEncryptedAtRest(t *testing.T) {
 
 	assert.Equal(t, "don't tell", string(m2.ASecret))
 }
+
+func TestEncryptedAtRest_WithBytes(t *testing.T) {
+	patch.ModelsSymmetricKey(t)
+
+	pg := database.PostgresDriver(t, "_models")
+	db, err := data.NewDB(pg.Dialector, nil)
+	assert.NilError(t, err)
+
+	settings, err := data.GetSettings(db)
+	assert.NilError(t, err)
+
+	t.Run("Scan", func(t *testing.T) {
+		var newEncrypted models.EncryptedAtRest
+		err := db.QueryRow(`SELECT private_jwk FROM settings WHERE id = ?`, settings.ID).Scan(&newEncrypted)
+		assert.NilError(t, err)
+
+		assert.Equal(t, string(settings.PrivateJWK), string(newEncrypted))
+	})
+	t.Run("Value", func(t *testing.T) {
+		newEncrypted := settings.PrivateJWK
+
+		_, err := db.Exec(`UPDATE settings SET private_jwk = ? WHERE id = ?`, newEncrypted, settings.ID)
+		assert.NilError(t, err)
+
+		updated, err := data.GetSettings(db)
+		assert.NilError(t, err)
+
+		assert.Equal(t, string(updated.PrivateJWK), string(settings.PrivateJWK))
+	})
+}

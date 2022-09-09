@@ -55,12 +55,9 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	return data.CreateIdentity(db, identity)
 }
 
-func InfraConnectorIdentity(c *gin.Context) *models.Identity {
-	return data.InfraConnectorIdentity(getDB(c))
-}
-
 // TODO (https://github.com/infrahq/infra/issues/2318) remove provider user, not user.
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
+	rCtx := GetRequestContext(c)
 	self, err := isIdentitySelf(c, id)
 	if err != nil {
 		return err
@@ -70,7 +67,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
 	}
 
-	if InfraConnectorIdentity(c).ID == id {
+	if data.InfraConnectorIdentity(rCtx.DBTxn).ID == id {
 		return fmt.Errorf("%w: the connector user can not be deleted", internal.ErrBadRequest)
 	}
 
@@ -137,6 +134,17 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 
 func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {
 	// does not need authorization check, this action is limited to the calling user
+	provider, err := data.GetProvider(c.DBTxn, data.ByID(c.Authenticated.AccessKey.ProviderID))
+	if err != nil {
+		return nil, "", fmt.Errorf("user info provider: %w", err)
+	}
+
+	if provider.Kind == models.ProviderKindInfra {
+		// no external verification needed
+		logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
+		return provider, "", nil
+	}
+
 	identity := c.Authenticated.User
 	if identity == nil {
 		return nil, "", errors.New("user does not have session with an identity provider")
@@ -145,11 +153,6 @@ func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, err
 	providerUser, err := data.GetProviderUser(c.DBTxn, c.Authenticated.AccessKey.ProviderID, identity.ID)
 	if err != nil {
 		return nil, "", err
-	}
-
-	provider, err := data.GetProvider(c.DBTxn, data.ByID(providerUser.ProviderID))
-	if err != nil {
-		return nil, "", fmt.Errorf("user info provider: %w", err)
 	}
 
 	return provider, providerUser.RedirectURL, nil

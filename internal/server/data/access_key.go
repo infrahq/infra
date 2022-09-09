@@ -123,6 +123,7 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	query.B("FROM access_keys AS k INNER JOIN identities AS u")
 	query.B("ON k.issued_for = u.id")
 	query.B("WHERE k.deleted_at is null AND u.deleted_at is null")
+	query.B("AND k.organization_id = ?", tx.OrganizationID())
 
 	if !opts.IncludeExpired {
 		// TODO: can we remove the need to check for both the zero value and nil?
@@ -136,6 +137,7 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	if opts.ByName != "" {
 		query.B("AND k.name = ?", opts.ByName)
 	}
+	query.B("ORDER BY k.name ASC")
 	if opts.Pagination != nil {
 		opts.Pagination.PaginateQuery(query)
 	}
