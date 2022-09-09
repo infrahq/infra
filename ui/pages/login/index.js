@@ -133,14 +133,11 @@ export default function Login() {
     return false
   }
 
-  console.log(providers?.length)
-
   return (
     <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
       <h1 className='mt-4 text-2xl font-bold leading-snug'>Log in</h1>
       <h2 className='my-2 text-center text-sm text-gray-500'>
-        Welcome back. Log in with your credentials{' '}
-        {providers?.length > 0 && 'or via your identity provider.'}
+        Welcome back to Infra
       </h2>
       {providers?.length > 0 && (
         <>

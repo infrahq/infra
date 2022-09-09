@@ -1,30 +1,48 @@
+import Link from 'next/link'
 import Cookies from 'universal-cookie'
+import { useRouter } from 'next/router'
+import { ChevronRightIcon } from '@heroicons/react/outline'
 
 import LoginLayout from '../../components/layouts/login'
 
 export default function Organizations() {
   const cookies = new Cookies()
   const organizations = cookies.get('orgs')
+  const router = useRouter()
+
+  if (!organizations?.length) {
+    router.replace('/forgot-domain')
+    return null
+  }
 
   return (
-    <>
-      <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
-      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-400'>
-        Choose your organization to login to.
+    <div className='flex min-h-[280px] w-full flex-col items-center px-10 py-10'>
+      <h1 className='text-base font-bold leading-snug'>Log in to Infra</h1>
+      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
+        Choose an organization to log in to.
       </h2>
-      <>
+      <div className='my-6 w-full max-w-[240px] flex-1'>
         {organizations?.map(o => (
           <a
             href={`//${o.url}`}
             key={o.url}
-            className='mt-1 mb-1 w-full rounded-lg border border-violet-300 px-4 py-3 text-center text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+            className='my-2 inline-flex w-full items-center justify-between rounded-md border border-gray-300 bg-white py-2.5 px-4 text-xs text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
           >
             {o.url}
-            <br />
+            <ChevronRightIcon className='ml-2 mt-0.5 h-3 w-3 flex-none stroke-2' />
           </a>
         ))}
-      </>
-    </>
+      </div>
+      <p className='text-center text-xs text-gray-500'>
+        Not seeing your organization? <br />
+        <Link href='/forgot-domain'>
+          <a className='my-1 inline-flex items-center font-semibold text-blue-500'>
+            Find my organization{' '}
+            <ChevronRightIcon className='mt-0.5 h-3 w-3 stroke-2' />
+          </a>
+        </Link>
+      </p>
+    </div>
   )
 }
 
