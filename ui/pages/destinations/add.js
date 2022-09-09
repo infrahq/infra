@@ -259,7 +259,7 @@ export default function DestinationsAdd() {
                 </p>
               </div>
               <div className='group relative my-4 flex'>
-                <pre className='min-h-[120px] w-full overflow-auto rounded-md bg-gray-900 p-4 text-2xs leading-normal text-gray-300'>
+                <pre className='min-h-[120px] w-full overflow-auto rounded-md bg-gray-100 p-4 text-2xs leading-normal text-gray-900'>
                   {valuesYaml}
                 </pre>
                 <button
@@ -314,7 +314,7 @@ export default function DestinationsAdd() {
                 </p>
               </div>
               <div className='group relative my-4 flex'>
-                <pre className='h-12 w-full overflow-auto rounded-md bg-gray-900 p-4 text-2xs leading-normal text-gray-300'>
+                <pre className='h-12 w-full overflow-auto rounded-md bg-gray-100 p-4 text-2xs leading-normal text-gray-900'>
                   {command}
                 </pre>
                 <button

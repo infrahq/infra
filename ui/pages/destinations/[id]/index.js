@@ -3,6 +3,8 @@ import useSWR, { useSWRConfig } from 'swr'
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import copy from 'copy-to-clipboard'
+import { ClipboardCheckIcon, ClipboardCopyIcon } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../../lib/admin'
 import { sortByPrivilege } from '../../../lib/grants'
@@ -19,6 +21,10 @@ function parent(resource = '') {
 }
 
 function ConnectSection({ roles, resource, kind = 'resource' }) {
+  const [commandCopied, setCommandCopied] = useState(false)
+
+  const command = ` infra login ${window.location.host} \n infra use ${resource} \n kubectl get pods`
+
   return (
     <div>
       <p className='my-4 text-sm leading-normal text-gray-500'>
@@ -34,13 +40,28 @@ function ConnectSection({ roles, resource, kind = 'resource' }) {
         . You have <span className='font-semibold'>{roles.join(', ')}</span>{' '}
         access.
       </p>
-      <pre className='overflow-auto rounded-md bg-gray-900 px-4 py-3 text-2xs leading-normal text-gray-300'>
-        infra login {window.location.host}
-        <br />
-        infra use {resource}
-        <br />
-        kubectl get pods
-      </pre>
+      <div className='group relative my-4 flex'>
+        <pre className='w-full overflow-auto rounded-md bg-gray-100 p-4 text-2xs leading-normal text-gray-900'>
+          {command}
+        </pre>
+        <button
+          className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
+            commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
+          }`}
+          disabled={commandCopied}
+          onClick={() => {
+            copy(command)
+            setCommandCopied(true)
+            setTimeout(() => setCommandCopied(false), 2000)
+          }}
+        >
+          {commandCopied ? (
+            <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
+          ) : (
+            <ClipboardCopyIcon className='h-4 w-4' />
+          )}
+        </button>
+      </div>
     </div>
   )
 }
