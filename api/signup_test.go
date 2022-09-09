@@ -3,8 +3,9 @@ package api
 import (
 	"testing"
 
-	"github.com/infrahq/infra/internal/validate"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/validate"
 )
 
 func TestSignupWithReservedDomain(t *testing.T) {
