@@ -30,14 +30,22 @@ import (
 )
 
 type Options struct {
-	Version         float64
-	TLSCache        string // TODO: move this to TLS.CacheDir
+	Version  float64
+	TLSCache string // TODO: move this to TLS.CacheDir
+
 	EnableTelemetry bool
+
 	// EnableSignup indicates that anyone can signup and create an org. When
 	// true this implies multi-tenancy, but false does not necessarily indicate
 	// a single tenancy environment (because orgs could have been created by a
 	// support admin).
-	EnableSignup             bool
+	EnableSignup bool
+
+	// EnableLogSampling indicates whether or not to sample HTTP access logs.
+	// When true, non-error HTTP GET logs will sampled down to 1 every 7 seconds
+	// grouped by the request path.
+	EnableLogSampling bool
+
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
 

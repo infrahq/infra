@@ -33,7 +33,7 @@ func (c *logSampler) Get(fields ...string) zerolog.Sampler {
 	return raw.(zerolog.Sampler) // nolint:forcetypeassert
 }
 
-func loggingMiddleware() gin.HandlerFunc {
+func loggingMiddleware(enableSampling bool) gin.HandlerFunc {
 	sampler := newLogSampler(func() zerolog.Sampler {
 		return &zerolog.BurstSampler{
 			Burst:  1,
@@ -50,7 +50,7 @@ func loggingMiddleware() gin.HandlerFunc {
 		logger := logging.L.Logger
 
 		// sample logs for successful GET request if the log level is INFO or above
-		if status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
+		if enableSampling && status < 400 && method == http.MethodGet && zerolog.GlobalLevel() >= zerolog.InfoLevel {
 			logger = logger.Sample(sampler.Get(c.Request.Method, c.FullPath()))
 		}
 

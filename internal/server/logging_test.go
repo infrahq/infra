@@ -23,7 +23,7 @@ func TestLoggingMiddleware(t *testing.T) {
 		logging.PatchLogger(t, writer)
 
 		router := gin.New()
-		router.Use(loggingMiddleware())
+		router.Use(loggingMiddleware(true))
 
 		router.GET("/good/:id", func(c *gin.Context) {})
 		router.POST("/good/:id", func(c *gin.Context) {})
