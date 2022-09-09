@@ -378,7 +378,7 @@ func (s *Server) loadDBKey(db data.GormTxn) error {
 		return fmt.Errorf("key provider %s not configured", s.options.DBEncryptionKeyProvider)
 	}
 
-	keyRec, err := data.GetEncryptionKey(db, data.ByName(dbKeyName))
+	keyRec, err := data.GetEncryptionKeyByName(db, dbKeyName)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return createDBKey(db, provider, s.options.DBEncryptionKey)
@@ -410,9 +410,7 @@ func createDBKey(db data.GormTxn, provider secrets.SymmetricKeyProvider, rootKey
 		Algorithm: sKey.Algorithm,
 		RootKeyID: sKey.RootKeyID,
 	}
-
-	_, err = data.CreateEncryptionKey(db, key)
-	if err != nil {
+	if err := data.CreateEncryptionKey(db, key); err != nil {
 		return err
 	}
 

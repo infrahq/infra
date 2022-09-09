@@ -1,10 +1,10 @@
 package data
 
 import (
+	"fmt"
 	mathrand "math/rand"
 
-	"gorm.io/gorm"
-
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -26,25 +26,34 @@ func (e *encryptionKeysTable) ScanFields() []any {
 	return []any{&e.Algorithm, &e.CreatedAt, &e.DeletedAt, &e.Encrypted, &e.ID, &e.KeyID, &e.Name, &e.RootKeyID, &e.UpdatedAt}
 }
 
-func CreateEncryptionKey(db GormTxn, key *models.EncryptionKey) (*models.EncryptionKey, error) {
+func CreateEncryptionKey(tx WriteTxn, key *models.EncryptionKey) error {
+	switch {
+	case key.Name == "":
+		return fmt.Errorf("a name is required for EncryptionKey")
+	case key.RootKeyID == "":
+		return fmt.Errorf("a root key ID is required for EncryptionKey")
+	case key.Algorithm == "":
+		return fmt.Errorf("an algorithm is required for EncryptionKey")
+	}
 	if key.KeyID == 0 {
 		// not a security issue; just an identifier
 		key.KeyID = mathrand.Int31() // nolint:gosec
 	}
 
-	if err := add(db, key); err != nil {
-		return nil, err
-	}
-
-	return key, nil
+	return insert(tx, (*encryptionKeysTable)(key))
 }
 
-func GetEncryptionKey(db GormTxn, selector SelectorFunc) (result *models.EncryptionKey, err error) {
-	return get[models.EncryptionKey](db, selector)
-}
+func GetEncryptionKeyByName(tx ReadTxn, name string) (*models.EncryptionKey, error) {
+	table := &encryptionKeysTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	query.B("FROM encryption_keys")
+	query.B("WHERE deleted_at is null")
+	query.B("AND name = ?", name)
 
-func ByEncryptionKeyID(keyID int32) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("key_id = ?", keyID)
+	row := tx.QueryRow(query.String(), query.Args...)
+	if err := row.Scan(table.ScanFields()...); err != nil {
+		return nil, handleReadError(err)
 	}
+	return (*models.EncryptionKey)(table), nil
 }
