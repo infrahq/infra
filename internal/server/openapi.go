@@ -48,7 +48,7 @@ var funcPartialNameToTagNames = []struct {
 // openAPIRouteDefinition converts the route into a format that can be used
 // by API.register. This is necessary because currently methods can not have
 // generic parameters.
-func openAPIRouteDefinition[Req, Res any](route route[Req, Res]) (
+func openAPIRouteDefinition[Req, Res any](routeID routeIdentifier, route route[Req, Res]) (
 	method string,
 	path string,
 	funcName string,
@@ -57,7 +57,7 @@ func openAPIRouteDefinition[Req, Res any](route route[Req, Res]) (
 ) {
 	//nolint:gocritic
 	reqT, resultT := reflect.TypeOf(*new(Req)), reflect.TypeOf(*new(Res))
-	return route.method, route.path, getFuncName(route.handler), reqT, resultT
+	return routeID.method, routeID.path, getFuncName(route.handler), reqT, resultT
 }
 
 // register adds the route to the API.OpenAPIDocument.
