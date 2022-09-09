@@ -114,9 +114,9 @@ type ListGrantsOptions struct {
 	// BySubject is a non-zero userID.
 	IncludeInheritedFromGroups bool
 
-	// ExcludeCreatedBySystem instructs ListGrants to exclude grants where the
-	// CreatedBy is models.CreatedBySystem.
-	ExcludeCreatedBySystem bool
+	// ExcludeConnectorGrant instructs ListGrants to exclude grants where
+	// privilege=connector and resource=infra.
+	ExcludeConnectorGrant bool
 
 	Pagination *Pagination
 }
@@ -160,8 +160,8 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	if opts.ByResource != "" {
 		query.B("AND resource = ?", opts.ByResource)
 	}
-	if opts.ExcludeCreatedBySystem {
-		query.B("AND created_by <> ?", models.CreatedBySystem)
+	if opts.ExcludeConnectorGrant {
+		query.B("AND NOT (privilege = 'connector' AND resource = 'infra')")
 	}
 
 	query.B("ORDER BY id ASC")

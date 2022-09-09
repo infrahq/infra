@@ -45,7 +45,7 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		ByResource:                 resource,
 		ByPrivilege:                privilege,
 		BySubject:                  subject,
-		ExcludeCreatedBySystem:     !showSystem,
+		ExcludeConnectorGrant:      !showSystem,
 		IncludeInheritedFromGroups: inherited,
 		Pagination:                 p,
 	}
