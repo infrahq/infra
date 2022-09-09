@@ -43,7 +43,6 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error
 	}
 
 	// TODO: use privilege in (...) instead of iterating over roles
-	// TODO: check for test coverage that uses permission from a group
 	for _, role := range oneOfRoles {
 		ok, err := Can(db, identity.PolyID(), role, ResourceInfraAPI)
 		if err != nil {
