@@ -49,8 +49,11 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
 }
 
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
+var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
+	handler:                    wellKnownJWKsHandler,
+	omitFromDocs:               true,
+	omitFromTelemetry:          true,
+	infraVersionHeaderOptional: true,
 }
 
 func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
@@ -61,6 +64,10 @@ func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResp
 	}
 
 	return WellKnownJWKResponse{Keys: keys}, nil
+}
+
+type WellKnownJWKResponse struct {
+	Keys []jose.JSONWebKey `json:"keys"`
 }
 
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {

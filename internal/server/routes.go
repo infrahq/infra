@@ -11,7 +11,6 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
@@ -97,12 +96,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	put(a, authn, "/api/settings", a.UpdateSettings)
 
-	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", route[api.EmptyRequest, *api.EmptyResponse]{
-		handler:                    pprofHandler,
-		omitFromTelemetry:          true,
-		omitFromDocs:               true,
-		infraVersionHeaderOptional: true,
-	})
+	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", pprofRoute)
 
 	// no auth required, org not required
 	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
@@ -122,13 +116,7 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
 
-	// no auth required, org required, undocumented in api spec
-	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", route[api.EmptyRequest, WellKnownJWKResponse]{
-		handler:                    wellKnownJWKsHandler,
-		omitFromDocs:               true,
-		omitFromTelemetry:          true,
-		infraVersionHeaderOptional: true,
-	})
+	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
 

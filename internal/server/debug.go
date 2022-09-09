@@ -11,6 +11,13 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
+	handler:                    pprofHandler,
+	omitFromTelemetry:          true,
+	omitFromDocs:               true,
+	infraVersionHeaderOptional: true,
+}
+
 func pprofHandler(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
 	if _, err := access.RequireInfraRole(c, models.InfraSupportAdminRole); err != nil {
 		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
