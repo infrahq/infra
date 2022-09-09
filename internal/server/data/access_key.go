@@ -116,15 +116,15 @@ type ListAccessKeyOptions struct {
 func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, error) {
 	table := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
-	query.B(columnsForSelect("k", table))
-	query.B(", u.name")
+	query.B(columnsForSelect(table))
+	query.B(", identities.name")
 	if opts.Pagination != nil {
 		query.B(", count(*) OVER()")
 	}
-	query.B("FROM access_keys AS k INNER JOIN identities AS u")
-	query.B("ON k.issued_for = u.id")
-	query.B("WHERE k.deleted_at is null AND u.deleted_at is null")
-	query.B("AND k.organization_id = ?", tx.OrganizationID())
+	query.B("FROM access_keys INNER JOIN identities")
+	query.B("ON access_keys.issued_for = identities.id")
+	query.B("WHERE access_keys.deleted_at is null AND identities.deleted_at is null")
+	query.B("AND access_keys.organization_id = ?", tx.OrganizationID())
 
 	if !opts.IncludeExpired {
 		// TODO: can we remove the need to check for both the zero value and nil?
@@ -133,12 +133,12 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 		query.B("AND (extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
 	}
 	if opts.ByIssuedForID != 0 {
-		query.B("AND k.issued_for = ?", opts.ByIssuedForID)
+		query.B("AND issued_for = ?", opts.ByIssuedForID)
 	}
 	if opts.ByName != "" {
-		query.B("AND k.name = ?", opts.ByName)
+		query.B("AND access_keys.name = ?", opts.ByName)
 	}
-	query.B("ORDER BY k.name ASC")
+	query.B("ORDER BY access_keys.name ASC")
 	if opts.Pagination != nil {
 		opts.Pagination.PaginateQuery(query)
 	}
@@ -170,7 +170,7 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 func GetAccessKey(tx ReadTxn, keyID string) (*models.AccessKey, error) {
 	accessKey := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
-	query.B(columnsForSelect("", accessKey))
+	query.B(columnsForSelect(accessKey))
 	query.B("FROM")
 	query.B(accessKey.Table())
 	query.B("WHERE deleted_at is null")
