@@ -92,6 +92,7 @@ func defaultServerOptions(infraDir string) server.Options {
 		SessionExtensionDeadline: 24 * time.Hour * 3,  // 3 days
 		EnableSignup:             false,
 		BaseDomain:               "",
+		EnableLogSampling:        true,
 
 		Addr: server.ListenerOptions{
 			HTTP:    ":80",

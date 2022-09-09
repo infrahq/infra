@@ -124,6 +124,7 @@ version: 0.2
 tlsCache: /cache/dir
 enableTelemetry: false # default is true
 enableSignup: false    # default is true
+enableLogSampling: false # default is true
 sessionDuration: 3m
 sessionExtensionDeadline: 1m
 
