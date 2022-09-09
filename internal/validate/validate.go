@@ -285,3 +285,14 @@ func fieldName(f reflect.StructField) string {
 
 	return strings.ToLower(f.Name[:1]) + f.Name[1:]
 }
+
+// ValidatorFunc wraps a function so that it implements ValidationRule. It can
+// be used to create special validations without having to define a type.
+// The ValidationRule will have a no-op implementation of DescribeSchema.
+type ValidatorFunc func() *Failure
+
+func (f ValidatorFunc) Validate() *Failure {
+	return f()
+}
+
+func (f ValidatorFunc) DescribeSchema(*openapi3.Schema) {}

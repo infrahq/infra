@@ -528,31 +528,22 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
 		},
-		"can list grants without a subject": {
-			urlPath: "/api/grants?showInherited=1&resource=dinosaurs", // inherited doesn't mean anything here
+		"requires a userID with showInherited": {
+			urlPath: "/api/grants?showInherited=1&resource=dinosaurs",
 			setup: func(t *testing.T, req *http.Request) {
 				loginAs(t, idInGroup, req)
-
-				err = data.CreateGrant(srv.DB(), &models.Grant{
-					Subject:   uid.NewGroupPolymorphicID(zoologistsID),
-					Privilege: "examine",
-					Resource:  "dinosaurs",
-				})
-				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				var grants api.ListResponse[api.Grant]
-				err := json.NewDecoder(resp.Body).Decode(&grants)
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				var respBody api.Error
+				err := json.NewDecoder(resp.Body).Decode(&respBody)
 				assert.NilError(t, err)
-				expected := []api.Grant{
-					{
-						Group:     zoologistsID,
-						Privilege: "examine",
-						Resource:  "dinosaurs",
-					},
+
+				expected := []api.FieldError{
+					{FieldName: "showInherited", Errors: []string{"requires a user ID"}},
 				}
-				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
 		"user can select grants for groups they are a member of": {
