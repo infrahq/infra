@@ -1,48 +1,81 @@
 package data
 
 import (
+	"errors"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
-func TestDuplicateGrant(t *testing.T) {
+func TestCreateGrant(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		g := models.Grant{
-			Model:     models.Model{ID: 1},
-			Subject:   "i:1234567",
-			Privilege: "view",
-			Resource:  "infra",
-		}
-		g2 := models.Grant{
-			Model:     models.Model{ID: 2},
-			Subject:   "i:1234567",
-			Privilege: "view",
-			Resource:  "infra",
-		}
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-		err := CreateGrant(db, &g)
-		assert.NilError(t, err)
+			actual := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "infra",
+				CreatedBy: uid.ID(1091),
+			}
+			err := CreateGrant(tx, &actual)
+			assert.NilError(t, err)
+			assert.Assert(t, actual.ID != 0)
 
-		err = CreateGrant(db, &g2)
-		assert.ErrorContains(t, err, "already exists")
+			expected := models.Grant{
+				Model: models.Model{
+					ID:        uid.ID(999),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+				Subject:            "i:1234567",
+				Privilege:          "view",
+				Resource:           "infra",
+				CreatedBy:          uid.ID(1091),
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+		t.Run("duplicate grant", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-		grants, err := ListGrants(db, nil, BySubject("i:1234567"), ByResource("infra"))
-		assert.NilError(t, err)
-		assert.Assert(t, is.Len(grants, 1))
+			g := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "infra",
+			}
+			err := CreateGrant(tx, &g)
+			assert.NilError(t, err)
 
-		g3 := models.Grant{
-			Model:     models.Model{ID: 3},
-			Subject:   "i:1234567",
-			Privilege: "edit",
-			Resource:  "infra",
-		}
-		// check that unique constraint needs all three fields
+			g2 := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "infra",
+			}
+			err = CreateGrant(tx, &g2)
+			var ucErr UniqueConstraintError
+			assert.Assert(t, errors.As(err, &ucErr))
+			assert.DeepEqual(t, ucErr, UniqueConstraintError{Table: "grants"})
 
-		err = CreateGrant(db, &g3)
-		assert.NilError(t, err)
+			grants, err := ListGrants(tx, nil,
+				BySubject("i:1234567"),
+				ByResource("infra"))
+			assert.NilError(t, err)
+			assert.Assert(t, is.Len(grants, 1))
+
+			g3 := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "edit",
+				Resource:  "infra",
+			}
+			// check that unique constraint needs all three fields
+			err = CreateGrant(tx, &g3)
+			assert.NilError(t, err)
+		})
 	})
 }

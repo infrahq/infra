@@ -3,38 +3,9 @@ package data
 import (
 	"strings"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/uid"
 )
-
-type queryBuilder struct {
-	query strings.Builder
-	Args  []interface{}
-}
-
-// Query initializes a queryBuilder and returns it populated with stmt.
-// The stmt string can generally contain any SELECT, FROM, or JOIN
-// clauses, and may contain the entire query as long as there are no
-// query parameters.
-// Use queryBuilder.B to add sections of a query with parameters.
-func Query(stmt string) *queryBuilder {
-	q := &queryBuilder{}
-	q.query.WriteString(stmt + " ")
-	return q
-}
-
-// B adds clause and args to the query. The clause must be a trusted string
-// literal. Any arguments must be passed as args so that they are properly
-// escaped by the database driver.
-func (q *queryBuilder) B(clause string, args ...interface{}) {
-	q.query.WriteString(clause + " ")
-	q.Args = append(q.Args, args...)
-}
-
-// String returns the query string, which is used as the first parameter to
-// WriteTxn.Exec, or ReadTxn.Query. You must also pass q.Args as the varargs.
-func (q *queryBuilder) String() string {
-	return q.query.String()
-}
 
 type Table interface {
 	Table() string
@@ -79,22 +50,23 @@ func insert(tx WriteTxn, item Insertable) error {
 	}
 	setOrg(tx, item)
 
-	query := Query("INSERT INTO")
+	query := querybuilder.New("INSERT INTO")
 	query.B(item.Table())
 	query.B("(")
-	query.B(columnsForInsert(item.Columns()))
+	query.B(columnsForInsert(item))
 	query.B(") VALUES (")
-	query.B(placeholderForColumns(item.Columns()), item.Values()...)
+	query.B(placeholderForColumns(item), item.Values()...)
 	query.B(");")
 	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	return handleError(err)
 }
 
-func columnsForInsert(columns []string) string {
-	return strings.Join(columns, ", ")
+func columnsForInsert(table Table) string {
+	return strings.Join(table.Columns(), ", ")
 }
 
-func placeholderForColumns(columns []string) string {
+func placeholderForColumns(table Table) string {
+	columns := table.Columns()
 	result := make([]string, len(columns))
 	for i := range columns {
 		result[i] = "?"
@@ -108,22 +80,22 @@ func update(tx WriteTxn, item Updatable) error {
 	}
 	setOrg(tx, item)
 
-	query := Query("UPDATE")
+	query := querybuilder.New("UPDATE")
 	query.B(item.Table())
 	query.B("SET")
-	query.B(columnsForUpdate(item.Columns()), item.Values()...)
+	query.B(columnsForUpdate(item), item.Values()...)
 	query.B("WHERE deleted_at is null AND id = ?;", item.Primary())
 	_, err := tx.Exec(query.String(), query.Args...)
-	return err
+	return handleError(err)
 }
 
-func columnsForUpdate(columns []string) string {
-	return strings.Join(columns, " = ?, ") + " = ?"
+func columnsForUpdate(table Table) string {
+	return strings.Join(table.Columns(), " = ?, ") + " = ?"
 }
 
-func columnsForSelect(tableAlias string, columns []string) string {
+func columnsForSelect(tableAlias string, table Table) string {
 	if tableAlias == "" {
-		return strings.Join(columns, ", ")
+		return strings.Join(table.Columns(), ", ")
 	}
-	return tableAlias + "." + strings.Join(columns, ", "+tableAlias+".")
+	return tableAlias + "." + strings.Join(table.Columns(), ", "+tableAlias+".")
 }
