@@ -105,9 +105,9 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 }
 
 type ListGrantsOptions struct {
-	BySubject   uid.PolymorphicID
-	ByPrivilege string
-	ByResource  string
+	BySubject    uid.PolymorphicID
+	ByPrivileges []string
+	ByResource   string
 
 	// IncludeInheritedFromGroups instructs ListGrants to include grants from
 	// groups where the user is a member. This option can only be used when
@@ -154,8 +154,8 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 			query.B(`AND subject IN (?)`, subjects)
 		}
 	}
-	if opts.ByPrivilege != "" {
-		query.B("AND privilege = ?", opts.ByPrivilege)
+	if len(opts.ByPrivileges) > 0 {
+		query.B("AND privilege IN (?)", opts.ByPrivileges)
 	}
 	if opts.ByResource != "" {
 		query.B("AND resource = ?", opts.ByResource)

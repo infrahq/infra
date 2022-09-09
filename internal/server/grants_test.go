@@ -775,8 +775,8 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
 		infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-			ByPrivilege: models.InfraAdminRole,
-			ByResource:  "infra",
+			ByPrivileges: []string{models.InfraAdminRole},
+			ByResource:   "infra",
 		})
 		assert.NilError(t, err)
 		assert.Assert(t, len(infraAdminGrants) == 1)

@@ -194,13 +194,13 @@ func grant(t *testing.T, db data.GormTxn, createdBy *models.Identity, subject ui
 
 func can(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
 	t.Helper()
-	canAccess, err := Can(db, subject, privilege, resource)
+	canAccess, err := Can(db, subject, resource, privilege)
 	assert.NilError(t, err)
 	assert.Assert(t, canAccess)
 }
 
 func cant(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, subject, privilege, resource)
+	canAccess, err := Can(db, subject, resource, privilege)
 	assert.NilError(t, err)
 	assert.Assert(t, !canAccess)
 }

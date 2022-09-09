@@ -42,18 +42,15 @@ func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error
 		return nil, fmt.Errorf("no active identity")
 	}
 
-	// TODO: use privilege in (...) instead of iterating over roles
-	for _, role := range oneOfRoles {
-		ok, err := Can(db, identity.PolyID(), role, ResourceInfraAPI)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok {
-			return db, nil
-		}
+	ok, err := Can(db, identity.PolyID(), ResourceInfraAPI, oneOfRoles...)
+	switch {
+	case err != nil:
+		return nil, err
+	case ok:
+		return db, nil
+	default:
+		return nil, ErrNotAuthorized
 	}
-	return nil, ErrNotAuthorized
 }
 
 var ErrNotAuthorized = errors.New("not authorized")
@@ -103,11 +100,11 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 }
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
-func Can(db data.GormTxn, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
+func Can(db data.GormTxn, identity uid.PolymorphicID, resource string, privileges ...string) (bool, error) {
 	grants, err := data.ListGrants(db, data.ListGrantsOptions{
 		Pagination:                 &data.Pagination{Limit: 1},
 		BySubject:                  identity,
-		ByPrivilege:                privilege,
+		ByPrivileges:               privileges,
 		ByResource:                 resource,
 		IncludeInheritedFromGroups: true,
 	})
