@@ -93,9 +93,6 @@ func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) erro
 	}
 	c.Set(access.RequestContextKey, rCtx)
 
-	// TODO: remove once everything uses RequestContext
-	c.Set("identity", authned.User)
-
 	if err := handleInfraDestinationHeader(c); err != nil {
 		return err
 	}

@@ -34,13 +34,15 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *mod
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	tx := txnForTestCase(t, db)
-	c.Set(RequestContextKey, RequestContext{DBTxn: tx})
 
 	admin := &models.Identity{Name: "admin@example.com"}
 	err := data.CreateIdentity(tx, admin)
 	assert.NilError(t, err)
 
-	c.Set("identity", admin)
+	c.Set(RequestContextKey, RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: admin},
+	})
 
 	adminGrant := &models.Grant{
 		Subject:   admin.PolyID(),
@@ -114,9 +116,10 @@ func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
 	tx := txnForTestCase(t, db)
-	c.Set(RequestContextKey, RequestContext{DBTxn: tx})
-	c.Set("identity", tom)
-
+	c.Set(RequestContextKey, RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: tom},
+	})
 	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 	assert.Assert(t, authDB == nil)
@@ -143,9 +146,10 @@ func TestRequireInfraRole(t *testing.T) {
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
 		tx := txnForTestCase(t, db)
-		c.Set(RequestContextKey, RequestContext{DBTxn: tx})
-		c.Set("identity", testIdentity)
-
+		c.Set(RequestContextKey, RequestContext{
+			DBTxn:         tx,
+			Authenticated: Authenticated{User: testIdentity},
+		})
 		return c
 	}
 

@@ -25,15 +25,9 @@ func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
 // Returns nil if there is no identity in the context, which likely means the
 // request was not authenticated.
 //
-// TODO: remove once all callers use RequestContext.Authenticated.User
-// See https://github.com/infrahq/infra/issues/2796
+// Deprecated: use GetRequestContext
 func AuthenticatedIdentity(c *gin.Context) *models.Identity {
-	if raw, ok := c.Get("identity"); ok {
-		if identity, ok := raw.(*models.Identity); ok {
-			return identity
-		}
-	}
-	return nil
+	return GetRequestContext(c).Authenticated.User
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
