@@ -114,8 +114,8 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
-      let visitedOrgs = cookies.get('orgs') || []
 
+      let visitedOrgs = cookies.get('orgs') || []
       if (!visitedOrgs.find(x => x.url === window.location.host)) {
         visitedOrgs.push({
           url: window.location.host,
