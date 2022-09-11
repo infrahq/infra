@@ -33,7 +33,7 @@ export default function TypeaheadCombobox({
           <Combobox.Input
             type='search'
             ref={inputRef}
-            className='relative border-none bg-transparent text-2xs text-gray-300 placeholder:italic focus:border-transparent focus:ring-0'
+            className='relative border-none bg-transparent text-xs text-gray-300 placeholder:italic focus:border-transparent focus:ring-0'
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
               button.current?.click()
@@ -44,13 +44,13 @@ export default function TypeaheadCombobox({
         </div>
       </div>
       {filteredEmail.length > 0 && (
-        <Combobox.Options className='absolute z-10 mt-4 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
+        <Combobox.Options className='= absolute z-10 mt-4 max-h-60 w-56 overflow-auto rounded-md border border-gray-100 bg-white py-1 text-xs shadow-xl shadow-gray-300/20 focus:outline-none'>
           {filteredEmail?.map(f => (
             <Combobox.Option
               key={f.id}
               value={f}
               className={({ active }) =>
-                `relative cursor-default select-none py-2 px-3 text-gray-200 ${
+                `relative cursor-default select-none py-2 px-3 text-gray-600 ${
                   active ? 'bg-gray-700' : ''
                 }`
               }

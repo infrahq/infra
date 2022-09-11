@@ -1,102 +1,84 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useRouter } from 'next/router'
-import { UserGroupIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
+import { Transition, Dialog } from '@headlessui/react'
+import { Fragment, useState } from 'react'
 
-import { useAdmin } from '../../lib/admin'
-
-import Breadcrumbs from '../../components/breadcrumbs'
+import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import EmptyTable from '../../components/empty-table'
-import Pagination from '../../components/pagination'
-import PageHeader from '../../components/page-header'
 
-function GroupTable({ groups }) {
+function AddGroupsDialog({ setOpen }) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const router = useRouter()
 
+  async function onSubmit(e) {
+    e.preventDefault()
+
+    setError('')
+
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      })
+
+      const group = await res.json()
+
+      if (!res.ok) {
+        throw group
+      }
+
+      router.replace({ pathname: `/groups/${group.id}`, query: { created: 1 } })
+    } catch (e) {
+      setError(e.message)
+    }
+
+    setSubmitting(false)
+
+    return false
+  }
+
   return (
-    <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
-      <Breadcrumbs>Groups</Breadcrumbs>
-      <table className='min-w-full divide-y divide-gray-300'>
-        <thead className='bg-gray-50'>
-          <tr>
-            <th
-              scope='col'
-              className='py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6'
-            >
-              Name
-            </th>
-            <th
-              scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell'
-            >
-              Users
-            </th>
-            <th
-              scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell'
-            >
-              Created
-            </th>
-          </tr>
-        </thead>
-        <tbody className='divide-y divide-gray-200 bg-white'>
-          {groups?.map(group => (
-            <tr
-              key={group.id}
-              onClick={() => router.replace(`/groups/${group.id}`)}
-              className='hover:cursor-pointer hover:bg-gray-100'
-            >
-              <td className='w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6'>
-                <div className='flex items-center py-1.5'>
-                  <div className='text-sm sm:max-w-[10rem]'>{group.name}</div>
-                </div>
-                <dl className='font-normal sm:hidden'>
-                  <dt className='sr-only sm:hidden'>Users</dt>
-                  <dd className='mt-1 text-gray-700 sm:hidden'>
-                    <>
-                      {group.totalUsers === undefined ? (
-                        '-'
-                      ) : (
-                        <>
-                          {group.totalUsers}{' '}
-                          {group.totalUsers === 1 ? 'member' : 'members'}
-                        </>
-                      )}
-                    </>
-                  </dd>
-                  <dt className='sr-only sm:hidden'>Created</dt>
-                  <dd className='mt-1 text-gray-700 sm:hidden'>
-                    {group?.created ? (
-                      <>created {dayjs(group.created).fromNow()}</>
-                    ) : (
-                      '-'
-                    )}
-                  </dd>
-                </dl>
-              </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
-                <div className='flex items-center py-2'>
-                  {group.totalUsers === undefined ? (
-                    '-'
-                  ) : (
-                    <>
-                      {group.totalUsers}{' '}
-                      {group.totalUsers === 1 ? 'member' : 'members'}
-                    </>
-                  )}
-                </div>
-              </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
-                <div className='flex items-center py-2'>
-                  {group?.created ? <>{dayjs(group.created).fromNow()}</> : '-'}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='py-1 text-lg font-medium'>Add group</h1>
+      <form className='my-2 flex flex-col' onSubmit={onSubmit}>
+        <label className='text-2xs font-medium text-gray-700'>Name</label>
+        <div className='relative mb-4'>
+          <input
+            name='name'
+            required
+            autoFocus
+            spellCheck='false'
+            type='search'
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              error ? 'border-red-500' : 'border-gray-300'
+            }`}
+          />
+          {error && (
+            <p className='absolute mt-1 text-xs text-red-500'>{error}</p>
+          )}
+        </div>
+        <div className='space-x-2 self-end'>
+          <button
+            type='button'
+            onClick={() => setOpen(false)}
+            className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+          >
+            Cancel
+          </button>
+          <button
+            disabled={submitting}
+            className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+          >
+            Add group
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
@@ -104,50 +86,98 @@ function GroupTable({ groups }) {
 export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 13
-  const { data: { items: groups, totalPages, totalCount } = {}, error } =
-    useSWR(`/api/groups?page=${page}&limit=${limit}`)
-  const { admin, loading: adminLoading } = useAdmin()
-
-  const loading = adminLoading || (!groups && !error)
+  const limit = 10
+  const { data: { items: groups, totalPages, totalCount } = {} } = useSWR(
+    `/api/groups?page=${page}&limit=${limit}`
+  )
+  const [open, setOpen] = useState(false)
 
   return (
-    <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
+    <div className='mb-10'>
       <Head>
         <title>Groups - Infra</title>
       </Head>
-      <div className='py-6'>
-        <PageHeader buttonHref={admin && '/groups/add'} buttonLabel='Group' />
-      </div>
-      <div className='px-4 sm:px-6 md:px-0'>
-        {!loading && (
-          <div className='flex flex-1 flex-col space-y-4'>
-            {error?.status ? (
-              <div className='my-20 text-center text-sm font-light text-gray-300'>
-                {error?.info?.message}
+      <header className='my-6 flex items-center justify-between'>
+        <h1 className='py-1 text-xl font-medium'>Groups</h1>
+        {/* Add dialog */}
+        <button
+          onClick={() => setOpen(true)}
+          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+        >
+          Add group
+        </button>
+        <Transition.Root show={open} as={Fragment}>
+          <Dialog as='div' className='relative z-10' onClose={setOpen}>
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0'
+              enterTo='opacity-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100'
+              leaveTo='opacity-0'
+            >
+              <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+            </Transition.Child>
+            <div className='fixed inset-0 z-10 overflow-y-auto'>
+              <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                  enterTo='opacity-100 translate-y-0 sm:scale-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                  leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                >
+                  <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white px-8 py-4 text-left shadow-xl shadow-gray-300/10 transition-all sm:max-w-sm'>
+                    <AddGroupsDialog setOpen={setOpen} />
+                  </Dialog.Panel>
+                </Transition.Child>
               </div>
-            ) : (
-              <div className='flex min-h-0 flex-1 flex-col px-0 md:px-6 xl:px-0'>
-                <GroupTable groups={groups} />
-                {groups?.length === 0 && (
-                  <EmptyTable
-                    title='There are no groups'
-                    subtitle='Connect, create and manage your groups.'
-                    iconPath='/groups.svg'
-                    icon={<UserGroupIcon />}
-                  />
-                )}
-                {totalPages > 1 && (
-                  <Pagination
-                    curr={page}
-                    totalPages={totalPages}
-                    totalCount={totalCount}
-                  ></Pagination>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          </Dialog>
+        </Transition.Root>
+      </header>
+      <div className='flex min-h-0 flex-1 flex-col'>
+        <Table
+          href={row => `/groups/${row.original.id}`}
+          count={totalCount}
+          pageCount={totalPages}
+          pageIndex={parseInt(page) - 1}
+          pageSize={limit}
+          data={groups}
+          empty='No groups'
+          onPageChange={({ pageIndex }) => {
+            router.push({
+              pathname: router.pathname,
+              query: { ...router.query, p: pageIndex + 1 },
+            })
+          }}
+          columns={[
+            {
+              cell: info => (
+                <div className='flex flex-col'>
+                  <div className='mb-0.5 font-medium text-gray-700'>
+                    {info.getValue()}
+                  </div>
+                  <div className='text-3xs text-gray-500'>
+                    {info.row.original.totalUsers || 'No'}{' '}
+                    {info.row.original.totalUsers === 1 ? 'user' : 'users'}
+                  </div>
+                </div>
+              ),
+              header: () => <span>Name</span>,
+              accessorKey: 'name',
+            },
+            {
+              cell: info =>
+                info.getValue() ? dayjs(info.getValue()).fromNow() : '-',
+              header: () => <span>Added</span>,
+              accessorKey: 'created',
+            },
+          ]}
+        />
       </div>
     </div>
   )

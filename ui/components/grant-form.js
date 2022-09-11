@@ -38,7 +38,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
         setSelected(null)
       }}
     >
-      <div className='flex flex-1 items-center pr-3'>
+      <div className='flex flex-1 items-center'>
         <Combobox
           as='div'
           className='relative flex-1'
@@ -50,7 +50,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
           }}
         >
           <Combobox.Input
-            className={`block w-full rounded-md border-gray-300 text-xs shadow-sm placeholder:italic focus:border-blue-500 focus:ring-blue-500`}
+            className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
             placeholder='User or group'
             onChange={e => setQuery(e.target.value)}
             onFocus={() => {
@@ -66,7 +66,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
                   key={f.id}
                   value={f}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-2 px-3 text-gray-200 ${
+                    `relative cursor-default select-none py-[7px] px-3 text-gray-200 ${
                       active ? 'bg-gray-700' : ''
                     }`
                   }
@@ -84,18 +84,18 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
         </Combobox>
       </div>
       {roles?.length > 1 && (
-        <div className='relative p-3'>
+        <div className='relative px-2'>
           <RoleSelect onChange={setRole} role={role} roles={roles} />
         </div>
       )}
-      <div className='relative p-3'>
+      <div className='relative'>
         <button
           disabled={!selected}
           type='submit'
-          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'
+          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-800'
         >
           <PlusIcon className='mr-1 h-3 w-3' />
-          <div className='text-2xs leading-none'>Add</div>
+          Add
         </button>
       </div>
     </form>

@@ -162,7 +162,7 @@ export default function Login() {
           </label>
           <input
             required
-            autoFocus={providers?.length === 0}
+            autoFocus
             id='name'
             type='email'
             onChange={e => {
@@ -204,7 +204,7 @@ export default function Login() {
             </Link>
           </div>
         )}
-        <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'>
+        <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
           Log in
         </button>
         {error && (

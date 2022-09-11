@@ -51,7 +51,7 @@ export default function RoleSelect({
       }}
     >
       <div className='relative'>
-        <Listbox.Button className='relative w-32 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
+        <Listbox.Button className='relative w-36 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'>
           <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
             <ChevronDownIcon
               className='h-4 w-4 stroke-1 text-gray-700'
@@ -63,9 +63,9 @@ export default function RoleSelect({
         <Listbox.Options
           className={`absolute z-10 w-48 ${
             direction === 'right' ? '' : 'right-0'
-          } mt-2 overflow-auto rounded-md border border-gray-300 bg-white text-xs text-black ring-1 ring-black ring-opacity-5 focus:outline-none`}
+          } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-black shadow-lg shadow-gray-300/20 focus:outline-none`}
         >
-          <div className={`max-h-64 overflow-auto ${remove ? 'mb-9' : ''}`}>
+          <div className={`max-h-64 overflow-auto`}>
             {roles?.map(r => (
               <Listbox.Option
                 key={r}
@@ -83,7 +83,7 @@ export default function RoleSelect({
                         {r}
                         {selected && (
                           <CheckIcon
-                            className='h-3 w-3 stroke-1'
+                            className='h-3 w-3 stroke-1 text-gray-800'
                             aria-hidden='true'
                           />
                         )}
@@ -101,14 +101,13 @@ export default function RoleSelect({
             <Listbox.Option
               className={({ active }) =>
                 `${
-                  active ? 'bg-gray-300' : ''
-                } absolute left-0 right-0 bottom-0 z-10 cursor-default select-none border-t border-gray-300 py-2 px-3 hover:bg-gray-100`
+                  active ? 'bg-gray-50' : 'bg-white'
+                } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-red-500`
               }
               value={OPTION_REMOVE}
             >
               <div className='flex flex-row items-center py-0.5'>
-                <XIcon className='mr-2 h-3 w-3' />
-                Remove
+                <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove
               </div>
             </Listbox.Option>
           )}

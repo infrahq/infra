@@ -1,12 +1,9 @@
 import Head from 'next/head'
 import { useState, Fragment } from 'react'
 import useSWR from 'swr'
-import { CheckCircleIcon } from '@heroicons/react/outline'
-import { XIcon } from '@heroicons/react/solid'
-import { Transition } from '@headlessui/react'
 
-import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
+import Notification from '../../components/notification'
 
 function PasswordReset({ onReset = () => {} }) {
   const { data: auth } = useSWR('/api/users/self')
@@ -146,75 +143,30 @@ export default function Account() {
       <Head>
         <title>Account - Infra</title>
       </Head>
-      <Breadcrumbs>Account</Breadcrumbs>
-      <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-        <div className='px-4 sm:px-6 xl:px-0'>
-          {auth && hasInfraProvider && (
-            <div className='flex flex-1 flex-col space-y-8'>
-              <div className='py-12'>
-                <h1 className='text-lg font-medium'>Reset Password</h1>
-                <div className='flex flex-col space-y-2 pt-6'>
-                  <PasswordReset
-                    onReset={() => {
-                      setshowNotification(true)
-                      setTimeout(() => {
-                        setshowNotification(false)
-                      }, 5000)
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Notification */}
-              <div
-                aria-live='assertive'
-                className='pointer-events-none fixed inset-0 flex items-end px-4 py-6 sm:items-end sm:p-6'
-              >
-                <div className='flex w-full flex-col items-center space-y-4 sm:items-end'>
-                  <Transition
-                    show={showNotification}
-                    as={Fragment}
-                    enter='transform ease-out duration-300 transition'
-                    enterFrom='translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2'
-                    enterTo='translate-y-0 opacity-100 sm:translate-x-0'
-                    leave='transition ease-in duration-100'
-                    leaveFrom='opacity-100'
-                    leaveTo='opacity-0'
-                  >
-                    <div className='pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5'>
-                      <div className='p-4'>
-                        <div className='flex items-start'>
-                          <div className='flex-shrink-0'>
-                            <CheckCircleIcon
-                              className='h-6 w-6 text-green-400'
-                              aria-hidden='true'
-                            />
-                          </div>
-                          <div className='ml-3 w-0 flex-1 pt-0.5'>
-                            <p className='text-sm font-medium text-gray-900'>
-                              Password Successfully Reset
-                            </p>
-                          </div>
-                          <div className='ml-4 flex flex-shrink-0'>
-                            <button
-                              type='button'
-                              className='inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-                              onClick={() => setshowNotification(false)}
-                            >
-                              <span className='sr-only'>Close</span>
-                              <XIcon className='h-5 w-5' aria-hidden='true' />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </Transition>
-                </div>
-              </div>
-            </div>
-          )}
+      <h1 className='my-6 py-1 text-lg font-medium'>Account settings</h1>
+      {auth && hasInfraProvider && (
+        <div className='flex flex-1 flex-col'>
+          <h2 className='text-md py-2 font-medium text-gray-600'>
+            Reset Password
+          </h2>
+          <div className='flex max-w-md flex-col space-y-2'>
+            <PasswordReset
+              onReset={() => {
+                setshowNotification(true)
+                setTimeout(() => {
+                  setshowNotification(false)
+                }, 5000)
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
+      {/* Notification */}
+      <Notification
+        show={showNotification}
+        setShow={setshowNotification}
+        text='Password Successfully Reset'
+      />
     </>
   )
 }

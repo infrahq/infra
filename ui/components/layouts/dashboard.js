@@ -1,9 +1,8 @@
 import Link from 'next/link'
-import { Fragment, useState, useContext, forwardRef } from 'react'
+import { Fragment, useState, forwardRef } from 'react'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
 import { Dialog, Transition, Menu } from '@headlessui/react'
-import { BreadcrumbsContext } from '../breadcrumbs'
 import {
   ChipIcon,
   UserGroupIcon,
@@ -12,7 +11,6 @@ import {
   XIcon,
   MenuIcon,
   CogIcon,
-  ChevronRightIcon,
 } from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
@@ -56,7 +54,7 @@ function SidebarNav({ children, open, setOpen }) {
             leaveFrom='translate-x-0'
             leaveTo='-translate-x-full'
           >
-            <Dialog.Panel className='relative flex w-full max-w-[16rem] flex-1 flex-col border-r border-gray-100 bg-white px-6 pt-5 pb-4'>
+            <Dialog.Panel className='relative flex w-full max-w-[16rem] flex-1 flex-col bg-white px-6 pt-5 pb-4'>
               <Transition.Child
                 as={Fragment}
                 enter='ease-in-out duration-300'
@@ -90,33 +88,6 @@ function SidebarNav({ children, open, setOpen }) {
   )
 }
 
-function Breadcrumbs() {
-  let [breadcrumbs] = useContext(BreadcrumbsContext)
-
-  if (!Array.isArray(breadcrumbs)) {
-    breadcrumbs = [breadcrumbs]
-  }
-
-  return (
-    <div className='flex items-center space-x-3 text-sm'>
-      {breadcrumbs.map((bc, index) => (
-        <div className='flex items-center' key={index}>
-          <span
-            className={`${
-              index === breadcrumbs.length - 1 ? 'font-medium' : ''
-            }`}
-          >
-            {bc}
-          </span>
-          {index < breadcrumbs.length - 1 && (
-            <ChevronRightIcon className='ml-3 h-3.5 w-3.5 text-gray-400' />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function Layout({ children }) {
   const router = useRouter()
 
@@ -125,7 +96,6 @@ function Layout({ children }) {
   const { cache } = useSWRConfig()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [breadcrumbs, setBreadcrumbs] = useState([])
 
   const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
 
@@ -145,36 +115,31 @@ function Layout({ children }) {
     {
       name: 'Clusters',
       href: '/destinations',
-      heroIcon: ChipIcon,
-      icon: '/destinations.svg',
+      icon: ChipIcon,
     },
     {
       name: 'Providers',
       href: '/providers',
-      icon: '/providers.svg',
       admin: true,
-      heroIcon: ViewGridIcon,
+      icon: ViewGridIcon,
     },
     {
       name: 'Groups',
       href: '/groups',
-      icon: '/groups.svg',
       admin: true,
-      heroIcon: UserGroupIcon,
+      icon: UserGroupIcon,
     },
     {
       name: 'Users',
       href: '/users',
-      icon: '/users.svg',
       admin: true,
-      heroIcon: UserIcon,
+      icon: UserIcon,
     },
     {
       name: 'Settings',
       href: '/settings',
-      icon: '/providers.svg',
       admin: true,
-      heroIcon: CogIcon,
+      icon: CogIcon,
     },
   ]
 
@@ -198,7 +163,7 @@ function Layout({ children }) {
   function Nav() {
     return (
       <>
-        <div className='mb-2 flex flex-shrink-0 select-none items-center'>
+        <div className='mb-2 flex flex-shrink-0 select-none items-center px-3'>
           <Link href='/'>
             <a>
               <img className='my-2 h-7' src='/logo.svg' alt='Infra' />
@@ -206,7 +171,7 @@ function Layout({ children }) {
           </Link>
         </div>
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
-          <nav className='flex-1 space-y-0.5'>
+          <nav className='flex-1 space-y-1'>
             {navigation.map(item => (
               <Link key={item.name} href={item.href}>
                 <a
@@ -214,16 +179,18 @@ function Layout({ children }) {
                   className={`
                           ${
                             router.asPath.startsWith(item.href)
-                              ? 'text-blue-500'
-                              : 'text-gray-500  hover:text-gray-700'
+                              ? 'bg-gray-100/50 text-gray-800'
+                              : 'bg-transparent text-gray-500/75 hover:text-gray-500'
                           }
-                        group flex items-center rounded-md py-2 text-sm font-medium`}
+                        group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
                 >
-                  <item.heroIcon
-                    className={`
-
-                            mr-3 h-5 w-5 flex-shrink
-                          `}
+                  <item.icon
+                    className={`${
+                      router.asPath.startsWith(item.href)
+                        ? 'fill-blue-100 text-blue-500'
+                        : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                    }
+                    mr-2 h-[18px] w-[18px] flex-shrink`}
                     aria-hidden='true'
                   />
                   {item.name}
@@ -237,89 +204,93 @@ function Layout({ children }) {
   }
 
   return (
-    <BreadcrumbsContext.Provider value={[breadcrumbs, setBreadcrumbs]}>
-      <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
-        <Nav navigation={navigation} admin={admin} />
-      </SidebarNav>
-      <div className='hidden md:fixed md:inset-y-0 md:flex md:w-56 md:flex-col'>
-        <div className='flex flex-grow flex-col overflow-y-auto border-r border-gray-100 px-6 pt-5 pb-4'>
-          <Nav navigation={navigation} admin={admin} />
-        </div>
-      </div>
-      <div className='md:pl-56'>
-        <div className='mx-auto flex flex-col 2xl:m-auto'>
-          <div className='sticky top-0 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 backdrop-blur-lg md:px-6'>
+    <div className='relative flex'>
+      {admin && (
+        <>
+          <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
+            <Nav navigation={navigation} admin={admin} />
+          </SidebarNav>
+          <div className='sticky top-0 hidden h-screen w-48 flex-none flex-col border-r border-gray-100 px-3 pt-5 pb-4 md:flex lg:w-60'>
+            <Nav navigation={navigation} admin={admin} />
+          </div>
+        </>
+      )}
+
+      {/* Main content */}
+      <div className='mx-auto flex min-w-0 flex-1 flex-col'>
+        <div className='sticky top-0 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
+          {admin && (
             <button
               type='button'
-              className='px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
+              className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
               onClick={() => setSidebarOpen(true)}
             >
               <span className='sr-only'>Open sidebar</span>
               <MenuIcon className='h-6 w-6' aria-hidden='true' />
             </button>
-            <div className='flex flex-1 justify-between px-4 md:px-6 xl:px-0'>
-              <div className='mx-auto flex flex-1 items-center'>
-                <Breadcrumbs />
-              </div>
-              <div className='ml-4 flex items-center md:ml-6'>
-                <Menu
-                  as='div'
-                  className='relative inline-block bg-white text-left'
+          )}
+          <div className='flex flex-1 justify-end'>
+            <div className='ml-4 flex items-center md:ml-6'>
+              <Menu
+                as='div'
+                className='relative inline-block bg-white text-left'
+              >
+                <span className='sr-only'>Open current user menu</span>
+                <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
+                  <span className='text-center text-xs font-semibold capitalize leading-none'>
+                    {auth?.name?.[0]}
+                  </span>
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter='transition ease-out duration-100'
+                  enterFrom='transform opacity-0 scale-95'
+                  enterTo='transform opacity-100 scale-100'
+                  leave='transition ease-in duration-75'
+                  leaveFrom='transform opacity-100 scale-100'
+                  leaveTo='transform opacity-0 scale-95'
                 >
-                  <span className='sr-only'>Open current user menu</span>
-                  <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-blue-500'>
-                    <span className='text-center text-xs font-semibold capitalize leading-none text-white'>
-                      {auth?.name?.[0]}
-                    </span>
-                  </Menu.Button>
-                  <Transition
-                    as={Fragment}
-                    enter='transition ease-out duration-100'
-                    enterFrom='transform opacity-0 scale-95'
-                    enterTo='transform opacity-100 scale-100'
-                    leave='transition ease-in duration-75'
-                    leaveFrom='transform opacity-100 scale-100'
-                    leaveTo='transform opacity-0 scale-95'
-                  >
-                    <Menu.Items className='absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                      <div className='px-4 py-3'>
-                        <p className='text-xs text-gray-600'>Signed in as</p>
-                        <p className='truncate text-sm font-semibold text-gray-900'>
-                          {auth?.name}
-                        </p>
-                      </div>
-                      <div className='py-1'>
-                        {subNavigation.map(item => (
-                          <Menu.Item key={item.name}>
-                            <NavLink href={item.href}>
-                              <a className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
-                                {item.name}
-                              </a>
-                            </NavLink>
-                          </Menu.Item>
-                        ))}
-                      </div>
-                      <div className='py-1'>
-                        <Menu.Item>
-                          <button
-                            type='button'
-                            onClick={() => logout()}
-                            className='block w-full cursor-pointer py-2 px-4 text-left text-sm text-gray-700 hover:bg-gray-100'
-                          >
-                            Sign out
-                          </button>
+                  <Menu.Items className='absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                    <div className='px-4 py-3'>
+                      <p className='text-xs text-gray-600'>Signed in as</p>
+                      <p className='truncate text-sm font-semibold text-gray-900'>
+                        {auth?.name}
+                      </p>
+                    </div>
+                    <div className='py-1'>
+                      {subNavigation.map(item => (
+                        <Menu.Item key={item.name}>
+                          <NavLink href={item.href}>
+                            <a className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
+                              {item.name}
+                            </a>
+                          </NavLink>
                         </Menu.Item>
-                      </div>
-                    </Menu.Items>
-                  </Transition>
-                </Menu>
-              </div>
+                      ))}
+                    </div>
+                    <div className='py-1'>
+                      <Menu.Item>
+                        <button
+                          type='button'
+                          onClick={() => logout()}
+                          className='block w-full cursor-pointer py-2 px-4 text-left text-sm text-gray-700 hover:bg-gray-100'
+                        >
+                          Sign out
+                        </button>
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
             </div>
           </div>
-          <main className='flex-1'>{children}</main>
         </div>
+
+        <main className='mx-auto w-full max-w-6xl flex-1 px-6 '>
+          {children}
+        </main>
       </div>
-    </BreadcrumbsContext.Provider>
+    </div>
   )
 }
 

@@ -7,7 +7,6 @@ import { InformationCircleIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
-import Breadcrumbs from '../../components/breadcrumbs'
 import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Tooltip from '../../components/tooltip'
@@ -50,9 +49,7 @@ export default function ProvidersAddDetails() {
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [name, setName] = useState(
-    type === undefined ? providers[0].kind : type
-  )
+  const [name, setName] = useState('')
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
@@ -160,248 +157,218 @@ export default function ProvidersAddDetails() {
   }
 
   return (
-    <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
+    <div className='mb-10'>
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
-      <Breadcrumbs>
-        <Link href='/providers'>
-          <a>Providers</a>
-        </Link>
-        Connect a provider
-      </Breadcrumbs>
-      <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-        <form
-          onSubmit={onSubmit}
-          className='mt-6 space-y-8 divide-y divide-gray-200'
-        >
-          <div className='space-y-8'>
-            <div className='max-w-4xl space-y-1'>
-              <div className='pb-2'>
-                <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Provider
-                </h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  Name and select the type of your provider
-                </p>
-              </div>
+      <header className='my-6 flex items-center justify-between'>
+        <h1 className='py-1 text-lg font-medium'>
+          <Link href='/providers'>
+            <a className='text-gray-500/75 hover:text-gray-600'>Providers</a>
+          </Link>{' '}
+          <span className='mx-2 font-light text-gray-400'> / </span> Connect
+          provider
+        </h1>
+      </header>
 
-              <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
-                <div className='sm:col-span-6 lg:col-span-5'>
-                  <div className='pb-3'>
-                    <label className='text-2xs font-medium text-gray-700'>
-                      Provider Kind
-                    </label>
-                  </div>
-                  <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-                    {providers.map(
-                      p =>
-                        p.available && (
-                          <div
-                            key={p.name}
-                            onClick={() => {
-                              setKind(p.kind)
-                              router.replace(`/providers/add?type=${p.kind}`)
-                            }}
-                          >
-                            <Provider {...p} currentKind={kind} />
-                          </div>
-                        )
-                    )}
-                  </div>
-                </div>
-
-                <div className='sm:col-span-6 lg:col-span-5'>
-                  <label className='text-2xs font-medium text-gray-700'>
-                    Name of Provider
-                  </label>
-                  <input
-                    required
-                    type='text'
-                    value={name}
-                    onChange={e => {
-                      setName(e.target.value)
-                      setErrors({})
-                      setError('')
+      <form onSubmit={onSubmit} className='mt-6 max-w-xl space-y-8'>
+        {/* Overview */}
+        <div>
+          <h3 className='mb-4 text-base font-medium text-gray-900'>Overview</h3>
+          <div className='mb-6 grid grid-cols-2 gap-2'>
+            {providers.map(
+              p =>
+                p.available && (
+                  <div
+                    key={p.name}
+                    onClick={() => {
+                      setKind(p.kind)
+                      setName(p.kind)
+                      router.replace(`/providers/add?type=${p.kind}`)
                     }}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.name && <ErrorMessage message={errors.name} />}
-                </div>
-              </div>
-            </div>
-
-            <div className='max-w-4xl space-y-1 pt-8'>
-              <div className='pb-2'>
-                <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Additional Information
-                </h3>
-                <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
-                  <a
-                    className='underline hover:text-gray-600'
-                    target='_blank'
-                    href={docLink()}
-                    rel='noreferrer'
                   >
-                    learn more
-                  </a>
-                </div>
-              </div>
-              <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
-                {kind !== 'google' && (
-                  <div className='sm:col-span-6 lg:col-span-5'>
-                    <label className='text-2xs font-medium text-gray-700'>
-                      URL (Domain)
-                    </label>
-                    <input
-                      required
-                      type='url'
-                      value={url}
-                      onChange={e => {
-                        setURL(e.target.value)
-                        setErrors({})
-                        setError('')
-                      }}
-                      className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                        errors.url ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.url && <ErrorMessage message={errors.url} />}
+                    <Provider {...p} currentKind={kind} />
                   </div>
-                )}
-
-                <div className='sm:col-span-6 lg:col-span-5'>
-                  <label className='text-2xs font-medium text-gray-700'>
-                    Client ID
-                  </label>
-                  <input
-                    required
-                    type='search'
-                    value={clientID}
-                    onChange={e => {
-                      setClientID(e.target.value)
-                      setErrors({})
-                      setError('')
-                    }}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                      errors.clientid ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.clientid && (
-                    <ErrorMessage message={errors.clientid} />
-                  )}
-                </div>
-
-                <div className='sm:col-span-6 lg:col-span-5'>
-                  <label className='text-2xs font-medium text-gray-700'>
-                    Client Secret
-                  </label>
-                  <input
-                    required
-                    type='password'
-                    value={clientSecret}
-                    onChange={e => {
-                      setClientSecret(e.target.value)
-                      setErrors({})
-                      setError('')
-                    }}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                      errors.clientsecret ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors.clientsecret && (
-                    <ErrorMessage message={errors.clientsecret} />
-                  )}
-                </div>
+                )
+            )}
+          </div>
+          <label className='text-2xs font-medium text-gray-700'>Name</label>
+          <input
+            required
+            type='text'
+            value={name}
+            onChange={e => {
+              setName(e.target.value)
+              setErrors({})
+              setError('')
+            }}
+            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              errors.name ? 'border-red-500' : 'border-gray-300'
+            }`}
+          />
+          {errors.name && <ErrorMessage message={errors.name} />}
+        </div>
+        <div className='w-full'>
+          <div className='mb-1 flex'>
+            <h3 className='text-base font-medium leading-6 text-gray-900'>
+              Additional Information
+            </h3>
+            &nbsp;
+            <a
+              className='text-gray-500 underline hover:text-gray-600'
+              target='_blank'
+              href={docLink()}
+              rel='noreferrer'
+            >
+              learn more
+            </a>
+          </div>
+          <div className='mt-6 space-y-3'>
+            {kind !== 'google' && (
+              <div>
+                <label className='text-2xs font-medium text-gray-700'>
+                  URL (Domain)
+                </label>
+                <input
+                  required
+                  type='text'
+                  value={url}
+                  onChange={e => {
+                    setURL(e.target.value)
+                    setErrors({})
+                    setError('')
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                    errors.url ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {errors.url && <ErrorMessage message={errors.url} />}
               </div>
+            )}
+
+            <div>
+              <label className='text-2xs font-medium text-gray-700'>
+                Client ID
+              </label>
+              <input
+                required
+                type='search'
+                value={clientID}
+                onChange={e => {
+                  setClientID(e.target.value)
+                  setErrors({})
+                  setError('')
+                }}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  errors.clientid ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.clientid && <ErrorMessage message={errors.clientid} />}
             </div>
 
-            {kind === 'google' && (
-              <div className='max-w-4xl space-y-1 pt-8'>
-                <div className='py-6'>
-                  <h3 className='text-base font-medium leading-6 text-gray-900'>
-                    Optional Information for Google Groups
-                  </h3>
-                  <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
-                    <a
-                      className='underline hover:text-gray-600'
-                      target='_blank'
-                      href='https://infrahq.com/docs/identity-providers/google#groups'
-                      rel='noreferrer'
-                    >
-                      learn more
-                    </a>
-                  </div>
-                </div>
-                <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
-                  <div className='sm:col-span-6 lg:col-span-5'>
-                    <label className='flex text-2xs font-medium text-gray-700'>
-                      Private Key
-                      <Tooltip
-                        message='upload the private key json file that was created for
-                        your service account'
-                      >
-                        <InformationCircleIcon className='mx-1 h-4 w-4' />
-                      </Tooltip>
-                    </label>
+            <div>
+              <label className='text-2xs font-medium text-gray-700'>
+                Client Secret
+              </label>
+              <input
+                required
+                type='password'
+                value={clientSecret}
+                onChange={e => {
+                  setClientSecret(e.target.value)
+                  setErrors({})
+                  setError('')
+                }}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  errors.clientsecret ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.clientsecret && (
+                <ErrorMessage message={errors.clientsecret} />
+              )}
+            </div>
+          </div>
+        </div>
 
-                    <input
-                      type='file'
-                      onChange={parseGoogleCredentialFile}
-                      className='mt-1 block w-full rounded-md py-[6px] file:mr-4 file:rounded-md file:border-0 file:bg-blue-50
+        {kind === 'google' && (
+          <div className='space-y-1'>
+            <div className='py-6'>
+              <h3 className='text-base font-medium leading-6 text-gray-900'>
+                Optional information for Google Groups
+              </h3>
+              <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
+                <a
+                  className='underline hover:text-gray-600'
+                  target='_blank'
+                  href='https://infrahq.com/docs/identity-providers/google#groups'
+                  rel='noreferrer'
+                >
+                  learn more
+                </a>
+              </div>
+            </div>
+            <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
+              <div className='sm:col-span-6 lg:col-span-5'>
+                <label className='flex text-2xs font-medium text-gray-700'>
+                  Private Key
+                  <Tooltip
+                    message='upload the private key json file that was created for
+                        your service account'
+                  >
+                    <InformationCircleIcon className='mx-1 h-4 w-4' />
+                  </Tooltip>
+                </label>
+
+                <input
+                  type='file'
+                  onChange={parseGoogleCredentialFile}
+                  className='mt-1 block w-full rounded-md py-[6px] file:mr-4 file:rounded-md file:border-0 file:bg-blue-50
                       file:py-2 file:px-4
                       file:text-sm file:font-semibold
                       file:text-blue-700 hover:file:bg-blue-100
                       sm:text-sm'
-                    />
-                    {errors.privatekey && (
-                      <ErrorMessage message={errors.privatekey} />
-                    )}
-                  </div>
-                  <div className='sm:col-span-6 lg:col-span-5'>
-                    <label className='text-2xs font-medium text-gray-700'>
-                      Workspace Domain Admin Email
-                    </label>
-                    <input
-                      spellCheck='false'
-                      type='email'
-                      value={domainAdminEmail}
-                      onChange={e => {
-                        setDomainAdminEmail(e.target.value)
-                        setErrors({})
-                        setError('')
-                      }}
-                      className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                        errors.domainadminemail
-                          ? 'border-red-500'
-                          : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.domainadminemail && (
-                      <ErrorMessage message={errors.domainadminemail} />
-                    )}
-                  </div>
-                </div>
+                />
+                {errors.privatekey && (
+                  <ErrorMessage message={errors.privatekey} />
+                )}
               </div>
-            )}
-          </div>
-          {error && <ErrorMessage message={error} center />}
-
-          <div className='pt-5 pb-3'>
-            <div className='flex items-center justify-end space-x-3'>
-              <button
-                type='submit'
-                disabled={!name || !url || !clientID || !clientSecret}
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'
-              >
-                Connect Provider
-              </button>
+              <div className='sm:col-span-6 lg:col-span-5'>
+                <label className='text-2xs font-medium text-gray-700'>
+                  Workspace Domain Admin Email
+                </label>
+                <input
+                  spellCheck='false'
+                  type='email'
+                  value={domainAdminEmail}
+                  onChange={e => {
+                    setDomainAdminEmail(e.target.value)
+                    setErrors({})
+                    setError('')
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                    errors.domainadminemail
+                      ? 'border-red-500'
+                      : 'border-gray-300'
+                  }`}
+                />
+                {errors.domainadminemail && (
+                  <ErrorMessage message={errors.domainadminemail} />
+                )}
+              </div>
             </div>
           </div>
-        </form>
-      </div>
+        )}
+        {error && <ErrorMessage message={error} center />}
+
+        <div className='flex items-center justify-end space-x-3 pt-5 pb-3'>
+          <button
+            type='submit'
+            className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+          >
+            Connect Provider
+          </button>
+        </div>
+      </form>
     </div>
   )
 }

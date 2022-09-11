@@ -10,7 +10,6 @@ import {
 } from '@heroicons/react/outline'
 
 import { useServerConfig } from '../../lib/serverconfig'
-import Breadcrumbs from '../../components/breadcrumbs'
 import Dashboard from '../../components/layouts/dashboard'
 import ErrorMessage from '../../components/error-message'
 
@@ -142,14 +141,9 @@ export default function DestinationsAdd() {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <Breadcrumbs>
-        <Link href='/destinations'>
-          <a>Clusters</a>
-        </Link>
-        Connect a cluster
-      </Breadcrumbs>
-      <div className='flex flex-col space-y-4 px-4 py-5 md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
-        <nav aria-label='Progress' className='py-10'>
+      <h1 className='my-6 py-1 text-xl font-medium'>Add Cluster</h1>
+      <div className='flex max-w-3xl flex-col space-y-4'>
+        <nav aria-label='Progress' className='py-4'>
           <ol
             role='list'
             className='space-y-4 md:flex md:space-y-0 md:space-x-8'
@@ -186,15 +180,15 @@ export default function DestinationsAdd() {
                   </div>
                 )}
                 {step?.status === 'upcoming' && (
-                  <div className='group flex flex-col border-l-4 border-gray-200 py-2 pl-4 hover:border-gray-300 md:border-l-0 md:border-t-4 md:pl-0 md:pt-4 md:pb-0'>
+                  <div className='group flex flex-col border-l-4 border-gray-200 py-2 pl-4 md:border-l-0 md:border-t-4 md:pl-0 md:pt-4 md:pb-0'>
                     <div className='flex items-start'>
                       <div
                         className='relative flex h-5 w-5 flex-shrink-0 items-center justify-center'
                         aria-hidden='true'
                       >
-                        <div className='h-2 w-2 rounded-full bg-gray-300 group-hover:bg-gray-400' />
+                        <div className='h-2 w-2 rounded-full bg-gray-300' />
                       </div>
-                      <p className='ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900'>
+                      <p className='ml-3 text-sm font-medium text-gray-500'>
                         {step?.name}
                       </p>
                     </div>

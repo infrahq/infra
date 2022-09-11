@@ -2,171 +2,351 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import useSWR from 'swr'
 import dayjs from 'dayjs'
+import { Menu, Transition, Dialog } from '@headlessui/react'
+import { Fragment, useState } from 'react'
+import { DotsHorizontalIcon, XIcon } from '@heroicons/react/outline'
 
-import { useAdmin } from '../../lib/admin'
+import { useServerConfig } from '../../lib/serverconfig'
 
-import Breadcrumbs from '../../components/breadcrumbs'
-import EmptyTable from '../../components/empty-table'
+import DeleteModal from '../../components/delete-modal'
+import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import Pagination from '../../components/pagination'
-import { UsersIcon } from '@heroicons/react/outline'
-import PageHeader from '../../components/page-header'
 
-function UserTable({ users }) {
-  const router = useRouter()
+function UsersAddDialog({ setOpen }) {
+  const [email, setEmail] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const { isEmailConfigured } = useServerConfig()
+
+  async function onSubmit(e) {
+    e.preventDefault()
+
+    setError('')
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: email,
+        }),
+      })
+      const user = await res.json()
+
+      if (!res.ok) {
+        throw user
+      }
+
+      setSuccess(true)
+      setPassword(user.oneTimePassword)
+    } catch (e) {
+      if (e.code === 409) {
+        setError('user with this email already exists')
+        return false
+      }
+
+      setError(e.message)
+
+      return false
+    }
+  }
 
   return (
-    <div className='overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg'>
-      <table className='min-w-full divide-y divide-gray-300'>
-        <thead className='bg-gray-50'>
-          <tr>
-            <th
-              scope='col'
-              className='py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6'
-            >
-              Name
-            </th>
-            <th
-              scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell'
-            >
-              Providers
-            </th>
-            <th
-              scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell'
-            >
-              Last Seen
-            </th>
-            <th
-              scope='col'
-              className='hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell'
-            >
-              Created
-            </th>
-          </tr>
-        </thead>
-        <tbody className='divide-y divide-gray-200 bg-white'>
-          {users?.map(user => (
-            <tr
-              key={user.id}
-              onClick={() => router.replace(`/users/${user.id}`)}
-              className='hover:cursor-pointer hover:bg-gray-100'
-            >
-              <td className='w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6'>
-                <div className='flex items-center py-1.5'>
-                  <div className='text-sm sm:max-w-[10rem]'>{user.name}</div>
-                </div>
-                <dl className='font-normal lg:hidden'>
-                  <dt className='sr-only sm:hidden'>Providers</dt>
-                  <dd className='mt-1 text-gray-700'>
-                    {user.providerNames?.map((provider, index) => (
-                      <span key={provider}>
-                        {provider}
-                        {index !== user.providerNames.length - 1 && <>, </>}
-                      </span>
-                    ))}
-                  </dd>
-                  <dt className='sr-only sm:hidden'>Last Seen</dt>
-                  <dd className='mt-1 truncate text-gray-700 sm:hidden'>
-                    {user?.lastSeenAt ? (
-                      <>{dayjs(user.lastSeenAt).fromNow()}</>
-                    ) : (
-                      '-'
-                    )}
-                  </dd>
-                  <dt className='sr-only sm:hidden'>Created</dt>
-                  <dd className='mt-1 text-gray-700 sm:hidden'>
-                    {user?.created ? (
-                      <>created {dayjs(user.created).fromNow()}</>
-                    ) : (
-                      '-'
-                    )}
-                  </dd>
-                </dl>
-              </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:max-w-[10rem] lg:table-cell'>
-                {user.providerNames?.map((provider, index) => (
-                  <span key={provider}>
-                    {provider}
-                    {index !== user.providerNames.length - 1 && <>, </>}
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='font-medium'>Add user</h1>
+      <div className='space-y-4'>
+        {success ? (
+          <div className='flex flex-col'>
+            {isEmailConfigured ? (
+              <h2 className='mt-5 text-sm'>
+                User added. The user has been emailed a link inviting them to
+                join.
+              </h2>
+            ) : (
+              <div>
+                <h2 className='mt-5 text-sm'>
+                  User added. Send the user this temporary password for their
+                  initial login. This password will not be shown again.
+                </h2>
+                <div className='mt-6 flex flex-col space-y-3'>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    Temporary Password
+                  </label>
+                  <span
+                    readOnly
+                    className='round-md my-0 w-full py-1 font-mono text-xs text-gray-600 focus:outline-none'
+                  >
+                    {password}
                   </span>
-                ))}
-              </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
-                <div className='flex items-center py-2'>
-                  {user?.lastSeenAt ? (
-                    <>{dayjs(user.lastSeenAt).fromNow()}</>
-                  ) : (
-                    '-'
-                  )}
                 </div>
-              </td>
-              <td className='hidden truncate px-3 py-4 text-sm text-gray-700 sm:table-cell sm:max-w-[10rem]'>
-                <div className='flex items-center py-2'>
-                  {user?.created ? <>{dayjs(user.created).fromNow()}</> : '-'}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            )}
+            <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
+              <button
+                onClick={() => {
+                  setSuccess(false)
+                  setEmail('')
+                  setPassword('')
+                }}
+                className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+              >
+                Add Another
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false)
+                }}
+                autoFocus
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-6 py-2 text-xs font-medium text-white hover:bg-gray-700'
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className='flex flex-col space-y-4'>
+            <div className='mb-4 flex flex-col'>
+              <div className='relative mt-4'>
+                <label className='text-2xs font-medium text-gray-700'>
+                  User Email
+                </label>
+                <input
+                  autoFocus
+                  spellCheck='false'
+                  type='email'
+                  value={email}
+                  onChange={e => {
+                    setEmail(e.target.value)
+                    setError('')
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                    error ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {error && (
+                  <p className='absolute text-xs text-red-500'>{error}</p>
+                )}
+              </div>
+            </div>
+            <div className='flex flex-row items-center justify-end space-x-3'>
+              <button
+                type='button'
+                onClick={() => setOpen(false)}
+                className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+              >
+                Cancel
+              </button>
+              <button
+                type='submit'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2.5 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+              >
+                Add User
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
 
 export default function Users() {
   const router = useRouter()
-  const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 13
-  const { data: { items, totalPages, totalCount } = {}, error } = useSWR(
-    `/api/users?page=${page}&limit=${limit}`
-  )
-  const { admin, loading: adminLoading } = useAdmin()
-  const users = items || []
+  const page = Math.max(parseInt(router.query.p) || 1, 1)
+  const limit = 20
+  const { data: { items: users, totalPages, totalCount } = {}, mutate } =
+    useSWR(`/api/users?page=${page}&limit=${limit}`)
+  const [open, setOpen] = useState(false)
 
-  const loading = adminLoading || (!users && !error)
+  const { data: { items: providers } = {} } = useSWR(`/api/providers?limit=999`)
+  const { data: auth } = useSWR('/api/users/self')
 
   return (
-    <div className='md:px-6 xl:px-10 2xl:m-auto 2xl:max-w-6xl'>
+    <div className='mb-10'>
       <Head>
         <title>Users - Infra</title>
       </Head>
-      <Breadcrumbs>Users</Breadcrumbs>
-      <div className='py-6'>
-        <PageHeader buttonHref={admin && '/users/add'} buttonLabel='User' />
-      </div>
-      <div className='px-4 sm:px-6 md:px-0'>
-        {!loading && (
-          <div className='flex flex-1 flex-col space-y-4'>
-            {error?.status ? (
-              <div className='my-20 text-center text-sm font-light text-gray-300'>
-                {error?.info?.message}
+
+      {/* Header */}
+      <header className='my-6 flex items-center justify-between'>
+        <h1 className='py-1 text-xl font-medium'>Users</h1>
+        <button
+          onClick={() => setOpen(true)}
+          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+        >
+          Add user
+        </button>
+
+        {/* Add dialog */}
+        <Transition.Root show={open} as={Fragment}>
+          <Dialog as='div' className='relative z-10' onClose={setOpen}>
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0'
+              enterTo='opacity-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100'
+              leaveTo='opacity-0'
+            >
+              <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+            </Transition.Child>
+            <div className='fixed inset-0 z-10 overflow-y-auto'>
+              <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                  enterTo='opacity-100 translate-y-0 sm:scale-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                  leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                >
+                  <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-sm'>
+                    <UsersAddDialog setOpen={setOpen} />
+                  </Dialog.Panel>
+                </Transition.Child>
               </div>
-            ) : (
-              <div className='flex min-h-0 flex-1 flex-col px-0 md:px-6 xl:px-0'>
-                <UserTable users={users} />
-                {users?.length === 0 && page === 1 && (
-                  <EmptyTable
-                    title='There are no users'
-                    subtitle='Invite users to Infra and manage their access.'
-                    iconPath='/users.svg'
-                    icon={<UsersIcon />}
+            </div>
+          </Dialog>
+        </Transition.Root>
+      </header>
+
+      {/* Table */}
+      <Table
+        onPageChange={({ pageIndex }) => {
+          router.push({
+            pathname: router.pathname,
+            query: { ...router.query, p: pageIndex + 1 },
+          })
+        }}
+        count={totalCount}
+        pageCount={totalPages}
+        pageIndex={parseInt(page) - 1}
+        pageSize={limit}
+        data={users}
+        columns={[
+          {
+            cell: info => (
+              <div className='truncate py-1 font-medium text-gray-700'>
+                {info.getValue()}
+              </div>
+            ),
+            header: <span>Name</span>,
+            accessorKey: 'name',
+          },
+          {
+            cell: info => (
+              <div className='hidden truncate lg:table-cell'>
+                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
+              </div>
+            ),
+            header: () => (
+              <span className='hidden lg:table-cell'>Last&nbsp;seen</span>
+            ),
+            accessorKey: 'lastSeenAt',
+          },
+          {
+            cell: info => (
+              <div className='hidden truncate md:table-cell'>
+                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
+              </div>
+            ),
+            header: () => (
+              <span className='hidden truncate md:table-cell'>Added</span>
+            ),
+            accessorKey: 'created',
+          },
+          {
+            cell: info => (
+              <div className='flex space-x-1'>
+                {info.getValue().map(pn => {
+                  const provider = providers?.find(p => p.name === pn)
+                  if (!provider) {
+                    return null
+                  }
+
+                  return (
+                    <img
+                      alt='provider icon'
+                      title={pn}
+                      key={pn}
+                      className='translate-[-50%] h-3.5'
+                      src={`/providers/${provider.kind}.svg`}
+                    />
+                  )
+                })}
+              </div>
+            ),
+            header: () => <span>Providers</span>,
+            accessorKey: 'providerNames',
+          },
+          {
+            id: 'actions',
+            cell: function Cell(info) {
+              const [open, setOpen] = useState(false)
+
+              if (info.row.original.id === auth?.id) {
+                return null
+              }
+
+              return (
+                <div className='flex justify-end'>
+                  <Menu as='div' className='relative inline-block text-left'>
+                    <Menu.Button className='cursor-pointer rounded-md border border-transparent px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'>
+                      <DotsHorizontalIcon className='z-0 h-[18px]' />
+                    </Menu.Button>
+                    <Transition
+                      as={Fragment}
+                      enter='transition ease-out duration-100'
+                      enterFrom='transform opacity-0 scale-95'
+                      enterTo='transform opacity-100 scale-100'
+                      leave='transition ease-in duration-75'
+                      leaveFrom='transform opacity-100 scale-100'
+                      leaveTo='transform opacity-0 scale-95'
+                    >
+                      <Menu.Items className='absolute right-0 z-10 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                        <div className='px-1 py-1'>
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                className={`${
+                                  active ? 'bg-gray-50' : 'bg-white'
+                                } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
+                                onClick={() => setOpen(true)}
+                              >
+                                <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
+                                Remove user
+                              </button>
+                            )}
+                          </Menu.Item>
+                        </div>
+                      </Menu.Items>
+                    </Transition>
+                  </Menu>
+                  <DeleteModal
+                    open={open}
+                    setOpen={setOpen}
+                    primaryButtonText='Remove'
+                    onSubmit={async () => {
+                      await fetch(`/api/users/${info.row.original.id}`, {
+                        method: 'DELETE',
+                      })
+                      setOpen(false)
+
+                      mutate({
+                        items: users.filter(u => u.id !== info.row.original.id),
+                      })
+                    }}
+                    title='Remove User'
+                    message='Are you sure you want to remove this user?'
                   />
-                )}
-              </div>
-            )}
-            {totalPages > 1 && (
-              <Pagination
-                curr={page}
-                totalPages={totalPages}
-                totalCount={totalCount}
-                limit={limit}
-              ></Pagination>
-            )}
-          </div>
-        )}
-      </div>
+                </div>
+              )
+            },
+          },
+        ]}
+      />
     </div>
   )
 }
