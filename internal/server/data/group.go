@@ -1,6 +1,9 @@
 package data
 
 import (
+	"fmt"
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
@@ -90,37 +93,25 @@ func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
 	return result, rows.Err()
 }
 
-func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := ListGroups(db, nil, selectors...)
+func DeleteGroup(tx WriteTxn, id uid.ID) error {
+	err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewGroupPolymorphicID(id)})
 	if err != nil {
-		return err
+		return fmt.Errorf("remove grants: %w", err)
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, g := range toDelete {
-		ids = append(ids, g.ID)
-
-		err := DeleteGrants(db, DeleteGrantsOptions{BySubject: g.PolyID()})
-		if err != nil {
-			return err
-		}
-
-		identities, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
-		if err != nil {
-			return err
-		}
-
-		var uidsToRemove []uid.ID
-		for _, id := range identities {
-			uidsToRemove = append(uidsToRemove, id.ID)
-		}
-		err = RemoveUsersFromGroup(db, g.ID, uidsToRemove)
-		if err != nil {
-			return err
-		}
+	_, err = tx.Exec(`DELETE from identities_groups WHERE group_id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("remove useres from group: %w", err)
 	}
 
-	return deleteAll[models.Group](db, ByIDs(ids))
+	stmt := `
+		UPDATE groups
+		SET deleted_at = ?
+		WHERE id = ?
+		AND deleted_at is null
+		AND organization_id = ?`
+	_, err = tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
+	return handleError(err)
 }
 
 func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
@@ -138,6 +129,9 @@ func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 	return handleError(err)
 }
 
+// RemoveUsersFromGroup removes any user ID listed in idsToRemove from the group
+// with ID groupID.
+// Note that DeleteGroup also removes users from the group.
 func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) error {
 	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id IN (?)`
 	_, err := tx.Exec(stmt, groupID, idsToRemove)

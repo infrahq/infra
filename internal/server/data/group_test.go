@@ -6,6 +6,7 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -134,30 +135,69 @@ var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
 
 func TestDeleteGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(tx, otherOrg))
+
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
 			product   = models.Group{Name: "Product"}
 		)
+		createGroups(t, tx, &everyone, &engineers, &product)
 
-		createGroups(t, db, &everyone, &engineers, &product)
+		someone := &models.Identity{
+			Name:   "someone@example.com",
+			Groups: []models.Group{everyone},
+		}
+		createIdentities(t, tx, someone)
 
-		_, err := GetGroup(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+		groupGrant := &models.Grant{
+			Subject:   uid.NewGroupPolymorphicID(everyone.ID),
+			Privilege: "admin",
+			Resource:  "any",
+		}
+		createGrants(t, tx, groupGrant)
 
-		err = DeleteGroups(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+		otherOrgGroup := &models.Group{Name: "Everyone"}
+		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
-		_, err = GetGroup(db, ByName(everyone.Name))
-		assert.Error(t, err, "record not found")
+		t.Run("success", func(t *testing.T) {
+			_, err := GetGroup(tx, ByID(everyone.ID))
+			assert.NilError(t, err)
 
-		// deleting a nonexistent group should not fail
-		err = DeleteGroups(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+			err = DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
 
-		// deleting an group should not delete unrelated groups
-		_, err = GetGroup(db, ByName(engineers.Name))
-		assert.NilError(t, err)
+			_, err = GetGroup(tx, ByID(everyone.ID))
+			assert.Error(t, err, "record not found")
+
+			// deleting a group should not delete unrelated groups
+			_, err = GetGroup(tx, ByID(engineers.ID))
+			assert.NilError(t, err)
+			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), ByID(otherOrgGroup.ID))
+			assert.NilError(t, err)
+
+			// grants and group membership should also be removed.
+			users, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+			assert.NilError(t, err)
+			assert.DeepEqual(t, users, []models.Identity{})
+
+			grants, err := ListGrants(tx, ListGrantsOptions{BySubject: groupGrant.Subject})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, grants, []models.Grant{}, cmpopts.EquateEmpty())
+		})
+		t.Run("delete non-existent", func(t *testing.T) {
+			err := DeleteGroup(tx, uid.ID(1234))
+			assert.NilError(t, err)
+		})
+		t.Run("delete already soft-deleted", func(t *testing.T) {
+			err := DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
+			err = DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
+		})
 	})
 }
 
@@ -171,7 +211,7 @@ func TestRecreateGroupSameName(t *testing.T) {
 
 		createGroups(t, db, &everyone, &engineers, &product)
 
-		err := DeleteGroups(db, ByName(everyone.Name))
+		err := DeleteGroup(db, everyone.ID)
 		assert.NilError(t, err)
 
 		err = CreateGroup(db, &models.Group{Name: everyone.Name})

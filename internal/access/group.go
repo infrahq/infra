@@ -74,12 +74,7 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 	if err != nil {
 		return HandleAuthErr(err, "group", "delete", models.InfraAdminRole)
 	}
-
-	selectors := []data.SelectorFunc{
-		data.ByID(id),
-	}
-
-	return data.DeleteGroups(db, selectors...)
+	return data.DeleteGroup(db, id)
 }
 
 func checkIdentitiesInList(db data.GormTxn, ids []uid.ID) ([]uid.ID, error) {
