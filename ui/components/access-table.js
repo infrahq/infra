@@ -18,7 +18,7 @@ export default function AccessTable({
       columns={[
         {
           id: 'subject',
-          header: 'User or Group',
+          header: 'User or group',
           cell: function Cell(info) {
             return (
               <div className='flex flex-col'>
