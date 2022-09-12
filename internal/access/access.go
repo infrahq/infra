@@ -35,9 +35,9 @@ const ResourceInfraAPI = "infra"
 
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
-	db := getDB(c)
-
-	identity := AuthenticatedIdentity(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
+	identity := rCtx.Authenticated.User
 	if identity == nil {
 		return nil, fmt.Errorf("no active identity")
 	}

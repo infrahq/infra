@@ -16,24 +16,8 @@ import (
 
 // isIdentitySelf is used by authorization checks to see if the calling identity is requesting their own attributes
 func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
-	identity := AuthenticatedIdentity(c)
+	identity := GetRequestContext(c).Authenticated.User
 	return identity != nil && identity.ID == userID, nil
-}
-
-// AuthenticatedIdentity returns the identity that is associated with the access key
-// that was used to authenticate the request.
-// Returns nil if there is no identity in the context, which likely means the
-// request was not authenticated.
-//
-// TODO: remove once all callers use RequestContext.Authenticated.User
-// See https://github.com/infrahq/infra/issues/2796
-func AuthenticatedIdentity(c *gin.Context) *models.Identity {
-	if raw, ok := c.Get("identity"); ok {
-		if identity, ok := raw.(*models.Identity); ok {
-			return identity
-		}
-	}
-	return nil
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {

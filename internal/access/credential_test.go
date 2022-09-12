@@ -96,7 +96,9 @@ func TestUpdateCredentials(t *testing.T) {
 	})
 
 	t.Run("Update own credentials is NOT single use password", func(t *testing.T) {
-		c.Set("identity", user)
+		rCtx := GetRequestContext(c)
+		rCtx.Authenticated.User = user
+		c.Set(RequestContextKey, rCtx)
 
 		err := UpdateCredential(c, user, "newPassword")
 		assert.NilError(t, err)
