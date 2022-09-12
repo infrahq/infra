@@ -10,21 +10,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func TestGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		everyone := models.Group{Name: "Everyone"}
-
-		err := db.Create(&everyone).Error
-		assert.NilError(t, err)
-
-		var group models.Group
-		err = db.First(&group, &models.Group{Name: everyone.Name}).Error
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != group.ID)
-		assert.Equal(t, everyone.Name, group.Name)
-	})
-}
-
 func TestCreateGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		everyone := models.Group{Name: "Everyone"}

@@ -7,6 +7,24 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type groupsTable models.Group
+
+func (g groupsTable) Table() string {
+	return "groups"
+}
+
+func (g groupsTable) Columns() []string {
+	return []string{"created_at", "created_by", "created_by_provider", "deleted_at", "id", "name", "organization_id", "updated_at"}
+}
+
+func (g groupsTable) Values() []any {
+	return []any{g.CreatedAt, g.CreatedBy, g.CreatedByProvider, g.DeletedAt, g.ID, g.Name, g.OrganizationID, g.UpdatedAt}
+}
+
+func (g *groupsTable) ScanFields() []any {
+	return []any{&g.CreatedAt, &g.CreatedBy, &g.CreatedByProvider, &g.DeletedAt, &g.ID, &g.Name, &g.OrganizationID, &g.UpdatedAt}
+}
+
 func CreateGroup(db GormTxn, group *models.Group) error {
 	return add(db, group)
 }
