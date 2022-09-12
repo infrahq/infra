@@ -115,6 +115,14 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
+	add(a, noAuthnWithOrg, route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
+		method:                     http.MethodGet,
+		path:                       "/link",
+		handler:                    a.VerifyAndRedirect,
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
+	})
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
 
@@ -174,6 +182,8 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 	bindRoute(a, group.RouterGroup, routeID, handler)
 }
 
+var redirectResponseType = reflect.TypeOf(api.RedirectResponse{})
+
 // wrapRoute builds a gin.HandlerFunc from a route. The returned function
 // provides functionality that is applicable to a large number of routes
 // (similar to middleware).
@@ -232,9 +242,28 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			a.t.RouteEvent(c, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
 		}
 
-		c.JSON(responseStatusCode(routeID.method, resp), resp)
+		if r, ok := responseIsRedirect(resp); ok {
+			c.Redirect(http.StatusPermanentRedirect, r.RedirectTo)
+		} else {
+			c.JSON(responseStatusCode(routeID.method, resp), resp)
+		}
 		return nil
 	}
+}
+
+func responseIsRedirect(resp any) (api.RedirectResponse, bool) {
+	respVal := reflect.ValueOf(resp)
+	if respVal.Kind() == reflect.Pointer && !respVal.IsNil() {
+		respVal = respVal.Elem()
+	}
+
+	if respVal.Type() != redirectResponseType {
+		return api.RedirectResponse{}, false
+	}
+
+	// nolint:forcetypeassert
+	redirectResponse := respVal.Interface().(api.RedirectResponse)
+	return redirectResponse, true
 }
 
 type statusCoder interface {

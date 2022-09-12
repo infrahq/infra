@@ -1,3 +1,5 @@
 Welcome to Infra!
 
 You can sign into your account any time from {{.Link}}
+
+Please verify your email address by clicking this link: {{.WrappedLink}}

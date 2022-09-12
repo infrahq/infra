@@ -8,6 +8,6 @@ type ForgottenDomainData struct {
 	Domains []models.ForgottenDomain
 }
 
-func SendForgotDomains(name, address string, data ForgottenDomainData) error {
+func SendForgotDomainsEmail(name, address string, data ForgottenDomainData) error {
 	return SendTemplate(name, address, EmailTemplateForgottenDomains, data)
 }

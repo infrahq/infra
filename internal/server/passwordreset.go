@@ -16,7 +16,7 @@ import (
 func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
 	// TODO: rate-limit
 
-	token, err := access.PasswordResetRequest(c, r.Email, 15*time.Minute)
+	token, user, err := access.PasswordResetRequest(c, r.Email, 15*time.Minute)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return nil, nil // This is okay. we don't notify the user if we failed to find the email.
@@ -27,8 +27,8 @@ func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) 
 	org := access.GetRequestContext(c).Authenticated.Organization
 
 	// send email
-	err = email.SendPasswordReset("", r.Email, email.PasswordResetData{
-		Link: fmt.Sprintf("https://%s/password-reset?token=%s", org.Domain, token),
+	err = email.SendPasswordResetEmail("", r.Email, email.PasswordResetData{
+		Link: wrapLinkWithVerification(fmt.Sprintf("https://%s/password-reset?token=%s", org.Domain, token), org.Domain, user.VerificationToken),
 	})
 	if err != nil {
 		return nil, err

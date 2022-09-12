@@ -90,12 +90,12 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		// hack because we don't have names.
 		fromName := email.BuildNameFromEmail(currentUser.Name)
 
-		token, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
+		token, user, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}
 
-		err = email.SendUserInvite("", user.Name, email.UserInviteData{
+		err = email.SendUserInviteEmail("", user.Name, email.UserInviteData{
 			FromUserName: fromName,
 			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})

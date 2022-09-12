@@ -161,7 +161,9 @@ CREATE TABLE identities (
     name text,
     last_seen_at timestamp with time zone,
     created_by bigint,
-    organization_id bigint
+    organization_id bigint,
+    verified boolean DEFAULT false NOT NULL,
+    verification_token text DEFAULT substr(replace(translate(encode(decode(md5((random())::text), 'hex'::text), 'base64'::text), '/+'::text, '=='::text), '='::text, ''::text), 1, 10) NOT NULL
 );
 
 CREATE TABLE identities_groups (
@@ -287,6 +289,8 @@ CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (organization_id, subjec
 CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_id, name) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (verification_token) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 

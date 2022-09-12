@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -150,8 +151,10 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
+	link := fmt.Sprintf("https://%s", suDetails.Org.Domain)
 	err = email.SendSignupEmail("", r.Name, email.SignupData{
-		Link: fmt.Sprintf("https://%s/login", suDetails.Org.Domain),
+		Link:        link,
+		WrappedLink: wrapLinkWithVerification(link, suDetails.Org.Domain, identity.VerificationToken),
 	})
 	if err != nil {
 		// if email failed, continue on anyway.
@@ -162,6 +165,11 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		User:         identity.ToAPI(),
 		Organization: suDetails.Org.ToAPI(),
 	}, nil
+}
+
+func wrapLinkWithVerification(link, domain, verificationToken string) string {
+	link = base64.URLEncoding.EncodeToString([]byte(link))
+	return fmt.Sprintf("https://%s/link?vt=%s&r=%s", domain, verificationToken, link)
 }
 
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {

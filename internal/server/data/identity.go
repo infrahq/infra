@@ -7,6 +7,7 @@ import (
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -128,6 +129,18 @@ func CreateIdentity(db GormTxn, identity *models.Identity) error {
 
 func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error) {
 	return get[models.Identity](db, selectors...)
+}
+
+func SetIdentityVerified(db GormTxn, token string) error {
+	q := querybuilder.New(`UPDATE identities SET verified = true`)
+	q.B("WHERE verified = ? AND verification_token = ? AND organization_id = ?", false, token, db.OrganizationID())
+
+	_, err := db.Exec(q.String(), q.Args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ListIdentities(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
