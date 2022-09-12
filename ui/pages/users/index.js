@@ -12,7 +12,7 @@ import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
-function UsersAddDialog({ setOpen }) {
+function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
   const [success, setSuccess] = useState(false)
   const [password, setPassword] = useState('')
@@ -39,6 +39,7 @@ function UsersAddDialog({ setOpen }) {
 
       setSuccess(true)
       setPassword(user.oneTimePassword)
+      onAdded(user)
     } catch (e) {
       if (e.code === 409) {
         setError('user with this email already exists')
@@ -203,7 +204,12 @@ export default function Users() {
                   leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
                 >
                   <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-sm'>
-                    <UsersAddDialog setOpen={setOpen} />
+                    <UsersAddDialog
+                      setOpen={setOpen}
+                      onAdded={() => {
+                        mutate()
+                      }}
+                    />
                   </Dialog.Panel>
                 </Transition.Child>
               </div>
@@ -334,9 +340,7 @@ export default function Users() {
                       })
                       setOpen(false)
 
-                      mutate({
-                        items: users.filter(u => u.id !== info.row.original.id),
-                      })
+                      mutate()
                     }}
                     title='Remove User'
                     message='Are you sure you want to remove this user?'

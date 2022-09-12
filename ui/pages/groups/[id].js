@@ -92,7 +92,7 @@ export default function GroupDetails() {
   const id = router.query.id
   const created = router.query.created
   const page = Math.max(parseInt(router.query.p) || 1, 1)
-  const limit = 10
+  const limit = 999
 
   const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
   const { admin } = useAdmin()

@@ -147,7 +147,7 @@ export default function DestinationDetail() {
         <div className='flex space-x-2'>
           {currentUserRoles && currentUserRoles?.length > 0 && (
             <Popover className='relative'>
-              <Popover.Button className='inline-flex items-center rounded-md border border-transparent bg-blue-500 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-600'>
+              <Popover.Button className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-blue-500 shadow-sm hover:text-blue-600'>
                 Access cluster
                 <ChevronDownIcon className='ml-1 h-4 w-4' />
               </Popover.Button>
