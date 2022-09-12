@@ -158,7 +158,7 @@ export default function Groups() {
             {
               cell: info => (
                 <div className='flex flex-col'>
-                  <div className='mb-0.5 font-medium text-gray-700'>
+                  <div className='mb-0.5 text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
                   <div className='text-xs text-gray-500'>

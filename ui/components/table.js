@@ -72,7 +72,7 @@ export default function Table({
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className={`border-gray-100 sm:max-w-[10rem] ${
+                    className={`truncate border-gray-100 text-sm sm:max-w-[10rem] ${
                       href ? '' : 'px-5 py-2.5'
                     }`}
                     key={cell.id}
@@ -129,7 +129,7 @@ export default function Table({
         </div>
       )}
       {data && data.length === 0 && empty && (
-        <div className='flex justify-center py-4 text-xs text-gray-400'>
+        <div className='flex justify-center py-8 text-sm text-gray-500'>
           {empty}
         </div>
       )}

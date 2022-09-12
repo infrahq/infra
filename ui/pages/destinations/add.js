@@ -141,7 +141,7 @@ export default function DestinationsAdd() {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <h1 className='my-6 py-1 text-xl font-medium'>Add Cluster</h1>
+      <h1 className='my-6 py-1 text-xl font-medium'>Connect Cluster</h1>
       <div className='flex max-w-3xl flex-col space-y-4'>
         <nav aria-label='Progress' className='py-4'>
           <ol

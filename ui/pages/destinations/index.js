@@ -57,10 +57,10 @@ export default function Destinations() {
                   />
                 </div>
                 <div className='flex flex-col'>
-                  <div className='mb-0.5 font-medium text-gray-700'>
+                  <div className='mb-0.5 text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  <div className='text-3xs text-gray-500'>
+                  <div className='text-xs text-gray-500'>
                     {info.row.original.resources?.length > 0 && (
                       <span>
                         {info.row.original.resources?.length}&nbsp;

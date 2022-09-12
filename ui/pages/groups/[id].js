@@ -162,9 +162,8 @@ export default function GroupDetails() {
             modalTitle='Remove group'
             modalMessage={
               <>
-                Are you sure you want to delete{' '}
-                <span className='font-bold'>{group?.name}</span>? This action
-                cannot be undone.
+                Are you sure you want to remove{' '}
+                <span className='font-bold'>{group?.name}</span>?
               </>
             }
           >

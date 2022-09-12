@@ -11,6 +11,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import Tooltip from '../../components/tooltip'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
@@ -267,20 +268,32 @@ export default function Users() {
             cell: info => (
               <div className='flex space-x-1'>
                 {info.getValue().map(pn => {
-                  const provider = providers?.find(p => p.name === pn)
-                  if (!provider) {
-                    return null
-                  }
+                  if (pn === 'infra') {
+                    return (
+                      <img
+                        alt='provider icon'
+                        title={pn}
+                        key={pn}
+                        className='translate-[-50%] h-3.5'
+                        src={`/icon.svg`}
+                      />
+                    )
+                  } else {
+                    const provider = providers?.find(p => p.name === pn)
+                    if (!provider) {
+                      return null
+                    }
 
-                  return (
-                    <img
-                      alt='provider icon'
-                      title={pn}
-                      key={pn}
-                      className='translate-[-50%] h-3.5'
-                      src={`/providers/${provider.kind}.svg`}
-                    />
-                  )
+                    return (
+                      <img
+                        alt='provider icon'
+                        title={pn}
+                        key={pn}
+                        className='translate-[-50%] h-3.5'
+                        src={`/providers/${provider.kind}.svg`}
+                      />
+                    )
+                  }
                 })}
               </div>
             ),
@@ -343,7 +356,15 @@ export default function Users() {
                       mutate()
                     }}
                     title='Remove User'
-                    message='Are you sure you want to remove this user?'
+                    message={
+                      <>
+                        Are you sure you want to remove{' '}
+                        <span className='font-bold'>
+                          {info.row.original.name}
+                        </span>
+                        ?
+                      </>
+                    }
                   />
                 </div>
               )

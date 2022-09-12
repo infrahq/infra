@@ -68,7 +68,10 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div className='hidden truncate lg:table-cell'>
+              <div
+                className='hidden truncate lg:table-cell'
+                title={info.getValue()}
+              >
                 {info.getValue()}
               </div>
             ),
@@ -77,7 +80,10 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div className='hidden truncate font-mono lg:table-cell'>
+              <div
+                className='hidden truncate font-mono lg:table-cell'
+                title={info.getValue()}
+              >
                 {info.getValue()}
               </div>
             ),
@@ -116,11 +122,11 @@ export default function Providers() {
                     title='Remove Identity Provider'
                     message={
                       <>
-                        Are you sure you want to delete{' '}
+                        Are you sure you want to remove{' '}
                         <span className='font-bold'>
                           {info.row.original.name}
                         </span>
-                        ? This action cannot be undone.
+                        ?
                       </>
                     }
                   />
