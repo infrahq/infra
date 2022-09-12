@@ -51,7 +51,7 @@ function AccessCluster({ roles, resource }) {
         access.
       </p>
       <div className='group relative mt-4 flex flex-1 flex-col'>
-        <pre className='w-full flex-1 overflow-auto break-all bg-neutral-900 p-6 py-5 text-2xs leading-normal text-gray-300'>
+        <pre className='w-full flex-1 overflow-auto break-all bg-zinc-900 p-6 py-5 text-2xs leading-normal text-gray-300'>
           {command}
         </pre>
         <button
