@@ -34,24 +34,26 @@ function AccessCluster({ roles, resource }) {
   return (
     <div className='w-full flex-1'>
       <div className='mx-6 mt-4 mb-1 flex items-center justify-between text-sm'>
-        <h1 className='flex items-center font-semibold'>Access cluster</h1>
+        <h1 className='flex items-center font-semibold text-black'>
+          Access cluster
+        </h1>
         <a
           target='_blank'
           href='https://infrahq.com/docs/install/install-infra-cli'
-          className='flex items-center text-xs font-medium text-gray-300 hover:text-gray-400'
+          className='flex items-center text-xs font-medium text-gray-800 hover:text-gray-400'
           rel='noreferrer'
         >
           <DownloadIcon className='mr-1 h-3.5 w-3.5' />
           Infra CLI
         </a>
       </div>
-      <p className='mx-6 my-4 text-xs text-gray-300'>
+      <p className='mx-6 my-4 text-xs text-gray-800'>
         You have{' '}
-        <span className='font-semibold text-white'>{roles.join(', ')}</span>{' '}
+        <span className='font-semibold text-black'>{roles.join(', ')}</span>{' '}
         access.
       </p>
       <div className='group relative mt-4 flex flex-1 flex-col'>
-        <pre className='w-full flex-1 overflow-auto break-all bg-neutral-900 p-6 py-5 text-2xs leading-normal text-gray-300'>
+        <pre className='w-full flex-1 overflow-auto break-all bg-gray-100 p-6 py-5 text-2xs leading-normal text-gray-900'>
           {command}
         </pre>
         <button
@@ -158,7 +160,7 @@ export default function DestinationDetail() {
                 leaveFrom='transform opacity-100 scale-100 translate-y-1'
                 leaveTo='transform opacity-0 scale-90 translate-y-0'
               >
-                <Popover.Panel className='absolute right-0 z-10 flex w-80 overflow-hidden rounded-xl bg-[#000] text-white shadow-2xl shadow-black/40'>
+                <Popover.Panel className='absolute right-0 z-10 my-2 flex w-80 overflow-hidden rounded-xl border border-gray-300 bg-white text-white shadow-2xl shadow-black/40'>
                   <AccessCluster
                     userID={auth?.id}
                     roles={currentUserRoles}

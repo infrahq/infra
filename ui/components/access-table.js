@@ -11,6 +11,7 @@ export default function AccessTable({
   destination,
   onRemove,
   onChange,
+  inherited,
 }) {
   return (
     <Table

@@ -216,7 +216,6 @@ export default function GroupDetails() {
         data={users}
         empty='No users'
         onPageChange={({ pageIndex }) => {
-          console.log(pageIndex)
           router.push({
             pathname: router.pathname,
             query: { ...router.query, p: pageIndex + 1 },
