@@ -220,3 +220,53 @@ func TestAddUsersToGroup(t *testing.T) {
 		})
 	})
 }
+
+func TestRemoveUsersFromGroup(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		everyone := models.Group{Name: "Everyone"}
+		other := models.Group{Name: "Other"}
+		createGroups(t, tx, &everyone, &other)
+
+		bond := models.Identity{
+			Name:   "jbond@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		bourne := models.Identity{
+			Name:   "jbourne@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		bauer := models.Identity{
+			Name:   "jbauer@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		forth := models.Identity{
+			Name:   "forth@example.com",
+			Groups: []models.Group{everyone},
+		}
+		createIdentities(t, tx, &bond, &bourne, &bauer, &forth)
+
+		users, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, len(users), 4)
+
+		users, err = ListIdentities(tx, nil, ByOptionalIdentityGroupID(other.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, len(users), 3)
+
+		err = RemoveUsersFromGroup(tx, everyone.ID, []uid.ID{bond.ID, bourne.ID, forth.ID})
+		assert.NilError(t, err)
+
+		actual, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+		assert.NilError(t, err)
+		expected := []models.Identity{bauer}
+		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+		actual, err = ListIdentities(tx, nil, ByOptionalIdentityGroupID(other.ID))
+		assert.NilError(t, err)
+		expected = []models.Identity{bauer, bond, bourne}
+		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+	})
+}

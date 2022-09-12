@@ -138,14 +138,10 @@ func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 	return handleError(err)
 }
 
-func RemoveUsersFromGroup(db GormTxn, groupID uid.ID, idsToRemove []uid.ID) error {
-	for _, id := range idsToRemove {
-		_, err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) error {
+	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id IN (?)`
+	_, err := tx.Exec(stmt, groupID, idsToRemove)
+	return handleError(err)
 }
 
 // TODO: do this with a join in ListGroups and GetGroup
