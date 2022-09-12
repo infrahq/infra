@@ -48,19 +48,19 @@ export default function Destinations() {
         columns={[
           {
             cell: info => (
-              <div className='flex flex-row py-1'>
-                <div className='mr-2.5 flex h-8 w-8 flex-none items-center justify-center rounded-md border border-gray-200'>
+              <div className='flex flex-row items-center py-1'>
+                <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
                   <img
                     alt='kubernetes icon'
-                    className='h-[18px]'
+                    className='h-5'
                     src={`/kubernetes.svg`}
                   />
                 </div>
                 <div className='flex flex-col'>
-                  <div className='mb-0.5 text-sm font-medium text-gray-700'>
+                  <div className='text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  <div className='text-xs text-gray-500'>
+                  <div className='text-2xs text-gray-500'>
                     {info.row.original.resources?.length > 0 && (
                       <span>
                         {info.row.original.resources?.length}&nbsp;
@@ -87,9 +87,7 @@ export default function Destinations() {
           },
           {
             cell: info => (
-              <span className='hidden font-mono text-2xs lg:table-cell'>
-                {info.getValue()}
-              </span>
+              <span className='hidden lg:table-cell'>{info.getValue()}</span>
             ),
             header: () => (
               <span className='hidden lg:table-cell'>Connector Version</span>
@@ -103,7 +101,7 @@ export default function Destinations() {
                   className={`h-2 w-2 flex-none rounded-full border ${
                     info.getValue()
                       ? ' border-teal-500/50 bg-teal-400'
-                      : 'border-gray-200 bg-gray-100'
+                      : 'border-gray-300 bg-gray-200'
                   }`}
                 />
                 <span className='flex-none px-2'>

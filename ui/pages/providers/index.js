@@ -44,7 +44,7 @@ export default function Providers() {
           {
             cell: info => (
               <div className='flex items-center font-medium text-gray-700'>
-                <div className='mr-2 flex h-8 w-8 flex-none items-center justify-center rounded-md border border-gray-200'>
+                <div className='mr-2.5 flex h-8 w-8 flex-none items-center justify-center rounded-md border border-gray-200'>
                   <img
                     alt='provider icon'
                     className='h-4'
