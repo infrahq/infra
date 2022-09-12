@@ -2,5 +2,5 @@ apiVersion: v2
 name: infra
 description: A Helm chart for Infra
 type: application
-version: 0.20.2
+version: 0.20.3
 appVersion: 0.15.1

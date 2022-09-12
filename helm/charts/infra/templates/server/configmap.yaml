@@ -7,10 +7,66 @@ metadata:
 {{- include "server.labels" . | nindent 4 }}
 data:
   infra.yaml: |
-{{- range $key, $val := omit .Values.server.config "addr" "ui" "providers" "grants" "users" "identities" "secrets" "keys" }}
-{{- if $val }}
+    version: 0.2
+{{- $config := deepCopy .Values.server.config }}
+
+    addr:
+{{- range $key, $val := $config.addr }}
+      {{ $key }}: ':{{ $val }}'
+{{- end }}
+{{- $config = unset $config "addr" }}
+
+    secrets:
+{{- .Values.server.additionalSecrets | default list | concat $config.secrets | uniq | toYaml | nindent 6 }}
+{{- $config = unset $config "secrets" }}
+
+    providers:
+{{- .Values.server.additionalProviders | default list | concat $config.providers | uniq | toYaml | nindent 6 }}
+{{- $config = unset $config "providers" }}
+
+    grants:
+{{- .Values.server.additionalGrants | default list | concat $config.grants | uniq | toYaml | nindent 6 }}
+{{- $config = unset $config "grants" }}
+
+    users:
+{{- $users := .Values.server.additionalUsers | default list | concat $config.users }}
+{{- if include "connector.enabled" . | eq "true" }}
+{{- $accessKey := default "" .Values.connector.config.accessKey -}}
+{{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
+{{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}
+{{- end }}
+{{- $users = append $users (dict "name" "connector" "accessKey" $accessKey) }}
+{{- end }}
+{{- $users | uniq | toYaml | nindent 6 }}
+{{- $config = unset $config "users" }}
+
+    tls:
+{{- $defaultTLSValues := dict "ca" "/var/run/secrets/infrahq.com/tls-ca/ca.crt" "caPrivateKey" "file:/var/run/secrets/infrahq.com/tls-ca/ca.key" }}
+{{- $config.tls | default $defaultTLSValues | toYaml | nindent 6 }}
+{{- $config = unset $config "tls" }}
+
+    dbEncryptionKey: {{ $config.dbEncryptionKey | default "/var/run/secrets/infrahq.com/encryption-key/key" }}
+{{- $config = unset $config "dbEncryptionKey" }}
+
+    ui:
+{{- $defaultUIProxyURL := "" }}
+{{- if include "ui.enabled" . | eq "true" }}
+{{- $defaultUIProxyURL = printf "http://%s.%s:3000" (include "ui.fullname" .) .Release.Namespace }}
+{{- end }}
+{{- $defaultUIValues := dict "proxyURL" $defaultUIProxyURL }}
+{{- $config.ui | default $defaultUIValues | toYaml | nindent 6 }}
+{{- $config = unset $config "ui" }}
+
+{{- if include "postgres.enabled" . | eq "true" }}
+
+    dbHost: {{ include "postgres.fullname" . }}.{{ .Release.Namespace }}
+    dbPort: {{ .Values.postgres.service.port }}
+    dbName: {{ .Values.postgres.dbName }}
+    dbUsername: {{ .Values.postgres.dbUsername }}
+{{- end }}
+
+{{- range $key, $val := $config }}
 {{- if kindIs "invalid" $val }}
-    # skipping invalid value: {{ $val }} ({{ kindOf $val }})
 {{- else if kindIs "map" $val }}
     {{ $key }}:
 {{- $val | toYaml | nindent 6 }}
@@ -23,59 +79,5 @@ data:
     {{ $key }}: {{ $val }}
 {{- end }}
 {{- end }}
-{{- end }}
 
-    version: 0.2
-
-    addr:
-{{- range $key, $val := .Values.server.config.addr }}
-      {{ $key }}: ':{{ $val }}'
-{{- end }}
-
-{{- if not .Values.server.config.dbEncryptionKey }}
-    dbEncryptionKey: /var/run/secrets/infrahq.com/encryption-key/key
-{{- end }}
-
-{{- if not .Values.server.config.tls }}
-    tls:
-      ca: "/var/run/secrets/infrahq.com/tls-ca/ca.crt"
-      caPrivateKey: "file:/var/run/secrets/infrahq.com/tls-ca/ca.key"
-{{- end }}
-
-{{- if include "postgres.enabled" . | eq "true" }}
-    dbHost: {{ include "postgres.fullname" . }}
-    dbPort: {{ .Values.postgres.service.port }}
-    dbName: {{ .Values.postgres.dbName }}
-    dbUsername: {{ .Values.postgres.dbUsername }}
-{{- end }}
-
-    providers:
-{{- .Values.server.additionalProviders | default list | concat .Values.server.config.providers | uniq | toYaml | nindent 6 }}
-
-    grants:
-{{- .Values.server.additionalGrants | default list | concat .Values.server.config.grants | uniq | toYaml | nindent 6 }}
-
-    users:
-{{- $users := .Values.server.additionalUsers | default list | concat .Values.server.config.users }}
-
-{{- if include "connector.enabled" . | eq "true" }}
-{{- $accessKey := default "" .Values.connector.config.accessKey -}}
-{{- if or (not $accessKey) (and (not (hasPrefix "file:" $accessKey)) (not (hasPrefix "env:" $accessKey))) }}
-{{- $accessKey = "env:CONNECTOR_ACCESS_KEY" }}
-{{- end }}
-{{- $users = append $users (dict "name" "connector" "accessKey" $accessKey) }}
-{{- end }}
-
-{{- $users | uniq | toYaml | nindent 6 }}
-
-{{- if .Values.server.config.ui.proxyURL }}
-    ui:
-      proxyURL: {{ .Values.server.config.ui.proxyURL }}
-{{- else if (include "ui.enabled" . | eq "true") }}
-    ui:
-      proxyURL: http://{{ include "ui.fullname" . }}.{{ .Release.Namespace }}:3000
-{{- end }}
-
-    secrets:
-{{- .Values.server.additionalSecrets | default list | concat .Values.server.config.secrets | uniq | toYaml | nindent 6 }}
 {{- end }}
