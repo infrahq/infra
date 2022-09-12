@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -67,13 +68,62 @@ func TestGetGroup(t *testing.T) {
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
 			product   = models.Group{Name: "Product"}
+			deleted   = models.Group{Name: "Removed"}
 		)
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
+		createGroups(t, db, &everyone, &engineers, &product, &deleted)
 
-		createGroups(t, db, &everyone, &engineers, &product)
+		first := &models.Identity{
+			Name:   "first@example.com",
+			Groups: []models.Group{everyone, engineers},
+		}
+		second := &models.Identity{
+			Name:   "second@example.com",
+			Groups: []models.Group{everyone},
+		}
+		createIdentities(t, db, first, second)
 
-		group, err := GetGroup(db, ByName(everyone.Name))
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != group.ID)
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
+
+		otherOrgTx := txnForTestCase(t, db, otherOrg.ID)
+		otherGroup := models.Group{Name: "Everyone"}
+		createGroups(t, otherOrgTx, &otherGroup)
+		createIdentities(t, otherOrgTx, &models.Identity{
+			Name:   "first@example.com",
+			Groups: []models.Group{otherGroup},
+		})
+		assert.NilError(t, otherOrgTx.Commit())
+
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetGroup(db, GetGroupOptions{})
+			assert.ErrorContains(t, err, "requires an ID")
+		})
+		t.Run("by name", func(t *testing.T) {
+			actual, err := GetGroup(db, GetGroupOptions{ByName: everyone.Name})
+			assert.NilError(t, err)
+
+			expected := everyone
+			expected.TotalUsers = 2
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision)
+		})
+		t.Run("by id", func(t *testing.T) {
+			actual, err := GetGroup(db, GetGroupOptions{ByID: engineers.ID})
+			assert.NilError(t, err)
+
+			expected := engineers
+			expected.TotalUsers = 1
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision)
+		})
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetGroup(db, GetGroupOptions{ByID: uid.ID(999)})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("not found soft deleted", func(t *testing.T) {
+			_, err := GetGroup(db, GetGroupOptions{ByID: deleted.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 
@@ -164,19 +214,19 @@ func TestDeleteGroup(t *testing.T) {
 		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
 		t.Run("success", func(t *testing.T) {
-			_, err := GetGroup(tx, ByID(everyone.ID))
+			_, err := GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
 			assert.NilError(t, err)
 
 			err = DeleteGroup(tx, everyone.ID)
 			assert.NilError(t, err)
 
-			_, err = GetGroup(tx, ByID(everyone.ID))
+			_, err = GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
 			assert.Error(t, err, "record not found")
 
 			// deleting a group should not delete unrelated groups
-			_, err = GetGroup(tx, ByID(engineers.ID))
+			_, err = GetGroup(tx, GetGroupOptions{ByID: engineers.ID})
 			assert.NilError(t, err)
-			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), ByID(otherOrgGroup.ID))
+			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), GetGroupOptions{ByID: otherOrgGroup.ID})
 			assert.NilError(t, err)
 
 			// grants and group membership should also be removed.

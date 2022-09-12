@@ -111,7 +111,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 
-	group, err = data.GetGroup(db, data.ByID(group.ID))
+	group, err = data.GetGroup(db, data.GetGroupOptions{ByID: group.ID})
 	assert.NilError(t, err)
 	assert.Equal(t, group.TotalUsers, 0)
 }

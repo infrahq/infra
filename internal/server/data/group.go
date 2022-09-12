@@ -33,18 +33,41 @@ func CreateGroup(tx WriteTxn, group *models.Group) error {
 	return insert(tx, (*groupsTable)(group))
 }
 
-func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
-	group, err := get[models.Group](db, selectors...)
-	if err != nil {
-		return nil, err
+type GetGroupOptions struct {
+	// ByID instructs GetGroup to return the group matching this ID.
+	ByID uid.ID
+	// ByName instructs GetGroup to return the group matching this name.
+	ByName string
+}
+
+func GetGroup(tx ReadTxn, opts GetGroupOptions) (*models.Group, error) {
+	group := &groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(group))
+	query.B("FROM groups")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	default:
+		return nil, fmt.Errorf("GetGroup requires an ID")
 	}
 
-	count, err := CountUsersInGroup(db, group.ID)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(group.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	count, err := countUsersInGroup(tx, group.ID)
 	if err != nil {
 		return nil, err
 	}
 	group.TotalUsers = int(count)
-	return group, nil
+	return (*models.Group)(group), nil
 }
 
 func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
@@ -54,7 +77,7 @@ func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.
 	}
 
 	for i := range groups {
-		count, err := CountUsersInGroup(db, groups[i].ID)
+		count, err := countUsersInGroup(db, groups[i].ID)
 		if err != nil {
 			return nil, err
 		}
@@ -136,14 +159,9 @@ func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) err
 	return handleError(err)
 }
 
-// TODO: do this with a join in ListGroups and GetGroup
-func CountUsersInGroup(tx GormTxn, groupID uid.ID) (int64, error) {
-	db := tx.GormDB()
+func countUsersInGroup(tx ReadTxn, groupID uid.ID) (int64, error) {
+	stmt := `SELECT count(*) FROM identities_groups WHERE group_id = ?`
 	var count int64
-	err := db.Table("identities_groups").Where("group_id = ?", groupID).Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
+	err := tx.QueryRow(stmt, groupID).Scan(&count)
+	return count, handleError(err)
 }
