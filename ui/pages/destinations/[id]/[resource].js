@@ -80,40 +80,36 @@ export default function ResourceDetail() {
             {admin && (
               <div>
                 <div className='flex flex-col space-y-2'>
-                  <div className='flex justify-between'>
-                    <h2 className='py-2 text-lg font-medium text-gray-600'>
-                      Access
-                    </h2>
-                    <div className='max-w-md'>
-                      <GrantForm
-                        roles={roles}
-                        onSubmit={async ({ user, group, privilege }) => {
-                          // don't add grants that already exist
-                          if (
-                            grants?.find(
-                              g =>
-                                g.user === user &&
-                                g.group === group &&
-                                g.privilege === privilege
-                            )
-                          ) {
-                            return false
-                          }
+                  <div className='w-full rounded-lg border border-gray-100 px-5 py-3'>
+                    <h3 className='mb-3 text-base font-medium'>Grant access</h3>
+                    <GrantForm
+                      roles={roles}
+                      onSubmit={async ({ user, group, privilege }) => {
+                        // don't add grants that already exist
+                        if (
+                          grants?.find(
+                            g =>
+                              g.user === user &&
+                              g.group === group &&
+                              g.privilege === privilege
+                          )
+                        ) {
+                          return false
+                        }
 
-                          const res = await fetch('/api/grants', {
-                            method: 'POST',
-                            body: JSON.stringify({
-                              user,
-                              group,
-                              privilege,
-                              resource: namespaceResource,
-                            }),
-                          })
+                        const res = await fetch('/api/grants', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            user,
+                            group,
+                            privilege,
+                            resource: namespaceResource,
+                          }),
+                        })
 
-                          mutate({ items: [...grants, await res.json()] })
-                        }}
-                      />
-                    </div>
+                        mutate({ items: [...grants, await res.json()] })
+                      }}
+                    />
                   </div>
                   <AccessTable
                     grants={grants}

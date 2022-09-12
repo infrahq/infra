@@ -224,8 +224,9 @@ export default function DestinationDetail() {
       </div>
 
       {tab === TAB_ACCESS && (
-        <div className='flex flex-col space-y-1'>
-          <div className='max-w-md self-end'>
+        <div className='my-5 flex flex-col space-y-4'>
+          <div className='w-full rounded-lg border border-gray-100 px-5 py-3'>
+            <h3 className='mb-3 text-base font-medium'>Grant access</h3>
             <GrantForm
               roles={destination?.roles}
               onSubmit={async ({ user, group, privilege }) => {

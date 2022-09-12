@@ -37,9 +37,11 @@ export default function AccessTable({
         },
         {
           accessorKey: 'created',
-          header: 'Last edited',
+          header: (
+            <span className='hidden truncate lg:table-cell'>Last edited</span>
+          ),
           cell: info => (
-            <div className='truncate'>
+            <div className='hidden truncate lg:table-cell'>
               {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
             </div>
           ),
