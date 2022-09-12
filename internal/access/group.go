@@ -130,9 +130,16 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	err = data.AddUsersToGroup(db, groupID, addIDList)
-	if err != nil {
-		return err
+	if len(addIDList) > 0 {
+		if err := data.AddUsersToGroup(db, groupID, addIDList); err != nil {
+			return err
+		}
 	}
-	return data.RemoveUsersFromGroup(db, groupID, rmIDList)
+
+	if len(rmIDList) > 0 {
+		if err := data.RemoveUsersFromGroup(db, groupID, rmIDList); err != nil {
+			return err
+		}
+	}
+	return nil
 }

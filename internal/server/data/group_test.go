@@ -181,38 +181,42 @@ func TestRecreateGroupSameName(t *testing.T) {
 
 func TestAddUsersToGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var everyone = models.Group{Name: "Everyone"}
-		createGroups(t, db, &everyone)
+		everyone := models.Group{Name: "Everyone"}
+		other := models.Group{Name: "Other"}
+		createGroups(t, db, &everyone, &other)
 
 		var (
 			bond = models.Identity{
 				Name:   "jbond@infrahq.com",
 				Groups: []models.Group{everyone},
 			}
-			bourne = models.Identity{
-				Name:   "jbourne@infrahq.com",
-				Groups: []models.Group{},
-			}
-			bauer = models.Identity{Name: "jbauer@infrahq.com",
-				Groups: []models.Group{},
+			bourne = models.Identity{Name: "jbourne@infrahq.com"}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+			forth  = models.Identity{
+				Name:   "forth@example.com",
+				Groups: []models.Group{everyone},
 			}
 		)
 
-		createIdentities(t, db, &bond, &bourne, &bauer)
+		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
 
 		t.Run("add identities to group", func(t *testing.T) {
-			actual, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
 			assert.NilError(t, err)
-			expected := []models.Identity{bond}
+			expected := []models.Identity{forth, bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID})
+			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID, forth.ID})
 			assert.NilError(t, err)
 
-			actual, err = ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err = ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
 			assert.NilError(t, err)
-			expected = []models.Identity{bauer, bond, bourne}
+			expected = []models.Identity{forth, bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+			actual, err = ListIdentities(db, nil, ByOptionalIdentityGroupID(other.ID))
+			assert.NilError(t, err)
+			assert.Equal(t, len(actual), 0)
 		})
 	})
 }

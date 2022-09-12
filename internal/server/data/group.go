@@ -3,6 +3,7 @@ package data
 import (
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -122,16 +123,19 @@ func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
 	return deleteAll[models.Group](db, ByIDs(ids))
 }
 
-func AddUsersToGroup(db GormTxn, groupID uid.ID, idsToAdd []uid.ID) error {
-	for _, id := range idsToAdd {
-		// This is effectively an "INSERT OR IGNORE" or "INSERT ... ON CONFLICT ... DO NOTHING" statement which
-		// works across both sqlite and postgres
-		_, err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id)
-		if err != nil {
-			return err
+func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
+	query := querybuilder.New("INSERT INTO identities_groups(group_id, identity_id)")
+	query.B("VALUES")
+	for i, id := range idsToAdd {
+		query.B("(?, ?)", groupID, id)
+		if i+1 != len(idsToAdd) {
+			query.B(",")
 		}
 	}
-	return nil
+	query.B("ON CONFLICT DO NOTHING")
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
 func RemoveUsersFromGroup(db GormTxn, groupID uid.ID, idsToRemove []uid.ID) error {
