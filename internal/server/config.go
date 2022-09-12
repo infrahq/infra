@@ -773,7 +773,10 @@ func (s Server) loadGrants(db data.GormTxn, grants []Grant) error {
 	}
 
 	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteGrants(db, data.DeleteGrantsOptions{
+		NotIDs:      keep,
+		ByCreatedBy: models.CreatedBySystem,
+	}); err != nil {
 		return err
 	}
 
@@ -831,7 +834,11 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 		input.Role = models.BasePermissionConnect
 	}
 
-	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	grant, err := data.GetGrant(db, data.GetGrantOptions{
+		BySubject:   id,
+		ByResource:  input.Resource,
+		ByPrivilege: input.Role,
+	})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err

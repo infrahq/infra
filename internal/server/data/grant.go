@@ -3,12 +3,14 @@ package data
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -62,26 +64,92 @@ func isPgErrorCode(err error, code string) bool {
 	return errors.As(err, &pgError) && pgError.Code == code
 }
 
-func GetGrant(db GormTxn, selectors ...SelectorFunc) (*models.Grant, error) {
-	return get[models.Grant](db, selectors...)
+type GetGrantOptions struct {
+	// ByID instructs GetGrant to return the grant with this primary key ID.
+	// When set all other fields on this struct are ignored.
+	ByID uid.ID
+
+	// BySubject instructs GetGrant to return the grant with this subject. Must
+	// be used with ByPrivilege, and ByResource.
+	BySubject uid.PolymorphicID
+	// ByPrivilege instructs GetGrant to return the grant with this privilege. Must
+	// be used with BySubject, and ByResource.
+	ByPrivilege string
+	// ByResource instructs GetGrant to return the grant with this resource. Must
+	// be used with BySubject, and ByPrivilege.
+	ByResource string
+}
+
+func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
+	table := &grantsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	query.B("FROM grants")
+	query.B("WHERE organization_id = ?", tx.OrganizationID())
+	query.B("AND deleted_at is null")
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.BySubject != "":
+		query.B("AND subject = ?", opts.BySubject)
+		query.B("AND privilege = ?", opts.ByPrivilege)
+		query.B("AND resource = ?", opts.ByResource)
+	default:
+		return nil, fmt.Errorf("GetGrant requires an ID or subject")
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(table.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.Grant)(table), nil
 }
 
 func ListGrants(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Grant, error) {
 	return list[models.Grant](db, p, selectors...)
 }
 
-func DeleteGrants(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.Grant](db, nil, selectors...)
-	if err != nil {
-		return err
+type DeleteGrantsOptions struct {
+	// ByID instructs DeleteGrants to delete the grant with this ID. When set
+	// all other fields on this struct are ignored.
+	ByID uid.ID
+	// BySubject instructs DeleteGrants to delete all grants that match this
+	// subject. When set other fields below this on this struct are ignored.
+	BySubject uid.PolymorphicID
+
+	// ByCreatedBy instructs DeleteGrants to delete all the grants that were
+	// created by this user. Can be used with NotIDs
+	ByCreatedBy uid.ID
+	// NotIDs instructs DeleteGrants to exclude any grants with these IDs to
+	// be excluded. In other words, these IDs will not be deleted, even if they
+	// match ByCreatedBy.
+	// Can only be used with ByCreatedBy.
+	NotIDs []uid.ID
+}
+
+func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
+	query := querybuilder.New("UPDATE grants")
+	query.B("SET deleted_at = ?", time.Now())
+	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
+	query.B("deleted_at is null AND")
+
+	switch {
+	case opts.ByID != 0:
+		query.B("id = ?", opts.ByID)
+	case opts.BySubject != "":
+		query.B("subject = ?", opts.BySubject)
+	case opts.ByCreatedBy != 0:
+		query.B("created_by = ?", opts.ByCreatedBy)
+		if len(opts.NotIDs) > 0 {
+			query.B("AND id not in (?)", opts.NotIDs)
+		}
+	default:
+		return fmt.Errorf("DeleteGrants requires an ID to delete")
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, g := range toDelete {
-		ids = append(ids, g.ID)
-	}
-
-	return deleteAll[models.Grant](db, ByIDs(ids))
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
 }
 
 func ByOptionalPrivilege(s string) SelectorFunc {

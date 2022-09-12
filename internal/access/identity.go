@@ -103,7 +103,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		}
 	}
 
-	err = data.DeleteGrants(db, data.BySubject(uid.NewIdentityPolymorphicID(id)))
+	err = data.DeleteGrants(db, data.DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(id)})
 	if err != nil {
 		return fmt.Errorf("delete identity creds: %w", err)
 	}

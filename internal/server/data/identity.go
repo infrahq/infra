@@ -152,7 +152,7 @@ func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
 	for _, i := range toDelete {
 		ids = append(ids, i.ID)
 
-		err := DeleteGrants(tx, BySubject(i.PolyID()))
+		err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: i.PolyID()})
 		if err != nil {
 			return err
 		}
