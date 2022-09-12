@@ -44,11 +44,13 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 
 	opts := data.ListGrantsOptions{
 		ByResource:                 resource,
-		ByPrivilege:                privilege,
 		BySubject:                  subject,
 		ExcludeConnectorGrant:      !showSystem,
 		IncludeInheritedFromGroups: inherited,
 		Pagination:                 p,
+	}
+	if privilege != "" {
+		opts.ByPrivileges = []string{privilege}
 	}
 	return data.ListGrants(rCtx.DBTxn, opts)
 }

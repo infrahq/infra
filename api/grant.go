@@ -47,8 +47,16 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 		validate.MutuallyExclusive(
 			validate.Field{Name: "user", Value: r.User},
 			validate.Field{Name: "group", Value: r.Group},
-			// TODO: validate showInherited only allowed with User
 		),
+		validate.ValidatorFunc(func() *validate.Failure {
+			if r.ShowInherited && r.User == 0 {
+				return &validate.Failure{
+					Name:     "showInherited",
+					Problems: []string{"requires a user ID"},
+				}
+			}
+			return nil
+		}),
 	}
 }
 

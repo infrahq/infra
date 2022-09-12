@@ -381,12 +381,22 @@ func TestListGrants(t *testing.T) {
 		})
 		t.Run("by resource and privilege", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
-				ByResource:  "any",
-				ByPrivilege: "view",
+				ByResource:   "any",
+				ByPrivileges: []string{"view"},
 			})
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("with multiple privileges", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByResource:   "any",
+				ByPrivileges: []string{"view", "admin"},
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant2, *grant3}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
 		t.Run("by subject with include inherited", func(t *testing.T) {
