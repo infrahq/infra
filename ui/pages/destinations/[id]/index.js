@@ -8,6 +8,7 @@ import {
   CheckIcon,
   DuplicateIcon,
   DownloadIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/outline'
 import { Popover, Transition } from '@headlessui/react'
 
@@ -144,20 +145,20 @@ export default function DestinationDetail() {
         <div className='flex space-x-2'>
           {currentUserRoles && currentUserRoles?.length > 0 && (
             <Popover className='relative'>
-              <Popover.Button className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              <Popover.Button className='inline-flex items-center rounded-md border border-transparent bg-blue-500 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-600'>
                 Access cluster
-                <span className='relative top-px ml-2 text-[10px]'>▼</span>
+                <ChevronDownIcon className='ml-1 h-4 w-4' />
               </Popover.Button>
               <Transition
                 as={Fragment}
-                enter='transition ease-out duration-100 origin-top-left lg:origin-top-right'
+                enter='transition ease-out duration-100 origin-top-right'
                 enterFrom='transform opacity-0 scale-90 translate-y-0'
                 enterTo='transform opacity-100 scale-100 translate-y-1'
-                leave='transition ease-in duration-75 origin-top-left lg:origin-top-right'
+                leave='transition ease-in duration-75 origin-top-right'
                 leaveFrom='transform opacity-100 scale-100 translate-y-1'
                 leaveTo='transform opacity-0 scale-90 translate-y-0'
               >
-                <Popover.Panel className='absolute z-10 flex w-80 overflow-hidden rounded-xl bg-[#000] text-white shadow-2xl shadow-black/40 lg:right-0'>
+                <Popover.Panel className='absolute right-0 z-10 flex w-80 overflow-hidden rounded-xl bg-[#000] text-white shadow-2xl shadow-black/40'>
                   <AccessCluster
                     userID={auth?.id}
                     roles={currentUserRoles}
