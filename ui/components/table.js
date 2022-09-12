@@ -41,8 +41,8 @@ export default function Table({
 
   return (
     <div className='overflow-visible rounded-lg border border-gray-200/75 shadow-lg shadow-zinc-300/10'>
-      <table className='w-full text-xs text-gray-600'>
-        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-2xs text-gray-500'>
+      <table className='w-full text-sm text-gray-600'>
+        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
