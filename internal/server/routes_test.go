@@ -191,8 +191,6 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
-		method: "POST",
-		path:   "/do",
 		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
 			rCtx := getRequestContext(c)
 
@@ -213,7 +211,7 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), r)
+	add(api, rg(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
@@ -233,8 +231,6 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
-		method: "POST",
-		path:   "/do",
 		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
 			rCtx := getRequestContext(c)
 
@@ -248,7 +244,7 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 	}
 
 	api := &API{server: srv}
-	add(api, rg(router.Group("/")), r)
+	add(api, rg(router.Group("/")), "POST", "/do", r)
 
 	resp := httptest.NewRecorder()
 	req := httptest.NewRequest("POST", "/do", nil)
