@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +20,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/infrahq/secrets"
+	"github.com/prometheus/client_golang/prometheus"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/api"
@@ -137,6 +139,15 @@ func Run(ctx context.Context, options Options) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	promRegistry := metrics.NewRegistry(internal.FullVersion())
+	responseDuration := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: "http_client",
+		Name:      "request_duration_seconds",
+		Help:      "A histogram of duration, in seconds, performing HTTP requests.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
+	}, []string{"host", "method", "path", "status", "error"})
+	promRegistry.MustRegister(responseDuration)
+
 	client := &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
@@ -151,6 +162,25 @@ func Run(ctx context.Context, options Options) error {
 		OnUnauthorized: func() {
 			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
 			cancel()
+		},
+		ObserveFunc: func(start time.Time, request *http.Request, response *http.Response, err error) {
+			errorLabel := ""
+			if err != nil {
+				errorLabel = err.Error()
+			}
+
+			statusLabel := ""
+			if response != nil {
+				statusLabel = strconv.Itoa(response.StatusCode)
+			}
+
+			responseDuration.With(prometheus.Labels{
+				"host":   request.URL.Host,
+				"method": request.Method,
+				"path":   request.URL.Path,
+				"status": statusLabel,
+				"error":  errorLabel,
+			}).Observe(time.Since(start).Seconds())
 		},
 	}
 
@@ -189,7 +219,6 @@ func Run(ctx context.Context, options Options) error {
 	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
 	proxy.Transport = proxyTransport
 
-	promRegistry := metrics.NewRegistry(internal.FullVersion())
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
