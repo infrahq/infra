@@ -25,8 +25,8 @@ func (g *groupsTable) ScanFields() []any {
 	return []any{&g.CreatedAt, &g.CreatedBy, &g.CreatedByProvider, &g.DeletedAt, &g.ID, &g.Name, &g.OrganizationID, &g.UpdatedAt}
 }
 
-func CreateGroup(db GormTxn, group *models.Group) error {
-	return add(db, group)
+func CreateGroup(tx WriteTxn, group *models.Group) error {
+	return insert(tx, (*groupsTable)(group))
 }
 
 func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {

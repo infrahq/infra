@@ -13,8 +13,6 @@ type Group struct {
 	CreatedBy         uid.ID
 	CreatedByProvider uid.ID
 
-	Identities []Identity `db:"-" gorm:"many2many:identities_groups"`
-
 	TotalUsers int `db:"-" gorm:"-:all"`
 }
 

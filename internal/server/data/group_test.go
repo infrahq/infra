@@ -1,7 +1,9 @@
 package data
 
 import (
+	"errors"
 	"testing"
+	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
@@ -12,14 +14,41 @@ import (
 
 func TestCreateGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		everyone := models.Group{Name: "Everyone"}
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			actual := models.Group{
+				Name:              "Everyone",
+				CreatedBy:         uid.ID(1011),
+				CreatedByProvider: uid.ID(2022),
+			}
+			err := CreateGroup(tx, &actual)
+			assert.NilError(t, err)
+			expected := models.Group{
+				Model: models.Model{
+					ID:        uid.ID(999),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{
+					OrganizationID: defaultOrganizationID,
+				},
+				Name:              "Everyone",
+				CreatedBy:         uid.ID(1011),
+				CreatedByProvider: uid.ID(2022),
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+		t.Run("duplicate name", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			err := CreateGroup(tx, &models.Group{Name: "Everyone"})
+			assert.NilError(t, err)
 
-		err := CreateGroup(db, &everyone)
-		assert.NilError(t, err)
-
-		group := everyone
-		assert.Assert(t, 0 != group.ID)
-		assert.Equal(t, everyone.Name, group.Name)
+			err = CreateGroup(tx, &models.Group{Name: "Everyone"})
+			var ucErr UniqueConstraintError
+			assert.Assert(t, errors.As(err, &ucErr))
+			expectedErr := UniqueConstraintError{Table: "groups", Column: "name"}
+			assert.DeepEqual(t, ucErr, expectedErr)
+		})
 	})
 }
 
@@ -29,21 +58,6 @@ func createGroups(t *testing.T, db GormTxn, groups ...*models.Group) {
 		err := CreateGroup(db, groups[i])
 		assert.NilError(t, err, groups[i].Name)
 	}
-}
-
-func TestCreateGroupDuplicate(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			everyone  = models.Group{Name: "Everyone"}
-			engineers = models.Group{Name: "Engineering"}
-			product   = models.Group{Name: "Product"}
-		)
-
-		createGroups(t, db, &everyone, &engineers, &product)
-
-		err := CreateGroup(db, &models.Group{Name: "Everyone"})
-		assert.ErrorContains(t, err, "a group with that name already exists")
-	})
 }
 
 func TestGetGroup(t *testing.T) {
