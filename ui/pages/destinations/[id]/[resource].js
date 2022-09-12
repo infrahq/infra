@@ -51,7 +51,7 @@ export default function ResourceDetail() {
   return (
     <div className='mb-10'>
       <Head>
-        <title>{destination?.name} - Infra</title>
+        <title>{resource} - Infra</title>
       </Head>
       <header className='mt-6 mb-12 flex items-center justify-between text-xl'>
         <h1 className='flex py-1 font-medium'>
@@ -80,7 +80,7 @@ export default function ResourceDetail() {
             {admin && (
               <div>
                 <div className='flex flex-col space-y-2'>
-                  <div className='w-full rounded-lg border border-gray-100 px-5 py-3'>
+                  <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
                     <h3 className='mb-3 text-base font-medium'>Grant access</h3>
                     <GrantForm
                       roles={roles}
