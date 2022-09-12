@@ -152,11 +152,11 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	var result []models.AccessKey
 	for rows.Next() {
 		var key models.AccessKey
+
 		fields := append((*accessKeyTable)(&key).ScanFields(), &key.IssuedForName)
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
-
 		if err := rows.Scan(fields...); err != nil {
 			return nil, err
 		}

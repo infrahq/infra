@@ -20,12 +20,8 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 	opts := data.ListAccessKeyOptions{
 		Pagination:     p,
 		IncludeExpired: showExpired,
-	}
-	if identityID != 0 {
-		opts.ByIssuedForID = identityID
-	}
-	if name != "" {
-		opts.ByName = name
+		ByIssuedForID:  identityID,
+		ByName:         name,
 	}
 	return data.ListAccessKeys(db, opts)
 }

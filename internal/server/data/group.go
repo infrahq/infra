@@ -52,6 +52,25 @@ func ByGroupMember(id uid.ID) SelectorFunc {
 	}
 }
 
+func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
+	stmt := `SELECT DISTINCT group_id FROM identities_groups WHERE identity_id = ?`
+	rows, err := tx.Query(stmt, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []uid.ID
+	for rows.Next() {
+		var id uid.ID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		result = append(result, id)
+	}
+	return result, rows.Err()
+}
+
 func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
 	toDelete, err := ListGroups(db, nil, selectors...)
 	if err != nil {

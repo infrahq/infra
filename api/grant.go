@@ -47,6 +47,7 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 		validate.MutuallyExclusive(
 			validate.Field{Name: "user", Value: r.User},
 			validate.Field{Name: "group", Value: r.Group},
+			// TODO: validate showInherited only allowed with User
 		),
 	}
 }

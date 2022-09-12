@@ -63,9 +63,10 @@ func TestCreateGrant(t *testing.T) {
 			assert.Assert(t, errors.As(err, &ucErr))
 			assert.DeepEqual(t, ucErr, UniqueConstraintError{Table: "grants"})
 
-			grants, err := ListGrants(tx, nil,
-				BySubject("i:1234567"),
-				ByResource("infra"))
+			grants, err := ListGrants(tx, ListGrantsOptions{
+				BySubject:  "i:1234567",
+				ByResource: "infra",
+			})
 			assert.NilError(t, err)
 			assert.Assert(t, is.Len(grants, 1))
 
@@ -100,7 +101,7 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, nil, ByResource("any"))
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
@@ -121,14 +122,14 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, nil, ByResource("any"))
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), nil, ByResource("any"))
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
@@ -148,7 +149,7 @@ func TestDeleteGrants(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, nil, ByResource("any"))
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep1.ID}},
@@ -255,6 +256,188 @@ func TestGetGrant(t *testing.T) {
 				CreatedBy:          uid.ID(777),
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+	})
+}
+
+func TestListGrants(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		user := &models.Identity{Name: "usera@example.com"}
+		createIdentities(t, tx, user)
+
+		grant1 := &models.Grant{
+			Subject:   "i:userchar",
+			Privilege: "view",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		grant2 := &models.Grant{
+			Subject:   "i:userbeta",
+			Privilege: "view",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		grant3 := &models.Grant{
+			Subject:   "i:userchar",
+			Privilege: "admin",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		grant4 := &models.Grant{
+			Subject:   "i:userchar",
+			Privilege: "view",
+			Resource:  "infra",
+			CreatedBy: uid.ID(777),
+		}
+		deleted := &models.Grant{
+			Subject:   "i:userchar",
+			Privilege: "view",
+			Resource:  "any",
+			CreatedBy: uid.ID(777),
+		}
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
+		createGrants(t, tx, grant1, grant2, grant3, grant4, deleted)
+
+		userID, err := uid.Parse([]byte("userchar"))
+		assert.NilError(t, err)
+
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(111), []uid.ID{userID}))
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(112), []uid.ID{userID}))
+		assert.NilError(t, AddUsersToGroup(tx, uid.ID(113), []uid.ID{uid.ID(777)}))
+
+		gGrant1 := &models.Grant{
+			Subject:   uid.NewGroupPolymorphicID(111),
+			Privilege: "view",
+			Resource:  "shared",
+			CreatedBy: uid.ID(777),
+		}
+		gGrant2 := &models.Grant{
+			Subject:   uid.NewGroupPolymorphicID(112),
+			Privilege: "admin",
+			Resource:  "shared",
+			CreatedBy: uid.ID(777),
+		}
+		gGrant3 := &models.Grant{
+			Subject:   uid.NewGroupPolymorphicID(113),
+			Privilege: "admin",
+			Resource:  "special",
+			CreatedBy: uid.ID(777),
+		}
+		createGrants(t, tx, gGrant1, gGrant2, gGrant3)
+
+		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(tx, otherOrg))
+
+		otherOrgGrant := &models.Grant{
+			Subject:            "i:userchar",
+			Privilege:          "view",
+			Resource:           "any",
+			CreatedBy:          uid.ID(778),
+			OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
+		}
+		createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
+
+		connectorUser := InfraConnectorIdentity(db)
+
+		connector, err := GetGrant(tx, GetGrantOptions{
+			BySubject:   uid.NewIdentityPolymorphicID(connectorUser.ID),
+			ByPrivilege: models.InfraConnectorRole,
+			ByResource:  "infra",
+		})
+		assert.NilError(t, err)
+
+		t.Run("default", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{
+				*connector,
+				*grant1,
+				*grant2,
+				*grant3,
+				*grant4,
+				*gGrant1,
+				*gGrant2,
+				*gGrant3,
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by subject", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{BySubject: "i:userchar"})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant3, *grant4}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by resource", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant2, *grant3}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by resource and privilege", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByResource:  "any",
+				ByPrivilege: "view",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant2}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by subject with include inherited", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				BySubject:                  "i:userchar",
+				IncludeInheritedFromGroups: true,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant3, *grant4, *gGrant1, *gGrant2}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("exclude connector grant", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{ExcludeConnectorGrant: true})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{
+				*grant1,
+				*grant2,
+				*grant3,
+				*grant4,
+				*gGrant1,
+				*gGrant2,
+				*gGrant3,
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("with pagination", func(t *testing.T) {
+			pagination := &Pagination{Page: 2, Limit: 3}
+			actual, err := ListGrants(tx, ListGrantsOptions{Pagination: pagination})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant3, *grant4, *gGrant1}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			expectedPagination := &Pagination{Page: 2, Limit: 3, TotalCount: 8}
+			assert.DeepEqual(t, pagination, expectedPagination)
+		})
+		t.Run("by resource with pagination", func(t *testing.T) {
+			pagination := &Pagination{Page: 1, Limit: 2}
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				Pagination: pagination,
+				ByResource: "any",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant2}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			expectedPagination := &Pagination{Page: 1, Limit: 2, TotalCount: 3}
+			assert.DeepEqual(t, pagination, expectedPagination)
 		})
 	})
 }
