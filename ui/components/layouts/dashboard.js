@@ -218,7 +218,7 @@ function Layout({ children }) {
 
       {/* Main content */}
       <div className='mx-auto flex min-w-0 flex-1 flex-col'>
-        <div className='sticky top-0 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
+        <div className='sticky top-0 z-50 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
           {admin && (
             <button
               type='button'
