@@ -98,7 +98,7 @@ export default function Table({
 
       {/* Pagination */}
       {data?.length > 0 && (
-        <div className='sticky left-0 z-0 flex w-full items-center justify-between border-t border-gray-200/75 py-2 px-4 text-2xs'>
+        <div className='sticky left-0 z-0 flex w-full items-center justify-between border-t border-gray-200/75 py-2 px-5 text-2xs'>
           <div className='text-gray-500'>
             Showing{' '}
             {count === 1
@@ -129,7 +129,7 @@ export default function Table({
         </div>
       )}
       {data && data.length === 0 && empty && (
-        <div className='flex justify-center py-8 text-sm text-gray-500'>
+        <div className='flex justify-center py-5 text-sm text-gray-500'>
           {empty}
         </div>
       )}
