@@ -131,7 +131,7 @@ export default function Settings() {
             </p>
           </div>
           <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3 md:max-w-sm'>
-            <h3 className='text-sm font-medium'>Make user or group admin</h3>
+            <h3 className='text-sm font-medium'>Add organization admin</h3>
             <GrantForm
               resource='infra'
               roles={['admin']}
