@@ -10,11 +10,6 @@ import AccessTable from '../../../components/access-table'
 import Dashboard from '../../../components/layouts/dashboard'
 import GrantForm from '../../../components/grant-form'
 
-function parent(resource = '') {
-  const parts = resource?.split('.')
-  return parts?.length > 1 ? parts[0] : null
-}
-
 export default function ResourceDetail() {
   const router = useRouter()
   const resource = router.query.resource

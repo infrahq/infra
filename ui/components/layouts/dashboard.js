@@ -113,7 +113,7 @@ function Layout({ children }) {
 
   const navigation = [
     {
-      name: 'Clusters',
+      name: 'Infrastructure',
       href: '/destinations',
       icon: ChipIcon,
     },
