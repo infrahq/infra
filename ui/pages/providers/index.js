@@ -47,7 +47,7 @@ export default function Providers() {
                 <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
                   <img
                     alt='provider icon'
-                    className='h-3.5'
+                    className='h-4'
                     src={`/providers/${info.row.original.kind}.svg`}
                   />
                 </div>

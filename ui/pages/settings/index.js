@@ -122,15 +122,12 @@ export default function Settings() {
         <h1 className='mb-6 text-xl font-medium'>Settings</h1>
 
         {/* Infra admins */}
-        <div className='mb-3 flex flex-col justify-between md:flex-row'>
-          <div className='py-3'>
-            <h2 className='text-lg font-medium'>Organization Admins</h2>
-            <p className='mt-1 text-xs text-gray-500'>
-              These users have full access to this organization and its
-              clusters.
-            </p>
-          </div>
-          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3 md:max-w-sm'>
+        <div className='mb-3 flex flex-col justify-between'>
+          <h2 className='text-lg font-medium'>Organization Admins</h2>
+          <p className='mt-1 mb-4 text-xs text-gray-500'>
+            These users have full access to this organization and its clusters.
+          </p>
+          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
             <h3 className='text-sm font-medium'>Add organization admin</h3>
             <GrantForm
               resource='infra'
