@@ -126,7 +126,7 @@ export default function Settings() {
           <div className='py-3'>
             <h2 className='text-lg font-medium'>Organization Admins</h2>
             <p className='mt-1 text-xs text-gray-500'>
-              These users have full access to this organizations and its
+              These users have full access to this organization and its
               clusters.
             </p>
           </div>
