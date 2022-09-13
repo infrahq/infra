@@ -139,7 +139,7 @@ export default function Settings() {
                   return false
                 }
 
-                const res = await fetch('/api/grants', {
+                await fetch('/api/grants', {
                   method: 'POST',
                   body: JSON.stringify({
                     user,
@@ -149,7 +149,8 @@ export default function Settings() {
                   }),
                 })
 
-                mutate({ items: [...grants, await res.json()] })
+                // TODO: add optimistic updates
+                mutate()
               }}
             />
           </div>
