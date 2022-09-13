@@ -105,7 +105,8 @@ export default function DestinationDetail() {
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
 
-  const tab = router.query.tab || TAB_ACCESS
+  const tabs = admin ? [TAB_ACCESS, TAB_NAMESPACES] : []
+  const tab = router.query.tab || tabs[0]
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -198,7 +199,7 @@ export default function DestinationDetail() {
       {/* Tabs */}
       <div className='mb-6 border-b border-gray-200'>
         <nav className='-mb-px flex' aria-label='Tabs'>
-          {[TAB_ACCESS, TAB_NAMESPACES].map(t => (
+          {tabs.map(t => (
             <Link
               key={t}
               href={{
