@@ -290,7 +290,7 @@ CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name
 
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
-CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (verification_token) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (organization_id, verification_token) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
 

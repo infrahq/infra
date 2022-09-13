@@ -11,6 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
@@ -115,9 +116,7 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
-	add(a, noAuthnWithOrg, route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
-		method:                     http.MethodGet,
-		path:                       "/link",
+	add(a, noAuthnWithOrg, http.MethodGet, "/link", route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
 		handler:                    a.VerifyAndRedirect,
 		omitFromDocs:               true,
 		omitFromTelemetry:          true,
@@ -181,8 +180,6 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 	}
 	bindRoute(a, group.RouterGroup, routeID, handler)
 }
-
-var redirectResponseType = reflect.TypeOf(api.RedirectResponse{})
 
 // wrapRoute builds a gin.HandlerFunc from a route. The returned function
 // provides functionality that is applicable to a large number of routes
