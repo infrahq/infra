@@ -159,8 +159,9 @@ export default function GroupDetails() {
       </header>
 
       {/* Users */}
+      <h2 className='text-lg font-medium'>Users</h2>
       <div className='my-2.5 flex'>
-        <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 py-3'>
+        <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
           <h3 className='mb-2 text-base font-medium'>Add user to group</h3>
           <div className='flex w-full space-x-2 '>
             <ComboBox
