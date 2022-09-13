@@ -6,6 +6,9 @@ on:
       - go.mod
       - go.sum
       - '**/*.go'
+      - '.github/workflows/ci-core.yaml'
+      - '.golangci.yml'
+
   push:
     branches:
       - main
@@ -13,6 +16,8 @@ on:
       - go.mod
       - go.sum
       - '**/*.go'
+      - '.github/workflows/*-core.yaml'
+      - '.golangci.yml'
 
 jobs:
   lint:
