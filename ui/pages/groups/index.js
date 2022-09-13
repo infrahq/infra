@@ -5,7 +5,6 @@ import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 
-import Notification from '../../components/notification'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
@@ -91,20 +90,12 @@ export default function Groups() {
   const { data: { items: groups, totalPages, totalCount } = {}, mutate } =
     useSWR(`/api/groups?page=${page}&limit=${limit}`)
   const [open, setOpen] = useState(false)
-  const [showCreated, setShowCreated] = useState(false)
 
   return (
     <div className='mb-10'>
       <Head>
         <title>Groups - Infra</title>
       </Head>
-
-      {/* Created notification */}
-      <Notification
-        show={showCreated}
-        setShow={setShowCreated}
-        text='Group added'
-      />
 
       <header className='my-6 flex items-center justify-between'>
         <h1 className='py-1 text-xl font-medium'>Groups</h1>
@@ -143,8 +134,6 @@ export default function Groups() {
                     <AddGroupsDialog
                       setOpen={setOpen}
                       onAdded={() => {
-                        setShowCreated(true)
-                        setTimeout(() => setShowCreated(false), 3000)
                         mutate()
                       }}
                     />

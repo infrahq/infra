@@ -8,7 +8,6 @@ import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 
 import { useAdmin } from '../../lib/admin'
 
-import Notification from '../../components/notification'
 import Table from '../../components/table'
 import RemoveButton from '../../components/remove-button'
 import DeleteModal from '../../components/delete-modal'
@@ -105,7 +104,6 @@ export default function GroupDetails() {
     '/api/grants?resource=infra&privilege=admin&limit=999'
   )
   const [addUser, setAddUser] = useState('')
-  const [showAdded, setShowAdded] = useState(false)
 
   const adminGroups = infraAdmins?.map(admin => admin.group)
 
@@ -118,13 +116,6 @@ export default function GroupDetails() {
       <Head>
         <title>{group?.name} - Infra</title>
       </Head>
-
-      {/* Added notification */}
-      <Notification
-        show={showAdded}
-        setShow={setShowAdded}
-        text='User added to group'
-      />
 
       {/* Header */}
       <header className='mt-6 mb-12 flex items-center justify-between'>
@@ -188,8 +179,6 @@ export default function GroupDetails() {
                 mutateUsers()
                 mutate()
                 setAddUser('')
-                setShowAdded(true)
-                setTimeout(() => setShowAdded(false), 3000)
               }}
               className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-700'
             >
