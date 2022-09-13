@@ -122,13 +122,16 @@ export default function Settings() {
         <h1 className='mb-6 text-xl font-medium'>Settings</h1>
 
         {/* Infra admins */}
-        <h2 className='text-md font-medium'>Organization Admins</h2>
-        <p className='mt-1 text-xs text-gray-500'>
-          These users have full access to this organizations and its clusters.
-        </p>
-        <div className='my-5 flex flex-col space-y-4'>
-          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-            <h3 className='mb-3 text-base font-medium'>Grant access</h3>
+        <div className='mb-3 flex flex-col justify-between md:flex-row'>
+          <div className='py-3'>
+            <h2 className='text-lg font-medium'>Organization Admins</h2>
+            <p className='mt-1 text-xs text-gray-500'>
+              These users have full access to this organizations and its
+              clusters.
+            </p>
+          </div>
+          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3 md:max-w-sm'>
+            <h3 className='text-sm font-medium'>Make user or group admin</h3>
             <GrantForm
               resource='infra'
               roles={['admin']}
@@ -153,20 +156,20 @@ export default function Settings() {
               }}
             />
           </div>
-          <AdminList
-            grants={grants}
-            users={users}
-            groups={groups}
-            selfGroups={selfGroups}
-            auth={auth}
-            onRemove={async grantId => {
-              await fetch(`/api/grants/${grantId}`, {
-                method: 'DELETE',
-              })
-              mutate({ items: grants?.filter(x => x.id !== grantId) })
-            }}
-          />
         </div>
+        <AdminList
+          grants={grants}
+          users={users}
+          groups={groups}
+          selfGroups={selfGroups}
+          auth={auth}
+          onRemove={async grantId => {
+            await fetch(`/api/grants/${grantId}`, {
+              method: 'DELETE',
+            })
+            mutate({ items: grants?.filter(x => x.id !== grantId) })
+          }}
+        />
       </div>
     </div>
   )
