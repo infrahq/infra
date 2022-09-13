@@ -4932,7 +4932,7 @@
                       "subDomain": {
                         "format": "[a-zA-Z0-9\\-]",
                         "maxLength": 63,
-                        "minLength": 3,
+                        "minLength": 4,
                         "type": "string"
                       }
                     },

@@ -61,7 +61,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "org.subDomain", Errors: []string{
-						"must be at least 3 characters",
+						"must be at least 4 characters",
 						"character '@' at position 1 is not allowed",
 					}},
 				}
@@ -76,7 +76,7 @@ func TestAPI_Signup(t *testing.T) {
 					Password: "short",
 					Org: api.SignupOrg{
 						Name:      "My org is awesome",
-						Subdomain: "hello",
+						Subdomain: "helloo",
 					},
 				}
 			},
@@ -131,7 +131,7 @@ func TestAPI_Signup(t *testing.T) {
 				return api.SignupRequest{
 					Name:     "admin@example.com",
 					Password: "password",
-					Org:      api.SignupOrg{Name: "acme", Subdomain: "acme"},
+					Org:      api.SignupOrg{Name: "acme", Subdomain: "acme-co"},
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -150,7 +150,7 @@ func TestAPI_Signup(t *testing.T) {
 				return api.SignupRequest{
 					Name:     "admin@example.com",
 					Password: "password",
-					Org:      api.SignupOrg{Name: "acme", Subdomain: "acme"},
+					Org:      api.SignupOrg{Name: "acme", Subdomain: "acme-co"},
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -165,7 +165,7 @@ func TestAPI_Signup(t *testing.T) {
 				assert.Equal(t, respBody.Organization.Name, "acme")
 
 				// the organization exists
-				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme.exampledomain.com"))
+				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme-co.exampledomain.com"))
 				assert.NilError(t, err)
 				assert.Equal(t, org.ID, respBody.Organization.ID)
 
