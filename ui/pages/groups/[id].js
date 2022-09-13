@@ -71,7 +71,7 @@ function ComboBox({ options = [], selected, setSelected }) {
                             ${active ? 'bg-gray-100' : 'bg-transparent'}`}
                       >
                         <CheckIcon
-                          className='h-4 w-4 text-gray-400'
+                          className='h-4 w-4 text-gray-600'
                           aria-hidden='true'
                         />
                       </span>

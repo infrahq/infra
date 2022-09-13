@@ -83,7 +83,7 @@ export default function RoleSelect({
                         {r}
                         {selected && (
                           <CheckIcon
-                            className='h-3 w-3 stroke-1 text-gray-800'
+                            className='h-3 w-3 stroke-1 text-gray-600'
                             aria-hidden='true'
                           />
                         )}

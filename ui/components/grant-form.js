@@ -7,28 +7,6 @@ import RoleSelect from './role-select'
 
 import { CheckIcon } from '@heroicons/react/solid'
 
-function ComboboxItem({ title, subtitle, selected = false }) {
-  return (
-    <div className='flex flex-row'>
-      <div className='flex min-w-0 flex-1 flex-col'>
-        <div className='flex justify-between py-0.5 font-medium'>
-          <span className='truncate' title={title}>
-            {title}
-          </span>
-          {selected && (
-            <CheckIcon
-              data-testid='selected-icon'
-              className='h-3 w-3 stroke-1'
-              aria-hidden='true'
-            />
-          )}
-        </div>
-        <div className='text-3xs text-gray-400'>{subtitle}</div>
-      </div>
-    </div>
-  )
-}
-
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
     useSWR('/api/users?limit=1000')
@@ -103,7 +81,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
                         {selected && selected.id === f.id && (
                           <CheckIcon
                             data-testid='selected-icon'
-                            className='h-3 w-3 stroke-1 text-blue-500'
+                            className='h-3 w-3 stroke-1 text-gray-600'
                             aria-hidden='true'
                           />
                         )}
