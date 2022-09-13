@@ -43,15 +43,25 @@ export default function Providers() {
         columns={[
           {
             cell: info => (
-              <div className='flex items-center py-0.5 font-medium text-gray-700'>
-                <div className='mr-2.5 flex h-7 w-7 flex-none items-center justify-center rounded-md border border-gray-200'>
+              <div className='flex flex-row items-center py-1'>
+                <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
                   <img
                     alt='provider icon'
                     className='h-3.5'
                     src={`/providers/${info.row.original.kind}.svg`}
                   />
                 </div>
-                {info.getValue()}
+                <div className='flex flex-col'>
+                  <div className='text-sm font-medium text-gray-700'>
+                    {info.getValue()}
+                  </div>
+                  <div className='text-2xs text-gray-500 sm:hidden'>
+                    {info.row.original.url}
+                  </div>
+                  <div className='font-mono text-2xs text-gray-400 lg:hidden'>
+                    {info.row.original.clientID}
+                  </div>
+                </div>
               </div>
             ),
             header: () => <span>Name</span>,
@@ -59,7 +69,7 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div className='hidden truncate lg:table-cell'>
+              <div className='hidden lg:table-cell'>
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
@@ -68,22 +78,14 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div
-                className='hidden truncate lg:table-cell'
-                title={info.getValue()}
-              >
-                {info.getValue()}
-              </div>
+              <div className='hidden sm:table-cell'>{info.getValue()}</div>
             ),
-            header: () => <span className='hidden lg:table-cell'>URL</span>,
+            header: () => <span className='hidden sm:table-cell'>URL</span>,
             accessorKey: 'url',
           },
           {
             cell: info => (
-              <div
-                className='hidden truncate font-mono lg:table-cell'
-                title={info.getValue()}
-              >
+              <div className='hidden font-mono lg:table-cell'>
                 {info.getValue()}
               </div>
             ),

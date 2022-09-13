@@ -72,7 +72,7 @@ export default function Table({
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className={`border-gray-100 text-sm sm:max-w-[10rem] ${
+                    className={`truncate border-gray-100 text-sm sm:max-w-[10rem] ${
                       href ? '' : 'px-5 py-2'
                     }`}
                     key={cell.id}
