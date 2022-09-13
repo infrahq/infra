@@ -4,7 +4,30 @@ import { Combobox } from '@headlessui/react'
 import { PlusIcon } from '@heroicons/react/outline'
 
 import RoleSelect from './role-select'
-import ComboboxItem from './combobox-item'
+
+import { CheckIcon } from '@heroicons/react/solid'
+
+function ComboboxItem({ title, subtitle, selected = false }) {
+  return (
+    <div className='flex flex-row'>
+      <div className='flex min-w-0 flex-1 flex-col'>
+        <div className='flex justify-between py-0.5 font-medium'>
+          <span className='truncate' title={title}>
+            {title}
+          </span>
+          {selected && (
+            <CheckIcon
+              data-testid='selected-icon'
+              className='h-3 w-3 stroke-1'
+              aria-hidden='true'
+            />
+          )}
+        </div>
+        <div className='text-3xs text-gray-400'>{subtitle}</div>
+      </div>
+    </div>
+  )
+}
 
 export default function GrantForm({ roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
@@ -60,22 +83,36 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
             }}
           />
           {filtered.length > 0 && (
-            <Combobox.Options className='absolute -left-[13px] z-10 mt-1 max-h-60 w-56 overflow-auto rounded-md border border-gray-700 bg-gray-800 py-1 text-2xs ring-1 ring-black ring-opacity-5 focus:outline-none'>
+            <Combobox.Options className='absolute z-10 mt-2 max-h-60 w-56 origin-top-right divide-y divide-gray-100 overflow-auto rounded-md bg-white text-xs shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
               {filtered?.map(f => (
                 <Combobox.Option
                   key={f.id}
                   value={f}
                   className={({ active }) =>
-                    `relative cursor-default select-none py-[7px] px-3 text-gray-200 ${
-                      active ? 'bg-gray-700' : ''
+                    `relative cursor-default select-none py-[7px] px-3 ${
+                      active ? 'bg-gray-50' : ''
                     }`
                   }
                 >
-                  <ComboboxItem
-                    title={f.name}
-                    subtitle={f.user ? 'User' : f.group ? 'Group' : ''}
-                    selected={selected && selected.id === f.id}
-                  />
+                  <div className='flex flex-row'>
+                    <div className='flex min-w-0 flex-1 flex-col'>
+                      <div className='flex justify-between py-0.5 font-medium'>
+                        <span className='truncate' title={f.name}>
+                          {f.name}
+                        </span>
+                        {selected && selected.id === f.id && (
+                          <CheckIcon
+                            data-testid='selected-icon'
+                            className='h-3 w-3 stroke-1 text-blue-500'
+                            aria-hidden='true'
+                          />
+                        )}
+                      </div>
+                      <div className='text-3xs text-gray-500'>
+                        {f.user ? 'User' : f.group ? 'Group' : ''}
+                      </div>
+                    </div>
+                  </div>
                 </Combobox.Option>
               ))}
             </Combobox.Options>
