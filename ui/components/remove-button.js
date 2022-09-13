@@ -28,7 +28,7 @@ export default function RemoveButton({
           setModalOpen(false)
         }}
         title={modalTitle}
-        message={modalMessage}
+        message={<div className='truncate'>{modalMessage}</div>}
       />
     </>
   )

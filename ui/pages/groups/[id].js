@@ -119,7 +119,7 @@ export default function GroupDetails() {
 
       {/* Header */}
       <header className='mt-6 mb-12 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>
+        <h1 className='truncate py-1 text-xl font-medium'>
           <Link href='/groups'>
             <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
           </Link>{' '}
@@ -153,7 +153,7 @@ export default function GroupDetails() {
       <h2 className='text-lg font-medium'>Users</h2>
       <div className='my-2.5 flex'>
         <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
-          <h3 className='mb-2 text-base font-medium'>Add user to group</h3>
+          <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
           <div className='flex w-full space-x-2 '>
             <ComboBox
               options={allUsers

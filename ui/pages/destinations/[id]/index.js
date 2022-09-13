@@ -217,7 +217,7 @@ export default function DestinationDetail() {
       {tab === TAB_ACCESS && (
         <div className='my-5 flex flex-col space-y-4'>
           <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-            <h3 className='mb-3 text-base font-medium'>Grant access</h3>
+            <h3 className='mb-3 text-sm font-medium'>Grant access</h3>
             <GrantForm
               roles={destination?.roles}
               grants={grants}

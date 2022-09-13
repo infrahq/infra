@@ -166,7 +166,7 @@ export default function Groups() {
                   <div className='text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
-                  <div className='text-2xs text-gray-500'>
+                  <div className='text-2xs text-gray-500 sm:hidden'>
                     {info.row.original.totalUsers || 'No'}{' '}
                     {info.row.original.totalUsers === 1 ? 'user' : 'users'}
                   </div>
@@ -176,9 +176,22 @@ export default function Groups() {
               accessorKey: 'name',
             },
             {
-              cell: info =>
-                info.getValue() ? dayjs(info.getValue()).fromNow() : '-',
-              header: () => <span>Added</span>,
+              cell: info => (
+                <div className='hidden sm:table-cell'>
+                  {info.getValue() || 'No'}{' '}
+                  {info.getValue() === 1 ? 'user' : 'users'}
+                </div>
+              ),
+              header: () => <span className='hidden sm:table-cell'>Users</span>,
+              accessorKey: 'totalUsers',
+            },
+            {
+              cell: info => (
+                <div className='hidden sm:table-cell'>
+                  {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
+                </div>
+              ),
+              header: () => <span className='hidden sm:table-cell'>Added</span>,
               accessorKey: 'created',
             },
           ]}
