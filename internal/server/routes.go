@@ -243,7 +243,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		if r, ok := responseIsRedirect(resp); ok {
-			c.Redirect(http.StatusPermanentRedirect, r.RedirectTo)
+			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
 		} else {
 			c.JSON(responseStatusCode(routeID.method, resp), resp)
 		}
@@ -251,19 +251,13 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 	}
 }
 
-func responseIsRedirect(resp any) (api.RedirectResponse, bool) {
-	respVal := reflect.ValueOf(resp)
-	if respVal.Kind() == reflect.Pointer && !respVal.IsNil() {
-		respVal = respVal.Elem()
-	}
+type isRedirect interface {
+	RedirectURL() string
+}
 
-	if respVal.Type() != redirectResponseType {
-		return api.RedirectResponse{}, false
-	}
-
-	// nolint:forcetypeassert
-	redirectResponse := respVal.Interface().(api.RedirectResponse)
-	return redirectResponse, true
+func responseIsRedirect(resp interface{}) (isRedirect, bool) {
+	r, ok := resp.(isRedirect)
+	return r, ok
 }
 
 type statusCoder interface {
