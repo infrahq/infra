@@ -234,7 +234,7 @@ export default function DestinationDetail() {
                   return false
                 }
 
-                const res = await fetch('/api/grants', {
+                await fetch('/api/grants', {
                   method: 'POST',
                   body: JSON.stringify({
                     user,
@@ -244,7 +244,7 @@ export default function DestinationDetail() {
                   }),
                 })
 
-                mutate({ items: [...grants, await res.json()] })
+                mutate()
               }}
             />
           </div>
@@ -257,16 +257,14 @@ export default function DestinationDetail() {
               await fetch(`/api/grants/${groupId}`, {
                 method: 'DELETE',
               })
-              mutate({
-                items: grants.filter(x => x.id !== groupId),
-              })
+              mutate()
             }}
             onChange={async (privilege, group) => {
               if (privilege === group.privilege) {
                 return
               }
 
-              const res = await fetch('/api/grants', {
+              await fetch('/api/grants', {
                 method: 'POST',
                 body: JSON.stringify({
                   ...group,
@@ -279,12 +277,7 @@ export default function DestinationDetail() {
                 method: 'DELETE',
               })
 
-              mutate({
-                items: [
-                  ...grants.filter(f => f.id !== group.id),
-                  await res.json(),
-                ],
-              })
+              mutate()
             }}
           />
         </div>
