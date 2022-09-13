@@ -26,13 +26,12 @@ export default function DestinationsAdd() {
 
   const [steps, setSteps] = useState([
     { id: 0, name: 'Name Cluster', status: 'current' },
-    { id: 1, name: 'Helm Values File', status: 'upcoming' },
     {
-      id: 2,
+      id: 1,
       name: 'Kubernetes Command',
       status: 'upcoming',
     },
-    { id: 3, name: 'Connect', status: 'upcoming' },
+    { id: 2, name: 'Connect', status: 'upcoming' },
   ])
 
   const [currentStep, setCurrentStep] = useState(0)
@@ -65,7 +64,7 @@ export default function DestinationsAdd() {
     if (hasCurrentStep) {
       setCurrentStep(hasCurrentStep.id)
     } else {
-      setCurrentStep(3) // last step
+      setCurrentStep(2) // last step
     }
   }, [steps])
 
@@ -134,7 +133,7 @@ export default function DestinationsAdd() {
   }
 
   const valuesYaml = yaml.dump(values)
-  const command = `helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
+  const command = ` helm repo add infrahq https://helm.infrahq.com \n helm repo update \n helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
 
   return (
     <>
@@ -236,38 +235,28 @@ export default function DestinationsAdd() {
             <section className='flex flex-col'>
               <div className='pb-6'>
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Helm Values File
+                  Kubernetes Command
                 </h3>
                 <p className='mt-1 text-sm text-gray-500'>
-                  Copy this starter Helm values file. For more information and
-                  configuration values, see the{' '}
-                  <a
-                    className='font-medium text-blue-600 underline hover:text-blue-500'
-                    target='_blank'
-                    href='https://github.com/infrahq/infra/tree/main/helm/charts/infra' /* TODO: make sure this link works*/
-                    rel='noreferrer'
-                  >
-                    Helm chart
-                  </a>
-                  .
+                  Run this on your terminal
                 </p>
               </div>
               <div className='group relative my-4 flex'>
-                <pre className='min-h-[120px] w-full overflow-auto rounded-md bg-gray-100 p-4 text-2xs leading-normal text-gray-900'>
-                  {valuesYaml}
+                <pre className='h-24 w-full overflow-auto rounded-md bg-gray-100 px-4 py-5 text-2xs leading-normal text-gray-900'>
+                  {command}
                 </pre>
                 <button
                   className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
-                    valuesCopied ? 'opacity-100' : 'group-hover:opacity-100'
+                    commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
                   }`}
-                  disabled={valuesCopied}
+                  disabled={commandCopied}
                   onClick={() => {
-                    copy(valuesYaml)
-                    setValuesCopied(true)
-                    setTimeout(() => setValuesCopied(false), 3000)
+                    copy(command)
+                    setCommandCopied(true)
+                    setTimeout(() => setCommandCopied(false), 2000)
                   }}
                 >
-                  {valuesCopied ? (
+                  {commandCopied ? (
                     <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
                   ) : (
                     <ClipboardCopyIcon className='h-4 w-4' />
@@ -298,61 +287,6 @@ export default function DestinationsAdd() {
             </section>
           )}
           {currentStep >= 2 && (
-            <section className='flex flex-col'>
-              <div className='pb-6'>
-                <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Kubernetes Command
-                </h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  Run this on your terminal
-                </p>
-              </div>
-              <div className='group relative my-4 flex'>
-                <pre className='h-12 w-full overflow-auto rounded-md bg-gray-100 p-4 text-2xs leading-normal text-gray-900'>
-                  {command}
-                </pre>
-                <button
-                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
-                    commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
-                  }`}
-                  disabled={commandCopied}
-                  onClick={() => {
-                    copy(command)
-                    setCommandCopied(true)
-                    setTimeout(() => setCommandCopied(false), 2000)
-                  }}
-                >
-                  {commandCopied ? (
-                    <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
-                  ) : (
-                    <ClipboardCopyIcon className='h-4 w-4' />
-                  )}
-                </button>
-              </div>
-              <div className='mt-6 flex flex-row items-center justify-end'>
-                <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
-                  type='button'
-                  disabled={currentStep !== 2}
-                  onClick={() => {
-                    const step = currentStep
-                    setCurrentStep(step + 1)
-
-                    let stepsList = steps
-                    stepsList[step].status = 'complete'
-                    if (step !== steps.length - 1) {
-                      stepsList[step + 1].status = 'current'
-                    }
-
-                    setSteps(stepsList)
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </section>
-          )}
-          {currentStep >= 3 && (
             <section>
               <div className='pb-2'>
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
