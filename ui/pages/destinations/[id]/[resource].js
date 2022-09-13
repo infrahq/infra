@@ -74,6 +74,7 @@ export default function ResourceDetail() {
                     <h3 className='mb-3 text-base font-medium'>Grant access</h3>
                     <GrantForm
                       roles={roles}
+                      grants={grants}
                       onSubmit={async ({ user, group, privilege }) => {
                         // don't add grants that already exist
                         if (

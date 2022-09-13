@@ -220,6 +220,7 @@ export default function DestinationDetail() {
             <h3 className='mb-3 text-base font-medium'>Grant access</h3>
             <GrantForm
               roles={destination?.roles}
+              grants={grants}
               onSubmit={async ({ user, group, privilege }) => {
                 // don't add grants that already exist
                 if (

@@ -7,7 +7,7 @@ import RoleSelect from './role-select'
 
 import { CheckIcon } from '@heroicons/react/solid'
 
-export default function GrantForm({ roles, onSubmit = () => {} }) {
+export default function GrantForm({ grants, roles, onSubmit = () => {} }) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
     useSWR('/api/users?limit=1000')
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
@@ -16,14 +16,27 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
   const [role, setRole] = useState(roles?.[0])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
+  const [options, setOptions] = useState([])
+
   const button = useRef()
 
   useEffect(() => setRole(roles?.[0]), [roles])
 
-  const filtered = [
-    ...users.map(u => ({ ...u, user: true })),
-    ...groups.map(g => ({ ...g, group: true })),
-  ].filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
+  useEffect(() => {
+    if (users && groups) {
+      setOptions(
+        [
+          ...users?.map(u => ({ ...u, user: true })),
+          ...groups?.map(g => ({ ...g, group: true })),
+        ]
+          ?.filter(
+            item =>
+              !grants?.find(g => g.user === item.id || g.group === item.id)
+          )
+          .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
+      )
+    }
+  }, [users, groups, grants, query])
 
   return (
     <form
@@ -60,9 +73,9 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
               }
             }}
           />
-          {filtered.length > 0 && (
+          {options?.length > 0 && (
             <Combobox.Options className='absolute z-10 mt-2 max-h-60 w-56 origin-top-right divide-y divide-gray-100 overflow-auto rounded-md bg-white text-xs shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-              {filtered?.map(f => (
+              {options?.map(f => (
                 <Combobox.Option
                   key={f.id}
                   value={f}

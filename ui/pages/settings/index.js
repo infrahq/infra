@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Head from 'next/head'
 
 import { sortBySubject } from '../../lib/grants'
@@ -10,9 +10,6 @@ import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 
 function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
-  // const [open, setOpen] = useState(false)
-  // const [deleteId, setDeleteId] = useState(null)
-
   const grantsList = grants?.sort(sortBySubject)?.map(grant => {
     const message =
       grant?.user === auth?.id
@@ -34,11 +31,19 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
       data={grantsList}
       columns={[
         {
-          cell: info => (
-            <div className='flex items-center font-medium text-gray-700'>
-              {info.getValue()}
-            </div>
-          ),
+          cell: function Cell(info) {
+            return (
+              <div className='flex flex-col'>
+                <div className='flex items-center font-medium text-gray-700'>
+                  {info.getValue()}
+                </div>
+                <div className='text-2xs text-gray-500'>
+                  {info.row.original.user && 'User'}
+                  {info.row.original.group && 'Group'}
+                </div>
+              </div>
+            )
+          },
           header: () => <span>Admin</span>,
           accessorKey: 'name',
         },
@@ -127,6 +132,7 @@ export default function Settings() {
             <GrantForm
               resource='infra'
               roles={['admin']}
+              grants={grants}
               onSubmit={async ({ user, group }) => {
                 // don't add grants that already exist
                 if (grants?.find(g => g.user === user && g.group === group)) {
