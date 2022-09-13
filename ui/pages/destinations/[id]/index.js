@@ -21,11 +21,6 @@ import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
 
-function parent(resource = '') {
-  const parts = resource.split('.')
-  return parts.length > 1 ? parts[0] : null
-}
-
 function AccessCluster({ roles, resource }) {
   const [commandCopied, setCommandCopied] = useState(false)
 
@@ -91,11 +86,6 @@ export default function DestinationDetail() {
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
     `/api/grants?resource=${destination?.name}&limit=1000`
-  )
-  const { data: { items: inherited } = {} } = useSWR(() =>
-    parent(destination?.name)
-      ? `/api/grants?resource=${parent(destination?.name)}&limit=1000`
-      : null
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${auth?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
@@ -295,7 +285,6 @@ export default function DestinationDetail() {
                 ],
               })
             }}
-            inherited={inherited}
           />
         </div>
       )}

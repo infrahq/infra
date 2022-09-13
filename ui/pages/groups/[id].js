@@ -173,9 +173,8 @@ export default function GroupDetails() {
       </header>
 
       {/* Users */}
-      <div className='my-2.5 flex justify-between'>
-        <h2 className='py-2 text-lg font-medium text-gray-600'>Users</h2>
-        <div className='flex items-center space-x-2'>
+      <div className='my-2.5 flex'>
+        <div className='flex w-full space-x-2 rounded-lg border border-gray-200/75 px-5 py-3'>
           <ComboBox
             options={allUsers
               ?.filter(au => !users?.find(u => au.name === u.name))
@@ -203,7 +202,7 @@ export default function GroupDetails() {
             }}
             className='rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-700'
           >
-            Add
+            Add User
           </button>
         </div>
       </div>

@@ -27,7 +27,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
 
   return (
     <form
-      className='my-2 flex flex-row'
+      className='my-2 flex flex-row space-x-3'
       onSubmit={e => {
         e.preventDefault()
         onSubmit({
@@ -99,7 +99,7 @@ export default function GrantForm({ roles, onSubmit = () => {} }) {
         </Combobox>
       </div>
       {roles?.length > 1 && (
-        <div className='relative px-2'>
+        <div className='relative'>
           <RoleSelect onChange={setRole} role={role} roles={roles} />
         </div>
       )}

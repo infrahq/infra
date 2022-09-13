@@ -33,11 +33,6 @@ export default function ResourceDetail() {
   const { data: { items: grants } = {}, mutate } = useSWR(
     `/api/grants?resource=${namespaceResource}&limit=1000`
   )
-  const { data: { items: inherited } = {} } = useSWR(() =>
-    parent(namespaceResource)
-      ? `/api/grants?resource=${parent(namespaceResource)}&limit=1000`
-      : null
-  )
 
   useEffect(() => {
     setNamespaceResource(`${destination?.name}.${resource}`)
@@ -149,7 +144,6 @@ export default function ResourceDetail() {
                         ],
                       })
                     }}
-                    inherited={inherited}
                   />
                 </div>
               </div>

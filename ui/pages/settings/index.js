@@ -7,10 +7,11 @@ import { sortBySubject } from '../../lib/grants'
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
+import Table from '../../components/table'
 
 function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
-  const [open, setOpen] = useState(false)
-  const [deleteId, setDeleteId] = useState(null)
+  // const [open, setOpen] = useState(false)
+  // const [deleteId, setDeleteId] = useState(null)
 
   const grantsList = grants?.sort(sortBySubject)?.map(grant => {
     const message =
@@ -29,57 +30,68 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
   })
 
   return (
-    <div className='-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8'>
-      <div className='inline-block min-w-full py-2 px-4 align-middle md:px-6 lg:px-8'>
-        <table className='min-w-full divide-y divide-gray-200 border-t border-gray-200'>
-          <tbody>
-            {grantsList?.map(grant => (
-              <tr key={grant.id} className='border-b border-gray-200'>
-                <td className='whitespace-nowrap py-4'>
-                  <div className='truncate text-sm font-medium text-gray-900'>
-                    {grant.name}
-                  </div>
-                </td>
-                <td className='py-4 text-right'>
-                  <button
-                    onClick={() => {
-                      setDeleteId(grant.id)
-                      setOpen(true)
-                    }}
-                    className='cursor-pointer pr-4 text-xs text-blue-600 hover:text-blue-900'
-                  >
-                    Revoke
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <DeleteModal
-          open={open}
-          setOpen={setOpen}
-          primaryButtonText='Revoke'
-          onSubmit={() => {
-            onRemove(deleteId)
-            setOpen(false)
-          }}
-          title='Revoke Admin'
-          message={
-            !grantsList?.find(grant => grant.id === deleteId)?.message ? (
-              <>
-                Are you sure you want to revoke admin access for{' '}
-                <span className='font-bold'>
-                  {grantsList?.find(grant => grant.id === deleteId)?.name}
-                </span>
-                ?
-              </>
-            ) : (
-              grantsList?.find(grant => grant.id === deleteId)?.message
+    <Table
+      data={grantsList}
+      columns={[
+        {
+          cell: info => (
+            <div className='flex items-center font-medium text-gray-700'>
+              {info.getValue()}
+            </div>
+          ),
+          header: () => <span>Admin</span>,
+          accessorKey: 'name',
+        },
+        {
+          cell: function Cell(info) {
+            const [open, setOpen] = useState(false)
+            const [deleteId, setDeleteId] = useState(null)
+            return (
+              <div className='text-right'>
+                <button
+                  onClick={() => {
+                    setDeleteId(info.row.original.id)
+                    setOpen(true)
+                  }}
+                  className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
+                >
+                  Revoke
+                  <span className='sr-only'>{info.row.original.name}</span>
+                </button>
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  primaryButtonText='Revoke'
+                  onSubmit={() => {
+                    onRemove(deleteId)
+                    setOpen(false)
+                  }}
+                  title='Revoke Admin'
+                  message={
+                    !grantsList?.find(grant => grant.id === deleteId)
+                      ?.message ? (
+                      <>
+                        Are you sure you want to revoke admin access for{' '}
+                        <span className='font-bold'>
+                          {
+                            grantsList?.find(grant => grant.id === deleteId)
+                              ?.name
+                          }
+                        </span>
+                        ?
+                      </>
+                    ) : (
+                      grantsList?.find(grant => grant.id === deleteId)?.message
+                    )
+                  }
+                />
+              </div>
             )
-          }
-        />
-      </div>
-    </div>
+          },
+          id: 'delete',
+        },
+      ]}
+    />
   )
 }
 
@@ -109,44 +121,45 @@ export default function Settings() {
         <p className='mt-1 text-xs text-gray-500'>
           These users have full access to this organizations and its clusters.
         </p>
-        <div className='flex flex-col space-y-3'>
-          <GrantForm
-            resource='infra'
-            roles={['admin']}
-            onSubmit={async ({ user, group }) => {
-              // don't add grants that already exist
-              if (grants?.find(g => g.user === user && g.group === group)) {
-                return false
-              }
+        <div className='my-5 flex flex-col space-y-4'>
+          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
+            <h3 className='mb-3 text-base font-medium'>Grant access</h3>
+            <GrantForm
+              resource='infra'
+              roles={['admin']}
+              onSubmit={async ({ user, group }) => {
+                // don't add grants that already exist
+                if (grants?.find(g => g.user === user && g.group === group)) {
+                  return false
+                }
 
-              const res = await fetch('/api/grants', {
-                method: 'POST',
-                body: JSON.stringify({
-                  user,
-                  group,
-                  privilege: 'admin',
-                  resource: 'infra',
-                }),
-              })
-
-              mutate({ items: [...grants, await res.json()] })
-            }}
-          />
-          <div>
-            <AdminList
-              grants={grants}
-              users={users}
-              groups={groups}
-              selfGroups={selfGroups}
-              auth={auth}
-              onRemove={async grantId => {
-                await fetch(`/api/grants/${grantId}`, {
-                  method: 'DELETE',
+                const res = await fetch('/api/grants', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    user,
+                    group,
+                    privilege: 'admin',
+                    resource: 'infra',
+                  }),
                 })
-                mutate({ items: grants?.filter(x => x.id !== grantId) })
+
+                mutate({ items: [...grants, await res.json()] })
               }}
             />
           </div>
+          <AdminList
+            grants={grants}
+            users={users}
+            groups={groups}
+            selfGroups={selfGroups}
+            auth={auth}
+            onRemove={async grantId => {
+              await fetch(`/api/grants/${grantId}`, {
+                method: 'DELETE',
+              })
+              mutate({ items: grants?.filter(x => x.id !== grantId) })
+            }}
+          />
         </div>
       </div>
     </div>
