@@ -65,79 +65,77 @@ export default function ResourceDetail() {
         </h1>
       </header>
       {!loading && (
-        <div className='px-4 sm:px-6 md:px-0'>
-          <div className='mt-6 space-y-10'>
-            {admin && (
-              <div>
-                <div className='flex flex-col space-y-2'>
-                  <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-                    <h3 className='mb-3 text-sm font-medium'>Grant access</h3>
-                    <GrantForm
-                      roles={roles}
-                      grants={grants}
-                      onSubmit={async ({ user, group, privilege }) => {
-                        // don't add grants that already exist
-                        if (
-                          grants?.find(
-                            g =>
-                              g.user === user &&
-                              g.group === group &&
-                              g.privilege === privilege
-                          )
-                        ) {
-                          return false
-                        }
-
-                        await fetch('/api/grants', {
-                          method: 'POST',
-                          body: JSON.stringify({
-                            user,
-                            group,
-                            privilege,
-                            resource: namespaceResource,
-                          }),
-                        })
-
-                        mutate()
-                      }}
-                    />
-                  </div>
-                  <AccessTable
+        <div className='mt-6 space-y-10'>
+          {admin && (
+            <div>
+              <div className='flex flex-col space-y-2'>
+                <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
+                  <h3 className='mb-3 text-sm font-medium'>Grant access</h3>
+                  <GrantForm
+                    roles={roles}
                     grants={grants}
-                    users={users}
-                    groups={groups}
-                    destination={destination}
-                    onRemove={async groupId => {
-                      await fetch(`/api/grants/${groupId}`, {
-                        method: 'DELETE',
-                      })
-                      mutate()
-                    }}
-                    onChange={async (privilege, group) => {
-                      if (privilege === group.privilege) {
-                        return
+                    onSubmit={async ({ user, group, privilege }) => {
+                      // don't add grants that already exist
+                      if (
+                        grants?.find(
+                          g =>
+                            g.user === user &&
+                            g.group === group &&
+                            g.privilege === privilege
+                        )
+                      ) {
+                        return false
                       }
 
                       await fetch('/api/grants', {
                         method: 'POST',
                         body: JSON.stringify({
-                          ...group,
+                          user,
+                          group,
                           privilege,
+                          resource: namespaceResource,
                         }),
-                      })
-
-                      // delete old grant
-                      await fetch(`/api/grants/${group.id}`, {
-                        method: 'DELETE',
                       })
 
                       mutate()
                     }}
                   />
                 </div>
+                <AccessTable
+                  grants={grants}
+                  users={users}
+                  groups={groups}
+                  destination={destination}
+                  onRemove={async groupId => {
+                    await fetch(`/api/grants/${groupId}`, {
+                      method: 'DELETE',
+                    })
+                    mutate()
+                  }}
+                  onChange={async (privilege, group) => {
+                    if (privilege === group.privilege) {
+                      return
+                    }
+
+                    await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        ...group,
+                        privilege,
+                      }),
+                    })
+
+                    // delete old grant
+                    await fetch(`/api/grants/${group.id}`, {
+                      method: 'DELETE',
+                    })
+
+                    mutate()
+                  }}
+                />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
