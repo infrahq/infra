@@ -72,14 +72,14 @@ export default function Table({
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className={`max-w-[22rem] truncate border-gray-100 text-sm sm:max-w-[10rem] ${
+                    className={`border-gray-100 text-sm ${
                       href ? '' : 'px-5 py-2'
                     }`}
                     key={cell.id}
                   >
                     {href ? (
                       <Link href={href(row)}>
-                        <a tabIndex='-1' className='block px-5 py-2.5'>
+                        <a tabIndex='-1' className='block px-5 py-2'>
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
