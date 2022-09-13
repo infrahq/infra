@@ -21,7 +21,7 @@ func TestSignupWithReservedDomain(t *testing.T) {
 	err := validate.Validate(req)
 	assert.Error(t, err, "validation failed: org.subDomain: infrahq is reserved and can not be used")
 
-	req.Org.Subdomain = "authz"
+	req.Org.Subdomain = "zzz"
 	err = validate.Validate(req)
-	assert.Error(t, err, "validation failed: org.subDomain: must be at least 6 characters")
+	assert.Error(t, err, "validation failed: org.subDomain: must be at least 4 characters")
 }

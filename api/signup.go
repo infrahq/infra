@@ -44,7 +44,7 @@ func (r SignupOrg) ValidationRules() []validate.ValidationRule {
 		validate.StringRule{
 			Name:      "subDomain",
 			Value:     r.Subdomain,
-			MinLength: 6,
+			MinLength: 4,
 			MaxLength: 63,
 			CharacterRanges: []validate.CharRange{
 				validate.AlphabetLower,

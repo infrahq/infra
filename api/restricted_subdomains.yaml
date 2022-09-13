@@ -9,12 +9,16 @@ reject: # these are always rejected
     - admin
     - api
     - app
+    - beta
     - blog
     - cache
+    - chat
     - connector
+    - data
     - docs
     - dns
     - db
+    - demo
     - dev
     - devel
     - download
@@ -25,6 +29,7 @@ reject: # these are always rejected
     - events
     - feed
     - feeds
+    - file
     - files
     - feedback
     - forum
@@ -34,9 +39,14 @@ reject: # these are always rejected
     - grants
     - help
     - host
-    - info
+    - html
+    - icon
+    - icons
     - image
     - images
+    - img
+    - info
+    - ipv4
     - legal
     - links
     - login
@@ -64,6 +74,7 @@ reject: # these are always rejected
     - system
     - test
     - testing
+    - team
     - teams
     - vpn
     - web
@@ -112,6 +123,7 @@ requires-approval: # these require approval before they can be used. Anything le
     - delete
     - design
     - destroy
+    - devel
     - develop
     - developer
     - developers
@@ -150,8 +162,10 @@ requires-approval: # these require approval before they can be used. Anything le
     - iphone
     - jabber
     - knowledgebase
+    - ldap
     - legacy
     - library
+    - local
     - localhost
     - loghost
     - loopback
@@ -189,11 +203,14 @@ requires-approval: # these require approval before they can be used. Anything le
     - picture
     - pictures
     - policy
+    - pop
+    - pop3
     - portal
     - postmaster
     - press
     - preview
     - private
+    - prod
     - product
     - production
     - products
@@ -207,6 +224,7 @@ requires-approval: # these require approval before they can be used. Anything le
     - reports
     - research
     - reviews
+    - root
     - router
     - sandbox
     - secure
@@ -215,7 +233,8 @@ requires-approval: # these require approval before they can be used. Anything le
     - setting
     - settings
     - sharepoint
-    - shopping
+    - shop
+    - site
     - sitebuilder
     - sitemap
     - social
@@ -230,10 +249,12 @@ requires-approval: # these require approval before they can be used. Anything le
     - styles
     - survey
     - syndicated
+    - temp
     - termsofservice
     - thumbs
     - ticket
     - tickets
+    - tmp
     - tracker
     - tracking
     - training

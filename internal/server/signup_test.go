@@ -61,7 +61,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				expected := []api.FieldError{
 					{FieldName: "org.subDomain", Errors: []string{
-						"must be at least 6 characters",
+						"must be at least 4 characters",
 						"character '@' at position 1 is not allowed",
 					}},
 				}
