@@ -1,18 +1,18 @@
 import Head from 'next/head'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 
+import Notification from '../../components/notification'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
-function AddGroupsDialog({ setOpen }) {
+function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const router = useRouter()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -31,7 +31,8 @@ function AddGroupsDialog({ setOpen }) {
         throw group
       }
 
-      router.replace({ pathname: `/groups/${group.id}`, query: { created: 1 } })
+      onAdded(group)
+      setOpen(false)
     } catch (e) {
       setError(e.message)
     }
@@ -87,16 +88,24 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 10
-  const { data: { items: groups, totalPages, totalCount } = {} } = useSWR(
-    `/api/groups?page=${page}&limit=${limit}`
-  )
+  const { data: { items: groups, totalPages, totalCount } = {}, mutate } =
+    useSWR(`/api/groups?page=${page}&limit=${limit}`)
   const [open, setOpen] = useState(false)
+  const [showCreated, setShowCreated] = useState(false)
 
   return (
     <div className='mb-10'>
       <Head>
         <title>Groups - Infra</title>
       </Head>
+
+      {/* Created notification */}
+      <Notification
+        show={showCreated}
+        setShow={setShowCreated}
+        text='Group added'
+      />
+
       <header className='my-6 flex items-center justify-between'>
         <h1 className='py-1 text-xl font-medium'>Groups</h1>
         {/* Add dialog */}
@@ -131,7 +140,14 @@ export default function Groups() {
                   leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
                 >
                   <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white px-8 py-4 text-left shadow-xl shadow-gray-300/10 transition-all sm:max-w-sm'>
-                    <AddGroupsDialog setOpen={setOpen} />
+                    <AddGroupsDialog
+                      setOpen={setOpen}
+                      onAdded={() => {
+                        setShowCreated(true)
+                        setTimeout(() => setShowCreated(false), 3000)
+                        mutate()
+                      }}
+                    />
                   </Dialog.Panel>
                 </Transition.Child>
               </div>

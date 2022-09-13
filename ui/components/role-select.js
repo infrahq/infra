@@ -63,7 +63,7 @@ export default function RoleSelect({
         <Listbox.Options
           className={`absolute z-10 w-48 ${
             direction === 'right' ? '' : 'right-0'
-          } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-black shadow-lg shadow-gray-300/20 focus:outline-none`}
+          } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
         >
           <div className={`max-h-64 overflow-auto`}>
             {roles?.map(r => (

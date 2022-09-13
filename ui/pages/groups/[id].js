@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Head from 'next/head'
 import useSWR from 'swr'
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 
@@ -16,6 +16,7 @@ import Dashboard from '../../components/layouts/dashboard'
 
 function ComboBox({ options = [], selected, setSelected }) {
   const [query, setQuery] = useState('')
+  const button = useRef()
 
   const filtered = options?.filter(u =>
     u.toLowerCase().includes(query.toLowerCase())
@@ -24,6 +25,7 @@ function ComboBox({ options = [], selected, setSelected }) {
   return (
     <HeadlessUIComboBox
       as='div'
+      className='w-full'
       value={selected}
       onChange={user => {
         setSelected(user)
@@ -31,20 +33,20 @@ function ComboBox({ options = [], selected, setSelected }) {
     >
       <div className='relative'>
         <HeadlessUIComboBox.Input
+          onFocus={() => {
+            if (!selected) {
+              button.current?.click()
+            }
+          }}
           className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
           value={query}
-          placeholder='Add user to group'
+          placeholder='User'
           onChange={event => setQuery(event.target.value)}
         />
-        <HeadlessUIComboBox.Button className='absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none'>
-          <ChevronDownIcon
-            className='h-4 w-4 text-gray-400'
-            aria-hidden='true'
-          />
-        </HeadlessUIComboBox.Button>
+        <HeadlessUIComboBox.Button className='hidden' ref={button} />
 
         {filtered?.length > 0 && (
-          <HeadlessUIComboBox.Options className='absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none md:text-xs'>
+          <HeadlessUIComboBox.Options className='absolute z-10 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
             {filtered.map(o => (
               <HeadlessUIComboBox.Option
                 key={o}
@@ -90,34 +92,20 @@ function ComboBox({ options = [], selected, setSelected }) {
 export default function GroupDetails() {
   const router = useRouter()
   const id = router.query.id
-  const created = router.query.created
   const page = Math.max(parseInt(router.query.p) || 1, 1)
   const limit = 999
-
-  const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
   const { admin } = useAdmin()
-
+  const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
     mutate: mutateUsers,
   } = useSWR(`/api/users?group=${group?.id}&limit=${limit}&p=${page}`)
-
   const { data: { items: allUsers } = {} } = useSWR(`/api/users?limit=999`)
-
   const { data: { items: infraAdmins } = {} } = useSWR(
     '/api/grants?resource=infra&privilege=admin&limit=999'
   )
-
-  const [showCreated, setShowCreated] = useState(false)
-
-  useEffect(() => {
-    if (created) {
-      setShowCreated(true)
-      setTimeout(() => setShowCreated(false), 3000)
-    }
-  }, [created])
-
   const [addUser, setAddUser] = useState('')
+  const [showAdded, setShowAdded] = useState(false)
 
   const adminGroups = infraAdmins?.map(admin => admin.group)
 
@@ -131,17 +119,15 @@ export default function GroupDetails() {
         <title>{group?.name} - Infra</title>
       </Head>
 
-      {/* Created notification */}
-      {created && (
-        <Notification
-          show={showCreated}
-          setShow={setShowCreated}
-          text='Group added'
-        />
-      )}
+      {/* Added notification */}
+      <Notification
+        show={showAdded}
+        setShow={setShowAdded}
+        text='User added to group'
+      />
 
       {/* Header */}
-      <header className='my-6 flex items-center justify-between'>
+      <header className='mt-6 mb-12 flex items-center justify-between'>
         <h1 className='py-1 text-xl font-medium'>
           <Link href='/groups'>
             <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
@@ -174,36 +160,41 @@ export default function GroupDetails() {
 
       {/* Users */}
       <div className='my-2.5 flex'>
-        <div className='flex w-full space-x-2 rounded-lg border border-gray-200/75 px-5 py-3'>
-          <ComboBox
-            options={allUsers
-              ?.filter(au => !users?.find(u => au.name === u.name))
-              ?.map(au => au.name)}
-            selected={addUser}
-            setSelected={setAddUser}
-          />
-          <button
-            onClick={async () => {
-              const user = allUsers?.find(au => au.name === addUser)
+        <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 py-3'>
+          <h3 className='mb-2 text-base font-medium'>Add user to group</h3>
+          <div className='flex w-full space-x-2 '>
+            <ComboBox
+              options={allUsers
+                ?.filter(au => !users?.find(u => au.name === u.name))
+                ?.map(au => au.name)}
+              selected={addUser}
+              setSelected={setAddUser}
+            />
+            <button
+              onClick={async () => {
+                const user = allUsers?.find(au => au.name === addUser)
 
-              if (!user) {
-                return false
-              }
+                if (!user) {
+                  return false
+                }
 
-              await fetch(`/api/groups/${group?.id}/users`, {
-                method: 'PATCH',
-                body: JSON.stringify({ usersToAdd: [user.id] }),
-              })
+                await fetch(`/api/groups/${group?.id}/users`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ usersToAdd: [user.id] }),
+                })
 
-              // TODO: show optimistic results
-              mutateUsers()
-              mutate()
-              setAddUser('')
-            }}
-            className='rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-700'
-          >
-            Add User
-          </button>
+                // TODO: show optimistic results
+                mutateUsers()
+                mutate()
+                setAddUser('')
+                setShowAdded(true)
+                setTimeout(() => setShowAdded(false), 3000)
+              }}
+              className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-700'
+            >
+              Add User
+            </button>
+          </div>
         </div>
       </div>
       <Table
