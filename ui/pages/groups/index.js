@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import useSWR, { mutate } from 'swr'
+import useSWR from 'swr'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
-import { ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
+import { CheckIcon } from '@heroicons/react/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 
 import { useAdmin } from '../../lib/admin'
