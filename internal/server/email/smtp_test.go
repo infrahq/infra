@@ -105,9 +105,9 @@ func successCase(t *testing.T, c net.Conn) {
 	write("250 Recipient address accepted")
 	read("DATA")
 	write("354 Ready")
+	read(`X-SMTPAPI: {"filters":{"bypass_list_management":{"settings":{"enable":1}}}}`)
 	for s := read(""); s != "."; s = read("") {
 		switch {
-		case strings.HasPrefix(s, "X-SMTPAPI:"):
 		case strings.HasPrefix(s, "To: "):
 			to = strings.SplitN(s, ": ", 2)[1]
 		case strings.HasPrefix(s, "From: "):
