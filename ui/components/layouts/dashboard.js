@@ -162,34 +162,33 @@ function Layout({ children }) {
         </div>
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
           <nav className='flex-1 space-y-1'>
-            {navigation.map(
-              item =>
-                admin === !!item.admin && (
-                  <Link key={item.name} href={item.href}>
-                    <a
-                      onClick={() => setSidebarOpen(false)}
-                      className={`
+            {navigation
+              ?.filter(n => (n.admin ? admin : true))
+              .map(item => (
+                <Link key={item.name} href={item.href}>
+                  <a
+                    onClick={() => setSidebarOpen(false)}
+                    className={`
                           ${
                             router.asPath.startsWith(item.href)
                               ? 'bg-gray-100/50 text-gray-800'
                               : 'bg-transparent text-gray-500/75 hover:text-gray-500'
                           }
                         group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
-                    >
-                      <item.icon
-                        className={`${
-                          router.asPath.startsWith(item.href)
-                            ? 'fill-blue-100 text-blue-500'
-                            : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
-                        }
+                  >
+                    <item.icon
+                      className={`${
+                        router.asPath.startsWith(item.href)
+                          ? 'fill-blue-100 text-blue-500'
+                          : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                      }
                     mr-2 h-[18px] w-[18px] flex-shrink`}
-                        aria-hidden='true'
-                      />
-                      {item.name}
-                    </a>
-                  </Link>
-                )
-            )}
+                      aria-hidden='true'
+                    />
+                    {item.name}
+                  </a>
+                </Link>
+              ))}
           </nav>
         </div>
       </>
