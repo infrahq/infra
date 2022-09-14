@@ -120,6 +120,15 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 				assert.DeepEqual(t, actual, expected)
 			},
 		},
+		{
+			name: "error status code from server",
+			setup: func(t *testing.T, req *http.Request) {
+				j := generateJWT(t, priv, "test@example.com", time.Now().Add(time.Hour))
+				req.Header.Set("Authorization", "Bearer "+j)
+			},
+			fakeClient:  fakeClient{key: *pub, statusCode: http.StatusBadRequest},
+			expectedErr: "Bad Request",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -166,8 +175,9 @@ func generateJWT(t *testing.T, priv *jose.JSONWebKey, email string, expiry time.
 }
 
 type fakeClient struct {
-	key jose.JSONWebKey
-	err error
+	key        jose.JSONWebKey
+	err        error
+	statusCode int
 }
 
 func (f fakeClient) Do(req *http.Request) (*http.Response, error) {
@@ -187,8 +197,13 @@ func (f fakeClient) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("missing authorization header or wrong access key: %v", authHeader)
 	}
 
+	code := http.StatusOK
+	if f.statusCode != 0 {
+		code = f.statusCode
+	}
 	resp := &http.Response{
-		StatusCode: http.StatusOK,
+		StatusCode: code,
+		Status:     http.StatusText(code),
 		Body:       ioutil.NopCloser(&buf),
 	}
 	return resp, nil
