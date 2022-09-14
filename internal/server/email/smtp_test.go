@@ -105,6 +105,7 @@ func successCase(t *testing.T, c net.Conn) {
 	write("250 Recipient address accepted")
 	read("DATA")
 	write("354 Ready")
+	read(`X-SMTPAPI: {"filters":{"bypass_list_management":{"settings":{"enable":1}}}}`)
 	for s := read(""); s != "."; s = read("") {
 		switch {
 		case strings.HasPrefix(s, "To: "):
@@ -160,7 +161,7 @@ func TestSendEmail(t *testing.T) {
 		Subject:     "The art of emails",
 		PlainBody:   []byte("Hello world\n.\n."),
 		HTMLBody:    []byte("<h2> HELLO WORLD <h2>"),
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 
 	assert.Equal(t, plain, "Hello world\n.\n.")
@@ -173,7 +174,7 @@ func TestSendPasswordReset(t *testing.T) {
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplatePasswordReset, PasswordResetData{
 		Link: "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -184,7 +185,7 @@ func TestSendUserInvite(t *testing.T) {
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateUserInvite, UserInviteData{
 		FromUserName: "joe bill",
 		Link:         "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -195,7 +196,7 @@ func TestSendSignup(t *testing.T) {
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
 		Link:        "https://supahdomain.example.com/login",
 		WrappedLink: "https://supahdomain.example.com/login",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 
 	assert.Assert(t, strings.Contains(plain, `You can sign into your account any time from https://supahdomain.example.com`))
@@ -214,6 +215,6 @@ func TestSendForgotDomain(t *testing.T) {
 				LastSeenAt:         format.HumanTime(time.Now(), "never"),
 			},
 		},
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }

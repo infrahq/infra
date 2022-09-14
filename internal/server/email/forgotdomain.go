@@ -9,5 +9,5 @@ type ForgottenDomainData struct {
 }
 
 func SendForgotDomainsEmail(name, address string, data ForgottenDomainData) error {
-	return SendTemplate(name, address, EmailTemplateForgottenDomains, data)
+	return SendTemplate(name, address, EmailTemplateForgottenDomains, data, BypassListManagement)
 }

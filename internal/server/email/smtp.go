@@ -83,8 +83,16 @@ func writeln(w io.WriteCloser, s string, args ...any) error {
 	return err
 }
 
+// named arguments for the bypassListManagement boolean positional argument.
+// use BypassListManagement if you want the email to ignore any unsubscribe lists, spam lists, and bounce lists.
+// use RespectListManagement if you want the email to not deliver if the recipient is on one of those lists.
+// Unfortunately Sendgrid has no option of specifying the lists individually, which is problematic.
+// I opened a support issue about this with sendgrid.
+const BypassListManagement bool = true
+const RespectListManagement bool = false
+
 // SendSMTP sends an email message
-func SendSMTP(msg Message) error {
+func SendSMTP(msg Message, bypassListManagement bool) error {
 	client := &Client{} // setup a new client for each smtp send
 
 	if testClient != nil {
@@ -106,6 +114,11 @@ func SendSMTP(msg Message) error {
 		return err
 	}
 
+	if bypassListManagement {
+		if err := writeln(w, `X-SMTPAPI: {"filters":{"bypass_list_management":{"settings":{"enable":1}}}}`); err != nil {
+			return fmt.Errorf("mail header: %w", err)
+		}
+	}
 	if len(msg.ToName) > 0 {
 		if err := writeln(w, "To: %q <%s>", msg.ToName, msg.ToAddress); err != nil {
 			return fmt.Errorf("write to: %w", err)
