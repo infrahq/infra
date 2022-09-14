@@ -15,9 +15,9 @@ function Provider({ kind, name, currentKind }) {
   return (
     <div
       className={`${
-        kind === currentKind ? 'bg-gray-200' : 'bg-white'
+        kind === currentKind ? 'bg-gray-400/20' : 'bg-white'
       } flex cursor-pointer select-none items-center rounded-lg border border-gray-300 bg-transparent px-3
-        py-4 hover:bg-gray-100`}
+        py-4 hover:opacity-75`}
     >
       <img
         alt='provider icon'
@@ -49,7 +49,7 @@ export default function ProvidersAddDetails() {
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [name, setName] = useState('')
+  const [name, setName] = useState(kind)
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
