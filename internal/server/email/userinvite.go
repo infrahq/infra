@@ -6,5 +6,5 @@ type UserInviteData struct {
 }
 
 func SendUserInviteEmail(name, address string, data UserInviteData) error {
-	return SendTemplate(name, address, EmailTemplateUserInvite, data)
+	return SendTemplate(name, address, EmailTemplateUserInvite, data, BypassListManagement)
 }

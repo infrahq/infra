@@ -174,7 +174,7 @@ func TestSendPasswordReset(t *testing.T) {
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplatePasswordReset, PasswordResetData{
 		Link: "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -185,7 +185,7 @@ func TestSendUserInvite(t *testing.T) {
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateUserInvite, UserInviteData{
 		FromUserName: "joe bill",
 		Link:         "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -196,7 +196,7 @@ func TestSendSignup(t *testing.T) {
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
 		Link:        "https://supahdomain.example.com/login",
 		WrappedLink: "https://supahdomain.example.com/login",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 
 	assert.Assert(t, strings.Contains(plain, `You can sign into your account any time from https://supahdomain.example.com`))

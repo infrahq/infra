@@ -5,5 +5,5 @@ type PasswordResetData struct {
 }
 
 func SendPasswordResetEmail(name, address string, data PasswordResetData) error {
-	return SendTemplate(name, address, EmailTemplatePasswordReset, data)
+	return SendTemplate(name, address, EmailTemplatePasswordReset, data, BypassListManagement)
 }

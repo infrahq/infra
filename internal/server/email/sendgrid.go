@@ -62,7 +62,7 @@ func IsConfigured() bool {
 	return len(SendgridAPIKey) > 0
 }
 
-func SendTemplate(name, address string, template EmailTemplate, data any) error {
+func SendTemplate(name, address string, template EmailTemplate, data any, bypassListManagement bool) error {
 	details, ok := emailTemplates[template]
 	if !ok {
 		return ErrUnknownTemplate
@@ -119,7 +119,7 @@ func SendTemplate(name, address string, template EmailTemplate, data any) error 
 	}
 
 	// TODO: handle rate limiting, retries, understanding which errors are retryable, send queues, whatever
-	if err := SendSMTP(msg); err != nil {
+	if err := SendSMTP(msg, bypassListManagement); err != nil {
 		logging.Errorf("SMTP mail delivery error: %s", err)
 		return err
 	}
