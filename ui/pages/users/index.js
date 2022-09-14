@@ -383,13 +383,13 @@ export default function Users() {
                     }}
                     title='Remove User'
                     message={
-                      <>
+                      <div className='truncate'>
                         Are you sure you want to remove{' '}
                         <span className='font-bold'>
                           {info.row.original.name}
                         </span>
                         ?
-                      </>
+                      </div>
                     }
                   />
                 </div>

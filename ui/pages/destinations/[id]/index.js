@@ -169,7 +169,6 @@ export default function DestinationDetail() {
 
                 router.replace('/destinations')
               }}
-              deleteModalType='md'
               modalTitle='Remove Cluster'
               modalMessage={
                 <>

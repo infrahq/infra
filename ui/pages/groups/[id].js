@@ -139,10 +139,10 @@ export default function GroupDetails() {
               }}
               modalTitle='Remove group'
               modalMessage={
-                <>
+                <div className='truncate'>
                   Are you sure you want to remove{' '}
                   <span className='font-bold'>{group?.name}</span>?
-                </>
+                </div>
               }
             >
               Remove group

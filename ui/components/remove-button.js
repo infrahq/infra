@@ -4,7 +4,6 @@ import DeleteModal from './delete-modal'
 
 export default function RemoveButton({
   children = 'Remove',
-  deleteModalType = 'sm',
   onRemove,
   modalTitle,
   modalMessage,
@@ -22,7 +21,6 @@ export default function RemoveButton({
         {children}
       </button>
       <DeleteModal
-        type={deleteModalType}
         open={modalOpen}
         setOpen={setModalOpen}
         onSubmit={() => {
