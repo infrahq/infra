@@ -161,7 +161,7 @@ func TestSendEmail(t *testing.T) {
 		Subject:     "The art of emails",
 		PlainBody:   []byte("Hello world\n.\n."),
 		HTMLBody:    []byte("<h2> HELLO WORLD <h2>"),
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 
 	assert.Equal(t, plain, "Hello world\n.\n.")
@@ -215,6 +215,6 @@ func TestSendForgotDomain(t *testing.T) {
 				LastSeenAt:         format.HumanTime(time.Now(), "never"),
 			},
 		},
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
