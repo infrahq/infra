@@ -133,55 +133,90 @@ func TestListGroups(t *testing.T) {
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
 			product   = models.Group{Name: "Product"}
+			empty     = models.Group{Name: "Empty"}
+			deleted   = models.Group{Name: "Removed"}
 		)
-
-		createGroups(t, db, &everyone, &engineers, &product)
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
+		createGroups(t, db, &everyone, &engineers, &product, &empty, &deleted)
 
 		firstUser := models.Identity{
-			Name:   "firstly",
+			Name:   "firstly@example.com",
 			Groups: []models.Group{everyone, engineers},
 		}
 		secondUser := models.Identity{
-			Name:   "secondarly",
+			Name:   "secondly@example.com",
 			Groups: []models.Group{everyone, product},
 		}
-		createIdentities(t, db, &firstUser, &secondUser)
+		thirdUser := models.Identity{Name: "thirdly@example.com"}
+		createIdentities(t, db, &firstUser, &secondUser, &thirdUser)
+
+		var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
+			return x.Name == y.Name && x.TotalUsers == y.TotalUsers
+		})
 
 		t.Run("all", func(t *testing.T) {
-			actual, err := ListGroups(db, nil)
+			actual, err := ListGroups(db, ListGroupsOptions{})
 			assert.NilError(t, err)
 			expected := []models.Group{
-				{Name: "Engineering"},
-				{Name: "Everyone"},
-				{Name: "Product"},
+				{Name: "Empty", TotalUsers: 0},
+				{Name: "Engineering", TotalUsers: 1},
+				{Name: "Everyone", TotalUsers: 2},
+				{Name: "Product", TotalUsers: 1},
 			}
 			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
 		})
 
-		t.Run("filter by name", func(t *testing.T) {
-			actual, err := ListGroups(db, nil, ByName(engineers.Name))
+		t.Run("by name", func(t *testing.T) {
+			actual, err := ListGroups(db, ListGroupsOptions{ByName: engineers.Name})
 			assert.NilError(t, err)
 			expected := []models.Group{
-				{Name: "Engineering"},
+				{Name: "Engineering", TotalUsers: 1},
 			}
 			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
 		})
 
-		t.Run("filter by identity membership", func(t *testing.T) {
-			actual, err := ListGroups(db, nil, ByGroupMember(firstUser.ID))
+		t.Run("by group member", func(t *testing.T) {
+			actual, err := ListGroups(db, ListGroupsOptions{ByGroupMember: firstUser.ID})
 			assert.NilError(t, err)
 			expected := []models.Group{
-				{Name: "Engineering"},
-				{Name: "Everyone"},
+				{Name: "Engineering", TotalUsers: 1},
+				{Name: "Everyone", TotalUsers: 2},
+			}
+			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
+		})
+		t.Run("by group member in no groups", func(t *testing.T) {
+			actual, err := ListGroups(db, ListGroupsOptions{ByGroupMember: thirdUser.ID})
+			assert.NilError(t, err)
+			var expected []models.Group
+			assert.DeepEqual(t, actual, expected)
+		})
+		t.Run("by group member with pagination", func(t *testing.T) {
+			pagination := Pagination{Limit: 1, Page: 2}
+			actual, err := ListGroups(db, ListGroupsOptions{
+				ByGroupMember: firstUser.ID,
+				Pagination:    &pagination,
+			})
+			assert.NilError(t, err)
+			expected := []models.Group{
+				{Name: "Everyone", TotalUsers: 2},
+			}
+			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
+			assert.Equal(t, pagination.TotalCount, 2)
+		})
+		t.Run("by ids", func(t *testing.T) {
+			actual, err := ListGroups(db, ListGroupsOptions{
+				ByIDs: []uid.ID{product.ID, everyone.ID},
+			})
+			assert.NilError(t, err)
+			expected := []models.Group{
+				{Name: "Everyone", TotalUsers: 2},
+				{Name: "Product", TotalUsers: 1},
 			}
 			assert.DeepEqual(t, actual, expected, cmpGroupShallow)
 		})
 	})
 }
-
-var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
-	return x.Name == y.Name
-})
 
 func TestDeleteGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {

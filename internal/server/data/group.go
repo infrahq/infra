@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -70,29 +68,68 @@ func GetGroup(tx ReadTxn, opts GetGroupOptions) (*models.Group, error) {
 	return (*models.Group)(group), nil
 }
 
-func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
-	groups, err := list[models.Group](db, p, selectors...)
+type ListGroupsOptions struct {
+	ByName string
+	ByIDs  []uid.ID
+
+	// ByGroupMember instructs ListGroups to return groups where this user ID
+	// is a member of the group.
+	ByGroupMember uid.ID
+
+	Pagination *Pagination
+}
+
+func ListGroups(tx ReadTxn, opts ListGroupsOptions) ([]models.Group, error) {
+	table := groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM groups")
+	if opts.ByGroupMember != 0 {
+		query.B("JOIN identities_groups ON groups.id = identities_groups.group_id")
+		query.B("AND identities_groups.identity_id = ?", opts.ByGroupMember)
+	}
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if len(opts.ByIDs) > 0 {
+		query.B("AND groups.id IN (?)", opts.ByIDs)
+	}
+
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	result, err := scanRows(rows, func(group *models.Group) []any {
+		fields := (*groupsTable)(group).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range groups {
-		count, err := countUsersInGroup(db, groups[i].ID)
+	// TODO: do this in a single query
+	for i := range result {
+		count, err := countUsersInGroup(tx, result[i].ID)
 		if err != nil {
 			return nil, err
 		}
-		groups[i].TotalUsers = int(count)
+		result[i].TotalUsers = int(count)
 	}
-
-	return groups, nil
-}
-
-func ByGroupMember(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.
-			Joins("JOIN identities_groups ON groups.id = identities_groups.group_id").
-			Where("identities_groups.identity_id = ?", id)
-	}
+	return result, nil
 }
 
 func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
