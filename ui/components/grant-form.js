@@ -26,8 +26,8 @@ export default function GrantForm({ grants, roles, onSubmit = () => {} }) {
     if (users && groups) {
       setOptions(
         [
-          ...users?.map(u => ({ ...u, user: true })),
-          ...groups?.map(g => ({ ...g, group: true })),
+          ...(users?.map(u => ({ ...u, user: true })) || []),
+          ...(groups?.map(g => ({ ...g, group: true })) || []),
         ]
           ?.filter(
             item =>

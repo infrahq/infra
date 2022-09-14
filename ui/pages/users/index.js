@@ -5,6 +5,8 @@ import dayjs from 'dayjs'
 import { Menu, Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 import { DotsHorizontalIcon, XIcon } from '@heroicons/react/outline'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
 
 import { useServerConfig } from '../../lib/serverconfig'
 
@@ -243,18 +245,16 @@ export default function Users() {
           },
           {
             cell: info => (
-              <div className='hidden truncate lg:table-cell'>
+              <div className='truncate'>
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
-            header: () => (
-              <span className='hidden lg:table-cell'>Last&nbsp;seen</span>
-            ),
+            header: () => <span>Last&nbsp;seen</span>,
             accessorKey: 'lastSeenAt',
           },
           {
             cell: info => (
-              <div className='hidden truncate md:table-cell'>
+              <div className='truncate'>
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
@@ -303,6 +303,21 @@ export default function Users() {
             id: 'actions',
             cell: function Cell(info) {
               const [open, setOpen] = useState(false)
+              let [referenceElement, setReferenceElement] = useState()
+              let [popperElement, setPopperElement] = useState()
+              let { styles, attributes } = usePopper(
+                referenceElement,
+                popperElement,
+                {
+                  placement: 'bottom-end',
+                  modifiers: [
+                    {
+                      name: 'flip',
+                      enabled: false,
+                    },
+                  ],
+                }
+              )
 
               if (info.row.original.id === auth?.id) {
                 return null
@@ -311,36 +326,48 @@ export default function Users() {
               return (
                 <div className='flex justify-end'>
                   <Menu as='div' className='relative inline-block text-left'>
-                    <Menu.Button className='cursor-pointer rounded-md border border-transparent px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'>
+                    <Menu.Button
+                      ref={setReferenceElement}
+                      className='cursor-pointer rounded-md border border-transparent px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
+                    >
                       <DotsHorizontalIcon className='z-0 h-[18px]' />
                     </Menu.Button>
-                    <Transition
-                      as={Fragment}
-                      enter='transition ease-out duration-100'
-                      enterFrom='transform opacity-0 scale-95'
-                      enterTo='transform opacity-100 scale-100'
-                      leave='transition ease-in duration-75'
-                      leaveFrom='transform opacity-100 scale-100'
-                      leaveTo='transform opacity-0 scale-95'
-                    >
-                      <Menu.Items className='absolute right-0 z-10 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                        <div className='px-1 py-1'>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                className={`${
-                                  active ? 'bg-gray-50' : 'bg-white'
-                                } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
-                                onClick={() => setOpen(true)}
-                              >
-                                <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                Remove user
-                              </button>
-                            )}
-                          </Menu.Item>
-                        </div>
-                      </Menu.Items>
-                    </Transition>
+                    {ReactDOM.createPortal(
+                      <div
+                        ref={setPopperElement}
+                        style={styles.popper}
+                        {...attributes.popper}
+                      >
+                        <Transition
+                          as={Fragment}
+                          enter='transition ease-out duration-100'
+                          enterFrom='transform opacity-0 scale-95'
+                          enterTo='transform opacity-100 scale-100'
+                          leave='transition ease-in duration-75'
+                          leaveFrom='transform opacity-100 scale-100'
+                          leaveTo='transform opacity-0 scale-95'
+                        >
+                          <Menu.Items className='absolute right-0 z-10 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                            <div className='px-1 py-1'>
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    className={`${
+                                      active ? 'bg-gray-50' : 'bg-white'
+                                    } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
+                                    onClick={() => setOpen(true)}
+                                  >
+                                    <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
+                                    Remove user
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            </div>
+                          </Menu.Items>
+                        </Transition>
+                      </div>,
+                      document.querySelector('body')
+                    )}
                   </Menu>
                   <DeleteModal
                     open={open}

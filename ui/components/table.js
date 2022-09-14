@@ -40,7 +40,7 @@ export default function Table({
   })
 
   return (
-    <div className='overflow-visible rounded-lg border border-gray-200/75'>
+    <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
       <table className='w-full text-sm text-gray-600'>
         <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
           {table.getHeaderGroups().map(headerGroup => (
