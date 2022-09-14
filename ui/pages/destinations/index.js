@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 
+import { useAdmin } from '../../lib/admin'
+
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
@@ -12,9 +14,15 @@ export default function Destinations() {
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 20
 
+  const { admin, loading } = useAdmin()
+
   const { data: { items: destinations, totalCount, totalPages } = {} } = useSWR(
     `/api/destinations?page=${page}&limit=${limit}`
   )
+
+  if (loading) {
+    return null
+  }
 
   return (
     <div className='mb-10'>
@@ -24,11 +32,13 @@ export default function Destinations() {
       <header className='my-6 flex items-center justify-between'>
         <h1 className='py-1 text-xl font-medium'>Clusters</h1>
         {/* Add dialog */}
-        <Link href='/destinations/add'>
-          <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
-            Connect cluster
-          </a>
-        </Link>
+        {admin && (
+          <Link href='/destinations/add'>
+            <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              Connect cluster
+            </a>
+          </Link>
+        )}
       </header>
 
       <Table

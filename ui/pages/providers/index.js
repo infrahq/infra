@@ -5,8 +5,6 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import dayjs from 'dayjs'
 
-import { useAdmin } from '../../lib/admin'
-
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
@@ -18,7 +16,6 @@ export default function Providers() {
   const { data: { items: providers } = {}, mutate } = useSWR(
     `/api/providers?page=${page}&limit=${limit}`
   )
-  const { admin } = useAdmin()
 
   return (
     <div className='mb-10'>
@@ -28,13 +25,11 @@ export default function Providers() {
 
       <header className='my-6 flex items-center justify-between'>
         <h1 className='py-1 text-xl font-medium'>Providers</h1>
-        {admin && (
-          <Link href='/providers/add' data-testid='page-header-button-link'>
-            <button className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
-              Connect provider
-            </button>
-          </Link>
-        )}
+        <Link href='/providers/add' data-testid='page-header-button-link'>
+          <button className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
+            Connect provider
+          </button>
+        </Link>
       </header>
 
       <Table

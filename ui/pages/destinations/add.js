@@ -1,26 +1,31 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import copy from 'copy-to-clipboard'
-import yaml from 'js-yaml'
 import {
   CheckCircleIcon,
   ClipboardCheckIcon,
   ClipboardCopyIcon,
 } from '@heroicons/react/outline'
 
+import { useAdmin } from '../../lib/admin'
 import { useServerConfig } from '../../lib/serverconfig'
+
 import Dashboard from '../../components/layouts/dashboard'
 import ErrorMessage from '../../components/error-message'
 
 export default function DestinationsAdd() {
+  const router = useRouter()
+
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [accessKey, setAccessKey] = useState('')
   const [connected, setConnected] = useState(false)
   const [commandCopied, setCommandCopied] = useState(false)
-  const [valuesCopied, setValuesCopied] = useState(false)
+
+  const { admin } = useAdmin()
 
   const { baseDomain } = useServerConfig()
 
@@ -132,8 +137,12 @@ export default function DestinationsAdd() {
     values.connector.config.skipTLSVerify = true
   }
 
-  const valuesYaml = yaml.dump(values)
   const command = ` helm repo add infrahq https://helm.infrahq.com \n helm repo update \n helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
+
+  if (!admin) {
+    router.replace('/')
+    return null
+  }
 
   return (
     <>

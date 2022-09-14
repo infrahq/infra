@@ -97,8 +97,6 @@ function Layout({ children }) {
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
-
   if (loading) {
     return null
   }
@@ -143,15 +141,7 @@ function Layout({ children }) {
     },
   ]
 
-  const subNavigation = [
-    { name: 'Account', href: '/account', admin: accessToSettingsPage },
-  ]
-
-  // redirect non-admin routes if user isn't admin
-  if (router.pathname.startsWith('/account') && !accessToSettingsPage) {
-    router.replace('/')
-    return null
-  }
+  const subNavigation = [{ name: 'Account', href: '/account' }]
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
