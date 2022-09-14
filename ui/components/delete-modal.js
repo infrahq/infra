@@ -9,6 +9,7 @@ export default function DeleteModal({
   title,
   message,
   primaryButtonText = 'Remove',
+  type = 'sm',
 }) {
   const cancelButtonRef = useRef(null)
   const deleteButtonRef = useRef(null)
@@ -43,7 +44,9 @@ export default function DeleteModal({
               leaveFrom='opacity-100 translate-y-0 sm:scale-100'
               leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
             >
-              <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-sm'>
+              <Dialog.Panel
+                className={`relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-${type}`}
+              >
                 <div>
                   <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
                     <TrashIcon

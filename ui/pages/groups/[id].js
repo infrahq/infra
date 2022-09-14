@@ -118,7 +118,7 @@ export default function GroupDetails() {
       </Head>
 
       {/* Header */}
-      <header className='mt-6 mb-12 flex items-center justify-between'>
+      <header className='mt-6 mb-12 flex flex-col justify-between md:flex-row md:items-center'>
         <h1 className='truncate py-1 text-xl font-medium'>
           <Link href='/groups'>
             <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
@@ -128,24 +128,26 @@ export default function GroupDetails() {
         </h1>
 
         {!hideRemoveGroupBtn && (
-          <RemoveButton
-            onRemove={async () => {
-              await fetch(`/api/groups/${id}`, {
-                method: 'DELETE',
-              })
+          <div className='my-3 flex space-x-2 md:my-0'>
+            <RemoveButton
+              onRemove={async () => {
+                await fetch(`/api/groups/${id}`, {
+                  method: 'DELETE',
+                })
 
-              router.replace('/groups')
-            }}
-            modalTitle='Remove group'
-            modalMessage={
-              <>
-                Are you sure you want to remove{' '}
-                <span className='font-bold'>{group?.name}</span>?
-              </>
-            }
-          >
-            Remove group
-          </RemoveButton>
+                router.replace('/groups')
+              }}
+              modalTitle='Remove group'
+              modalMessage={
+                <>
+                  Are you sure you want to remove{' '}
+                  <span className='font-bold'>{group?.name}</span>?
+                </>
+              }
+            >
+              Remove group
+            </RemoveButton>
+          </div>
         )}
       </header>
 

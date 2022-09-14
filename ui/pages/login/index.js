@@ -33,7 +33,7 @@ export function Providers({ providers }) {
   const { next } = router.query
   return (
     <>
-      <div className='mt-4 w-full'>
+      <div className='mt-4 w-full text-sm'>
         {providers.map(
           p =>
             p.kind && (
@@ -41,14 +41,14 @@ export function Providers({ providers }) {
                 onClick={() => oidcLogin({ ...p }, next)}
                 key={p.id}
                 title={`${p.name} — ${p.url}`}
-                className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'
+                className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
               >
                 <img
                   alt='identity provider icon'
                   className='h-4'
                   src={`/providers/${p.kind}.svg`}
                 />
-                <span className='items-center pl-4 text-gray-800 sm:text-sm'>
+                <span className='items-center pl-4 text-gray-800'>
                   {providersList.filter(i => i.kind === p.kind) ? (
                     <span>
                       <span>Log in with </span>

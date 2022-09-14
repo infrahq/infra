@@ -2,6 +2,7 @@ import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { useSWRConfig } from 'swr'
 
+import ErrorMessage from '../../components/error-message'
 import Login from '../../components/layouts/login'
 
 export default function Finish() {
@@ -101,9 +102,7 @@ export default function Finish() {
               error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
-          {errors.password && (
-            <p className='text-xs text-red-500'>{errors.password}</p>
-          )}
+          {errors.password && <ErrorMessage message={errors.password} />}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -127,13 +126,13 @@ export default function Finish() {
             }`}
           />
           {errors.confirmPassword && (
-            <p className='text-xs text-red-500'>{errors.confirmPassword}</p>
+            <ErrorMessage message={errors.confirmPassword} />
           )}
         </div>
         <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
           Log in
         </button>
-        {error && <p className='text-xs text-red-500'>{error}</p>}
+        {error && <ErrorMessage message={error} />}
       </form>
     </>
   )

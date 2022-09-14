@@ -1,7 +1,9 @@
 import { useState } from 'react'
 
 import { useServerConfig } from '../../lib/serverconfig'
+
 import Login from '../../components/layouts/login'
+import ErrorMessage from '../../components/error-message'
 
 export default function Signup() {
   const [name, setName] = useState('')
@@ -97,9 +99,7 @@ export default function Signup() {
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.name && (
-              <p className='text-xs text-red-500'>{errors.name}</p>
-            )}
+            {errors.name && <ErrorMessage message={errors.name} />}
           </div>
           <div className='w-full'>
             <label
@@ -121,9 +121,7 @@ export default function Signup() {
                 errors.password ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.password && (
-              <p className='text-xs text-red-500'>{errors.password}</p>
-            )}
+            {errors.password && <ErrorMessage message={errors.password} />}
           </div>
           <div className='w-full'>
             <label
@@ -148,9 +146,7 @@ export default function Signup() {
                 errors.org?.name ? 'border-red-500' : 'border-gray-800'
               }`}
             />
-            {errors.org?.name && (
-              <p className='text-xs text-red-500'>{errors.org?.name}</p>
-            )}
+            {errors.org?.name && <ErrorMessage message={errors.orgs?.name} />}
           </div>
           <div className='w-full'>
             <label
@@ -177,13 +173,11 @@ export default function Signup() {
                   errors.domain ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
-              <span className='inline-flex select-none items-center rounded-r-lg border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 shadow-sm sm:text-xs'>
+              <span className='inline-flex select-none items-center rounded-r-lg border border-l-0 border-gray-300 bg-gray-50 px-3 text-2xs text-gray-500 shadow-sm'>
                 .{baseDomain}
               </span>
             </div>
-            {errors.domain && (
-              <p className='text-xs text-red-500'>{errors.domain}</p>
-            )}
+            {errors.domain && <ErrorMessage message={errors.domain} />}
           </div>
         </div>
         <button
@@ -193,7 +187,7 @@ export default function Signup() {
         >
           Sign Up
         </button>
-        {error && <p className='text-xs text-red-500'>{error}</p>}
+        {error && <ErrorMessage message={error} />}
         <div className='my-3 text-center text-2xs text-gray-400'>
           By continuing, you agree to Infra&apos;s{' '}
           <a

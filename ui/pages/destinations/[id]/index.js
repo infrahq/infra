@@ -122,7 +122,7 @@ export default function DestinationDetail() {
             <a className='text-gray-500/75 hover:text-gray-600'>Clusters</a>
           </Link>{' '}
           <span className='mx-3 font-light text-gray-400'> / </span>{' '}
-          <div className='flex'>
+          <div className='flex truncate'>
             <div className='mr-2 flex h-8 w-8 flex-none items-center justify-center rounded-md border border-gray-200'>
               <img
                 alt='kubernetes icon'
@@ -130,7 +130,7 @@ export default function DestinationDetail() {
                 src={`/kubernetes.svg`}
               />
             </div>
-            {destination?.name}
+            <span className='truncate'>{destination?.name}</span>
           </div>
         </h1>
         <div className='my-3 flex space-x-2 md:my-0'>
@@ -169,6 +169,7 @@ export default function DestinationDetail() {
 
                 router.replace('/destinations')
               }}
+              deleteModalType='md'
               modalTitle='Remove Cluster'
               modalMessage={
                 <>

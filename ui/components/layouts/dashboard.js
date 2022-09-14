@@ -172,31 +172,34 @@ function Layout({ children }) {
         </div>
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
           <nav className='flex-1 space-y-1'>
-            {navigation.map(item => (
-              <Link key={item.name} href={item.href}>
-                <a
-                  onClick={() => setSidebarOpen(false)}
-                  className={`
+            {navigation.map(
+              item =>
+                admin === !!item.admin && (
+                  <Link key={item.name} href={item.href}>
+                    <a
+                      onClick={() => setSidebarOpen(false)}
+                      className={`
                           ${
                             router.asPath.startsWith(item.href)
                               ? 'bg-gray-100/50 text-gray-800'
                               : 'bg-transparent text-gray-500/75 hover:text-gray-500'
                           }
                         group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
-                >
-                  <item.icon
-                    className={`${
-                      router.asPath.startsWith(item.href)
-                        ? 'fill-blue-100 text-blue-500'
-                        : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
-                    }
+                    >
+                      <item.icon
+                        className={`${
+                          router.asPath.startsWith(item.href)
+                            ? 'fill-blue-100 text-blue-500'
+                            : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                        }
                     mr-2 h-[18px] w-[18px] flex-shrink`}
-                    aria-hidden='true'
-                  />
-                  {item.name}
-                </a>
-              </Link>
-            ))}
+                        aria-hidden='true'
+                      />
+                      {item.name}
+                    </a>
+                  </Link>
+                )
+            )}
           </nav>
         </div>
       </>
@@ -205,30 +208,26 @@ function Layout({ children }) {
 
   return (
     <div className='relative flex'>
-      {admin && (
-        <>
-          <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
-            <Nav navigation={navigation} admin={admin} />
-          </SidebarNav>
-          <div className='sticky top-0 hidden h-screen w-48 flex-none flex-col border-r border-gray-100 px-3 pt-5 pb-4 md:flex lg:w-60'>
-            <Nav navigation={navigation} admin={admin} />
-          </div>
-        </>
-      )}
+      <>
+        <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
+          <Nav navigation={navigation} admin={admin} />
+        </SidebarNav>
+        <div className='sticky top-0 hidden h-screen w-48 flex-none flex-col border-r border-gray-100 px-3 pt-5 pb-4 md:flex lg:w-60'>
+          <Nav navigation={navigation} admin={admin} />
+        </div>
+      </>
 
       {/* Main content */}
       <div className='mx-auto flex min-w-0 flex-1 flex-col'>
         <div className='sticky top-0 z-50 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
-          {admin && (
-            <button
-              type='button'
-              className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
-              onClick={() => setSidebarOpen(true)}
-            >
-              <span className='sr-only'>Open sidebar</span>
-              <MenuIcon className='h-6 w-6' aria-hidden='true' />
-            </button>
-          )}
+          <button
+            type='button'
+            className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
+            onClick={() => setSidebarOpen(true)}
+          >
+            <span className='sr-only'>Open sidebar</span>
+            <MenuIcon className='h-6 w-6' aria-hidden='true' />
+          </button>
           <div className='flex flex-1 justify-end'>
             <div className='ml-4 flex items-center md:ml-6'>
               <Menu
