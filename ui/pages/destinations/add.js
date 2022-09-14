@@ -61,7 +61,7 @@ export default function DestinationsAdd() {
         clearInterval(interval)
       }
     }
-  }, [name, accessKey])
+  }, [name, accessKey, steps])
 
   useEffect(() => {
     const hasCurrentStep = steps.find(step => step?.status === 'current')
