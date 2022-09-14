@@ -117,7 +117,7 @@ export default function DestinationDetail() {
         <title>{destination?.name} - Infra</title>
       </Head>
       <header className='mt-6 mb-12 flex flex-col justify-between md:flex-row md:items-center'>
-        <h1 className='flex py-1 text-xl font-medium'>
+        <h1 className='flex truncate py-1 text-xl font-medium'>
           <Link href='/destinations'>
             <a className='text-gray-500/75 hover:text-gray-600'>Clusters</a>
           </Link>{' '}
