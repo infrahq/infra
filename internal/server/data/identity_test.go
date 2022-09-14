@@ -361,7 +361,7 @@ func TestDeleteIdentities(t *testing.T) {
 				// when an identity has no more references its resources are cleaned up
 				_, err = GetCredential(tx, ByIdentityID(identity.ID))
 				assert.Error(t, err, "record not found")
-				groupIDs, err := groupIDsForUser(tx, identity.ID)
+				groupIDs, err := ListGroupIDsForUser(tx, identity.ID)
 				assert.NilError(t, err)
 				assert.Equal(t, len(groupIDs), 0)
 				grants, err := ListGrants(tx, ListGrantsOptions{BySubject: identity.PolyID()})

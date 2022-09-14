@@ -132,7 +132,7 @@ func ListGroups(tx ReadTxn, opts ListGroupsOptions) ([]models.Group, error) {
 	return result, nil
 }
 
-func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
+func ListGroupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
 	stmt := `SELECT DISTINCT group_id FROM identities_groups WHERE identity_id = ?`
 	rows, err := tx.Query(stmt, userID)
 	if err != nil {

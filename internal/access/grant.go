@@ -136,13 +136,13 @@ func logError(fn func() error, msg string) {
 }
 
 func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
-	groups, err := data.ListGroups(db, data.ListGroupsOptions{ByGroupMember: authnUserID})
+	groups, err := data.ListGroupIDsForUser(db, authnUserID)
 	if err != nil {
 		return false
 	}
 
 	for _, g := range groups {
-		if g.ID == groupID {
+		if g == groupID {
 			return true
 		}
 	}
