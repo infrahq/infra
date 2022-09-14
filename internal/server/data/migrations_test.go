@@ -560,6 +560,32 @@ DELETE FROM settings WHERE id=24567;
 				assert.DeepEqual(t, s, expectedSettings)
 			},
 		},
+		{
+			label: testCaseLine("2022-09-01T15:00"),
+			setup: func(t *testing.T, db WriteTxn) {
+				var originalOrgID uid.ID
+				err := db.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+				assert.NilError(t, err)
+
+				stmt := ` INSERT INTO identities(id, name, organization_id) VALUES (12345, 'migration1@example.com', ?)`
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db WriteTxn) {
+				stmt := `SELECT verification_token, verified FROM identities where id = ?`
+				user := &models.Identity{}
+				err := db.QueryRow(stmt, 12345).Scan(&user.VerificationToken, &user.Verified)
+				assert.NilError(t, err)
+
+				assert.Assert(t, !user.Verified)
+				assert.Assert(t, len(user.VerificationToken) == 10)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				stmt := `DELETE FROM identities WHERE id=12345;`
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

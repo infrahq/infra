@@ -11,6 +11,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/validate"
@@ -115,6 +116,12 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
+	add(a, noAuthnWithOrg, http.MethodGet, "/link", route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
+		handler:                    a.VerifyAndRedirect,
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
+	})
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
 
@@ -232,9 +239,22 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			a.t.RouteEvent(c, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
 		}
 
-		c.JSON(responseStatusCode(routeID.method, resp), resp)
+		if r, ok := responseIsRedirect(resp); ok {
+			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
+		} else {
+			c.JSON(responseStatusCode(routeID.method, resp), resp)
+		}
 		return nil
 	}
+}
+
+type isRedirect interface {
+	RedirectURL() string
+}
+
+func responseIsRedirect(resp interface{}) (isRedirect, bool) {
+	r, ok := resp.(isRedirect)
+	return r, ok
 }
 
 type statusCoder interface {

@@ -21,7 +21,7 @@ func (a *API) RequestForgotDomains(c *gin.Context, r *api.ForgotDomainRequest) (
 		return nil, err
 	}
 
-	err = email.SendForgotDomains("", r.Email, email.ForgottenDomainData{Domains: domains})
+	err = email.SendForgotDomainsEmail("", r.Email, email.ForgottenDomainData{Domains: domains})
 	if err != nil {
 		return nil, err
 	}

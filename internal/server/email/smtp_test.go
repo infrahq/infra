@@ -193,9 +193,13 @@ func TestSendSignup(t *testing.T) {
 	setupClient(srv)
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
-		Link: "https://supahdomain.example.com/login",
+		Link:        "https://supahdomain.example.com/login",
+		WrappedLink: "https://supahdomain.example.com/login",
 	})
 	assert.NilError(t, err)
+
+	assert.Assert(t, strings.Contains(plain, `You can sign into your account any time from https://supahdomain.example.com`))
+	assert.Assert(t, strings.Contains(html, `<a href="https://supahdomain.example.com`))
 }
 
 func TestSendForgotDomain(t *testing.T) {
