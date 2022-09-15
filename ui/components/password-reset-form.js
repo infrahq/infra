@@ -9,9 +9,12 @@ export default function PasswordResetForm() {
 
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  async function onSubmitSetPassword(e) {
+  async function onSubmit(e) {
     e.preventDefault()
+
+    setSubmitting(true)
 
     try {
       const res = await fetch('/api/password-reset', {
@@ -31,6 +34,7 @@ export default function PasswordResetForm() {
       await mutate('/api/users/self')
       router.replace('/')
     } catch (e) {
+      setSubmitting(false)
       setError(e.message)
     }
 
@@ -39,36 +43,35 @@ export default function PasswordResetForm() {
 
   return (
     <form
-      onSubmit={onSubmitSetPassword}
+      onSubmit={onSubmit}
       className='relative flex w-full max-w-sm flex-col'
     >
       <div className='my-2 w-full'>
-        <label htmlFor='password' className='text-3xs uppercase text-gray-500'>
+        <label htmlFor='name' className='text-2xs font-medium text-gray-700'>
           Password
         </label>
         <input
           required
-          id='password'
+          autoFocus
+          name='password'
           type='password'
-          data-testid='form-field-password'
-          placeholder='enter your password'
           onChange={e => {
             setPassword(e.target.value)
             setError('')
           }}
-          className={`w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-            error ? 'border-pink-500/60' : ''
+          className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+            error ? 'border-red-500' : 'border-gray-300'
           }`}
         />
       </div>
       <button
-        disabled={!password}
-        className='mt-6 mb-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+        disabled={submitting}
+        className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'
       >
         Set Password
       </button>
       {error && (
-        <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-pink-400'>
+        <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
           {error}
         </p>
       )}

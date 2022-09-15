@@ -1,10 +1,5 @@
 export const providers = [
   {
-    name: 'Okta',
-    kind: 'okta',
-    available: true,
-  },
-  {
     name: 'Azure Active Directory',
     kind: 'azure',
     available: true,
@@ -12,6 +7,11 @@ export const providers = [
   {
     name: 'Google',
     kind: 'google',
+    available: true,
+  },
+  {
+    name: 'Okta',
+    kind: 'okta',
     available: true,
   },
   {

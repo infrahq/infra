@@ -1,56 +1,77 @@
 import Head from 'next/head'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import copy from 'copy-to-clipboard'
-import yaml from 'js-yaml'
+import {
+  CheckIcon,
+  DuplicateIcon,
+  ExternalLinkIcon,
+} from '@heroicons/react/outline'
+import Confetti from 'react-dom-confetti'
 
-import Fullscreen from '../../components/layouts/fullscreen'
+import { useAdmin } from '../../lib/admin'
 import { useServerConfig } from '../../lib/serverconfig'
 
-function download(values) {
-  const blob = new Blob([values], { type: 'application/yaml' })
-  const href = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-
-  link.href = href
-  link.setAttribute('download', 'values.yaml')
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(href)
-}
+import Dashboard from '../../components/layouts/dashboard'
+import useSWR from 'swr'
 
 export default function DestinationsAdd() {
+  const router = useRouter()
+
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [accessKey, setAccessKey] = useState('')
-  const [connected, setConnected] = useState(false)
-  const [valuesDownloaded, setValuesDownloaded] = useState(false)
-  const [valuesCopied, setValuesCopied] = useState(false)
   const [commandCopied, setCommandCopied] = useState(false)
+  const [connected, setConnected] = useState(false)
+  const [accessKey, setAccessKey] = useState('')
+  const [focused, setFocused] = useState(true)
+
+  const { admin } = useAdmin()
+
   const { baseDomain } = useServerConfig()
 
+  const { data: { items: destinations } = {}, mutate } = useSWR(
+    '/api/destinations?limit=999'
+  )
+
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (accessKey && name.length > 0) {
-        const res = await fetch(`/api/destinations?name=${name}`)
-        const { items: destinations } = await res.json()
-        if (destinations?.length > 0) {
-          setConnected(true)
-        }
-      }
-    }, 5000)
+    const focus = () => setFocused(true)
+    const blur = () => setFocused(false)
+    window.addEventListener('focus', focus)
+    window.addEventListener('blur', blur)
     return () => {
-      clearInterval(interval)
+      window.removeEventListener('focus', focus)
+      window.removeEventListener('blur', blur)
     }
-  }, [name, accessKey])
+  }, [])
+
+  useEffect(() => {
+    if (submitted) {
+      const interval = setInterval(async () => {
+        await mutate()
+
+        if (destinations.find(d => d.name === name)) {
+          setConnected(true)
+          clearInterval(interval)
+        }
+      }, 5000)
+      return () => {
+        clearInterval(interval)
+      }
+    }
+  }, [submitted, destinations])
 
   async function onSubmit(e) {
     e.preventDefault()
 
     if (!/^[A-Za-z.0-9_-]+$/.test(name)) {
       setError('Invalid cluster name')
+      return
+    }
+
+    if (destinations.find(d => d.name === name)) {
+      setError('A cluster with this name already exists')
       return
     }
 
@@ -80,161 +101,148 @@ export default function DestinationsAdd() {
       }),
     })
     const key = await res.json()
+
     setAccessKey(key.accessKey)
     setSubmitted(true)
   }
 
-  const server = baseDomain ? `api.${baseDomain}` : window.location.host
-  const values = {
-    connector: {
-      config: {
-        server: server,
-        name: name,
-      },
-    },
-  }
+  const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${
+    baseDomain ? `api.${baseDomain}` : window.location.host
+  } --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
 
-  if (window.location.protocol !== 'https:') {
-    values.connector.config.skipTLSVerify = true
+  if (!admin) {
+    router.replace('/')
+    return null
   }
-
-  const valuesYaml = yaml.dump(values)
-  const command = `helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
 
   return (
-    <div>
+    <div className='mx-auto w-full max-w-2xl'>
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <header className='flex flex-row items-center px-4 pt-5 pb-6'>
-        <img
-          alt='destinations icon'
-          src='/destinations.svg'
-          className='mr-2 mt-0.5 h-6 w-6'
-        />
-        <h1 className='text-2xs capitalize'>Connect infrastructure</h1>
-      </header>
-      <form onSubmit={onSubmit} className='mb-6 flex space-x-2 px-4'>
-        <div className='flex-1'>
-          <label className='text-3xs uppercase text-gray-400'>
-            Cluster Name
-          </label>
-          <input
-            required
-            name='name'
-            placeholder='provide a name'
-            value={name}
-            onChange={e => {
-              setError('')
-              setName(e.target.value)
-            }}
-            disabled={submitted}
-            className='w-full border-b border-gray-800 bg-transparent px-px py-2 text-3xs placeholder:italic focus:border-b focus:border-gray-200 focus:outline-none disabled:opacity-10'
-          />
-          {error && (
-            <p className='absolute py-1 text-2xs text-pink-500'>{error}</p>
-          )}
-        </div>
-        <button
-          className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-10'
-          disabled={submitted}
-        >
-          Next
-        </button>
-      </form>
-      <section
-        className={`my-2 flex flex-col ${
-          submitted ? '' : 'pointer-events-none opacity-10'
-        }`}
-      >
-        <h2 className='mb-2 px-4 text-2xs text-gray-100'>
-          Copy or download this starter Helm values file. For more information
-          and configuration values, see the{' '}
-          <Link href='https://github.com/infrahq/infra/tree/main/helm/charts/infra'>
-            Helm chart
-          </Link>
-          .
-        </h2>
-        <pre
-          className={`bg-gray-900 p-4 text-2xs text-gray-300 ${
-            submitted ? 'overflow-auto' : 'overflow-hidden'
+      <h1 className='my-6 py-1 text-xl font-medium'>Connect Cluster</h1>
+      <div className='flex w-full flex-col'>
+        {/* Name form */}
+        <form
+          onSubmit={onSubmit}
+          className={`mb-6 flex flex-col ${
+            submitted ? 'pointer-events-none opacity-10' : ''
           }`}
         >
-          {submitted ? valuesYaml : ''}
-        </pre>
-        <span className='self-end'>
-          <button
-            className='mt-2 mb-3 py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
-            disabled={valuesDownloaded}
-            onClick={() => {
-              download(valuesYaml)
-              setValuesDownloaded(true)
-              setTimeout(() => setValuesDownloaded(false), 3000)
-            }}
-          >
-            {valuesDownloaded ? '✓ Downloaded' : 'Download'}
-          </button>
-          <button
-            className='mt-2 mb-3 mr-2 py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
-            disabled={valuesCopied}
-            onClick={() => {
-              copy(valuesYaml)
-              setValuesCopied(true)
-              setTimeout(() => setValuesCopied(false), 3000)
-            }}
-          >
-            {valuesCopied ? '✓ Copied' : 'Copy'}
-          </button>
-        </span>
-        <h2 className='mb-2 px-4 text-2xs text-gray-100'>
-          Run this command on your Kubernetes cluster:
-        </h2>
-        <pre className={`overflow-auto bg-gray-900 p-4 text-2xs text-gray-300`}>
-          {submitted ? command : ''}
-        </pre>
-        <button
-          className='mt-2 mb-3 mr-2 self-end py-2 px-3 text-3xs font-medium uppercase text-violet-200 disabled:text-gray-500'
-          disabled={commandCopied}
-          onClick={() => {
-            copy(command)
-            setCommandCopied(true)
-            setTimeout(() => setCommandCopied(false), 3000)
-          }}
-        >
-          {commandCopied ? '✓ Copied' : 'Copy'}
-        </button>
-        <p className='px-4 text-2xs text-gray-500'>
-          Your cluster will be detected automatically.
-          <br />
-          This may take a few minutes.
-        </p>
-        {connected ? (
-          <footer className='my-4 mr-3 flex items-center justify-between px-4'>
-            <h3 className='text-2xs text-gray-200'>✓ Connected</h3>
-            <Link href='/destinations'>
-              <a
-                className='flex-none self-end rounded-md border border-violet-300 px-4 py-2 text-2xs text-violet-100 disabled:opacity-20'
-                disabled={submitted}
-              >
-                Finish
-              </a>
-            </Link>
-          </footer>
-        ) : (
-          <footer className='my-7 flex items-center px-4'>
-            <h3 className='mr-3 text-2xs text-gray-200'>
-              Waiting for connection
-            </h3>
-            {submitted && (
-              <span className='inline-flex h-2 w-2 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border border-white opacity-75' />
+          <div className='relative flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>
+              Cluster name
+            </label>
+            <input
+              autoFocus
+              required
+              type='text'
+              name='name'
+              value={name}
+              onChange={e => {
+                setError('')
+                setName(e.target.value)
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-30 sm:text-sm ${
+                error ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {error && (
+              <p className='absolute top-full mt-1 text-xs text-red-500'>
+                {error}
+              </p>
             )}
-          </footer>
-        )}
-      </section>
+          </div>
+          <div className='mt-6 flex flex-row items-center justify-end'>
+            <button
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              type='submit'
+            >
+              Next
+            </button>
+          </div>
+        </form>
+
+        {/* Install command */}
+        <section
+          className={`mb-6 flex flex-col ${
+            submitted ? '' : 'select-none opacity-5'
+          }`}
+        >
+          <div className='mb-2'>
+            <h3 className='text-base font-medium leading-6 text-gray-900'>
+              Install connector
+            </h3>
+            <p className='mt-1 text-sm text-gray-500'>
+              Install the Infra connector using{' '}
+              <a
+                href='https://helm.sh/'
+                className='inline-flex items-center underline'
+                target='_blank'
+                rel='noreferrer'
+              >
+                Helm <ExternalLinkIcon className='ml-0.5 h-3 w-3' />
+              </a>
+              :
+            </p>
+          </div>
+          <div className='group relative my-4 flex'>
+            <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
+              {command}
+            </pre>
+            <button
+              className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
+              onClick={() => {
+                copy(command)
+                setCommandCopied(true)
+                setTimeout(() => setCommandCopied(false), 2000)
+              }}
+            >
+              {commandCopied ? (
+                <CheckIcon className='h-4 w-4 text-green-500' />
+              ) : (
+                <DuplicateIcon className='h-4 w-4' />
+              )}
+            </button>
+          </div>
+        </section>
+
+        {/* Finish */}
+        <section
+          className={`my-10 flex justify-between ${
+            submitted ? '' : 'select-none opacity-5'
+          }`}
+        >
+          {connected ? (
+            <div className='flex items-center justify-between'>
+              <h3 className='flex items-center text-base font-medium text-black'>
+                <CheckIcon className='mr-2 h-5 w-5 text-green-500' /> Cluster
+                connected
+              </h3>
+            </div>
+          ) : (
+            <div className='flex items-center'>
+              {submitted && (
+                <span className='inline-flex h-3 w-3 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border border-blue-500 opacity-75' />
+              )}
+              <h3 className='ml-3 text-base text-black'>
+                Waiting for connection
+              </h3>
+            </div>
+          )}
+          <Link href='/destinations'>
+            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              Finish
+            </a>
+          </Link>
+        </section>
+      </div>
+      <Confetti
+        elementCount={100}
+        active={focused && connected && destinations.length === 1}
+      />
     </div>
   )
 }
 
-DestinationsAdd.layout = page => (
-  <Fullscreen closeHref='/destinations'>{page}</Fullscreen>
-)
+DestinationsAdd.layout = page => <Dashboard>{page}</Dashboard>

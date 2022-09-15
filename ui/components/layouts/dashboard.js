@@ -1,18 +1,101 @@
 import Link from 'next/link'
+import { Fragment, useState, forwardRef } from 'react'
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
+import { Dialog, Transition, Menu } from '@headlessui/react'
+import {
+  ChipIcon,
+  UserGroupIcon,
+  UserIcon,
+  ViewGridIcon,
+  XIcon,
+  MenuIcon,
+  CogIcon,
+} from '@heroicons/react/outline'
 
 import { useAdmin } from '../../lib/admin'
+
 import AuthRequired from '../auth-required'
+
+const NavLink = forwardRef(function NavLinkFunc(props, ref) {
+  let { href, children, ...rest } = props
+  return (
+    <Link href={href}>
+      <a ref={ref} {...rest}>
+        {children}
+      </a>
+    </Link>
+  )
+})
+
+function SidebarNav({ children, open, setOpen }) {
+  return (
+    <Transition.Root show={open} as={Fragment}>
+      <Dialog as='div' className='relative z-40 md:hidden' onClose={setOpen}>
+        <Transition.Child
+          as={Fragment}
+          enter='transition-opacity ease-linear duration-300'
+          enterFrom='opacity-0'
+          enterTo='opacity-100'
+          leave='transition-opacity ease-linear duration-300'
+          leaveFrom='opacity-100'
+          leaveTo='opacity-0'
+        >
+          <div className='fixed inset-0 bg-gray-100/50 backdrop-blur-lg' />
+        </Transition.Child>
+
+        <div className='fixed inset-0 z-40 flex'>
+          <Transition.Child
+            as={Fragment}
+            enter='transition ease-in-out duration-300 transform'
+            enterFrom='-translate-x-full'
+            enterTo='translate-x-0'
+            leave='transition ease-in-out duration-300 transform'
+            leaveFrom='translate-x-0'
+            leaveTo='-translate-x-full'
+          >
+            <Dialog.Panel className='relative flex w-full max-w-[16rem] flex-1 flex-col bg-white px-6 pt-5 pb-4'>
+              <Transition.Child
+                as={Fragment}
+                enter='ease-in-out duration-300'
+                enterFrom='opacity-0'
+                enterTo='opacity-100'
+                leave='ease-in-out duration-300'
+                leaveFrom='opacity-100'
+                leaveTo='opacity-0'
+              >
+                <div className='absolute top-0 right-0 -mr-12 pt-2'>
+                  <button
+                    type='button'
+                    className='justify-cente ml-1 flex h-10 w-10 items-center'
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className='sr-only'>Close sidebar</span>
+                    <XIcon
+                      className='h-6 w-6 text-gray-700 hover:text-gray-900'
+                      aria-hidden='true'
+                    />
+                  </button>
+                </div>
+              </Transition.Child>
+              {children}
+            </Dialog.Panel>
+          </Transition.Child>
+          <div className='w-14 flex-shrink-0'></div>
+        </div>
+      </Dialog>
+    </Transition.Root>
+  )
+}
 
 function Layout({ children }) {
   const router = useRouter()
+
   const { data: auth } = useSWR('/api/users/self')
-  const { data: version } = useSWR('/api/version')
   const { admin, loading } = useAdmin()
   const { cache } = useSWRConfig()
 
-  const accessToSettingsPage = admin || auth?.providerNames?.includes('infra')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (loading) {
     return null
@@ -27,26 +110,38 @@ function Layout({ children }) {
   }
 
   const navigation = [
-    { name: 'Clusters', href: '/destinations', icon: '/destinations.svg' },
+    {
+      name: 'Infrastructure',
+      href: '/destinations',
+      icon: ChipIcon,
+    },
     {
       name: 'Providers',
       href: '/providers',
-      icon: '/providers.svg',
       admin: true,
+      icon: ViewGridIcon,
     },
-    { name: 'Groups', href: '/groups', icon: '/groups.svg', admin: true },
-    { name: 'Users', href: '/users', icon: '/users.svg', admin: true },
+    {
+      name: 'Groups',
+      href: '/groups',
+      admin: true,
+      icon: UserGroupIcon,
+    },
+    {
+      name: 'Users',
+      href: '/users',
+      admin: true,
+      icon: UserIcon,
+    },
+    {
+      name: 'Settings',
+      href: '/settings',
+      admin: true,
+      icon: CogIcon,
+    },
   ]
 
-  const subNavigation = [
-    { name: 'Settings', href: '/settings', admin: accessToSettingsPage },
-  ]
-
-  // redirect non-admin routes if user isn't admin
-  if (router.pathname.startsWith('/settings') && !accessToSettingsPage) {
-    router.replace('/')
-    return null
-  }
+  const subNavigation = [{ name: 'Account', href: '/account' }]
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
@@ -55,87 +150,134 @@ function Layout({ children }) {
     }
   }
 
-  return (
-    <div className='flex h-full min-w-[800px]'>
-      <nav className='flex w-48 flex-none flex-col xl:w-56'>
-        <div className='lg:my-18 mt-6 mb-10 flex flex-shrink-0 select-none items-center px-5'>
+  function Nav() {
+    return (
+      <>
+        <div className='mb-2 flex flex-shrink-0 select-none items-center px-3'>
           <Link href='/'>
             <a>
-              <img className='h-[15px]' src='infra.svg' alt='Infra' />
+              <img className='my-2 h-7' src='/logo.svg' alt='Infra' />
             </a>
           </Link>
         </div>
-        <div className='flex-1 select-none space-y-1 px-5'>
-          {navigation
-            ?.filter(n => (n.admin ? admin : true))
-            .map(n => (
-              <Link key={n.name} href={n.href}>
-                <a
-                  href={n.href}
-                  className={`
-                    ${
-                      router.asPath.startsWith(n.href)
-                        ? 'text-white'
-                        : 'text-gray-400'
-                    }
-                    flex items-center rounded-lg py-2 text-xs leading-none transition-colors duration-100
-                  `}
-                >
-                  <img
-                    alt={n?.name?.toLowerCase()}
-                    src={n.icon}
-                    className={`
-                      ${router.asPath.startsWith(n.href) ? '' : 'opacity-40'}
-                      mr-3 h-[18px] w-[18px] flex-shrink-0
-                    `}
-                  />
-                  {n.name}
-                </a>
-              </Link>
-            ))}
-        </div>
-        <div className='group mx-2 mb-2 flex h-12 overflow-hidden rounded-xl bg-transparent p-2.5 pb-1 transition-all duration-300 ease-in-out hover:h-[132px] hover:bg-gray-900'>
-          <div className='flex h-[23px] w-[23px] select-none items-center justify-center rounded-md border border-gray-800'>
-            <span className='text-center text-3xs font-normal leading-none text-gray-400'>
-              {auth?.name?.[0]}
-            </span>
-          </div>
-          <div className='ml-1 min-w-0 flex-1 select-none px-2'>
-            <div
-              title={auth?.name}
-              className='mt-[5px] mb-2 truncate pb-px text-2xs leading-none text-gray-400 transition-colors duration-300 group-hover:text-white'
-            >
-              {auth?.name}
-            </div>
-            <div className='opacity-0 transition-opacity duration-300 group-hover:opacity-100'>
-              {subNavigation.map(s => (
-                <Link key={s.name} href={s.href}>
+        <div className='mt-5 h-0 flex-1 overflow-y-auto'>
+          <nav className='flex-1 space-y-1'>
+            {navigation
+              ?.filter(n => (n.admin ? admin : true))
+              .map(item => (
+                <Link key={item.name} href={item.href}>
                   <a
-                    className={`flex w-full py-1.5 text-xs text-gray-400 hover:text-white ${
-                      s.admin ? '' : 'pointer-events-none opacity-20'
-                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`
+                          ${
+                            router.asPath.startsWith(item.href)
+                              ? 'bg-gray-100/50 text-gray-800'
+                              : 'bg-transparent text-gray-500/75 hover:text-gray-500'
+                          }
+                        group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
                   >
-                    {s.name}
+                    <item.icon
+                      className={`${
+                        router.asPath.startsWith(item.href)
+                          ? 'fill-blue-100 text-blue-500'
+                          : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                      }
+                    mr-2 h-[18px] w-[18px] flex-shrink`}
+                      aria-hidden='true'
+                    />
+                    {item.name}
                   </a>
                 </Link>
               ))}
-              <button
-                onClick={() => logout()}
-                className='w-full cursor-pointer py-1.5 text-left text-xs text-gray-400 hover:text-white'
+          </nav>
+        </div>
+      </>
+    )
+  }
+
+  return (
+    <div className='relative flex'>
+      <>
+        <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
+          <Nav navigation={navigation} admin={admin} />
+        </SidebarNav>
+        <div className='sticky top-0 hidden h-screen w-48 flex-none flex-col border-r border-gray-100 px-3 pt-5 pb-4 md:flex lg:w-60'>
+          <Nav navigation={navigation} admin={admin} />
+        </div>
+      </>
+
+      {/* Main content */}
+      <div className='mx-auto flex min-w-0 flex-1 flex-col'>
+        <div className='sticky top-0 z-50 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
+          <button
+            type='button'
+            className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
+            onClick={() => setSidebarOpen(true)}
+          >
+            <span className='sr-only'>Open sidebar</span>
+            <MenuIcon className='h-6 w-6' aria-hidden='true' />
+          </button>
+          <div className='flex flex-1 justify-end'>
+            <div className='ml-4 flex items-center md:ml-6'>
+              <Menu
+                as='div'
+                className='relative inline-block bg-white text-left'
               >
-                Sign Out
-              </button>
-              <div className='mt-2 text-3xs leading-none text-violet-50/40'>
-                version{' '}
-                <span className='select-text font-mono'>
-                  {version?.version}
-                </span>
-              </div>
+                <span className='sr-only'>Open current user menu</span>
+                <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
+                  <span className='text-center text-xs font-semibold capitalize leading-none'>
+                    {auth?.name?.[0]}
+                  </span>
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter='transition ease-out duration-100'
+                  enterFrom='transform opacity-0 scale-95'
+                  enterTo='transform opacity-100 scale-100'
+                  leave='transition ease-in duration-75'
+                  leaveFrom='transform opacity-100 scale-100'
+                  leaveTo='transform opacity-0 scale-95'
+                >
+                  <Menu.Items className='absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                    <div className='px-4 py-3'>
+                      <p className='text-xs text-gray-600'>Signed in as</p>
+                      <p className='truncate text-sm font-semibold text-gray-900'>
+                        {auth?.name}
+                      </p>
+                    </div>
+                    <div className='py-1'>
+                      {subNavigation.map(item => (
+                        <Menu.Item key={item.name}>
+                          <NavLink href={item.href}>
+                            <a className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
+                              {item.name}
+                            </a>
+                          </NavLink>
+                        </Menu.Item>
+                      ))}
+                    </div>
+                    <div className='py-1'>
+                      <Menu.Item>
+                        <button
+                          type='button'
+                          onClick={() => logout()}
+                          className='block w-full cursor-pointer py-2 px-4 text-left text-sm text-gray-700 hover:bg-gray-100'
+                        >
+                          Sign out
+                        </button>
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
             </div>
           </div>
         </div>
-      </nav>
-      <main className='h-full min-w-0 flex-1'>{children}</main>
+
+        <main className='mx-auto w-full max-w-6xl flex-1 px-6 '>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

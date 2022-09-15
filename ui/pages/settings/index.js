@@ -1,186 +1,177 @@
-import Head from 'next/head'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
-import { useState } from 'react'
 import useSWR from 'swr'
+import { useState } from 'react'
+import Head from 'next/head'
 
 import { sortBySubject } from '../../lib/grants'
-import { useAdmin } from '../../lib/admin'
 
+import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
-import Notification from '../../components/notification'
-import GrantForm from '../../components/grant-form'
+import Table from '../../components/table'
 
-function AdminGrant({ name, showRemove, onRemove, message = '' }) {
-  const [open, setOpen] = useState(false)
+function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
+  const grantsList = grants?.sort(sortBySubject)?.map(grant => {
+    const message =
+      grant?.user === auth?.id
+        ? 'Are you sure you want to remove yourself as an admin?'
+        : selfGroups?.some(g => g.id === grant.group)
+        ? `Are you sure you want to revoke this group's admin access? You are a member of this group.`
+        : undefined
+
+    const name =
+      users?.find(u => grant.user === u.id)?.name ||
+      groups?.find(group => grant.group === group.id)?.name ||
+      ''
+
+    return { ...grant, message, name }
+  })
 
   return (
-    <div className='group flex items-center justify-between py-1 text-2xs'>
-      <div className='py-1.5'>{name}</div>
-      {showRemove && (
-        <div className='flex justify-end text-right opacity-0 group-hover:opacity-100'>
-          <button
-            onClick={() => setOpen(true)}
-            className='-mr-2 flex-none cursor-pointer px-2 py-1 text-2xs text-gray-500 hover:text-violet-100'
-          >
-            Revoke
-          </button>
-          <DeleteModal
-            open={open}
-            setOpen={setOpen}
-            primaryButtonText='Revoke'
-            onSubmit={onRemove}
-            title='Revoke Admin'
-            message={
-              !message ? (
-                <>
-                  Are you sure you want to revoke admin access for{' '}
-                  <span className='font-bold text-white'>{name}</span>?
-                </>
-              ) : (
-                message
-              )
-            }
-          />
-        </div>
-      )}
-    </div>
+    <Table
+      data={grantsList}
+      columns={[
+        {
+          cell: function Cell(info) {
+            return (
+              <div className='flex flex-col'>
+                <div className='flex items-center font-medium text-gray-700'>
+                  {info.getValue()}
+                </div>
+                <div className='text-2xs text-gray-500'>
+                  {info.row.original.user && 'User'}
+                  {info.row.original.group && 'Group'}
+                </div>
+              </div>
+            )
+          },
+          header: () => <span>Admin</span>,
+          accessorKey: 'name',
+        },
+        {
+          cell: function Cell(info) {
+            const [open, setOpen] = useState(false)
+            const [deleteId, setDeleteId] = useState(null)
+            return (
+              <div className='text-right'>
+                <button
+                  onClick={() => {
+                    setDeleteId(info.row.original.id)
+                    setOpen(true)
+                  }}
+                  className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
+                >
+                  Revoke
+                  <span className='sr-only'>{info.row.original.name}</span>
+                </button>
+                <DeleteModal
+                  open={open}
+                  setOpen={setOpen}
+                  primaryButtonText='Revoke'
+                  onSubmit={() => {
+                    onRemove(deleteId)
+                    setOpen(false)
+                  }}
+                  title='Revoke Admin'
+                  message={
+                    !grantsList?.find(grant => grant.id === deleteId)
+                      ?.message ? (
+                      <>
+                        Are you sure you want to revoke admin access for{' '}
+                        <span className='font-bold'>
+                          {
+                            grantsList?.find(grant => grant.id === deleteId)
+                              ?.name
+                          }
+                        </span>
+                        ?
+                      </>
+                    ) : (
+                      grantsList?.find(grant => grant.id === deleteId)?.message
+                    )
+                  }
+                />
+              </div>
+            )
+          },
+          id: 'delete',
+        },
+      ]}
+    />
   )
 }
 
 export default function Settings() {
-  const router = useRouter()
   const { data: auth } = useSWR('/api/users/self')
-  const { admin } = useAdmin()
 
-  const { resetPassword } = router.query
-  const [showNotification, setshowNotification] = useState(
-    resetPassword === 'success'
-  )
-
-  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
-  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
+  const { data: { items: users } = {} } = useSWR('/api/users?limit=999')
+  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=999')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=1000'
+    '/api/grants?resource=infra&privilege=admin&limit=999'
   )
   const { data: { items: selfGroups } = {} } = useSWR(
-    `/api/groups?userID=${auth?.id}&limit=1000`
+    `/api/groups?userID=${auth?.id}&limit=999`
   )
 
-  const hasInfraProvider = auth?.providerNames.includes('infra')
-
   return (
-    <>
+    <div className='my-6'>
       <Head>
         <title>Settings - Infra</title>
       </Head>
+      <div className='flex flex-1 flex-col'>
+        {/* Header */}
+        <h1 className='mb-6 text-xl font-medium'>Settings</h1>
 
-      {auth && (
-        <div className='mt-6 mb-4 flex flex-1 flex-col space-y-8'>
-          <h1 className='mb-6 text-xs font-bold'>Settings</h1>
-          {hasInfraProvider && (
-            <div className='w-full max-w-md pb-12'>
-              <div className='border-b border-gray-800 pb-3 text-2xs uppercase leading-none text-gray-400'>
-                Account
-              </div>
-              <div className='flex flex-col space-y-2 pt-6'>
-                <div className='group flex'>
-                  <div className='flex flex-1 items-center'>
-                    <div className='w-[26%] text-2xs text-gray-400'>Email</div>
-                    <div className='text-2xs'>{auth?.name}</div>
-                  </div>
-                </div>
-                <div className='group flex'>
-                  <div className='flex flex-1 items-center'>
-                    <div className='w-[30%] text-2xs text-gray-400'>
-                      Password
-                    </div>
-                    <div className='text-2xs'>********</div>
-                  </div>
-                  <div className='flex justify-end'>
-                    <Link href='/settings/password-reset'>
-                      <a className='-mr-2 flex-none cursor-pointer p-2 text-2xs uppercase text-gray-500 hover:text-violet-100'>
-                        Change
-                      </a>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          {resetPassword && (
-            <Notification
-              show={showNotification}
-              setShow={setshowNotification}
-              text='Password Successfully Reset'
+        {/* Infra admins */}
+        <div className='mb-3 flex flex-col justify-between'>
+          <h2 className='text-lg font-medium'>Organization Admins</h2>
+          <p className='mt-1 mb-4 text-xs text-gray-500'>
+            These users have full access to this organization and its clusters.
+          </p>
+          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
+            <h3 className='text-sm font-medium'>Add organization admin</h3>
+            <GrantForm
+              resource='infra'
+              roles={['admin']}
+              grants={grants}
+              onSubmit={async ({ user, group }) => {
+                // don't add grants that already exist
+                if (grants?.find(g => g.user === user && g.group === group)) {
+                  return false
+                }
+
+                await fetch('/api/grants', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    user,
+                    group,
+                    privilege: 'admin',
+                    resource: 'infra',
+                  }),
+                })
+
+                // TODO: add optimistic updates
+                mutate()
+              }}
             />
-          )}
-        </div>
-      )}
-      {admin && (
-        <div className='max-w-md'>
-          <div className='border-b border-gray-800 pb-6 text-2xs uppercase leading-none text-gray-400'>
-            Admins
-          </div>
-          <GrantForm
-            resource='infra'
-            roles={['admin']}
-            onSubmit={async ({ user, group }) => {
-              // don't add grants that already exist
-              if (grants?.find(g => g.user === user && g.group === group)) {
-                return false
-              }
-
-              const res = await fetch('/api/grants', {
-                method: 'POST',
-                body: JSON.stringify({
-                  user,
-                  group,
-                  privilege: 'admin',
-                  resource: 'infra',
-                }),
-              })
-
-              mutate({ items: [...grants, await res.json()] })
-            }}
-          />
-          <div className='mt-6'>
-            {grants
-              ?.sort(sortBySubject)
-              ?.map(grant => {
-                const message =
-                  grant?.user === auth?.id
-                    ? 'Are you sure you want to revoke your own admin access?'
-                    : selfGroups?.some(g => g.id === grant.group)
-                    ? `Are you sure you want to revoke this group's admin access? You are a member of this group.`
-                    : undefined
-
-                return { ...grant, message }
-              })
-              ?.map(g => (
-                <AdminGrant
-                  key={g.id}
-                  name={
-                    users?.find(u => g.user === u.id)?.name ||
-                    groups?.find(group => g.group === group.id)?.name ||
-                    ''
-                  }
-                  showRemove={grants?.length > 1}
-                  message={g.message}
-                  onRemove={async () => {
-                    await fetch(`/api/grants/${g.id}`, { method: 'DELETE' })
-                    mutate({ items: grants?.filter(x => x.id !== g.id) })
-                  }}
-                />
-              ))}
           </div>
         </div>
-      )}
-    </>
+        <AdminList
+          grants={grants}
+          users={users}
+          groups={groups}
+          selfGroups={selfGroups}
+          auth={auth}
+          onRemove={async grantId => {
+            await fetch(`/api/grants/${grantId}`, {
+              method: 'DELETE',
+            })
+            mutate({ items: grants?.filter(x => x.id !== grantId) })
+          }}
+        />
+      </div>
+    </div>
   )
 }
-
-Settings.layout = function (page) {
+Settings.layout = page => {
   return <Dashboard>{page}</Dashboard>
 }

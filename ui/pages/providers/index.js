@@ -1,192 +1,140 @@
 import useSWR from 'swr'
 import Head from 'next/head'
-import dayjs from 'dayjs'
-import { useState } from 'react'
-import { useTable } from 'react-table'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useState } from 'react'
+import dayjs from 'dayjs'
 
-import { useAdmin } from '../../lib/admin'
-
-import Dashboard from '../../components/layouts/dashboard'
 import Table from '../../components/table'
-import EmptyTable from '../../components/empty-table'
-import PageHeader from '../../components/page-header'
-import Sidebar from '../../components/sidebar'
-import Metadata from '../../components/metadata'
-import RemoveButton from '../../components/remove-button'
-import Pagination from '../../components/pagination'
-
-const columns = [
-  {
-    Header: 'Name',
-    accessor: p => p,
-    Cell: ({ value: provider }) => (
-      <div className='flex items-center py-1.5'>
-        <div className='flex h-7 w-7 flex-none items-center justify-center rounded-md border border-gray-800'>
-          <img
-            alt='provider icon'
-            className='h-3'
-            src={`/providers/${provider.kind}.svg`}
-          />
-        </div>
-        <div className='ml-3 text-2xs leading-none'>{provider.name}</div>
-      </div>
-    ),
-  },
-  {
-    Header: 'URL',
-    accessor: p => p,
-    Cell: ({ value: provider }) => (
-      <div className='text-3xs text-gray-400'>{provider.url}</div>
-    ),
-  },
-]
-
-function SidebarContent({ provider, admin, onDelete }) {
-  const { name, url, clientID, created, updated } = provider
-
-  const metadata = [
-    { title: 'Name', data: name },
-    { title: 'URL', data: url },
-    { title: 'Client ID', data: clientID },
-    {
-      title: 'Added',
-      data: created ? dayjs(created).fromNow() : '-',
-    },
-    {
-      title: 'Updated',
-      data: updated ? dayjs(updated).fromNow() : '-',
-    },
-  ]
-
-  return (
-    <div className='flex flex-1 flex-col space-y-6 overflow-x-hidden'>
-      <section>
-        <h3 className='border-b border-gray-800 py-4 text-3xs uppercase text-gray-400'>
-          Metadata
-        </h3>
-        <Metadata data={metadata} />
-      </section>
-      {admin && (
-        <section className='flex flex-1 flex-col items-end justify-end py-6'>
-          <RemoveButton
-            onRemove={() => onDelete()}
-            modalTitle='Remove Identity Provider'
-            modalMessage={
-              <>
-                Are you sure you want to delete{' '}
-                <span className='font-bold text-white'>{provider?.name}</span>?
-                This action cannot be undone.
-              </>
-            }
-          />
-        </section>
-      )}
-    </div>
-  )
-}
+import Dashboard from '../../components/layouts/dashboard'
+import DeleteModal from '../../components/delete-modal'
 
 export default function Providers() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 13
-  const {
-    data: { items: providers, totalPages, totalCount } = {},
-    error,
-    mutate,
-  } = useSWR(`/api/providers?page=${page}&limit=${limit}`)
-  const { admin, loading: adminLoading } = useAdmin()
-  const table = useTable({
-    columns,
-    data: providers || [],
-  })
-
-  const [selected, setSelected] = useState(null)
-
-  const loading = adminLoading || (!providers && !error)
+  const limit = 999
+  const { data: { items: providers } = {}, mutate } = useSWR(
+    `/api/providers?page=${page}&limit=${limit}`
+  )
 
   return (
-    <>
+    <div className='mb-10'>
       <Head>
-        <title>Identity Providers - Infra</title>
+        <title>Providers - Infra</title>
       </Head>
-      {!loading && (
-        <div className='flex h-full flex-1'>
-          <div className='flex flex-1 flex-col space-y-4'>
-            <PageHeader
-              header='Providers'
-              buttonHref='/providers/add'
-              buttonLabel='Provider'
-            />
-            {error?.status ? (
-              <div className='my-20 text-center text-sm font-light text-gray-300'>
-                {error?.info?.message}
+
+      <header className='my-6 flex items-center justify-between'>
+        <h1 className='py-1 text-xl font-medium'>Providers</h1>
+        <Link href='/providers/add' data-testid='page-header-button-link'>
+          <button className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
+            Connect provider
+          </button>
+        </Link>
+      </header>
+
+      <Table
+        data={providers}
+        empty='No providers'
+        columns={[
+          {
+            cell: info => (
+              <div className='flex flex-row items-center py-1'>
+                <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
+                  <img
+                    alt='provider icon'
+                    className='h-4'
+                    src={`/providers/${info.row.original.kind}.svg`}
+                  />
+                </div>
+                <div className='flex flex-col'>
+                  <div className='text-sm font-medium text-gray-700'>
+                    {info.getValue()}
+                  </div>
+                  <div className='text-2xs text-gray-500 sm:hidden'>
+                    {info.row.original.url}
+                  </div>
+                  <div className='font-mono text-2xs text-gray-400 lg:hidden'>
+                    {info.row.original.clientID}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className='flex min-h-0 flex-1 flex-col overflow-y-auto px-6'>
-                <Table
-                  {...table}
-                  getRowProps={row => ({
-                    onClick: () => setSelected(row.original),
-                    className:
-                      selected?.id === row.original.id
-                        ? 'bg-gray-900/50'
-                        : 'cursor-pointer',
-                  })}
-                />
-                {providers?.length === 0 && (
-                  <EmptyTable
-                    title='There are no providers'
-                    subtitle={
+            ),
+            header: () => <span>Name</span>,
+            accessorKey: 'name',
+          },
+          {
+            cell: info => (
+              <div className='hidden lg:table-cell'>
+                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
+              </div>
+            ),
+            header: () => <span className='hidden lg:table-cell'>Added</span>,
+            accessorKey: 'created',
+          },
+          {
+            cell: info => (
+              <div className='hidden sm:table-cell'>{info.getValue()}</div>
+            ),
+            header: () => <span className='hidden sm:table-cell'>URL</span>,
+            accessorKey: 'url',
+          },
+          {
+            cell: info => (
+              <div className='hidden font-mono lg:table-cell'>
+                {info.getValue()}
+              </div>
+            ),
+            header: () => (
+              <span className='hidden lg:table-cell'>Client ID</span>
+            ),
+            accessorKey: 'clientID',
+          },
+          {
+            cell: function Cell(info) {
+              const [open, setOpen] = useState(false)
+              return (
+                <div className='text-right'>
+                  <button
+                    onClick={() => setOpen(true)}
+                    className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
+                  >
+                    Remove
+                    <span className='sr-only'>{info.row.original.name}</span>
+                  </button>
+                  <DeleteModal
+                    open={open}
+                    setOpen={setOpen}
+                    onSubmit={async () => {
+                      await fetch(`/api/providers/${info.row.original.id}`, {
+                        method: 'DELETE',
+                      })
+                      setOpen(false)
+
+                      mutate({
+                        items: providers.filter(
+                          p => p.id !== info.row.original.id
+                        ),
+                      })
+                    }}
+                    title='Remove Identity Provider'
+                    message={
                       <>
-                        Identity providers allow you to connect your existing
-                        users &amp; groups to Infra.
+                        Are you sure you want to remove{' '}
+                        <span className='font-bold'>
+                          {info.row.original.name}
+                        </span>
+                        ?
                       </>
                     }
-                    iconPath='/providers.svg'
-                    buttonHref='/providers/add'
-                    buttonText='Provider'
                   />
-                )}
-              </div>
-            )}
-            {totalPages > 1 && (
-              <Pagination
-                curr={page}
-                totalPages={totalPages}
-                totalCount={totalCount}
-                limit={limit}
-              ></Pagination>
-            )}
-          </div>
-          {selected && (
-            <Sidebar
-              onClose={() => setSelected(null)}
-              title={selected.name}
-              iconPath={`/providers/${selected.kind}.svg`}
-            >
-              <SidebarContent
-                provider={selected}
-                admin={admin}
-                onDelete={() => {
-                  mutate(async ({ items: providers } = { items: [] }) => {
-                    await fetch(`/api/providers/${selected.id}`, {
-                      method: 'DELETE',
-                    })
-
-                    return {
-                      items: providers.filter(p => p?.id !== selected.id),
-                    }
-                  })
-
-                  setSelected(null)
-                }}
-              />
-            </Sidebar>
-          )}
-        </div>
-      )}
-    </>
+                </div>
+              )
+            },
+            id: 'delete',
+          },
+        ]}
+      />
+    </div>
   )
 }
 

@@ -70,8 +70,8 @@ export default function Finish() {
 
   return (
     <>
-      <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
-      <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
+      <h1 className='mt-4 text-2xl font-bold leading-snug'>Login to Infra</h1>
+      <h2 className='my-2 text-center text-sm text-gray-500'>
         You&apos;ve used a one time password.
         <br />
         Set your new password to continue.
@@ -79,12 +79,12 @@ export default function Finish() {
 
       <form
         onSubmit={finish}
-        className='relative flex w-full max-w-sm flex-col'
+        className='relative my-4 flex w-full max-w-sm flex-col'
       >
         <div className='my-2 w-full'>
           <label
             htmlFor='password'
-            className='text-3xs uppercase text-gray-500'
+            className='text-2xs font-medium text-gray-700'
           >
             New Password
           </label>
@@ -98,22 +98,22 @@ export default function Finish() {
               setErrors({})
               setError('')
             }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.password ? 'border-pink-500/60' : ''
+            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
           {errors.password && <ErrorMessage message={errors.password} />}
         </div>
         <div className='my-2 w-full'>
           <label
-            htmlFor='password'
-            className='text-3xs uppercase text-gray-500'
+            htmlFor='confirm-password'
+            className='text-2xs font-medium text-gray-700'
           >
             Confirm Password
           </label>
           <input
             required
-            name='confirmPassword'
+            name='confirm-password'
             type='password'
             placeholder='confirm your password'
             onChange={e => {
@@ -121,19 +121,16 @@ export default function Finish() {
               setErrors({})
               setError('')
             }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.confirmPassword ? 'border-pink-500/60' : ''
+            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
           {errors.confirmPassword && (
             <ErrorMessage message={errors.confirmPassword} />
           )}
         </div>
-        <button
-          disabled={!password || !confirmPassword}
-          className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
-        >
-          Finish
+        <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
+          Log in
         </button>
         {error && <ErrorMessage message={error} />}
       </form>

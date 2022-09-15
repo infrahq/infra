@@ -1,5 +1,6 @@
-import { Dialog } from '@headlessui/react'
-import { ExclamationIcon } from '@heroicons/react/outline'
+import { Fragment, useRef } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
+import { TrashIcon } from '@heroicons/react/outline'
 
 export default function DeleteModal({
   open,
@@ -9,49 +10,84 @@ export default function DeleteModal({
   message,
   primaryButtonText = 'Remove',
 }) {
+  const cancelButtonRef = useRef(null)
+  const deleteButtonRef = useRef(null)
+
   return (
-    <Dialog
-      as='div'
-      className='fixed inset-0 z-10 flex min-h-screen items-center justify-center overflow-y-auto px-4 pt-4 pb-20 text-center'
-      open={open}
-      onClose={() => setOpen && setOpen(false)}
-    >
-      <Dialog.Overlay className='fixed inset-0 bg-black bg-opacity-80 transition-opacity' />
-      <aside
-        data-testid='delete-modal'
-        className='relative inline-block w-full max-w-md transform overflow-hidden rounded-lg border border-gray-800 bg-black p-5 text-left align-middle transition-all'
+    <Transition.Root show={open} as={Fragment}>
+      <Dialog
+        as='div'
+        className='relative z-50'
+        initialFocus={deleteButtonRef}
+        onClose={setOpen}
       >
-        <header className='my-2 flex items-center text-left'>
-          <ExclamationIcon
-            className='mr-2 h-6 w-6 stroke-[1.5] text-pink-400'
-            aria-hidden='true'
-          />
-          <Dialog.Title as='h3' className='text-2xs'>
-            {title}
-          </Dialog.Title>
-        </header>
-        <Dialog.Description className='my-7 ml-8 text-2xs text-gray-400'>
-          {message}
-        </Dialog.Description>
-        <footer className='mt-8 flex flex-row-reverse text-sm'>
-          <button
-            type='button'
-            className='rounded-md border border-violet-300 px-8 text-2xs leading-none text-violet-100 outline-offset-0 focus:text-white focus:outline-violet-100'
-            data-testid='delete-modal-primary-button'
-            onClick={() => onSubmit()}
-          >
-            {primaryButtonText}
-          </button>
-          <button
-            type='button'
-            className='px-8 py-2 text-4xs uppercase text-gray-400 focus:text-gray-100 focus:outline-none'
-            data-testid='delete-modal-cancel-button'
-            onClick={() => setOpen && setOpen(false)}
-          >
-            Cancel
-          </button>
-        </footer>
-      </aside>
-    </Dialog>
+        <Transition.Child
+          as={Fragment}
+          enter='ease-out duration-150'
+          enterFrom='opacity-0'
+          enterTo='opacity-100'
+          leave='ease-in duration-100'
+          leaveFrom='opacity-100'
+          leaveTo='opacity-0'
+        >
+          <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+        </Transition.Child>
+        <div className='fixed inset-0 z-10 overflow-y-auto'>
+          <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+              enterTo='opacity-100 translate-y-0 sm:scale-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+              leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+            >
+              <Dialog.Panel
+                className={`relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-md`}
+              >
+                <div>
+                  <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
+                    <TrashIcon
+                      className='h-6 w-6 text-red-600'
+                      aria-hidden='true'
+                    />
+                  </div>
+                  <div className='mt-3 text-center sm:mt-5'>
+                    <Dialog.Title
+                      as='h3'
+                      className='text-lg font-medium leading-6 text-gray-900'
+                    >
+                      {title}
+                    </Dialog.Title>
+                    <div className='mt-2'>
+                      <p className='text-sm text-gray-500'>{message}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className='mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'>
+                  <button
+                    type='button'
+                    className='inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm'
+                    onClick={() => onSubmit()}
+                    ref={deleteButtonRef}
+                  >
+                    {primaryButtonText}
+                  </button>
+                  <button
+                    type='button'
+                    className='mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-100 sm:col-start-1 sm:mt-0 sm:text-sm'
+                    onClick={() => setOpen(false)}
+                    ref={cancelButtonRef}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition.Root>
   )
 }

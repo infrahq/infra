@@ -8,7 +8,6 @@ import ErrorMessage from '../../components/error-message'
 export default function Signup() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [orgName, setOrgName] = useState('')
   const [subDomain, setSubDomain] = useState('')
   const [automaticOrgDomain, setAutomaticOrgDomain] = useState(true) // track if the user has manually specified the org domain
@@ -23,16 +22,7 @@ export default function Signup() {
 
     setSubmitted(true)
 
-    if (password !== confirmPassword) {
-      setErrors({
-        confirmPassword: 'passwords do not match',
-      })
-      setSubmitted(false)
-      return false
-    }
-
     try {
-      // signup
       let res = await fetch('/api/signup', {
         method: 'POST',
         body: JSON.stringify({
@@ -54,6 +44,7 @@ export default function Signup() {
 
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
     } catch (e) {
+      setSubmitted(false)
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
@@ -65,8 +56,6 @@ export default function Signup() {
         setError(e.message)
       }
     }
-
-    setSubmitted(false)
 
     return false
   }
@@ -82,144 +71,123 @@ export default function Signup() {
   }
 
   return (
-    <>
-      <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
-      <h2 className='my-1.5 max-w-md text-center text-xs text-gray-400'>
-        Set up your admin user to get started.
+    <div className='flex w-full flex-col items-center px-10 py-4'>
+      <h1 className='mt-4 text-2xl font-bold leading-snug'>Sign up</h1>
+      <h2 className='my-2 text-center text-sm text-gray-500'>
+        Get started by creating your account
       </h2>
-      <form onSubmit={onSubmit} className='flex w-full max-w-sm flex-col'>
-        <div className='my-2 w-full'>
-          <label htmlFor='name' className='text-3xs uppercase text-gray-500'>
-            Email
-          </label>
-          <input
-            autoFocus
-            id='name'
-            placeholder='enter your email'
-            onChange={e => {
-              setName(e.target.value)
-              setErrors({})
-              setError('')
-            }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.name ? 'border-pink-500/60' : ''
-            }`}
-          />
-          {errors.name && <ErrorMessage message={errors.name} />}
-        </div>
-        <div className='my-2 w-full'>
-          <label
-            htmlFor='password'
-            className='text-3xs uppercase text-gray-500'
-          >
-            Password
-          </label>
-          <input
-            id='password'
-            type='password'
-            placeholder='enter your password'
-            onChange={e => {
-              setPassword(e.target.value)
-              setErrors({})
-              setError('')
-            }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.password ? 'border-pink-500/60' : ''
-            }`}
-          />
-          {errors.password && <ErrorMessage message={errors.password} />}
-        </div>
-        <div className='my-2 w-full'>
-          <label
-            htmlFor='password'
-            className='text-3xs uppercase text-gray-500'
-          >
-            Confirm Password
-          </label>
-          <input
-            required
-            id='confirmPassword'
-            type='password'
-            placeholder='confirm your password'
-            onChange={e => {
-              setConfirmPassword(e.target.value)
-              setErrors({})
-              setError('')
-            }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.confirmPassword ? 'border-pink-500/60' : ''
-            }`}
-          />
-          {errors.confirmPassword && (
-            <ErrorMessage message={errors.confirmPassword} />
-          )}
-        </div>
-        <div className='my-2 w-full pt-6 text-2xs uppercase leading-none text-gray-400'>
-          Organization
-        </div>
-        <div className='my-2 w-full'>
-          <label htmlFor='orgName' className='text-3xs uppercase text-gray-500'>
-            Name
-          </label>
-          <input
-            required
-            id='orgName'
-            placeholder='enter your organization name'
-            onChange={e => {
-              setOrgName(e.target.value)
-              setErrors({})
-              setError('')
-              if (automaticOrgDomain) {
-                setSubDomain(getURLSafeDomain(e.target.value))
-              }
-            }}
-            className={`mb-1 w-full border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-              errors.org?.name ? 'border-pink-500/60' : ''
-            }`}
-          />
-        </div>
-        <div className='my-2 w-full'>
-          <label
-            htmlFor='orgDomain'
-            className='text-3xs uppercase text-gray-500'
-          >
-            Domain
-          </label>
-          <div className='flex flex-wrap'>
+      <form onSubmit={onSubmit} className='mt-8 flex w-full flex-col'>
+        <div className='space-y-3'>
+          <div className='w-full'>
+            <label
+              htmlFor='name'
+              className='block text-xs font-medium text-gray-700'
+            >
+              Email
+            </label>
             <input
               required
-              name='orgDomain'
-              placeholder='your-domain'
-              value={subDomain}
+              autoFocus
+              id='name'
+              type='email'
               onChange={e => {
-                setSubDomain(getURLSafeDomain(e.target.value))
-                setAutomaticOrgDomain(false) // do not set this automatically once it has been specified
+                setName(e.target.value)
                 setErrors({})
                 setError('')
               }}
-              className={`mb-1 w-2/3 border-b border-gray-800 bg-transparent px-px py-2 text-2xs placeholder:italic focus:border-b focus:outline-none focus:ring-gray-200 ${
-                errors.org?.subDomain ? 'border-pink-500/60' : ''
+              className={`mt-1 block w-full rounded-md  shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            <div className='mb-1 w-1/3 border-b border-gray-800 py-2 text-center text-2xs text-gray-500'>
-              .{baseDomain}
+            {errors.name && <ErrorMessage message={errors.name} />}
+          </div>
+          <div className='w-full'>
+            <label
+              htmlFor='password'
+              className='text-xs font-medium text-gray-700'
+            >
+              Password
+            </label>
+            <input
+              required
+              id='password'
+              type='password'
+              onChange={e => {
+                setPassword(e.target.value)
+                setErrors({})
+                setError('')
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.password && <ErrorMessage message={errors.password} />}
+          </div>
+          <div className='w-full'>
+            <label
+              htmlFor='orgName'
+              className='text-2xs font-medium text-gray-700'
+            >
+              Organization
+            </label>
+            <input
+              required
+              id='orgName'
+              type='text'
+              onChange={e => {
+                setOrgName(e.target.value)
+                setErrors({})
+                setError('')
+                if (automaticOrgDomain) {
+                  setSubDomain(getURLSafeDomain(e.target.value))
+                }
+              }}
+              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.org?.name ? 'border-red-500' : 'border-gray-800'
+              }`}
+            />
+            {errors.org?.name && <ErrorMessage message={errors.orgs?.name} />}
+          </div>
+          <div className='w-full'>
+            <label
+              htmlFor='orgDoman'
+              className='text-2xs font-medium text-gray-700'
+            >
+              Domain
+            </label>
+            <div className='shadow-sm" mt-1 flex rounded-md'>
+              <input
+                required
+                name='orgDomain'
+                type='text'
+                autoComplete='off'
+                value={subDomain}
+                autoCorrect='off'
+                onChange={e => {
+                  setSubDomain(getURLSafeDomain(e.target.value))
+                  setAutomaticOrgDomain(false) // do not set this automatically once it has been specified
+                  setErrors({})
+                  setError('')
+                }}
+                className={`block w-full min-w-0 rounded-l-lg px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  errors.domain ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              <span className='inline-flex select-none items-center rounded-r-lg border border-l-0 border-gray-300 bg-gray-50 px-3 text-2xs text-gray-500 shadow-sm'>
+                .{baseDomain}
+              </span>
             </div>
             {errors.domain && <ErrorMessage message={errors.domain} />}
           </div>
         </div>
         <button
-          disabled={
-            !name ||
-            !password ||
-            !confirmPassword ||
-            !orgName ||
-            !subDomain ||
-            submitted
-          }
-          className='my-2 rounded-lg border border-violet-300 px-4 py-3 text-2xs text-violet-100 hover:border-violet-100 disabled:pointer-events-none disabled:opacity-30'
+          type='submit'
+          disabled={submitted}
+          className='mt-6 mb-4 flex w-full cursor-pointer justify-center rounded-lg border border-transparent bg-blue-500 py-2.5 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:pointer-events-none disabled:bg-blue-700/50'
         >
-          Get Started
+          Sign Up
         </button>
+        {error && <ErrorMessage message={error} />}
         <div className='my-3 text-center text-2xs text-gray-400'>
           By continuing, you agree to Infra&apos;s{' '}
           <a
@@ -241,9 +209,8 @@ export default function Signup() {
           </a>
           .
         </div>
-        {error && <ErrorMessage message={error} center />}
       </form>
-    </>
+    </div>
   )
 }
 

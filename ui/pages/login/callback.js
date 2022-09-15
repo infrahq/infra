@@ -5,6 +5,8 @@ import Cookies from 'universal-cookie'
 
 import { useServerConfig } from '../../lib/serverconfig'
 
+import LoginLayout from '../../components/layouts/login'
+
 export default function Callback() {
   const { mutate } = useSWRConfig()
   const { baseDomain } = useServerConfig()
@@ -83,12 +85,26 @@ export default function Callback() {
   }
 
   return (
-    <div className='flex h-full w-full items-center justify-center'>
-      <img
-        alt='loading'
-        className='h-20 w-20 animate-spin-fast'
-        src='/spinner.svg'
-      />
+    <div className='my-32 flex h-full w-full items-center justify-center'>
+      <svg
+        xmlns='http://www.w3.org/2000/svg'
+        width='200px'
+        height='200px'
+        viewBox='0 0 100 100'
+        preserveAspectRatio='xMidYMid'
+        className='h-24 w-24 animate-spin-fast stroke-current text-gray-500'
+      >
+        <circle
+          cx='50'
+          cy='50'
+          fill='none'
+          strokeWidth='1'
+          r='24'
+          strokeDasharray='113.09733552923255 39.69911184307752'
+        ></circle>
+      </svg>
     </div>
   )
 }
+
+Callback.layout = page => <LoginLayout>{page}</LoginLayout>
