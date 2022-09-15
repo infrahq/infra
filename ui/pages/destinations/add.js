@@ -49,7 +49,7 @@ export default function DestinationsAdd() {
   useEffect(() => {
     if (submitted) {
       const interval = setInterval(async () => {
-        const { data: { items: destinations } = {} } = await mutate()
+        const { items: destinations } = await mutate()
 
         if (destinations?.find(d => d.name === name)) {
           setConnected(true)
