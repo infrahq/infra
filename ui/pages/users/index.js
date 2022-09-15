@@ -266,7 +266,7 @@ export default function Users() {
           {
             cell: info => (
               <div className='flex space-x-1'>
-                {info.getValue().map(pn => {
+                {info?.getValue()?.map(pn => {
                   if (pn === 'infra') {
                     return (
                       <img
