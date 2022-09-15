@@ -5,41 +5,6 @@ position: 2
 
 # Quickstart
 
-## Prerequisites
-
-- Install [helm](https://helm.sh/docs/intro/install/) (v3+)
-- Kubernetes (v1.14+)
-
-## Deploy Infra
-
-Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
-
-```yaml
-server:
-  config:
-    users:
-      - name: admin@example.com
-        password: SetThisPassword!
-
-    grants:
-      - user: admin@example.com
-        role: admin
-        resource: infra
-```
-
-{% callout type="info" %}
-
-In this example we are setting a password in plaintext. Refer to the [Helm Reference](../reference/helm-reference.md) doc to learn more about using secrets in the Helm values file.
-
-{% /callout %}
-
-Deploy Infra via `helm`:
-
-```
-helm repo add infrahq https://helm.infrahq.com
-helm repo update
-helm upgrade --install infra infrahq/infra --values values.yaml
-```
 
 ## Access the Infra Dashboard
 

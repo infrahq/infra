@@ -36,9 +36,79 @@ Then deploy Infra with these custom values:
 helm upgrade --install infra infrahq/infra -f values.yaml
 ```
 
-## Adding users, grants and providers
+## Users
+Users can be added in the helm values file by specifying a name which should be a valid email address, and a password or access key. The password is the more likely way to validate the user, though a process or service account will probably use an access key. Access keys must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>). Three of the more common ways of dealing with secrets is shown here. For more options, scroll down to the [Secrets](#secrets) section.
 
-Users, grants and providers can be specified in code via the Helm chart:
+```yaml
+server:
+  config:
+    users:
+      # Add a user with a plaintext password
+      - name: admin@example.com
+        password: SetThisPassword! 
+
+      # Add a user with a plaintext access key.
+      - name: admin@example.com
+        accessKey: 123bogusab.abcdefnotreal123key456ab
+
+      # Add a user setting the password using a file. The password should be the only contents of the file. The 
+      # file will need to be mounted into the pod using `volumes` and `volumeMounts`.
+      - name: admin@example.com
+        password: file:/var/run/secrets/admin@example.com
+
+      # Add a user setting the access key using a file. The access key should be the only contents of the file. The 
+      # file will need to be mounted into the pod using `volumes` and `volumeMounts`.
+      - name: admin@example.com
+        accessKey: file:/var/run/secrets/admin@example.com
+
+      # add a user setting the password with an environment variable. The environment variable will need to be 
+      # injected into the pod using `env` or `envFrom`.
+      - name: admin@example.com
+        password: env:ADMIN_PASSWORD
+
+      # add a user setting the access key with an environment variable. The environment variable will need to be 
+      # injected into the pod using `env` or `envFrom`.
+      - name: admin@example.com
+        accessKey: env:ACCESS_KEY
+```
+
+## Grants
+
+For each user and resource (Infra or a Kubernetes cluster) defined, you can add a grant. A grant includes a user name or group name, a role, and a resource. 
+
+```yaml
+# example values.yaml
+---
+server:
+  config:
+    grants:
+      # 1. Grant user(s) or group(s) as Infra administrator
+      # Setup a user as Infra administrator
+      - user: admin@example.com
+        role: admin
+        resource: infra
+
+      # 2. Grant user(s) or group(s) access to a resources
+      # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
+      - user: admin@example.com
+        role: cluster-admin # Roles for Kubernetes clusters must be Cluster Roles. 
+        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
+
+      # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
+      # In this case, Infra will automatically scope the access to a namespace.
+      - user: admin@example.com
+        role: edit # cluster_roles required
+        resource: example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
+
+      # Example of granting access to a group the `view` role.
+      - group: Everyone
+        role: view # cluster_roles required
+        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
+```
+
+## OIDC Providers
+
+OIDC Providers, such as Okta, Azure AD, Google, and others can be added using the Client ID, Secret, Name, and URL.
 
 ```yaml
 # example values.yaml
@@ -50,35 +120,6 @@ server:
         url: example.okta.com
         clientID: example_jsldf08j23d081j2d12sd
         clientSecret: example_plain_secret # see `secrets` below
-
-    # Add an admin user
-    users:
-      - name: admin
-        password: password
-
-    grants:
-      # 1. Grant user(s) or group(s) as Infra administrator
-      # Setup an user as Infra administrator
-      - user: admin
-        role: admin
-        resource: infra
-
-      # 2. Grant user(s) or group(s) access to a resources
-      # Example of granting access to an individual user the `cluster-admin` role. The name of a resource is specified when installing the Infra Engine at that location.
-      - user: admin
-        role: cluster-admin # cluster_roles required
-        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
-
-      # Example of granting access to an individual user through assigning them to the 'edit' role in the `web` namespace.
-      # In this case, Infra will automatically scope the access to a namespace.
-      - user: admin
-        role: edit # cluster_roles required
-        resource: example-cluster.web # limit access to only the `web` namespace in the `example-cluster` Kubernetes cluster
-
-      # Example of granting access to a group the `view` role.
-      - group: Everyone
-        role: view # cluster_roles required
-        resource: example-cluster # limit access to the `example-cluster` Kubernetes cluster
 ```
 
 ## Postgres Database
