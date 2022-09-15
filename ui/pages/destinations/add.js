@@ -46,14 +46,10 @@ export default function DestinationsAdd() {
     }
   }, [])
 
-  console.log(focused, connected)
-
   useEffect(() => {
     if (submitted) {
       const interval = setInterval(async () => {
         await mutate()
-
-        console.log(destinations, name)
 
         if (destinations.find(d => d.name === name)) {
           setConnected(true)
