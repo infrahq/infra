@@ -59,7 +59,7 @@ func list(cli *CLI) error {
 
 	keys := make([]string, 0, len(gs))
 	for k := range gs {
-		if strings.HasPrefix(k, "infra") {
+		if isInfraDestination(k) {
 			continue
 		}
 
@@ -105,6 +105,12 @@ func list(cli *CLI) error {
 	}
 
 	return writeKubeconfig(user, destinations, grants)
+}
+
+// isInfraDestination returns true if the resource string identifies the infra
+// server.
+func isInfraDestination(resource string) bool {
+	return resource == "infra" || strings.HasPrefix(resource, "infra.")
 }
 
 func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination, []api.Grant, error) {
