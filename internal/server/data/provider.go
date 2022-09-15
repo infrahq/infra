@@ -31,7 +31,7 @@ func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error
 	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
+func ListProviders(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
 	return list[models.Provider](db, p, selectors...)
 }
 
@@ -83,7 +83,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 			return fmt.Errorf("delete provider users: %w", err)
 		}
 
-		if err := DeleteAccessKeys(db, ByProviderID(p.ID)); err != nil {
+		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByProviderID: p.ID}); err != nil {
 			return fmt.Errorf("delete access keys: %w", err)
 		}
 	}
@@ -96,12 +96,21 @@ type providersCount struct {
 	Count float64
 }
 
-func CountProvidersByKind(tx GormTxn) ([]providersCount, error) {
-	db := tx.GormDB()
-	var results []providersCount
-	if err := db.Raw("SELECT kind, COUNT(*) as count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind").Scan(&results).Error; err != nil {
+func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
+	rows, err := tx.Query("SELECT kind, COUNT(*) AS count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind")
+	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	return results, nil
+	var results []providersCount
+	for rows.Next() {
+		var item providersCount
+		if err := rows.Scan(&item.Kind, &item.Count); err != nil {
+			return nil, err
+		}
+		results = append(results, item)
+	}
+
+	return results, rows.Err()
 }

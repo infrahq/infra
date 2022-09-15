@@ -47,6 +47,7 @@ postgres:
 
 
 lint:
+	(cd ./internal/tools/querylinter/cmd; go build -o ./querylinter.so -buildmode=plugin .)
 	golangci-lint run --fix
 
 .PHONY: docs

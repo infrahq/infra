@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/format"
+	"github.com/infrahq/infra/internal/server/models"
 )
 
 func setupClient(srv net.Listener) {
@@ -102,6 +105,7 @@ func successCase(t *testing.T, c net.Conn) {
 	write("250 Recipient address accepted")
 	read("DATA")
 	write("354 Ready")
+	read(`X-SMTPAPI: {"filters":{"bypass_list_management":{"settings":{"enable":1}}}}`)
 	for s := read(""); s != "."; s = read("") {
 		switch {
 		case strings.HasPrefix(s, "To: "):
@@ -157,7 +161,7 @@ func TestSendEmail(t *testing.T) {
 		Subject:     "The art of emails",
 		PlainBody:   []byte("Hello world\n.\n."),
 		HTMLBody:    []byte("<h2> HELLO WORLD <h2>"),
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 
 	assert.Equal(t, plain, "Hello world\n.\n.")
@@ -170,7 +174,7 @@ func TestSendPasswordReset(t *testing.T) {
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplatePasswordReset, PasswordResetData{
 		Link: "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -181,7 +185,7 @@ func TestSendUserInvite(t *testing.T) {
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateUserInvite, UserInviteData{
 		FromUserName: "joe bill",
 		Link:         "https://example.com?himom=1",
-	})
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }
 
@@ -190,7 +194,27 @@ func TestSendSignup(t *testing.T) {
 	setupClient(srv)
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
-		Link: "https://supahdomain.example.com/login",
-	})
+		Link:        "https://supahdomain.example.com/login",
+		WrappedLink: "https://supahdomain.example.com/login",
+	}, BypassListManagement)
+	assert.NilError(t, err)
+
+	assert.Assert(t, strings.Contains(plain, `You can sign into your account any time from https://supahdomain.example.com`))
+	assert.Assert(t, strings.Contains(html, `<a href="https://supahdomain.example.com`))
+}
+
+func TestSendForgotDomain(t *testing.T) {
+	srv := setupSMTPServer(t, successCase)
+	setupClient(srv)
+
+	err := SendTemplate("", "hannibal@ateam.org", EmailTemplateForgottenDomains, ForgottenDomainData{
+		Domains: []models.ForgottenDomain{
+			{
+				OrganizationName:   "A Team",
+				OrganizationDomain: "ateam.infrahq.com",
+				LastSeenAt:         format.HumanTime(time.Now(), "never"),
+			},
+		},
+	}, BypassListManagement)
 	assert.NilError(t, err)
 }

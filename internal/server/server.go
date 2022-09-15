@@ -30,18 +30,25 @@ import (
 )
 
 type Options struct {
-	Version         float64
-	TLSCache        string // TODO: move this to TLS.CacheDir
+	Version  float64
+	TLSCache string // TODO: move this to TLS.CacheDir
+
 	EnableTelemetry bool
+
 	// EnableSignup indicates that anyone can signup and create an org. When
 	// true this implies multi-tenancy, but false does not necessarily indicate
 	// a single tenancy environment (because orgs could have been created by a
 	// support admin).
-	EnableSignup             bool
+	EnableSignup bool
+
+	// EnableLogSampling indicates whether or not to sample HTTP access logs.
+	// When true, non-error HTTP GET logs will sampled down to 1 every 7 seconds
+	// grouped by the request path.
+	EnableLogSampling bool
+
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
 
-	DBFile                  string
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string
 	DBHost                  string
@@ -125,6 +132,10 @@ func newServer(options Options) *Server {
 
 // New creates a Server, and initializes it. The returned Server is ready to run.
 func New(options Options) (*Server, error) {
+	if options.EnableSignup && options.BaseDomain == "" {
+		return nil, errors.New("cannot enable signup without setting base domain")
+	}
+
 	server := newServer(options)
 
 	if err := importSecrets(options.Secrets, server.secrets); err != nil {
@@ -135,7 +146,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("key config: %w", err)
 	}
 
-	driver, err := server.getDatabaseDriver()
+	driver, err := getDatabaseDriver(options, server.secrets)
 	if err != nil {
 		return nil, fmt.Errorf("driver: %w", err)
 	}
@@ -145,7 +156,7 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("db: %w", err)
 	}
 	server.db = db
-	server.metricsRegistry = setupMetrics(server.DB())
+	server.metricsRegistry = setupMetrics(server.db)
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)
@@ -308,52 +319,51 @@ type routine struct {
 	stop func()
 }
 
-func (s *Server) getDatabaseDriver() (gorm.Dialector, error) {
-	pgDSN, err := s.getPostgresConnectionString()
-	if err != nil {
+func getDatabaseDriver(options Options, secretStorage map[string]secrets.SecretStorage) (gorm.Dialector, error) {
+	pgDSN, err := getPostgresConnectionString(options, secretStorage)
+	switch {
+	case err != nil:
 		return nil, fmt.Errorf("postgres: %w", err)
+	case pgDSN == "":
+		return nil, fmt.Errorf("missing postgreSQL connection options")
 	}
-
-	if pgDSN != "" {
-		return postgres.Open(pgDSN), nil
-	}
-
-	return data.NewSQLiteDriver(s.options.DBFile)
+	return postgres.Open(pgDSN), nil
 }
 
 // getPostgresConnectionString parses postgres configuration options and returns the connection string
-func (s *Server) getPostgresConnectionString() (string, error) {
+func getPostgresConnectionString(options Options, secretStorage map[string]secrets.SecretStorage) (string, error) {
 	var pgConn strings.Builder
-	pgConn.WriteString(s.options.DBConnectionString)
+	pgConn.WriteString(options.DBConnectionString + " ")
 
-	if s.options.DBHost != "" {
+	if options.DBHost != "" {
 		// config has separate postgres parameters set, combine them into a connection DSN now
-		fmt.Fprintf(&pgConn, "host=%s ", s.options.DBHost)
+		fmt.Fprintf(&pgConn, "host=%s ", options.DBHost)
+	}
 
-		if s.options.DBUsername != "" {
-			fmt.Fprintf(&pgConn, "user=%s ", s.options.DBUsername)
+	if options.DBUsername != "" {
+		fmt.Fprintf(&pgConn, "user=%s ", options.DBUsername)
+	}
 
-			if s.options.DBPassword != "" {
-				pass, err := secrets.GetSecret(s.options.DBPassword, s.secrets)
-				if err != nil {
-					return "", fmt.Errorf("postgres secret: %w", err)
-				}
-
-				fmt.Fprintf(&pgConn, "password=%s ", pass)
-			}
+	if options.DBPassword != "" {
+		pass, err := secrets.GetSecret(options.DBPassword, secretStorage)
+		if err != nil {
+			return "", fmt.Errorf("postgres secret: %w", err)
 		}
 
-		if s.options.DBPort > 0 {
-			fmt.Fprintf(&pgConn, "port=%d ", s.options.DBPort)
-		}
+		fmt.Fprintf(&pgConn, "password=%s ", pass)
+	}
 
-		if s.options.DBName != "" {
-			fmt.Fprintf(&pgConn, "dbname=%s ", s.options.DBName)
-		}
+	if options.DBPort > 0 {
+		fmt.Fprintf(&pgConn, "port=%d ", options.DBPort)
+	}
 
-		if s.options.DBParameters != "" {
-			fmt.Fprint(&pgConn, s.options.DBParameters)
-		}
+	if options.DBName != "" {
+		fmt.Fprintf(&pgConn, "dbname=%s ", options.DBName)
+	}
+
+	// TODO: deprecate DBParameters now that we accept DBConnectionString
+	if options.DBParameters != "" {
+		fmt.Fprint(&pgConn, options.DBParameters)
 	}
 
 	return strings.TrimSpace(pgConn.String()), nil

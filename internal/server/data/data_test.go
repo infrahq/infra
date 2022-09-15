@@ -1,13 +1,14 @@
 package data
 
 import (
-	"os"
+	"context"
 	"testing"
 
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/database"
@@ -27,29 +28,23 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 	return db
 }
 
-var isEnvironmentCI = os.Getenv("CI") != ""
-
-// postgresDriver requires postgres to be available in a CI environment, and
-// marks the test as skipped when not in CI environment.
-func postgresDriver(t *testing.T) gorm.Dialector {
-	driver := database.PostgresDriver(t, "")
-	switch {
-	case driver == nil && isEnvironmentCI:
-		t.Fatal("CI must test all drivers, set POSTGRESQL_CONNECTION")
-	case driver == nil:
-		t.Skip("Set POSTGRESQL_CONNECTION to test against postgresql")
-	}
-	return driver.Dialector
+func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		_ = tx.Rollback()
+	})
+	return tx.WithOrgID(orgID)
 }
 
-// runDBTests against all supported databases. Defaults to only sqlite locally,
-// and all supported DBs in CI.
+// runDBTests against all supported databases.
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := postgresDriver(t)
-		db := setupDB(t, pgsql)
+		pgsql := database.PostgresDriver(t, "")
+		db := setupDB(t, pgsql.Dialector)
 		run(t, db)
 		db.Rollback()
 	})
@@ -84,7 +79,7 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
-		p := models.Pagination{Page: 1, Limit: 10}
+		p := Pagination{Page: 1, Limit: 10}
 
 		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
 		assert.NilError(t, err)
@@ -171,5 +166,50 @@ func TestNewDB(t *testing.T) {
 		org, err := GetOrganization(db, ByID(defaultOrganizationID))
 		assert.NilError(t, err)
 		assert.DeepEqual(t, org, db.DefaultOrg, cmpTimeWithDBPrecision)
+	})
+}
+
+func TestDB_Begin(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("rollback", func(t *testing.T) {
+			ctx := context.Background()
+			tx, err := db.Begin(ctx)
+			assert.NilError(t, err)
+			tx = tx.WithOrgID(db.DefaultOrg.ID)
+
+			user := &models.Identity{Name: "something@example.com"}
+			err = CreateIdentity(tx, user)
+			assert.NilError(t, err)
+
+			assert.NilError(t, tx.Rollback())
+
+			// using the tx fails
+			_, err = GetIdentity(tx, ByID(user.ID))
+			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
+
+			// using the db shows to show the rollback worked
+			_, err = GetIdentity(db, ByID(user.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("commit", func(t *testing.T) {
+			ctx := context.Background()
+			tx, err := db.Begin(ctx)
+			assert.NilError(t, err)
+			tx = tx.WithOrgID(db.DefaultOrg.ID)
+
+			user := &models.Identity{Name: "something@example.com"}
+			err = CreateIdentity(tx, user)
+			assert.NilError(t, err)
+
+			assert.NilError(t, tx.Commit())
+
+			// using the tx fails
+			_, err = GetIdentity(tx, ByID(user.ID))
+			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
+
+			// using the db shows the commit worked
+			_, err = GetIdentity(db, ByID(user.ID))
+			assert.NilError(t, err)
+		})
 	})
 }

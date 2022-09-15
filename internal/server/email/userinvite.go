@@ -5,6 +5,6 @@ type UserInviteData struct {
 	Link         string
 }
 
-func SendUserInvite(name, address string, data UserInviteData) error {
-	return SendTemplate(name, address, EmailTemplateUserInvite, data)
+func SendUserInviteEmail(name, address string, data UserInviteData) error {
+	return SendTemplate(name, address, EmailTemplateUserInvite, data, BypassListManagement)
 }

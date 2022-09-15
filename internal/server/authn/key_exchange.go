@@ -48,7 +48,3 @@ func (a *keyExchangeAuthn) Authenticate(_ context.Context, db data.GormTxn, requ
 func (a *keyExchangeAuthn) Name() string {
 	return "exchange"
 }
-
-func (a *keyExchangeAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
-	return false, nil // not applicable to key exchange
-}

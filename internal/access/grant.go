@@ -16,44 +16,25 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 		return nil, HandleAuthErr(err, "grant", "get", models.InfraAdminRole)
 	}
 
-	return data.GetGrant(db, data.ByID(id))
+	return data.GetGrant(db, data.GetGrantOptions{ByID: id})
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *models.Pagination) ([]models.Grant, error) {
-	selectors := []data.SelectorFunc{
-		data.ByOptionalResource(resource),
-		data.ByOptionalPrivilege(privilege),
-	}
+func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *data.Pagination) ([]models.Grant, error) {
+	rCtx := GetRequestContext(c)
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	db, err := RequireInfraRole(c, roles...)
+	_, err := RequireInfraRole(c, roles...)
 	err = HandleAuthErr(err, "grants", "list", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
-		db = getDB(c)
-		subjectID, err2 := subject.ID()
-		if err2 != nil {
-			// user is only allowed to select their own grants, so if the subject is missing or invalid, this is an access error
-			return nil, err
-		}
-		identity := AuthenticatedIdentity(c)
+		subjectID, _ := subject.ID() // zero value will never match a user
 		switch {
-		case identity == nil:
+		case rCtx.Authenticated.User == nil:
 			return nil, err
-		case subject.IsIdentity() && identity.ID == subjectID:
-			if inherited {
-				selectors = append(selectors, data.GrantsInheritedBySubject(subject))
-			} else {
-				selectors = append(selectors, data.BySubject(subject))
-			}
-			return data.ListGrants(db, p, selectors...)
-		case subject.IsGroup() && userInGroup(db, identity.ID, subjectID):
-			if inherited {
-				selectors = append(selectors, data.GrantsInheritedBySubject(subject))
-			} else {
-				selectors = append(selectors, data.BySubject(subject))
-			}
-			return data.ListGrants(db, p, selectors...)
+		case subject.IsIdentity() && rCtx.Authenticated.User.ID == subjectID:
+			// authorized because the request is for their own grants
+		case subject.IsGroup() && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subjectID):
+			// authorized because the request is for grants of a group they belong to
 		default:
 			return nil, err
 		}
@@ -61,21 +42,21 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		return nil, err
 	}
 
-	if inherited && len(subject) > 0 {
-		selectors = append(selectors, data.GrantsInheritedBySubject(subject))
-	} else {
-		selectors = append(selectors, data.ByOptionalSubject(subject))
+	opts := data.ListGrantsOptions{
+		ByResource:                 resource,
+		BySubject:                  subject,
+		ExcludeConnectorGrant:      !showSystem,
+		IncludeInheritedFromGroups: inherited,
+		Pagination:                 p,
 	}
-
-	if !showSystem {
-		selectors = append(selectors, data.NotInfraConnector())
+	if privilege != "" {
+		opts.ByPrivileges = []string{privilege}
 	}
-
-	return data.ListGrants(db, p, selectors...)
+	return data.ListGrants(rCtx.DBTxn, opts)
 }
 
 func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
-	groups, err := data.ListGroups(db, &models.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
+	groups, err := data.ListGroups(db, &data.Pagination{Limit: 1}, data.ByGroupMember(authnUserID), data.ByID(groupID))
 	if err != nil {
 		return false
 	}
@@ -89,13 +70,13 @@ func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
 }
 
 func CreateGrant(c *gin.Context, grant *models.Grant) error {
-	var db data.GormTxn
-	var err error
+	rCtx := GetRequestContext(c)
 
+	var err error
 	if grant.Privilege == models.InfraSupportAdminRole && grant.Resource == ResourceInfraAPI {
-		db, err = RequireInfraRole(c, models.InfraSupportAdminRole)
+		_, err = RequireInfraRole(c, models.InfraSupportAdminRole)
 	} else {
-		db, err = RequireInfraRole(c, models.InfraAdminRole)
+		_, err = RequireInfraRole(c, models.InfraAdminRole)
 	}
 
 	if err != nil {
@@ -103,10 +84,9 @@ func CreateGrant(c *gin.Context, grant *models.Grant) error {
 	}
 
 	// TODO: CreatedBy should be set automatically
-	creator := AuthenticatedIdentity(c)
-	grant.CreatedBy = creator.ID
+	grant.CreatedBy = rCtx.Authenticated.User.ID
 
-	return data.CreateGrant(db, grant)
+	return data.CreateGrant(rCtx.DBTxn, grant)
 }
 
 func DeleteGrant(c *gin.Context, id uid.ID) error {
@@ -115,5 +95,5 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "grant", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteGrants(db, data.ByID(id))
+	return data.DeleteGrants(db, data.DeleteGrantsOptions{ByID: id})
 }

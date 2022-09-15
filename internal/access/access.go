@@ -8,13 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 // TODO: replace calls to this function with GetRequestContext once the
 // data interface has stabilized.
-func getDB(c *gin.Context) data.GormTxn {
+func getDB(c *gin.Context) *data.Transaction {
 	return GetRequestContext(c).DBTxn
 }
 
@@ -36,44 +35,22 @@ const ResourceInfraAPI = "infra"
 
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
-	db := getDB(c)
-
-	identity := AuthenticatedIdentity(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
+	identity := rCtx.Authenticated.User
 	if identity == nil {
 		return nil, fmt.Errorf("no active identity")
 	}
 
-	for _, role := range oneOfRoles {
-		ok, err := Can(db, identity.PolyID(), role, ResourceInfraAPI)
-		if err != nil {
-			return nil, err
-		}
-
-		if ok {
-			return db, nil
-		}
+	ok, err := Can(db, identity.PolyID(), ResourceInfraAPI, oneOfRoles...)
+	switch {
+	case err != nil:
+		return nil, err
+	case ok:
+		return db, nil
+	default:
+		return nil, ErrNotAuthorized
 	}
-
-	// check if they belong to a group that is authorized
-	groups, err := data.ListGroups(db, nil, data.ByGroupMember(identity.ID))
-	if err != nil {
-		return nil, fmt.Errorf("auth user groups: %w", err)
-	}
-
-	for _, group := range groups {
-		for _, role := range oneOfRoles {
-			ok, err := Can(db, group.PolyID(), role, ResourceInfraAPI)
-			if err != nil {
-				return nil, err
-			}
-
-			if ok {
-				return db, nil
-			}
-		}
-	}
-
-	return nil, ErrNotAuthorized
 }
 
 var ErrNotAuthorized = errors.New("not authorized")
@@ -123,8 +100,14 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 }
 
 // Can checks if an identity has a privilege that means it can perform an action on a resource
-func Can(db data.GormTxn, identity uid.PolymorphicID, privilege, resource string) (bool, error) {
-	grants, err := data.ListGrants(db, &models.Pagination{Limit: 1}, data.BySubject(identity), data.ByPrivilege(privilege), data.ByResource(resource))
+func Can(db data.GormTxn, identity uid.PolymorphicID, resource string, privileges ...string) (bool, error) {
+	grants, err := data.ListGrants(db, data.ListGrantsOptions{
+		Pagination:                 &data.Pagination{Limit: 1},
+		BySubject:                  identity,
+		ByPrivileges:               privileges,
+		ByResource:                 resource,
+		IncludeInheritedFromGroups: true,
+	})
 	if err != nil {
 		return false, fmt.Errorf("has grants: %w", err)
 	}

@@ -17,10 +17,12 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func TestBindsQuery(t *testing.T) {
+func TestReadRequest_FromQuery(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo?alpha=beta")
@@ -30,13 +32,13 @@ func TestBindsQuery(t *testing.T) {
 	r := &struct {
 		Alpha string `form:"alpha"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "beta", r.Alpha)
 }
 
-func TestBindsJSON(t *testing.T) {
+func TestReadRequest_JSON(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
@@ -53,13 +55,13 @@ func TestBindsJSON(t *testing.T) {
 	r := &struct {
 		Alpha string `json:"alpha"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "zeta", r.Alpha)
 }
 
-func TestBindsUUIDs(t *testing.T) {
+func TestReadRequest_UUIDs(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo/e4d97df2")
@@ -68,13 +70,13 @@ func TestBindsUUIDs(t *testing.T) {
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	c.Params = append(c.Params, gin.Param{Key: "id", Value: "e4d97df2"})
 	r := &api.Resource{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "e4d97df2", r.ID.String())
 }
 
-func TestBindsSnowflake(t *testing.T) {
+func TestReadRequest_Snowflake(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	id := uid.New()
@@ -89,14 +91,14 @@ func TestBindsSnowflake(t *testing.T) {
 		ID     uid.ID `uri:"id"`
 		FormID uid.ID `form:"form_id"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	assert.Equal(t, id, r.ID)
 	assert.Equal(t, id2, r.FormID)
 }
 
-func TestBindsEmptyRequest(t *testing.T) {
+func TestReadRequest_EmptyRequest(t *testing.T) {
 	c, _ := gin.CreateTestContext(nil)
 
 	uri, err := url.Parse("/foo")
@@ -104,32 +106,8 @@ func TestBindsEmptyRequest(t *testing.T) {
 
 	c.Request = &http.Request{URL: uri, Method: "GET"}
 	r := &api.EmptyRequest{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
-}
-
-func TestGetRoute(t *testing.T) {
-	w := httptest.NewRecorder()
-	c, e := gin.CreateTestContext(w)
-	uri, _ := url.Parse("/")
-	c.Request = &http.Request{
-		URL:    uri,
-		Header: map[string][]string{},
-	}
-	c.Request.Header.Set("Infra-Version", apiVersionLatest)
-	r := e.Group("/")
-
-	get(&API{}, r, "/", func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
-		return &api.EmptyResponse{}, nil
-	})
-
-	routes := e.Routes()
-
-	for _, route := range routes {
-		route.HandlerFunc(c)
-	}
-
-	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestTimestampAndDurationSerialization(t *testing.T) {
@@ -151,7 +129,7 @@ func TestTimestampAndDurationSerialization(t *testing.T) {
 		Deadline  api.Time     `json:"deadline"`
 		Extension api.Duration `json:"extension"`
 	}{}
-	err = bind(c, r)
+	err = readRequest(c, r)
 	assert.NilError(t, err)
 
 	expected := time.Date(2022, 3, 23, 17, 50, 59, 0, time.UTC)
@@ -197,13 +175,82 @@ func TestTrimWhitespace(t *testing.T) {
 	err = json.Unmarshal(resp.Body.Bytes(), rb)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(rb.Items), 2)
+	assert.Equal(t, len(rb.Items), 2, rb.Items)
 	expected := api.Grant{
 		User:      userID,
 		Privilege: "admin",
 		Resource:  "kubernetes.production.*",
 	}
 	assert.DeepEqual(t, rb.Items[1], expected, cmpAPIGrantShallow)
+}
+
+func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
+	srv := newServer(Options{})
+	srv.db = setupDB(t)
+
+	router := gin.New()
+
+	r := route[api.EmptyRequest, *api.EmptyResponse]{
+		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			rCtx := getRequestContext(c)
+
+			user := &models.Identity{
+				Model:              models.Model{ID: 1555},
+				Name:               "user@example.com",
+				OrganizationMember: models.OrganizationMember{OrganizationID: srv.db.DefaultOrg.ID},
+			}
+			if err := data.CreateIdentity(rCtx.DBTxn, user); err != nil {
+				return nil, err
+			}
+
+			return nil, fmt.Errorf("this failed")
+		},
+		infraVersionHeaderOptional: true,
+		noAuthentication:           true,
+		noOrgRequired:              true,
+	}
+
+	api := &API{server: srv}
+	add(api, rg(router.Group("/")), "POST", "/do", r)
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/do", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
+
+	// The user should not exist, because the txn was rollbed back
+	_, err := data.GetIdentity(srv.db, data.ByID(uid.ID(1555)))
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+}
+
+func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
+	srv := newServer(Options{})
+	srv.db = setupDB(t)
+
+	router := gin.New()
+
+	r := route[api.EmptyRequest, *api.EmptyResponse]{
+		handler: func(c *gin.Context, request *api.EmptyRequest) (*api.EmptyResponse, error) {
+			rCtx := getRequestContext(c)
+
+			// Commit the transaction so that the call in wrapRoute returns an error
+			err := rCtx.DBTxn.Commit()
+			return nil, err
+		},
+		infraVersionHeaderOptional: true,
+		noAuthentication:           true,
+		noOrgRequired:              true,
+	}
+
+	api := &API{server: srv}
+	add(api, rg(router.Group("/")), "POST", "/do", r)
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/do", nil)
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 }
 
 func TestInfraVersionHeader(t *testing.T) {

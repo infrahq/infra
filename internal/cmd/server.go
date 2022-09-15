@@ -46,13 +46,6 @@ func newServerCmd() *cobra.Command {
 
 			options.TLSCache = tlsCache
 
-			dbFile, err := canonicalPath(options.DBFile)
-			if err != nil {
-				return err
-			}
-
-			options.DBFile = dbFile
-
 			dbEncryptionKey, err := canonicalPath(options.DBEncryptionKey)
 			if err != nil {
 				return err
@@ -70,7 +63,6 @@ func newServerCmd() *cobra.Command {
 
 	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Server configuration file")
 	cmd.Flags().String("tls-cache", "", "Directory to cache TLS certificates")
-	cmd.Flags().String("db-file", "", "Path to SQLite 3 database")
 	cmd.Flags().String("db-name", "", "Database name")
 	cmd.Flags().String("db-host", "", "Database host")
 	cmd.Flags().Int("db-port", 0, "Database port")
@@ -93,14 +85,14 @@ func defaultServerOptions(infraDir string) server.Options {
 	return server.Options{
 		Version:                  0.2, // update this as the config version changes
 		TLSCache:                 filepath.Join(infraDir, "cache"),
-		DBFile:                   filepath.Join(infraDir, "sqlite3.db"),
 		DBEncryptionKey:          filepath.Join(infraDir, "sqlite3.db.key"),
 		DBEncryptionKeyProvider:  "native",
 		EnableTelemetry:          true,
 		SessionDuration:          24 * time.Hour * 30, // 30 days
 		SessionExtensionDeadline: 24 * time.Hour * 3,  // 3 days
 		EnableSignup:             false,
-		BaseDomain:               "example.com",
+		BaseDomain:               "",
+		EnableLogSampling:        true,
 
 		Addr: server.ListenerOptions{
 			HTTP:    ":80",

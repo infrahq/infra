@@ -26,6 +26,7 @@ func TestIdentity(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, 0 != identity.ID)
 		assert.Equal(t, bond.Name, identity.Name)
+		assert.Assert(t, len(identity.VerificationToken) > 0, "verification token must be set")
 	})
 }
 

@@ -7,8 +7,6 @@
 
 <div align="center">
 
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/infrahq/infra?color=brightgreen)](https://github.com/infrahq/infra/releases/latest) [![GitHub closed issues](https://img.shields.io/github/issues-closed/infrahq/infra?color=green)](https://github.com/infrahq/infra/issues) [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/infrahq/infra)](https://github.com/infrahq/infra/commits/main)
-<br />
 [![YouTube Channel Views](https://img.shields.io/youtube/channel/views/UCft1MzQs2BJdW8BIUu6WJkw?style=social)](https://www.youtube.com/channel/UCft1MzQs2BJdW8BIUu6WJkw) [![GitHub Repo stars](https://img.shields.io/github/stars/infrahq/infra?style=social)](https://github.com/infrahq/infra/stargazers) [![Twitter Follow](https://img.shields.io/twitter/follow/infrahq?style=social)](https://twitter.com/infrahq)
 
 </div>
@@ -25,56 +23,11 @@ Infra manages access to infrastructure such as Kubernetes, with support for [mor
 - **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
 - **Audit logs** for who did what, when to stay compliant (coming soon)
 
-![dashboard](https://user-images.githubusercontent.com/251292/179115227-d7bd9040-75bc-421d-87bf-4462a4fca38d.png)
-
-## Install
-
-Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
-
-```yaml
-server:
-  config:
-    users:
-      - name: admin@example.com
-        password: SetThisPassword! #note this password is now set as plaintext in this file
-
-    # Create a "admin@example.com" user and set a password passed in as a file. The file will need
-    # to be mounted into the pod using `volumes` and `volumeMounts`.
-    # - name: admin@example.com
-    #   password: file:/var/run/secrets/admin@example.com
-
-    # Create an "admin@example.com" user and set a password passed in as an environment variable.
-    # The environment variable will need to be injected into the pod using `env` or `envFrom`.
-    # - name: admin@example.com
-    #   password: env:ADMIN_PASSWORD
-
-    grants:
-      - user: admin@example.com
-        role: admin
-        resource: infra
-```
-
-Install Infra via `helm`:
-
-```
-helm repo add infrahq https://helm.infrahq.com
-helm repo update
-helm upgrade --install infra infrahq/infra --values values.yaml
-```
-
-Next, find the exposed hostname:
-
-```
-kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}" -w
-```
-
-Open this hostname in your browser to get started
-
 ## Connectors
 
 | Connector          | Status        | Documentation                                                 |
 | ------------------ | ------------- | ------------------------------------------------------------- |
-| Kubernetes         | ✅ Stable     | [Get started](https://infrahq.com/docs/connectors/kubernetes) |
+| Kubernetes         | ✅ Available  | [Get started](https://infrahq.com/docs/connectors/kubernetes) |
 | Postgres           | _Coming soon_ | _Coming soon_                                                 |
 | SSH                | _Coming soon_ | _Coming soon_                                                 |
 | AWS                | _Coming soon_ | _Coming soon_                                                 |
@@ -86,7 +39,7 @@ Open this hostname in your browser to get started
 
 ## Documentation
 
-- [Login via Infra CLI](https://infrahq.com/docs/configuration/logging-in)
+- [Deploy Infra](https://infrahq.com/docs/getting-started/deploy)
 - [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)

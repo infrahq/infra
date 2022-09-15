@@ -46,7 +46,7 @@ func initializeSettings(tx GormTxn, orgID uid.ID) (*models.Settings, error) {
 
 	settings = &models.Settings{
 		OrganizationMember: models.OrganizationMember{OrganizationID: orgID},
-		PrivateJWK:         secs,
+		PrivateJWK:         models.EncryptedAtRest(secs),
 		PublicJWK:          pubs,
 	}
 

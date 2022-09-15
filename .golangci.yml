@@ -16,10 +16,17 @@ linters-settings:
     disabled-checks:
       - singleCaseSwitch
 
+  custom:
+    querylinter:
+      path: ./internal/tools/querylinter/cmd/querylinter.so
+      description: Look for incorrect use of querybuilder.Builder
+
 issues:
   exclude-rules:
     - linters: [staticcheck]
       text: "\"io/ioutil\" has been deprecated"
+    - linters: [errcheck]
+      text: "tx\\.Rollback"
 
 linters:
   enable:
@@ -42,6 +49,7 @@ linters:
     - nakedret
     - nilerr
     - noctx
+    - querylinter
     - revive
     - rowserrcheck
     - sqlclosecheck

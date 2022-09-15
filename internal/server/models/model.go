@@ -30,12 +30,32 @@ type Model struct {
 
 func (Model) IsAModel() {}
 
-// BeforeCreate sets an ID if one does not already exist. Unfortunately, we can use `gorm:"default"`
+// BeforeCreate sets an ID if one does not already exist. Unfortunately, we can't use `gorm:"default"`
 // tags since the ID must be dynamically generated and not all databases support UUID generation.
 func (m *Model) BeforeCreate(_ *gorm.DB) error {
 	if m.ID == 0 {
 		m.ID = uid.New()
 	}
 
+	return nil
+}
+
+func (m Model) Primary() uid.ID {
+	return m.ID
+}
+
+func (m *Model) OnInsert() error {
+	if m.ID == 0 {
+		m.ID = uid.New()
+	}
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = time.Now()
+	}
+	m.UpdatedAt = m.CreatedAt
+	return nil
+}
+
+func (m *Model) OnUpdate() error {
+	m.UpdatedAt = time.Now()
 	return nil
 }

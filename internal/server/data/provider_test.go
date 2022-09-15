@@ -26,9 +26,9 @@ func TestProvider(t *testing.T) {
 	})
 }
 
-func createProviders(t *testing.T, db GormTxn, providers ...models.Provider) {
+func createProviders(t *testing.T, db GormTxn, providers ...*models.Provider) {
 	for i := range providers {
-		err := CreateProvider(db, &providers[i])
+		err := CreateProvider(db, providers[i])
 		assert.NilError(t, err)
 	}
 }
@@ -40,8 +40,9 @@ func TestCreateProviderDuplicate(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
+		providerDevelop.ID = 0 // zero out the ID so that the conflict is on name
 		err := CreateProvider(db, &providerDevelop)
 
 		var uniqueConstraintErr UniqueConstraintError
@@ -58,7 +59,7 @@ func TestGetProvider(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
 		provider, err := GetProvider(db, ByName("okta-development"))
 		assert.NilError(t, err)
@@ -74,7 +75,7 @@ func TestListProviders(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
 		providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
 		assert.NilError(t, err)
@@ -153,7 +154,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetAccessKey(db, ByID(key.ID))
+			_, err = GetAccessKey(db, key.KeyID)
 			assert.ErrorContains(t, err, "record not found")
 		})
 
@@ -173,7 +174,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetAccessKey(db, ByID(key.ID))
+			_, err = GetAccessKey(db, key.KeyID)
 			assert.NilError(t, err)
 		})
 
@@ -199,7 +200,7 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
 
-		createProviders(t, db, providerDevelop, providerProduction)
+		createProviders(t, db, &providerDevelop, &providerProduction)
 
 		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
 			return db.Where(&models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
@@ -213,11 +214,13 @@ func TestRecreateProviderSameDomain(t *testing.T) {
 
 func TestCountProvidersByKind(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "oidc", Kind: "oidc"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta", Kind: "okta"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "okta2", Kind: "okta"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "azure", Kind: "azure"}))
-		assert.NilError(t, CreateProvider(db, &models.Provider{Name: "google", Kind: "google"}))
+		createProviders(t, db,
+			&models.Provider{Name: "oidc", Kind: "oidc"},
+			&models.Provider{Name: "okta", Kind: "okta"},
+			&models.Provider{Name: "okta2", Kind: "okta"},
+			&models.Provider{Name: "azure", Kind: "azure"},
+			&models.Provider{Name: "google", Kind: "google"},
+		)
 
 		actual, err := CountProvidersByKind(db)
 		assert.NilError(t, err)

@@ -1,0 +1,304 @@
+--- # Reserved subdomains. anything <= 5 characters requires approval.
+reject: # these are always rejected
+    - about
+    - api
+    - auth
+    - infra
+    - infrahq
+    - abuse
+    - admin
+    - api
+    - app
+    - beta
+    - blog
+    - cache
+    - chat
+    - connector
+    - data
+    - docs
+    - dns
+    - db
+    - demo
+    - dev
+    - devel
+    - download
+    - downloads
+    - email
+    - cloud
+    - dashboard
+    - events
+    - feed
+    - feeds
+    - file
+    - files
+    - feedback
+    - forum
+    - forums
+    - ftp
+    - get
+    - grants
+    - help
+    - host
+    - html
+    - icon
+    - icons
+    - image
+    - images
+    - img
+    - info
+    - ipv4
+    - legal
+    - links
+    - login
+    - mail
+    - media
+    - messages
+    - mx
+    - ns
+    - privacy
+    - proxy
+    - public
+    - search
+    - server
+    - signup
+    - smtp
+    - ssh
+    - stage
+    - staging
+    - start
+    - static
+    - stats
+    - status
+    - statuspage
+    - support
+    - system
+    - test
+    - testing
+    - team
+    - teams
+    - vpn
+    - web
+    - www
+
+requires-approval: # these require approval before they can be used. Anything len <= 5 is automatically on the requires-approval list
+    - access
+    - account
+    - accounts
+    - administrator
+    - administrators
+    - affiliate
+    - affiliates
+    - analytics
+    - archive
+    - assets
+    - autoconfig
+    - autodiscover
+    - backup
+    - backups
+    - bastion
+    - billing
+    - bookmark
+    - bookmarks
+    - business
+    - calendar
+    - careers
+    - citrix
+    - client
+    - clients
+    - comment
+    - comments
+    - communities
+    - community
+    - connect
+    - contact
+    - content
+    - contributors
+    - control
+    - copyright
+    - cpanel
+    - create
+    - cssproxy
+    - customize
+    - dbadmin
+    - delete
+    - design
+    - destroy
+    - devel
+    - develop
+    - developer
+    - developers
+    - development
+    - direct
+    - directory
+    - diversity
+    - domain
+    - domains
+    - drupal
+    - embedded
+    - english
+    - example
+    - exchange
+    - explore
+    - extranet
+    - facebook
+    - favorite
+    - favorites
+    - finance
+    - firewall
+    - friend
+    - friends
+    - gallery
+    - gateway
+    - general
+    - gmail
+    - groups
+    - guide
+    - guides
+    - hosting
+    - hostmaster
+    - intranet
+    - invite
+    - ipfixe
+    - iphone
+    - jabber
+    - knowledgebase
+    - ldap
+    - legacy
+    - library
+    - local
+    - localhost
+    - loghost
+    - loopback
+    - mailadmin
+    - mailer
+    - mailhost
+    - mailing
+    - mailman
+    - mailserver
+    - manage
+    - market
+    - marketing
+    - master
+    - member
+    - members
+    - mirror
+    - mobile
+    - monitor
+    - monitoring
+    - moodle
+    - network-ip
+    - newsletter
+    - office
+    - official
+    - oldmail
+    - online
+    - origin
+    - outlook
+    - partner
+    - partners
+    - payment
+    - payments
+    - photos
+    - phpmyadmin
+    - picture
+    - pictures
+    - policy
+    - pop
+    - pop3
+    - portal
+    - postmaster
+    - press
+    - preview
+    - private
+    - prod
+    - product
+    - production
+    - products
+    - profile
+    - project
+    - projects
+    - redirect
+    - register
+    - remote
+    - report
+    - reports
+    - research
+    - reviews
+    - root
+    - router
+    - sandbox
+    - secure
+    - service
+    - services
+    - setting
+    - settings
+    - sharepoint
+    - shop
+    - site
+    - sitebuilder
+    - sitemap
+    - social
+    - software
+    - speedtest
+    - sports
+    - statistics
+    - storage
+    - stream
+    - streaming
+    - student
+    - styles
+    - survey
+    - syndicated
+    - temp
+    - termsofservice
+    - thumbs
+    - ticket
+    - tickets
+    - tmp
+    - tracker
+    - tracking
+    - training
+    - travel
+    - update
+    - updates
+    - upgrade
+    - upgrades
+    - upload
+    - username
+    - usernames
+    - videos
+    - volunteer
+    - volunteers
+    - webconf
+    - webdisk
+    - webmail
+    - webmaster
+    - wordpress
+    # some Fortune 500 companies
+    - walmart # (Walmart)
+    - apple # (Apple)
+    - verizon # (Verizon)
+    - costco # (Costco)
+    - amazon # (Amazon)
+    - boeing # (Boeing)
+    - microsoft # (Microsoft)
+    - citigroup # (Citigroup)
+    - statefarm # (State Farm Insurance Cos.)
+    - google # (Alphabet)
+    - comcast # (Comcast)
+    - target # (Target)
+    - pepsico # (PepsiCo)
+    - disney # (Disney)
+    - pfizer # (Pfizer)
+    - bestbuy # (Best Buy)
+    - oracle # (Oracle)
+    - americanexpress # (American Express)
+    - mcdonalds # (McDonald’s)
+    - staples # (Staples)
+    - starbucks # (Starbucks)
+    - facebook # (Facebook)
+    - jcpenney # (J.C. Penney)
+    - mastercard # (MasterCard)
+    - paypal # (PayPal Holdings)
+    - netflix # (Netflix)
+    - salesforce # (salesforce)

@@ -3,19 +3,33 @@ package data
 import (
 	"crypto/sha256"
 	"crypto/subtle"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/ssoroka/slice"
-	"gorm.io/gorm"
-
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+type accessKeyTable models.AccessKey
+
+func (a accessKeyTable) Table() string {
+	return "access_keys"
+}
+
+func (a accessKeyTable) Columns() []string {
+	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "organization_id", "provider_id", "scopes", "secret_checksum", "updated_at"}
+}
+
+func (a accessKeyTable) Values() []any {
+	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.OrganizationID, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
+}
+
+func (a *accessKeyTable) ScanFields() []any {
+	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.OrganizationID, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
+}
 
 var (
 	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
@@ -76,66 +90,136 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
-	if err := add(db, accessKey); err != nil {
+	if err := insert(db, (*accessKeyTable)(accessKey)); err != nil {
 		return "", err
 	}
 
 	return fmt.Sprintf("%s.%s", accessKey.KeyID, accessKey.Secret), nil
 }
 
-func SaveAccessKey(db GormTxn, key *models.AccessKey) error {
+func UpdateAccessKey(tx WriteTxn, key *models.AccessKey) error {
 	if key.Secret != "" {
 		key.SecretChecksum = secretChecksum(key.Secret)
 	}
+	// TODO: we should perform the same validation as Create
 
-	return save(db, key)
+	return update(tx, (*accessKeyTable)(key))
 }
 
-func ListAccessKeys(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.AccessKey, error) {
-	return list[models.AccessKey](db, p, selectors...)
+type ListAccessKeyOptions struct {
+	IncludeExpired bool
+	ByIssuedForID  uid.ID
+	ByName         string
+	Pagination     *Pagination
 }
 
-func GetAccessKey(tx GormTxn, selectors ...SelectorFunc) (*models.AccessKey, error) {
-	db := tx.GormDB()
-	// GetAccessKey by keyID needs to not set an organization_id in the query.
-	// keyID should be globally unique.
-	for _, selector := range selectors {
-		db = selector(db)
+func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, error) {
+	table := &accessKeyTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	query.B(", identities.name")
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
 	}
-	result := new(models.AccessKey)
-	if err := db.Model(result).First(result).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
+	query.B("FROM access_keys INNER JOIN identities")
+	query.B("ON access_keys.issued_for = identities.id")
+	query.B("WHERE access_keys.deleted_at is null AND identities.deleted_at is null")
+	query.B("AND access_keys.organization_id = ?", tx.OrganizationID())
+
+	if !opts.IncludeExpired {
+		// TODO: can we remove the need to check for both the zero value and nil?
+		now, zero := time.Now(), time.Time{}
+		query.B("AND (expires_at > ? OR expires_at = ? OR expires_at is null)", now, zero)
+		query.B("AND (extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
+	}
+	if opts.ByIssuedForID != 0 {
+		query.B("AND issued_for = ?", opts.ByIssuedForID)
+	}
+	if opts.ByName != "" {
+		query.B("AND access_keys.name = ?", opts.ByName)
+	}
+	query.B("ORDER BY access_keys.name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
 		return nil, err
 	}
-	return result, nil
-}
+	defer rows.Close()
 
-func DeleteAccessKey(db GormTxn, id uid.ID) error {
-	return delete[models.AccessKey](db, id)
-}
+	var result []models.AccessKey
+	for rows.Next() {
+		var key models.AccessKey
 
-func DeleteAccessKeys(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := list[models.AccessKey](db, nil, selectors...)
-	if err != nil {
-		return err
+		fields := append((*accessKeyTable)(&key).ScanFields(), &key.IssuedForName)
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+		result = append(result, key)
 	}
-
-	ids := slice.Map[models.AccessKey, uid.ID](toDelete, func(k models.AccessKey) uid.ID {
-		return k.ID
-	})
-
-	return deleteAll[models.AccessKey](db, ByIDs(ids))
+	return result, rows.Err()
 }
 
-func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
+// GetAccessKey using the keyID. Note that the keyID is globally unique, so
+// this query is not scoped by an organization_id.
+func GetAccessKey(tx ReadTxn, keyID string) (*models.AccessKey, error) {
+	accessKey := &accessKeyTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(accessKey))
+	query.B("FROM")
+	query.B(accessKey.Table())
+	query.B("WHERE deleted_at is null")
+	query.B("AND key_id = ?", keyID)
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.AccessKey)(accessKey), nil
+}
+
+type DeleteAccessKeysOptions struct {
+	// ByID instructs DeleteAccessKeys to delete the key with this ID.
+	ByID uid.ID
+	// ByIssuedForID instructs DeleteAccessKeys to delete keys issued for this user.
+	ByIssuedForID uid.ID
+	// ByProviderID instructs DeleteAccessKeys to delete keys issued by this
+	// provider.
+	ByProviderID uid.ID
+}
+
+func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
+	query := querybuilder.New("UPDATE access_keys")
+	query.B("SET deleted_at = ? WHERE", time.Now())
+	switch {
+	case opts.ByID != 0:
+		query.B("id = ?", opts.ByID)
+	case opts.ByIssuedForID != 0:
+		query.B("issued_for = ?", opts.ByIssuedForID)
+	case opts.ByProviderID != 0:
+		query.B("provider_id = ?", opts.ByProviderID)
+	default:
+		return fmt.Errorf("DeleteAccessKeys requires an ID to delete")
+	}
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
+
+// TODO: move this to access package?
+func ValidateAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(tx, ByKeyID(keyID))
+	t, err := GetAccessKey(tx, keyID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
@@ -156,7 +240,7 @@ func ValidateAccessKey(tx GormTxn, authnKey string) (*models.AccessKey, error) {
 		}
 
 		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-		if err := SaveAccessKey(tx, t); err != nil {
+		if err := UpdateAccessKey(tx, t); err != nil {
 			return nil, err
 		}
 	}

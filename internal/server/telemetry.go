@@ -102,7 +102,7 @@ func (t *Telemetry) EnqueueHeartbeat() {
 func (t *Telemetry) RouteEvent(c *gin.Context, event string, properties ...map[string]interface{}) {
 	var uid string
 	if c != nil {
-		if u := access.AuthenticatedIdentity(c); u != nil {
+		if u := access.GetRequestContext(c).Authenticated.User; u != nil {
 			uid = u.ID.String()
 		}
 	}

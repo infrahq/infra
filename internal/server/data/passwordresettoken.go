@@ -41,7 +41,7 @@ retry:
 }
 
 func GetPasswordResetTokenByToken(db GormTxn, token string) (*models.PasswordResetToken, error) {
-	prts, err := list[models.PasswordResetToken](db, &models.Pagination{Limit: 1}, func(db *gorm.DB) *gorm.DB {
+	prts, err := list[models.PasswordResetToken](db, &Pagination{Limit: 1}, func(db *gorm.DB) *gorm.DB {
 		return db.Where("token = ?", token)
 	})
 	if err != nil {

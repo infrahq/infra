@@ -9,13 +9,13 @@ import (
 )
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	groups, err := access.ListGroups(c, r.Name, r.UserID, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(groups, models.PaginationToResponse(p), func(group models.Group) api.Group {
+	result := api.NewListResponse(groups, PaginationToResponse(p), func(group models.Group) api.Group {
 		return *group.ToAPI()
 	})
 
@@ -36,7 +36,7 @@ func (a *API) CreateGroup(c *gin.Context, r *api.CreateGroupRequest) (*api.Group
 		Name: r.Name,
 	}
 
-	authIdent := access.AuthenticatedIdentity(c)
+	authIdent := getRequestContext(c).Authenticated.User
 	if authIdent != nil {
 		group.CreatedBy = authIdent.ID
 	}

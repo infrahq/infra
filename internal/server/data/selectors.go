@@ -1,9 +1,6 @@
 package data
 
 import (
-	"strings"
-	"time"
-
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -81,60 +78,13 @@ func ByProviderID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByKeyID(key string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("key_id = ?", key)
-	}
-}
-
-func ByOptionalSubject(polymorphicID uid.PolymorphicID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if polymorphicID == "" {
-			return db
-		}
-
-		return db.Where("subject = ?", string(polymorphicID))
-	}
-}
-
-func BySubject(polymorphicID uid.PolymorphicID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("subject = ?", string(polymorphicID))
-	}
-}
-
-func ByOptionalIssuedFor(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if id == 0 {
-			return db
-		}
-
-		return db.Where("issued_for = ?", id)
-	}
-}
-
-func ByIssuedFor(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("issued_for = ?", id)
-	}
-}
-
 func ByIdentityID(identityID uid.ID) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("identity_id = ?", identityID)
 	}
 }
 
-func ByNotExpiredOrExtended() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		query := strings.Builder{}
-		query.WriteString("(expires_at > ? OR expires_at = ? OR expires_at is null) AND ")
-		query.WriteString("(extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)")
-		return db.Where(query.String(), time.Now().UTC(), time.Time{}, time.Now().UTC(), time.Time{})
-	}
-}
-
-func ByPagination(p models.Pagination) SelectorFunc {
+func ByPagination(p Pagination) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 
 		if p.Page == 0 && p.Limit == 0 {
@@ -178,12 +128,6 @@ func ByProviderKind(kind models.ProviderKind) SelectorFunc {
 func NotPrivilege(privilege string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("privilege = ?", privilege)
-	}
-}
-
-func NotInfraConnector() SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where(`NOT (privilege = 'connector' AND resource = 'infra')`)
 	}
 }
 

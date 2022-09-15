@@ -66,6 +66,7 @@ func migrations() []*migrator.Migration {
 		dropOrganizationNameIndex(),
 		sqlFunctionsMigration(),
 		setDefaultOrgID(),
+		addIdentityVerifiedFields(),
 		// next one here
 	}
 }
@@ -594,6 +595,22 @@ func setDefaultOrgID() *migrator.Migration {
 			}
 			return nil
 
+		},
+	}
+}
+
+func addIdentityVerifiedFields() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-01T15:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+ALTER TABLE identities
+	ADD COLUMN IF NOT EXISTS verified boolean NOT NULL DEFAULT false,
+	ADD COLUMN IF NOT EXISTS verification_token text NOT NULL DEFAULT substr(replace(translate(encode(decode(MD5(random()::text), 'hex'),'base64'),'/+','=='),'=',''), 1, 10);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_identities_verified ON identities (organization_id, verification_token) WHERE (deleted_at IS NULL);`
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }

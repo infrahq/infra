@@ -11,7 +11,6 @@ import (
 
 	"github.com/infrahq/secrets"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -606,57 +605,65 @@ func (s Server) loadConfig(config Config) error {
 	}
 
 	org := s.db.DefaultOrg
-	return s.db.Transaction(func(db *gorm.DB) error {
-		tx := data.NewTransaction(db, org.ID)
 
-		if config.DefaultOrganizationDomain != org.Domain {
-			org.Domain = config.DefaultOrganizationDomain
-			if err := data.UpdateOrganization(tx, org); err != nil {
-				return fmt.Errorf("update default org domain: %w", err)
-			}
+	tx, err := s.db.Begin(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			logging.L.Error().Err(err).Msg("failed to rollback database transaction")
 		}
+	}()
+	tx = tx.WithOrgID(org.ID)
 
-		// inject internal infra provider
-		config.Providers = append(config.Providers, Provider{
-			Name: models.InternalInfraProviderName,
-			Kind: models.ProviderKindInfra.String(),
-		})
-
-		config.Users = append(config.Users, User{
-			Name: models.InternalInfraConnectorIdentityName,
-		})
-
-		config.Grants = append(config.Grants, Grant{
-			User:     models.InternalInfraConnectorIdentityName,
-			Role:     models.InfraConnectorRole,
-			Resource: "infra",
-		})
-
-		if err := s.loadProviders(tx, config.Providers); err != nil {
-			return fmt.Errorf("load providers: %w", err)
+	if config.DefaultOrganizationDomain != org.Domain {
+		org.Domain = config.DefaultOrganizationDomain
+		if err := data.UpdateOrganization(tx, org); err != nil {
+			return fmt.Errorf("update default org domain: %w", err)
 		}
+	}
 
-		// extract users from grants and add them to users
-		for _, g := range config.Grants {
-			switch {
-			case g.User != "":
-				config.Users = append(config.Users, User{Name: g.User})
-			case g.Machine != "":
-				logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
-				config.Users = append(config.Users, User{Name: g.Machine})
-			}
-		}
-
-		if err := s.loadUsers(tx, config.Users); err != nil {
-			return fmt.Errorf("load users: %w", err)
-		}
-
-		if err := s.loadGrants(tx, config.Grants); err != nil {
-			return fmt.Errorf("load grants: %w", err)
-		}
-
-		return nil
+	// inject internal infra provider
+	config.Providers = append(config.Providers, Provider{
+		Name: models.InternalInfraProviderName,
+		Kind: models.ProviderKindInfra.String(),
 	})
+
+	config.Users = append(config.Users, User{
+		Name: models.InternalInfraConnectorIdentityName,
+	})
+
+	config.Grants = append(config.Grants, Grant{
+		User:     models.InternalInfraConnectorIdentityName,
+		Role:     models.InfraConnectorRole,
+		Resource: "infra",
+	})
+
+	if err := s.loadProviders(tx, config.Providers); err != nil {
+		return fmt.Errorf("load providers: %w", err)
+	}
+
+	// extract users from grants and add them to users
+	for _, g := range config.Grants {
+		switch {
+		case g.User != "":
+			config.Users = append(config.Users, User{Name: g.User})
+		case g.Machine != "":
+			logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
+			config.Users = append(config.Users, User{Name: g.Machine})
+		}
+	}
+
+	if err := s.loadUsers(tx, config.Users); err != nil {
+		return fmt.Errorf("load users: %w", err)
+	}
+
+	if err := s.loadGrants(tx, config.Grants); err != nil {
+		return fmt.Errorf("load grants: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {
@@ -766,7 +773,10 @@ func (s Server) loadGrants(db data.GormTxn, grants []Grant) error {
 	}
 
 	// remove any grant previously defined by config
-	if err := data.DeleteGrants(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteGrants(db, data.DeleteGrantsOptions{
+		NotIDs:      keep,
+		ByCreatedBy: models.CreatedBySystem,
+	}); err != nil {
 		return err
 	}
 
@@ -824,7 +834,11 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 		input.Role = models.BasePermissionConnect
 	}
 
-	grant, err := data.GetGrant(db, data.BySubject(id), data.ByResource(input.Resource), data.ByPrivilege(input.Role))
+	grant, err := data.GetGrant(db, data.GetGrantOptions{
+		BySubject:   id,
+		ByResource:  input.Resource,
+		ByPrivilege: input.Role,
+	})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -961,7 +975,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 		return fmt.Errorf("invalid access key format")
 	}
 
-	accessKey, err := data.GetAccessKey(db, data.ByKeyID(keyID))
+	accessKey, err := data.GetAccessKey(db, keyID)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err
@@ -992,7 +1006,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 
 	accessKey.Secret = secret
 
-	if err := data.SaveAccessKey(db, accessKey); err != nil {
+	if err := data.UpdateAccessKey(db, accessKey); err != nil {
 		return err
 	}
 

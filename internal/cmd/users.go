@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
+	humanfmt "github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
@@ -173,7 +174,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				for _, user := range users {
 					rows = append(rows, row{
 						Name:       user.Name,
-						LastSeenAt: HumanTime(user.LastSeenAt.Time(), "never"),
+						LastSeenAt: humanfmt.HumanTime(user.LastSeenAt.Time(), "never"),
 						Providers:  strings.Join(user.ProviderNames, ", "),
 					})
 				}

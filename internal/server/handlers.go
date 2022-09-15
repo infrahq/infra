@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -32,7 +33,7 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	rCtx := getRequestContext(c)
 
 	if rCtx.Authenticated.User != nil {
-		err := a.UpdateIdentityInfoFromProvider(c)
+		err := a.UpdateIdentityInfoFromProvider(rCtx)
 		if err != nil {
 			// this will fail if the user was removed from the IDP, which means they no longer are a valid user
 			return nil, fmt.Errorf("%w: failed to update identity info from provider: %s", internal.ErrUnauthorized, err)
@@ -49,8 +50,11 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 	return nil, fmt.Errorf("%w: no identity found in access key", internal.ErrUnauthorized)
 }
 
-type WellKnownJWKResponse struct {
-	Keys []jose.JSONWebKey `json:"keys"`
+var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
+	handler:                    wellKnownJWKsHandler,
+	omitFromDocs:               true,
+	omitFromTelemetry:          true,
+	infraVersionHeaderOptional: true,
 }
 
 func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
@@ -63,14 +67,18 @@ func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResp
 	return WellKnownJWKResponse{Keys: keys}, nil
 }
 
+type WellKnownJWKResponse struct {
+	Keys []jose.JSONWebKey `json:"keys"`
+}
+
 func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api.ListResponse[api.AccessKey], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	accessKeys, err := access.ListAccessKeys(c, r.UserID, r.Name, r.ShowExpired, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(accessKeys, models.PaginationToResponse(p), func(accessKey models.AccessKey) api.AccessKey {
+	result := api.NewListResponse(accessKeys, PaginationToResponse(p), func(accessKey models.AccessKey) api.AccessKey {
 		return *accessKey.ToAPI()
 	})
 
@@ -85,7 +93,6 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	accessKey := &models.AccessKey{
 		IssuedFor:         r.UserID,
 		Name:              r.Name,
-		ProviderID:        access.InfraProvider(c).ID,
 		ExpiresAt:         time.Now().UTC().Add(time.Duration(r.TTL)),
 		Extension:         time.Duration(r.ExtensionDeadline),
 		ExtensionDeadline: time.Now().UTC().Add(time.Duration(r.ExtensionDeadline)),
@@ -144,8 +151,10 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
 	a.t.Event("signup", identity.ID.String(), Properties{})
 
+	link := fmt.Sprintf("https://%s", suDetails.Org.Domain)
 	err = email.SendSignupEmail("", r.Name, email.SignupData{
-		Link: fmt.Sprintf("https://%s/login", r.Org.Subdomain),
+		Link:        link,
+		WrappedLink: wrapLinkWithVerification(link, suDetails.Org.Domain, identity.VerificationToken),
 	})
 	if err != nil {
 		// if email failed, continue on anyway.
@@ -158,15 +167,19 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	}, nil
 }
 
-func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
-	var loginMethod authn.LoginMethod
-	var name string
+func wrapLinkWithVerification(link, domain, verificationToken string) string {
+	link = base64.URLEncoding.EncodeToString([]byte(link))
+	return fmt.Sprintf("https://%s/link?vt=%s&r=%s", domain, verificationToken, link)
+}
 
+func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
+	rCtx := getRequestContext(c)
+
+	var loginMethod authn.LoginMethod
 	switch {
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
-		name = r.PasswordCredentials.Name
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
@@ -187,7 +200,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	// do the actual login now that we know the method selected
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
-	key, bearer, requiresUpdate, err := access.Login(c, loginMethod, expires, a.server.options.SessionExtensionDeadline)
+	result, err := authn.Login(rCtx.Request.Context(), rCtx.DBTxn, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
@@ -200,24 +213,28 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 	cookie := cookieConfig{
 		Name:    cookieAuthorizationName,
-		Value:   bearer,
+		Value:   result.Bearer,
 		Domain:  c.Request.Host,
-		Expires: key.ExpiresAt,
+		Expires: result.AccessKey.ExpiresAt,
 	}
 	setCookie(c, cookie)
 
-	if name == "" {
-		user, err := access.GetIdentity(c, key.IssuedFor)
-		if err == nil {
-			name = user.Name
-		}
-	}
-	a.t.User(key.IssuedFor.String(), name)
+	key := result.AccessKey
+	a.t.User(key.IssuedFor.String(), result.User.Name)
 	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
-
 	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
 
-	return &api.LoginResponse{UserID: key.IssuedFor, Name: key.IssuedForIdentity.Name, AccessKey: bearer, Expires: api.Time(key.ExpiresAt), PasswordUpdateRequired: requiresUpdate}, nil
+	// Update the request context so that logging middleware can include the userID
+	rCtx.Authenticated.User = result.User
+	c.Set(access.RequestContextKey, rCtx)
+
+	return &api.LoginResponse{
+		UserID:                 key.IssuedFor,
+		Name:                   key.IssuedForName,
+		AccessKey:              result.Bearer,
+		Expires:                api.Time(key.ExpiresAt),
+		PasswordUpdateRequired: result.CredentialUpdateRequired,
+	}, nil
 }
 
 func (a *API) Logout(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
@@ -235,18 +252,14 @@ func (a *API) Version(c *gin.Context, r *api.EmptyRequest) (*api.Version, error)
 }
 
 // UpdateIdentityInfoFromProvider calls the identity provider used to authenticate this user session to update their current information
-func (a *API) UpdateIdentityInfoFromProvider(c *gin.Context) error {
-	rCtx := getRequestContext(c)
-
-	if rCtx.Authenticated.AccessKey.ProviderID == access.InfraProvider(c).ID {
-		// no external verification needed
-		logging.L.Trace().Msg("skipped verifying identity within infra provider, not required")
-		return nil
-	}
-
+func (a *API) UpdateIdentityInfoFromProvider(rCtx access.RequestContext) error {
 	provider, redirectURL, err := access.GetContextProviderIdentity(rCtx)
 	if err != nil {
 		return err
+	}
+
+	if provider.Kind == models.ProviderKindInfra {
+		return nil
 	}
 
 	oidc, err := a.providerClient(rCtx.Request.Context(), provider, redirectURL)

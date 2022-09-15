@@ -23,13 +23,12 @@ jobs:
         with:
           go-version: "1.19"
           cache: true
-      - uses: golangci/golangci-lint-action@v3.2.0
-        with:
-          version: v1.48.0
-          args: --verbose
-          # setup-go already restores the build and module cache
-          skip-build-cache: true
-          skip-pkg-cache: true
+      # install from source, because we need to build our plugin with the exact
+      # same version of Go.
+      - name: install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.49.0
+      - name: run lint
+        run: make lint
 
   test:
     runs-on: ubuntu-latest
@@ -58,6 +57,10 @@ jobs:
         run: ~/go/bin/gotestsum -ftestname -- -race ./...
         env:
           POSTGRESQL_CONNECTION: "host=localhost port=5432 user=postgres dbname=postgres password=password123"
+
+      - name: go test querylinter
+        working-directory: ./internal/tools/querylinter
+        run: ~/go/bin/gotestsum -ftestname ./...
 
       - name: Check that tests leave a clean git checkout
         run: |

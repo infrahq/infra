@@ -2,28 +2,27 @@ package server
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
-	p := models.RequestToPagination(r.PaginationRequest)
+	p := PaginationFromRequest(r.PaginationRequest)
 	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, r.ShowSystem, &p)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(users, models.PaginationToResponse(p), func(identity models.Identity) api.User {
+	result := api.NewListResponse(users, PaginationToResponse(p), func(identity models.Identity) api.User {
 		return *identity.ToAPI()
 	})
 
@@ -32,7 +31,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 
 func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
 	if r.ID.IsSelf {
-		iden := access.AuthenticatedIdentity(c)
+		iden := access.GetRequestContext(c).Authenticated.User
 		if iden == nil {
 			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
 		}
@@ -49,10 +48,9 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 // CreateUser creates a user with the Infra provider
 func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 	user := &models.Identity{Name: r.Name}
-	infraProvider := access.InfraProvider(c)
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &models.Pagination{Limit: 2})
+	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &data.Pagination{Limit: 2})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
@@ -74,11 +72,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		Name: user.Name,
 	}
 
-	_, err = access.CreateProviderUser(c, infraProvider, user)
-	if err != nil {
-		return nil, fmt.Errorf("creating provider user: %w", err)
-	}
-
 	// Always create a temporary password for infra users.
 	tmpPassword, err := access.CreateCredential(c, *user)
 	if err != nil {
@@ -95,15 +88,14 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		currentUser := rCtx.Authenticated.User
 
 		// hack because we don't have names.
-		fromName := buildNameFromEmail(currentUser.Name)
-		toName := buildNameFromEmail(user.Name)
+		fromName := email.BuildNameFromEmail(currentUser.Name)
 
-		token, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
+		token, user, err := access.PasswordResetRequest(c, user.Name, 72*time.Hour)
 		if err != nil {
 			return nil, err
 		}
 
-		err = email.SendUserInvite(toName, user.Name, email.UserInviteData{
+		err = email.SendUserInviteEmail("", user.Name, email.UserInviteData{
 			FromUserName: fromName,
 			Link:         fmt.Sprintf("https://%s/accept-invite?token=%s", org.Domain, token),
 		})
@@ -117,12 +109,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	return resp, nil
 }
 
-func buildNameFromEmail(email string) (name string) {
-	return strings.Join(slice.Map[string, string](strings.Split(strings.Split(email, "@")[0], "."), func(s string) string {
-		return strings.ToUpper(s[0:1]) + s[1:]
-	}), " ")
-}
-
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
 	// right now this endpoint can only update a user's credentials, so get the user identity
 	identity, err := access.GetIdentity(c, r.ID)
@@ -134,10 +120,6 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 	if err != nil {
 		return nil, err
 	}
-
-	// if the user is an admin, we could be required to create the infra user, so create the provider_user if it's missing.
-	_, _ = access.CreateProviderUser(c, access.InfraProvider(c), identity)
-
 	return identity.ToAPI(), nil
 }
 

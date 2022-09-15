@@ -26,7 +26,7 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	return data.GetProvider(db, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *models.Pagination) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *data.Pagination) ([]models.Provider, error) {
 	db := getDB(c)
 
 	selectors := []data.SelectorFunc{
@@ -45,7 +45,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 	if err != nil {
 		return HandleAuthErr(err, "provider", "update", models.InfraAdminRole)
 	}
-	if InfraProvider(c).ID == provider.ID {
+	if data.InfraProvider(db).ID == provider.ID {
 		return fmt.Errorf("%w: the infra provider can not be modified", internal.ErrBadRequest)
 	}
 
@@ -57,15 +57,9 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 	if err != nil {
 		return HandleAuthErr(err, "provider", "delete", models.InfraAdminRole)
 	}
-	if InfraProvider(c).ID == id {
+	if data.InfraProvider(db).ID == id {
 		return fmt.Errorf("%w: the infra provider can not be deleted", internal.ErrBadRequest)
 	}
 
 	return data.DeleteProviders(db, data.ByID(id))
-}
-
-func InfraProvider(c *gin.Context) *models.Provider {
-	db := getDB(c)
-
-	return data.InfraProvider(db)
 }

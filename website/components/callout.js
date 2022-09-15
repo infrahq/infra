@@ -1,12 +1,12 @@
 import * as React from 'react'
 import {
-  ExclamationIcon,
+  ExclamationCircleIcon,
   InformationCircleIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline'
 
 const icons = {
-  warning: ExclamationIcon,
+  warning: ExclamationCircleIcon,
   info: InformationCircleIcon,
   success: CheckCircleIcon,
 }

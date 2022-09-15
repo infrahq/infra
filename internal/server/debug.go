@@ -6,14 +6,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func pprofHandler(c *gin.Context) {
+var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
+	handler:                    pprofHandler,
+	omitFromTelemetry:          true,
+	omitFromDocs:               true,
+	infraVersionHeaderOptional: true,
+}
+
+func pprofHandler(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
 	if _, err := access.RequireInfraRole(c, models.InfraSupportAdminRole); err != nil {
-		sendAPIError(c, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole))
-		return
+		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
 	}
 
 	switch c.Param("profile") {
@@ -25,4 +32,5 @@ func pprofHandler(c *gin.Context) {
 		// All other types of profiles are served from Index
 		http.StripPrefix("/api", http.HandlerFunc(pprof.Index)).ServeHTTP(c.Writer, c.Request)
 	}
+	return nil, nil
 }

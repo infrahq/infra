@@ -104,6 +104,10 @@ func (j *authenticator) getJWK() (*jose.JSONWebKey, error) {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, fmt.Errorf("unexpected response: %v ", res.Status)
+	}
+
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		return nil, err

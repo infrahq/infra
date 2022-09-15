@@ -29,11 +29,6 @@ import (
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_server")
-	if driver == nil {
-		lite, err := data.NewSQLiteDriver("file::memory:")
-		assert.NilError(t, err)
-		driver = &database.Driver{Dialector: lite}
-	}
 
 	tpatch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
@@ -103,15 +98,24 @@ func TestDBTimeout(t *testing.T) {
 			defer cancel()
 
 			c.Request = c.Request.WithContext(ctx)
+
+			tx, err := srv.db.Begin(c.Request.Context())
+			if err != nil {
+				sendAPIError(c, err)
+				return
+			}
+			defer func() {
+				_ = tx.Rollback()
+			}()
+
+			c.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
 			c.Next()
 		},
-		unauthenticatedMiddleware(srv),
 	)
 	router.GET("/", func(c *gin.Context) {
 		rCtx := getRequestContext(c)
-		db := rCtx.DBTxn
 		cancel()
-		_, err := db.Exec("select 1;")
+		_, err := rCtx.DBTxn.Exec("select 1;")
 		assert.Error(t, err, "context canceled")
 
 		c.Status(200)
@@ -344,7 +348,8 @@ func TestRequireAccessKey(t *testing.T) {
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Request = req
 
-			authned, err := requireAccessKey(c, db, srv)
+			tx := txnForTestCase(t, db)
+			authned, err := requireAccessKey(c, tx, srv)
 			tc.expected(t, authned, err)
 		})
 	}
@@ -381,8 +386,9 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		assert.NilError(t, err)
 
 		r := httptest.NewRequest("GET", "/api/grants", nil)
-		r.Header.Add("Infra-Destination", destination.UniqueID)
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", secret))
+		r.Header.Set("Infra-Version", apiVersionLatest)
+		r.Header.Set("Infra-Destination", destination.UniqueID)
+		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
 		w := httptest.NewRecorder()
 		routes.ServeHTTP(w, r)
 
@@ -418,9 +424,8 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 }
 
-func TestAuthenticatedMiddleware(t *testing.T) {
+func TestAuthenticateRequest(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
-	db := srv.DB()
 	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
@@ -431,24 +436,29 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 		Name:   "The Factory",
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
-	createOrgs(t, db, otherOrg, org)
-	db = data.NewTransaction(db.GormDB(), org.ID)
+	createOrgs(t, srv.db, otherOrg, org)
+
+	tx, err := srv.db.Begin(context.Background())
+	assert.NilError(t, err)
+	tx = tx.WithOrgID(org.ID)
 
 	user := &models.Identity{
 		Name:               "userone@example.com",
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
-	createIdentities(t, db, user)
+	createIdentities(t, tx, user)
 
 	token := &models.AccessKey{
 		IssuedFor:          user.ID,
-		ProviderID:         data.InfraProvider(db).ID,
+		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Second),
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
 
-	key, err := data.CreateAccessKey(db, token)
+	key, err := data.CreateAccessKey(tx, token)
 	assert.NilError(t, err)
+
+	assert.NilError(t, tx.Commit())
 
 	httpSrv := httptest.NewServer(routes)
 	t.Cleanup(httpSrv.Close)
@@ -541,10 +551,10 @@ func TestAuthenticatedMiddleware(t *testing.T) {
 	}
 }
 
-func TestUnauthenticatedMiddleware(t *testing.T) {
+func TestValidateRequestOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	srv.options.EnableSignup = true // multi-tenant environment
-	db := srv.DB()
+	srv.options.BaseDomain = "example.com"
 	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
@@ -555,31 +565,36 @@ func TestUnauthenticatedMiddleware(t *testing.T) {
 		Name:   "The Factory",
 		Domain: "the-factory-xyz8.infrahq.com",
 	}
-	createOrgs(t, db, otherOrg, org)
-	db = data.NewTransaction(db.GormDB(), org.ID)
+	createOrgs(t, srv.db, otherOrg, org)
+
+	tx, err := srv.db.Begin(context.Background())
+	assert.NilError(t, err)
+	tx = tx.WithOrgID(org.ID)
 
 	provider := &models.Provider{
 		Name:               "electric",
 		Kind:               models.ProviderKindGoogle,
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
-	assert.NilError(t, data.CreateProvider(db, provider))
+	assert.NilError(t, data.CreateProvider(tx, provider))
 
 	user := &models.Identity{
 		Name:               "userone@example.com",
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
-	createIdentities(t, db, user)
+	createIdentities(t, tx, user)
 
 	token := &models.AccessKey{
 		IssuedFor:          user.ID,
-		ProviderID:         data.InfraProvider(db).ID,
+		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Second),
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
 
-	key, err := data.CreateAccessKey(db, token)
+	key, err := data.CreateAccessKey(tx, token)
 	assert.NilError(t, err)
+
+	assert.NilError(t, tx.Commit())
 
 	httpSrv := httptest.NewServer(routes)
 	t.Cleanup(httpSrv.Close)

@@ -27,7 +27,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	// request password reset
-	token, err := PasswordResetRequest(c, "joe@example.com", 1*time.Minute)
+	token, _, err := PasswordResetRequest(c, "joe@example.com", 1*time.Minute)
 	assert.NilError(t, err)
 
 	// verify with token and set new password

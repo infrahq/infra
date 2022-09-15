@@ -2,14 +2,10 @@ package data
 
 import (
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
-	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/uid"
 )
 
 func TestInitializeSettings(t *testing.T) {
@@ -32,16 +28,6 @@ func TestInitializeSettings(t *testing.T) {
 		})
 	})
 }
-
-var cmpModel = cmp.Options{
-	cmp.FilterPath(opt.PathField(models.Model{}, "ID"), anyValidUID),
-	cmp.FilterPath(opt.PathField(models.Model{}, "CreatedAt"), opt.TimeWithThreshold(2*time.Second)),
-	cmp.FilterPath(opt.PathField(models.Model{}, "UpdatedAt"), opt.TimeWithThreshold(2*time.Second)),
-}
-
-var anyValidUID = cmp.Comparer(func(x, y uid.ID) bool {
-	return x > 0 && y > 0
-})
 
 func runStep(t *testing.T, name string, fn func(t *testing.T)) {
 	if !t.Run(name, fn) {

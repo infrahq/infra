@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
+	"gopkg.in/square/go-jose.v2"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/access"
@@ -76,11 +78,23 @@ func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 	return user
 }
 
-func loginAs(db data.GormTxn, user *models.Identity) *gin.Context {
+func loginAs(tx *data.Transaction, user *models.Identity) *gin.Context {
 	ctx, _ := gin.CreateTestContext(nil)
-	ctx.Set(access.RequestContextKey, access.RequestContext{DBTxn: db})
-	ctx.Set("identity", user)
+	ctx.Set(access.RequestContextKey, access.RequestContext{
+		DBTxn:         tx,
+		Authenticated: access.Authenticated{User: user},
+	})
 	return ctx
+}
+
+func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		assert.NilError(t, tx.Rollback())
+	})
+	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
 func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {
@@ -165,9 +179,39 @@ var cmpAPIUserJSON = gocmp.Options{
 func TestWellKnownJWKs(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant)
 	routes := srv.GenerateRoutes()
+	srv.options.EnableSignup = true
+
+	otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+	createOrgs(t, srv.db, otherOrg)
+
+	settings, err := data.GetSettings(srv.db)
+	assert.NilError(t, err)
+
+	var defaultKey jose.JSONWebKey
+	err = defaultKey.UnmarshalJSON(settings.PublicJWK)
+	assert.NilError(t, err)
+
+	otherOrgTx := txnForTestCase(t, srv.db).WithOrgID(otherOrg.ID)
+	settings, err = data.GetSettings(otherOrgTx)
+	assert.NilError(t, err)
+
+	var otherOrgKey jose.JSONWebKey
+	err = otherOrgKey.UnmarshalJSON(settings.PublicJWK)
+	assert.NilError(t, err)
+
+	connector := data.InfraConnectorIdentity(otherOrgTx)
+	accessKey, err := data.CreateAccessKey(otherOrgTx, &models.AccessKey{
+		IssuedFor:  connector.ID,
+		ExpiresAt:  time.Now().Add(20 * time.Second),
+		ProviderID: data.InfraProvider(otherOrgTx).ID,
+	})
+	assert.NilError(t, err)
+
+	assert.NilError(t, otherOrgTx.Commit())
 
 	type testCase struct {
 		name     string
+		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
@@ -175,6 +219,10 @@ func TestWellKnownJWKs(t *testing.T) {
 		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/.well-known/jwks.json", nil)
 		assert.NilError(t, err)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -184,7 +232,13 @@ func TestWellKnownJWKs(t *testing.T) {
 
 	testCases := []testCase{
 		{
-			name: "success",
+			name: "default org with signup disabled",
+			setup: func(t *testing.T, req *http.Request) {
+				srv.options.EnableSignup = false
+				t.Cleanup(func() {
+					srv.options.EnableSignup = true
+				})
+			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
 
@@ -204,8 +258,63 @@ func TestWellKnownJWKs(t *testing.T) {
 				assert.DeepEqual(t, body, expected, cmpWellKnownJWKsJSON)
 			},
 		},
-		// TODO(orgs): add test case with other org
-		// TODO(orgs): add test case with non-existent org
+		{
+			name: "default org",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var response WellKnownJWKResponse
+				assert.NilError(t, json.NewDecoder(resp.Body).Decode(&response))
+				assert.Equal(t, len(response.Keys), 1)
+
+				assert.NilError(t, err)
+				assert.DeepEqual(t, response.Keys[0], defaultKey)
+			},
+		},
+		{
+			name: "other org from access key",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var response WellKnownJWKResponse
+				assert.NilError(t, json.NewDecoder(resp.Body).Decode(&response))
+				assert.Equal(t, len(response.Keys), 1)
+
+				assert.NilError(t, err)
+				assert.DeepEqual(t, response.Keys[0], otherOrgKey)
+			},
+		},
+		{
+			name: "unknown org",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = "something.unknown.example.org"
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+			},
+		},
+		{
+			name: "org from domain name",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = "other.example.org"
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var response WellKnownJWKResponse
+				assert.NilError(t, json.NewDecoder(resp.Body).Decode(&response))
+				assert.Equal(t, len(response.Keys), 1)
+
+				assert.NilError(t, err)
+				assert.DeepEqual(t, response.Keys[0], otherOrgKey)
+			},
+		},
 	}
 
 	for _, tc := range testCases {

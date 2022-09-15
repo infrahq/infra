@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
@@ -44,7 +43,7 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 
 	// TODO: use GetDestination(ByUniqueID())
-	destinations, err := access.ListDestinations(c, uniqueID, "", &models.Pagination{Limit: 1})
+	destinations, err := access.ListDestinations(c, uniqueID, "", &data.Pagination{Limit: 1})
 	if err != nil {
 		return err
 	}
@@ -68,43 +67,36 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 	}
 }
 
-// authenticatedMiddleware is applied to all routes that require authentication.
-// It validates the access key, and updates the lastSeenAt of the user, and
-// possibly also of the destination.
-func authenticatedMiddleware(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(db *gorm.DB) {
-			tx := data.NewTransaction(db, 0)
-			authned, err := requireAccessKey(c, tx, srv)
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-
-			if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
-				logging.L.Warn().Err(err).Msg("org validation failed")
-				sendAPIError(c, internal.ErrBadRequest)
-				return
-			}
-
-			tx = data.NewTransaction(db, authned.Organization.ID)
-			rCtx := access.RequestContext{
-				Request:       c.Request,
-				DBTxn:         tx,
-				Authenticated: authned,
-			}
-			c.Set(access.RequestContextKey, rCtx)
-
-			// TODO: remove once everything uses RequestContext
-			c.Set("identity", authned.User)
-
-			if err := handleInfraDestinationHeader(c); err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			c.Next()
-		})
+// authenticateRequest is call for requests to routes that require authentication.
+// It validates the access key and organization, updates the lastSeenAt of the user,
+// and may also update the lastSeenAt of the destination if the appropriate header
+// is set.
+// authenticateRequest is also responsible for adding RequestContext to the
+// gin.Context.
+// See validateRequestOrganization for a related function used for unauthenticated
+// routes.
+func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) error {
+	authned, err := requireAccessKey(c, tx, srv)
+	if err != nil {
+		return err
 	}
+
+	if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
+		logging.L.Warn().Err(err).Msg("org validation failed")
+		return internal.ErrBadRequest
+	}
+
+	rCtx := access.RequestContext{
+		Request:       c.Request,
+		DBTxn:         tx.WithOrgID(authned.Organization.ID),
+		Authenticated: authned,
+	}
+	c.Set(access.RequestContextKey, rCtx)
+
+	if err := handleInfraDestinationHeader(c); err != nil {
+		return err
+	}
+	return nil
 }
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
@@ -132,70 +124,48 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 	}
 }
 
-func withDBTxn(ctx context.Context, db *gorm.DB, fn func(tx *gorm.DB)) {
-	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		fn(tx)
-		return nil
-	})
-	// TODO: https://github.com/infrahq/infra/issues/2697
+// validateRequestOrganization is the alternative to authenticateRequest used
+// for routes that don't require authentication. It checks for an optional
+// access key, and if one does not exist, finds the organizationID from the
+// hostname in the request.
+//
+// validateRequestOrganization is also responsible for adding RequestContext to the
+// gin.Context.
+func validateRequestOrganization(c *gin.Context, tx *data.Transaction, srv *Server) error {
+	// ignore errors, access key is not required
+	authned, _ := requireAccessKey(c, tx, srv)
+
+	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 	if err != nil {
-		logging.L.Error().Err(err).Msg("failed to commit database transaction")
+		logging.L.Warn().Err(err).Msg("org validation failed")
+		return internal.ErrBadRequest
 	}
-}
+	authned.Organization = org
 
-func unauthenticatedMiddleware(srv *Server) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		withDBTxn(c.Request.Context(), srv.DB().GormDB(), func(db *gorm.DB) {
-			tx := data.NewTransaction(db, 0)
-			// ignore errors, access key is not required
-			authned, _ := requireAccessKey(c, tx, srv)
+	// See this diagram for more details about this request flow
+	// when an org is not specified.
+	// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
 
-			org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
-			if err != nil {
-				logging.L.Warn().Err(err).Msg("org validation failed")
-				sendAPIError(c, internal.ErrBadRequest)
-				return
-			}
-			authned.Organization = org
-
-			// See this diagram for more details about this request flow
-			// when an org is not specified.
-			// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
-
-			// TODO: use an explicit setting for this, don't overload EnableSignup
-			if org == nil && !srv.options.EnableSignup { // is single tenant
-				org = srv.db.DefaultOrg
-			}
-			if org != nil {
-				authned.Organization = org
-				tx = data.NewTransaction(db, org.ID)
-			}
-
-			rCtx := access.RequestContext{
-				Request:       c.Request,
-				DBTxn:         tx,
-				Authenticated: authned,
-			}
-			c.Set(access.RequestContextKey, rCtx)
-			c.Next()
-		})
+	// TODO: use an explicit setting for this, don't overload EnableSignup
+	if org == nil && !srv.options.EnableSignup { // is single tenant
+		org = srv.db.DefaultOrg
 	}
-}
-
-func orgRequired() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rCtx := getRequestContext(c)
-
-		if rCtx.Authenticated.Organization == nil {
-			sendAPIError(c, internal.ErrBadRequest)
-			return
-		}
-		c.Next()
+	if org != nil {
+		authned.Organization = org
+		tx = tx.WithOrgID(authned.Organization.ID)
 	}
+
+	rCtx := access.RequestContext{
+		Request:       c.Request,
+		DBTxn:         tx,
+		Authenticated: authned,
+	}
+	c.Set(access.RequestContextKey, rCtx)
+	return nil
 }
 
 // requireAccessKey checks the bearer token is present and valid
-func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Authenticated, error) {
+func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access.Authenticated, error) {
 	var u access.Authenticated
 
 	bearer, err := reqBearerToken(c, srv.options)
@@ -225,8 +195,8 @@ func requireAccessKey(c *gin.Context, db data.GormTxn, srv *Server) (access.Auth
 
 	// now that the org is loaded scope all db calls to that org
 	// TODO: set the orgID explicitly in the options passed to GetIdentity to
-	// remove the need for this NewTransaction call.
-	db = data.NewTransaction(db.GormDB(), org.ID)
+	// remove the need for this WithOrgID.
+	db = db.WithOrgID(org.ID)
 
 	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
 	if err != nil {

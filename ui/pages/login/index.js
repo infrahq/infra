@@ -1,11 +1,11 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR, { useSWRConfig } from 'swr'
-import { useServerConfig } from '../../lib/serverconfig'
-
+import Cookies from 'universal-cookie'
 import Link from 'next/link'
 
 import { providers as providersList } from '../../lib/providers'
+import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
 
@@ -80,7 +80,8 @@ export default function Login() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const { isEmailConfigured } = useServerConfig()
+  const { baseDomain, isEmailConfigured } = useServerConfig()
+  const cookies = new Cookies()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -113,6 +114,17 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
+      let visitedOrgs = cookies.get('orgs') || []
+
+      if (!visitedOrgs.find(x => x.url === window.location.host)) {
+        visitedOrgs.push({
+          url: window.location.host,
+        })
+      }
+      cookies.set('orgs', visitedOrgs, {
+        path: '/',
+        domain: `.${baseDomain}`,
+      })
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')
@@ -125,8 +137,8 @@ export default function Login() {
     <>
       <h1 className='text-base font-bold leading-snug'>Login to Infra</h1>
       <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-        Welcome back. Login with your credentials{' '}
-        {providers?.length > 0 && 'or via your identity provider.'}
+        Welcome back. Login with your credentials
+        {providers?.length > 0 && ' or with your identity provider'}.
       </h2>
       {providers?.length > 0 && (
         <>
@@ -196,7 +208,7 @@ export default function Login() {
         </button>
         {isEmailConfigured && (
           <Link href='/password-reset'>
-            <a className='text-3xs text-violet-100 hover:border-violet-100'>
+            <a className='mt-3 text-3xs text-violet-100 hover:border-violet-100'>
               I forgot my password
             </a>
           </Link>

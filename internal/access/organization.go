@@ -10,7 +10,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func ListOrganizations(c *gin.Context, name string, pg *models.Pagination) ([]models.Organization, error) {
+func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
 	selectors := []data.SelectorFunc{}
 	if name != "" {
 		selectors = append(selectors, data.ByName(name))

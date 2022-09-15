@@ -5,11 +5,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -27,17 +31,6 @@ func TestAPI_Login(t *testing.T) {
 	p := data.InfraProvider(srv.DB())
 
 	_, err = data.CreateProviderUser(srv.DB(), p, user)
-	assert.NilError(t, err)
-
-	hash, err := bcrypt.GenerateFromPassword([]byte("hunter2"), bcrypt.MinCost)
-	assert.NilError(t, err)
-
-	userCredential := &models.Credential{
-		IdentityID:   user.ID,
-		PasswordHash: hash,
-	}
-
-	err = data.CreateCredential(srv.DB(), userCredential)
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -60,6 +53,22 @@ func TestAPI_Login(t *testing.T) {
 		{
 			name: "login with username and password",
 			setup: func(t *testing.T) api.LoginRequest {
+				hash, err := bcrypt.GenerateFromPassword([]byte("hunter2"), bcrypt.MinCost)
+				assert.NilError(t, err)
+
+				userCredential := &models.Credential{
+					IdentityID:   user.ID,
+					PasswordHash: hash,
+				}
+
+				err = data.CreateCredential(srv.DB(), userCredential)
+				assert.NilError(t, err)
+
+				t.Cleanup(func() {
+					err := data.DeleteCredential(srv.DB(), userCredential.ID)
+					assert.NilError(t, err)
+				})
+
 				return api.LoginRequest{
 					PasswordCredentials: &api.LoginRequestPasswordCredentials{
 						Name:     "steve",
@@ -74,18 +83,89 @@ func TestAPI_Login(t *testing.T) {
 				err = json.Unmarshal(resp.Body.Bytes(), loginResp)
 				assert.NilError(t, err)
 
-				assert.Assert(t, loginResp.AccessKey != "")
-				assert.Equal(t, len(resp.Result().Cookies()), 1)
+				expectedResp := &api.LoginResponse{
+					UserID:                 user.ID,
+					Name:                   "steve",
+					AccessKey:              "<any-string>",
+					PasswordUpdateRequired: false,
+					Expires:                api.Time(time.Now().UTC().Add(srv.options.SessionDuration)),
+				}
+				assert.DeepEqual(t, loginResp, expectedResp, cmpLoginResponse)
 
-				cookies := make(map[string]string)
-				for _, c := range resp.Result().Cookies() {
-					cookies[c.Name] = c.Value
+				expectedCookies := []*http.Cookie{
+					{
+						Name:     "auth",
+						Value:    loginResp.AccessKey, // make sure the cookie matches the response
+						Path:     "/",
+						Domain:   "example.com",
+						MaxAge:   600,
+						HttpOnly: true,
+						SameSite: http.SameSiteStrictMode,
+					},
+				}
+				actual := resp.Result().Cookies()
+				assert.DeepEqual(t, actual, expectedCookies, cmpSetCookies)
+			},
+		},
+		{
+			name: "login with temporary password",
+			setup: func(t *testing.T) api.LoginRequest {
+				tmpPassword, err := generate.CryptoRandom(12, generate.CharsetPassword)
+				assert.NilError(t, err)
+
+				pwHash, err := bcrypt.GenerateFromPassword([]byte(tmpPassword), bcrypt.DefaultCost)
+				assert.NilError(t, err)
+
+				userCredential := &models.Credential{
+					IdentityID:      user.ID,
+					PasswordHash:    pwHash,
+					OneTimePassword: true,
 				}
 
-				assert.Equal(t, cookies["auth"], loginResp.AccessKey) // make sure the cookie matches the response
-				assert.Equal(t, loginResp.UserID, user.ID)
-				assert.Equal(t, loginResp.Name, "steve")
-				assert.Equal(t, loginResp.PasswordUpdateRequired, false)
+				err = data.CreateCredential(srv.db, userCredential)
+				assert.NilError(t, err)
+
+				t.Cleanup(func() {
+					err := data.DeleteCredential(srv.DB(), userCredential.ID)
+					assert.NilError(t, err)
+				})
+
+				return api.LoginRequest{
+					PasswordCredentials: &api.LoginRequestPasswordCredentials{
+						Name:     "steve",
+						Password: tmpPassword,
+					},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, http.StatusCreated, resp.Code, resp.Body.String())
+
+				loginResp := &api.LoginResponse{}
+				err = json.Unmarshal(resp.Body.Bytes(), loginResp)
+				assert.NilError(t, err)
+
+				expectedResp := &api.LoginResponse{
+					UserID:                 user.ID,
+					Name:                   "steve",
+					AccessKey:              "<any-string>",
+					PasswordUpdateRequired: true,
+					Expires:                api.Time(time.Now().UTC().Add(srv.options.SessionDuration)),
+				}
+				assert.DeepEqual(t, loginResp, expectedResp, cmpLoginResponse)
+
+				expectedCookies := []*http.Cookie{
+					{
+						Name:     "auth",
+						Value:    loginResp.AccessKey,
+						Path:     "/",
+						Domain:   "example.com",
+						MaxAge:   600,
+						HttpOnly: true,
+						SameSite: http.SameSiteStrictMode,
+					},
+				}
+				actual := resp.Result().Cookies()
+				assert.DeepEqual(t, actual, expectedCookies, cmpSetCookies)
 			},
 		},
 		{
@@ -197,4 +277,36 @@ func TestAPI_Login(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+var cmpSetCookies = cmp.Options{
+	cmp.FilterPath(opt.PathField(http.Cookie{}, "MaxAge"), cmpApproximateInt),
+	cmp.FilterPath(opt.PathField(http.Cookie{}, "Raw"), cmp.Ignore()),
+}
+
+// cmpApproximateInt returns true if the two ints are different by less than 5.
+// Most likely only useful when an int is used to measure duration in
+// seconds.
+var cmpApproximateInt = cmp.Comparer(func(x, y int) bool {
+	if y > x {
+		x, y = y, x
+	}
+	return y-x < 5
+})
+
+var cmpLoginResponse = cmp.Options{
+	cmp.FilterPath(opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
+	cmp.FilterPath(opt.PathField(api.LoginResponse{}, "Expires"),
+		cmpApiTimeWithThreshold(10*time.Second)),
+}
+
+func cmpApiTimeWithThreshold(threshold time.Duration) cmp.Option {
+	return cmp.Comparer(func(xa, ya api.Time) bool {
+		x, y := time.Time(xa), time.Time(ya)
+		if x.IsZero() || y.IsZero() {
+			return false
+		}
+		delta := x.Sub(y)
+		return delta <= threshold && delta >= -threshold
+	})
 }

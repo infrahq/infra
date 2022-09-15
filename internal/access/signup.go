@@ -22,8 +22,8 @@ type SignupDetails struct {
 // Signup creates a user identity using the supplied name and password and
 // grants the identity "admin" access to Infra.
 func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details SignupDetails) (*models.Identity, string, error) {
-	// no authorization is setup yet
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
 
 	details.Org.Domain = SanitizedDomain(details.SubDomain, baseDomain)
 
@@ -31,10 +31,9 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
 
-	db = data.NewTransaction(db.GormDB(), details.Org.ID)
-	c.Set("db", db)
-	rCtx := GetRequestContext(c)
+	db = db.WithOrgID(details.Org.ID)
 	rCtx.DBTxn = db
+	rCtx.Authenticated.Organization = details.Org
 	c.Set(RequestContextKey, rCtx)
 
 	identity := &models.Identity{
@@ -50,7 +49,7 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("hash password on sign-up: %w", err)
 	}
 
-	_, err = CreateProviderUser(c, InfraProvider(c), identity)
+	_, err = data.CreateProviderUser(db, data.InfraProvider(db), identity)
 	if err != nil {
 		return nil, "", fmt.Errorf("create provider user on sign-up: %w", err)
 	}
@@ -76,16 +75,20 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 
 	// grant the user a session on initial sign-up
 	accessKey := &models.AccessKey{
-		IssuedFor:         identity.ID,
-		IssuedForIdentity: identity,
-		ProviderID:        data.InfraProvider(db).ID,
-		ExpiresAt:         keyExpiresAt,
+		IssuedFor:     identity.ID,
+		IssuedForName: identity.Name,
+		ProviderID:    data.InfraProvider(db).ID,
+		ExpiresAt:     keyExpiresAt,
 	}
 
 	bearer, err := data.CreateAccessKey(db, accessKey)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create access key after sign-up: %w", err)
 	}
+
+	// Update the request context so that logging middleware can include the userID
+	rCtx.Authenticated.User = identity
+	c.Set(RequestContextKey, rCtx)
 
 	return identity, bearer, nil
 }

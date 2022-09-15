@@ -68,10 +68,10 @@ describe('Login Component', () => {
     render(<Login />)
 
     expect(
-      screen.queryByText('Welcome back. Login with your credentials')
+      screen.queryByText('Welcome back. Login with your credentials.')
     ).toBeInTheDocument()
     expect(
-      screen.queryByText('or via your identity provider.')
+      screen.queryByText('or with your identity provider.')
     ).not.toBeInTheDocument()
   })
 
@@ -82,7 +82,7 @@ describe('Login Component', () => {
 
     expect(
       screen.getByText(
-        'Welcome back. Login with your credentials or via your identity provider.'
+        'Welcome back. Login with your credentials or with your identity provider.'
       )
     ).toBeInTheDocument()
   })

@@ -36,7 +36,6 @@ func TestResendAuthCookie(t *testing.T) {
 	c.Request = req
 	rCtx := access.RequestContext{
 		Request: c.Request,
-		DBTxn:   nil,
 		Authenticated: access.Authenticated{
 			AccessKey: &models.AccessKey{
 				ExpiresAt: time.Now().Add(5 * time.Minute),

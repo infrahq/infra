@@ -34,7 +34,7 @@ func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination,
 	return get[models.Destination](db, selectors...)
 }
 
-func ListDestinations(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
+func ListDestinations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
 	return list[models.Destination](db, p, selectors...)
 }
 
@@ -62,13 +62,32 @@ type destinationsCount struct {
 	Count     float64
 }
 
-func CountDestinationsByConnectedVersion(tx GormTxn) ([]destinationsCount, error) {
-	db := tx.GormDB()
-	var results []destinationsCount
+func CountDestinationsByConnectedVersion(tx ReadTxn) ([]destinationsCount, error) {
 	timeout := time.Now().Add(-5 * time.Minute)
-	if err := db.Raw("SELECT *, COUNT(*) AS count FROM (SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected FROM destinations WHERE deleted_at IS NULL) AS d GROUP BY version, connected", timeout).Scan(&results).Error; err != nil {
+
+	stmt := `
+		SELECT *, COUNT(*) AS count
+		FROM (
+			SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected
+			FROM destinations
+			WHERE deleted_at IS NULL
+		) AS d
+		GROUP BY version, connected`
+	rows, err := tx.Query(stmt, timeout)
+	if err != nil {
 		return nil, err
+
+	}
+	defer rows.Close()
+
+	var result []destinationsCount
+	for rows.Next() {
+		var item destinationsCount
+		if err := rows.Scan(&item.Version, &item.Connected, &item.Count); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
 	}
 
-	return results, nil
+	return result, rows.Err()
 }

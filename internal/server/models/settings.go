@@ -8,7 +8,7 @@ type Settings struct {
 	Model
 	OrganizationMember
 
-	PrivateJWK EncryptedAtRestBytes
+	PrivateJWK EncryptedAtRest
 	PublicJWK  []byte
 
 	LowercaseMin int `gorm:"default:0"`

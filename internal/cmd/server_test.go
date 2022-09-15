@@ -15,6 +15,7 @@ import (
 
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/testing/database"
 )
 
 func TestServerCmd_LoadOptions(t *testing.T) {
@@ -123,10 +124,10 @@ version: 0.2
 tlsCache: /cache/dir
 enableTelemetry: false # default is true
 enableSignup: false    # default is true
+enableLogSampling: false # default is true
 sessionDuration: 3m
 sessionExtensionDeadline: 1m
 
-dbFile: /db/file
 dbEncryptionKey: /this-is-the-path
 dbEncryptionKeyProvider: the-provider
 dbHost: the-host
@@ -199,7 +200,6 @@ users:
 
 					DBEncryptionKey:         "/this-is-the-path",
 					DBEncryptionKeyProvider: "the-provider",
-					DBFile:                  "/db/file",
 					DBHost:                  "the-host",
 					DBPort:                  5432,
 					DBParameters:            "sslmode=require",
@@ -285,7 +285,6 @@ users:
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				cmd.SetArgs([]string{
 					"--db-name", "database-name",
-					"--db-file", "/home/user/database-filename",
 					"--db-port", "12345",
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
@@ -297,13 +296,13 @@ users:
 			expected: func(t *testing.T) server.Options {
 				expected := defaultServerOptions(filepath.Join(dir, ".infra"))
 				expected.DBName = "database-name"
-				expected.DBFile = "/home/user/database-filename"
 				expected.DBHost = "thehostname"
 				expected.DBPort = 12345
 				expected.EnableTelemetry = false
 				expected.SessionDuration = 3 * time.Minute
 				expected.SessionExtensionDeadline = 1 * time.Minute
 				expected.EnableSignup = false
+				expected.BaseDomain = ""
 				return expected
 			},
 		},
@@ -317,9 +316,11 @@ users:
 }
 
 func TestServerCmd_WithSecretsConfig(t *testing.T) {
+	pgDriver := database.PostgresDriver(t, "cmd_server")
 	patchRunServer(t, noServerRun)
 
 	content := `
+      dbConnectionString: ` + pgDriver.DSN + `
       addr:
         http: "127.0.0.1:0"
         https: "127.0.0.1:0"

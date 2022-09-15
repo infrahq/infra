@@ -225,8 +225,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu.Groups = []string{"existing3"}
-				err = db.GormDB().Save(pu).Error
-				assert.NilError(t, err)
+				assert.NilError(t, data.UpdateProviderUser(db, pu))
 
 				return &mockOIDCImplementation{
 					UserEmailResp:  "eugwnw@example.com",

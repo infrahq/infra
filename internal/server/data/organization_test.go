@@ -2,16 +2,12 @@ package data
 
 import (
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
 )
-
-// PostgreSQL only has microsecond precision
-var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
 func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -50,10 +46,15 @@ func TestCreateOrganization(t *testing.T) {
 			OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 			Name:               models.InternalInfraConnectorIdentityName,
 			CreatedBy:          models.CreatedBySystem,
+			VerificationToken:  "abcde12345",
 		}
-		assert.DeepEqual(t, connector, expectedConnector)
+		assert.DeepEqual(t, connector, expectedConnector, anyValidToken)
 
-		connectorGrant, err := GetGrant(tx, BySubject(connector.PolyID()), ByPrivilege(models.InfraConnectorRole), ByResource("infra"))
+		connectorGrant, err := GetGrant(tx, GetGrantOptions{
+			BySubject:   connector.PolyID(),
+			ByPrivilege: models.InfraConnectorRole,
+			ByResource:  "infra",
+		})
 		assert.NilError(t, err)
 		expectedConnectorGrant := &models.Grant{
 			Model:              connectorGrant.Model,
@@ -66,3 +67,16 @@ func TestCreateOrganization(t *testing.T) {
 		assert.DeepEqual(t, connectorGrant, expectedConnectorGrant)
 	})
 }
+
+var anyValidToken = cmp.Comparer(func(a, b string) bool {
+	if a == b {
+		return true
+	}
+	if len(a) > 0 && b == "abcde12345" {
+		return true
+	}
+	if len(b) > 0 && a == "abcde12345" {
+		return true
+	}
+	return false
+})

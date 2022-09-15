@@ -95,13 +95,13 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	_, err = data.GetIdentity(db, data.ByID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	_, err = data.GetAccessKey(db, data.ByKeyID(keyID))
+	_, err = data.GetAccessKey(db, keyID)
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
 	_, err = data.GetCredential(db, data.ByIdentityID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	grants, err := data.ListGrants(db, nil, data.BySubject(identity.PolyID()))
+	grants, err := data.ListGrants(db, data.ListGrantsOptions{BySubject: identity.PolyID()})
 	assert.NilError(t, err)
 	assert.Equal(t, len(grants), 0)
 

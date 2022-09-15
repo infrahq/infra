@@ -33,7 +33,7 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	return data.GetDestination(db, data.ByID(id))
 }
 
-func ListDestinations(c *gin.Context, uniqueID, name string, p *models.Pagination) ([]models.Destination, error) {
+func ListDestinations(c *gin.Context, uniqueID, name string, p *data.Pagination) ([]models.Destination, error) {
 	db := getDB(c)
 	return data.ListDestinations(db, p, data.ByOptionalUniqueID(uniqueID),
 		data.ByOptionalName(name))

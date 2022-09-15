@@ -51,6 +51,7 @@ func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db data.GormTx
 	if userCredential.OneTimePassword {
 		// scope the login down to Password Reset Only
 		authnIdentity.AuthScope.PasswordResetOnly = true
+		authnIdentity.CredentialUpdateRequired = true
 	}
 
 	// authentication was a success
@@ -59,18 +60,4 @@ func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db data.GormTx
 
 func (a *passwordCredentialAuthn) Name() string {
 	return "credentials"
-}
-
-func (a *passwordCredentialAuthn) RequiresUpdate(db data.GormTxn) (bool, error) {
-	identity, err := data.GetIdentity(db, data.ByName(a.Username))
-	if err != nil {
-		return false, fmt.Errorf("could not get identity for username: %w", err)
-	}
-
-	cred, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
-	if err != nil {
-		return false, fmt.Errorf("could not get credential for username: %w", err)
-	}
-
-	return cred.OneTimePassword, nil
 }

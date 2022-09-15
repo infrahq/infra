@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/infrahq/infra/api"
+	humanfmt "github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -87,7 +88,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 						Name:     d.Name,
 						URL:      d.Connection.URL,
 						Status:   status,
-						LastSeen: HumanTime(d.LastSeen.Time(), "never"),
+						LastSeen: humanfmt.HumanTime(d.LastSeen.Time(), "never"),
 					})
 				}
 				if len(rows) > 0 {

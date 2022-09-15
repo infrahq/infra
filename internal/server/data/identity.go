@@ -7,12 +7,12 @@ import (
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
-	db := tx.GormDB()
 	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
@@ -24,14 +24,15 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 
 	pu.Groups = newGroups
 	pu.LastUpdate = time.Now().UTC()
-	if err := save(tx, pu); err != nil {
+	if err := UpdateProviderUser(tx, pu); err != nil {
 		return fmt.Errorf("save: %w", err)
 	}
 
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
-		err = db.Exec("delete from identities_groups where identity_id = ? and group_id in (select id from groups where name in (?))", user.ID, groupsToBeRemoved).Error
-		if err != nil {
+		stmt := `DELETE FROM identities_groups WHERE identity_id = ? AND group_id in (
+		   SELECT id FROM groups WHERE name IN (?))`
+		if _, err := tx.Exec(stmt, user.ID, groupsToBeRemoved); err != nil {
 			return err
 		}
 		for _, name := range groupsToBeRemoved {
@@ -44,13 +45,27 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 		}
 	}
 
-	var addIDs []struct {
+	type idNamePair struct {
 		ID   uid.ID
 		Name string
 	}
-	err = db.Table("groups").Select("id, name").Where("name in (?)", groupsToBeAdded).Scan(&addIDs).Error
+	var addIDs []idNamePair
+
+	stmt := `SELECT id, name FROM groups WHERE name IN (?)`
+	rows, err := tx.Query(stmt, groupsToBeAdded)
 	if err != nil {
-		return fmt.Errorf("group ids: %w", err)
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var item idNamePair
+		if err := rows.Scan(&item.ID, &item.Name); err != nil {
+			return err
+		}
+		addIDs = append(addIDs, item)
+	}
+	if rows.Err() != nil {
+		return err
 	}
 
 	for _, name := range groupsToBeAdded {
@@ -77,13 +92,26 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 		}
 
 		var ids []uid.ID
-		if err := db.Raw("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID).Scan(&ids).Error; err != nil {
-			return fmt.Errorf("select: %w", handleError(err))
+		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID)
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var item uid.ID
+			if err := rows.Scan(&item); err != nil {
+				rows.Close()
+				return err
+			}
+			ids = append(ids, item)
+		}
+		if rows.Err() != nil {
+			return err
 		}
 
 		if len(ids) == 0 {
 			// add user to group
-			err = db.Exec("insert into identities_groups (identity_id, group_id) values (?, ?)", user.ID, groupID).Error
+			_, err = tx.Exec("INSERT INTO identities_groups (identity_id, group_id) VALUES (?, ?)", user.ID, groupID)
 			if err != nil {
 				return fmt.Errorf("insert: %w", handleError(err))
 			}
@@ -103,7 +131,19 @@ func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error
 	return get[models.Identity](db, selectors...)
 }
 
-func ListIdentities(db GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
+func SetIdentityVerified(db GormTxn, token string) error {
+	q := querybuilder.New(`UPDATE identities SET verified = true`)
+	q.B("WHERE verified = ? AND verification_token = ? AND organization_id = ?", false, token, db.OrganizationID())
+
+	_, err := db.Exec(q.String(), q.Args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ListIdentities(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
 	return list[models.Identity](db, p, selectors...)
 }
 
@@ -125,7 +165,7 @@ func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
 	for _, i := range toDelete {
 		ids = append(ids, i.ID)
 
-		err := DeleteGrants(tx, BySubject(i.PolyID()))
+		err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: i.PolyID()})
 		if err != nil {
 			return err
 		}

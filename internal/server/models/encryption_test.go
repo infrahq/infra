@@ -8,6 +8,7 @@ import (
 
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
@@ -20,7 +21,7 @@ type StructForTesting struct {
 func (s StructForTesting) Schema() string {
 	return `
 CREATE TABLE struct_for_testings (
-	id integer PRIMARY KEY,
+	id bigint PRIMARY KEY,
 	a_secret text
 );`
 }
@@ -28,10 +29,8 @@ CREATE TABLE struct_for_testings (
 func TestEncryptedAtRest(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
-	driver, err := data.NewSQLiteDriver("file::memory:")
-	assert.NilError(t, err)
-
-	db, err := data.NewDB(driver, nil)
+	pg := database.PostgresDriver(t, "_models")
+	db, err := data.NewDB(pg.Dialector, nil)
 	assert.NilError(t, err)
 
 	_, err = db.Exec(StructForTesting{}.Schema())
@@ -61,4 +60,34 @@ func TestEncryptedAtRest(t *testing.T) {
 	assert.NilError(t, err)
 
 	assert.Equal(t, "don't tell", string(m2.ASecret))
+}
+
+func TestEncryptedAtRest_WithBytes(t *testing.T) {
+	patch.ModelsSymmetricKey(t)
+
+	pg := database.PostgresDriver(t, "_models")
+	db, err := data.NewDB(pg.Dialector, nil)
+	assert.NilError(t, err)
+
+	settings, err := data.GetSettings(db)
+	assert.NilError(t, err)
+
+	t.Run("Scan", func(t *testing.T) {
+		var newEncrypted models.EncryptedAtRest
+		err := db.QueryRow(`SELECT private_jwk FROM settings WHERE id = ?`, settings.ID).Scan(&newEncrypted)
+		assert.NilError(t, err)
+
+		assert.Equal(t, string(settings.PrivateJWK), string(newEncrypted))
+	})
+	t.Run("Value", func(t *testing.T) {
+		newEncrypted := settings.PrivateJWK
+
+		_, err := db.Exec(`UPDATE settings SET private_jwk = ? WHERE id = ?`, newEncrypted, settings.ID)
+		assert.NilError(t, err)
+
+		updated, err := data.GetSettings(db)
+		assert.NilError(t, err)
+
+		assert.Equal(t, string(updated.PrivateJWK), string(settings.PrivateJWK))
+	})
 }

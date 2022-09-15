@@ -66,7 +66,7 @@ func addRequestRewrite[oldReq any, newReq any](api *API, method, path, version s
 
 			oldReqObj := new(oldReq)
 
-			err = bind(c, oldReqObj)
+			err = readRequest(c, oldReqObj)
 			if err != nil {
 				sendAPIError(c, err)
 				return
@@ -231,18 +231,18 @@ func (m *apiMigration) RedirectHandler() gin.HandlerFunc {
 
 type HTTPMethodBindFunc func(relativePath string, handlers ...gin.HandlerFunc) gin.IRoutes
 
-func bindRoute(a *API, r *gin.RouterGroup, method, path string, handler gin.HandlerFunc) {
+func bindRoute(a *API, r *gin.RouterGroup, routeID routeIdentifier, handler gin.HandlerFunc) {
 	// build up the handlers into a map of all the paths we need to bind into.
 	routes := map[string][]gin.HandlerFunc{}
 	// set the default path
-	routes[path] = []gin.HandlerFunc{handler}
+	routes[routeID.path] = []gin.HandlerFunc{handler}
 
 	// we're going to build this list in referse order, prepending middleware.
 	// we start with the current migration and prepend versions backwards,
 	// 0.1.3, then 0.1.2, then 0.1.1.
 	sort.Slice(a.migrations, sortVersionDescendingOrder(a.migrations))
 	for _, migration := range a.migrations {
-		if strings.ToUpper(migration.method) != method {
+		if strings.ToUpper(migration.method) != routeID.method {
 			continue
 		}
 
@@ -274,7 +274,7 @@ func bindRoute(a *API, r *gin.RouterGroup, method, path string, handler gin.Hand
 
 	// now bind all relevant paths with Gin
 	for path, handlers := range routes {
-		r.Handle(method, path, handlers...)
+		r.Handle(routeID.method, path, handlers...)
 	}
 }
 

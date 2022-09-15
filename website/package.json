@@ -12,10 +12,10 @@
     "postbuild": "next-sitemap"
   },
   "dependencies": {
-    "@headlessui/react": "^1.6.6",
-    "@heroicons/react": "^2.0.0",
-    "@markdoc/markdoc": "^0.1.4",
-    "@react-spring/web": "^9.5.2",
+    "@headlessui/react": "^1.7.0",
+    "@heroicons/react": "^2.0.10",
+    "@markdoc/markdoc": "^0.1.7",
+    "@react-spring/web": "^9.5.3",
     "@segment/snippet": "^4.15.3",
     "copy-to-clipboard": "^3.3.2",
     "image-size": "^1.0.2",
@@ -26,15 +26,15 @@
     "react-dom": "18.2.0",
     "react-google-recaptcha": "^2.1.0",
     "dayjs": "^1.11.5",
-    "sharp": "^0.30.7"
+    "sharp": "^0.31.0"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.2",
+    "@tailwindcss/typography": "^0.5.7",
     "autoprefixer": "^10.4.8",
-    "eslint": "^8.18.0",
-    "eslint-config-next": "^12.1.6",
+    "eslint": "^8.23.1",
+    "eslint-config-next": "^12.3.0",
     "eslint-config-prettier": "^8.5.0",
-    "next-sitemap": "^3.1.21",
+    "next-sitemap": "^3.1.22",
     "postcss": "^8.4.12",
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",

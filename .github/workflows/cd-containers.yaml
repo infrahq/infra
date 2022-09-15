@@ -25,7 +25,11 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     outputs:
       components: ${{ steps.components.outputs.components }}
+      release-name: ${{ steps.release-name.outputs.release-name }}
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - id: components
         run: |
           COMPONENT_NAME=$(echo ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name || inputs.component-name }} | awk '{ print $NF }')
@@ -36,6 +40,10 @@ jobs:
           esac
 
           echo "::set-output name=components::$COMPONENTS"
+      - id: release-name
+        run: |
+          RELEASE_NAME=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '$(git describe --tags)' }}
+          echo "::set-output name=release-name::${RELEASE_NAME#v}"
 
   build:
     runs-on: ubuntu-latest
@@ -68,6 +76,9 @@ jobs:
           context: ${{ env.CONTEXT }}
           push: true
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            BUILDVERSION=${{ needs.prepare.outputs.release-name }}
+            TELEMETRY_WRITE_KEY=${{ secrets.TELEMETRY_WRITE_KEY }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=registry,ref=${{ env.IMAGE }}:edge

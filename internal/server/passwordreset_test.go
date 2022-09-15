@@ -2,9 +2,11 @@ package server
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"gotest.tools/v3/assert"
@@ -64,7 +66,11 @@ func TestPasswordResetFlow(t *testing.T) {
 	resetData, ok := email.TestDataSent[0].(email.PasswordResetData)
 	assert.Assert(t, ok)
 	// TODO: fix test so that we can verify the domain; default org has blank domain
-	assert.Equal(t, resetData.Link, "https:///password-reset?token="+token)
+	u, err := url.Parse(resetData.Link)
+	assert.NilError(t, err)
+	link, err := base64.URLEncoding.DecodeString(u.Query().Get("r"))
+	assert.NilError(t, err)
+	assert.Equal(t, string(link), "https:///password-reset?token="+token)
 
 	// reset the password with the token
 	body, err = json.Marshal(&api.VerifiedResetPasswordRequest{

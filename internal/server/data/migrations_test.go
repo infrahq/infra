@@ -22,6 +22,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/data/schema"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
@@ -559,6 +560,32 @@ DELETE FROM settings WHERE id=24567;
 				assert.DeepEqual(t, s, expectedSettings)
 			},
 		},
+		{
+			label: testCaseLine("2022-09-01T15:00"),
+			setup: func(t *testing.T, db WriteTxn) {
+				var originalOrgID uid.ID
+				err := db.QueryRow(`SELECT id from organizations where name='Default'`).Scan(&originalOrgID)
+				assert.NilError(t, err)
+
+				stmt := ` INSERT INTO identities(id, name, organization_id) VALUES (12345, 'migration1@example.com', ?)`
+				_, err = db.Exec(stmt, originalOrgID)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db WriteTxn) {
+				stmt := `SELECT verification_token, verified FROM identities where id = ?`
+				user := &models.Identity{}
+				err := db.QueryRow(stmt, 12345).Scan(&user.VerificationToken, &user.Verified)
+				assert.NilError(t, err)
+
+				assert.Assert(t, !user.Verified)
+				assert.Assert(t, len(user.VerificationToken) == 10)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				stmt := `DELETE FROM identities WHERE id=12345;`
+				_, err := db.Exec(stmt)
+				assert.NilError(t, err)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -575,7 +602,7 @@ DELETE FROM settings WHERE id=24567;
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		patch.ModelsSymmetricKey(t)
-		rawDB, err := newRawDB(postgresDriver(t))
+		rawDB, err := newRawDB(database.PostgresDriver(t, "").Dialector)
 		assert.NilError(t, err)
 
 		db := &DB{DB: rawDB}
@@ -589,7 +616,7 @@ DELETE FROM settings WHERE id=24567;
 		assert.NilError(t, err)
 	})
 
-	db, err := newRawDB(postgresDriver(t))
+	db, err := newRawDB(database.PostgresDriver(t, "").Dialector)
 	assert.NilError(t, err)
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {
@@ -645,6 +672,8 @@ type testCaseLabel struct {
 	Name string
 	Line string
 }
+
+var isEnvironmentCI = os.Getenv("CI") != ""
 
 func dumpSchema(t *testing.T, conn string) string {
 	t.Helper()

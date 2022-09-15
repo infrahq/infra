@@ -1,6 +1,7 @@
 package access
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http/httptest"
@@ -20,11 +21,6 @@ import (
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	driver := database.PostgresDriver(t, "_access")
-	if driver == nil {
-		lite, err := data.NewSQLiteDriver("file::memory:")
-		assert.NilError(t, err)
-		driver = &database.Driver{Dialector: lite}
-	}
 
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(driver.Dialector, nil)
@@ -32,30 +28,43 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
-func setupAccessTestContext(t *testing.T) (*gin.Context, *data.DB, *models.Provider) {
+func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *models.Provider) {
 	// setup db and context
 	db := setupDB(t)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set(RequestContextKey, RequestContext{DBTxn: db})
+	tx := txnForTestCase(t, db)
 
 	admin := &models.Identity{Name: "admin@example.com"}
-	err := data.CreateIdentity(db, admin)
+	err := data.CreateIdentity(tx, admin)
 	assert.NilError(t, err)
 
-	c.Set("identity", admin)
+	c.Set(RequestContextKey, RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: admin},
+	})
 
 	adminGrant := &models.Grant{
 		Subject:   admin.PolyID(),
 		Privilege: models.InfraAdminRole,
 		Resource:  ResourceInfraAPI,
 	}
-	err = data.CreateGrant(db, adminGrant)
+	err = data.CreateGrant(tx, adminGrant)
 	assert.NilError(t, err)
 
-	provider := data.InfraProvider(db)
+	provider := data.InfraProvider(tx)
 
-	return c, db, provider
+	return c, tx, provider
+}
+
+func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background())
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		assert.NilError(t, tx.Rollback())
+	})
+	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
 var (
@@ -63,7 +72,7 @@ var (
 	tomsGroup = &models.Group{Name: "tom's group"}
 )
 
-func TestBasicGrant(t *testing.T) {
+func TestCan(t *testing.T) {
 	db := setupDB(t)
 	err := data.CreateIdentity(db, tom)
 	assert.NilError(t, err)
@@ -79,14 +88,14 @@ func TestBasicGrant(t *testing.T) {
 	cant(t, db, "i:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
 	cant(t, db, "i:bob", "write", "infra.groups")
 
-	grant(t, db, tom, "i:alice", "read", "infra.machines")
-	can(t, db, "i:alice", "read", "infra.machines")
-	cant(t, db, "i:alice", "read", "infra")
-	cant(t, db, "i:alice", "read", "infra.machines.1")
-	cant(t, db, "i:alice", "write", "infra.machines")
+	grant(t, db, tom, "i:a11ce", "read", "infra.machines")
+	can(t, db, "i:a11ce", "read", "infra.machines")
+	cant(t, db, "i:a11ce", "read", "infra")
+	cant(t, db, "i:a11ce", "read", "infra.machines.1")
+	cant(t, db, "i:a11ce", "write", "infra.machines")
 }
 
-func TestUsersGroupGrant(t *testing.T) {
+func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 	db := setupDB(t)
 
 	tom = &models.Identity{Name: "tom@infrahq.com"}
@@ -106,21 +115,24 @@ func TestUsersGroupGrant(t *testing.T) {
 	assert.NilError(t, err)
 
 	c, _ := gin.CreateTestContext(httptest.NewRecorder())
-	c.Set(RequestContextKey, RequestContext{DBTxn: db})
-	c.Set("identity", tom)
-
+	tx := txnForTestCase(t, db)
+	c.Set(RequestContextKey, RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: tom},
+	})
 	authDB, err := RequireInfraRole(c, models.InfraAdminRole)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 	assert.Assert(t, authDB == nil)
 
-	grant(t, db, tom, tomsGroup.PolyID(), models.InfraAdminRole, "infra")
+	admin := &models.Identity{Model: models.Model{ID: uid.ID(512)}}
+	grant(t, tx, admin, tomsGroup.PolyID(), models.InfraAdminRole, "infra")
 
 	authDB, err = RequireInfraRole(c, models.InfraAdminRole)
 	assert.NilError(t, err)
 	assert.Assert(t, authDB != nil)
 }
 
-func TestInfraRequireInfraRole(t *testing.T) {
+func TestRequireInfraRole(t *testing.T) {
 	db := setupDB(t)
 
 	setup := func(t *testing.T, infraRole string) *gin.Context {
@@ -133,9 +145,11 @@ func TestInfraRequireInfraRole(t *testing.T) {
 		assert.NilError(t, err)
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
-		c.Set(RequestContextKey, RequestContext{DBTxn: db})
-		c.Set("identity", testIdentity)
-
+		tx := txnForTestCase(t, db)
+		c.Set(RequestContextKey, RequestContext{
+			DBTxn:         tx,
+			Authenticated: Authenticated{User: testIdentity},
+		})
 		return c
 	}
 
@@ -172,24 +186,25 @@ func TestInfraRequireInfraRole(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db *data.DB, currentUser *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db data.GormTxn, createdBy *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,
 		Resource:  resource,
-		CreatedBy: currentUser.ID,
+		CreatedBy: createdBy.ID,
 	})
 	assert.NilError(t, err)
 }
 
 func can(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, subject, privilege, resource)
+	t.Helper()
+	canAccess, err := Can(db, subject, resource, privilege)
 	assert.NilError(t, err)
 	assert.Assert(t, canAccess)
 }
 
 func cant(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, subject, privilege, resource)
+	canAccess, err := Can(db, subject, resource, privilege)
 	assert.NilError(t, err)
 	assert.Assert(t, !canAccess)
 }

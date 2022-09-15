@@ -1,21 +1,19 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
-	"path"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -75,6 +73,14 @@ func (d *DB) Close() error {
 	return sqlDB.Close()
 }
 
+func (d *DB) SQLdb() *sql.DB {
+	sqlDB, err := d.DB.DB()
+	if err != nil {
+		panic("DB must have an sql.DB ConnPool")
+	}
+	return sqlDB
+}
+
 func (d *DB) DriverName() string {
 	return d.Dialector.Name()
 }
@@ -102,6 +108,15 @@ func (d *DB) GormDB() *gorm.DB {
 	return d.DB
 }
 
+// TODO: accept sql.TxOptions when we remove gorm
+func (d *DB) Begin(ctx context.Context) (*Transaction, error) {
+	tx := d.DB.WithContext(ctx).Begin()
+	if err := tx.Error; err != nil {
+		return nil, err
+	}
+	return &Transaction{DB: tx, committed: new(atomic.Bool)}, nil
+}
+
 type WriteTxn interface {
 	ReadTxn
 	Exec(sql string, values ...interface{}) (sql.Result, error)
@@ -127,10 +142,11 @@ type GormTxn interface {
 
 type Transaction struct {
 	*gorm.DB
-	orgID uid.ID
+	orgID     uid.ID
+	committed *atomic.Bool
 }
 
-func (t Transaction) DriverName() string {
+func (t *Transaction) DriverName() string {
 	return t.Dialector.Name()
 }
 
@@ -155,8 +171,30 @@ func (t *Transaction) GormDB() *gorm.DB {
 	return t.DB
 }
 
-func NewTransaction(db *gorm.DB, orgID uid.ID) *Transaction {
-	return &Transaction{DB: db, orgID: orgID}
+// Rollback the transaction. If the transaction was already committed then do
+// nothing.
+func (t *Transaction) Rollback() error {
+	if t.committed.Load() {
+		return nil
+	}
+	return t.DB.Rollback().Error
+}
+
+func (t *Transaction) Commit() error {
+	err := t.DB.Commit().Error
+	if err == nil {
+		t.committed.Store(true)
+	}
+	return err
+}
+
+// WithOrgID returns a shallow copy of the Transaction with the OrganizationID
+// set to orgID. Note that the underlying database transaction and commit state
+// is shared with the new copy.
+func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
+	newTxn := *t
+	newTxn.orgID = orgID
+	return &newTxn
 }
 
 // newRawDB creates a new database connection without running migrations.
@@ -190,7 +228,13 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 const defaultOrganizationID = 1000
 
 func initialize(db *DB) error {
-	org, err := GetOrganization(db, ByID(defaultOrganizationID))
+	tx, err := db.Begin(context.TODO())
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	org, err := GetOrganization(tx, ByID(defaultOrganizationID))
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
@@ -198,7 +242,7 @@ func initialize(db *DB) error {
 			Name:      "Default",
 			CreatedBy: models.CreatedBySystem,
 		}
-		if err := CreateOrganization(db, org); err != nil {
+		if err := CreateOrganization(tx, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
 		}
 	case err != nil:
@@ -206,29 +250,11 @@ func initialize(db *DB) error {
 	}
 
 	db.DefaultOrg = org
-	db.DefaultOrgSettings, err = getSettingsForOrg(db, org.ID)
+	db.DefaultOrgSettings, err = getSettingsForOrg(tx, org.ID)
 	if err != nil {
 		return fmt.Errorf("getting settings: %w", err)
 	}
-	return nil
-}
-
-func NewSQLiteDriver(connection string) (gorm.Dialector, error) {
-	if !strings.HasPrefix(connection, "file::memory") {
-		if err := os.MkdirAll(path.Dir(connection), os.ModePerm); err != nil {
-			return nil, err
-		}
-	}
-	uri, err := url.Parse(connection)
-	if err != nil {
-		return nil, err
-	}
-	query := uri.Query()
-	query.Add("_journal_mode", "WAL")
-	uri.RawQuery = query.Encode()
-	connection = uri.String()
-
-	return sqlite.Open(connection), nil
+	return tx.Commit()
 }
 
 func getDefaultSortFromType(t interface{}) string {
@@ -288,7 +314,7 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func list[T models.Modelable](tx GormTxn, p *models.Pagination, selectors ...SelectorFunc) ([]T, error) {
+func list[T models.Modelable](tx GormTxn, p *Pagination, selectors ...SelectorFunc) ([]T, error) {
 	db := tx.GormDB()
 	db = db.Order(getDefaultSortFromType((*T)(nil)))
 	for _, selector := range selectors {
@@ -436,6 +462,20 @@ func handleError(err error) error {
 		}
 	}
 
+	return err
+}
+
+func handleReadError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return internal.ErrNotFound
+	case errors.Is(err, sql.ErrNoRows):
+		return internal.ErrNotFound
+	}
 	return err
 }
 
