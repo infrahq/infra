@@ -8,8 +8,11 @@ import (
 )
 
 func validateCredential(c *models.Credential) error {
-	if len(c.PasswordHash) == 0 {
-		return fmt.Errorf("passwordHash is required")
+	switch {
+	case len(c.PasswordHash) == 0:
+		return fmt.Errorf("Credential.PasswordHash is required")
+	case c.IdentityID == 0:
+		return fmt.Errorf("Credential.IdentityID is required")
 	}
 	return nil
 }
