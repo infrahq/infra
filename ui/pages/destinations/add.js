@@ -11,7 +11,6 @@ import {
 import Confetti from 'react-dom-confetti'
 
 import { useAdmin } from '../../lib/admin'
-import { useServerConfig } from '../../lib/serverconfig'
 
 import Dashboard from '../../components/layouts/dashboard'
 import useSWR from 'swr'
@@ -28,8 +27,6 @@ export default function DestinationsAdd() {
   const [focused, setFocused] = useState(true)
 
   const { admin } = useAdmin()
-
-  const { baseDomain } = useServerConfig()
 
   const { data: { items: destinations } = {}, mutate } = useSWR(
     '/api/destinations?limit=999'
@@ -106,9 +103,7 @@ export default function DestinationsAdd() {
     setSubmitted(true)
   }
 
-  const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${
-    baseDomain ? `api.${baseDomain}` : window.location.host
-  } --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
+  const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${window.location.host} --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
 
   if (!admin) {
     router.replace('/')
