@@ -61,6 +61,11 @@ func withSupportAdminGrant(_ *testing.T, opts *Options) {
 	})
 }
 
+func withMultiOrgEnabled(_ *testing.T, opts *Options) {
+	opts.DefaultOrganizationDomain = "example.com"
+	opts.EnableSignup = true
+}
+
 func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 	user := &models.Identity{
 		Name: "admin+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
@@ -70,7 +75,7 @@ func createAdmin(t *testing.T, db data.GormTxn) *models.Identity {
 
 	err = data.CreateGrant(db, &models.Grant{
 		Subject:   uid.NewIdentityPolymorphicID(user.ID),
-		Resource:  models.InternalInfraProviderName,
+		Resource:  "infra",
 		Privilege: models.InfraAdminRole,
 	})
 	assert.NilError(t, err)
@@ -174,6 +179,41 @@ func jsonUnmarshal(t *testing.T, raw string) interface{} {
 var cmpAPIUserJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+type organizationData struct {
+	Organization   *models.Organization
+	Admin          *models.Identity
+	AdminAccessKey string
+}
+
+// createOtherOrg creates an organization with domain other.example.org, with
+// a user, and a grant that makes them an infra admin. It can be used by tests
+// to ensure that an API endpoint honors the organization of the user making
+// the request.
+func createOtherOrg(t *testing.T, db *data.DB) organizationData {
+	t.Helper()
+	otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+	assert.NilError(t, data.CreateOrganization(db, otherOrg))
+
+	tx := txnForTestCase(t, db).WithOrgID(otherOrg.ID)
+	admin := createAdmin(t, tx)
+
+	token := &models.AccessKey{
+		IssuedFor:  admin.ID,
+		ProviderID: data.InfraProvider(tx).ID,
+		ExpiresAt:  time.Now().Add(1000 * time.Second),
+	}
+
+	accessKey, err := data.CreateAccessKey(tx, token)
+	assert.NilError(t, err)
+
+	assert.NilError(t, tx.Commit())
+	return organizationData{
+		Organization:   otherOrg,
+		Admin:          admin,
+		AdminAccessKey: accessKey,
+	}
 }
 
 func TestWellKnownJWKs(t *testing.T) {
