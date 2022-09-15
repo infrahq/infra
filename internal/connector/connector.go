@@ -53,6 +53,18 @@ type ListenerOptions struct {
 }
 
 func Run(ctx context.Context, options Options) error {
+	basicSecretStorage := map[string]secrets.SecretStorage{
+		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
+		"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
+		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
+	}
+
+	accessKey, err := secrets.GetSecret(options.Server.AccessKey, basicSecretStorage)
+	if err != nil {
+		return err
+	}
+	options.Server.AccessKey = accessKey
+
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -92,12 +104,6 @@ func Run(ctx context.Context, options Options) error {
 		return certCache.Certificate()
 	}
 
-	basicSecretStorage := map[string]secrets.SecretStorage{
-		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
-		"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
-		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
-	}
-
 	u, err := urlx.Parse(options.Server.URL)
 	if err != nil {
 		return fmt.Errorf("invalid server url: %w", err)
@@ -126,11 +132,6 @@ func Run(ctx context.Context, options Options) error {
 	defaultHTTPTransport, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
 		return errors.New("unexpected type for http.DefaultTransport")
-	}
-
-	accessKey, err := secrets.GetSecret(options.Server.AccessKey, basicSecretStorage)
-	if err != nil {
-		return err
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
