@@ -7,27 +7,23 @@ export default function AcceptInvite() {
   const router = useRouter()
   const { token } = router.query
 
+  if (!router.isReady) {
+    return null
+  }
+
+  if (!token) {
+    router.replace('/')
+    return null
+  }
+
   return (
-    <>
-      {token ? (
-        <>
-          <h2 className='my-3 max-w-[260px] text-center text-xs text-gray-300'>
-            Welcome to Infra. Please set your password
-          </h2>
-          <div className='relative mt-4 w-full'>
-            <div
-              className='absolute inset-0 flex items-center'
-              aria-hidden='true'
-            >
-              <div className='w-full border-t border-gray-800' />
-            </div>
-          </div>
-          <PasswordResetForm />
-        </>
-      ) : (
-        <h1 className='text-base font-bold leading-snug'>Token missing</h1>
-      )}
-    </>
+    <div className='flex min-h-[320px] w-full flex-col items-center px-10 py-8'>
+      <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
+      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
+        Please set your password to continue
+      </h2>
+      <PasswordResetForm />
+    </div>
   )
 }
 

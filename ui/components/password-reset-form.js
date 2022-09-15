@@ -71,7 +71,7 @@ export default function PasswordResetForm() {
         Set Password
       </button>
       {error && (
-        <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
+        <p className='absolute top-full mx-auto w-full text-center text-2xs text-red-500'>
           {error}
         </p>
       )}
