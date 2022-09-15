@@ -27,10 +27,10 @@ export default function Destinations() {
   return (
     <div className='mb-10'>
       <Head>
-        <title>Clusters - Infra</title>
+        <title>Infrastructure - Infra</title>
       </Head>
       <header className='my-6 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>Clusters</h1>
+        <h1 className='py-1 text-xl font-medium'>Infrastructure</h1>
         {/* Add dialog */}
         {admin && (
           <Link href='/destinations/add'>
@@ -48,7 +48,7 @@ export default function Destinations() {
         pageIndex={parseInt(page) - 1}
         pageSize={limit}
         data={destinations}
-        empty='No clusters'
+        empty='No infrastructure'
         onPageChange={({ pageIndex }) => {
           router.push({
             pathname: router.pathname,

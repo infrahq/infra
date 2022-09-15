@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import copy from 'copy-to-clipboard'
 import {
-  CheckCircleIcon,
-  ClipboardCheckIcon,
-  ClipboardCopyIcon,
+  CheckIcon,
+  DuplicateIcon,
+  ExternalLinkIcon,
 } from '@heroicons/react/outline'
+import Confetti from 'react-dom-confetti'
 
 import { useAdmin } from '../../lib/admin'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import Dashboard from '../../components/layouts/dashboard'
-import ErrorMessage from '../../components/error-message'
+import useSWR from 'swr'
 
 export default function DestinationsAdd() {
   const router = useRouter()
@@ -21,39 +22,41 @@ export default function DestinationsAdd() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [accessKey, setAccessKey] = useState('')
-  const [connected, setConnected] = useState(false)
   const [commandCopied, setCommandCopied] = useState(false)
+  const [connected, setConnected] = useState(false)
+  const [accessKey, setAccessKey] = useState('')
+  const [focused, setFocused] = useState(true)
 
   const { admin } = useAdmin()
 
   const { baseDomain } = useServerConfig()
 
-  const [steps, setSteps] = useState([
-    { id: 0, name: 'Name Cluster', status: 'current' },
-    {
-      id: 1,
-      name: 'Kubernetes Command',
-      status: 'upcoming',
-    },
-    { id: 2, name: 'Connect', status: 'upcoming' },
-  ])
-
-  const [currentStep, setCurrentStep] = useState(0)
+  const { data: { items: destinations } = {}, mutate } = useSWR(
+    '/api/destinations?limit=999'
+  )
 
   useEffect(() => {
-    if (accessKey && name.length > 0) {
+    const focus = () => setFocused(true)
+    const blur = () => setFocused(false)
+    window.addEventListener('focus', focus)
+    window.addEventListener('blur', blur)
+    return () => {
+      window.removeEventListener('focus', focus)
+      window.removeEventListener('blur', blur)
+    }
+  }, [])
+
+  console.log(focused, connected)
+
+  useEffect(() => {
+    if (submitted) {
       const interval = setInterval(async () => {
-        const res = await fetch(`/api/destinations?name=${name}`)
-        const { items: destinations } = await res.json()
+        await mutate()
 
-        if (destinations?.length > 0) {
+        console.log(destinations, name)
+
+        if (destinations.find(d => d.name === name)) {
           setConnected(true)
-
-          let newSteps = steps
-          newSteps.forEach(s => (s.status = 'complete'))
-          setSteps(newSteps)
-          setCurrentStep(3)
           clearInterval(interval)
         }
       }, 5000)
@@ -61,23 +64,18 @@ export default function DestinationsAdd() {
         clearInterval(interval)
       }
     }
-  }, [name, accessKey, steps])
-
-  useEffect(() => {
-    const hasCurrentStep = steps.find(step => step?.status === 'current')
-
-    if (hasCurrentStep) {
-      setCurrentStep(hasCurrentStep.id)
-    } else {
-      setCurrentStep(2) // last step
-    }
-  }, [steps])
+  }, [submitted])
 
   async function onSubmit(e) {
     e.preventDefault()
 
     if (!/^[A-Za-z.0-9_-]+$/.test(name)) {
       setError('Invalid cluster name')
+      return
+    }
+
+    if (destinations.find(d => d.name === name)) {
+      setError('A cluster with this name already exists')
       return
     }
 
@@ -110,34 +108,11 @@ export default function DestinationsAdd() {
 
     setAccessKey(key.accessKey)
     setSubmitted(true)
-
-    const step = currentStep
-    setCurrentStep(step + 1)
-
-    let stepsList = steps
-    stepsList[step].status = 'complete'
-    if (step !== steps.length - 1) {
-      stepsList[step + 1].status = 'current'
-    }
-
-    setSteps(stepsList)
   }
 
-  const server = baseDomain ? `api.${baseDomain}` : window.location.host
-  const values = {
-    connector: {
-      config: {
-        server: server,
-        name: name,
-      },
-    },
-  }
-
-  if (window.location.protocol !== 'https:') {
-    values.connector.config.skipTLSVerify = true
-  }
-
-  const command = ` helm repo add infrahq https://helm.infrahq.com \n helm repo update \n helm upgrade --install infra-connector infrahq/infra --values values.yaml --set connector.config.accessKey=${accessKey}`
+  const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${
+    baseDomain ? `api.${baseDomain}` : window.location.host
+  } --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
 
   if (!admin) {
     router.replace('/')
@@ -145,194 +120,132 @@ export default function DestinationsAdd() {
   }
 
   return (
-    <>
+    <div className='mx-auto w-full max-w-2xl'>
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
       <h1 className='my-6 py-1 text-xl font-medium'>Connect Cluster</h1>
-      <div className='flex max-w-3xl flex-col space-y-4'>
-        <nav aria-label='Progress' className='py-4'>
-          <ol
-            role='list'
-            className='space-y-4 md:flex md:space-y-0 md:space-x-8'
-          >
-            {steps?.map(step => (
-              <li key={`${step?.name}-${step?.id}`} className='md:flex-1'>
-                {step?.status === 'complete' && (
-                  <div className='group flex flex-col border-l-4 border-blue-600 py-2 pl-4 hover:border-blue-800 md:border-l-0 md:border-t-4 md:pl-0 md:pt-4 md:pb-0'>
-                    <span className='flex items-start'>
-                      <span className='relative flex h-5 w-5 flex-shrink-0 items-center justify-center'>
-                        <CheckCircleIcon
-                          className='h-full w-full text-blue-600 group-hover:text-blue-800'
-                          aria-hidden='true'
-                        />
-                      </span>
-                      <span className='ml-3 text-sm font-medium text-gray-500 group-hover:text-gray-900'>
-                        {step?.name}
-                      </span>
-                    </span>
-                  </div>
-                )}
-                {step?.status === 'current' && (
-                  <div className='flex border-l-4 border-blue-600 py-2 pl-4 md:border-l-0 md:border-t-4 md:pl-0 md:pt-4 md:pb-0'>
-                    <span
-                      className='relative flex h-5 w-5 flex-shrink-0 items-center justify-center'
-                      aria-hidden='true'
-                    >
-                      <span className='absolute h-4 w-4 animate-[ping_1.25s_ease-in-out_infinite] rounded-full bg-blue-200' />
-                      <span className='relative block h-2 w-2 rounded-full bg-blue-600' />
-                    </span>
-                    <span className='ml-3 text-sm font-medium text-blue-600'>
-                      {step?.name}
-                    </span>
-                  </div>
-                )}
-                {step?.status === 'upcoming' && (
-                  <div className='group flex flex-col border-l-4 border-gray-200 py-2 pl-4 md:border-l-0 md:border-t-4 md:pl-0 md:pt-4 md:pb-0'>
-                    <div className='flex items-start'>
-                      <div
-                        className='relative flex h-5 w-5 flex-shrink-0 items-center justify-center'
-                        aria-hidden='true'
-                      >
-                        <div className='h-2 w-2 rounded-full bg-gray-300' />
-                      </div>
-                      <p className='ml-3 text-sm font-medium text-gray-500'>
-                        {step?.name}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
-        </nav>
-        <div className='md:col-span-2 md:mt-0'>
-          {currentStep >= 0 && (
-            <form onSubmit={onSubmit} className='flex flex-col'>
-              <div className='flex flex-col space-y-1'>
-                <label className='text-2xs font-medium text-gray-700'>
-                  Name the Cluster
-                </label>
-                <input
-                  required
-                  type='text'
-                  name='name'
-                  value={name}
-                  disabled={currentStep !== 0}
-                  onChange={e => {
-                    setError('')
-                    setName(e.target.value)
-                  }}
-                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-30 sm:text-sm ${
-                    error ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {error && <ErrorMessage message={error} />}
-              </div>
-              <div className='mt-6 flex flex-row items-center justify-end'>
-                <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
-                  disabled={!name || currentStep !== 0}
-                  type='submit'
-                >
-                  Next
-                </button>
-              </div>
-            </form>
-          )}
-          {currentStep >= 1 && (
-            <section className='flex flex-col'>
-              <div className='pb-6'>
-                <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Kubernetes Command
-                </h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  Run this on your terminal
-                </p>
-              </div>
-              <div className='group relative my-4 flex'>
-                <pre className='h-24 w-full overflow-auto rounded-md bg-gray-100 px-4 py-5 text-2xs leading-normal text-gray-900'>
-                  {command}
-                </pre>
-                <button
-                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 opacity-0 backdrop-blur-xl hover:text-black/70 ${
-                    commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
-                  }`}
-                  disabled={commandCopied}
-                  onClick={() => {
-                    copy(command)
-                    setCommandCopied(true)
-                    setTimeout(() => setCommandCopied(false), 2000)
-                  }}
-                >
-                  {commandCopied ? (
-                    <ClipboardCheckIcon className='h-4 w-4 text-green-500' />
-                  ) : (
-                    <ClipboardCopyIcon className='h-4 w-4' />
-                  )}
-                </button>
-              </div>
-              <div className='mt-6 flex flex-row items-center justify-end'>
-                <button
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
-                  type='button'
-                  disabled={currentStep !== 1}
-                  onClick={() => {
-                    const step = currentStep
-                    setCurrentStep(step + 1)
+      <div className='flex w-full flex-col space-y-4'>
+        {/* Name form */}
+        <form
+          onSubmit={onSubmit}
+          className={`flex flex-col ${
+            submitted ? 'pointer-events-none opacity-10' : ''
+          }`}
+        >
+          <div className='relative flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>
+              Cluster name
+            </label>
+            <input
+              autoFocus
+              required
+              type='text'
+              name='name'
+              value={name}
+              onChange={e => {
+                setError('')
+                setName(e.target.value)
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-30 sm:text-sm ${
+                error ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {error && (
+              <p className='absolute top-full mt-1 text-xs text-red-500'>
+                {error}
+              </p>
+            )}
+          </div>
+          <div className='mt-6 flex flex-row items-center justify-end'>
+            <button
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              type='submit'
+            >
+              Next
+            </button>
+          </div>
+        </form>
 
-                    let stepsList = steps
-                    stepsList[step].status = 'complete'
-                    if (step !== steps.length - 1) {
-                      stepsList[step + 1].status = 'current'
-                    }
-
-                    setSteps(stepsList)
-                  }}
-                >
-                  Next
-                </button>
-              </div>
-            </section>
-          )}
-          {currentStep >= 2 && (
-            <section>
-              <div className='pb-2'>
-                <h3 className='text-base font-medium leading-6 text-gray-900'>
-                  Connect
-                </h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  Connecting to the Kubernetes cluster. The cluster will be
-                  detected automatically once it is connected. This may take a
-                  few minutes.
-                </p>
-              </div>
-              {connected ? (
-                <footer className='my-4 flex flex-col space-y-3'>
-                  <h3 className='text-sm text-black'>✓ Connected</h3>
-                  <div className='flex items-center justify-end'>
-                    <Link href='/destinations'>
-                      <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
-                        Finish
-                      </a>
-                    </Link>
-                  </div>
-                </footer>
+        {/* Install command */}
+        <section
+          className={`flex select-none flex-col ${
+            submitted ? '' : 'opacity-5'
+          }`}
+        >
+          <div className='mb-2'>
+            <h3 className='text-base font-medium leading-6 text-gray-900'>
+              Install connector
+            </h3>
+            <p className='mt-1 text-sm text-gray-500'>
+              Install the Infra connector using{' '}
+              <a
+                href='https://helm.sh/'
+                className='inline-flex items-center underline'
+                target='_blank'
+                rel='noreferrer'
+              >
+                Helm <ExternalLinkIcon className='ml-0.5 h-3 w-3' />
+              </a>
+              :
+            </p>
+          </div>
+          <div className='group relative my-4 flex'>
+            <pre className='w-full overflow-auto rounded-md bg-gray-100 px-5 py-4 text-xs leading-normal text-gray-900'>
+              {command}
+            </pre>
+            <button
+              className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
+              onClick={() => {
+                copy(command)
+                setCommandCopied(true)
+                setTimeout(() => setCommandCopied(false), 2000)
+              }}
+            >
+              {commandCopied ? (
+                <CheckIcon className='h-4 w-4 text-green-500' />
               ) : (
-                <footer className='my-7 flex items-center'>
-                  <h3 className='mr-3 text-sm text-black'>
-                    Waiting for connection
-                  </h3>
-                  {submitted && (
-                    <span className='inline-flex h-2 w-2 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border border-black opacity-75' />
-                  )}
-                </footer>
+                <DuplicateIcon className='h-4 w-4' />
               )}
-            </section>
+            </button>
+          </div>
+        </section>
+
+        {/* Finish */}
+        <section
+          className={`my-10 flex justify-between ${
+            submitted ? '' : 'select-none opacity-5'
+          }`}
+        >
+          {connected ? (
+            <div className='my-4 flex items-center justify-between'>
+              <h3 className='flex items-center text-base font-medium text-black'>
+                <CheckIcon className='mr-2 h-5 w-5 text-green-500' /> Cluster
+                connected
+              </h3>
+            </div>
+          ) : (
+            <footer className='my-7 flex items-center'>
+              {submitted && (
+                <span className='inline-flex h-3 w-3 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border-2 border-blue-500 opacity-75' />
+              )}
+              <h3 className='ml-3 text-base text-black'>
+                Waiting for connection
+              </h3>
+            </footer>
           )}
-        </div>
+          <Link href='/destinations'>
+            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              Finish
+            </a>
+          </Link>
+        </section>
       </div>
-    </>
+      <Confetti
+        elementCount={100}
+        active={focused && connected && destinations.length === 1}
+      />
+    </div>
   )
 }
 
