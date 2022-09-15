@@ -60,7 +60,7 @@ export default function DestinationsAdd() {
         clearInterval(interval)
       }
     }
-  }, [submitted])
+  }, [submitted, destinations])
 
   async function onSubmit(e) {
     e.preventDefault()
