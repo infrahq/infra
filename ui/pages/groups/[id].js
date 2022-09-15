@@ -40,6 +40,7 @@ function ComboBox({ options = [], selected, setSelected }) {
           className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
           value={query}
           placeholder='User'
+          type='search'
           onChange={event => setQuery(event.target.value)}
         />
         <HeadlessUIComboBox.Button className='hidden' ref={button} />
