@@ -21,6 +21,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -294,6 +295,10 @@ func newConnectorCmd() *cobra.Command {
 				return err
 			}
 
+			// Also accept the same env var as the CLI for setting the access key
+			if accessKey, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
+				options.Server.AccessKey = types.StringOrFile(accessKey)
+			}
 			return runConnector(cmd.Context(), options)
 		},
 	}
