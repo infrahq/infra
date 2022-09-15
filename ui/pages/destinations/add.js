@@ -125,11 +125,11 @@ export default function DestinationsAdd() {
         <title>Add Infrastructure - Infra</title>
       </Head>
       <h1 className='my-6 py-1 text-xl font-medium'>Connect Cluster</h1>
-      <div className='flex w-full flex-col space-y-4'>
+      <div className='flex w-full flex-col'>
         {/* Name form */}
         <form
           onSubmit={onSubmit}
-          className={`flex flex-col ${
+          className={`mb-6 flex flex-col ${
             submitted ? 'pointer-events-none opacity-10' : ''
           }`}
         >
@@ -169,8 +169,8 @@ export default function DestinationsAdd() {
 
         {/* Install command */}
         <section
-          className={`flex select-none flex-col ${
-            submitted ? '' : 'opacity-5'
+          className={`mb-6 flex flex-col ${
+            submitted ? '' : 'select-none opacity-5'
           }`}
         >
           <div className='mb-2'>
@@ -218,21 +218,21 @@ export default function DestinationsAdd() {
           }`}
         >
           {connected ? (
-            <div className='my-4 flex items-center justify-between'>
+            <div className='flex items-center justify-between'>
               <h3 className='flex items-center text-base font-medium text-black'>
                 <CheckIcon className='mr-2 h-5 w-5 text-green-500' /> Cluster
                 connected
               </h3>
             </div>
           ) : (
-            <footer className='my-7 flex items-center'>
+            <div className='flex items-center'>
               {submitted && (
-                <span className='inline-flex h-3 w-3 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border-2 border-blue-500 opacity-75' />
+                <span className='inline-flex h-3 w-3 flex-none animate-[ping_1.25s_ease-in-out_infinite] rounded-full border border-blue-500 opacity-75' />
               )}
               <h3 className='ml-3 text-base text-black'>
                 Waiting for connection
               </h3>
-            </footer>
+            </div>
           )}
           <Link href='/destinations'>
             <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
