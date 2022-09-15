@@ -18,7 +18,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -43,7 +42,7 @@ type Options struct {
 
 type ServerOptions struct {
 	URL                string
-	AccessKey          string
+	AccessKey          types.StringOrFile
 	SkipTLSVerify      bool
 	TrustedCertificate types.StringOrFile
 }
@@ -54,18 +53,6 @@ type ListenerOptions struct {
 }
 
 func Run(ctx context.Context, options Options) error {
-	basicSecretStorage := map[string]secrets.SecretStorage{
-		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
-		"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
-		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
-	}
-
-	accessKey, err := secrets.GetSecret(options.Server.AccessKey, basicSecretStorage)
-	if err != nil {
-		return err
-	}
-	options.Server.AccessKey = accessKey
-
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -141,7 +128,7 @@ func Run(ctx context.Context, options Options) error {
 		Name:      "connector",
 		Version:   internal.Version,
 		URL:       u.String(),
-		AccessKey: accessKey,
+		AccessKey: options.Server.AccessKey.String(),
 		HTTP: http.Client{
 			Transport: httpTransportFromOptions(options.Server),
 		},
