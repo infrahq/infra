@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,8 +35,8 @@ import (
 type Options struct {
 	Server ServerOptions
 	Name   string
-	CACert string
-	CAKey  string
+	CACert types.StringOrFile
+	CAKey  types.StringOrFile
 
 	Addr ListenerOptions
 }
@@ -87,17 +86,7 @@ func Run(ctx context.Context, options Options) error {
 		options.Name = autoname
 	}
 
-	caCertPEM, err := os.ReadFile(options.CACert)
-	if err != nil {
-		return err
-	}
-
-	caKeyPEM, err := os.ReadFile(options.CAKey)
-	if err != nil {
-		return err
-	}
-
-	certCache := NewCertCache(caCertPEM, caKeyPEM)
+	certCache := NewCertCache([]byte(options.CACert), []byte(options.CAKey))
 
 	// Generate TLS certificates on the fly for clients
 	// GenerateCertificate caches certificates
@@ -183,7 +172,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	// TODO: make polling time configurable
-	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
+	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, []byte(options.CACert)))
 
 	ginutil.SetMode()
 	router := gin.New()
