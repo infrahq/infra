@@ -191,7 +191,7 @@ export default function DestinationsAdd() {
             </p>
           </div>
           <div className='group relative my-4 flex'>
-            <pre className='w-full overflow-auto rounded-md bg-gray-100 px-5 py-4 text-xs leading-normal text-gray-900'>
+            <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
               {command}
             </pre>
             <button
