@@ -20,64 +20,88 @@ module.exports = {
         destination: '/docs/:slug*',
         permanent: true,
       },
-      {
-        source: '/docs/guides/identity-providers/:slug*',
-        destination: '/docs/identity-providers/:slug*',
-        permanent: true,
-      },
-      {
-        source: '/docs/configuration/identity-providers/:slug*',
-        destination: '/docs/identity-providers/:slug*',
-        permanent: true,
-      },
-      {
-        source: '/docs/getting-started/introduction',
-        destination: '/docs/getting-started/what-is-infra',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/custom-domain',
-        destination: '/docs/install/custom-domain',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/encryption',
-        destination: '/docs/reference/helm-reference#encryption',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/postgres',
-        destination: '/docs/reference/helm-reference#postgres-database',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/secrets',
-        destination: '/docs/reference/helm-reference#secrets',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/custom-domain',
-        destination: '/docs/install/custom-domain',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/configure/custom-domain',
-        destination: '/docs/install/custom-domain',
-        permanent: true,
-      },
-      {
-        source: '/docs/guides/:slug*',
-        destination: '/docs/configuration/:slug*',
-        permanent: true,
-      },
+
       {
         source: '/docs',
-        destination: '/docs/getting-started/what-is-infra',
+        destination: '/docs/start/what-is-infra',
         permanent: true,
       },
+
+      ...[
+        '/docs/guides/identity-providers/:slug*',
+        '/docs/configuration/identity-providers/:slug*',
+        '/docs/identity-providers/:slug*',
+      ].map(source => {
+        return { source, destination: '/docs/idp/:slug*', permanent: true }
+      }),
+
+      ...[
+        '/docs/getting-started/introduction',
+        '/docs/getting-started/what-is-infra',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/start/what-is-infra',
+          permanent: true,
+        }
+      }),
+
+      ...[
+        '/docs/getting-started/introduction',
+        '/docs/getting-started/what-is-infra',
+        '/docs/getting-started/key-concepts',
+        '/docs/reference/how-infra-works',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/start/what-is-infra',
+          permanent: true,
+        }
+      }),
+
+      ...[
+        '/docs/install/configure/encryption',
+        '/docs/reference/helm-reference#encryption',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/reference/helm#encryption',
+          permanent: true,
+        }
+      }),
+
+      ...[
+        '/docs/install/configure/postgres',
+        '/docs/reference/helm-reference#postgres-database',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/reference/helm#postgres-database',
+          permanent: true,
+        }
+      }),
+      ...[
+        '/docs/install/configure/secrets',
+        '/docs/reference/helm-reference#secrets',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/reference/helm#secrets',
+          permanent: true,
+        }
+      }),
+
+      ...['/docs/guides/:slug*', '/docs/configuration/:slug*'].map(source => {
+        return {
+          source,
+          destination: '/docs/using/:slug*',
+          permanent: true,
+        }
+      }),
+
       {
-        source: '/docs/getting-started/key-concepts',
-        destination: '/docs/reference/how-infra-works',
+        source: '/docs/install/configure/custom-domain',
+        destination: '/docs',
         permanent: true,
       },
     ]
