@@ -49,9 +49,9 @@ export default function DestinationsAdd() {
   useEffect(() => {
     if (submitted) {
       const interval = setInterval(async () => {
-        await mutate()
+        const { data: { items: destinations } = {} } = await mutate()
 
-        if (destinations.find(d => d.name === name)) {
+        if (destinations?.find(d => d.name === name)) {
           setConnected(true)
           clearInterval(interval)
         }
@@ -60,7 +60,7 @@ export default function DestinationsAdd() {
         clearInterval(interval)
       }
     }
-  }, [submitted, destinations])
+  }, [submitted])
 
   async function onSubmit(e) {
     e.preventDefault()
