@@ -72,6 +72,11 @@ func TestEmail_Validate(t *testing.T) {
 			email:       "james",
 			expectedErr: "validation failed: addr: invalid email address",
 		},
+		{
+			name:        "missing domain '.'",
+			email:       "james@example",
+			expectedErr: "validation failed: addr: email address must contain at least one '.' character",
+		},
 	}
 
 	for _, tc := range testCases {
