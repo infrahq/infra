@@ -164,17 +164,17 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, extensi
 	return body, token
 }
 
-func TestCheckAccessKeySecret(t *testing.T) {
+func TestValidateRequestAccessKey(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createTestAccessKey(t, db, time.Hour*5)
 
-		_, err := ValidateAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(db, body)
 		assert.NilError(t, err)
 
 		random := generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric)
 		authorization := fmt.Sprintf("%s.%s", strings.Split(body, ".")[0], random)
 
-		_, err = ValidateAccessKey(db, authorization)
+		_, err = ValidateRequestAccessKey(db, authorization)
 		assert.Error(t, err, "access key invalid secret")
 	})
 }
@@ -270,7 +270,7 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createTestAccessKey(t, db, -1*time.Hour)
 
-		_, err := ValidateAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(db, body)
 		assert.ErrorIs(t, err, ErrAccessKeyExpired)
 	})
 }
@@ -279,7 +279,7 @@ func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
 
-		_, err := ValidateAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(db, body)
 		assert.ErrorIs(t, err, ErrAccessKeyDeadlineExceeded)
 	})
 }

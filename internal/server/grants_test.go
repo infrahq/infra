@@ -607,7 +607,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
-	accessKey, err := data.ValidateAccessKey(srv.DB(), adminAccessKey(srv))
+	accessKey, err := data.ValidateRequestAccessKey(srv.DB(), adminAccessKey(srv))
 	assert.NilError(t, err)
 
 	someUser := models.Identity{Name: "someone@example.com"}
