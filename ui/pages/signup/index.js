@@ -142,8 +142,8 @@ export default function Signup() {
                   setSubDomain(getURLSafeDomain(e.target.value))
                 }
               }}
-              className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                errors.org?.name ? 'border-red-500' : 'border-gray-800'
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.org?.name ? 'border-red-500' : 'border-gray-300'
               }`}
             />
             {errors.org?.name && <ErrorMessage message={errors.orgs?.name} />}
