@@ -40,15 +40,24 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	gs := make(map[string]map[string]struct{})
+	grantsByResource := make(map[string]map[string]struct{})
+	resources := []string{}
 	for _, g := range grants {
-		// aggregate privileges
-		if gs[g.Resource] == nil {
-			gs[g.Resource] = make(map[string]struct{})
+		if isResourceForDestination(g.Resource, "infra") {
+			continue
+		}
+		if !destinationForResourceExists(g.Resource, destinations) {
+			continue
 		}
 
-		gs[g.Resource][g.Privilege] = struct{}{}
+		if grantsByResource[g.Resource] == nil {
+			grantsByResource[g.Resource] = make(map[string]struct{})
+			resources = append(resources, g.Resource)
+		}
+
+		grantsByResource[g.Resource][g.Privilege] = struct{}{}
 	}
+	sort.Strings(resources)
 
 	type row struct {
 		Name   string `header:"NAME"`
@@ -56,32 +65,8 @@ func list(cli *CLI) error {
 	}
 
 	var rows []row
-
-	keys := make([]string, 0, len(gs))
-	for k := range gs {
-		if strings.HasPrefix(k, "infra") {
-			continue
-		}
-
-		var exists bool
-		for _, d := range destinations {
-			if strings.HasPrefix(k, d.Name) {
-				exists = true
-				break
-			}
-		}
-
-		if !exists {
-			continue
-		}
-
-		keys = append(keys, k)
-	}
-
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		v, ok := gs[k]
+	for _, k := range resources {
+		v, ok := grantsByResource[k]
 		if !ok {
 			// should not be possible
 			return fmt.Errorf("unexpected value in grants: %s", k)
@@ -105,6 +90,19 @@ func list(cli *CLI) error {
 	}
 
 	return writeKubeconfig(user, destinations, grants)
+}
+
+func destinationForResourceExists(resource string, destinations []api.Destination) bool {
+	for _, d := range destinations {
+		if isResourceForDestination(resource, d.Name) {
+			return true
+		}
+	}
+	return false
+}
+
+func isResourceForDestination(resource string, destination string) bool {
+	return resource == destination || strings.HasPrefix(resource, destination+".")
 }
 
 func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination, []api.Grant, error) {

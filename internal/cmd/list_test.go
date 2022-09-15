@@ -31,6 +31,7 @@ func TestListCmd(t *testing.T) {
 			{User: "admin", Resource: "infra", Role: "admin"},
 			{User: "manygrants@example.com", Resource: "space", Role: "explorer"},
 			{User: "manygrants@example.com", Resource: "moon", Role: "inhabitant"},
+			{User: "manygrants@example.com", Resource: "infra-this-is-not", Role: "view"},
 		},
 	}
 	setupServerOptions(t, &opts)
@@ -57,6 +58,16 @@ func TestListCmd(t *testing.T) {
 		Name:     "moon",
 		Connection: api.DestinationConnection{
 			URL: "http://localhost:10124/",
+			CA:  destinationCA,
+		},
+	})
+	assert.NilError(t, err)
+
+	_, err = c.CreateDestination(&api.CreateDestinationRequest{
+		UniqueID: "maintain",
+		Name:     "infra-this-is-not",
+		Connection: api.DestinationConnection{
+			URL: "http://localhost:10126/",
 			CA:  destinationCA,
 		},
 	})
