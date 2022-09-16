@@ -249,9 +249,9 @@ function Layout({ children }) {
                       {subNavigation.map(item => (
                         <Menu.Item key={item.name}>
                           <NavLink href={item.href}>
-                            <a className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
+                            <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
                               {item.name}
-                            </a>
+                            </p>
                           </NavLink>
                         </Menu.Item>
                       ))}

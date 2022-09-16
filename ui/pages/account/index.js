@@ -136,7 +136,7 @@ export default function Account() {
   const hasInfraProvider = auth?.providerNames.includes('infra')
 
   return (
-    <>
+    <div className='mx-auto w-full max-w-2xl'>
       <Head>
         <title>Account - Infra</title>
       </Head>
@@ -146,7 +146,7 @@ export default function Account() {
           <h2 className='text-md py-2 font-medium text-gray-600'>
             Reset Password
           </h2>
-          <div className='flex max-w-md flex-col space-y-2'>
+          <div className='flex flex-col space-y-2'>
             <PasswordReset
               onReset={() => {
                 setshowNotification(true)
@@ -164,7 +164,7 @@ export default function Account() {
         setShow={setshowNotification}
         text='Password Successfully Reset'
       />
-    </>
+    </div>
   )
 }
 
