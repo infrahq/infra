@@ -28,6 +28,22 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
+export function saveToVisitedOrgs(domain, baseDomain) {
+  const cookies = new Cookies()
+
+  let visitedOrgs = cookies.get('orgs') || []
+  if (!visitedOrgs.find(x => x.url === domain)) {
+    visitedOrgs.push({
+      url: domain,
+    })
+
+    cookies.set('orgs', visitedOrgs, {
+      path: '/',
+      domain: `.${baseDomain}`,
+    })
+  }
+}
+
 export function Providers({ providers }) {
   const router = useRouter()
   const { next } = router.query
@@ -81,7 +97,6 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { baseDomain, isEmailConfigured } = useServerConfig()
-  const cookies = new Cookies()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -114,17 +129,7 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
-      let visitedOrgs = cookies.get('orgs') || []
-
-      if (!visitedOrgs.find(x => x.url === window.location.host)) {
-        visitedOrgs.push({
-          url: window.location.host,
-        })
-      }
-      cookies.set('orgs', visitedOrgs, {
-        path: '/',
-        domain: `.${baseDomain}`,
-      })
+      saveToVisitedOrgs(window.location.host, baseDomain)
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')

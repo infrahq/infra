@@ -4,6 +4,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 
 import Login from '../../components/layouts/login'
 import ErrorMessage from '../../components/error-message'
+import { saveToVisitedOrgs } from '../login'
 
 export default function Signup() {
   const [name, setName] = useState('')
@@ -43,6 +44,7 @@ export default function Signup() {
       let created = await res.json()
 
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
+      saveToVisitedOrgs(`${created?.organization?.domain}`, baseDomain)
     } catch (e) {
       setSubmitted(false)
       if (e.fieldErrors) {

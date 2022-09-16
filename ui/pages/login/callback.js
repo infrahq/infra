@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
-import Cookies from 'universal-cookie'
 
 import { useServerConfig } from '../../lib/serverconfig'
+import { saveToVisitedOrgs } from '.'
 
 import LoginLayout from '../../components/layouts/login'
 
@@ -16,8 +16,6 @@ export default function Callback() {
   const { code, state } = router.query
 
   useEffect(() => {
-    const cookies = new Cookies()
-
     async function login({ providerID, code, redirectURL, next }) {
       await fetch('/api/login', {
         method: 'POST',
@@ -39,17 +37,7 @@ export default function Callback() {
       }
       window.localStorage.removeItem('next')
 
-      let visitedOrgs = cookies.get('orgs') || []
-      if (!visitedOrgs.find(x => x.url === window.location.host)) {
-        visitedOrgs.push({
-          url: window.location.host,
-        })
-
-        cookies.set('orgs', visitedOrgs, {
-          path: '/',
-          domain: `.${baseDomain}`,
-        })
-      }
+      saveToVisitedOrgs(window.location.host, baseDomain)
     }
 
     const providerID = window.localStorage.getItem('providerID')
