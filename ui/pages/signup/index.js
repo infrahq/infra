@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import Cookies from 'universal-cookie'
 
 import { useServerConfig } from '../../lib/serverconfig'
 
 import Login from '../../components/layouts/login'
 import ErrorMessage from '../../components/error-message'
+import { saveToVisitedOrgs } from '../login'
 
 export default function Signup() {
   const [name, setName] = useState('')
@@ -18,7 +18,6 @@ export default function Signup() {
   const [errors, setErrors] = useState({})
 
   const { baseDomain } = useServerConfig()
-  const cookies = new Cookies()
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -55,18 +54,7 @@ export default function Signup() {
       let created = await res.json()
 
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
-      let visitedOrgs = cookies.get('orgs') || []
-      if (
-        !visitedOrgs.find(x => x.url === `${created?.organization?.domain}`)
-      ) {
-        visitedOrgs.push({
-          url: `${created?.organization?.domain}`,
-        })
-      }
-      cookies.set('orgs', visitedOrgs, {
-        path: '/',
-        domain: `.${baseDomain}`,
-      })
+      saveToVisitedOrgs(`${created?.organization?.domain}`, baseDomain)
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}
