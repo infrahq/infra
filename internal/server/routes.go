@@ -215,9 +215,16 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
+		org := getRequestContext(c).Authenticated.Organization
 		if !route.noOrgRequired {
-			if org := getRequestContext(c).Authenticated.Organization; org == nil {
+			if org == nil {
 				return internal.ErrBadRequest
+			}
+		}
+
+		if org != nil {
+			if !a.server.cache.RateOK(org.ID.String(), 5000) {
+				return internal.ErrTooManyRequests
 			}
 		}
 

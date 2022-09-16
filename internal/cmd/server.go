@@ -13,6 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/cache"
 )
 
 func newServerCmd() *cobra.Command {
@@ -105,6 +106,10 @@ func defaultServerOptions(infraDir string) server.Options {
 			MaxOpenConnections: 100,
 			MaxIdleConnections: 100,
 			MaxIdleTimeout:     5 * time.Minute,
+		},
+
+		Cache: cache.Options{
+			Port: 6379,
 		},
 	}
 }

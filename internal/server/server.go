@@ -23,6 +23,7 @@ import (
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
+	"github.com/infrahq/infra/internal/server/cache"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/metrics"
@@ -47,6 +48,10 @@ type Options struct {
 
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
+
+	// Cache contains configuration options to the cache server. Currently
+	// only Redis configuration is supported.
+	Cache cache.Options
 
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string
@@ -108,6 +113,7 @@ type TLSOptions struct {
 type Server struct {
 	options         Options
 	db              *data.DB
+	cache           *cache.Cache
 	tel             *Telemetry
 	secrets         map[string]secrets.SecretStorage
 	keys            map[string]secrets.SymmetricKeyProvider
@@ -165,6 +171,10 @@ func New(options Options) (*Server, error) {
 	}
 	server.db = db
 	server.metricsRegistry = setupMetrics(server.db)
+
+	if cache := cache.NewCache(options.Cache); cache != nil {
+		server.cache = cache
+	}
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)
