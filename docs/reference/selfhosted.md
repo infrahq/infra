@@ -12,35 +12,42 @@ In most ways, self-hosted offers similar features to our Software as a Service o
 
 ## Deploy Infra
 
-Create a `values.yaml` file to define the first user. Update the email address and password accordingly:
+### Create an admin password
+
+First, create a secret for your admin password:
+
+```bash
+kubectl create secret generic infra-admin-credentials \
+--from-literal=INFRA_ADMIN_PASSWORD='SetAPassword!'
+```
+
+Create a `values.yaml` file to define the first user. Update the email address accordingly:
 
 ```yaml
 server:
   config:
     users:
-      - name: admin@example.com
-        password: SetThisPassword!
+      - name: admin@example.com # edit me
+        password: env:INFRA_ADMIN_PASSWORD
 
     # Create a "admin@example.com" user and set a password passed in as a file. The
     # file will need to be mounted into the pod using `volumes` and `volumeMounts`.
     # - name: admin@example.com
     #   password: file:/var/run/secrets/admin@example.com
 
-    # Create an "admin@example.com" user and set a password passed in as an environment
-    # variable. The environment variable will need to be injected into the pod using
-    # `env` or `envFrom`.
-    # - name: admin@example.com
-    #   password: env:ADMIN_PASSWORD
-
     grants:
       - user: admin@example.com
         role: admin
         resource: infra
+
+  envFrom:
+    - secretRef:
+        name: infra-admin-credentials
 ```
 
 {% callout type="info" %}
 
-In this example we are setting a password in plaintext. See the other two commented options or refer to the [Helm Reference](../reference/helm.md) doc to learn more about using secrets in the Helm values file.
+This example shows two ways to use secrets in the values file. You can learn more about the Helm values file in the [Helm Reference](../reference/helm.md).
 
 {% /callout %}
 
@@ -66,11 +73,11 @@ kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['
 
 Depending on where you are hosting your cluster, the creation of the load balancer can take 10 minutes or more by a cloud provider. If you want to leverage an existing load balancer for the server, refer to the [Helm Reference](../reference/helm.md).
 
-Finally, open the endpoint in your browser to get started using the Infra UI. 
+Finally, open the endpoint in your browser to get started using the Infra UI.
 
 ## Connecting clusters
 
-To connect Kubernetes clusters to Infra, see the [Kubernetes connector](../connectors/kubernetes.md) guide.
+To connect Kubernetes clusters to Infra, see the [Kubernetes connector](../manage/connectors/kubernetes.md) guide.
 
 ## Customize your install
 

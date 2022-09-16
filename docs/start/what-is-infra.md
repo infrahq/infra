@@ -32,7 +32,7 @@ Infra is a service for managing secure access to infrastructure such as Kubernet
 
 ### Automatic onboarding & offboarding
 
-Infra includes deep integration with identity providers such as [Okta](../idp/okta.md). Users are automatically onboarded and provided access to the resources they need without having to create additional accounts. Unlike other tooling, Infra continously verifies users' information with upstream identity providers so access is revoked immediately.
+Infra includes deep integration with identity providers such as [Okta](../manage/idp/okta.md). Users are automatically onboarded and provided access to the resources they need without having to create additional accounts. Unlike other tooling, Infra continously verifies users' information with upstream identity providers so access is revoked immediately.
 
 ### Configure access as code
 
@@ -42,7 +42,7 @@ Identity providers, users, groups and more can be entirely defined in code, mean
 
 ### Fine-grained access
 
-Most RBAC or access tooling is _coarse_ grained, meaning users usually receive **admin or nothing** access to infrastructure. With Infra, users or groups can be provided access to specific resources. For more about this see [Working with Roles](../using/roles.md)
+Most RBAC or access tooling is _coarse_ grained, meaning users usually receive **admin or nothing** access to infrastructure. With Infra, users or groups can be provided access to specific resources. For more about this see [Working with Roles](../manage/roles.md)
 
 ### Dynamic or just-in-time access
 
