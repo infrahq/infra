@@ -119,7 +119,9 @@ export default function DestinationDetail() {
       <header className='mt-6 mb-12 flex flex-col justify-between md:flex-row md:items-center'>
         <h1 className='flex truncate py-1 text-xl font-medium'>
           <Link href='/destinations'>
-            <a className='text-gray-500/75 hover:text-gray-600'>Clusters</a>
+            <a className='text-gray-500/75 hover:text-gray-600'>
+              Infrastructure
+            </a>
           </Link>{' '}
           <span className='mx-3 font-light text-gray-400'> / </span>{' '}
           <div className='flex truncate'>

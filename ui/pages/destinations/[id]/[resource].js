@@ -46,7 +46,9 @@ export default function ResourceDetail() {
       <header className='mt-6 mb-12 flex items-center justify-between text-xl'>
         <h1 className='flex py-1 font-medium'>
           <Link href='/destinations'>
-            <a className='text-gray-500/75 hover:text-gray-600'>Clusters</a>
+            <a className='text-gray-500/75 hover:text-gray-600'>
+              Infrastructure
+            </a>
           </Link>{' '}
           <span className='mx-3 font-light text-gray-400'> / </span>{' '}
           <Link href={`/destinations/${destination?.id}`}>
