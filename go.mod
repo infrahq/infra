@@ -38,6 +38,7 @@ require (
 	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.103.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/go-redis/redis_rate/v9 v9.1.2
 	github.com/google/go-cmp v0.5.9
 	github.com/hinshun/vt10x v0.0.0-20220119200601-820417d04eec
 	github.com/iancoleman/strcase v0.2.0

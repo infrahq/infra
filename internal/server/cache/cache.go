@@ -3,9 +3,9 @@ package cache
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-redis/redis/v8"
+	rate "github.com/go-redis/redis_rate/v9"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -44,19 +44,23 @@ func NewCache(options Options) *Cache {
 	}
 }
 
-func (c *Cache) RateOK(key string, limit int64) bool {
+// RateOK checks if the rate per minute is acceptable for the specified key
+func (c *Cache) RateOK(key string, limit int) bool {
 	if c.client != nil {
 		ctx := context.TODO()
-		bucket := time.Now().Round(time.Minute)
-		key := fmt.Sprintf("%s-%v", key, bucket.Unix())
-
-		incr := c.client.Incr(ctx, key)
-		c.client.ExpireAt(ctx, key, bucket.Add(2*time.Minute))
-		if incr.Val() >= limit {
-			c.client.Decr(ctx, key)
-
-			return false
+		limiter := rate.NewLimiter(c.client)
+		result, err := limiter.Allow(ctx, key, rate.PerMinute(limit))
+		if err != nil {
+			panic(err)
 		}
+
+		logging.L.Debug().
+			Int("allowed", result.Allowed).
+			Int("remaining", result.Remaining).
+			Dur("retry_after", result.RetryAfter).
+			Msg("")
+		// TODO: also return result.Remaining and result.RetryAfter so the response headers can be set
+		return result.Allowed > 0
 	}
 
 	return true

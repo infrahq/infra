@@ -223,6 +223,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		if org != nil {
+			// TODO: limit should be a per-organization setting
 			if !a.server.cache.RateOK(org.ID.String(), 5000) {
 				return internal.ErrTooManyRequests
 			}
