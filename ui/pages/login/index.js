@@ -129,7 +129,6 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
-      console.log('1')
       saveToVisitedOrgs(window.location.host, baseDomain)
     } catch (e) {
       console.error(e)
