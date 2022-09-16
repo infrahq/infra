@@ -145,7 +145,7 @@ func Run(ctx context.Context, options Options) error {
 		Name:      "request_duration_seconds",
 		Help:      "A histogram of duration, in seconds, performing HTTP requests.",
 		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-	}, []string{"host", "method", "path", "status", "error"})
+	}, []string{"host", "method", "path", "status"})
 	promRegistry.MustRegister(responseDuration)
 
 	client := &api.Client{
@@ -164,14 +164,13 @@ func Run(ctx context.Context, options Options) error {
 			cancel()
 		},
 		ObserveFunc: func(start time.Time, request *http.Request, response *http.Response, err error) {
-			errorLabel := ""
-			if err != nil {
-				errorLabel = err.Error()
-			}
-
 			statusLabel := ""
 			if response != nil {
 				statusLabel = strconv.Itoa(response.StatusCode)
+			}
+
+			if err != nil {
+				statusLabel = "-1"
 			}
 
 			responseDuration.With(prometheus.Labels{
@@ -179,7 +178,6 @@ func Run(ctx context.Context, options Options) error {
 				"method": request.Method,
 				"path":   request.URL.Path,
 				"status": statusLabel,
-				"error":  errorLabel,
 			}).Observe(time.Since(start).Seconds())
 		},
 	}
