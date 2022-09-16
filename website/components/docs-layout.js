@@ -26,7 +26,7 @@ function Expandable({ expanded, children }) {
   )
 }
 
-function Category({ href, title, empty, items }) {
+function Category({ href, title, items, empty }) {
   const router = useRouter()
   const [expanded, setExpanded] = useState(router.asPath.startsWith(href))
 
@@ -37,21 +37,28 @@ function Category({ href, title, empty, items }) {
   return (
     <ol>
       <div
-        onClick={() => empty && setExpanded(!expanded)}
-        className='relative flex cursor-pointer items-center py-1 font-medium text-gray-700'
+        onClick={() => setExpanded(!expanded)}
+        className='relative flex cursor-pointer items-center py-0.5 font-medium text-gray-700'
       >
-        {empty ? (
-          <span className='flex flex-1 select-none py-1 leading-4'>
-            <ChevronRightIcon className='absolute -left-4 h-3' /> {title}
+        {items && (
+          <span className='flex flex-1 select-none items-center leading-4'>
+            <ChevronRightIcon
+              className={`relative mb-px mr-1 h-3 stroke-[3px] text-gray-400 transition-transform ${
+                expanded ? 'rotate-90' : 'rotate-0'
+              }`}
+            />{' '}
+            {empty ? (
+              <span className='py-2'>{title}</span>
+            ) : (
+              <Page href={href} items={items} title={title} />
+            )}
           </span>
-        ) : (
-          <Page href={href} title={title} />
         )}
       </div>
       <Expandable expanded={expanded}>
         <div className='pb-3'>
           {items?.map(i => (
-            <div key={i.href} className='ml-3 flex'>
+            <div key={i.href} className='ml-5 flex'>
               <NavItem item={i} />
             </div>
           ))}
@@ -149,7 +156,7 @@ export default function DocsLayout({ children, items = [], headings = [] }) {
   return (
     <div className='px-6'>
       <div className='mx-auto flex h-full w-full max-w-7xl flex-col md:flex-row'>
-        <ul className='sticky top-20 hidden min-h-0 flex-none flex-col self-start overflow-y-auto py-8 pr-6 text-sm text-zinc-600 md:flex md:w-48 md:flex-none xl:w-56'>
+        <ul className='sticky top-20 -ml-4 hidden min-h-0 flex-none flex-col self-start overflow-y-auto py-8 pr-6 text-sm text-zinc-600 md:flex md:w-48 md:flex-none xl:w-56'>
           {items.map(i => (
             <NavItem key={i.href} item={i} />
           ))}
