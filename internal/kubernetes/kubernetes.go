@@ -578,6 +578,57 @@ func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Servic
 	return &services.Items[0], nil
 }
 
+func (k *Kubernetes) Nodes() ([]corev1.Node, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return nodes.Items, nil
+}
+
+func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
+	if len(service.Spec.Ports) == 0 {
+		return "", -1, fmt.Errorf("service has no ports")
+	}
+
+	nodePort := int(service.Spec.Ports[0].NodePort)
+
+	nodes, err := k.Nodes()
+	if err != nil {
+		return "", -1, err
+	}
+
+	internalIP := ""
+	for _, node := range nodes {
+		for _, address := range node.Status.Addresses {
+			switch address.Type {
+			case corev1.NodeExternalDNS, corev1.NodeExternalIP:
+				return address.Address, nodePort, nil
+			case corev1.NodeInternalDNS, corev1.NodeInternalIP:
+				// no need to set internalIP more than once
+				if internalIP == "" {
+					internalIP = address.Address
+				}
+			case corev1.NodeHostName:
+				// noop
+			}
+		}
+	}
+
+	if internalIP != "" {
+		logging.Warnf("no node external addresses found, using node internal address %s. this may not work", internalIP)
+		return internalIP, nodePort, nil
+	}
+
+	return "", -1, fmt.Errorf("no node addresses found")
+}
+
 // Find a suitable Endpoint to use by inspecting Service objects
 func (k *Kubernetes) Endpoint() (string, int, error) {
 	labels, err := InstancePodLabels()
@@ -597,7 +648,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 	case corev1.ServiceTypeClusterIP:
 		host = service.Spec.ClusterIP
 	case corev1.ServiceTypeNodePort:
-		fallthrough
+		return k.NodePort(service)
 	case corev1.ServiceTypeLoadBalancer:
 		if len(service.Status.LoadBalancer.Ingress) == 0 {
 			return "", -1, fmt.Errorf("load balancer has no ingress objects")
@@ -609,6 +660,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		if host == "" {
 			host = ingress.IP
 		}
+
 	default:
 		return "", -1, fmt.Errorf("unsupported service type")
 	}
