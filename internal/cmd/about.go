@@ -419,7 +419,7 @@ mainloop:
 		case ev := <-eventQueue:
 			if ev.Type == tm.EventKey {
 				switch {
-				case ev.Key == tm.KeyEsc:
+				case ev.Key == tm.KeyEsc || ev.Key == tm.KeyCtrlC || ev.Ch == 'q':
 					break mainloop
 				case ev.Key == tm.KeyArrowRight:
 					i.angleX += 0.01
