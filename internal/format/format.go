@@ -11,11 +11,22 @@ import (
 // (eg. "About a minute", "4 hours ago", etc.).
 // Modified version of github.com/docker/go-units.HumanDuration
 func HumanDuration(d time.Duration) string {
+	return HumanDurationWithCase(d, true)
+}
+
+// HumanDurationWithCase returns a human-readable approximation of a
+// duration (eg. "About a minute", "4 hours ago", etc.). but allows
+// you to specify whether the first word should be capitalized
+// (eg. "About" vs. "about")
+func HumanDurationWithCase(d time.Duration, useCaps bool) string {
 	seconds := int(d.Seconds())
 
 	switch {
 	case seconds < 1:
-		return "Less than a second"
+		if useCaps {
+			return "Less than a second"
+		}
+		return "less than a second"
 	case seconds == 1:
 		return "1 second"
 	case seconds < 60:
@@ -25,7 +36,10 @@ func HumanDuration(d time.Duration) string {
 	minutes := int(d.Minutes())
 	switch {
 	case minutes == 1:
-		return "About a minute"
+		if useCaps {
+			return "About a minute"
+		}
+		return "about a minute"
 	case minutes < 60:
 		return fmt.Sprintf("%d minutes", minutes)
 	}
@@ -33,7 +47,10 @@ func HumanDuration(d time.Duration) string {
 	hours := int(math.Round(d.Hours()))
 	switch {
 	case hours == 1:
-		return "About an hour"
+		if useCaps {
+			return "About an hour"
+		}
+		return "about an hour"
 	case hours < 48:
 		return fmt.Sprintf("%d hours", hours)
 	case hours < 24*7*2:
@@ -48,15 +65,19 @@ func HumanDuration(d time.Duration) string {
 }
 
 func HumanTime(t time.Time, zeroValue string) string {
+	return HumanTimeWithCase(t, zeroValue, true)
+}
+
+func HumanTimeWithCase(t time.Time, zeroValue string, useCaps bool) string {
 	if t.IsZero() {
 		return zeroValue
 	}
 
 	delta := time.Since(t)
 	if delta < 0 {
-		return HumanDuration(-delta) + " from now"
+		return HumanDurationWithCase(-delta, useCaps) + " from now"
 	}
-	return HumanDuration(delta) + " ago"
+	return HumanDurationWithCase(delta, useCaps) + " ago"
 }
 
 // ExcatDuration returns a human readable hours/minutes/seconds or milliseconds format of a duration
