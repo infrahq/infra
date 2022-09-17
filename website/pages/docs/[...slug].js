@@ -67,6 +67,7 @@ function items() {
     const contents = fs.readFileSync(path.join(rootDir, f), 'utf-8')
     const fm = yaml.load(contents)
     fm.title = fm.title || title(path.basename(path.dirname(f)))
+
     return {
       ...fm,
       href: `/${path.dirname(f)}`,
@@ -280,7 +281,7 @@ export async function getStaticProps({ params }) {
 export async function getStaticPaths() {
   return {
     paths: allitems()
-      .filter(i => !i?.items)
+      .filter(i => !i?.items || !i?.empty)
       .filter(i => !i.link)
       .map(i => i.href),
     fallback: false,
