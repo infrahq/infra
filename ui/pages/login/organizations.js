@@ -28,6 +28,8 @@ export default function Organizations() {
             key={o.url}
             className='my-2 inline-flex w-full items-center justify-between rounded-md border border-gray-300 bg-white py-2.5 px-4 text-xs text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
           >
+            {o.name}
+            <br />
             {o.url}
             <ChevronRightIcon className='ml-2 mt-0.5 h-3 w-3 flex-none stroke-2' />
           </a>

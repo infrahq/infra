@@ -33,6 +33,7 @@ type LoginResult struct {
 	Bearer                   string
 	User                     *models.Identity
 	CredentialUpdateRequired bool
+	OrganizationName         string
 }
 
 func Login(
@@ -73,10 +74,16 @@ func Login(
 		return LoginResult{}, fmt.Errorf("login failed to update last seen: %w", err)
 	}
 
+	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	if err != nil {
+		return LoginResult{}, err
+	}
+
 	return LoginResult{
 		AccessKey:                accessKey,
 		Bearer:                   bearer,
 		User:                     authenticated.Identity,
 		CredentialUpdateRequired: authenticated.CredentialUpdateRequired,
+		OrganizationName:         org.Name,
 	}, nil
 }

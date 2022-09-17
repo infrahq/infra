@@ -17,7 +17,7 @@ export default function Callback() {
 
   useEffect(() => {
     async function login({ providerID, code, redirectURL, next }) {
-      await fetch('/api/login', {
+      const res = await fetch('/api/login', {
         method: 'POST',
         body: JSON.stringify({
           oidc: {
@@ -28,6 +28,11 @@ export default function Callback() {
         }),
       })
 
+      if (!res.ok) {
+        throw await res.json()
+      }
+
+      const data = await res.json()
       await mutate('/api/users/self')
 
       if (next) {
@@ -36,8 +41,7 @@ export default function Callback() {
         router.replace('/')
       }
       window.localStorage.removeItem('next')
-
-      saveToVisitedOrgs(window.location.host, baseDomain)
+      saveToVisitedOrgs(window.location.host, baseDomain, data.organizationName)
     }
 
     const providerID = window.localStorage.getItem('providerID')
@@ -48,7 +52,8 @@ export default function Callback() {
       state === window.localStorage.getItem('state') &&
       code &&
       providerID &&
-      redirectURL
+      redirectURL &&
+      baseDomain
     ) {
       login({
         providerID,

@@ -44,7 +44,7 @@ export default function Signup() {
       let created = await res.json()
 
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
-      saveToVisitedOrgs(`${created?.organization?.domain}`, baseDomain)
+      saveToVisitedOrgs(`${created?.organization?.domain}`, baseDomain, orgName)
     } catch (e) {
       setSubmitted(false)
       if (e.fieldErrors) {
