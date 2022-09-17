@@ -154,7 +154,7 @@ function Layout({ children }) {
     return (
       <>
         <div className='mb-2 flex flex-shrink-0 select-none items-center px-3'>
-          <Link href='/'>
+          <Link href='/destinations'>
             <a>
               <img className='my-2 h-7' src='/logo.svg' alt='Infra' />
             </a>
