@@ -643,7 +643,7 @@ func promptNewServer(cli *CLI) (string, error) {
 		cli.surveyIO,
 		survey.WithValidator(survey.Required),
 	)
-	return server, err
+	return strings.TrimSpace(server), err
 }
 
 func promptServerList(cli *CLI, servers []ClientHostConfig) (string, error) {
