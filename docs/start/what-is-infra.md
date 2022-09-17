@@ -50,4 +50,4 @@ Using Infra's API, access can be granted and revoked on-the-fly for users who ne
 
 ### Multi-cloud access
 
-Infra works on any major cloud provider and doesn't depend on any existing identity & access management system such as AWS, Google Cloud or Azure IAM. For more about this see [Multi Cloud Access](../using/multicloud.md)
+Infra works on any major cloud provider and doesn't depend on any existing identity & access management system such as AWS, Google Cloud or Azure IAM.

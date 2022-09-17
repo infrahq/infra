@@ -41,7 +41,7 @@ Let's start by adding our first cluster. To add a cluster you need to first have
 - Install [helm](https://helm.sh/docs/intro/install/) (v3+)
 - Kubernetes (v1.14+)
 
-Navigate to **Clusters** in your Dashboard. Click the **Connect cluster** button and provide a cluster name. 
+Navigate to **Clusters** in your Dashboard. Click the **Connect cluster** button and provide a cluster name.
 
 You will be given the contents of a **Helm values file**. Either download the file or copy the contents to add to your own values file.
 
@@ -67,7 +67,7 @@ Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup y
 
 {% /callout %}
 
-[Click here to learn more about Adding Clusters](../using/clusters.md).
+[Click here to learn more about Adding Clusters](../manage/connectors/kubernetes.md).
 
 ### Add a User
 
