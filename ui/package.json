@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.2",
-    "@heroicons/react": "^1.0.6",
+    "@heroicons/react": "^2.0.11",
     "@tanstack/react-table": "^8.5.13",
     "copy-to-clipboard": "^3.3.2",
     "dayjs": "^1.11.5",
