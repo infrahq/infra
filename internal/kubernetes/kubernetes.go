@@ -604,16 +604,17 @@ func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
 		return "", -1, err
 	}
 
-	internalIP := ""
+	nodeIP := ""
 	for _, node := range nodes {
 		for _, address := range node.Status.Addresses {
 			switch address.Type {
 			case corev1.NodeExternalDNS, corev1.NodeExternalIP:
+				logging.Debugf("using external node address %s", nodeIP)
 				return address.Address, nodePort, nil
 			case corev1.NodeInternalDNS, corev1.NodeInternalIP:
-				// no need to set internalIP more than once
-				if internalIP == "" {
-					internalIP = address.Address
+				// no need to set nodeIP more than once
+				if nodeIP == "" {
+					nodeIP = address.Address
 				}
 			case corev1.NodeHostName:
 				// noop
@@ -621,12 +622,12 @@ func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
 		}
 	}
 
-	if internalIP != "" {
-		logging.Warnf("no node external addresses found, using node internal address %s. this may not work", internalIP)
-		return internalIP, nodePort, nil
+	if nodeIP == "" {
+		return "", -1, fmt.Errorf("no node addresses found")
 	}
 
-	return "", -1, fmt.Errorf("no node addresses found")
+	logging.Debugf("using internal node address %s", nodeIP)
+	return nodeIP, nodePort, nil
 }
 
 // Find a suitable Endpoint to use by inspecting Service objects
