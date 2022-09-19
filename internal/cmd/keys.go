@@ -71,20 +71,31 @@ $ infra keys add connector
 				return err
 			}
 
-			user, err := getUserByNameOrID(client, userName)
+			config, err := currentHostConfig()
 			if err != nil {
-				if api.ErrorStatusCode(err) == 403 {
-					logging.Debugf("%s", err.Error())
-					return Error{
-						Message: "Cannot create key: missing privileges for getUser",
-					}
-				}
 				return err
+			}
+
+			var userID uid.ID
+			if userName == config.Name { // user is requesting their own stuff
+				userID = config.UserID
+			} else {
+				user, err := getUserByNameOrID(client, userName)
+				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.Debugf("%s", err.Error())
+						return Error{
+							Message: "Cannot list keys: missing privileges for GetUser",
+						}
+					}
+					return err
+				}
+				userID = user.ID
 			}
 
 			logging.Debugf("call server: create access key named %q", options.Name)
 			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
-				UserID:            user.ID,
+				UserID:            userID,
 				Name:              options.Name,
 				TTL:               api.Duration(options.TTL),
 				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
@@ -200,17 +211,26 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			var keys []api.AccessKey
 			var userID uid.ID
 			if options.UserName != "" {
-				user, err := getUserByNameOrID(client, options.UserName)
+				config, err := currentHostConfig()
 				if err != nil {
-					if api.ErrorStatusCode(err) == 403 {
-						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot list keys: missing privileges for GetUser",
-						}
-					}
 					return err
 				}
-				userID = user.ID
+
+				if options.UserName == config.Name { // user is requesting their own stuff
+					userID = config.UserID
+				} else {
+					user, err := getUserByNameOrID(client, options.UserName)
+					if err != nil {
+						if api.ErrorStatusCode(err) == 403 {
+							logging.Debugf("%s", err.Error())
+							return Error{
+								Message: "Cannot list keys: missing privileges for GetUser",
+							}
+						}
+						return err
+					}
+					userID = user.ID
+				}
 			}
 
 			logging.Debugf("call server: list access keys")

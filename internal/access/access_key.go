@@ -11,10 +11,17 @@ import (
 )
 
 func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p *data.Pagination) ([]models.AccessKey, error) {
-	roles := []string{models.InfraAdminRole, models.InfraViewRole}
-	db, err := RequireInfraRole(c, roles...)
-	if err != nil {
-		return nil, HandleAuthErr(err, "access keys", "list", roles...)
+	var db data.GormTxn
+	var err error
+
+	if identityID == GetRequestContext(c).Authenticated.User.ID {
+		db = getDB(c)
+	} else {
+		roles := []string{models.InfraAdminRole, models.InfraViewRole}
+		db, err = RequireInfraRole(c, roles...)
+		if err != nil {
+			return nil, HandleAuthErr(err, "access keys", "list", roles...)
+		}
 	}
 
 	opts := data.ListAccessKeyOptions{
@@ -27,9 +34,15 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
-		return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+	var db data.GormTxn
+
+	if accessKey.IssuedFor == GetRequestContext(c).Authenticated.User.ID {
+		db = getDB(c) // can create access keys for yourself.
+	} else {
+		db, err = RequireInfraRole(c, models.InfraAdminRole)
+		if err != nil {
+			return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+		}
 	}
 
 	if accessKey.ProviderID == 0 {
