@@ -12,14 +12,31 @@ function Expandable({ expanded, children }) {
   const ref = useRef()
   const [height, setHeight] = useState('auto')
 
+  const observer = useRef(
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(entries => {
+          const { height } = entries[0].contentRect
+          setHeight(height)
+        })
+  )
+
   useEffect(() => {
-    setHeight(ref.current?.offsetHeight || 0)
-  }, [])
+    const obs = observer.current
+    const el = ref.current
+    if (el) {
+      obs.observe(el)
+    }
+
+    return () => {
+      obs.unobserve(el)
+    }
+  }, [ref, observer])
 
   return (
     <div
       style={{ height: expanded ? height : 0 }}
-      className='duration-250 overflow-y-hidden transition-[height]'
+      className='overflow-y-hidden'
     >
       <div ref={ref}>{children}</div>
     </div>
@@ -38,7 +55,7 @@ function Category({ href, title, items, empty }) {
     <ol>
       <div
         onClick={() => setExpanded(!expanded)}
-        className='relative flex cursor-pointer items-center py-0.5 font-medium text-gray-700'
+        className='relative ml-4 flex cursor-pointer items-center py-0.5 font-medium text-gray-700'
       >
         {items && (
           <span className='flex flex-1 select-none items-center leading-4'>
@@ -58,7 +75,7 @@ function Category({ href, title, items, empty }) {
       <Expandable expanded={expanded}>
         <div className='pb-3'>
           {items?.map(i => (
-            <div key={i.href} className='ml-5 flex'>
+            <div key={i.href} className='flex'>
               <NavItem item={i} />
             </div>
           ))}
@@ -87,7 +104,7 @@ function Page({ title, href }) {
       <a
         ref={ref}
         target={external ? '_blank' : ''}
-        className={`flex flex-1 select-none py-1.5 leading-none ${
+        className={`ml-8 flex flex-1 select-none py-1.5 leading-none ${
           active ? 'font-medium text-blue-600' : ''
         }`}
       >
