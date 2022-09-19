@@ -157,7 +157,7 @@ export default function ProvidersAddDetails() {
   }
 
   return (
-    <div className='mb-10'>
+    <div className='mx-auto w-full max-w-2xl'>
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
@@ -171,7 +171,7 @@ export default function ProvidersAddDetails() {
         </h1>
       </header>
 
-      <form onSubmit={onSubmit} className='mt-6 max-w-xl space-y-8'>
+      <form onSubmit={onSubmit} className='mt-6 space-y-8'>
         {/* Overview */}
         <div>
           <h3 className='mb-4 text-base font-medium text-gray-900'>Overview</h3>
