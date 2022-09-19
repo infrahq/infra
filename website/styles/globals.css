@@ -8,7 +8,9 @@ body,
   @apply h-full;
   @apply antialiased;
 }
-
+.prose-docs > img {
+  border: 1px solid black;
+}
 .prose-docs {
   @apply prose-headings:tracking-tight;
   @apply prose-h1:mt-10;
@@ -38,8 +40,10 @@ body,
   @apply prose-pre:py-4;
   @apply prose-pre:min-w-full;
   @apply prose-pre:font-medium;
-  @apply prose-img:rounded-lg;
-  @apply prose-img:bg-gray-700/5;
+  /* @apply prose-img:rounded-lg; */
+  /* @apply prose-img:bg-gray-700/5; */
+  /* @apply prose-img:border-2;
+  @apply prose-img:drop-shadow-lg; */
   @apply prose-p:text-gray-800;
   @apply prose-p:leading-relaxed;
   @apply prose-p:before:content-none;
