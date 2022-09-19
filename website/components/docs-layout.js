@@ -55,7 +55,7 @@ function Category({ href, title, items, empty }) {
     <ol>
       <div
         onClick={() => setExpanded(!expanded)}
-        className='relative ml-4 flex cursor-pointer items-center py-0.5 font-medium text-gray-700'
+        className='relative flex cursor-pointer items-center py-0.5 font-medium text-gray-700'
       >
         {items && (
           <span className='flex flex-1 select-none items-center leading-4'>
@@ -73,7 +73,7 @@ function Category({ href, title, items, empty }) {
         )}
       </div>
       <Expandable expanded={expanded}>
-        <div className='pb-3'>
+        <div className='ml-2 pb-3'>
           {items?.map(i => (
             <div key={i.href} className='flex'>
               <NavItem item={i} />
@@ -104,7 +104,7 @@ function Page({ title, href }) {
       <a
         ref={ref}
         target={external ? '_blank' : ''}
-        className={`ml-8 flex flex-1 select-none py-1.5 leading-none ${
+        className={`ml-4 flex flex-1 select-none py-1.5 leading-none ${
           active ? 'font-medium text-blue-600' : ''
         }`}
       >
