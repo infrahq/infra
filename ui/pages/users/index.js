@@ -56,7 +56,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
 
   return (
     <div className='w-full 2xl:m-auto'>
-      <h1 className='font-medium'>Add user</h1>
+      <h1 className='py-1 font-display text-lg font-medium'>Add user</h1>
       <div className='space-y-4'>
         {success ? (
           <div className='flex flex-col'>
@@ -172,7 +172,7 @@ export default function Users() {
 
       {/* Header */}
       <header className='my-6 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>Users</h1>
+        <h1 className='py-1 font-display text-xl font-medium'>Users</h1>
         <button
           onClick={() => setOpen(true)}
           className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'

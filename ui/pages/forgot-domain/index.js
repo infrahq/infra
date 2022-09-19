@@ -34,7 +34,7 @@ export default function ForgotDomain() {
 
   return (
     <div className='flex min-h-[320px] w-full flex-col items-center px-10 py-8'>
-      <h1 className='text-base font-bold leading-snug'>
+      <h1 className='font-display text-xl font-semibold leading-snug'>
         Find your organization
       </h1>
       <h2 className='my-2 text-center text-sm text-gray-500'>

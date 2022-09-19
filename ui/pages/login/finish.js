@@ -70,7 +70,9 @@ export default function Finish() {
 
   return (
     <>
-      <h1 className='mt-4 text-2xl font-bold leading-snug'>Login to Infra</h1>
+      <h1 className='mt-4 font-display text-xl font-semibold leading-snug'>
+        Login to Infra
+      </h1>
       <h2 className='my-2 text-center text-sm text-gray-500'>
         You&apos;ve used a one time password.
         <br />

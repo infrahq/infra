@@ -119,11 +119,13 @@ export default function Settings() {
       </Head>
       <div className='flex flex-1 flex-col'>
         {/* Header */}
-        <h1 className='mb-6 text-xl font-medium'>Settings</h1>
+        <h1 className='mb-6 font-display text-xl font-medium'>Settings</h1>
 
         {/* Infra admins */}
         <div className='mb-3 flex flex-col justify-between'>
-          <h2 className='text-lg font-medium'>Organization Admins</h2>
+          <h2 className='font-display text-lg font-medium'>
+            Organization Admins
+          </h2>
           <p className='mt-1 mb-4 text-xs text-gray-500'>
             These users have full access to this organization and its clusters.
           </p>

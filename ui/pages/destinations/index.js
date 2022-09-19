@@ -30,7 +30,9 @@ export default function Destinations() {
         <title>Infrastructure - Infra</title>
       </Head>
       <header className='my-6 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>Infrastructure</h1>
+        <h1 className='py-1 font-display text-xl font-medium'>
+          Infrastructure
+        </h1>
         {/* Add dialog */}
         {admin && (
           <Link href='/destinations/add'>

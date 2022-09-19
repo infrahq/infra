@@ -140,7 +140,9 @@ export default function Account() {
       <Head>
         <title>Account - Infra</title>
       </Head>
-      <h1 className='my-6 py-1 text-lg font-medium'>Account settings</h1>
+      <h1 className='my-6 py-1 font-display text-lg font-medium'>
+        Account settings
+      </h1>
       {auth && hasInfraProvider && (
         <div className='flex flex-1 flex-col'>
           <h2 className='text-md py-2 font-medium text-gray-600'>

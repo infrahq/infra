@@ -140,7 +140,9 @@ export default function Login() {
 
   return (
     <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
-      <h1 className='mt-4 text-2xl font-bold leading-snug'>Log in</h1>
+      <h1 className='mt-4 font-display text-2xl font-semibold leading-snug'>
+        Log in
+      </h1>
       <h2 className='my-2 text-center text-sm text-gray-500'>
         Welcome back to Infra
       </h2>
