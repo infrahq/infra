@@ -6,13 +6,7 @@ position: 2
 
 Infra is rolling out it's Software as a Service offering which makes it easier than ever to setup infrastructure access for your organization. This page will show you everything you need to do to get started.
 
-## _the tl;dr version_
-
-1. _[Signup to Create a New Organization](#signup-to-create-a-new-organization)_
-2. _[Open Your Infra Dashboard](#open-your-infra-dashboard)_
-3. _[Add a Kubernetes Cluster](#add-a-kubernetes-cluster)_
-4. _[Add a User](#add-a-user)_
-5. _Profit_
+As you scroll down, you will see a lot of text and might think that this is going to be hard. But really there are 5 steps as shown in the Table of Contents to the right. Everything else is just describing what to do just in case you run into any issues.
 
 ## Signup to Create a New Organization
 
