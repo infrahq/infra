@@ -13,6 +13,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import ErrorMessage from '../../components/error-message'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
@@ -126,9 +127,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                     error ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {error && (
-                  <p className='absolute text-xs text-red-500'>{error}</p>
-                )}
+                {error && <ErrorMessage message={error} />}
               </div>
             </div>
             <div className='flex flex-row items-center justify-end space-x-3'>
@@ -141,9 +140,9 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
               </button>
               <button
                 type='submit'
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2.5 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
               >
-                Add User
+                Add
               </button>
             </div>
           </form>
