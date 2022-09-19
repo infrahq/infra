@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"time"
 
 	"github.com/ssoroka/slice"
 
@@ -39,6 +40,9 @@ type Client struct {
 	// OnUnauthorized is a callback hook for the client to get notified of a 401 Unauthorized response to any query.
 	// This is useful as clients often need to discard expired access keys.
 	OnUnauthorized func()
+
+	// ObserveFunc is a callback to measure and record the status and duration of the request
+	ObserveFunc func(time.Time, *http.Request, *http.Response, error)
 }
 
 // checkError checks the resp for an error code, and returns an api.Error with
@@ -110,10 +114,17 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 		req.Header[k] = v
 	}
 
+	start := time.Now()
 	resp, err := client.HTTP.Do(req)
+
+	if client.ObserveFunc != nil {
+		client.ObserveFunc(start, req, resp, err)
+	}
+
 	if resp != nil && resp.StatusCode == 401 && client.OnUnauthorized != nil {
 		defer client.OnUnauthorized()
 	}
+
 	if err != nil {
 		if connError := HandleConnError(err); connError != nil {
 			return nil, connError
