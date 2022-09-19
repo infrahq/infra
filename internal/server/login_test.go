@@ -87,6 +87,7 @@ func TestAPI_Login(t *testing.T) {
 					UserID:                 user.ID,
 					Name:                   "steve",
 					AccessKey:              "<any-string>",
+					OrganizationName:       "Default",
 					PasswordUpdateRequired: false,
 					Expires:                api.Time(time.Now().UTC().Add(srv.options.SessionDuration)),
 				}
@@ -148,6 +149,7 @@ func TestAPI_Login(t *testing.T) {
 					UserID:                 user.ID,
 					Name:                   "steve",
 					AccessKey:              "<any-string>",
+					OrganizationName:       "Default",
 					PasswordUpdateRequired: true,
 					Expires:                api.Time(time.Now().UTC().Add(srv.options.SessionDuration)),
 				}
