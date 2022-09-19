@@ -1,7 +1,8 @@
 ---
-title: Quick Start
+title: Quickstart
 position: 2
 ---
+# Quickstart
 
 Infra is rolling out it's Software as a Service offering which makes it easier than ever to setup infrastructure access for your organization. This page will show you everything you need to do to get started.
 
@@ -32,7 +33,7 @@ Now we need to do two things:
 - Add User(s)
 - Add Cluster(s)
 
-[Click here to learn more about the Infra Dashboard](../using/dashboard.md).
+[Learn more about the Infra Dashboard](../using/dashboard.md).
 
 ### Add a Kubernetes Cluster
 
@@ -67,7 +68,7 @@ Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup y
 
 {% /callout %}
 
-[Click here to learn more about Adding Clusters](../manage/connectors/kubernetes.md).
+[Learn more about Adding Clusters](../manage/connectors/kubernetes.md).
 
 ### Add a User
 
@@ -81,7 +82,7 @@ If you want to see your own roles in this list, refer to the [Using Roles](../ma
 
 {% /callout %}
 
-[Click here to learn more about Adding Users](../manage/users.md).
+[Learn more about Adding Users](../manage/users.md).
 
 Consider adding your organization's Identity Provider, such as [Okta](../manage/idp/okta) or Azure AD or Google.
 

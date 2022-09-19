@@ -22,6 +22,6 @@ kubectl get pods
 
 The first command is what you will use most of the time. The second command simply chooses your context from your `kubeconfig` file. You could just as easily use `kubectl config use-context <your cluster name>`. And then the third command represents anything you might do with your cluster.
 
-## It looks simple, so why do we need it?
+## It doesn't look any different than what I had before. Do I really need Infra?
 
 As an end-user, it may not be obvious what Infra is doing. When you login using the `infra login` command, your `kubeconfig` file is updated with the clusters, users, and contexts you are allowed to access as defined by your administrator. If you take a look at that file, you will see whatever was in there before, plus some additional entries added by `infra`. Behind the scenes, **Infra** is checking that you still should have access with each command you run. As soon as access is revoked for whatever reason, you won't be able to run commands against your cluster anymore. Similarly, if your access is increased, perhaps to deal with an incident, you will see that elevated access instantly.

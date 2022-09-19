@@ -34,8 +34,7 @@ Next, use this access key to connect your cluster:
 helm upgrade --install infra-connector infrahq/infra \
     --set connector.config.server=INFRA_SERVER_HOSTNAME \
     --set connector.config.accessKey=ACCESS_KEY \
-    --set connector.config.name=example-cluster-name \
-    --set connector.config.skipTLSVerify=true # only include if you have not yet configured certificates
+    --set connector.config.name=example-cluster-name
 ```
 
 {% /tab %}
@@ -43,4 +42,4 @@ helm upgrade --install infra-connector infrahq/infra \
 
 For more control over the Connector install, review the [Helm Reference](../../reference/helm.md).
 
-Once you've connected a cluster, you can grant access via `infra grants add` or using the Dashboard. For more about [Grants in Infra, click here](../grants.md).
+Once you've connected a cluster, you can grant access via `infra grants add` or using the Dashboard. [Learn more about Grants in Infra](../grants.md).

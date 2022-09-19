@@ -5,7 +5,7 @@ position: 3
 
 # Working with Roles
 
-Roles are granted to users in Infra to give that user a certain level of access to a cluster or namespace. [To learn more about Granting Roles to Users, click here](grants.md).
+Roles are granted to users in Infra to give that user a certain level of access to a cluster or namespace. [Learn more about Granting Roles to Users](grants.md).
 
 Roles supported by a connector are defined only in the context of the connected cluster. Infra supports the following roles by default:
 

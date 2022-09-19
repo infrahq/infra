@@ -1,7 +1,9 @@
 ---
-title: Self Hosted Infra
+title: Self-hosted Infra
 position: 5
 ---
+
+# Self-hosted Infra
 
 In most ways, self-hosted offers similar features to our Software as a Service offering. In fact, the main difference is that you host the "Server" on your own Kubernetes cluster. This document will show you how to install that server. Since the rest of the product is the same in the SaaS model and Self Hosted, you can refer to the rest of the documentation for everything else.
 
