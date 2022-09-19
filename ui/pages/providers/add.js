@@ -162,7 +162,7 @@ export default function ProvidersAddDetails() {
         <title>Add Identity Provider - {kind}</title>
       </Head>
       <header className='my-6 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>
+        <h1 className='py-1 font-display text-xl font-medium'>
           <Link href='/providers'>
             <a className='text-gray-500/75 hover:text-gray-600'>Providers</a>
           </Link>{' '}

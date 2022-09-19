@@ -17,7 +17,9 @@ export default function Organizations() {
 
   return (
     <div className='flex min-h-[280px] w-full flex-col items-center px-10 py-10'>
-      <h1 className='text-base font-bold leading-snug'>Log in to Infra</h1>
+      <h1 className='font-display text-xl font-semibold leading-snug'>
+        Log in to Infra
+      </h1>
       <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
         Choose an organization to log in to.
       </h2>

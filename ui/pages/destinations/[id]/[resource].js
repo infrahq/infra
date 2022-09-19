@@ -44,7 +44,7 @@ export default function ResourceDetail() {
         <title>{resource} - Infra</title>
       </Head>
       <header className='mt-6 mb-12 flex items-center justify-between text-xl'>
-        <h1 className='flex py-1 font-medium'>
+        <h1 className='flex py-1 font-display font-medium'>
           <Link href='/destinations'>
             <a className='text-gray-500/75 hover:text-gray-600'>
               Infrastructure

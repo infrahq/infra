@@ -17,3 +17,24 @@ input[type='search']::-webkit-search-decoration,
 input[type='search']::-webkit-search-cancel-button {
   -webkit-appearance: none;
 }
+
+@font-face {
+  font-family: 'sans';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/sans.ttf) format('truetype-variations');
+}
+
+@font-face {
+  font-family: 'display';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/display.ttf) format('truetype-variations');
+}
+
+@font-face {
+  font-family: 'mono';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/mono.ttf) format('truetype-variations');
+}

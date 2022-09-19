@@ -44,7 +44,7 @@ function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
 
   return (
     <div className='w-full 2xl:m-auto'>
-      <h1 className='py-1 text-lg font-medium'>Add group</h1>
+      <h1 className='py-1 font-display text-lg font-medium'>Add group</h1>
       <form className='my-2 flex flex-col' onSubmit={onSubmit}>
         <label className='text-2xs font-medium text-gray-700'>Name</label>
         <div className='relative mb-4'>
@@ -97,7 +97,7 @@ export default function Groups() {
       </Head>
 
       <header className='my-6 flex items-center justify-between'>
-        <h1 className='py-1 text-xl font-medium'>Groups</h1>
+        <h1 className='py-1 font-display text-xl font-medium'>Groups</h1>
         {/* Add dialog */}
         <button
           onClick={() => setOpen(true)}

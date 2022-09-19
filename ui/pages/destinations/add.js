@@ -115,7 +115,9 @@ export default function DestinationsAdd() {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <h1 className='my-6 py-1 text-xl font-medium'>Connect Cluster</h1>
+      <h1 className='my-6 py-1 font-display text-xl font-medium'>
+        Connect Cluster
+      </h1>
       <div className='flex w-full flex-col'>
         {/* Name form */}
         <form
