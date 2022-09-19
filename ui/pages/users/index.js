@@ -56,7 +56,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
 
   return (
     <div className='w-full 2xl:m-auto'>
-      <h1 className='font-medium'>Add user</h1>
+      <h1 className='py-1 font-display text-lg font-medium'>Add user</h1>
       <div className='space-y-4'>
         {success ? (
           <div className='flex flex-col'>
