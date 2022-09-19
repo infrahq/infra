@@ -38,17 +38,6 @@ module.exports = {
       ...[
         '/docs/getting-started/introduction',
         '/docs/getting-started/what-is-infra',
-      ].map(source => {
-        return {
-          source,
-          destination: '/docs/start/what-is-infra',
-          permanent: true,
-        }
-      }),
-
-      ...[
-        '/docs/getting-started/introduction',
-        '/docs/getting-started/what-is-infra',
         '/docs/getting-started/key-concepts',
         '/docs/reference/how-infra-works',
       ].map(source => {
@@ -58,7 +47,21 @@ module.exports = {
           permanent: true,
         }
       }),
-
+      {
+        source: '/docs/getting-started/quickstart',
+        destination: '/docs/getting-started/deploy',
+        permanent: true,
+      },
+      ...[
+        '/docs/getting-started/quickstart',
+        '/docs/getting-started/deploy',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/start/quickstart',
+          permanent: true,
+        }
+      }),
       ...[
         '/docs/install/configure/encryption',
         '/docs/reference/helm-reference#encryption',
@@ -121,11 +124,7 @@ module.exports = {
         destination: '/docs/reference/how-infra-works',
         permanent: true,
       },
-      {
-        source: '/docs/getting-started/quickstart',
-        destination: '/docs/getting-started/deploy',
-        permanent: true,
-      },
+
       {
         source: '/docs/install/install-on-kubernetes',
         destination: '/docs/getting-started/deploy',
