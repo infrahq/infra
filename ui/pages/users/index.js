@@ -63,13 +63,13 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
           <div className='flex flex-col'>
             {isEmailConfigured ? (
               <h2 className='mt-5 text-sm'>
-                User invited. The user has been emailed a link inviting them to
+                User added. The user has been emailed a link inviting them to
                 join.
               </h2>
             ) : (
               <div>
                 <h2 className='mt-5 text-sm'>
-                  User invited. Send the user this temporary password for their
+                  User added. Send the user this temporary password for their
                   initial login. This password will not be shown again.
                 </h2>
                 <div className='mt-6 flex flex-col space-y-3'>
@@ -176,7 +176,7 @@ export default function Users() {
           onClick={() => setOpen(true)}
           className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
         >
-          Invite user
+          Add user
         </button>
 
         {/* Add dialog */}
