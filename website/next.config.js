@@ -47,14 +47,11 @@ module.exports = {
           permanent: true,
         }
       }),
-      {
-        source: '/docs/getting-started/quickstart',
-        destination: '/docs/getting-started/deploy',
-        permanent: true,
-      },
+
       ...[
         '/docs/getting-started/quickstart',
         '/docs/getting-started/deploy',
+        '/docs/install/install-on-kubernetes',
       ].map(source => {
         return {
           source,
@@ -62,6 +59,7 @@ module.exports = {
           permanent: true,
         }
       }),
+
       ...[
         '/docs/install/configure/encryption',
         '/docs/reference/helm-reference#encryption',
@@ -83,6 +81,29 @@ module.exports = {
           permanent: true,
         }
       }),
+
+      ...[
+        '/docs/getting-started/key-concepts',
+        '/docs/reference/how-infra-works',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/reference/architecture',
+          permanent: true,
+        }
+      }),
+
+      ...[
+        '/docs/install/install-infra-cli',
+        '/docs/getting-started/install-infra-cli',
+      ].map(source => {
+        return {
+          source,
+          destination: '/docs/reference/cli',
+          permanent: true,
+        }
+      }),
+
       ...[
         '/docs/install/configure/secrets',
         '/docs/reference/helm-reference#secrets',
@@ -102,6 +123,16 @@ module.exports = {
         }
       }),
 
+      ...['/docs/install/upgrade', '/docs/getting-started/upgrade'].map(
+        source => {
+          return {
+            source,
+            destination: '/docs/start/upgrade',
+            permanent: true,
+          }
+        }
+      ),
+
       {
         source: '/docs/install/configure/custom-domain',
         destination: '/docs',
@@ -118,27 +149,6 @@ module.exports = {
         destination:
           'https://infrahq.notion.site/Privacy-Policy-1b320c4f95904f9a83931d01a326a10b',
         permanent: false,
-      },
-      {
-        source: '/docs/getting-started/key-concepts',
-        destination: '/docs/reference/how-infra-works',
-        permanent: true,
-      },
-
-      {
-        source: '/docs/install/install-on-kubernetes',
-        destination: '/docs/getting-started/deploy',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/install-infra-cli',
-        destination: '/docs/getting-started/install-infra-cli',
-        permanent: true,
-      },
-      {
-        source: '/docs/install/upgrade',
-        destination: '/docs/getting-started/upgrade',
-        permanent: true,
       },
     ]
   },
