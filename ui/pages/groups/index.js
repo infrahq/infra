@@ -45,39 +45,43 @@ function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
   return (
     <div className='w-full 2xl:m-auto'>
       <h1 className='py-1 font-display text-lg font-medium'>Add group</h1>
-      <form className='my-2 flex flex-col' onSubmit={onSubmit}>
-        <label className='text-2xs font-medium text-gray-700'>Name</label>
-        <div className='relative mb-4'>
-          <input
-            name='name'
-            required
-            autoFocus
-            spellCheck='false'
-            type='search'
-            value={name}
-            onChange={e => setName(e.target.value)}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              error ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {error && <ErrorMessage message={error} />}
-        </div>
-        <div className='space-x-2 self-end'>
-          <button
-            type='button'
-            onClick={() => setOpen(false)}
-            className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
-          >
-            Cancel
-          </button>
-          <button
-            disabled={submitting}
-            className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
-          >
-            Add group
-          </button>
-        </div>
-      </form>
+      <div className='space-y-4'>
+        <form className='flex flex-col space-y-4' onSubmit={onSubmit}>
+          <div className='mb-4 flex flex-col'>
+            <div className='relative mt-4'>
+              <label className='text-2xs font-medium text-gray-700'>Name</label>
+              <input
+                name='name'
+                required
+                autoFocus
+                spellCheck='false'
+                type='search'
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  error ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {error && <ErrorMessage message={error} />}
+            </div>
+          </div>
+          <div className='flex flex-row items-center justify-end space-x-3'>
+            <button
+              type='button'
+              onClick={() => setOpen(false)}
+              className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+            >
+              Cancel
+            </button>
+            <button
+              disabled={submitting}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+            >
+              Add
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

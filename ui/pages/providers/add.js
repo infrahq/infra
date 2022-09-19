@@ -49,7 +49,7 @@ export default function ProvidersAddDetails() {
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [name, setName] = useState(kind)
+  const [name, setName] = useState(kind === 'azure' ? 'active directory' : kind)
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
@@ -183,7 +183,7 @@ export default function ProvidersAddDetails() {
                     key={p.name}
                     onClick={() => {
                       setKind(p.kind)
-                      setName(p.kind)
+                      setName(p.kind === 'azure' ? 'active directory' : p.kind)
                       router.replace(`/providers/add?type=${p.kind}`)
                     }}
                   >

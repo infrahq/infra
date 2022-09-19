@@ -13,6 +13,7 @@ import { useServerConfig } from '../../lib/serverconfig'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import ErrorMessage from '../../components/error-message'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
@@ -62,13 +63,13 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
           <div className='flex flex-col'>
             {isEmailConfigured ? (
               <h2 className='mt-5 text-sm'>
-                User added. The user has been emailed a link inviting them to
+                User invited. The user has been emailed a link inviting them to
                 join.
               </h2>
             ) : (
               <div>
                 <h2 className='mt-5 text-sm'>
-                  User added. Send the user this temporary password for their
+                  User invited. Send the user this temporary password for their
                   initial login. This password will not be shown again.
                 </h2>
                 <div className='mt-6 flex flex-col space-y-3'>
@@ -126,9 +127,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                     error ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {error && (
-                  <p className='absolute text-xs text-red-500'>{error}</p>
-                )}
+                {error && <ErrorMessage message={error} />}
               </div>
             </div>
             <div className='flex flex-row items-center justify-end space-x-3'>
@@ -141,9 +140,9 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
               </button>
               <button
                 type='submit'
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2.5 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
               >
-                Add User
+                Add
               </button>
             </div>
           </form>
@@ -177,7 +176,7 @@ export default function Users() {
           onClick={() => setOpen(true)}
           className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
         >
-          Add user
+          Invite user
         </button>
 
         {/* Add dialog */}
