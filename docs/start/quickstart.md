@@ -2,73 +2,56 @@
 title: Quickstart
 position: 2
 ---
+
 # Quickstart
 
-Infra is rolling out it's Software as a Service offering which makes it easier than ever to setup infrastructure access for your organization. This page will show you everything you need to do to get started.
-
-As you scroll down, you will see a lot of text and might think that this is going to be hard. But really there are 5 steps as shown in the Table of Contents to the right. Everything else is just describing what to do just in case you run into any issues.
-
-## Signup to Create a New Organization
+## 1) Signup to Create a New Organization
 
 {% callout type="info" %}
 
-We are slowly rolling out our SaaS product. If you are interested in onboarding before we open it up completely, let us know. Until then you can [install the self-hosted version of the Infra Server](../reference/selfhosted.md).
+We are rolling out our SaaS product. If you are interested in onboarding before we open it up completely, let us know. Until then you can [install the self-hosted version of the Infra Server](../reference/selfhosted.md).
 
 {% /callout %}
 
-## Open Your Infra Dashboard
+## 2) Open Your Infra Dashboard
 
 After signing up for Infra, you should be automatically redirected to your Infra Dashboard. Be sure to also confirm your email address when you receive your introductory email.
 
 ![Open your Dashboard](../images/quickstart-opendashboard.png)
 
-Now we need to do two things:
-
-- Add User(s)
-- Add Cluster(s)
-
 [Learn more about the Infra Dashboard](../using/dashboard.md).
 
-### Add a Kubernetes Cluster
+## 3) Add a Kubernetes Cluster
 
-Let's start by adding our first cluster. To add a cluster you need to first have two prerequisites:
+Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already installed.
 
-- Install [helm](https://helm.sh/docs/intro/install/) (v3+)
-- Kubernetes (v1.14+)
+1. Navigate to **Clusters** in your Dashboard.
+2. Click the **Connect cluster** button and provide a cluster name.
 
-Navigate to **Clusters** in your Dashboard. Click the **Connect cluster** button and provide a cluster name.
+   You will be given the contents of a **Helm values file**. Either download the file or copy the contents to add to your own values file.
 
-You will be given the contents of a **Helm values file**. Either download the file or copy the contents to add to your own values file.
+3. Then run this set of commands to install the Infra Helm repo:
 
-Then run this set of commands to install the Infra Helm repo:
+   ```
+   helm repo add infrahq https://helm.infrahq.com
+   helm repo update
+   ```
 
-```
-helm repo add infrahq https://helm.infrahq.com
-helm repo update
-```
-
-Finally, run the command shown in the UI to install the connector. If you save the values file as something other than `values.yaml` you will need to change that part of the command.
-
-{% callout type="info" %}
-
-Note: it may take a few minutes for the LoadBalancer to be provisioned.
-
-If your load balancer does not have a hostname (often true for GKE and AKS clusters), Infra will not be able to automatically create a TLS certificate for the server. On GKE you can use the hostname `<LoadBalancer IP>.bc.googleusercontent.com`.
-
-Otherwise you'll need to configure the LoadBalancer with a static IP and hostname (see
-[GKE docs](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip), or
-[AKS docs](https://docs.microsoft.com/en-us/azure/aks/static-ip#create-a-static-ip-address)).
-Alternatively you can use the `--skip-tls-verify` with `infra login`, or setup your own TLS certificates for Infra.
-
-{% /callout %}
+4. Finally, run the command shown in the UI to install the connector. If you save the values file as something other than `values.yaml` you will need to change that part of the command.
 
 [Learn more about Adding Clusters](../manage/connectors/kubernetes.md).
 
-### Add a User
+## 4) Add a User
 
-Navigate to Users in the Dashboard. Click the **+ User** button and enter the email of the user you wish to add. They will receive an email which will allow them to set their password and login to Infra.
+1. Navigate to **Users** in the Dashboard.
+2. Click the **+ User** button and enter the email of the user you wish to add.
 
-Navigate back to **Clusters** and choose the cluster you added above. On the right side of the window, choose your user and select a role to assign to that user. Alternatively, you can click the plus sign next to the cluster name to see a list of namespaces and then click on one of the namespaces. Now if you choose a user and role, you will be setting access for just that namespace rather than the entire cluster.
+   They will receive an email which will allow them to set their password and login to Infra.
+
+3. Navigate back to **Clusters** and choose the cluster you added above.
+4. On the right side of the window, choose your user and select a role to assign to that user.
+
+   Alternatively, you can click the plus sign next to the cluster name to see a list of namespaces and then click on one of the namespaces. Now if you choose a user and role, you will be setting access for just that namespace rather than the entire cluster.
 
 {% callout type="info" %}
 
@@ -80,7 +63,7 @@ If you want to see your own roles in this list, refer to the [Using Roles](../ma
 
 Consider adding your organization's Identity Provider, such as [Okta](../manage/idp/okta) or Azure AD or Google.
 
-## Install the CLI
+## 5) Install the CLI
 
 The last step to actually signin to a cluster is to install the CLI. You can find the instructions to do this for your Operating System on the [Install Infra CLI page](install-infra-cli.md).
 
