@@ -32,7 +32,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
     "@types/node": "^18.7.18",
-    "@types/react": "18.0.19",
+    "@types/react": "18.0.20",
     "autoprefixer": "^10.4.11",
     "concurrently": "^7.4.0",
     "eslint": "^8.23.1",
