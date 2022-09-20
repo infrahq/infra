@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -224,7 +225,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 
 		if org != nil {
 			// TODO: limit should be a per-organization setting
-			if !a.server.cache.RateOK(org.ID.String(), 5000) {
+			if !redis.RateOK(a.server.redis, org.ID.String(), 5000) {
 				return internal.ErrTooManyRequests
 			}
 		}

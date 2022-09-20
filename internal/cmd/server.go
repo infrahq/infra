@@ -13,7 +13,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/cache"
+	"github.com/infrahq/infra/internal/server/redis"
 )
 
 func newServerCmd() *cobra.Command {
@@ -108,7 +108,7 @@ func defaultServerOptions(infraDir string) server.Options {
 			MaxIdleTimeout:     5 * time.Minute,
 		},
 
-		Cache: cache.Options{
+		Redis: redis.Options{
 			Port: 6379,
 		},
 	}
