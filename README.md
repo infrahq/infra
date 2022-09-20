@@ -25,21 +25,22 @@ Infra manages access to infrastructure such as Kubernetes, with support for [mor
 
 ## Connectors
 
-| Connector          | Status        | Documentation                                                 |
-| ------------------ | ------------- | ------------------------------------------------------------- |
-| Kubernetes         | ✅ Available  | [Get started](https://infrahq.com/docs/connectors/kubernetes) |
-| Postgres           | _Coming soon_ | _Coming soon_                                                 |
-| SSH                | _Coming soon_ | _Coming soon_                                                 |
-| AWS                | _Coming soon_ | _Coming soon_                                                 |
-| Container Registry | _Coming soon_ | _Coming soon_                                                 |
-| MongoDB            | _Coming soon_ | _Coming soon_                                                 |
-| Snowflake          | _Coming soon_ | _Coming soon_                                                 |
-| MySQL              | _Coming soon_ | _Coming soon_                                                 |
-| RDP                | _Coming soon_ | _Coming soon_                                                 |
+| Connector          | Status        | Documentation                                                        |
+| ------------------ | ------------- | -------------------------------------------------------------------- |
+| Kubernetes         | ✅ Available  | [Get started](https://infrahq.com/docs/manage/connectors/kubernetes) |
+| Postgres           | _Coming soon_ | _Coming soon_                                                        |
+| SSH                | _Coming soon_ | _Coming soon_                                                        |
+| AWS                | _Coming soon_ | _Coming soon_                                                        |
+| Container Registry | _Coming soon_ | _Coming soon_                                                        |
+| MongoDB            | _Coming soon_ | _Coming soon_                                                        |
+| Snowflake          | _Coming soon_ | _Coming soon_                                                        |
+| MySQL              | _Coming soon_ | _Coming soon_                                                        |
+| RDP                | _Coming soon_ | _Coming soon_                                                        |
 
 ## Documentation
 
 - [Deploy Infra](https://infrahq.com/docs/getting-started/deploy)
+- [Install Infra CLI](https://infrahq.com/docs/start/install-infra-cli)
 - [Helm Chart Reference](https://infrahq.com/docs/reference/helm-reference)
 - [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
 - [Architecture](https://infrahq.com/docs/reference/architecture)
