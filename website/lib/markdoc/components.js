@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import Image from 'next/future/image'
 import Link from '../../components/link'
 import Heading from '../../components/heading'
 import Code from '../../components/code'
