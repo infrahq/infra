@@ -54,7 +54,6 @@ export const config = {
         alt: { type: String },
         width: { type: Number },
         height: { type: Number },
-        layout: { type: String },
       },
       transform(node, config) {
         const attributes = node.transformAttributes(config)

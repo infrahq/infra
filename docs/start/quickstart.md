@@ -5,7 +5,7 @@ position: 2
 
 # Quickstart
 
-## 1) Signup to Create a New Organization
+## 1. Signup to Create a New Organization
 
 {% callout type="info" %}
 
@@ -13,7 +13,7 @@ We are rolling out our SaaS product. If you are interested in onboarding before 
 
 {% /callout %}
 
-## 2) Open Your Infra Dashboard
+## 2. Open Your Infra Dashboard
 
 After signing up for Infra, you should be automatically redirected to your Infra Dashboard. Be sure to also confirm your email address when you receive your introductory email.
 
@@ -21,7 +21,7 @@ After signing up for Infra, you should be automatically redirected to your Infra
 
 [Learn more about the Infra Dashboard](../using/dashboard.md).
 
-## 3) Add a Kubernetes Cluster
+## 3. Add a Kubernetes Cluster
 
 Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already installed.
 
@@ -41,7 +41,7 @@ Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already ins
 
 [Learn more about Adding Clusters](../manage/connectors/kubernetes.md).
 
-## 4) Add a User
+## 4. Add a User
 
 1. Navigate to **Users** in the Dashboard.
 2. Click the **+ User** button and enter the email of the user you wish to add.
@@ -63,7 +63,7 @@ If you want to see your own roles in this list, refer to the [Using Roles](../ma
 
 Consider adding your organization's Identity Provider, such as [Okta](../manage/idp/okta) or Azure AD or Google.
 
-## 5) Install the CLI
+## 5. Install the CLI
 
 The last step to actually signin to a cluster is to install the CLI. You can find the instructions to do this for your Operating System on the [Install Infra CLI page](install-infra-cli.md).
 
