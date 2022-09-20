@@ -141,7 +141,13 @@ function Layout({ children }) {
     },
   ]
 
-  const subNavigation = [{ name: 'Account', href: '/account' }]
+  const subNavigation = [
+    {
+      name: 'Account',
+      href: '/account',
+      show: auth?.providerNames.includes('infra'),
+    },
+  ]
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
@@ -245,17 +251,21 @@ function Layout({ children }) {
                         {auth?.name}
                       </p>
                     </div>
-                    <div className='py-1'>
-                      {subNavigation.map(item => (
-                        <Menu.Item key={item.name}>
-                          <NavLink href={item.href}>
-                            <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
-                              {item.name}
-                            </p>
-                          </NavLink>
-                        </Menu.Item>
-                      ))}
-                    </div>
+                    {subNavigation?.filter(n => n.show === true).length > 0 && (
+                      <div className='py-1'>
+                        {subNavigation
+                          ?.filter(n => n.show === true)
+                          .map(item => (
+                            <Menu.Item key={item.name}>
+                              <NavLink href={item.href}>
+                                <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
+                                  {item.name}
+                                </p>
+                              </NavLink>
+                            </Menu.Item>
+                          ))}
+                      </div>
+                    )}
                     <div className='py-1'>
                       <Menu.Item>
                         <button
