@@ -251,10 +251,10 @@ function Layout({ children }) {
                         {auth?.name}
                       </p>
                     </div>
-                    {subNavigation?.filter(n => n.show === true).length > 0 && (
+                    {subNavigation?.filter(n => n.show).length > 0 && (
                       <div className='py-1'>
                         {subNavigation
-                          ?.filter(n => n.show === true)
+                          ?.filter(n => n.show)
                           .map(item => (
                             <Menu.Item key={item.name}>
                               <NavLink href={item.href}>
