@@ -171,6 +171,12 @@ func New(options Options) (*Server, error) {
 	server.db = db
 	server.metricsRegistry = setupMetrics(server.db)
 
+	redisPassword, err := secrets.GetSecret(options.Redis.Password, server.secrets)
+	if err != nil {
+		return nil, fmt.Errorf("redis: %w", err)
+	}
+
+	options.Redis.Password = redisPassword
 	if redis := redis.NewRedis(options.Redis); redis != nil {
 		server.redis = redis
 	}

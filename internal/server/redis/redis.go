@@ -31,7 +31,6 @@ func NewRedis(options Options) *Redis {
 		}
 
 		redisOptions.Username = options.Username
-		// TODO: read password as a secret
 		redisOptions.Password = options.Password
 
 		client = redis.NewClient(redisOptions)
