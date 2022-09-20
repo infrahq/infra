@@ -40,6 +40,17 @@ func version(cli *CLI) error {
 		return nil
 	}
 
+	config, err := currentHostConfig()
+	if err != nil {
+		return err
+	}
+
+	// Don't bother printing the server version for SaaS
+	if strings.HasSuffix(config.Host, ".infrahq.com") {
+		fmt.Fprintln(w)
+		return nil
+	}
+
 	version, err := client.GetServerVersion()
 	if err != nil {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
