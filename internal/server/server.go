@@ -177,9 +177,11 @@ func New(options Options) (*Server, error) {
 	}
 
 	options.Redis.Password = redisPassword
-	if redis := redis.NewRedis(options.Redis); redis != nil {
-		server.redis = redis
+	redis, err := redis.NewRedis(options.Redis)
+	if err != nil {
+		return nil, err
 	}
+	server.redis = redis
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)

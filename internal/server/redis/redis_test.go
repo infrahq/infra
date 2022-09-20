@@ -19,14 +19,21 @@ func TestRedis(t *testing.T) {
 		return redis, host, port
 	}
 
+	t.Run("error", func(t *testing.T) {
+		_, err := NewRedis(Options{Host: "myhost", Options: "bad"})
+		assert.ErrorContains(t, err, "invalid redis options")
+	})
+
 	t.Run("no redis", func(t *testing.T) {
-		redis := NewRedis(Options{})
+		redis, err := NewRedis(Options{})
+		assert.NilError(t, err)
 		assert.Assert(t, redis.client == nil)
 	})
 
 	t.Run("with host port", func(t *testing.T) {
 		_, host, port := setup(t)
-		redis := NewRedis(Options{Host: host, Port: port})
+		redis, err := NewRedis(Options{Host: host, Port: port})
+		assert.NilError(t, err)
 		assert.Assert(t, redis.client != nil)
 
 		pong, err := redis.client.Ping(context.TODO()).Result()
@@ -41,13 +48,15 @@ func TestRedis(t *testing.T) {
 			srv.RequireAuth("")
 		})
 
-		nopass := NewRedis(Options{Host: host, Port: port})
+		nopass, err := NewRedis(Options{Host: host, Port: port})
+		assert.NilError(t, err)
 		assert.Assert(t, nopass.client != nil)
 
-		_, err := nopass.client.Ping(context.TODO()).Result()
+		_, err = nopass.client.Ping(context.TODO()).Result()
 		assert.ErrorContains(t, err, "NOAUTH Authentication required.")
 
-		redis := NewRedis(Options{Host: host, Port: port, Password: "mypassword"})
+		redis, err := NewRedis(Options{Host: host, Port: port, Password: "mypassword"})
+		assert.NilError(t, err)
 		assert.Assert(t, redis.client != nil)
 
 		pong, err := redis.client.Ping(context.TODO()).Result()
@@ -62,19 +71,22 @@ func TestRedis(t *testing.T) {
 			srv.RequireUserAuth("myuser", "")
 		})
 
-		nouserpass := NewRedis(Options{Host: host, Port: port})
+		nouserpass, err := NewRedis(Options{Host: host, Port: port})
+		assert.NilError(t, err)
 		assert.Assert(t, nouserpass.client != nil)
 
-		_, err := nouserpass.client.Ping(context.TODO()).Result()
+		_, err = nouserpass.client.Ping(context.TODO()).Result()
 		assert.ErrorContains(t, err, "NOAUTH Authentication required.")
 
-		nopass := NewRedis(Options{Host: host, Port: port, Username: "myuser"})
+		nopass, err := NewRedis(Options{Host: host, Port: port, Username: "myuser"})
+		assert.NilError(t, err)
 		assert.Assert(t, nopass.client != nil)
 
 		_, err = nopass.client.Ping(context.TODO()).Result()
 		assert.ErrorContains(t, err, "NOAUTH Authentication required.")
 
-		redis := NewRedis(Options{Host: host, Port: port, Username: "myuser", Password: "mypassword"})
+		redis, err := NewRedis(Options{Host: host, Port: port, Username: "myuser", Password: "mypassword"})
+		assert.NilError(t, err)
 		assert.Assert(t, redis.client != nil)
 
 		pong, err := redis.client.Ping(context.TODO()).Result()
@@ -84,7 +96,8 @@ func TestRedis(t *testing.T) {
 
 	t.Run("with db", func(t *testing.T) {
 		srv, host, port := setup(t)
-		redis := NewRedis(Options{Host: host, Port: port, Options: "db=1"})
+		redis, err := NewRedis(Options{Host: host, Port: port, Options: "db=1"})
+		assert.NilError(t, err)
 		assert.Assert(t, redis.client != nil)
 
 		set := redis.client.Set(context.TODO(), "foo", "bar", time.Minute)

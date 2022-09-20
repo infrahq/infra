@@ -11,14 +11,14 @@ import (
 
 func TestRateOK(t *testing.T) {
 	setup := func(t *testing.T) (*miniredis.Miniredis, *Redis) {
-		redis := miniredis.RunT(t)
-		port, err := strconv.Atoi(redis.Port())
+		srv := miniredis.RunT(t)
+		port, err := strconv.Atoi(srv.Port())
 		assert.NilError(t, err)
 
-		return redis, NewRedis(Options{
-			Host: redis.Host(),
-			Port: port,
-		})
+		redis, err := NewRedis(Options{Host: srv.Host(), Port: port})
+		assert.NilError(t, err)
+
+		return srv, redis
 	}
 
 	t.Run("under limit", func(t *testing.T) {

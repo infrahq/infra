@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
-
-	"github.com/infrahq/infra/internal/logging"
 )
 
 type Redis struct {
@@ -20,14 +18,13 @@ type Options struct {
 	Options  string
 }
 
-func NewRedis(options Options) *Redis {
+func NewRedis(options Options) (*Redis, error) {
 	var client *redis.Client
 
 	if len(options.Host) > 0 {
 		redisOptions, err := redis.ParseURL(fmt.Sprintf("redis://%s:%d?%s", options.Host, options.Port, options.Options))
 		if err != nil {
-			logging.Warnf("invalid redis options: %#v", options)
-			return nil
+			return nil, fmt.Errorf("invalid redis options: %v", options)
 		}
 
 		redisOptions.Username = options.Username
@@ -36,7 +33,5 @@ func NewRedis(options Options) *Redis {
 		client = redis.NewClient(redisOptions)
 	}
 
-	return &Redis{
-		client: client,
-	}
+	return &Redis{client: client}, nil
 }
