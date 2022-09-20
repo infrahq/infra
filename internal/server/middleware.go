@@ -173,7 +173,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		return u, err
 	}
 
-	accessKey, err := data.ValidateAccessKey(db, bearer)
+	accessKey, err := data.ValidateRequestAccessKey(db, bearer)
 	if err != nil {
 		if errors.Is(err, data.ErrAccessKeyExpired) {
 			return u, err

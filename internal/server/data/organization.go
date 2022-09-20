@@ -9,6 +9,9 @@ import (
 
 // CreateOrganization creates a new organization and sets the current db context to execute on this org
 func CreateOrganization(tx GormTxn, org *models.Organization) error {
+	if org.Name == "" {
+		return fmt.Errorf("Organization.Name is required")
+	}
 	err := add(tx, org)
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)

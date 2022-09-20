@@ -41,20 +41,21 @@ func secretChecksum(secret string) []byte {
 	return chksm[:]
 }
 
-func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
+func validateAccessKey(accessKey *models.AccessKey) error {
 	switch {
 	case accessKey.IssuedFor == 0:
-		return "", fmt.Errorf("issusedFor is required")
+		return fmt.Errorf("issusedFor is required")
 	case accessKey.ProviderID == 0:
-		return "", fmt.Errorf("providerID is required")
+		return fmt.Errorf("providerID is required")
+	case len(accessKey.KeyID) != models.AccessKeyKeyLength:
+		return fmt.Errorf("invalid key length")
 	}
+	return nil
+}
 
+func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
 	if accessKey.KeyID == "" {
 		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
-	}
-
-	if len(accessKey.KeyID) != models.AccessKeyKeyLength {
-		return "", fmt.Errorf("invalid key length")
 	}
 
 	if accessKey.Secret == "" {
@@ -65,7 +66,6 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 
 		accessKey.Secret = secret
 	}
-
 	if len(accessKey.Secret) != models.AccessKeySecretLength {
 		return "", fmt.Errorf("invalid secret length")
 	}
@@ -90,6 +90,10 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 		accessKey.Name = fmt.Sprintf("%s-%s", identityIssuedFor.Name, accessKey.ID.String())
 	}
 
+	if err := validateAccessKey(accessKey); err != nil {
+		return "", err
+	}
+
 	if err := insert(db, (*accessKeyTable)(accessKey)); err != nil {
 		return "", err
 	}
@@ -101,7 +105,9 @@ func UpdateAccessKey(tx WriteTxn, key *models.AccessKey) error {
 	if key.Secret != "" {
 		key.SecretChecksum = secretChecksum(key.Secret)
 	}
-	// TODO: we should perform the same validation as Create
+	if err := validateAccessKey(key); err != nil {
+		return err
+	}
 
 	return update(tx, (*accessKeyTable)(key))
 }
@@ -213,7 +219,7 @@ func DeleteAccessKeys(tx WriteTxn, opts DeleteAccessKeysOptions) error {
 }
 
 // TODO: move this to access package?
-func ValidateAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, error) {
+func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, error) {
 	keyID, secret, ok := strings.Cut(authnKey, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid access key format")
