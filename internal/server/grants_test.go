@@ -20,7 +20,7 @@ import (
 )
 
 func TestAPI_ListGrants(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
 	createID := func(t *testing.T, name string) uid.ID {
@@ -101,6 +101,8 @@ func TestAPI_ListGrants(t *testing.T) {
 	admin, err := data.GetIdentity(srv.DB(), data.ByName("admin@example.com"))
 	assert.NilError(t, err)
 
+	otherOrg := createOtherOrg(t, srv.db)
+
 	type testCase struct {
 		urlPath  string
 		setup    func(t *testing.T, req *http.Request)
@@ -149,6 +151,16 @@ func TestAPI_ListGrants(t *testing.T) {
 			urlPath: "/api/grants?resource=res1",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		"not authorized, admin for wrong org": {
+			urlPath: "/api/grants?resource=res1",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = "example.com"
+				req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 			},
 		},
 		"authorized by grant": {
@@ -604,7 +616,7 @@ var cmpAPIGrantJSON = gocmp.Options{
 }
 
 func TestAPI_CreateGrant(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
 	accessKey, err := data.ValidateAccessKey(srv.DB(), adminAccessKey(srv))
@@ -634,6 +646,8 @@ func TestAPI_CreateGrant(t *testing.T) {
 
 	supportAccessKeyStr, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
+
+	otherOrg := createOtherOrg(t, srv.db)
 
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
@@ -676,6 +690,20 @@ func TestAPI_CreateGrant(t *testing.T) {
 					{FieldName: "resource", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		"admin for wrong domain": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Host = "example.com"
+				req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
+			},
+			body: api.CreateGrantRequest{
+				User:      someUser.ID,
+				Privilege: models.InfraAdminRole,
+				Resource:  "some-cluster",
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 			},
 		},
 		"success": {
@@ -765,13 +793,15 @@ func TestAPI_CreateGrant(t *testing.T) {
 }
 
 func TestAPI_DeleteGrant(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
 	user := &models.Identity{Name: "non-admin"}
 
 	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
+
+	otherOrg := createOtherOrg(t, srv.db)
 
 	t.Run("last infra admin is deleted", func(t *testing.T) {
 		infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
@@ -783,6 +813,24 @@ func TestAPI_DeleteGrant(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants[0].ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+	})
+	t.Run("admin for wrong organization", func(t *testing.T) {
+		grant := &models.Grant{
+			Subject:   uid.NewIdentityPolymorphicID(user.ID),
+			Privilege: models.InfraViewRole,
+			Resource:  "something",
+		}
+		err := data.CreateGrant(srv.DB(), grant)
+		assert.NilError(t, err)
+
+		req := httptest.NewRequest(http.MethodDelete, "/api/grants/"+grant.ID.String(), nil)
+		req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
