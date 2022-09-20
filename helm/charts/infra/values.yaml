@@ -780,6 +780,14 @@ connector:
   ## No effect unless `autoscaling.enabled` is `false`
   replicas: 1
 
+  ## Create default cluster roles to assign with Infra
+  defaultRoles:
+    create: true
+    roles:
+      exec: true
+      logs: true
+      portForward: true
+
   ## Infra connector image configurations
   image:
     ## The image repository to use for the connector deployment

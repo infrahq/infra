@@ -37,44 +37,7 @@ rules:
       - watch
       - bind
       - escalate
-{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "logs") }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: logs
-  labels:
-{{- include "connector.clusterRoleLabels" . | nindent 4 }}
-rules:
-  - apiGroups: [""]
-    resources:
-      - pods
-    verbs:
-      - get
-      - list
-  - apiGroups:
-      - batch
-    resources:
-      - jobs
-    verbs:
-      - get
-  - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - replicasets
-      - statefulsets
-      - daemonsets
-    verbs:
-      - get
-  - apiGroups: [""]
-    resources:
-      - pods/log
-    verbs:
-      - get
-      - watch
-{{- end }}
-{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "exec") }}
+{{- if and .Values.connector.defaultRoles.create .Values.connector.defaultRoles.roles.exec }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -111,7 +74,44 @@ rules:
       - get
       - create
 {{- end }}
-{{- if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRole" "" "port-forward") }}
+{{- if and .Values.connector.defaultRoles.create .Values.connector.defaultRoles.roles.logs }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: logs
+  labels:
+{{- include "connector.clusterRoleLabels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - get
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs:
+      - get
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    verbs:
+      - get
+      - watch
+{{- end }}
+{{- if and .Values.connector.defaultRoles.create .Values.connector.defaultRoles.roles.portForward }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
