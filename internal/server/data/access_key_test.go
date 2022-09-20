@@ -57,7 +57,7 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(tx, key.KeyID)
+			fromDB, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: key.KeyID})
 			assert.NilError(t, err)
 
 			// fromDB should not have the secret value
@@ -87,7 +87,7 @@ func TestCreateAccessKey(t *testing.T) {
 			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
 
 			// check that we can fetch the same value from the db
-			fromDB, err := GetAccessKey(tx, key.KeyID)
+			fromDB, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: key.KeyID})
 			assert.NilError(t, err)
 			// fromDB should not have the secret value
 			key.Secret = ""
@@ -548,7 +548,7 @@ func TestUpdateAccessKey(t *testing.T) {
 		err = UpdateAccessKey(tx, orig)
 		assert.NilError(t, err)
 
-		actual, err := GetAccessKey(tx, orig.KeyID)
+		actual, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: orig.KeyID})
 		assert.NilError(t, err)
 
 		expected := key()
@@ -583,7 +583,7 @@ func TestGetAccessKey(t *testing.T) {
 		createAccessKeys(t, db, ak, other)
 
 		t.Run("found", func(t *testing.T) {
-			actual, err := GetAccessKey(db, ak.KeyID)
+			actual, err := GetAccessKey(db, GetAccessKeysOptions{ByKeyID: ak.KeyID})
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
@@ -591,7 +591,7 @@ func TestGetAccessKey(t *testing.T) {
 		})
 
 		t.Run("not found", func(t *testing.T) {
-			_, err := GetAccessKey(db, "not-this-key-id")
+			_, err := GetAccessKey(db, GetAccessKeysOptions{ByKeyID: "not-this-key-id"})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 
@@ -599,7 +599,7 @@ func TestGetAccessKey(t *testing.T) {
 			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByID: ak.ID})
 			assert.NilError(t, err)
 
-			_, err = GetAccessKey(db, ak.KeyID)
+			_, err = GetAccessKey(db, GetAccessKeysOptions{ByKeyID: ak.KeyID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 	})

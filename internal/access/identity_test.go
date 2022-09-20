@@ -95,7 +95,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	_, err = data.GetIdentity(db, data.ByID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
-	_, err = data.GetAccessKey(db, keyID)
+	_, err = data.GetAccessKey(db, data.GetAccessKeysOptions{ByKeyID: keyID})
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
 	_, err = data.GetCredential(db, data.ByIdentityID(identity.ID))

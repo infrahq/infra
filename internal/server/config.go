@@ -975,25 +975,27 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 		return fmt.Errorf("invalid access key format")
 	}
 
-	accessKey, err := data.GetAccessKey(db, keyID)
+	accessKey, err := data.GetAccessKey(db, data.GetAccessKeysOptions{ByKeyID: keyID})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err
 		}
+
+		provider := data.InfraProvider(db)
 
 		accessKey := &models.AccessKey{
 			IssuedFor:  identity.ID,
 			ExpiresAt:  time.Now().AddDate(10, 0, 0),
 			KeyID:      keyID,
 			Secret:     secret,
-			ProviderID: data.InfraProvider(db).ID,
+			ProviderID: provider.ID,
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {
 			return err
 		}
 
-		if _, err := data.CreateProviderUser(db, data.InfraProvider(db), identity); err != nil {
+		if _, err := data.CreateProviderUser(db, provider, identity); err != nil {
 			return err
 		}
 
