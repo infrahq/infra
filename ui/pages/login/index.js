@@ -131,7 +131,11 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
-      saveToVisitedOrgs(window.location.host, baseDomain, data?.organizationName)
+      saveToVisitedOrgs(
+        window.location.host,
+        baseDomain,
+        data?.organizationName
+      )
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')

@@ -41,7 +41,11 @@ export default function Callback() {
         router.replace('/')
       }
       window.localStorage.removeItem('next')
-      saveToVisitedOrgs(window.location.host, baseDomain, data?.organizationName)
+      saveToVisitedOrgs(
+        window.location.host,
+        baseDomain,
+        data?.organizationName
+      )
     }
 
     const providerID = window.localStorage.getItem('providerID')
