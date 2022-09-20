@@ -1,7 +1,6 @@
-import { useState, createContext, useEffect, useRef } from 'react'
+import { createContext, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 
-// Individual tabs
 export const TabContext = createContext()
 
 export function useTabGroups() {
@@ -36,13 +35,9 @@ export function useTabGroups() {
 
 export default function Tabs({ labels, children, group = 'default' }) {
   const [groups, setGroups] = useTabGroups()
-  const [currentTab, setCurrentTab] = useState(groups?.[group] || labels[0])
+  const currentTab = groups?.[group] || labels[0]
   const tabsRef = useRef({})
   const activeRef = useRef(null)
-
-  useEffect(() => {
-    setCurrentTab(groups?.[group] || currentTab)
-  }, [groups, group, currentTab])
 
   useEffect(() => {
     function resize() {
@@ -60,7 +55,7 @@ export default function Tabs({ labels, children, group = 'default' }) {
     return () => {
       window.removeEventListener('resize', resize)
     }
-  }, [currentTab, labels, setCurrentTab])
+  }, [currentTab, labels])
 
   return (
     <TabContext.Provider value={currentTab}>
@@ -68,7 +63,7 @@ export default function Tabs({ labels, children, group = 'default' }) {
         <div
           ref={activeRef}
           className={`absolute h-4 w-4 rounded-lg bg-blue-600/5 ${
-            activeRef.current ? 'transition-all' : ''
+            activeRef.current && groups?.[group] ? 'transition-all' : ''
           }`}
         ></div>
         {labels.map(label => (
@@ -81,7 +76,6 @@ export default function Tabs({ labels, children, group = 'default' }) {
                 : 'text-gray-500 hover:text-gray-800'
             } rounded-lg px-7 py-1.5 text-sm font-medium leading-loose transition-colors`}
             onClick={() => {
-              setCurrentTab(label)
               setGroups({ ...groups, [group || 'default']: label })
             }}
           >
