@@ -23,40 +23,40 @@ func TestRateOK(t *testing.T) {
 
 	t.Run("under limit", func(t *testing.T) {
 		_, redis := setup(t)
-		ok := RateOK(redis, "key1", 1)
-		assert.Assert(t, ok)
+		err := RateOK(redis, "key1", 1)
+		assert.NilError(t, err)
 	})
 
 	t.Run("over limit", func(t *testing.T) {
 		_, redis := setup(t)
 
-		ok := RateOK(redis, "key1", 1)
-		assert.Assert(t, ok)
+		err := RateOK(redis, "key1", 1)
+		assert.NilError(t, err)
 
-		nok := RateOK(redis, "key1", 1)
-		assert.Assert(t, !nok)
+		err = RateOK(redis, "key1", 1)
+		assert.ErrorContains(t, err, "over limit")
 	})
 
 	t.Run("limit reset after 1 minute", func(t *testing.T) {
 		srv, redis := setup(t)
 
-		ok := RateOK(redis, "key1", 1)
-		assert.Assert(t, ok)
+		err := RateOK(redis, "key1", 1)
+		assert.NilError(t, err)
 
-		nok := RateOK(redis, "key1", 1)
-		assert.Assert(t, !nok)
+		err = RateOK(redis, "key1", 1)
+		assert.ErrorContains(t, err, "over limit")
 
 		srv.FastForward(time.Minute)
-		ok = RateOK(redis, "key1", 1)
-		assert.Assert(t, ok)
+		err = RateOK(redis, "key1", 1)
+		assert.NilError(t, err)
 	})
 
 	t.Run("consistently under limit", func(t *testing.T) {
 		srv, redis := setup(t)
 
 		for i := 0; i < 20; i++ {
-			ok := RateOK(redis, "key1", 10)
-			assert.Assert(t, ok)
+			err := RateOK(redis, "key1", 10)
+			assert.NilError(t, err)
 			srv.FastForward(6 * time.Second)
 		}
 	})
@@ -66,11 +66,11 @@ func TestRateOK(t *testing.T) {
 
 		keys := []string{"key1", "key2", "key3"}
 		for _, key := range keys {
-			ok := RateOK(redis, key, 1)
-			assert.Assert(t, ok)
+			err := RateOK(redis, key, 1)
+			assert.NilError(t, err)
 
-			nok := RateOK(redis, key, 1)
-			assert.Assert(t, !nok)
+			err = RateOK(redis, key, 1)
+			assert.ErrorContains(t, err, "over limit")
 		}
 	})
 }

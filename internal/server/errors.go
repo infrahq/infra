@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -15,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/validate"
 )
 
@@ -30,6 +32,7 @@ func sendAPIError(c *gin.Context, err error) {
 	var validationError validate.Error
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
+	var overLimitError redis.OverLimitError
 
 	log := logging.L.Debug()
 
@@ -97,7 +100,8 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusBadGateway
 		resp.Message = err.Error()
 
-	case errors.Is(err, internal.ErrTooManyRequests):
+	case errors.As(err, &overLimitError):
+		c.Header("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
 		resp.Code = http.StatusTooManyRequests
 		resp.Message = err.Error()
 
