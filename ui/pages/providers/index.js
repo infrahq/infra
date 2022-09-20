@@ -64,11 +64,13 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div className='hidden lg:table-cell'>
+              <div className='truncate'>
                 {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
               </div>
             ),
-            header: () => <span className='hidden lg:table-cell'>Added</span>,
+            header: () => (
+              <span className='hidden truncate lg:table-cell'>Added</span>
+            ),
             accessorKey: 'created',
           },
           {
