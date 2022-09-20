@@ -26,13 +26,16 @@ module.exports = {
         destination: '/docs/start/what-is-infra',
         permanent: true,
       },
-
       ...[
         '/docs/guides/identity-providers/:slug*',
         '/docs/configuration/identity-providers/:slug*',
         '/docs/identity-providers/:slug*',
       ].map(source => {
-        return { source, destination: '/docs/idp/:slug*', permanent: true }
+        return {
+          source,
+          destination: '/docs/manage/idp/:slug*',
+          permanent: true,
+        }
       }),
 
       ...[
@@ -59,7 +62,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...[
         '/docs/install/configure/encryption',
         '/docs/reference/helm-reference#encryption',
@@ -70,7 +72,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...[
         '/docs/install/configure/postgres',
         '/docs/reference/helm-reference#postgres-database',
@@ -81,7 +82,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...[
         '/docs/getting-started/key-concepts',
         '/docs/reference/how-infra-works',
@@ -92,7 +92,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...[
         '/docs/install/install-infra-cli',
         '/docs/getting-started/install-infra-cli',
@@ -103,7 +102,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...[
         '/docs/install/configure/secrets',
         '/docs/reference/helm-reference#secrets',
@@ -114,7 +112,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...['/docs/guides/:slug*', '/docs/configuration/:slug*'].map(source => {
         return {
           source,
@@ -122,7 +119,6 @@ module.exports = {
           permanent: true,
         }
       }),
-
       ...['/docs/install/upgrade', '/docs/getting-started/upgrade'].map(
         source => {
           return {
@@ -132,7 +128,6 @@ module.exports = {
           }
         }
       ),
-
       {
         source: '/docs/install/configure/custom-domain',
         destination: '/docs',
