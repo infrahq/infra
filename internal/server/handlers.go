@@ -234,6 +234,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		AccessKey:              result.Bearer,
 		Expires:                api.Time(key.ExpiresAt),
 		PasswordUpdateRequired: result.CredentialUpdateRequired,
+		OrganizationName:       result.OrganizationName,
 	}, nil
 }
 

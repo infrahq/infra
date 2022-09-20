@@ -28,13 +28,15 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
-export function saveToVisitedOrgs(domain, baseDomain) {
+export function saveToVisitedOrgs(domain, baseDomain, orgName) {
   const cookies = new Cookies()
 
   let visitedOrgs = cookies.get('orgs') || []
+
   if (!visitedOrgs.find(x => x.url === domain)) {
     visitedOrgs.push({
       url: domain,
+      name: orgName,
     })
 
     cookies.set('orgs', visitedOrgs, {
@@ -129,7 +131,11 @@ export default function Login() {
 
       await mutate('/api/users/self')
       router.replace('/')
-      saveToVisitedOrgs(window.location.host, baseDomain)
+      saveToVisitedOrgs(
+        window.location.host,
+        baseDomain,
+        data?.organizationName
+      )
     } catch (e) {
       console.error(e)
       setError('Invalid credentials')
