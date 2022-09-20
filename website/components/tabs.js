@@ -1,18 +1,57 @@
 import { useState, createContext, useEffect, useRef } from 'react'
+import { useRouter } from 'next/router'
 
+// Individual tabs
 export const TabContext = createContext()
 
-export default function Tabs({ labels, children }) {
-  const [currentTab, setCurrentTab] = useState(labels[0])
+export function useTabGroups() {
+  const router = useRouter()
+
+  const groups = {}
+
+  for (const [k, v] of Object.entries(router.query)) {
+    if (k.startsWith('group')) {
+      groups[k.replace('group-', '')] = v
+    }
+  }
+
+  function setGroups(groups = {}) {
+    const query = {}
+    for (const [k, v] of Object.entries(groups)) {
+      query[`group-${k}`] = v
+    }
+
+    router.push(
+      {
+        pathname: router.pathname,
+        query: { ...router.query, ...query },
+      },
+      undefined,
+      { shallow: true }
+    )
+  }
+
+  return [groups, setGroups]
+}
+
+export default function Tabs({ labels, children, group = 'default' }) {
+  const [groups, setGroups] = useTabGroups()
+  const [currentTab, setCurrentTab] = useState(groups?.[group] || labels[0])
   const tabsRef = useRef({})
   const activeRef = useRef(null)
 
   useEffect(() => {
+    setCurrentTab(groups?.[group] || currentTab)
+  }, [groups, group, currentTab])
+
+  useEffect(() => {
     function resize() {
-      const tabElement = tabsRef.current[currentTab]
-      activeRef.current.style.transform = `translateX(${tabElement.offsetLeft}px) translateY(${tabElement.offsetTop}px)`
-      activeRef.current.style.width = `${tabElement.offsetWidth}px`
-      activeRef.current.style.height = `${tabElement.offsetHeight}px`
+      const tabElement = tabsRef.current?.[currentTab]
+      if (tabElement && activeRef.current) {
+        activeRef.current.style.transform = `translateX(${tabElement.offsetLeft}px) translateY(${tabElement.offsetTop}px)`
+        activeRef.current.style.width = `${tabElement.offsetWidth}px`
+        activeRef.current.style.height = `${tabElement.offsetHeight}px`
+      }
     }
 
     resize()
@@ -21,7 +60,7 @@ export default function Tabs({ labels, children }) {
     return () => {
       window.removeEventListener('resize', resize)
     }
-  }, [currentTab])
+  }, [currentTab, labels, setCurrentTab])
 
   return (
     <TabContext.Provider value={currentTab}>
@@ -41,7 +80,10 @@ export default function Tabs({ labels, children }) {
                 ? ' text-blue-700 hover:text-blue-700'
                 : 'text-gray-500 hover:text-gray-800'
             } rounded-lg px-7 py-1.5 text-sm font-medium leading-loose transition-colors`}
-            onClick={() => setCurrentTab(label)}
+            onClick={() => {
+              setCurrentTab(label)
+              setGroups({ ...groups, [group || 'default']: label })
+            }}
           >
             {label}
           </button>

@@ -100,7 +100,11 @@ export const config = {
   tags: {
     tabs: {
       render: 'Tabs',
-      attributes: {},
+      attributes: {
+        group: {
+          type: String,
+        },
+      },
       transform(node, config) {
         const tabs = node
           .transformChildren(config)
@@ -110,7 +114,7 @@ export const config = {
           typeof tab === 'object' ? tab.attributes.label : null
         )
 
-        return new Tag(this.render, { labels }, tabs)
+        return new Tag(this.render, { ...node.attributes, labels }, tabs)
       },
     },
     tab: {
