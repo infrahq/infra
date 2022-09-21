@@ -12,6 +12,13 @@ PERFORM pg_notify('grants_by_resource_' || NEW.resource, '');
 RETURN NULL;
 END; $$;
 
+CREATE FUNCTION listen_on_chan(chan text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    EXECUTE format('LISTEN %I', chan);
+END; $$;
+
 CREATE FUNCTION uidinttostr(id bigint) RETURNS text
     LANGUAGE plpgsql
     AS $$
