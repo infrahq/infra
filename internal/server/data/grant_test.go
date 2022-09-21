@@ -1,10 +1,12 @@
 package data
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
+	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
@@ -78,6 +80,32 @@ func TestCreateGrant(t *testing.T) {
 			// check that unique constraint needs all three fields
 			err = CreateGrant(tx, &g3)
 			assert.NilError(t, err)
+		})
+		t.Run("notify", func(t *testing.T) {
+			sqlDB := db.SQLdb()
+			pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
+			assert.NilError(t, err)
+			defer pgxstdlib.ReleaseConn(sqlDB, pgxConn)
+
+			ctx := context.Background()
+			_, err = pgxConn.Exec(ctx, "LISTEN grants_by_resource_match")
+			assert.NilError(t, err)
+
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			g := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "match",
+			}
+			err = CreateGrant(tx, &g)
+			assert.NilError(t, err)
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			notification, err := pgxConn.WaitForNotification(ctx)
+			assert.NilError(t, err)
+			assert.Equal(t, notification.Channel, "grants_by_resource_match")
 		})
 	})
 }
@@ -167,6 +195,34 @@ func TestDeleteGrants(t *testing.T) {
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
 			startUpdateIndex = maxIndex
+		})
+		t.Run("notify", func(t *testing.T) {
+			g := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "match",
+			}
+			assert.NilError(t, CreateGrant(db, &g))
+
+			sqlDB := db.SQLdb()
+			pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
+			assert.NilError(t, err)
+			defer pgxstdlib.ReleaseConn(sqlDB, pgxConn)
+
+			ctx := context.Background()
+			_, err = pgxConn.Exec(ctx, "LISTEN grants_by_resource_match")
+			assert.NilError(t, err)
+
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: "i:1234567"})
+			assert.NilError(t, err)
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			defer cancel()
+			notification, err := pgxConn.WaitForNotification(ctx)
+			assert.NilError(t, err)
+			assert.Equal(t, notification.Channel, "grants_by_resource_match")
 		})
 	})
 }
