@@ -1,14 +1,36 @@
 package data
 
 import (
+	"fmt"
+	"time"
+
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func CreateGroup(db GormTxn, group *models.Group) error {
-	return add(db, group)
+type groupsTable models.Group
+
+func (g groupsTable) Table() string {
+	return "groups"
+}
+
+func (g groupsTable) Columns() []string {
+	return []string{"created_at", "created_by", "created_by_provider", "deleted_at", "id", "name", "organization_id", "updated_at"}
+}
+
+func (g groupsTable) Values() []any {
+	return []any{g.CreatedAt, g.CreatedBy, g.CreatedByProvider, g.DeletedAt, g.ID, g.Name, g.OrganizationID, g.UpdatedAt}
+}
+
+func (g *groupsTable) ScanFields() []any {
+	return []any{&g.CreatedAt, &g.CreatedBy, &g.CreatedByProvider, &g.DeletedAt, &g.ID, &g.Name, &g.OrganizationID, &g.UpdatedAt}
+}
+
+func CreateGroup(tx WriteTxn, group *models.Group) error {
+	return insert(tx, (*groupsTable)(group))
 }
 
 func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
@@ -71,59 +93,49 @@ func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
 	return result, rows.Err()
 }
 
-func DeleteGroups(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := ListGroups(db, nil, selectors...)
+func DeleteGroup(tx WriteTxn, id uid.ID) error {
+	err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewGroupPolymorphicID(id)})
 	if err != nil {
-		return err
+		return fmt.Errorf("remove grants: %w", err)
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, g := range toDelete {
-		ids = append(ids, g.ID)
-
-		err := DeleteGrants(db, DeleteGrantsOptions{BySubject: g.PolyID()})
-		if err != nil {
-			return err
-		}
-
-		identities, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(g.ID)}...)
-		if err != nil {
-			return err
-		}
-
-		var uidsToRemove []uid.ID
-		for _, id := range identities {
-			uidsToRemove = append(uidsToRemove, id.ID)
-		}
-		err = RemoveUsersFromGroup(db, g.ID, uidsToRemove)
-		if err != nil {
-			return err
-		}
+	_, err = tx.Exec(`DELETE from identities_groups WHERE group_id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("remove useres from group: %w", err)
 	}
 
-	return deleteAll[models.Group](db, ByIDs(ids))
+	stmt := `
+		UPDATE groups
+		SET deleted_at = ?
+		WHERE id = ?
+		AND deleted_at is null
+		AND organization_id = ?`
+	_, err = tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
+	return handleError(err)
 }
 
-func AddUsersToGroup(db GormTxn, groupID uid.ID, idsToAdd []uid.ID) error {
-	for _, id := range idsToAdd {
-		// This is effectively an "INSERT OR IGNORE" or "INSERT ... ON CONFLICT ... DO NOTHING" statement which
-		// works across both sqlite and postgres
-		_, err := db.Exec("INSERT INTO identities_groups (group_id, identity_id) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM identities_groups WHERE group_id = ? AND identity_id = ?)", groupID, id, groupID, id)
-		if err != nil {
-			return err
+func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
+	query := querybuilder.New("INSERT INTO identities_groups(group_id, identity_id)")
+	query.B("VALUES")
+	for i, id := range idsToAdd {
+		query.B("(?, ?)", groupID, id)
+		if i+1 != len(idsToAdd) {
+			query.B(",")
 		}
 	}
-	return nil
+	query.B("ON CONFLICT DO NOTHING")
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
-func RemoveUsersFromGroup(db GormTxn, groupID uid.ID, idsToRemove []uid.ID) error {
-	for _, id := range idsToRemove {
-		_, err := db.Exec("DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?", id, groupID)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+// RemoveUsersFromGroup removes any user ID listed in idsToRemove from the group
+// with ID groupID.
+// Note that DeleteGroup also removes users from the group.
+func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) error {
+	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id IN (?)`
+	_, err := tx.Exec(stmt, groupID, idsToRemove)
+	return handleError(err)
 }
 
 // TODO: do this with a join in ListGroups and GetGroup

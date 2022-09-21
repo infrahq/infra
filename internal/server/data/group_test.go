@@ -1,40 +1,55 @@
 package data
 
 import (
+	"errors"
 	"testing"
+	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
-func TestGroup(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		everyone := models.Group{Name: "Everyone"}
-
-		err := db.Create(&everyone).Error
-		assert.NilError(t, err)
-
-		var group models.Group
-		err = db.First(&group, &models.Group{Name: everyone.Name}).Error
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != group.ID)
-		assert.Equal(t, everyone.Name, group.Name)
-	})
-}
-
 func TestCreateGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		everyone := models.Group{Name: "Everyone"}
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			actual := models.Group{
+				Name:              "Everyone",
+				CreatedBy:         uid.ID(1011),
+				CreatedByProvider: uid.ID(2022),
+			}
+			err := CreateGroup(tx, &actual)
+			assert.NilError(t, err)
+			expected := models.Group{
+				Model: models.Model{
+					ID:        uid.ID(999),
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{
+					OrganizationID: defaultOrganizationID,
+				},
+				Name:              "Everyone",
+				CreatedBy:         uid.ID(1011),
+				CreatedByProvider: uid.ID(2022),
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+		t.Run("duplicate name", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			err := CreateGroup(tx, &models.Group{Name: "Everyone"})
+			assert.NilError(t, err)
 
-		err := CreateGroup(db, &everyone)
-		assert.NilError(t, err)
-
-		group := everyone
-		assert.Assert(t, 0 != group.ID)
-		assert.Equal(t, everyone.Name, group.Name)
+			err = CreateGroup(tx, &models.Group{Name: "Everyone"})
+			var ucErr UniqueConstraintError
+			assert.Assert(t, errors.As(err, &ucErr))
+			expectedErr := UniqueConstraintError{Table: "groups", Column: "name"}
+			assert.DeepEqual(t, ucErr, expectedErr)
+		})
 	})
 }
 
@@ -44,21 +59,6 @@ func createGroups(t *testing.T, db GormTxn, groups ...*models.Group) {
 		err := CreateGroup(db, groups[i])
 		assert.NilError(t, err, groups[i].Name)
 	}
-}
-
-func TestCreateGroupDuplicate(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			everyone  = models.Group{Name: "Everyone"}
-			engineers = models.Group{Name: "Engineering"}
-			product   = models.Group{Name: "Product"}
-		)
-
-		createGroups(t, db, &everyone, &engineers, &product)
-
-		err := CreateGroup(db, &models.Group{Name: "Everyone"})
-		assert.ErrorContains(t, err, "a group with that name already exists")
-	})
 }
 
 func TestGetGroup(t *testing.T) {
@@ -135,30 +135,69 @@ var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
 
 func TestDeleteGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(tx, otherOrg))
+
 		var (
 			everyone  = models.Group{Name: "Everyone"}
 			engineers = models.Group{Name: "Engineering"}
 			product   = models.Group{Name: "Product"}
 		)
+		createGroups(t, tx, &everyone, &engineers, &product)
 
-		createGroups(t, db, &everyone, &engineers, &product)
+		someone := &models.Identity{
+			Name:   "someone@example.com",
+			Groups: []models.Group{everyone},
+		}
+		createIdentities(t, tx, someone)
 
-		_, err := GetGroup(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+		groupGrant := &models.Grant{
+			Subject:   uid.NewGroupPolymorphicID(everyone.ID),
+			Privilege: "admin",
+			Resource:  "any",
+		}
+		createGrants(t, tx, groupGrant)
 
-		err = DeleteGroups(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+		otherOrgGroup := &models.Group{Name: "Everyone"}
+		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
-		_, err = GetGroup(db, ByName(everyone.Name))
-		assert.Error(t, err, "record not found")
+		t.Run("success", func(t *testing.T) {
+			_, err := GetGroup(tx, ByID(everyone.ID))
+			assert.NilError(t, err)
 
-		// deleting a nonexistent group should not fail
-		err = DeleteGroups(db, ByName(everyone.Name))
-		assert.NilError(t, err)
+			err = DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
 
-		// deleting an group should not delete unrelated groups
-		_, err = GetGroup(db, ByName(engineers.Name))
-		assert.NilError(t, err)
+			_, err = GetGroup(tx, ByID(everyone.ID))
+			assert.Error(t, err, "record not found")
+
+			// deleting a group should not delete unrelated groups
+			_, err = GetGroup(tx, ByID(engineers.ID))
+			assert.NilError(t, err)
+			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), ByID(otherOrgGroup.ID))
+			assert.NilError(t, err)
+
+			// grants and group membership should also be removed.
+			users, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+			assert.NilError(t, err)
+			assert.DeepEqual(t, users, []models.Identity{})
+
+			grants, err := ListGrants(tx, ListGrantsOptions{BySubject: groupGrant.Subject})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, grants, []models.Grant{}, cmpopts.EquateEmpty())
+		})
+		t.Run("delete non-existent", func(t *testing.T) {
+			err := DeleteGroup(tx, uid.ID(1234))
+			assert.NilError(t, err)
+		})
+		t.Run("delete already soft-deleted", func(t *testing.T) {
+			err := DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
+			err = DeleteGroup(tx, everyone.ID)
+			assert.NilError(t, err)
+		})
 	})
 }
 
@@ -172,7 +211,7 @@ func TestRecreateGroupSameName(t *testing.T) {
 
 		createGroups(t, db, &everyone, &engineers, &product)
 
-		err := DeleteGroups(db, ByName(everyone.Name))
+		err := DeleteGroup(db, everyone.ID)
 		assert.NilError(t, err)
 
 		err = CreateGroup(db, &models.Group{Name: everyone.Name})
@@ -182,38 +221,92 @@ func TestRecreateGroupSameName(t *testing.T) {
 
 func TestAddUsersToGroup(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var everyone = models.Group{Name: "Everyone"}
-		createGroups(t, db, &everyone)
+		everyone := models.Group{Name: "Everyone"}
+		other := models.Group{Name: "Other"}
+		createGroups(t, db, &everyone, &other)
 
 		var (
 			bond = models.Identity{
 				Name:   "jbond@infrahq.com",
 				Groups: []models.Group{everyone},
 			}
-			bourne = models.Identity{
-				Name:   "jbourne@infrahq.com",
-				Groups: []models.Group{},
-			}
-			bauer = models.Identity{Name: "jbauer@infrahq.com",
-				Groups: []models.Group{},
+			bourne = models.Identity{Name: "jbourne@infrahq.com"}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+			forth  = models.Identity{
+				Name:   "forth@example.com",
+				Groups: []models.Group{everyone},
 			}
 		)
 
-		createIdentities(t, db, &bond, &bourne, &bauer)
+		createIdentities(t, db, &bond, &bourne, &bauer, &forth)
 
 		t.Run("add identities to group", func(t *testing.T) {
-			actual, err := ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
 			assert.NilError(t, err)
-			expected := []models.Identity{bond}
+			expected := []models.Identity{forth, bond}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 
-			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID})
+			err = AddUsersToGroup(db, everyone.ID, []uid.ID{bourne.ID, bauer.ID, forth.ID})
 			assert.NilError(t, err)
 
-			actual, err = ListIdentities(db, nil, []SelectorFunc{ByOptionalIdentityGroupID(everyone.ID)}...)
+			actual, err = ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
 			assert.NilError(t, err)
-			expected = []models.Identity{bauer, bond, bourne}
+			expected = []models.Identity{forth, bauer, bond, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+			actual, err = ListIdentities(db, nil, ByOptionalIdentityGroupID(other.ID))
+			assert.NilError(t, err)
+			assert.Equal(t, len(actual), 0)
 		})
+	})
+}
+
+func TestRemoveUsersFromGroup(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		everyone := models.Group{Name: "Everyone"}
+		other := models.Group{Name: "Other"}
+		createGroups(t, tx, &everyone, &other)
+
+		bond := models.Identity{
+			Name:   "jbond@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		bourne := models.Identity{
+			Name:   "jbourne@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		bauer := models.Identity{
+			Name:   "jbauer@infrahq.com",
+			Groups: []models.Group{everyone, other},
+		}
+		forth := models.Identity{
+			Name:   "forth@example.com",
+			Groups: []models.Group{everyone},
+		}
+		createIdentities(t, tx, &bond, &bourne, &bauer, &forth)
+
+		users, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, len(users), 4)
+
+		users, err = ListIdentities(tx, nil, ByOptionalIdentityGroupID(other.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, len(users), 3)
+
+		err = RemoveUsersFromGroup(tx, everyone.ID, []uid.ID{bond.ID, bourne.ID, forth.ID})
+		assert.NilError(t, err)
+
+		actual, err := ListIdentities(tx, nil, ByOptionalIdentityGroupID(everyone.ID))
+		assert.NilError(t, err)
+		expected := []models.Identity{bauer}
+		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
+		actual, err = ListIdentities(tx, nil, ByOptionalIdentityGroupID(other.ID))
+		assert.NilError(t, err)
+		expected = []models.Identity{bauer, bond, bourne}
+		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+
 	})
 }
