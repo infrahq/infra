@@ -4,6 +4,14 @@
 --     go test -run TestMigrations ./internal/server/data -update
 --
 
+CREATE FUNCTION grants_notify() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+PERFORM pg_notify('grants_by_resource_' || NEW.resource, '');
+RETURN NULL;
+END; $$;
+
 CREATE FUNCTION uidinttostr(id bigint) RETURNS text
     LANGUAGE plpgsql
     AS $$
@@ -314,3 +322,5 @@ CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USI
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
+
+CREATE TRIGGER grants_notify_trigger AFTER INSERT OR UPDATE ON grants FOR EACH ROW EXECUTE FUNCTION grants_notify();

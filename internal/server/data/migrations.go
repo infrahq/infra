@@ -70,7 +70,7 @@ func migrations() []*migrator.Migration {
 		cleanCrossOrgGroupMemberships(),
 		fixProviderUserIndex(),
 		addProviderUserSCIMFields(),
-		addUpdateIndex(),
+		addUpdateIndexAndGrantNotify(),
 		// next one here
 	}
 }
@@ -716,7 +716,7 @@ func addProviderUserSCIMFields() *migrator.Migration {
 	}
 }
 
-func addUpdateIndex() *migrator.Migration {
+func addUpdateIndexAndGrantNotify() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-09-21T13:50",
 		Migrate: func(tx migrator.DB) error {
@@ -737,6 +737,23 @@ func addUpdateIndex() *migrator.Migration {
 				return err
 			}
 
+			// TODO: use destination name not resource
+			fn := `
+CREATE OR REPLACE FUNCTION grants_notify() RETURNS trigger
+	LANGUAGE PLPGSQL
+	AS $$
+BEGIN
+PERFORM pg_notify('grants_by_resource_' || NEW.resource, '');
+RETURN NULL;
+END; $$;
+
+CREATE OR REPLACE TRIGGER grants_notify_trigger AFTER insert OR update
+ON grants
+FOR EACH ROW EXECUTE FUNCTION grants_notify();
+`
+			if _, err := tx.Exec(fn); err != nil {
+				return err
+			}
 			return nil
 		},
 	}
