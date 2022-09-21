@@ -172,7 +172,7 @@ export default function GroupDetails() {
               <span
                 className={`text-sm ${
                   g.font ? g.font : 'font-medium'
-                } text-gray-500`}
+                } text-gray-800`}
               >
                 {g.value}
               </span>
