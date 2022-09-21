@@ -63,6 +63,7 @@ func TestCreateOrganization(t *testing.T) {
 			Privilege:          models.InfraConnectorRole,
 			Resource:           "infra",
 			CreatedBy:          models.CreatedBySystem,
+			UpdateIndex:        10001,
 		}
 		assert.DeepEqual(t, connectorGrant, expectedConnectorGrant)
 	})

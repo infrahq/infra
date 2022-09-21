@@ -87,6 +87,8 @@ func TestDeleteGrants(t *testing.T) {
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
 
+		var startUpdateIndex int64 = 10001
+
 		t.Run("empty options", func(t *testing.T) {
 			err := DeleteGrants(db, DeleteGrantsOptions{})
 			assert.ErrorContains(t, err, "requires an ID to delete")
@@ -101,12 +103,15 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			var maxIndex int64
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.Equal(t, maxIndex, startUpdateIndex+3) // 2 inserts, 1 delete
+			startUpdateIndex = maxIndex
 		})
 		t.Run("by subject", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -122,12 +127,15 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			var maxIndex int64
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = maxIndex
 
 			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
@@ -149,13 +157,16 @@ func TestDeleteGrants(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			var maxIndex int64
+			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep1.ID}},
 				{Model: models.Model{ID: toKeep2.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = maxIndex
 		})
 	})
 }
@@ -218,6 +229,7 @@ func TestGetGrant(t *testing.T) {
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 		t.Run("by id", func(t *testing.T) {
+
 			actual, err := GetGrant(tx, GetGrantOptions{ByID: grant1.ID})
 			assert.NilError(t, err)
 
@@ -232,6 +244,7 @@ func TestGetGrant(t *testing.T) {
 				Privilege:          "view",
 				Resource:           "any",
 				CreatedBy:          uid.ID(777),
+				UpdateIndex:        10001,
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
@@ -254,6 +267,7 @@ func TestGetGrant(t *testing.T) {
 				Privilege:          "view",
 				Resource:           "any",
 				CreatedBy:          uid.ID(777),
+				UpdateIndex:        10001,
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
