@@ -3,9 +3,9 @@ export const descriptions = {
   admin: 'Read and write access to all resources',
   edit: 'Read and write access to most resources, but not roles',
   view: 'Read-only access to see most resources',
-  logs: 'Read and stream logs',
   exec: 'Shell to a running container',
   'port-forward': 'Use port-forwarding to access applications',
+  logs: 'Read and stream logs',
 }
 
 export function sortByPrivilege(a, b) {
@@ -17,25 +17,36 @@ export function sortByPrivilege(a, b) {
     return 1
   }
 
-  return a?.privilege?.localeCompare(b?.privilege)
+  return 0
 }
 
-export function sortByHasDescription(a, b) {
-  if (descriptions[a]) {
-    return -1
-  }
+export function sortedByPrivilegeArray(list) {
+  const sortedArray = Object.keys(descriptions)?.filter(
+    Set.prototype.has,
+    new Set(list)
+  )
 
-  if (descriptions[b]) {
-    return 1
-  }
+  const difference = list.filter(x => !sortedArray.includes(x))
 
-  return a.localeCompare(b)
-}
+  const arrayMap = list.reduce(
+    (accumulator, currentValue) => ({
+      ...accumulator,
+      [currentValue]: currentValue,
+    }),
+    {}
+  )
 
-export function sortByResource(a, b) {
-  return a?.resource?.localeCompare(b?.resource)
+  return [...sortedArray.map(key => arrayMap[key]), ...difference]
 }
 
 export function sortBySubject(a, b) {
-  return (a?.user || a?.group)?.localeCompare(b?.user || b?.group)
+  if (a?.user && b?.group) {
+    return -1
+  }
+
+  if (a?.group && b?.user) {
+    return 1
+  }
+
+  return 0
 }
