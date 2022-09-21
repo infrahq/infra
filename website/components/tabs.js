@@ -9,7 +9,7 @@ export function useTabGroups() {
   const groups = {}
 
   for (const [k, v] of Object.entries(router.query)) {
-    if (k.startsWith('group')) {
+    if (k.startsWith('group-')) {
       groups[k.replace('group-', '')] = v
     }
   }
