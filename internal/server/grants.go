@@ -24,7 +24,17 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, r.ShowSystem, &p)
+	opts := data.ListGrantsOptions{
+		ByResource:                 r.Resource,
+		BySubject:                  subject,
+		ExcludeConnectorGrant:      !r.ShowSystem,
+		IncludeInheritedFromGroups: r.ShowInherited,
+		Pagination:                 &p,
+	}
+	if r.Privilege != "" {
+		opts.ByPrivileges = []string{r.Privilege}
+	}
+	grants, err := access.ListGrants(c, opts, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +56,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 }
 
 func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.CreateGrantResponse, error) {
+	rCtx := getRequestContext(c)
 	var subject uid.PolymorphicID
 
 	switch {
@@ -65,17 +76,15 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
-		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, false, nil)
-
+		grant, err = data.GetGrant(rCtx.DBTxn, data.GetGrantOptions{
+			BySubject:   grant.Subject,
+			ByResource:  grant.Resource,
+			ByPrivilege: grant.Privilege,
+		})
 		if err != nil {
 			return nil, err
 		}
-
-		if len(grants) == 0 {
-			return nil, fmt.Errorf("duplicate grant exists, but cannot be found")
-		}
-
-		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
+		return &api.CreateGrantResponse{Grant: grant.ToAPI()}, nil
 	}
 
 	if err != nil {
@@ -93,7 +102,10 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, false, nil)
+		infraAdminGrants, err := access.ListGrants(c, data.ListGrantsOptions{
+			ByResource:   access.ResourceInfraAPI,
+			ByPrivileges: []string{models.InfraAdminRole},
+		}, 0)
 		if err != nil {
 			return nil, err
 		}

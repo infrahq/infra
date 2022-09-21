@@ -281,7 +281,7 @@ func TestGetGrant(t *testing.T) {
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 		t.Run("wrong org", func(t *testing.T) {
-			_, err := GetGrant(tx, GetGrantOptions{ByID: uid.ID(other.ID)})
+			_, err := GetGrant(tx, GetGrantOptions{ByID: other.ID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 		t.Run("by id", func(t *testing.T) {
