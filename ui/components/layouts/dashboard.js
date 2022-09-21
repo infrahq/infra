@@ -12,10 +12,12 @@ import {
   MenuIcon,
   CogIcon,
 } from '@heroicons/react/outline'
+import Avatar from 'boring-avatars'
 
 import { useAdmin } from '../../lib/admin'
 
 import AuthRequired from '../auth-required'
+import { getAvatarName } from '../../lib/icons'
 
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
   let { href, children, ...rest } = props
@@ -230,10 +232,24 @@ function Layout({ children }) {
                 className='relative inline-block bg-white text-left'
               >
                 <span className='sr-only'>Open current user menu</span>
-                <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
+                {/* <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
                   <span className='text-center text-xs font-semibold capitalize leading-none'>
                     {auth?.name?.[0]}
                   </span>
+                </Menu.Button> */}
+                <Menu.Button>
+                  <Avatar
+                    size={30}
+                    name={getAvatarName(auth?.name)}
+                    variant='beam'
+                    colors={[
+                      '#343838',
+                      '#005F6B',
+                      '#008C9E',
+                      '#00B4CC',
+                      '#00DFFC',
+                    ]}
+                  />
                 </Menu.Button>
                 <Transition
                   as={Fragment}
