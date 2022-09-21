@@ -12,7 +12,10 @@ var (
 	AccessKeySecretLength = 24 // the length of the secret used to validate an access key
 )
 
-const ScopePasswordReset = "password-reset"
+const (
+	ScopePasswordReset        = "password-reset"
+	ScopeAllowCreateAccessKey = "create-key"
+)
 
 // AccessKey is a session token presented to the Infra server as proof of authentication
 type AccessKey struct {

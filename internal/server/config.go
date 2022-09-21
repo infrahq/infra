@@ -989,6 +989,7 @@ func (s Server) loadAccessKey(db data.GormTxn, identity *models.Identity, key st
 			KeyID:      keyID,
 			Secret:     secret,
 			ProviderID: provider.ID,
+			Scopes:     models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey}, // allows user to create access keys
 		}
 
 		if _, err := data.CreateAccessKey(db, accessKey); err != nil {

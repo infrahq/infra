@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -33,6 +34,12 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
 	rCtx := GetRequestContext(c)
+
+	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
+		// non-login access keys can not currently create other access keys.
+		return "", fmt.Errorf("%w: cannot use an access key to create other access keys", internal.ErrBadRequest)
+	}
+
 	if accessKey.IssuedFor == rCtx.Authenticated.User.ID {
 		// can create access keys for yourself.
 	} else {
