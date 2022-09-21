@@ -15,9 +15,9 @@ import {
 import Avatar from 'boring-avatars'
 
 import { useAdmin } from '../../lib/admin'
+import { getAvatarName, iconsColors } from '../../lib/icons'
 
 import AuthRequired from '../auth-required'
-import { getAvatarName } from '../../lib/icons'
 
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
   let { href, children, ...rest } = props
@@ -242,13 +242,7 @@ function Layout({ children }) {
                     size={30}
                     name={getAvatarName(auth?.name)}
                     variant='beam'
-                    colors={[
-                      '#343838',
-                      '#005F6B',
-                      '#008C9E',
-                      '#00B4CC',
-                      '#00DFFC',
-                    ]}
+                    colors={iconsColors}
                   />
                 </Menu.Button>
                 <Transition

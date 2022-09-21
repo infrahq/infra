@@ -1,7 +1,9 @@
 import useSWR from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
+import Avatar from 'boring-avatars'
 
+import { getAvatarName, iconsColors } from '../../lib/icons'
 import { sortBySubject } from '../../lib/grants'
 
 import GrantForm from '../../components/grant-form'
@@ -33,13 +35,23 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
         {
           cell: function Cell(info) {
             return (
-              <div className='flex flex-col'>
-                <div className='flex items-center font-medium text-gray-700'>
-                  {info.getValue()}
+              <div className='flex flex-row items-center py-1'>
+                <div className='mr-3'>
+                  <Avatar
+                    size={25}
+                    name={getAvatarName(info.getValue())}
+                    variant={info.row.original.user ? 'beam' : 'pixel'}
+                    colors={iconsColors}
+                  />
                 </div>
-                <div className='text-2xs text-gray-500'>
-                  {info.row.original.user && 'User'}
-                  {info.row.original.group && 'Group'}
+                <div className='flex flex-col py-0.5'>
+                  <div className='flex items-center font-medium text-gray-700'>
+                    {info.getValue()}
+                  </div>
+                  <div className='text-2xs text-gray-500'>
+                    {info.row.original.user && 'User'}
+                    {info.row.original.group && 'Group'}
+                  </div>
                 </div>
               </div>
             )

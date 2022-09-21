@@ -13,7 +13,9 @@ import {
 } from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+import Avatar from 'boring-avatars'
 
+import { getAvatarName, iconsColors } from '../../lib/icons'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import DeleteModal from '../../components/delete-modal'
@@ -258,8 +260,18 @@ export default function Users() {
         columns={[
           {
             cell: info => (
-              <div className='truncate py-1 font-medium text-gray-700'>
-                {info.getValue()}
+              <div className='flex flex-row items-center py-1'>
+                <div className='mr-3'>
+                  <Avatar
+                    size={25}
+                    name={getAvatarName(info.getValue())}
+                    variant='beam'
+                    colors={iconsColors}
+                  />
+                </div>
+                <div className='truncate py-1 font-medium text-gray-700'>
+                  {info.getValue()}
+                </div>
               </div>
             ),
             header: <span>Name</span>,

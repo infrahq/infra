@@ -28,6 +28,14 @@ export const icons = [
   'Zora Neale',
 ]
 
+export const iconsColors = [
+  '#343838',
+  '#005F6B',
+  '#008C9E',
+  '#00B4CC',
+  '#00DFFC',
+]
+
 export function getAvatarName(authName) {
   // check special character
   const spCharsRegExp = /^[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/

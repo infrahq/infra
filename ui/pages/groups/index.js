@@ -4,6 +4,9 @@ import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
+import Avatar from 'boring-avatars'
+
+import { getAvatarName, iconsColors } from '../../lib/icons'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -165,13 +168,23 @@ export default function Groups() {
           columns={[
             {
               cell: info => (
-                <div className='flex flex-col py-0.5'>
-                  <div className='text-sm font-medium text-gray-700'>
-                    {info.getValue()}
+                <div className='flex flex-row items-center py-1'>
+                  <div className='mr-3'>
+                    <Avatar
+                      size={25}
+                      name={getAvatarName(info.getValue())}
+                      variant='pixel'
+                      colors={iconsColors}
+                    />
                   </div>
-                  <div className='text-2xs text-gray-500 sm:hidden'>
-                    {info.row.original.totalUsers || 'No'}{' '}
-                    {info.row.original.totalUsers === 1 ? 'user' : 'users'}
+                  <div className='flex flex-col py-0.5'>
+                    <div className='text-sm font-medium text-gray-700'>
+                      {info.getValue()}
+                    </div>
+                    <div className='text-2xs text-gray-500 sm:hidden'>
+                      {info.row.original.totalUsers || 'No'}{' '}
+                      {info.row.original.totalUsers === 1 ? 'user' : 'users'}
+                    </div>
                   </div>
                 </div>
               ),
