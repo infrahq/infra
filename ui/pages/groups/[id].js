@@ -113,7 +113,7 @@ export default function GroupDetails() {
     { label: 'ID', value: group?.id, font: 'font-mono' },
     { label: '# of users', value: group?.totalUsers },
     {
-      label: 'created',
+      label: 'Created',
       value: group?.created ? dayjs(group?.created).fromNow() : '-',
     },
   ]
