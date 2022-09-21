@@ -66,7 +66,12 @@ export default function GrantForm({ grants, roles, onSubmit = () => {} }) {
           <Combobox.Input
             className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
             placeholder='User or group'
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => {
+              setQuery(e.target.value)
+              if (e.target.value.length === 0) {
+                setSelected(null)
+              }
+            }}
             onFocus={() => {
               if (!selected) {
                 button.current?.click()

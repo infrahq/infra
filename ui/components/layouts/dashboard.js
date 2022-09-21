@@ -141,7 +141,13 @@ function Layout({ children }) {
     },
   ]
 
-  const subNavigation = [{ name: 'Account', href: '/account' }]
+  const subNavigation = [
+    {
+      name: 'Account',
+      href: '/account',
+      show: auth?.providerNames.includes('infra'),
+    },
+  ]
 
   for (const n of [...navigation]) {
     if (router.pathname.startsWith(n.href) && n.admin && !admin) {
@@ -208,7 +214,7 @@ function Layout({ children }) {
 
       {/* Main content */}
       <div className='mx-auto flex min-w-0 flex-1 flex-col'>
-        <div className='sticky top-0 z-50 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
+        <div className='sticky top-0 z-10 flex flex-shrink-0 border-b border-gray-100 bg-white/90 py-3 px-6 pl-2 backdrop-blur-lg md:py-2 md:px-6'>
           <button
             type='button'
             className='px-4 text-black focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 md:hidden'
@@ -245,17 +251,21 @@ function Layout({ children }) {
                         {auth?.name}
                       </p>
                     </div>
-                    <div className='py-1'>
-                      {subNavigation.map(item => (
-                        <Menu.Item key={item.name}>
-                          <NavLink href={item.href}>
-                            <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
-                              {item.name}
-                            </p>
-                          </NavLink>
-                        </Menu.Item>
-                      ))}
-                    </div>
+                    {subNavigation?.filter(n => n.show).length > 0 && (
+                      <div className='py-1'>
+                        {subNavigation
+                          ?.filter(n => n.show)
+                          .map(item => (
+                            <Menu.Item key={item.name}>
+                              <NavLink href={item.href}>
+                                <p className='block py-2 px-4 text-sm text-gray-700 hover:bg-gray-100'>
+                                  {item.name}
+                                </p>
+                              </NavLink>
+                            </Menu.Item>
+                          ))}
+                      </div>
+                    )}
                     <div className='py-1'>
                       <Menu.Item>
                         <button
