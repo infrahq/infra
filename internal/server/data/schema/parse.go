@@ -124,6 +124,7 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	case strings.HasPrefix(line, "CREATE SEQUENCE"):
 	case strings.HasPrefix(line, "ALTER SEQUENCE"):
 	case strings.HasPrefix(line, "CREATE UNIQUE INDEX"):
+	case strings.HasPrefix(line, "CREATE INDEX"):
 	case strings.HasPrefix(line, "CREATE FUNCTION"):
 	default:
 		return "", "", fmt.Errorf("unexpected start of statement: %q", line)
@@ -178,6 +179,8 @@ func TrimComments(input string) (string, error) {
 		case strings.HasPrefix(line, "SET "):
 			continue
 		case strings.HasPrefix(line, "SELECT pg_catalog.set_config"):
+			continue
+		case strings.HasPrefix(line, "SELECT pg_catalog.setval"):
 			continue
 		}
 		buf.WriteString(line + "\n")

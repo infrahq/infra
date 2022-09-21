@@ -70,6 +70,7 @@ func migrations() []*migrator.Migration {
 		cleanCrossOrgGroupMemberships(),
 		fixProviderUserIndex(),
 		addProviderUserSCIMFields(),
+		addUpdateIndex(),
 		// next one here
 	}
 }
@@ -711,6 +712,32 @@ func addProviderUserSCIMFields() *migrator.Migration {
 			`
 			_, err := tx.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func addUpdateIndex() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-21T13:50",
+		Migrate: func(tx migrator.DB) error {
+			if _, err := tx.Exec(`
+				CREATE SEQUENCE IF NOT EXISTS seq_update_index
+				START 10000 CACHE 1;
+			`); err != nil {
+				return err
+			}
+
+			if _, err := tx.Exec(`
+				ALTER TABLE grants
+				ADD COLUMN IF NOT EXISTS update_index bigint;
+
+				CREATE INDEX IF NOT EXISTS idx_grants_update_index ON grants
+					USING btree (organization_id, update_index);
+			`); err != nil {
+				return err
+			}
+
+			return nil
 		},
 	}
 }

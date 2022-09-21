@@ -139,7 +139,8 @@ CREATE TABLE grants (
     privilege text,
     resource text,
     created_by bigint,
-    organization_id bigint
+    organization_id bigint,
+    update_index bigint
 );
 
 CREATE TABLE groups (
@@ -223,6 +224,13 @@ CREATE TABLE providers (
     organization_id bigint
 );
 
+CREATE SEQUENCE seq_update_index
+    START WITH 10000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
 CREATE TABLE settings (
     id bigint NOT NULL,
     created_at timestamp with time zone,
@@ -290,6 +298,8 @@ CREATE UNIQUE INDEX idx_emails_providers ON provider_users USING btree (email, p
 CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);
 
 CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (organization_id, subject, privilege, resource) WHERE (deleted_at IS NULL);
+
+CREATE INDEX idx_grants_update_index ON grants USING btree (organization_id, update_index);
 
 CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
