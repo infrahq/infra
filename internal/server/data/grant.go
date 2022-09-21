@@ -41,6 +41,11 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 		return fmt.Errorf("resource is required")
 	}
 
+	if err := grant.OnInsert(); err != nil {
+		return err
+	}
+	setOrg(tx, grant)
+
 	// Use a savepoint so that we can query for the duplicate grant on conflict
 	if _, err := tx.Exec("SAVEPOINT beforeCreate"); err != nil {
 		// ignore "not in a transaction" error, because outside of a transaction
@@ -49,12 +54,21 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 			return err
 		}
 	}
-	if err := insert(tx, (*grantsTable)(grant)); err != nil {
+
+	table := (*grantsTable)(grant)
+	query := querybuilder.New("INSERT INTO grants (")
+	query.B(columnsForInsert(table))
+	query.B(", update_index")
+	query.B(") VALUES (")
+	query.B(placeholderForColumns(table), table.Values()...)
+	query.B(", nextval('seq_update_index'));")
+	_, err := tx.Exec(query.String(), query.Args...)
+	if err != nil {
 		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeCreate")
 		return handleError(err)
 	}
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
-	return nil
+	return err
 }
 
 func isPgErrorCode(err error, code string) bool {
@@ -82,6 +96,7 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 	table := &grantsTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
+	query.B(", update_index")
 	query.B("FROM grants")
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
 	query.B("AND deleted_at is null")
@@ -97,7 +112,8 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 		return nil, fmt.Errorf("GetGrant requires an ID or subject")
 	}
 
-	err := tx.QueryRow(query.String(), query.Args...).Scan(table.ScanFields()...)
+	fields := append(table.ScanFields(), &table.UpdateIndex)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(fields...)
 	if err != nil {
 		return nil, handleReadError(err)
 	}
@@ -120,12 +136,15 @@ type ListGrantsOptions struct {
 	ExcludeConnectorGrant bool
 
 	Pagination *Pagination
+	// TODO: return this value instead?
+	MaxUpdateIndex *int64
 }
 
 func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	table := grantsTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
+	query.B(", update_index")
 	if opts.Pagination != nil {
 		query.B(", count(*) OVER()")
 	}
@@ -177,13 +196,44 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	if err != nil {
 		return nil, err
 	}
-	return scanRows(rows, func(grant *models.Grant) []any {
-		fields := (*grantsTable)(grant).ScanFields()
+	result, err := scanRows(rows, func(grant *models.Grant) []any {
+		fields := append((*grantsTable)(grant).ScanFields(), &grant.UpdateIndex)
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
 		return fields
 	})
+
+	// TODO: validate this is only used with supported parameters
+	if opts.MaxUpdateIndex != nil {
+		maxIndex, err := grantsMaxUpdateIndex(tx, grantsMaxUpdateIndexOptions{
+			ByResource: opts.ByResource,
+		})
+		*opts.MaxUpdateIndex = maxIndex
+		return result, err
+	}
+	return result, nil
+}
+
+type grantsMaxUpdateIndexOptions struct {
+	ByResource string
+}
+
+// grantsMaxUpdateIndex returns the maximum update_index all the grants that
+// match the query. This MUST include soft-deleted rows as well.
+//
+// TODO: any way to assert this tx has the right isolation level?
+func grantsMaxUpdateIndex(tx ReadTxn, opts grantsMaxUpdateIndexOptions) (int64, error) {
+	query := querybuilder.New("SELECT max(update_index) FROM grants")
+	query.B("WHERE organization_id = ?", tx.OrganizationID())
+
+	if opts.ByResource != "" {
+		query.B("AND resource = ?", opts.ByResource)
+	}
+
+	var result int64
+	err := tx.QueryRow(query.String(), query.Args...).Scan(&result)
+	return result, err
 }
 
 type DeleteGrantsOptions struct {
@@ -206,7 +256,8 @@ type DeleteGrantsOptions struct {
 
 func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	query := querybuilder.New("UPDATE grants")
-	query.B("SET deleted_at = ?", time.Now())
+	query.B("SET deleted_at = ?,", time.Now())
+	query.B("update_index = nextval('seq_update_index')")
 	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
 	query.B("deleted_at is null AND")
 

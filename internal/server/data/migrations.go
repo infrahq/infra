@@ -74,6 +74,7 @@ func migrations() []*migrator.Migration {
 		destinationNameUnique(),
 		removeDeletedIdentityProviderUsers(),
 		addProviderUserSCIMFields(),
+		addUpdateIndex(),
 		// next one here
 	}
 }
@@ -772,6 +773,31 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 				if err != nil {
 					return fmt.Errorf("delete removed provider_users: %w", err)
 				}
+			}
+			return nil
+		},
+	}
+}
+
+func addUpdateIndex() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-21T13:50",
+		Migrate: func(tx migrator.DB) error {
+			if _, err := tx.Exec(`
+				CREATE SEQUENCE IF NOT EXISTS seq_update_index
+				START 10000 CACHE 1;
+			`); err != nil {
+				return err
+			}
+
+			if _, err := tx.Exec(`
+				ALTER TABLE grants
+				ADD COLUMN IF NOT EXISTS update_index bigint;
+
+				CREATE INDEX IF NOT EXISTS idx_grants_update_index ON grants
+					USING btree (organization_id, update_index);
+			`); err != nil {
+				return err
 			}
 
 			return nil
