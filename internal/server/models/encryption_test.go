@@ -30,7 +30,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
 	pg := database.PostgresDriver(t, "_models")
-	db, err := data.NewDB(pg.Dialector, nil)
+	db, err := data.NewDB(pg.Dialector, data.NewDBOptions{})
 	assert.NilError(t, err)
 
 	_, err = db.Exec(StructForTesting{}.Schema())
@@ -66,7 +66,7 @@ func TestEncryptedAtRest_WithBytes(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
 	pg := database.PostgresDriver(t, "_models")
-	db, err := data.NewDB(pg.Dialector, nil)
+	db, err := data.NewDB(pg.Dialector, data.NewDBOptions{})
 	assert.NilError(t, err)
 
 	settings, err := data.GetSettings(db)
