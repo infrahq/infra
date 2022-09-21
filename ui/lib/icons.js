@@ -38,7 +38,8 @@ export const iconsColors = [
 
 export function getAvatarName(authName) {
   // check special character
-  const spCharsRegExp = /^[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/
+  const spCharsRegExp = /^[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/
+
   if (spCharsRegExp.test(authName)) {
     return icons[0]
   }
