@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import { useState, useRef } from 'react'
 import { CheckIcon } from '@heroicons/react/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
+import dayjs from 'dayjs'
 
 import { useAdmin } from '../../lib/admin'
 
@@ -108,6 +109,15 @@ export default function GroupDetails() {
 
   const adminGroups = infraAdmins?.map(admin => admin.group)
 
+  const metadata = [
+    { label: 'ID', value: group?.id, font: 'font-mono' },
+    { label: '# of users', value: group?.totalUsers },
+    {
+      label: 'created',
+      value: group?.created ? dayjs(group?.created).fromNow() : '-',
+    },
+  ]
+
   // Don't allow deleting the last group
   const hideRemoveGroupBtn =
     !admin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
@@ -119,37 +129,56 @@ export default function GroupDetails() {
       </Head>
 
       {/* Header */}
-      <header className='mt-6 mb-12 flex flex-col justify-between md:flex-row md:items-center'>
-        <h1 className='truncate py-1 font-display text-xl font-medium'>
-          <Link href='/groups'>
-            <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
-          </Link>{' '}
-          <span className='mx-2 font-light text-gray-400'> / </span>{' '}
-          {group?.name}
-        </h1>
+      <header className='mt-6 mb-12 space-y-4'>
+        <div className='flex flex-col justify-between md:flex-row md:items-center'>
+          <h1 className='truncate py-1 font-display text-xl font-medium'>
+            <Link href='/groups'>
+              <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
+            </Link>{' '}
+            <span className='mx-2 font-light text-gray-400'> / </span>{' '}
+            {group?.name}
+          </h1>
 
-        {!hideRemoveGroupBtn && (
-          <div className='my-3 flex space-x-2 md:my-0'>
-            <RemoveButton
-              onRemove={async () => {
-                await fetch(`/api/groups/${id}`, {
-                  method: 'DELETE',
-                })
+          {!hideRemoveGroupBtn && (
+            <div className='my-3 flex space-x-2 md:my-0'>
+              <RemoveButton
+                onRemove={async () => {
+                  await fetch(`/api/groups/${id}`, {
+                    method: 'DELETE',
+                  })
 
-                router.replace('/groups')
-              }}
-              modalTitle='Remove group'
-              modalMessage={
-                <div className='truncate'>
-                  Are you sure you want to remove{' '}
-                  <span className='font-bold'>{group?.name}</span>?
-                </div>
-              }
+                  router.replace('/groups')
+                }}
+                modalTitle='Remove group'
+                modalMessage={
+                  <div className='truncate'>
+                    Are you sure you want to remove{' '}
+                    <span className='font-bold'>{group?.name}</span>?
+                  </div>
+                }
+              >
+                Remove group
+              </RemoveButton>
+            </div>
+          )}
+        </div>
+        <div className='flex flex-row border-t border-gray-100'>
+          {metadata.map(g => (
+            <div
+              key={g.label}
+              className='px-6 py-5 text-left first:pr-6 first:pl-0'
             >
-              Remove group
-            </RemoveButton>
-          </div>
-        )}
+              <div className='text-2xs text-gray-400'>{g.label}</div>
+              <span
+                className={`text-sm ${
+                  g.font ? g.font : 'font-medium'
+                } text-gray-500`}
+              >
+                {g.value}
+              </span>
+            </div>
+          ))}
+        </div>
       </header>
 
       {/* Users */}
