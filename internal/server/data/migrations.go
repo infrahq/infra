@@ -817,6 +817,22 @@ FOR EACH ROW EXECUTE FUNCTION grants_notify();
 			if _, err := tx.Exec(fn); err != nil {
 				return err
 			}
+
+			// LISTEN does not support parameter substitution, so we create
+			// a function that will EXECUTE listen, which allows us to pass
+			// untrusted input. The input is sanitized by the driver, and again
+			// by format().
+			fn = `
+CREATE OR REPLACE FUNCTION listen_on_chan(chan text) RETURNS void
+LANGUAGE PLPGSQL
+AS $$
+BEGIN
+    EXECUTE format('LISTEN %I', chan);
+END; $$;
+`
+			if _, err := tx.Exec(fn); err != nil {
+				return err
+			}
 			return nil
 		},
 	}

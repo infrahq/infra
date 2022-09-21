@@ -1,12 +1,16 @@
 package data
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v4"
+	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -234,6 +238,58 @@ func grantsMaxUpdateIndex(tx ReadTxn, opts grantsMaxUpdateIndexOptions) (int64, 
 	var result int64
 	err := tx.QueryRow(query.String(), query.Args...).Scan(&result)
 	return result, err
+}
+
+type ListenGrantsOptions struct {
+	// TODO: change to destination
+	ByResource string
+}
+
+type Listener struct {
+	sqlDB   *sql.DB
+	pgxConn *pgx.Conn
+}
+
+func (l *Listener) Release(ctx context.Context) error {
+	var errs []error
+	if _, err := l.pgxConn.Exec(ctx, `UNLISTEN *`); err != nil {
+		errs = append(errs, err)
+	}
+	if err := pgxstdlib.ReleaseConn(l.sqlDB, l.pgxConn); err != nil {
+		errs = append(errs, err)
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to unlisten to postgres channels: %v", errs)
+	}
+	return nil
+}
+
+// ListenForGrantsNotify to one or more postgres channels for notifications
+// that a grant has changed. The channels to listen on are determined by opts.
+//
+// If error is nil the caller must call Listener.Release to return the database
+// connection to the pool.
+//
+// TODO: fuzz this function to show it is not vulnerable to SQL injection
+func ListenForGrantsNotify(db *DB, opts ListenGrantsOptions) (*Listener, error) {
+	sqlDB := db.SQLdb()
+	pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := db.DB.Statement.Context
+
+	if opts.ByResource != "" {
+		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", "grants_by_resource_"+opts.ByResource)
+		if err != nil {
+			// TODO: log error
+			_ = pgxstdlib.ReleaseConn(sqlDB, pgxConn)
+			return nil, err
+		}
+	}
+
+	return &Listener{sqlDB: sqlDB, pgxConn: pgxConn}, nil
 }
 
 type DeleteGrantsOptions struct {
