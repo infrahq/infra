@@ -586,6 +586,102 @@ DELETE FROM settings WHERE id=24567;
 				assert.NilError(t, err)
 			},
 		},
+		{
+			label: testCaseLine("2022-09-22T11:00"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				orgA := uid.ID(1000)
+				orgB := uid.ID(2000)
+
+				groupA := models.Group{
+					Model: models.Model{
+						ID: 1001,
+					},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: orgA,
+					},
+					Name: "group A",
+				}
+
+				groupB := models.Group{
+					Model: models.Model{
+						ID: 1002,
+					},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: orgB,
+					},
+					Name: "group B",
+				}
+
+				identityA := models.Identity{
+					Model: models.Model{
+						ID: 1003,
+					},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: orgA,
+					},
+					Name: "identity A",
+				}
+
+				identityB := models.Identity{
+					Model: models.Model{
+						ID: 1004,
+					},
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: orgB,
+					},
+					Name: "identity B",
+				}
+
+				stmt := `INSERT INTO groups(id, name, organization_id) VALUES (?, ?, ?)`
+				_, err := tx.Exec(stmt, groupA.ID, groupA.Name, groupA.OrganizationID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, groupB.ID, groupB.Name, groupB.OrganizationID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO identities(id, name, organization_id) VALUES (?, ?, ?)`
+				_, err = tx.Exec(stmt, identityA.ID, identityA.Name, identityA.OrganizationID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, identityB.ID, identityB.Name, identityB.OrganizationID)
+				assert.NilError(t, err)
+
+				stmt = `INSERT INTO identities_groups(identity_id, group_id) VALUES (?, ?)`
+				_, err = tx.Exec(stmt, identityA.ID, groupA.ID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, identityB.ID, groupB.ID)
+				assert.NilError(t, err)
+				_, err = tx.Exec(stmt, identityB.ID, groupA.ID)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				stmt := `
+					DELETE FROM groups;
+					DELETE FROM identities;
+				`
+				_, err := tx.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				stmt := `SELECT identity_id, group_id FROM identities_groups`
+				rows, err := tx.Query(stmt)
+				assert.NilError(t, err)
+				for rows.Next() {
+					var identityID uid.ID
+					var groupID uid.ID
+					err := rows.Scan(&identityID, &groupID)
+					assert.NilError(t, err)
+
+					var identityOrgID uid.ID
+					err = tx.QueryRow(`SELECT organization_id FROM identities WHERE id = ?`, identityID).Scan(&identityOrgID)
+					assert.NilError(t, err)
+
+					var groupOrgID uid.ID
+					err = tx.QueryRow(`SELECT organization_id FROM groups WHERE id = ?`, groupID).Scan(&groupOrgID)
+					assert.NilError(t, err)
+
+					assert.Equal(t, identityOrgID, groupOrgID)
+				}
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
