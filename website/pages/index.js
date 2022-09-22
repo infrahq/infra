@@ -76,16 +76,24 @@ function Card() {
           />
         </svg>
       </div>
-      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono font-medium text-gray-500 transition-colors group-hover:text-transparent'>
-        <div className='col-span-2 text-xs uppercase tracking-wide'>user</div>
+      <div className='mt-2 grid w-full auto-rows-min grid-cols-8 items-baseline gap-y-1 px-10 pb-6 pr-16 font-mono font-[450] text-gray-500 transition-colors group-hover:text-transparent'>
+        <div className='col-span-2 text-[11px] font-medium tracking-wide'>
+          USER
+        </div>
         <div className='col-span-6 text-xs tracking-wide'>user@acme.com</div>
-        <div className='col-span-2 text-xs uppercase tracking-wide'>groups</div>
+        <div className='col-span-2 text-[11px] font-medium tracking-wide'>
+          GROUPS
+        </div>
         <div className='col-span-6 text-xs tracking-wide'>
           Engineering, DevOps, Security
         </div>
-        <div className='col-span-2 text-xs uppercase tracking-wide'>ROLE</div>
+        <div className='col-span-2 text-[11px] font-medium tracking-wide'>
+          ROLE
+        </div>
         <div className='col-span-6 text-xs tracking-wide'>cluster-admin</div>
-        <div className='col-span-2 text-xs tracking-wide'>TOKEN</div>
+        <div className='col-span-2 text-[11px] font-medium tracking-wide'>
+          TOKEN
+        </div>
         <div className='col-span-6 break-all text-[11px] leading-tight'>
           eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InNreWxhckBpbmZyYWhxLmNvbSJ9.HmbsgcIENeWo4WjCQ38s5IZ5_PwZC2qhU_iopPR98J8
         </div>
@@ -107,17 +115,17 @@ export default function Index() {
       </Head>
       <section className='flex flex-1 flex-col px-6'>
         <div className='relative mx-auto my-24 flex w-full max-w-7xl flex-1 items-center justify-between space-x-16'>
-          <div className='flex max-w-2xl flex-1 flex-col'>
-            <h1 className='my-4 overflow-visible text-3xl font-bold tracking-tight md:text-6xl'>
+          <div className='flex max-w-2xl flex-1 flex-col font-display'>
+            <h1 className='my-4 overflow-visible text-3xl font-bold md:text-6xl'>
               Connect your team to your infrastructure.
             </h1>
-            <h2 className='text-md max-w-xl text-gray-600 md:text-2xl'>
+            <h2 className='text-md max-w-xl font-[450] text-gray-600 md:text-2xl'>
               Infra is the easiest way to manage access to Kubernetes, with more
               integrations coming soon.
             </h2>
-            <div className='z-40 my-6 flex items-center space-x-2 text-base'>
+            <div className='z-40 my-6 flex items-center space-x-2 font-display text-base'>
               <Link href='/docs/getting-started/deploy'>
-                <a className='group relative rounded-full bg-blue-500 py-1.5 px-4 text-base font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
+                <a className='group relative rounded-full bg-blue-500 py-1.5 px-4 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
                   Get Started{' '}
                   <span className='inline-block transition-transform group-hover:translate-x-0.5'>
                     ›

@@ -27,9 +27,7 @@ export default function Blog({ markdoc, date, author, title }) {
           </a>
         </Link>
         <div key={title}>
-          <h1 className='mb-3 text-5xl font-semibold tracking-tight'>
-            {title}
-          </h1>
+          <h1 className='mb-3 font-display text-5xl font-semibold'>{title}</h1>
           <h2 className='flex items-baseline text-sm font-semibold text-gray-500'>
             {date && dayjs(date).format('MMMM D, YYYY')}
             {date && author && <span className='px-2'>·</span>}
