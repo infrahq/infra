@@ -4,7 +4,13 @@ import useSWR from 'swr'
 import dayjs from 'dayjs'
 import { Menu, Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
-import { DotsHorizontalIcon, XIcon } from '@heroicons/react/outline'
+import copy from 'copy-to-clipboard'
+import {
+  DuplicateIcon,
+  CheckIcon,
+  DotsHorizontalIcon,
+  XIcon,
+} from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
@@ -18,6 +24,7 @@ import ErrorMessage from '../../components/error-message'
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
   const [success, setSuccess] = useState(false)
+  const [passwordCopied, setPasswordCopied] = useState(false)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const { isEmailConfigured } = useServerConfig()
@@ -76,12 +83,28 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                   <label className='text-2xs font-medium text-gray-700'>
                     Temporary Password
                   </label>
-                  <span
-                    readOnly
-                    className='round-md my-0 w-full py-1 font-mono text-xs text-gray-600 focus:outline-none'
-                  >
-                    {password}
-                  </span>
+                  <div className='group relative my-4 flex'>
+                    <span
+                      readOnly
+                      className='round-md my-0 w-full rounded-lg bg-gray-50 px-5 py-4 font-mono text-xs text-gray-800 focus:outline-none'
+                    >
+                      {password}
+                    </span>
+                    <button
+                      className={`absolute right-2 top-2 overflow-auto rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
+                      onClick={() => {
+                        copy(password)
+                        setPasswordCopied(true)
+                        setTimeout(() => setPasswordCopied(false), 2000)
+                      }}
+                    >
+                      {passwordCopied ? (
+                        <CheckIcon className='h-4 w-4 text-green-500' />
+                      ) : (
+                        <DuplicateIcon className='h-4 w-4' />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
