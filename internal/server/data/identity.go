@@ -51,8 +51,8 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 	}
 	var addIDs []idNamePair
 
-	stmt := `SELECT id, name FROM groups WHERE name IN (?)`
-	rows, err := tx.Query(stmt, groupsToBeAdded)
+	stmt := `SELECT id, name FROM groups WHERE name IN (?) AND organization_id = ?`
+	rows, err := tx.Query(stmt, groupsToBeAdded, user.OrganizationID)
 	if err != nil {
 		return err
 	}

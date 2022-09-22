@@ -6,13 +6,16 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/ssoroka/slice"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+var cmpModelsGroupShallow = cmp.Comparer(func(x, y models.Group) bool {
+	return x.Name == y.Name && x.OrganizationID == y.OrganizationID
+})
 
 func TestIdentity(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -214,28 +217,75 @@ func TestReCreateIdentitySameName(t *testing.T) {
 func TestAssignIdentityToGroups(t *testing.T) {
 	tests := []struct {
 		Name           string
-		StartingGroups []string // groups identity starts with
-		ExistingGroups []string // groups from last provider sync
-		IncomingGroups []string // groups from this provider sync
-		ExpectedGroups []string // groups identity should have at end
+		StartingGroups []string       // groups identity starts with
+		ExistingGroups []string       // groups from last provider sync
+		IncomingGroups []string       // groups from this provider sync
+		ExpectedGroups []models.Group // groups identity should have at end
 	}{
 		{
 			Name:           "test where the provider is trying to add a group the identity doesn't have elsewhere",
 			StartingGroups: []string{"foo"},
 			ExistingGroups: []string{},
 			IncomingGroups: []string{"foo2"},
-			ExpectedGroups: []string{"foo", "foo2"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+				{
+					Name: "foo2",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
 		},
 		{
 			Name:           "test where the provider is trying to add a group the identity has from elsewhere",
 			StartingGroups: []string{"foo"},
 			ExistingGroups: []string{},
 			IncomingGroups: []string{"foo", "foo2"},
-			ExpectedGroups: []string{"foo", "foo2"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "foo",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+				{
+					Name: "foo2",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
+		},
+		{
+			Name:           "test where the group with the same name exists in another org",
+			StartingGroups: []string{},
+			ExistingGroups: []string{},
+			IncomingGroups: []string{"Everyone"},
+			ExpectedGroups: []models.Group{
+				{
+					Name: "Everyone",
+					OrganizationMember: models.OrganizationMember{
+						OrganizationID: 1000,
+					},
+				},
+			},
 		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
+		tx := txnForTestCase(t, db, otherOrg.ID)
+		group := &models.Group{Name: "Everyone"}
+		assert.NilError(t, CreateGroup(tx, group))
+		assert.NilError(t, tx.Commit())
+
 		for i, test := range tests {
 			t.Run(test.Name, func(t *testing.T) {
 				// setup identity
@@ -268,14 +318,11 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				err = AssignIdentityToGroups(db, identity, provider, test.IncomingGroups)
 				assert.NilError(t, err)
 
-				// reload identity and check groups
-				id, err := GetIdentity(db, Preload("Groups"), ByID(identity.ID))
+				// check the result
+				actual, err := ListGroups(db, nil, ByGroupMember(identity.ID))
 				assert.NilError(t, err)
-				groupNames := slice.Map[models.Group, string](id.Groups, func(g models.Group) string {
-					return g.Name
-				})
 
-				assert.DeepEqual(t, slice.Sort(groupNames), slice.Sort(test.ExpectedGroups))
+				assert.DeepEqual(t, actual, test.ExpectedGroups, cmpModelsGroupShallow)
 			})
 		}
 	})
