@@ -26,6 +26,18 @@ module.exports = phase => ({
                 ? ''
                 : ContentSecurityPolicy.replace(/\s{2,}/g, ' ').trim(),
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'same-origin',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
         ],
       },
     ]

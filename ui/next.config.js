@@ -24,6 +24,18 @@ module.exports = phase => ({
             value:
               phase === PHASE_DEVELOPMENT_SERVER ? '' : `default-src 'self'`,
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'same-origin',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
         ],
       },
     ]
