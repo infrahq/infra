@@ -5,16 +5,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
 func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired bool, p *data.Pagination) ([]models.AccessKey, error) {
-	roles := []string{models.InfraAdminRole, models.InfraViewRole}
-	db, err := RequireInfraRole(c, roles...)
-	if err != nil {
-		return nil, HandleAuthErr(err, "access keys", "list", roles...)
+	rCtx := GetRequestContext(c)
+	if identityID == rCtx.Authenticated.User.ID {
+		// can list own keys
+	} else {
+		roles := []string{models.InfraAdminRole, models.InfraViewRole}
+		_, err := RequireInfraRole(c, roles...)
+		if err != nil {
+			return nil, HandleAuthErr(err, "access keys", "list", roles...)
+		}
 	}
 
 	opts := data.ListAccessKeyOptions{
@@ -23,20 +29,31 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 		ByIssuedForID:  identityID,
 		ByName:         name,
 	}
-	return data.ListAccessKeys(db, opts)
+	return data.ListAccessKeys(rCtx.DBTxn, opts)
 }
 
 func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
-	if err != nil {
-		return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+	rCtx := GetRequestContext(c)
+
+	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
+		// non-login access keys can not currently create other access keys.
+		return "", fmt.Errorf("%w: cannot use an access key not issued from login to create other access keys", internal.ErrBadRequest)
+	}
+
+	if accessKey.IssuedFor == rCtx.Authenticated.User.ID {
+		// can create access keys for yourself.
+	} else {
+		_, err = RequireInfraRole(c, models.InfraAdminRole)
+		if err != nil {
+			return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+		}
 	}
 
 	if accessKey.ProviderID == 0 {
-		accessKey.ProviderID = data.InfraProvider(db).ID
+		accessKey.ProviderID = data.InfraProvider(rCtx.DBTxn).ID
 	}
 
-	body, err = data.CreateAccessKey(db, accessKey)
+	body, err = data.CreateAccessKey(rCtx.DBTxn, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
 	}
@@ -45,12 +62,23 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 }
 
 func DeleteAccessKey(c *gin.Context, id uid.ID) error {
-	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	rCtx := GetRequestContext(c)
+
+	key, err := data.GetAccessKey(rCtx.DBTxn, data.GetAccessKeysOptions{ByID: id})
 	if err != nil {
-		return HandleAuthErr(err, "access key", "delete", models.InfraAdminRole)
+		return err
 	}
 
-	return data.DeleteAccessKeys(db, data.DeleteAccessKeysOptions{ByID: id})
+	if key.IssuedFor == rCtx.Authenticated.User.ID {
+		// users can delete their own keys
+	} else {
+		_, err := RequireInfraRole(c, models.InfraAdminRole)
+		if err != nil {
+			return HandleAuthErr(err, "access key", "delete", models.InfraAdminRole)
+		}
+	}
+
+	return data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
 }
 
 func DeleteRequestAccessKey(c RequestContext) error {

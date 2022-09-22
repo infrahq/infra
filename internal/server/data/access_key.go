@@ -171,16 +171,29 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	return result, rows.Err()
 }
 
+type GetAccessKeysOptions struct {
+	ByID    uid.ID
+	ByKeyID string
+}
+
 // GetAccessKey using the keyID. Note that the keyID is globally unique, so
 // this query is not scoped by an organization_id.
-func GetAccessKey(tx ReadTxn, keyID string) (*models.AccessKey, error) {
+func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
+	if opts.ByID == 0 && len(opts.ByKeyID) == 0 {
+		return nil, fmt.Errorf("GetAccessKey must supply either id or key_id")
+	}
 	accessKey := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(accessKey))
 	query.B("FROM")
 	query.B(accessKey.Table())
 	query.B("WHERE deleted_at is null")
-	query.B("AND key_id = ?", keyID)
+	if len(opts.ByKeyID) > 0 {
+		query.B("AND key_id = ?", opts.ByKeyID)
+	}
+	if opts.ByID > 0 {
+		query.B("and id = ?", opts.ByID)
+	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
 	if err != nil {
@@ -225,7 +238,7 @@ func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, 
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(tx, keyID)
+	t, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: keyID})
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}

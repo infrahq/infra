@@ -58,6 +58,7 @@ func Login(
 		ExpiresAt:         authenticated.SessionExpiry,
 		ExtensionDeadline: time.Now().UTC().Add(keyExtension),
 		Extension:         keyExtension,
+		Scopes:            models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
 	if authenticated.AuthScope.PasswordResetOnly {

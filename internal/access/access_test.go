@@ -28,6 +28,17 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
+func loginAs(db *data.Transaction, user *models.Identity, org *models.Organization) (*gin.Context, *data.Transaction) {
+	ctx, _ := gin.CreateTestContext(nil)
+	tx := db.WithOrgID(org.ID)
+	ctx.Set(RequestContextKey, RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: user, Organization: org},
+	})
+
+	return ctx, tx
+}
+
 func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *models.Provider) {
 	// setup db and context
 	db := setupDB(t)

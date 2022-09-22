@@ -154,7 +154,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetAccessKey(db, key.KeyID)
+			_, err = GetAccessKey(db, GetAccessKeysOptions{ByKeyID: key.KeyID})
 			assert.ErrorContains(t, err, "record not found")
 		})
 
@@ -174,7 +174,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetAccessKey(db, key.KeyID)
+			_, err = GetAccessKey(db, GetAccessKeysOptions{ByKeyID: key.KeyID})
 			assert.NilError(t, err)
 		})
 
