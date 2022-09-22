@@ -7,7 +7,7 @@ import '../styles/globals.css'
 
 function renderSnippet() {
   const opts = {
-    apiKey: '2BEJxBl14gBmVcV4HVZCNYeWOdcpAG9Q',
+    apiKey: process.env.NEXT_PUBLIC_SEGMENT_WRITE_KEY,
     page: true,
   }
 
