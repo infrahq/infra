@@ -9,9 +9,14 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/email"
+	"github.com/infrahq/infra/internal/server/redis"
 )
 
 func (a *API) RequestForgotDomains(c *gin.Context, r *api.ForgotDomainRequest) (*api.EmptyResponse, error) {
+	if err := redis.RateOK(a.server.redis, r.Email, 10); err != nil {
+		return nil, err
+	}
+
 	domains, err := access.ForgotDomainRequest(c, r.Email)
 
 	if err != nil {

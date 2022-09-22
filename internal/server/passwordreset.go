@@ -11,10 +11,13 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/email"
+	"github.com/infrahq/infra/internal/server/redis"
 )
 
 func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
-	// TODO: rate-limit
+	if err := redis.RateOK(a.server.redis, r.Email, 10); err != nil {
+		return nil, err
+	}
 
 	token, user, err := access.PasswordResetRequest(c, r.Email, 15*time.Minute)
 	if err != nil {
