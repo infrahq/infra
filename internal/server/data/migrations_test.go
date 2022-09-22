@@ -77,7 +77,7 @@ func TestMigrations(t *testing.T) {
 			},
 		}
 
-		tx, err := db.Begin(context.Background())
+		tx, err := db.Begin(context.Background(), nil)
 		assert.NilError(t, err)
 		defer tx.Rollback()
 
@@ -87,7 +87,7 @@ func TestMigrations(t *testing.T) {
 		assert.NilError(t, tx.Commit())
 
 		t.Run("run again to check idempotency", func(t *testing.T) {
-			tx, err := db.Begin(context.Background())
+			tx, err := db.Begin(context.Background(), nil)
 			assert.NilError(t, err)
 			defer tx.Rollback()
 
@@ -96,7 +96,7 @@ func TestMigrations(t *testing.T) {
 			assert.NilError(t, tx.Commit())
 		})
 
-		tx, err = db.Begin(context.Background())
+		tx, err = db.Begin(context.Background(), nil)
 		assert.NilError(t, err)
 		defer tx.Rollback()
 		tc.expected(t, tx)

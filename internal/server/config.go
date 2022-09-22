@@ -606,7 +606,7 @@ func (s Server) loadConfig(config Config) error {
 
 	org := s.db.DefaultOrg
 
-	tx, err := s.db.Begin(context.Background())
+	tx, err := s.db.Begin(context.Background(), nil)
 	if err != nil {
 		return err
 	}

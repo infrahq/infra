@@ -30,7 +30,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 
 func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 	t.Helper()
-	tx, err := db.Begin(context.Background())
+	tx, err := db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		_ = tx.Rollback()
@@ -173,7 +173,7 @@ func TestDB_Begin(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		t.Run("rollback", func(t *testing.T) {
 			ctx := context.Background()
-			tx, err := db.Begin(ctx)
+			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
 			tx = tx.WithOrgID(db.DefaultOrg.ID)
 
@@ -193,7 +193,7 @@ func TestDB_Begin(t *testing.T) {
 		})
 		t.Run("commit", func(t *testing.T) {
 			ctx := context.Background()
-			tx, err := db.Begin(ctx)
+			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
 			tx = tx.WithOrgID(db.DefaultOrg.ID)
 

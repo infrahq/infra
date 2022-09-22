@@ -94,7 +94,7 @@ func loginAs(tx *data.Transaction, user *models.Identity) *gin.Context {
 
 func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
 	t.Helper()
-	tx, err := db.Begin(context.Background())
+	tx, err := db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, tx.Rollback())

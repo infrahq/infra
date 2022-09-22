@@ -41,7 +41,7 @@ func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
 	dataDB := &DB{DB: db}
-	tx, err := dataDB.Begin(context.TODO())
+	tx, err := dataDB.Begin(context.TODO(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +126,8 @@ func (d *DB) GormDB() *gorm.DB {
 	return d.DB
 }
 
-// TODO: accept sql.TxOptions when we remove gorm
-func (d *DB) Begin(ctx context.Context) (*Transaction, error) {
-	tx := d.DB.WithContext(ctx).Begin()
+func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
+	tx := d.DB.WithContext(ctx).Begin(opts)
 	if err := tx.Error; err != nil {
 		return nil, err
 	}
@@ -239,7 +238,7 @@ func newRawDB(connection gorm.Dialector, options NewDBOptions) (*gorm.DB, error)
 const defaultOrganizationID = 1000
 
 func initialize(db *DB) error {
-	tx, err := db.Begin(context.TODO())
+	tx, err := db.Begin(context.TODO(), nil)
 	if err != nil {
 		return err
 	}

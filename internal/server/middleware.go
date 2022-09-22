@@ -74,7 +74,7 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 // If the request identifies an organization (which is required for most routes)
 // a rate limit will be applied to all requests from the same organization.
 func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (access.Authenticated, error) {
-	tx, err := srv.db.Begin(c.Request.Context())
+	tx, err := srv.db.Begin(c.Request.Context(), nil)
 	if err != nil {
 		return access.Authenticated{}, err
 	}
