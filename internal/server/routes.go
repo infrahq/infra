@@ -13,6 +13,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/validate"
@@ -197,26 +198,18 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			}
 		}
 
-		tx, err := a.server.db.Begin(c.Request.Context())
-		if err != nil {
-			return err
-		}
-		defer func() {
-			if err := tx.Rollback(); err != nil {
-				logging.L.Error().Err(err).Msg("failed to rollback database transaction")
-			}
-		}()
-
+		var err error
 		if route.noAuthentication {
-			err = validateRequestOrganization(c, tx, a.server)
+			err = validateRequestOrganization(c, a.server)
 		} else {
-			err = authenticateRequest(c, tx, a.server)
+			err = authenticateRequest(c, a.server)
 		}
 		if err != nil {
 			return err
 		}
 
-		org := getRequestContext(c).Authenticated.Organization
+		rCtx := getRequestContext(c)
+		org := rCtx.Authenticated.Organization
 		if !route.noOrgRequired {
 			if org == nil {
 				return internal.ErrBadRequest
@@ -234,6 +227,18 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		if err := readRequest(c, req); err != nil {
 			return err
 		}
+
+		tx, err := a.server.db.Begin(c.Request.Context())
+		if err != nil {
+			return err
+		}
+		defer logError(tx.Rollback, "failed to rollback request handler transaction")
+
+		if org := rCtx.Authenticated.Organization; org != nil {
+			tx = tx.WithOrgID(org.ID)
+		}
+		rCtx.DBTxn = tx
+		c.Set(access.RequestContextKey, rCtx)
 
 		resp, err := route.handler(c, req)
 		if err != nil {

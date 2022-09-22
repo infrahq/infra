@@ -610,11 +610,7 @@ func (s Server) loadConfig(config Config) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err := tx.Rollback(); err != nil {
-			logging.L.Error().Err(err).Msg("failed to rollback database transaction")
-		}
-	}()
+	defer logError(tx.Rollback, "failed to rollback loadConfig transaction")
 	tx = tx.WithOrgID(org.ID)
 
 	if config.DefaultOrganizationDomain != org.Domain {
