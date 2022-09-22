@@ -37,7 +37,7 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 
 	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
 		// non-login access keys can not currently create other access keys.
-		return "", fmt.Errorf("%w: cannot use an access key to create other access keys", internal.ErrBadRequest)
+		return "", fmt.Errorf("%w: cannot use an access key not issued from login to create other access keys", internal.ErrBadRequest)
 	}
 
 	if accessKey.IssuedFor == rCtx.Authenticated.User.ID {
