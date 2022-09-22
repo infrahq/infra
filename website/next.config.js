@@ -1,4 +1,14 @@
-module.exports = {
+const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
+
+const ContentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' www.google.com www.gstatic.com;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' user-images.githubusercontent.com raw.githubusercontent.com i.ytimg.com;
+  frame-src www.google.com youtube.com www.youtube.com youtube-nocookie.com www.youtube-nocookie.com;
+`
+
+module.exports = phase => ({
   async headers() {
     return [
       {
@@ -8,6 +18,13 @@ module.exports = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value:
+              phase === PHASE_DEVELOPMENT_SERVER
+                ? ''
+                : ContentSecurityPolicy.replace(/\s{2,}/g, ' ').trim(),
           },
         ],
       },
@@ -151,4 +168,4 @@ module.exports = {
     domains: ['raw.githubusercontent.com', 'user-images.githubusercontent.com'],
   },
   experimental: { images: { allowFutureImage: true } },
-}
+})
