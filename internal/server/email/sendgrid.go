@@ -10,6 +10,7 @@ import (
 
 	"github.com/ssoroka/slice"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -120,6 +121,10 @@ func SendTemplate(name, address string, template EmailTemplate, data any, bypass
 
 	// TODO: handle rate limiting, retries, understanding which errors are retryable, send queues, whatever
 	if err := SendSMTP(msg, bypassListManagement); err != nil {
+		if err.Error() == "501 Recipient syntax error" {
+			logging.Errorf("SMTP mail delivery error: %s, user trying email %q", err, msg.ToAddress)
+			return internal.ErrBadRequest
+		}
 		logging.Errorf("SMTP mail delivery error: %s", err)
 		return err
 	}
