@@ -15,7 +15,7 @@ export default async function signup(req, res) {
 
   if (!SENDGRID_API_KEY || !SENDGRID_LIST_ID || !RECAPTCHA_SECRET_KEY) {
     console.error('server not configured')
-    res.stauts(500).end()
+    res.status(500).end()
     return
   }
 
