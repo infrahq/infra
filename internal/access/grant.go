@@ -1,10 +1,14 @@
 package access
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -43,9 +47,51 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return nil, err
 	}
 
-	// TODO: validate that only supported query parameters are set with lastUpdateIndex
+	// TODO: validate that only supported query parameters are set, and that at least
+	// one of the rquired parameters are set with lastUpdateIndex
+	// TODO: change request timeout for these requests
 	if lastUpdateIndex > 0 {
+		listenOpts := data.ListenGrantsOptions{ByResource: opts.ByResource}
+		listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
+		if err != nil {
+			return nil, fmt.Errorf("listen for notify: %w", err)
+		}
+		defer func() {
+			// use a context with a separate deadline so that we still release
+			// when the request timeout is reached
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			if err := listener.Release(ctx); err != nil {
+				logging.L.Error().Err(err).Msg("failed to release listener conn")
+			}
+		}()
 
+		var maxIndex int64
+		opts.MaxUpdateIndex = &maxIndex
+		response, err := data.ListGrants(rCtx.DBTxn, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		// The query returned results that are new to the client
+		if maxIndex > lastUpdateIndex {
+			return response, nil
+		}
+
+		_, err = listener.WaitForNotification(rCtx.Request.Context())
+		if err != nil {
+			return nil, fmt.Errorf("waiting for notify: %w", err)
+		}
+
+		response, err = data.ListGrants(rCtx.DBTxn, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: check if the maxIndex > lastUpdateIndex, when we include
+		// group membership changes in the query. This is an optimization.
+
+		return response, nil
 	}
 
 	return data.ListGrants(rCtx.DBTxn, opts)

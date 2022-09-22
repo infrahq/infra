@@ -81,7 +81,8 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 		})
 		t.Run("notify", func(t *testing.T) {
-			listener, err := ListenForGrantsNotify(db, ListenGrantsOptions{ByResource: "match"})
+			ctx := context.Background()
+			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{ByResource: "match"})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -97,11 +98,11 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			defer cancel()
-			notification, err := listener.pgxConn.WaitForNotification(ctx)
+			channel, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, notification.Channel, "grants_by_resource_match")
+			assert.Equal(t, channel, "grants_by_resource_match")
 		})
 	})
 }
@@ -193,6 +194,7 @@ func TestDeleteGrants(t *testing.T) {
 			startUpdateIndex = maxIndex
 		})
 		t.Run("notify", func(t *testing.T) {
+			ctx := context.Background()
 			g := models.Grant{
 				Subject:   "i:1234567",
 				Privilege: "view",
@@ -200,7 +202,7 @@ func TestDeleteGrants(t *testing.T) {
 			}
 			assert.NilError(t, CreateGrant(db, &g))
 
-			listener, err := ListenForGrantsNotify(db, ListenGrantsOptions{ByResource: "match"})
+			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{ByResource: "match"})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -211,12 +213,12 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			t.Cleanup(cancel)
 
-			notification, err := listener.pgxConn.WaitForNotification(ctx)
+			channel, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, notification.Channel, "grants_by_resource_match")
+			assert.Equal(t, channel, "grants_by_resource_match")
 		})
 	})
 }

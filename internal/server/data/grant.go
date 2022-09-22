@@ -257,6 +257,17 @@ type Listener struct {
 	pgxConn *pgx.Conn
 }
 
+// WaitForNotification blocks until the listener receivers a notification on
+// one of the channels, or until the context is cancelled.
+// Returns the name of the channel, or an error.
+func (l *Listener) WaitForNotification(ctx context.Context) (string, error) {
+	note, err := l.pgxConn.WaitForNotification(ctx)
+	if err != nil {
+		return "", err
+	}
+	return note.Channel, nil
+}
+
 func (l *Listener) Release(ctx context.Context) error {
 	var errs []error
 	if _, err := l.pgxConn.Exec(ctx, `UNLISTEN *`); err != nil {
@@ -278,14 +289,12 @@ func (l *Listener) Release(ctx context.Context) error {
 // connection to the pool.
 //
 // TODO: fuzz this function to show it is not vulnerable to SQL injection
-func ListenForGrantsNotify(db *DB, opts ListenGrantsOptions) (*Listener, error) {
+func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenGrantsOptions) (*Listener, error) {
 	sqlDB := db.SQLdb()
 	pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
 	if err != nil {
 		return nil, err
 	}
-
-	ctx := db.DB.Statement.Context
 
 	if opts.ByResource != "" {
 		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", "grants_by_resource_"+opts.ByResource)

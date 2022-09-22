@@ -222,6 +222,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			Request:       c.Request,
 			DBTxn:         tx,
 			Authenticated: authned,
+			DataDB:        a.server.db,
 		}
 		if org := rCtx.Authenticated.Organization; org != nil {
 			tx = tx.WithOrgID(org.ID)
