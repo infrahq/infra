@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/go-redis/redis/v8"
@@ -16,6 +17,14 @@ type Options struct {
 	Username string
 	Password string
 	Options  string
+
+	TLS TLSOptions
+}
+
+type TLSOptions struct {
+	Enabled bool
+
+	// TODO: add other TLS options
 }
 
 func NewRedis(options Options) (*Redis, error) {
@@ -29,6 +38,11 @@ func NewRedis(options Options) (*Redis, error) {
 
 		redisOptions.Username = options.Username
 		redisOptions.Password = options.Password
+		if options.TLS.Enabled {
+			redisOptions.TLSConfig = &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			}
+		}
 
 		client = redis.NewClient(redisOptions)
 	}
