@@ -33,13 +33,14 @@ func (r *CreateGrantResponse) StatusCode() int {
 }
 
 type ListGrantsRequest struct {
-	User          uid.ID `form:"user"`
-	Group         uid.ID `form:"group"`
-	Resource      string `form:"resource" example:"production.namespace"`
-	Destination   string `form:"destination" example:"production"`
-	Privilege     string `form:"privilege" example:"view"`
-	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
-	ShowSystem    bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants"`
+	User            uid.ID `form:"user"`
+	Group           uid.ID `form:"group"`
+	Resource        string `form:"resource" example:"production.namespace"`
+	Destination     string `form:"destination" example:"production"`
+	Privilege       string `form:"privilege" example:"view"`
+	ShowInherited   bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
+	ShowSystem      bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants"`
+	LastUpdateIndex int64  `form:"lastUpdateIndex" note:"set this to the value of the Last-Update-Index response header to block until the list results have changed"`
 	PaginationRequest
 }
 

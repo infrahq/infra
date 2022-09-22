@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -436,6 +437,41 @@ func TestAPI_ListGrants(t *testing.T) {
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
+			},
+		},
+		"with stale update index": {
+			urlPath: "/api/grants?destination=res1&lastUpdateIndex=1",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{User: idInGroup, Privilege: "custom1", Resource: "res1"},
+					{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
+					{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+				assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10004")
+			},
+		},
+		"with latest update index and timeout": {
+			urlPath: "/api/grants?destination=res1&lastUpdateIndex=100100",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+				ctx, cancel := context.WithTimeout(req.Context(), 200*time.Millisecond)
+				t.Cleanup(cancel)
+
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// TODO: update test to expect 304 or 200
+				assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
 			},
 		},
 	}

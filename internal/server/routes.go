@@ -222,6 +222,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			Request:       c.Request,
 			DBTxn:         tx,
 			Authenticated: authned,
+			DataDB:        a.server.db,
 		}
 		if org := rCtx.Authenticated.Organization; org != nil {
 			tx = tx.WithOrgID(org.ID)
@@ -234,7 +235,12 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
-		if err := tx.Commit(); err != nil {
+		completeTx := tx.Commit
+		if route.txnOptions != nil && route.txnOptions.ReadOnly {
+			// use rollback to avoid an error when the request handler already completed the txn
+			completeTx = tx.Rollback
+		}
+		if err := completeTx(); err != nil {
 			return err
 		}
 
@@ -242,6 +248,10 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			a.t.RouteEvent(c, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
 		}
 
+		// TODO: extract all response header/status/body writing to another function
+		if respHeaders, ok := any(resp).(hasResponseHeaders); ok {
+			respHeaders.SetHeaders(c.Writer.Header())
+		}
 		if r, ok := responseIsRedirect(resp); ok {
 			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
 		} else {
@@ -249,6 +259,10 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		return nil
 	}
+}
+
+type hasResponseHeaders interface {
+	SetHeaders(http.Header)
 }
 
 type isRedirect interface {

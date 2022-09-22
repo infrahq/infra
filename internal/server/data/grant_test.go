@@ -107,7 +107,7 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			defer cancel()
 			notification, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
@@ -232,7 +232,7 @@ func TestDeleteGrants(t *testing.T) {
 			assert.NilError(t, err)
 			assert.NilError(t, tx.Commit())
 
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 			t.Cleanup(cancel)
 
 			notification, err := listener.WaitForNotification(ctx)
