@@ -31,8 +31,8 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
 		stmt := `DELETE FROM identities_groups WHERE identity_id = ? AND group_id in (
-		   SELECT id FROM groups WHERE name IN (?))`
-		if _, err := tx.Exec(stmt, user.ID, groupsToBeRemoved); err != nil {
+		   SELECT id FROM groups WHERE organization_id = ? AND name IN (?))`
+		if _, err := tx.Exec(stmt, user.ID, tx.OrganizationID(), groupsToBeRemoved); err != nil {
 			return err
 		}
 		for _, name := range groupsToBeRemoved {
@@ -51,8 +51,8 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 	}
 	var addIDs []idNamePair
 
-	stmt := `SELECT id, name FROM groups WHERE name IN (?)`
-	rows, err := tx.Query(stmt, groupsToBeAdded)
+	stmt := `SELECT id, name FROM groups WHERE deleted_at is null AND name IN (?) AND organization_id = ?`
+	rows, err := tx.Query(stmt, groupsToBeAdded, tx.OrganizationID())
 	if err != nil {
 		return err
 	}

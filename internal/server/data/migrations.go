@@ -67,6 +67,7 @@ func migrations() []*migrator.Migration {
 		sqlFunctionsMigration(),
 		setDefaultOrgID(),
 		addIdentityVerifiedFields(),
+		cleanCrossOrgGroupMemberships(),
 		// next one here
 	}
 }
@@ -594,7 +595,6 @@ func setDefaultOrgID() *migrator.Migration {
 				}
 			}
 			return nil
-
 		},
 	}
 }
@@ -611,6 +611,47 @@ ALTER TABLE identities
 CREATE UNIQUE INDEX IF NOT EXISTS idx_identities_verified ON identities (organization_id, verification_token) WHERE (deleted_at IS NULL);`
 			_, err := tx.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func cleanCrossOrgGroupMemberships() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-22T11:00",
+		Migrate: func(tx migrator.DB) error {
+			// go through all the group members and make sure they belong to the same org as the group
+			stmt := `SELECT identity_id, group_id FROM identities_groups`
+			rows, err := tx.Query(stmt)
+			if err != nil {
+				return err
+			}
+			for rows.Next() {
+				var identityID uid.ID
+				var groupID uid.ID
+				if err := rows.Scan(&identityID, &groupID); err != nil {
+					return err
+				}
+
+				var identityOrgID uid.ID
+				err := tx.QueryRow(`SELECT organization_id FROM identities WHERE id = ?`, identityID).Scan(&identityOrgID)
+				if err != nil {
+					return err
+				}
+
+				var groupOrgID uid.ID
+				err = tx.QueryRow(`SELECT organization_id FROM groups WHERE id = ?`, groupID).Scan(&groupOrgID)
+				if err != nil {
+					return err
+				}
+
+				if identityID != groupOrgID {
+					_, err := tx.Exec(`DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?`, identityID, groupID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			return nil
 		},
 	}
 }
