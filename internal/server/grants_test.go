@@ -809,9 +809,9 @@ func TestAPI_DeleteGrant(t *testing.T) {
 			ByResource:   "infra",
 		})
 		assert.NilError(t, err)
-		assert.Assert(t, len(infraAdminGrants) == 1)
+		assert.Assert(t, len(infraAdminGrants.Grants) == 1)
 
-		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants[0].ID), nil)
+		req := httptest.NewRequest(http.MethodDelete, fmt.Sprintf("/api/grants/%s", infraAdminGrants.Grants[0].ID), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 

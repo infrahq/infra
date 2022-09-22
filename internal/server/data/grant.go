@@ -139,11 +139,19 @@ type ListGrantsOptions struct {
 	ExcludeConnectorGrant bool
 
 	Pagination *Pagination
-	// TODO: return this value instead?
-	MaxUpdateIndex *int64
+	// IncludeMaxUpdateIndex instructs ListGrants to query for the maximum
+	// update index that matches the query and include that value in the
+	// response.
+	IncludeMaxUpdateIndex bool
 }
 
-func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
+type ListGrantsResponse struct {
+	Grants         []models.Grant
+	MaxUpdateIndex int64
+}
+
+func ListGrants(tx ReadTxn, opts ListGrantsOptions) (ListGrantsResponse, error) {
+	var result ListGrantsResponse
 	table := grantsTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
@@ -163,13 +171,13 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 
 			userID, err := opts.BySubject.ID()
 			if err != nil || !opts.BySubject.IsIdentity() {
-				return nil, fmt.Errorf("IncludeInheritedFromGroups requires a userId subject")
+				return result, fmt.Errorf("IncludeInheritedFromGroups requires a userId subject")
 			}
 			// FIXME: store userID and groupID as a field on the grants table so
 			// that we can replace this with a sub-select or join.
 			groupIDs, err := groupIDsForUser(tx, userID)
 			if err != nil {
-				return nil, err
+				return result, err
 			}
 			for _, id := range groupIDs {
 				subjects = append(subjects, uid.NewGroupPolymorphicID(id).String())
@@ -194,11 +202,10 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 	defer rows.Close()
 
-	var result []models.Grant
 	for rows.Next() {
 		var grant models.Grant
 
@@ -207,20 +214,20 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
 		if err := rows.Scan(fields...); err != nil {
-			return nil, err
+			return result, err
 		}
-		result = append(result, grant)
+		result.Grants = append(result.Grants, grant)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return result, err
 	}
 
 	// TODO: validate this is only used with supported parameters
-	if opts.MaxUpdateIndex != nil {
+	if opts.IncludeMaxUpdateIndex {
 		maxIndex, err := grantsMaxUpdateIndex(tx, grantsMaxUpdateIndexOptions{
 			ByResource: opts.ByResource,
 		})
-		*opts.MaxUpdateIndex = maxIndex
+		result.MaxUpdateIndex = maxIndex
 		return result, err
 	}
 	return result, nil

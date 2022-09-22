@@ -107,7 +107,7 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
 	if err != nil {
 		return fmt.Errorf("has grants: %w", err)
 	}
-	if len(grants) == 0 {
+	if len(grants.Grants) == 0 {
 		return ErrNotAuthorized
 	}
 	return nil

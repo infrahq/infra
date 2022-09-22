@@ -30,6 +30,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		ExcludeConnectorGrant:      !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
 		Pagination:                 &p,
+		IncludeMaxUpdateIndex:      true,
 	}
 	if r.Privilege != "" {
 		opts.ByPrivileges = []string{r.Privilege}
@@ -39,7 +40,7 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		return nil, err
 	}
 
-	result := api.NewListResponse(grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
+	result := api.NewListResponse(grants.Grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
 	})
 
@@ -110,7 +111,7 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 			return nil, err
 		}
 
-		if len(infraAdminGrants) == 1 {
+		if len(infraAdminGrants.Grants) == 1 {
 			return nil, fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrBadRequest)
 		}
 	}

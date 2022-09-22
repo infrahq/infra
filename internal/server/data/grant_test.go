@@ -69,7 +69,7 @@ func TestCreateGrant(t *testing.T) {
 				ByResource: "infra",
 			})
 			assert.NilError(t, err)
-			assert.Assert(t, is.Len(grants, 1))
+			assert.Assert(t, is.Len(grants.Grants, 1))
 
 			g3 := models.Grant{
 				Subject:   "i:1234567",
@@ -128,15 +128,17 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByResource:            "any",
+				IncludeMaxUpdateIndex: true,
+			})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-			assert.Equal(t, maxIndex, startUpdateIndex+3) // 2 inserts, 1 delete
-			startUpdateIndex = maxIndex
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
+			assert.Equal(t, actual.MaxUpdateIndex, startUpdateIndex+3) // 2 inserts, 1 delete
+			startUpdateIndex = actual.MaxUpdateIndex
 		})
 		t.Run("by subject", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -152,19 +154,21 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByResource:            "any",
+				IncludeMaxUpdateIndex: true,
+			})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
-			startUpdateIndex = maxIndex
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
+			assert.Equal(t, actual.MaxUpdateIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = actual.MaxUpdateIndex
 
 			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
-			assert.Equal(t, len(actual), 1)
+			assert.Equal(t, len(actual.Grants), 1)
 		})
 		t.Run("by created_by and not ids", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -182,16 +186,18 @@ func TestDeleteGrants(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByResource:            "any",
+				IncludeMaxUpdateIndex: true,
+			})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep1.ID}},
 				{Model: models.Model{ID: toKeep2.ID}},
 			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
-			startUpdateIndex = maxIndex
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
+			assert.Equal(t, actual.MaxUpdateIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = actual.MaxUpdateIndex
 		})
 		t.Run("notify", func(t *testing.T) {
 			ctx := context.Background()
@@ -429,21 +435,21 @@ func TestListGrants(t *testing.T) {
 				*gGrant2,
 				*gGrant3,
 			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("by subject", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{BySubject: "i:userchar"})
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant3, *grant4}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("by resource", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2, *grant3}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("by resource and privilege", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
@@ -453,7 +459,7 @@ func TestListGrants(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("with multiple privileges", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
@@ -463,7 +469,7 @@ func TestListGrants(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2, *grant3}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("by subject with include inherited", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{
@@ -473,7 +479,7 @@ func TestListGrants(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant3, *grant4, *gGrant1, *gGrant2}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("exclude connector grant", func(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{ExcludeConnectorGrant: true})
@@ -488,7 +494,7 @@ func TestListGrants(t *testing.T) {
 				*gGrant2,
 				*gGrant3,
 			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 		})
 		t.Run("with pagination", func(t *testing.T) {
 			pagination := &Pagination{Page: 2, Limit: 3}
@@ -496,7 +502,7 @@ func TestListGrants(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant3, *grant4, *gGrant1}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 
 			expectedPagination := &Pagination{Page: 2, Limit: 3, TotalCount: 8}
 			assert.DeepEqual(t, pagination, expectedPagination)
@@ -510,7 +516,7 @@ func TestListGrants(t *testing.T) {
 			assert.NilError(t, err)
 
 			expected := []models.Grant{*grant1, *grant2}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.DeepEqual(t, actual.Grants, expected, cmpModelByID)
 
 			expectedPagination := &Pagination{Page: 1, Limit: 2, TotalCount: 3}
 			assert.DeepEqual(t, pagination, expectedPagination)

@@ -186,7 +186,7 @@ func TestDeleteGroup(t *testing.T) {
 
 			grants, err := ListGrants(tx, ListGrantsOptions{BySubject: groupGrant.Subject})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, grants, []models.Grant{}, cmpopts.EquateEmpty())
+			assert.DeepEqual(t, grants.Grants, []models.Grant{}, cmpopts.EquateEmpty())
 		})
 		t.Run("delete non-existent", func(t *testing.T) {
 			err := DeleteGroup(tx, uid.ID(1234))

@@ -23,8 +23,9 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.GetGrantOptions{ByID: id})
 }
 
-func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int64) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int64) (data.ListGrantsResponse, error) {
 	rCtx := GetRequestContext(c)
+	resp := data.ListGrantsResponse{}
 	subject := opts.BySubject
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
@@ -35,16 +36,16 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		subjectID, _ := subject.ID() // zero value will never match a user
 		switch {
 		case rCtx.Authenticated.User == nil:
-			return nil, err
+			return resp, err
 		case subject.IsIdentity() && rCtx.Authenticated.User.ID == subjectID:
 			// authorized because the request is for their own grants
 		case subject.IsGroup() && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subjectID):
 			// authorized because the request is for grants of a group they belong to
 		default:
-			return nil, err
+			return resp, err
 		}
 	} else if err != nil {
-		return nil, err
+		return resp, err
 	}
 
 	// TODO: validate that only supported query parameters are set, and that at least
@@ -54,7 +55,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		listenOpts := data.ListenGrantsOptions{ByResource: opts.ByResource}
 		listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 		if err != nil {
-			return nil, fmt.Errorf("listen for notify: %w", err)
+			return resp, fmt.Errorf("listen for notify: %w", err)
 		}
 		defer func() {
 			// use a context with a separate deadline so that we still release
@@ -66,26 +67,25 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 			}
 		}()
 
-		var maxIndex int64
-		opts.MaxUpdateIndex = &maxIndex
+		// TODO: use Repeatable Read Isolation Level for this txn
 		response, err := data.ListGrants(rCtx.DBTxn, opts)
 		if err != nil {
-			return nil, err
+			return resp, err
 		}
 
 		// The query returned results that are new to the client
-		if maxIndex > lastUpdateIndex {
+		if response.MaxUpdateIndex > lastUpdateIndex {
 			return response, nil
 		}
 
 		_, err = listener.WaitForNotification(rCtx.Request.Context())
 		if err != nil {
-			return nil, fmt.Errorf("waiting for notify: %w", err)
+			return resp, fmt.Errorf("waiting for notify: %w", err)
 		}
 
 		response, err = data.ListGrants(rCtx.DBTxn, opts)
 		if err != nil {
-			return nil, err
+			return resp, err
 		}
 
 		// TODO: check if the maxIndex > lastUpdateIndex, when we include

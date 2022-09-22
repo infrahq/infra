@@ -103,7 +103,7 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 
 	grants, err := data.ListGrants(db, data.ListGrantsOptions{BySubject: identity.PolyID()})
 	assert.NilError(t, err)
-	assert.Equal(t, len(grants), 0)
+	assert.Equal(t, len(grants.Grants), 0)
 
 	group, err = data.GetGroup(db, data.ByID(group.ID))
 	assert.NilError(t, err)
