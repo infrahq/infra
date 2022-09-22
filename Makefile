@@ -1,5 +1,4 @@
-v ?= $(shell git describe --tags --abbrev=0)
-IMAGEVERSION ?= $(v:v%=%)
+BUILDVERSION := $(shell grep "appVersion" helm/charts/infra/Chart.yaml | sed -e "s/.*: //")
 
 test:
 	go test -short ./...
@@ -12,7 +11,7 @@ test/update:
 	go test ./internal/cmd -test.update-golden
 
 dev:
-	docker buildx build . --load -t infrahq/infra:dev
+	docker buildx build . --build-arg BUILDVERSION=$(BUILDVERSION) --load -t infrahq/infra:dev
 	docker buildx build ui --load -t infrahq/ui:dev
 	kubectl config use-context docker-desktop
 	helm upgrade --install --wait  \
@@ -23,6 +22,9 @@ dev:
 		--set-string ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
 		infra ./helm/charts/infra \
 		$(flags)
+
+dev/cli:
+	go build -ldflags '-s -X github.com/infrahq/infra/internal.Version='$(BUILDVERSION)'' .
 
 dev/clean:
 	kubectl config use-context docker-desktop
