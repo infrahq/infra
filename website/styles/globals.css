@@ -2,6 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'sans';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/sans.ttf) format('truetype-variations');
+}
+
+@font-face {
+  font-family: 'display';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/display.ttf) format('truetype-variations');
+}
+
+@font-face {
+  font-family: 'mono';
+  font-style: normal;
+  font-weight: 100 900;
+  src: url(/fonts/mono.ttf) format('truetype-variations');
+}
+
 html,
 body,
 #__next {
@@ -10,7 +31,7 @@ body,
 }
 
 .prose-docs {
-  @apply prose-headings:tracking-tight;
+  @apply prose-headings:font-display;
   @apply prose-h1:mt-10;
   @apply prose-h1:mb-5;
   @apply prose-h1:text-[42px];
@@ -37,22 +58,25 @@ body,
   @apply prose-pre:px-5;
   @apply prose-pre:py-4;
   @apply prose-pre:min-w-full;
-  @apply prose-pre:font-medium;
+  @apply prose-pre:font-[450];
   @apply prose-img:shadow-xl;
   @apply prose-img:shadow-gray-300/25;
   @apply prose-img:border;
   @apply prose-img:border-gray-200;
   @apply prose-img:rounded-xl;
-  @apply prose-p:text-gray-800;
+  @apply prose-p:text-gray-700;
   @apply prose-p:leading-relaxed;
   @apply prose-p:before:content-none;
   @apply prose-p:after:content-none;
   @apply prose-p:after:text-gray-900;
+  @apply prose-p:font-[450];
   @apply prose-a:text-blue-500;
   @apply prose-a:no-underline;
   @apply hover:prose-a:underline;
   @apply prose-ul:mb-4;
   @apply prose-li:my-0;
+  @apply prose-li:text-gray-700;
+  @apply prose-li:font-[450];
   @apply prose-code:font-mono;
   @apply prose-code:font-medium;
   @apply prose-code:text-[0.9em];

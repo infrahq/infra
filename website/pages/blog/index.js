@@ -19,10 +19,10 @@ export default function Blog({ posts }) {
       </Head>
       <section className='mx-auto w-full max-w-3xl p-6'>
         <div className='my-16'>
-          <h1 className='my-2 text-3xl font-bold tracking-tight md:my-6 md:text-5xl'>
+          <h1 className='my-2 font-display text-3xl font-bold md:my-6 md:text-5xl'>
             Infra Blog
           </h1>
-          <h2 className='mt-2 mb-4 text-xl text-gray-500'>
+          <h2 className='mt-2 mb-4 font-display text-xl text-gray-600'>
             The latest product updates and news from Infra
           </h2>
           <a
@@ -36,7 +36,7 @@ export default function Blog({ posts }) {
         </div>
         {posts.map(p => (
           <div key={p.title}>
-            <h1 className='mb-4 text-4xl font-semibold tracking-tight'>
+            <h1 className='mb-4 font-display text-4xl font-semibold'>
               <Link href={p.href}>
                 <a>{p.title}</a>
               </Link>
