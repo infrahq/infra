@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,7 +16,17 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+type ListGrantsResponse api.ListResponse[api.Grant]
+
+func (r ListGrantsResponse) Headers() http.Header {
+	h := http.Header{}
+	if r.LastUpdateIndex.Index > 0 {
+		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
+	}
+	return h
+}
+
+func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsResponse, error) {
 	var subject uid.PolymorphicID
 	p := PaginationFromRequest(r.PaginationRequest)
 	switch {
@@ -30,12 +42,12 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		ExcludeConnectorGrant:      !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
 		Pagination:                 &p,
-		IncludeMaxUpdateIndex:      true,
+		IncludeMaxUpdateIndex:      r.LastUpdateIndex > 0,
 	}
 	if r.Privilege != "" {
 		opts.ByPrivileges = []string{r.Privilege}
 	}
-	grants, err := access.ListGrants(c, opts, 0)
+	grants, err := access.ListGrants(c, opts, r.LastUpdateIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -43,8 +55,9 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 	result := api.NewListResponse(grants.Grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
 	})
+	result.LastUpdateIndex.Index = grants.MaxUpdateIndex
 
-	return result, nil
+	return (*ListGrantsResponse)(result), nil
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {

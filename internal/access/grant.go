@@ -2,6 +2,7 @@ package access
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -48,53 +49,66 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return resp, err
 	}
 
+	if lastUpdateIndex == 0 {
+		return data.ListGrants(rCtx.DBTxn, opts)
+	}
+
 	// TODO: validate that only supported query parameters are set, and that at least
-	// one of the rquired parameters are set with lastUpdateIndex
+	// one of the required parameters are set with lastUpdateIndex
 	// TODO: change request timeout for these requests
-	if lastUpdateIndex > 0 {
-		listenOpts := data.ListenGrantsOptions{ByResource: opts.ByResource}
-		listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
-		if err != nil {
-			return resp, fmt.Errorf("listen for notify: %w", err)
+	listenOpts := data.ListenGrantsOptions{ByResource: opts.ByResource}
+	listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
+	if err != nil {
+		return resp, fmt.Errorf("listen for notify: %w", err)
+	}
+	defer func() {
+		// use a context with a separate deadline so that we still release
+		// when the request timeout is reached
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		if err := listener.Release(ctx); err != nil {
+			logging.L.Error().Err(err).Msg("failed to release listener conn")
 		}
-		defer func() {
-			// use a context with a separate deadline so that we still release
-			// when the request timeout is reached
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			if err := listener.Release(ctx); err != nil {
-				logging.L.Error().Err(err).Msg("failed to release listener conn")
-			}
-		}()
+	}()
 
-		// TODO: use Repeatable Read Isolation Level for this txn
-		response, err := data.ListGrants(rCtx.DBTxn, opts)
-		if err != nil {
-			return resp, err
-		}
+	response, err := data.ListGrants(rCtx.DBTxn, opts)
+	if err != nil {
+		return resp, err
+	}
 
-		// The query returned results that are new to the client
-		if response.MaxUpdateIndex > lastUpdateIndex {
-			return response, nil
-		}
-
-		_, err = listener.WaitForNotification(rCtx.Request.Context())
-		if err != nil {
-			return resp, fmt.Errorf("waiting for notify: %w", err)
-		}
-
-		response, err = data.ListGrants(rCtx.DBTxn, opts)
-		if err != nil {
-			return resp, err
-		}
-
-		// TODO: check if the maxIndex > lastUpdateIndex, when we include
-		// group membership changes in the query. This is an optimization.
-
+	// The query returned results that are new to the client
+	if response.MaxUpdateIndex > lastUpdateIndex {
 		return response, nil
 	}
 
-	return data.ListGrants(rCtx.DBTxn, opts)
+	_, err = listener.WaitForNotification(rCtx.Request.Context())
+	if err != nil {
+		return resp, fmt.Errorf("waiting for notify: %w", err)
+	}
+
+	tx, err := rCtx.DataDB.Begin(rCtx.Request.Context(), &sql.TxOptions{
+		Isolation: sql.LevelRepeatableRead,
+		ReadOnly:  true,
+	})
+	if err != nil {
+		return resp, err
+	}
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			logging.L.Warn().Err(err).Msg("rollback failed")
+		}
+	}()
+
+	response, err = data.ListGrants(tx, opts)
+	if err != nil {
+		return resp, err
+	}
+
+	// TODO: check if the maxIndex > lastUpdateIndex, and start waiting for
+	// notification again when it's false. When we include group membership
+	// changes in the query this will be an optimization.
+
+	return response, nil
 }
 
 func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {

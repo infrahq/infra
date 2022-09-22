@@ -243,6 +243,13 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			a.t.RouteEvent(c, routeID.path, Properties{"method": strings.ToLower(routeID.method)})
 		}
 
+		// TODO: extract all response header/status/body writing to another function
+		if respHeaders, ok := any(resp).(hasResponseHeaders); ok {
+			target := c.Writer.Header()
+			for k, v := range respHeaders.Headers() {
+				target[k] = v
+			}
+		}
 		if r, ok := responseIsRedirect(resp); ok {
 			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
 		} else {
@@ -250,6 +257,10 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		return nil
 	}
+}
+
+type hasResponseHeaders interface {
+	Headers() http.Header
 }
 
 type isRedirect interface {
