@@ -148,10 +148,19 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
+
 			logging.Debugf("call server: list access keys named %q", args[0])
 			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
 			if err != nil {
-				return handleListKeysMissingPrivilege(err)
+				var err2 error
+				keys, err2 = client.ListAccessKeys(api.ListAccessKeysRequest{UserID: config.UserID, Name: args[0]})
+				if err2 != nil {
+					return handleListKeysMissingPrivilege(err)
+				}
 			}
 
 			if keys.Count == 0 && !force {
