@@ -35,7 +35,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "groups",
 		Help:      "The total number of groups",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Group](db)
+		count, err := data.QuickGlobalCount[models.Group](db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("groups")
 			return []metrics.Metric{}
@@ -113,7 +113,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "organizations",
 		Help:      "The total number of organizations",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Organization](db)
+		count, err := data.QuickGlobalCount[models.Organization](db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("organizations")
 			return []metrics.Metric{}

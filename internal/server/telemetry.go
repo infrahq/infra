@@ -65,27 +65,27 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() {
-	users, err := data.GlobalCount[models.Identity](t.db)
+	users, err := data.QuickGlobalCount[models.Identity](t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	groups, err := data.GlobalCount[models.Group](t.db)
+	groups, err := data.QuickGlobalCount[models.Group](t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	grants, err := data.GlobalCount[models.Grant](t.db)
+	grants, err := data.QuickGlobalCount[models.Grant](t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	providers, err := data.GlobalCount[models.Provider](t.db)
+	providers, err := data.QuickGlobalCount[models.Provider](t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	destinations, err := data.GlobalCount[models.Destination](t.db)
+	destinations, err := data.QuickGlobalCount[models.Destination](t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}

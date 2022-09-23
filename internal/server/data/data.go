@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"unicode"
@@ -15,6 +16,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -505,6 +507,24 @@ func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int
 
 	var count int64
 	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
+// QuickGlobalCount gives the count of all records, not scoped by org, and not filterable, but very fast.
+func QuickGlobalCount[T models.Modelable](tx GormTxn) (int64, error) {
+	db := tx.GormDB()
+
+	s, err := schema.Parse((*T)(nil), &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		return 0, fmt.Errorf("trying to get table name: %w", err)
+	}
+	tableName := s.Table
+
+	var count int64
+	if err := db.Raw("SELECT reltuples AS count FROM pg_class WHERE relname = ?", tableName).Scan(&count).Error; err != nil {
 		return -1, err
 	}
 

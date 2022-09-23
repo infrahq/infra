@@ -117,6 +117,26 @@ func TestPaginationSelector(t *testing.T) {
 	})
 }
 
+func TestGlobalCount(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+
+		err := CreateGrant(db, &models.Grant{
+			Subject:   "foo",
+			Privilege: "view",
+			Resource:  "toronto",
+		})
+		assert.NilError(t, err)
+
+		c, err := GlobalCount[models.Grant](db)
+		assert.NilError(t, err)
+		assert.Assert(t, c > 0)
+
+		_, err = QuickGlobalCount[models.Grant](db)
+		assert.NilError(t, err)
+		// count is not exact, so no sense checking the value.
+	})
+}
+
 func TestDefaultSortFromType(t *testing.T) {
 	assert.Equal(t, getDefaultSortFromType(new(models.AccessKey)), "name ASC")
 	assert.Equal(t, getDefaultSortFromType(new(models.Destination)), "name ASC")
