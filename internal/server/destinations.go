@@ -53,6 +53,7 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 }
 
 func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
+	rCtx := getRequestContext(c)
 	destination := &models.Destination{
 		Model: models.Model{
 			ID: r.ID,
@@ -66,7 +67,7 @@ func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest)
 		Version:       r.Version,
 	}
 
-	if err := access.SaveDestination(c, destination); err != nil {
+	if err := access.SaveDestination(rCtx, destination); err != nil {
 		return nil, fmt.Errorf("update destination: %w", err)
 	}
 

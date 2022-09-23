@@ -36,35 +36,27 @@ func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
 	}
 }
 
-func handleInfraDestinationHeader(c *gin.Context) error {
-	uniqueID := c.Request.Header.Get("Infra-Destination")
+func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) error {
 	if uniqueID == "" {
 		return nil
 	}
-
-	// TODO: use GetDestination(ByUniqueID())
-	destinations, err := access.ListDestinations(c, uniqueID, "", &data.Pagination{Limit: 1})
-	if err != nil {
+	// not actually optional, but we already check that it's not an empty string
+	destination, err := data.GetDestination(rCtx.DBTxn, data.ByOptionalUniqueID(uniqueID))
+	switch {
+	case errors.Is(err, internal.ErrNotFound):
+		return nil // destination does not exist yet
+	case err != nil:
 		return err
 	}
 
-	switch len(destinations) {
-	case 0:
-		// destination does not exist yet, noop
-		return nil
-	case 1:
-		destination := destinations[0]
-		// only save if there's significant difference between LastSeenAt and Now
-		if time.Since(destination.LastSeenAt) > time.Second {
-			destination.LastSeenAt = time.Now()
-			if err := access.SaveDestination(c, &destination); err != nil {
-				return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
-			}
+	// only save if there's significant difference between LastSeenAt and Now
+	if time.Since(destination.LastSeenAt) > time.Second {
+		destination.LastSeenAt = time.Now()
+		if err := access.SaveDestination(rCtx, destination); err != nil {
+			return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
 		}
-		return nil
-	default:
-		return fmt.Errorf("multiple destinations found for unique ID %q", uniqueID)
 	}
+	return nil
 }
 
 // authenticateRequest is call for requests to routes that require authentication.
@@ -91,22 +83,25 @@ func authenticateRequest(c *gin.Context, srv *Server) error {
 		logging.L.Warn().Err(err).Msg("org validation failed")
 		return internal.ErrBadRequest
 	}
+	tx = tx.WithOrgID(authned.Organization.ID)
+
+	if uniqueID := c.Request.Header.Get("Infra-Destination"); uniqueID != "" {
+		rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
+		if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	// TODO: move to caller
 	rCtx := access.RequestContext{
 		Request:       c.Request,
-		DBTxn:         tx.WithOrgID(authned.Organization.ID),
 		Authenticated: authned,
 	}
 	c.Set(access.RequestContextKey, rCtx)
-
-	if err := handleInfraDestinationHeader(c); err != nil {
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-	rCtx.DBTxn = nil
 	return nil
 }
 
@@ -157,7 +152,6 @@ func validateRequestOrganization(c *gin.Context, srv *Server) error {
 		logging.L.Warn().Err(err).Msg("org validation failed")
 		return internal.ErrBadRequest
 	}
-	authned.Organization = org
 
 	// See this diagram for more details about this request flow
 	// when an org is not specified.
@@ -167,9 +161,7 @@ func validateRequestOrganization(c *gin.Context, srv *Server) error {
 	if org == nil && !srv.options.EnableSignup { // is single tenant
 		org = srv.db.DefaultOrg
 	}
-	if org != nil {
-		authned.Organization = org
-	}
+	authned.Organization = org
 
 	if err := tx.Commit(); err != nil {
 		return err
