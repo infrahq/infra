@@ -1,6 +1,3 @@
-v ?= $(shell git describe --tags --abbrev=0)
-IMAGEVERSION ?= $(v:v%=%)
-
 test:
 	go test -short ./...
 

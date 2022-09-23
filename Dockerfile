@@ -8,9 +8,7 @@ RUN apt-get update && \
 RUN CGO_ENABLED=0 GOOS=linux go install -v -installsuffix cgo -a std
 
 ARG TARGETARCH
-ARG BUILDVERSION=0.14.4
-ARG BUILDVERSION_PRERELEASE
-ARG BUILDVERSION_METADATA
+ARG BUILDVERSION=99.99.99999
 ARG TELEMETRY_WRITE_KEY
 WORKDIR /go/src/github.com/infrahq/infra
 
@@ -28,7 +26,7 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     CGO_ENABLED=1 GOOS=linux GOARCH=$TARGETARCH \
     CC=$TARGETARCH-linux-gnu-gcc \
     go build \
-    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.Prerelease='"$BUILDVERSION_PRERELEASE"' -X github.com/infrahq/infra/internal.Metadata='"$BUILDVERSION_METADATA"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -linkmode external -extldflags "-static"' \
+    -ldflags '-s -X github.com/infrahq/infra/internal.Version='"$BUILDVERSION"' -X github.com/infrahq/infra/internal.TelemetryWriteKey='"$TELEMETRY_WRITE_KEY"' -linkmode external -extldflags "-static"' \
     .
 
 FROM alpine
