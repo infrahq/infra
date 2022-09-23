@@ -199,17 +199,17 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		var err error
+		var authned access.Authenticated
 		if route.noAuthentication {
-			err = validateRequestOrganization(c, a.server)
+			authned, err = validateRequestOrganization(c, a.server)
 		} else {
-			err = authenticateRequest(c, a.server)
+			authned, err = authenticateRequest(c, a.server)
 		}
 		if err != nil {
 			return err
 		}
 
-		rCtx := getRequestContext(c)
-		org := rCtx.Authenticated.Organization
+		org := authned.Organization
 		if !route.noOrgRequired {
 			if org == nil {
 				return internal.ErrBadRequest
@@ -233,6 +233,12 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 		defer logError(tx.Rollback, "failed to rollback request handler transaction")
+
+		rCtx := access.RequestContext{
+			Request:       c.Request,
+			DBTxn:         tx,
+			Authenticated: authned,
+		}
 
 		if org := rCtx.Authenticated.Organization; org != nil {
 			tx = tx.WithOrgID(org.ID)

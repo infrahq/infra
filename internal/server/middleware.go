@@ -67,42 +67,33 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 // gin.Context.
 // See validateRequestOrganization for a related function used for unauthenticated
 // routes.
-func authenticateRequest(c *gin.Context, srv *Server) error {
+func authenticateRequest(c *gin.Context, srv *Server) (access.Authenticated, error) {
 	tx, err := srv.db.Begin(c.Request.Context())
 	if err != nil {
-		return err
+		return access.Authenticated{}, err
 	}
 	defer logError(tx.Rollback, "failed to rollback middleware transaction")
 
 	authned, err := requireAccessKey(c, tx, srv)
 	if err != nil {
-		return err
+		return authned, err
 	}
 
 	if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
 		logging.L.Warn().Err(err).Msg("org validation failed")
-		return internal.ErrBadRequest
+		return authned, internal.ErrBadRequest
 	}
 	tx = tx.WithOrgID(authned.Organization.ID)
 
 	if uniqueID := c.Request.Header.Get("Infra-Destination"); uniqueID != "" {
 		rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
 		if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
-			return err
+			return authned, err
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	// TODO: move to caller
-	rCtx := access.RequestContext{
-		Request:       c.Request,
-		Authenticated: authned,
-	}
-	c.Set(access.RequestContextKey, rCtx)
-	return nil
+	err = tx.Commit()
+	return authned, err
 }
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
@@ -137,10 +128,10 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 //
 // validateRequestOrganization is also responsible for adding RequestContext to the
 // gin.Context.
-func validateRequestOrganization(c *gin.Context, srv *Server) error {
+func validateRequestOrganization(c *gin.Context, srv *Server) (access.Authenticated, error) {
 	tx, err := srv.db.Begin(c.Request.Context())
 	if err != nil {
-		return err
+		return access.Authenticated{}, err
 	}
 	defer logError(tx.Rollback, "failed to rollback middleware transaction")
 
@@ -150,7 +141,7 @@ func validateRequestOrganization(c *gin.Context, srv *Server) error {
 	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 	if err != nil {
 		logging.L.Warn().Err(err).Msg("org validation failed")
-		return internal.ErrBadRequest
+		return authned, internal.ErrBadRequest
 	}
 
 	// See this diagram for more details about this request flow
@@ -163,17 +154,8 @@ func validateRequestOrganization(c *gin.Context, srv *Server) error {
 	}
 	authned.Organization = org
 
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	// TODO: move to caller
-	rCtx := access.RequestContext{
-		Request:       c.Request,
-		Authenticated: authned,
-	}
-	c.Set(access.RequestContextKey, rCtx)
-	return nil
+	err = tx.Commit()
+	return authned, err
 }
 
 // requireAccessKey checks the bearer token is present and valid
