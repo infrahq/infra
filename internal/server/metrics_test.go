@@ -58,6 +58,9 @@ func TestMetrics(t *testing.T) {
 		assert.NilError(t, data.CreateGroup(db, &models.Group{Name: "heroes"}))
 		assert.NilError(t, data.CreateGroup(db, &models.Group{Name: "villains"}))
 
+		_, err := db.Exec("ANALYZE groups") // force the record count estimate to be accurate for the test.
+		assert.NilError(t, err)
+
 		actual := run(db, `infra_groups({.*})? \d+`)
 		golden.Assert(t, string(actual), t.Name())
 	})
