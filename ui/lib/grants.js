@@ -30,7 +30,7 @@ export function sortByPrivilege(a, b) {
   return 0
 }
 
-export function sortByRole(list) {
+export function sortByRole(list = []) {
   const sortedList = list
     .filter(x => KUBERNETES_ROLE_ORDER.includes(x))
     .sort(
