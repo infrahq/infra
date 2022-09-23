@@ -17,6 +17,7 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/redis"
 )
 
 // TimeoutMiddleware adds a timeout to the request context within the Gin context.
@@ -59,15 +60,20 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 	return nil
 }
 
-// authenticateRequest is call for requests to routes that require authentication.
-// It validates the access key and organization, updates the lastSeenAt of the user,
+// authenticateRequest authenticates the user performing the request.
+//
+// If the route requires authentication, authenticateRequest validates the access
+// key and organization, updates the lastSeenAt of the user,
 // and may also update the lastSeenAt of the destination if the appropriate header
 // is set.
-// authenticateRequest is also responsible for adding RequestContext to the
-// gin.Context.
-// See validateRequestOrganization for a related function used for unauthenticated
-// routes.
-func authenticateRequest(c *gin.Context, srv *Server) (access.Authenticated, error) {
+//
+// If the route does not require authentication, authenticateRequest will attempt
+// the same authentication, but ignore the error. It will also look up the
+// organization from the domain name when no access key is provided.
+//
+// If the request identifies an organization (which is required for most routes)
+// a rate limit will be applied to all requests from the same organization.
+func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (access.Authenticated, error) {
 	tx, err := srv.db.Begin(c.Request.Context())
 	if err != nil {
 		return access.Authenticated{}, err
@@ -75,20 +81,45 @@ func authenticateRequest(c *gin.Context, srv *Server) (access.Authenticated, err
 	defer logError(tx.Rollback, "failed to rollback middleware transaction")
 
 	authned, err := requireAccessKey(c, tx, srv)
-	if err != nil {
+	if !route.authenticationOptional && err != nil {
 		return authned, err
 	}
 
-	if _, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization); err != nil {
+	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
+	if err != nil {
 		logging.L.Warn().Err(err).Msg("org validation failed")
 		return authned, internal.ErrBadRequest
 	}
-	tx = tx.WithOrgID(authned.Organization.ID)
 
-	if uniqueID := c.Request.Header.Get("Infra-Destination"); uniqueID != "" {
-		rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
-		if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
+	if route.authenticationOptional {
+		// See this diagram for more details about this request flow
+		// when an org is not specified.
+		// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
+
+		// TODO: use an explicit setting for this, don't overload EnableSignup
+		if org == nil && !srv.options.EnableSignup { // is single tenant
+			org = srv.db.DefaultOrg
+		}
+		if org == nil && !route.organizationOptional {
+			return authned, internal.ErrBadRequest
+		}
+		authned.Organization = org
+	}
+
+	if org != nil {
+		// TODO: limit should be a per-organization setting
+		if err := redis.NewLimiter(srv.redis).RateOK(org.ID.String(), 5000); err != nil {
 			return authned, err
+		}
+	}
+
+	if authned.User != nil {
+		if uniqueID := c.Request.Header.Get("Infra-Destination"); uniqueID != "" {
+			tx = tx.WithOrgID(authned.Organization.ID)
+			rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
+			if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
+				return authned, err
+			}
 		}
 	}
 
@@ -119,43 +150,6 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 	default:
 		return orgFromRequest, nil
 	}
-}
-
-// validateRequestOrganization is the alternative to authenticateRequest used
-// for routes that don't require authentication. It checks for an optional
-// access key, and if one does not exist, finds the organizationID from the
-// hostname in the request.
-//
-// validateRequestOrganization is also responsible for adding RequestContext to the
-// gin.Context.
-func validateRequestOrganization(c *gin.Context, srv *Server) (access.Authenticated, error) {
-	tx, err := srv.db.Begin(c.Request.Context())
-	if err != nil {
-		return access.Authenticated{}, err
-	}
-	defer logError(tx.Rollback, "failed to rollback middleware transaction")
-
-	// ignore errors, access key is not required
-	authned, _ := requireAccessKey(c, tx, srv)
-
-	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
-	if err != nil {
-		logging.L.Warn().Err(err).Msg("org validation failed")
-		return authned, internal.ErrBadRequest
-	}
-
-	// See this diagram for more details about this request flow
-	// when an org is not specified.
-	// https://github.com/infrahq/infra/blob/main/docs/dev/organization-request-flow.md
-
-	// TODO: use an explicit setting for this, don't overload EnableSignup
-	if org == nil && !srv.options.EnableSignup { // is single tenant
-		org = srv.db.DefaultOrg
-	}
-	authned.Organization = org
-
-	err = tx.Commit()
-	return authned, err
 }
 
 // requireAccessKey checks the bearer token is present and valid

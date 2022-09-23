@@ -205,9 +205,11 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 
 			return nil, fmt.Errorf("this failed")
 		},
-		infraVersionHeaderOptional: true,
-		noAuthentication:           true,
-		noOrgRequired:              true,
+		routeSettings: routeSettings{
+			infraVersionHeaderOptional: true,
+			authenticationOptional:     true,
+			organizationOptional:       true,
+		},
 	}
 
 	api := &API{server: srv}
@@ -238,9 +240,11 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 			err := rCtx.DBTxn.Commit()
 			return nil, err
 		},
-		infraVersionHeaderOptional: true,
-		noAuthentication:           true,
-		noOrgRequired:              true,
+		routeSettings: routeSettings{
+			infraVersionHeaderOptional: true,
+			authenticationOptional:     true,
+			organizationOptional:       true,
+		},
 	}
 
 	api := &API{server: srv}
