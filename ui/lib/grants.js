@@ -8,6 +8,16 @@ export const descriptions = {
   logs: 'Read and stream logs',
 }
 
+const KUBERNETES_ROLE_ORDER = [
+  'cluster-admin',
+  'admin',
+  'edit',
+  'view',
+  'exec',
+  'port-forward',
+  'logs',
+]
+
 export function sortByPrivilege(a, b) {
   if (a?.privilege === 'cluster-admin') {
     return -1
@@ -20,23 +30,19 @@ export function sortByPrivilege(a, b) {
   return 0
 }
 
-export function sortedByPrivilegeArray(list) {
-  const sortedArray = Object.keys(descriptions)?.filter(
-    Set.prototype.has,
-    new Set(list)
-  )
+export function sortByRole(list) {
+  const sortedList = list
+    .filter(x => KUBERNETES_ROLE_ORDER.includes(x))
+    .sort(
+      (a, b) =>
+        KUBERNETES_ROLE_ORDER.indexOf(a) - KUBERNETES_ROLE_ORDER.indexOf(b)
+    )
 
-  const difference = list.filter(x => !sortedArray.includes(x))
+  const difference = list
+    .filter(x => !sortedList.includes(x))
+    .sort((a, b) => a.localeCompare(b))
 
-  const arrayMap = list.reduce(
-    (accumulator, currentValue) => ({
-      ...accumulator,
-      [currentValue]: currentValue,
-    }),
-    {}
-  )
-
-  return [...sortedArray.map(key => arrayMap[key]), ...difference]
+  return [...sortedList, ...difference]
 }
 
 export function sortBySubject(a, b) {

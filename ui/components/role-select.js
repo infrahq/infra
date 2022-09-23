@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
-import { sortedByPrivilegeArray, descriptions } from '../lib/grants'
+import { descriptions, sortByRole } from '../lib/grants'
 
 const OPTION_REMOVE = 'remove'
 
@@ -40,9 +40,7 @@ export default function RoleSelect({
   })
 
   roles = roles || items?.[0]?.roles || []
-  roles = sortedByPrivilegeArray(roles).filter(
-    r => !hasParent || r !== 'cluster-admin'
-  )
+  roles = sortByRole(roles).filter(r => !hasParent || r !== 'cluster-admin')
 
   return (
     <Listbox
