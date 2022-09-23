@@ -205,7 +205,6 @@ func TestAPI_CreateProvider(t *testing.T) {
 				expected := []api.FieldError{
 					{FieldName: "clientID", Errors: []string{"is required"}},
 					{FieldName: "clientSecret", Errors: []string{"is required"}},
-					{FieldName: "name", Errors: []string{"is required"}},
 					{FieldName: "url", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
