@@ -3,10 +3,20 @@ export const descriptions = {
   admin: 'Read and write access to all resources',
   edit: 'Read and write access to most resources, but not roles',
   view: 'Read-only access to see most resources',
-  logs: 'Read and stream logs',
   exec: 'Shell to a running container',
   'port-forward': 'Use port-forwarding to access applications',
+  logs: 'Read and stream logs',
 }
+
+const KUBERNETES_ROLE_ORDER = [
+  'cluster-admin',
+  'admin',
+  'edit',
+  'view',
+  'exec',
+  'port-forward',
+  'logs',
+]
 
 export function sortByPrivilege(a, b) {
   if (a?.privilege === 'cluster-admin') {
@@ -17,25 +27,32 @@ export function sortByPrivilege(a, b) {
     return 1
   }
 
-  return a?.privilege?.localeCompare(b?.privilege)
+  return 0
 }
 
-export function sortByHasDescription(a, b) {
-  if (descriptions[a]) {
-    return -1
-  }
+export function sortByRole(list = []) {
+  const sortedList = list
+    .filter(x => KUBERNETES_ROLE_ORDER.includes(x))
+    .sort(
+      (a, b) =>
+        KUBERNETES_ROLE_ORDER.indexOf(a) - KUBERNETES_ROLE_ORDER.indexOf(b)
+    )
 
-  if (descriptions[b]) {
-    return 1
-  }
+  const difference = list
+    .filter(x => !sortedList.includes(x))
+    .sort((a, b) => a.localeCompare(b))
 
-  return a.localeCompare(b)
-}
-
-export function sortByResource(a, b) {
-  return a?.resource?.localeCompare(b?.resource)
+  return [...sortedList, ...difference]
 }
 
 export function sortBySubject(a, b) {
-  return (a?.user || a?.group)?.localeCompare(b?.user || b?.group)
+  if (a?.user && b?.group) {
+    return -1
+  }
+
+  if (a?.group && b?.user) {
+    return 1
+  }
+
+  return 0
 }
