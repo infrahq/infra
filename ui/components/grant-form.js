@@ -7,7 +7,12 @@ import RoleSelect from './role-select'
 
 import { CheckIcon } from '@heroicons/react/solid'
 
-export default function GrantForm({ grants, roles, onSubmit = () => {} }) {
+export default function GrantForm({
+  grants,
+  roles,
+  multiselect = true,
+  onSubmit = () => {},
+}) {
   const { data: { items: users } = { items: [] }, mutate: mutateUsers } =
     useSWR('/api/users?limit=1000')
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
@@ -24,16 +29,21 @@ export default function GrantForm({ grants, roles, onSubmit = () => {} }) {
 
   useEffect(() => {
     if (users && groups) {
-      setOptions(
-        [
-          ...(users?.map(u => ({ ...u, user: true })) || []),
-          ...(groups?.map(g => ({ ...g, group: true })) || []),
-        ]
-          ?.filter(
+      const optionsList = [
+        ...(users?.map(u => ({ ...u, user: true })) || []),
+        ...(groups?.map(g => ({ ...g, group: true })) || []),
+      ]
+      const filteredOptions = multiselect
+        ? optionsList
+        : optionsList?.filter(
             item =>
               !grants?.find(g => g.user === item.id || g.group === item.id)
           )
-          .filter(s => s?.name?.toLowerCase()?.includes(query.toLowerCase()))
+
+      setOptions(
+        filteredOptions.filter(s =>
+          s?.name?.toLowerCase()?.includes(query.toLowerCase())
+        )
       )
     }
   }, [users, groups, grants, query])
