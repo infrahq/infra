@@ -48,7 +48,7 @@ export default function ProvidersAddDetails() {
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [name, setName] = useState(kind === 'azure' ? 'azure ad' : kind)
+  const [name, setName] = useState('')
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
@@ -168,7 +168,7 @@ export default function ProvidersAddDetails() {
           {/* Overview */}
           <div>
             <h3 className='mb-4 text-base font-medium text-gray-900'>
-              Overview
+              Select an identity provider
             </h3>
             <div className='mb-6 grid grid-cols-2 gap-2'>
               {providers.map(
@@ -178,7 +178,6 @@ export default function ProvidersAddDetails() {
                       key={p.name}
                       onClick={() => {
                         setKind(p.kind)
-                        setName(p.kind === 'azure' ? 'azure ad' : p.kind)
                         router.replace(`/providers/add?type=${p.kind}`)
                       }}
                     >
@@ -187,9 +186,27 @@ export default function ProvidersAddDetails() {
                   )
               )}
             </div>
-            <label className='text-2xs font-medium text-gray-700'>Name</label>
+          </div>
+          <div className='w-full'>
+            <div className='mb-1 flex'>
+              <h3 className='text-base font-medium leading-6 text-gray-900'>
+                Information
+              </h3>
+              &nbsp; &nbsp;
+              <a
+                className=' text-gray-500 underline hover:text-gray-600'
+                target='_blank'
+                href={docLink()}
+                rel='noreferrer'
+              >
+                learn more
+              </a>
+            </div>
+
+            <label className='text-2xs font-medium text-gray-700'>
+              Name (optional)
+            </label>
             <input
-              required
               type='text'
               value={name}
               onChange={e => {
@@ -202,22 +219,6 @@ export default function ProvidersAddDetails() {
               }`}
             />
             {errors.name && <ErrorMessage message={errors.name} />}
-          </div>
-          <div className='w-full'>
-            <div className='mb-1 flex'>
-              <h3 className='text-base font-medium leading-6 text-gray-900'>
-                Additional Information
-              </h3>
-              &nbsp;
-              <a
-                className='text-gray-500 underline hover:text-gray-600'
-                target='_blank'
-                href={docLink()}
-                rel='noreferrer'
-              >
-                learn more
-              </a>
-            </div>
             <div className='mt-6 space-y-3'>
               {kind !== 'google' && (
                 <div>
