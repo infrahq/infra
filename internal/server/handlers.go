@@ -140,20 +140,22 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
-		if err := redis.RateOK(a.server.redis, r.PasswordCredentials.Name, 10); err != nil {
+		if err := redis.NewLimiter(a.server.redis).RateOK(r.PasswordCredentials.Name, 10); err != nil {
 			return nil, err
 		}
 
-		if err := redis.LoginOK(a.server.redis, r.PasswordCredentials.Name); err != nil {
+		usernameWithOrganization := fmt.Sprintf("%s:%s", r.PasswordCredentials.Name, rCtx.Authenticated.Organization.ID)
+		limiter := redis.NewLimiter(a.server.redis)
+		if err := limiter.LoginOK(usernameWithOrganization); err != nil {
 			return nil, err
 		}
 
 		onSuccess = func() {
-			redis.LoginGood(a.server.redis, r.PasswordCredentials.Name)
+			limiter.LoginGood(usernameWithOrganization)
 		}
 
 		onFailure = func() {
-			redis.LoginBad(a.server.redis, r.PasswordCredentials.Name, 10)
+			limiter.LoginBad(usernameWithOrganization, 10)
 		}
 
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)

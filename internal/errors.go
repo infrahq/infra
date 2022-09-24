@@ -16,5 +16,4 @@ var (
 	ErrBadRequest      = fmt.Errorf("bad request")
 	ErrNotImplemented  = fmt.Errorf("not implemented")
 	ErrExpired         = fmt.Errorf("expired")
-	ErrTooManyRequests = fmt.Errorf("too many requests")
 )

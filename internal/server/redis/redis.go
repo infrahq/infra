@@ -28,24 +28,22 @@ type TLSOptions struct {
 }
 
 func NewRedis(options Options) (*Redis, error) {
-	var client *redis.Client
-
-	if len(options.Host) > 0 {
-		redisOptions, err := redis.ParseURL(fmt.Sprintf("redis://%s:%d?%s", options.Host, options.Port, options.Options))
-		if err != nil {
-			return nil, fmt.Errorf("invalid redis options: %v", options)
-		}
-
-		redisOptions.Username = options.Username
-		redisOptions.Password = options.Password
-		if options.TLS.Enabled {
-			redisOptions.TLSConfig = &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			}
-		}
-
-		client = redis.NewClient(redisOptions)
+	if options.Host == "" {
+		return nil, nil
 	}
 
-	return &Redis{client: client}, nil
+	redisOptions, err := redis.ParseURL(fmt.Sprintf("redis://%s:%d?%s", options.Host, options.Port, options.Options))
+	if err != nil {
+		return nil, fmt.Errorf("invalid redis options: %v", options)
+	}
+
+	redisOptions.Username = options.Username
+	redisOptions.Password = options.Password
+	if options.TLS.Enabled {
+		redisOptions.TLSConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		}
+	}
+
+	return &Redis{client: redis.NewClient(redisOptions)}, nil
 }

@@ -101,7 +101,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = err.Error()
 
 	case errors.As(err, &overLimitError):
-		c.Header("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
+		c.Writer.Header().Set("Retry-After", strconv.Itoa(int(overLimitError.RetryAfter.Seconds())))
 		resp.Code = http.StatusTooManyRequests
 		resp.Message = err.Error()
 

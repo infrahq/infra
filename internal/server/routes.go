@@ -225,7 +225,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 
 		if org != nil {
 			// TODO: limit should be a per-organization setting
-			if err := redis.RateOK(a.server.redis, org.ID.String(), 5000); err != nil {
+			if err := redis.NewLimiter(a.server.redis).RateOK(org.ID.String(), 5000); err != nil {
 				return err
 			}
 		}

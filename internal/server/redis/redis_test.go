@@ -27,7 +27,7 @@ func TestRedis(t *testing.T) {
 	t.Run("no redis", func(t *testing.T) {
 		redis, err := NewRedis(Options{})
 		assert.NilError(t, err)
-		assert.Assert(t, redis.client == nil)
+		assert.Assert(t, redis == nil)
 	})
 
 	t.Run("with host port", func(t *testing.T) {

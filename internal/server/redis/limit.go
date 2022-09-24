@@ -21,28 +21,40 @@ func (e OverLimitError) Error() string {
 	return fmt.Sprintf("over limit; retry after %v", e.RetryAfter)
 }
 
+type Limiter struct {
+	redis *Redis
+}
+
+func NewLimiter(redis *Redis) *Limiter {
+	return &Limiter{
+		redis: redis,
+	}
+}
+
 // RateOK checks if the rate per minute is acceptable for the specified key
-func RateOK(r *Redis, key string, limit int) error {
-	if r != nil && r.client != nil {
-		ctx := context.TODO()
-		limiter := rate.NewLimiter(r.client)
-		result, err := limiter.Allow(ctx, key, rate.PerMinute(limit))
-		if err != nil {
-			return err
-		}
+func (lim *Limiter) RateOK(key string, limit int) error {
+	if lim.redis == nil {
+		return nil
+	}
 
-		logging.L.Debug().
-			Str("key", key).
-			Int("limit", limit).
-			Int("allowed", result.Allowed).
-			Int("remaining", result.Remaining).
-			Dur("retry_after", result.RetryAfter).
-			Msg("")
+	ctx := context.TODO()
+	limiter := rate.NewLimiter(lim.redis.client)
+	result, err := limiter.Allow(ctx, key, rate.PerMinute(limit))
+	if err != nil {
+		return err
+	}
 
-		if result.Allowed <= 0 {
-			return OverLimitError{
-				RetryAfter: result.RetryAfter,
-			}
+	logging.L.Debug().
+		Str("key", key).
+		Int("limit", limit).
+		Int("allowed", result.Allowed).
+		Int("remaining", result.Remaining).
+		Dur("retry_after", result.RetryAfter).
+		Msg("rate limit check")
+
+	if result.Allowed <= 0 {
+		return OverLimitError{
+			RetryAfter: result.RetryAfter,
 		}
 	}
 
@@ -57,50 +69,59 @@ func loginKeyLockout(key string) string {
 	return fmt.Sprintf("%s:lockout", loginKey(key))
 }
 
-func LoginOK(r *Redis, key string) error {
-	if r != nil && r.client != nil {
-		lockout, err := r.client.Get(context.TODO(), loginKeyLockout(key)).Time()
-		if err != nil {
-			if errors.Is(err, redis.Nil) {
-				// err is redis.Nil when the key does not exist, i.e. no previous failures
-				return nil
-			}
+func (lim *Limiter) LoginOK(key string) error {
+	if lim.redis == nil {
+		return nil
+	}
 
-			return err
-		}
+	lockout, err := lim.redis.client.Get(context.TODO(), loginKeyLockout(key)).Time()
+	switch {
+	case errors.Is(err, redis.Nil):
+	    // err is redis.Nil when the key does not exist, i.e. no previous failures
+	    return nil
+	case err != nil:
+	    return err
+	}
 
-		retryAfter := time.Until(lockout)
+	retryAfter := time.Until(lockout)
+	ok := retryAfter > 0
 
-		logging.L.Debug().
-			Str("key", key).
-			Dur("retry_after", retryAfter).
-			Msg("")
+	logging.L.Debug().
+		Str("key", key).
+		Bool("allowed", ok).
+		Dur("retry_after", retryAfter).
+		Msg("login limit check")
 
-		if retryAfter > 0 {
-			return OverLimitError{
-				RetryAfter: retryAfter,
-			}
+	if ok {
+		return OverLimitError{
+			RetryAfter: retryAfter,
 		}
 	}
 
 	return nil
 }
 
-func LoginGood(r *Redis, key string) {
-	if r != nil && r.client != nil {
+func (lim *Limiter) LoginGood(key string) {
+	if lim.redis != nil {
 		ctx := context.TODO()
-		_, _ = r.client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
+		_, err := lim.redis.client.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 			pipe.Del(ctx, loginKey(key))
 			pipe.Del(ctx, loginKeyLockout(key))
 			return nil
 		})
+		if err != nil {
+			logging.L.Error().Err(err).Msg("could not reset lockout timer")
+		}
 	}
 }
 
-func LoginBad(r *Redis, key string, limit int) {
-	if r != nil && r.client != nil {
+func (lim *Limiter) LoginBad(key string, limit int) {
+	if lim.redis != nil {
 		ctx := context.TODO()
-		rate := r.client.Incr(ctx, loginKey(key)).Val()
+		rate, err := lim.redis.client.Incr(ctx, loginKey(key)).Result()
+		if err != nil {
+			logging.L.Error().Err(err).Msg("could not increment lockout timer")
+		}
 
 		if rate >= int64(limit) {
 			retryAfter := time.Duration(math.Pow(1.5, float64(rate)) * float64(time.Second))
@@ -110,12 +131,15 @@ func LoginBad(r *Redis, key string, limit int) {
 				Str("key", key).
 				Int("limit", limit).
 				Dur("retry_after", retryAfter).
-				Msg("")
+				Msg("login failed")
 
-			r.client.SetArgs(ctx, loginKeyLockout(key), lockout, redis.SetArgs{
+			err := lim.redis.client.SetArgs(ctx, loginKeyLockout(key), lockout, redis.SetArgs{
 				Mode:     "NX",
 				ExpireAt: lockout,
-			})
+			}).Err()
+			if err != nil {
+				logging.L.Error().Err(err).Msg("could not set lockout timer")
+			}
 		}
 	}
 }

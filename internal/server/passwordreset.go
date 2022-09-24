@@ -15,7 +15,7 @@ import (
 )
 
 func (a *API) RequestPasswordReset(c *gin.Context, r *api.PasswordResetRequest) (*api.EmptyResponse, error) {
-	if err := redis.RateOK(a.server.redis, r.Email, 10); err != nil {
+	if err := redis.NewLimiter(a.server.redis).RateOK(r.Email, 10); err != nil {
 		return nil, err
 	}
 
