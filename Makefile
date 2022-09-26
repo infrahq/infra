@@ -22,6 +22,7 @@ dev:
 		--set-string connector.podAnnotations.checksum=$$(docker images -q infrahq/infra:dev) \
 		--set-string ui.podAnnotations.checksum=$$(docker images -q infrahq/ui:dev) \
 		infra ./helm/charts/infra \
+		-f values.yaml \
 		$(flags)
 
 dev/clean:
