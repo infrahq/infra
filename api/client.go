@@ -152,7 +152,17 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 		}
 	}
 
+	if h, ok := any(&resBody).(readsResponseHeader); ok {
+		if err := h.setValuesFromHeader(resp.Header); err != nil {
+			return nil, err
+		}
+	}
+
 	return &resBody, nil
+}
+
+type readsResponseHeader interface {
+	setValuesFromHeader(header http.Header) error
 }
 
 func get[Res any](client Client, path string, query Query) (*Res, error) {
