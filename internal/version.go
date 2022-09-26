@@ -6,31 +6,13 @@ import (
 
 var (
 	Branch     = "main"
-	Version    = "0.14.4"
-	Prerelease = ""
-	Metadata   = "dev"
+	Version    = "99.99.99999"
 	Commit     = ""
 	Date       = ""
 )
 
-// FullVersion returns the full semver version string, however it also increments the patch version if you're working on a pre-release.
-// While the next version may not match the patch release, it causes the right behavior for semver version comparisons.
+// FullVersion returns the full semantic version string. FullVersion panics if
+// the version string is not a valid semantic version.
 func FullVersion() string {
-	v := semver.MustParse(Version)
-
-	metadata := v.Metadata()
-	if v.Metadata() == "" && Metadata != "" {
-		metadata = Metadata
-	}
-
-	if metadata != "" {
-		*v = v.IncPatch()
-		*v, _ = v.SetMetadata(metadata)
-	}
-
-	if v.Prerelease() == "" && Prerelease != "" {
-		*v, _ = v.SetPrerelease(Prerelease)
-	}
-
-	return v.String()
+	return semver.MustParse(Version).String()
 }
