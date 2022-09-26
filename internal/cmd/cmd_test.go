@@ -359,14 +359,40 @@ func TestInvalidSessions(t *testing.T) {
 	})
 }
 
-func TestConnectorCmd(t *testing.T) {
-	var actual connector.Options
-	patchRunConnector(t, func(ctx context.Context, options connector.Options) error {
-		actual = options
-		return nil
-	})
+func TestConnectorCmd_LoadConfig(t *testing.T) {
+	type testCase struct {
+		name     string
+		config   string
+		setup    func(t *testing.T)
+		expected func() connector.Options
+	}
 
-	content := `
+	run := func(t *testing.T, tc testCase) {
+		var actual connector.Options
+		patchRunConnector(t, func(ctx context.Context, options connector.Options) error {
+			actual = options
+			return nil
+		})
+
+		if tc.setup != nil {
+			tc.setup(t)
+		}
+
+		dir := fs.NewDir(t, t.Name(), fs.WithFile("config.yaml", tc.config))
+
+		ctx := context.Background()
+		err := Run(ctx, "connector", "-f", dir.Join("config.yaml"))
+		assert.NilError(t, err)
+		assert.DeepEqual(t, actual, tc.expected())
+	}
+
+	keyDir := fs.NewDir(t, t.Name(), fs.WithFile("accesskeyfile", "the-access-key"))
+	filename := keyDir.Join("accesskeyfile")
+
+	testCases := []testCase{
+		{
+			name: "full config",
+			config: `
 server:
   url: the-server
   accessKey: /var/run/secrets/key
@@ -375,30 +401,128 @@ server:
 name: the-name
 caCert: /path/to/cert
 caKey: /path/to/key
-`
-
-	dir := fs.NewDir(t, t.Name(), fs.WithFile("config.yaml", content))
-
-	ctx := context.Background()
-	err := Run(ctx, "connector", "-f", dir.Join("config.yaml"))
-	assert.NilError(t, err)
-
-	expected := connector.Options{
-		Name: "the-name",
-		Addr: connector.ListenerOptions{
-			HTTPS:   ":443",
-			Metrics: ":9090",
+addr:
+  https: localhost:414
+  metrics: 127.0.0.1:8000
+`,
+			expected: func() connector.Options {
+				return connector.Options{
+					Name: "the-name",
+					Addr: connector.ListenerOptions{
+						HTTPS:   "localhost:414",
+						Metrics: "127.0.0.1:8000",
+					},
+					Server: connector.ServerOptions{
+						URL:                "the-server",
+						AccessKey:          "/var/run/secrets/key",
+						SkipTLSVerify:      true,
+						TrustedCertificate: "ca.pem",
+					},
+					CACert: "/path/to/cert",
+					CAKey:  "/path/to/key",
+				}
+			},
 		},
-		Server: connector.ServerOptions{
-			URL:                "the-server",
-			AccessKey:          "/var/run/secrets/key",
-			SkipTLSVerify:      true,
-			TrustedCertificate: "ca.pem",
+		{
+			name:   "access key with file: prefix (deprecated)",
+			config: fmt.Sprintf("server:\n  accessKey: file:%v\n", filename),
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-access-key"
+				return expected
+			},
 		},
-		CACert: "/path/to/cert",
-		CAKey:  "/path/to/key",
+		{
+			name:   "access key from file",
+			config: fmt.Sprintf("server:\n  accessKey: %v\n", filename),
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-access-key"
+				return expected
+			},
+		},
+		{
+			name: "access key with env: prefix (deprecated)",
+			setup: func(t *testing.T) {
+				t.Setenv("CUSTOM_ENV_VAR", "the-key-from-env")
+			},
+			config: `
+server:
+  accessKey: env:CUSTOM_ENV_VAR
+`,
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-key-from-env"
+				return expected
+			},
+		},
+		{
+			name: "access key from INFRA_ACCESS_KEY",
+			setup: func(t *testing.T) {
+				t.Setenv("INFRA_ACCESS_KEY", "the-key-from-env")
+			},
+			config: `{}`,
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-key-from-env"
+				return expected
+			},
+		},
+		{
+			name: "access key from INFRA_ACCESS_KEY points at a file",
+			setup: func(t *testing.T) {
+				t.Setenv("INFRA_ACCESS_KEY", filename)
+			},
+			config: `{}`,
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-access-key"
+				return expected
+			},
+		},
+		{
+			name:   "access key from INFRA_CONNECTOR_SERVER_ACCESS_KEY",
+			config: `{}`,
+			setup: func(t *testing.T) {
+				t.Setenv("INFRA_CONNECTOR_SERVER_ACCESS_KEY", "the-key-from-env")
+			},
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-key-from-env"
+				return expected
+			},
+		},
+		{
+			name: "access key literal from file",
+			config: `
+server:
+  accessKey: the-literal-key
+`,
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-literal-key"
+				return expected
+			},
+		},
+		{
+			name: "access key literal with plaintext prefix (deprecated)",
+			config: `
+server:
+  accessKey: plaintext:the-literal-key
+`,
+			expected: func() connector.Options {
+				expected := defaultConnectorOptions()
+				expected.Server.AccessKey = "the-literal-key"
+				return expected
+			},
+		},
 	}
-	assert.DeepEqual(t, actual, expected)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func patchRunConnector(t *testing.T, fn func(context.Context, connector.Options) error) {
