@@ -5,10 +5,10 @@ import (
 )
 
 var (
-	Branch     = "main"
-	Version    = "99.99.99999"
-	Commit     = ""
-	Date       = ""
+	Branch  = "main"
+	Version = "99.99.99999"
+	Commit  = ""
+	Date    = ""
 )
 
 // FullVersion returns the full semantic version string. FullVersion panics if
