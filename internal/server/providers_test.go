@@ -264,6 +264,44 @@ func TestAPI_CreateProvider(t *testing.T) {
 			},
 		},
 		{
+			name: "valid provider (name is generated)",
+			body: api.CreateProviderRequest{
+				URL:          "accounts.google.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         string(models.ProviderKindGoogle),
+				API: &api.ProviderAPICredentials{
+					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
+				},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				respBody := &api.Provider{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := &api.Provider{
+					ID:       respBody.ID, // does not matter
+					Name:     "google",
+					Created:  respBody.Created, // does not matter
+					Updated:  respBody.Updated, // does not matter
+					URL:      "accounts.google.com",
+					ClientID: "client-id",
+					Kind:     string(models.ProviderKindGoogle),
+					AuthURL:  "example.com/v1/auth",
+					Scopes:   []string{"openid", "email"},
+				}
+				assert.DeepEqual(t, respBody, expected)
+			},
+		},
+		{
 			name: "valid provider (no external checks)",
 			body: api.CreateProviderRequest{
 				Name:         "google",
