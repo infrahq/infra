@@ -12,6 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/server/data"
 )
 
 func newServerCmd() *cobra.Command {
@@ -98,6 +99,12 @@ func defaultServerOptions(infraDir string) server.Options {
 			HTTP:    ":80",
 			HTTPS:   ":443",
 			Metrics: ":9090",
+		},
+
+		DB: data.NewDBOptions{
+			MaxOpenConnections: 100,
+			MaxIdleConnections: 100,
+			MaxIdleTimeout:     5 * time.Minute,
 		},
 	}
 }

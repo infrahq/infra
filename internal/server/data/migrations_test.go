@@ -703,7 +703,7 @@ DELETE FROM settings WHERE id=24567;
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
 		patch.ModelsSymmetricKey(t)
-		rawDB, err := newRawDB(database.PostgresDriver(t, "").Dialector)
+		rawDB, err := newRawDB(database.PostgresDriver(t, "").Dialector, NewDBOptions{})
 		assert.NilError(t, err)
 
 		db := &DB{DB: rawDB}
@@ -717,7 +717,7 @@ DELETE FROM settings WHERE id=24567;
 		assert.NilError(t, err)
 	})
 
-	db, err := newRawDB(database.PostgresDriver(t, "").Dialector)
+	db, err := newRawDB(database.PostgresDriver(t, "").Dialector, NewDBOptions{})
 	assert.NilError(t, err)
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {

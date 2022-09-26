@@ -15,6 +15,7 @@ import (
 
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/testing/database"
 )
 
@@ -276,6 +277,12 @@ users:
 								Password:  "the-password",
 							},
 						},
+					},
+
+					DB: data.NewDBOptions{
+						MaxOpenConnections: 100,
+						MaxIdleConnections: 100,
+						MaxIdleTimeout:     5 * time.Minute,
 					},
 				}
 			},

@@ -76,6 +76,8 @@ type Options struct {
 	Addr ListenerOptions
 	UI   UIOptions
 	TLS  TLSOptions
+
+	DB data.NewDBOptions
 }
 
 type ListenerOptions struct {
@@ -154,10 +156,10 @@ func New(options Options) (*Server, error) {
 	if !ok {
 		return nil, fmt.Errorf("key provider %s not configured", options.DBEncryptionKeyProvider)
 	}
-	db, err := data.NewDB(driver, data.NewDBOptions{
-		EncryptionKeyProvider: dbKeyProvider,
-		RootKeyID:             options.DBEncryptionKey,
-	})
+	options.DB.EncryptionKeyProvider = dbKeyProvider
+	options.DB.RootKeyID = options.DBEncryptionKey
+
+	db, err := data.NewDB(driver, options.DB)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
