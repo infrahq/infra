@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -57,6 +58,7 @@ var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
 		omitFromDocs:               true,
 		omitFromTelemetry:          true,
 		infraVersionHeaderOptional: true,
+		txnOptions:                 &sql.TxOptions{ReadOnly: true},
 	},
 }
 

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"path"
@@ -144,6 +145,7 @@ type routeSettings struct {
 	infraVersionHeaderOptional bool
 	authenticationOptional     bool
 	organizationOptional       bool
+	txnOptions                 *sql.TxOptions
 }
 
 type routeIdentifier struct {
@@ -205,7 +207,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
-		tx, err := a.server.db.Begin(c.Request.Context(), nil)
+		tx, err := a.server.db.Begin(c.Request.Context(), route.txnOptions)
 		if err != nil {
 			return err
 		}
@@ -294,6 +296,7 @@ func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[R
 		handler: handler,
 		routeSettings: routeSettings{
 			omitFromTelemetry: true,
+			txnOptions:        &sql.TxOptions{ReadOnly: true},
 		},
 	})
 }
@@ -312,16 +315,6 @@ func patch[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc
 
 func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodDelete, path, route[Req, Res]{handler: handler})
-}
-
-func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path string, handler HandlerFunc[Req, Res]) {
-	add(a, r, method, path, route[Req, Res]{
-		handler: handler,
-		routeSettings: routeSettings{
-			omitFromTelemetry: true,
-			omitFromDocs:      true,
-		},
-	})
 }
 
 func readRequest(c *gin.Context, req interface{}) error {
