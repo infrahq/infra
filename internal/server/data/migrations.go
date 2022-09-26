@@ -508,6 +508,15 @@ func addDefaultOrganization() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-08-10T13:35",
 		Migrate: func(tx migrator.DB) error {
+			row := tx.QueryRow(`SELECT count(id) from organizations where name='Default'`)
+			var count int
+			if err := row.Scan(&count); err != nil {
+				return err
+			}
+			if count > 0 {
+				return nil
+			}
+
 			stmt := `
 INSERT INTO organizations(id, name, created_at, updated_at)
 VALUES (?, ?, ?, ?);
