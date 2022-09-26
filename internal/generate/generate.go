@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	CharsetAlphaNumeric = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	CharsetPassword     = CharsetAlphaNumeric + `!@#$%^&*()_+-=[]|;:,./<>?`
+	CharsetAlphaNumeric         = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	CharsetAlphaNumericNoVowels = "0123456789BCDFGHJKLMNPQRSTVWXYZbcdfghjklmnpqrstvwxyz" // For user-facing areas, to avoid profanity
+	CharsetPassword             = CharsetAlphaNumeric + `!@#$%^&*()_+-=[]|;:,./<>?`
 )
 
 func init() {

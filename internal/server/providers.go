@@ -87,7 +87,7 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 			return nil, fmt.Errorf("Error while generating name for provider: %w", err)
 		}
 		if len(providers) > 0 {
-			randomString, err := generate.CryptoRandom(6, generate.CharsetAlphaNumeric)
+			randomString, err := generate.CryptoRandom(6, generate.CharsetAlphaNumericNoVowels)
 			if err != nil {
 				return nil, fmt.Errorf("Error while generating name for provider: %w", err)
 			}
