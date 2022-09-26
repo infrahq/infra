@@ -75,7 +75,7 @@ export default function GrantForm({
         >
           <Combobox.Input
             className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-            placeholder='User or group'
+            placeholder='Enter user or group'
             onChange={e => {
               setQuery(e.target.value)
               if (e.target.value.length === 0) {

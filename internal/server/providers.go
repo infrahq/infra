@@ -12,6 +12,8 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -74,6 +76,25 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		return nil, err
 	}
 	provider.Kind = kind
+
+	// If name is not provided, generate based on provider kind
+	if provider.Name == "" {
+		provider.Name = provider.Kind.String()
+
+		// If provider name is taken, generate a random tag
+		providers, err := access.ListProviders(c, provider.Kind.String(), nil, &data.Pagination{})
+		if err != nil {
+			return nil, fmt.Errorf("Error while generating name for provider: %w", err)
+		}
+		if len(providers) > 0 {
+			randomString, err := generate.CryptoRandom(6, generate.CharsetAlphaNumericNoVowels)
+			if err != nil {
+				return nil, fmt.Errorf("Error while generating name for provider: %w", err)
+			}
+
+			provider.Name = r.Kind + "-" + randomString
+		}
+	}
 
 	if err := a.setProviderInfoFromServer(c, provider); err != nil {
 		return nil, err
