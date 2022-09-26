@@ -188,7 +188,7 @@ export default function ProvidersAddDetails() {
             </div>
           </div>
           <div className='w-full'>
-            <div className='mb-1 flex space-x-2'>
+            <div className='mb-1 flex items-center space-x-2 text-2xs'>
               <h3 className='text-base font-medium leading-6 text-gray-900'>
                 Information
               </h3>
