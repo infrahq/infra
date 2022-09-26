@@ -26,13 +26,17 @@ import (
 type NewDBOptions struct {
 	EncryptionKeyProvider EncryptionKeyProvider
 	RootKeyID             string
+
+	MaxOpenConnections int
+	MaxIdleConnections int
+	MaxIdleTimeout     time.Duration
 }
 
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
 func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
-	db, err := newRawDB(connection)
+	db, err := newRawDB(connection, dbOpts)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
@@ -212,7 +216,7 @@ func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 }
 
 // newRawDB creates a new database connection without running migrations.
-func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
+func newRawDB(connection gorm.Dialector, options NewDBOptions) (*gorm.DB, error) {
 	db, err := gorm.Open(connection, &gorm.Config{
 		Logger: logging.NewDatabaseLogger(time.Second),
 	})
@@ -225,10 +229,9 @@ func newRawDB(connection gorm.Dialector) (*gorm.DB, error) {
 		return nil, fmt.Errorf("getting db driver: %w", err)
 	}
 
-	// TODO: make these configurable from server config
-	sqlDB.SetMaxIdleConns(900)
-	sqlDB.SetMaxOpenConns(1000)
-	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
+	sqlDB.SetMaxOpenConns(options.MaxOpenConnections)
+	sqlDB.SetMaxIdleConns(options.MaxIdleConnections)
+	sqlDB.SetConnMaxIdleTime(options.MaxIdleTimeout)
 
 	return db, nil
 }
