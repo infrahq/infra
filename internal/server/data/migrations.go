@@ -632,34 +632,49 @@ func cleanCrossOrgGroupMemberships() *migrator.Migration {
 			stmt := `SELECT identity_id, group_id FROM identities_groups`
 			rows, err := tx.Query(stmt)
 			if err != nil {
-				return err
+				return fmt.Errorf("select all identity groups: %w", err)
 			}
+
+			type identityGroup struct {
+				IdentityID uid.ID
+				GroupID    uid.ID
+			}
+
+			var idGroups []identityGroup
 			for rows.Next() {
-				var identityID uid.ID
-				var groupID uid.ID
-				if err := rows.Scan(&identityID, &groupID); err != nil {
-					return err
+				var idGroup identityGroup
+				if err := rows.Scan(&idGroup.IdentityID, &idGroup.GroupID); err != nil {
+					return fmt.Errorf("scan identity and group: %w", err)
 				}
 
+				idGroups = append(idGroups, idGroup)
+			}
+
+			if err := rows.Close(); err != nil {
+				return fmt.Errorf("close read identity group rows: %w", err)
+			}
+
+			for _, idGroup := range idGroups {
 				var identityOrgID uid.ID
-				err := tx.QueryRow(`SELECT organization_id FROM identities WHERE id = ?`, identityID).Scan(&identityOrgID)
+				err := tx.QueryRow(`SELECT organization_id FROM identities WHERE id = ?`, idGroup.IdentityID).Scan(&identityOrgID)
 				if err != nil {
-					return err
+					return fmt.Errorf("select identity id: %w", err)
 				}
 
 				var groupOrgID uid.ID
-				err = tx.QueryRow(`SELECT organization_id FROM groups WHERE id = ?`, groupID).Scan(&groupOrgID)
+				err = tx.QueryRow(`SELECT organization_id FROM groups WHERE id = ?`, idGroup.GroupID).Scan(&groupOrgID)
 				if err != nil {
-					return err
+					return fmt.Errorf("select group id: %w", err)
 				}
 
-				if identityID != groupOrgID {
-					_, err := tx.Exec(`DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?`, identityID, groupID)
+				if identityOrgID != groupOrgID {
+					_, err := tx.Exec(`DELETE FROM identities_groups WHERE identity_id = ? AND group_id = ?`, idGroup.IdentityID, idGroup.GroupID)
 					if err != nil {
-						return err
+						return fmt.Errorf("delete bad relation: %w", err)
 					}
 				}
 			}
+
 			return nil
 		},
 	}
