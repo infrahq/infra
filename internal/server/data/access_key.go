@@ -174,14 +174,16 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 type GetAccessKeysOptions struct {
 	ByID    uid.ID
 	ByKeyID string
+	ByName  string
 }
 
 // GetAccessKey using the keyID. Note that the keyID is globally unique, so
 // this query is not scoped by an organization_id.
 func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
-	if opts.ByID == 0 && len(opts.ByKeyID) == 0 {
-		return nil, fmt.Errorf("GetAccessKey must supply either id or key_id")
+	if opts.ByID == 0 && len(opts.ByKeyID) == 0 && len(opts.ByName) == 0 {
+		return nil, fmt.Errorf("GetAccessKey must supply id, key_id, or name")
 	}
+
 	accessKey := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(accessKey))
@@ -193,6 +195,9 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	}
 	if opts.ByID > 0 {
 		query.B("and id = ?", opts.ByID)
+	}
+	if opts.ByName != "" {
+		query.B("and name = ?", opts.ByName)
 	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)

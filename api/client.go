@@ -171,8 +171,8 @@ func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	return request[Req, Res](client, http.MethodPatch, path, Query{}, req)
 }
 
-func delete(client Client, path string) error {
-	_, err := request[EmptyRequest, EmptyResponse](client, http.MethodDelete, path, Query{}, nil)
+func delete(client Client, path string, query Query) error {
+	_, err := request[EmptyRequest, EmptyResponse](client, http.MethodDelete, path, query, nil)
 	return err
 }
 
@@ -201,7 +201,7 @@ func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
 }
 
 func (c Client) DeleteUser(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/users/%s", id))
+	return delete(c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
 // Deprecated: use ListGrants
@@ -225,7 +225,7 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 }
 
 func (c Client) DeleteGroup(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/groups/%s", id))
+	return delete(c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
 func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
@@ -261,7 +261,7 @@ func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organizatio
 }
 
 func (c Client) DeleteOrganization(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/organizations/%s", id))
+	return delete(c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
@@ -281,7 +281,7 @@ func (c Client) UpdateProvider(req UpdateProviderRequest) (*Provider, error) {
 }
 
 func (c Client) DeleteProvider(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/providers/%s", id))
+	return delete(c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
@@ -301,7 +301,7 @@ func (c Client) CreateGrant(req *CreateGrantRequest) (*CreateGrantResponse, erro
 }
 
 func (c Client) DeleteGrant(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/grants/%s", id))
+	return delete(c, fmt.Sprintf("/api/grants/%s", id), Query{})
 }
 
 func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
@@ -321,7 +321,7 @@ func (c Client) UpdateDestination(req UpdateDestinationRequest) (*Destination, e
 }
 
 func (c Client) DeleteDestination(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/destinations/%s", id))
+	return delete(c, fmt.Sprintf("/api/destinations/%s", id), Query{})
 }
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
@@ -338,7 +338,11 @@ func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyRe
 }
 
 func (c Client) DeleteAccessKey(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/access-keys/%s", id))
+	return delete(c, fmt.Sprintf("/api/access-keys/%s", id), Query{})
+}
+
+func (c Client) DeleteAccessKeyByName(name string) error {
+	return delete(c, "/api/access-keys", Query{"name": []string{name}})
 }
 
 func (c Client) CreateToken() (*CreateTokenResponse, error) {

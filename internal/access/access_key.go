@@ -61,10 +61,10 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 	return body, err
 }
 
-func DeleteAccessKey(c *gin.Context, id uid.ID) error {
+func DeleteAccessKey(c *gin.Context, id uid.ID, name string) error {
 	rCtx := GetRequestContext(c)
 
-	key, err := data.GetAccessKey(rCtx.DBTxn, data.GetAccessKeysOptions{ByID: id})
+	key, err := data.GetAccessKey(rCtx.DBTxn, data.GetAccessKeysOptions{ByID: id, ByName: name})
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func DeleteAccessKey(c *gin.Context, id uid.ID) error {
 		}
 	}
 
-	return data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: id})
+	return data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: key.ID})
 }
 
 func DeleteRequestAccessKey(c RequestContext) error {

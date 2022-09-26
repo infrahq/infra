@@ -50,3 +50,7 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		ExtensionDeadline: api.Time(ak.ExtensionDeadline),
 	}
 }
+
+func (ak *AccessKey) Token() string {
+	return ak.KeyID + "." + ak.Secret
+}

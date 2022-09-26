@@ -24,8 +24,14 @@ func (a *API) ListAccessKeys(c *gin.Context, r *api.ListAccessKeysRequest) (*api
 	return result, nil
 }
 
+// DeleteAccessKey deletes an access key by id
 func (a *API) DeleteAccessKey(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
-	return nil, access.DeleteAccessKey(c, r.ID)
+	return nil, access.DeleteAccessKey(c, r.ID, "")
+}
+
+// DeleteAccessKeys deletes 0 or more access keys by any attribute
+func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*api.EmptyResponse, error) {
+	return nil, access.DeleteAccessKey(c, 0, r.Name)
 }
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {

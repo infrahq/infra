@@ -78,3 +78,7 @@ func (req ListAccessKeysRequest) SetPage(page int) Paginatable {
 
 	return req
 }
+
+type DeleteAccessKeyRequest struct {
+	Name string `form:"name"`
+}

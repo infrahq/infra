@@ -54,7 +54,7 @@ func TestCreateAccessKey(t *testing.T) {
 				SecretChecksum: secretChecksum(key.Secret),
 			}
 			assert.DeepEqual(t, key, expected, cmpAccessKey)
-			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
+			assert.Equal(t, pair, key.Token())
 
 			// check that we can fetch the same value from the db
 			fromDB, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: key.KeyID})
@@ -84,7 +84,7 @@ func TestCreateAccessKey(t *testing.T) {
 			}
 			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
-			assert.Equal(t, pair, key.KeyID+"."+key.Secret)
+			assert.Equal(t, pair, key.Token())
 
 			// check that we can fetch the same value from the db
 			fromDB, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: key.KeyID})
