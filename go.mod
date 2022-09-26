@@ -49,7 +49,7 @@ require (
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	golang.org/x/text v0.3.7
-	google.golang.org/api v0.96.0
+	google.golang.org/api v0.97.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gotest.tools/v3 v3.3.0
 )
