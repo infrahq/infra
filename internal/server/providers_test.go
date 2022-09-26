@@ -264,7 +264,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 			},
 		},
 		{
-			name: "valid provider (name is generated)",
+			name: "valid provider (name is generated to default, providerkind)",
 			body: api.CreateProviderRequest{
 				URL:          "accounts.google.com",
 				ClientID:     "client-id",
@@ -302,9 +302,48 @@ func TestAPI_CreateProvider(t *testing.T) {
 			},
 		},
 		{
-			name: "valid provider (no external checks)",
+			name: "valid provider (name is generated but default is already taken)",
 			body: api.CreateProviderRequest{
-				Name:         "google",
+				URL:          "accounts.google.com",
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				Kind:         string(models.ProviderKindGoogle),
+				API: &api.ProviderAPICredentials{
+					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
+				},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				respBody := &api.Provider{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := &api.Provider{
+					ID:       respBody.ID,      // does not matter
+					Name:     respBody.Name,    // does not matter
+					Created:  respBody.Created, // does not matter
+					Updated:  respBody.Updated, // does not matter
+					URL:      "accounts.google.com",
+					ClientID: "client-id",
+					Kind:     string(models.ProviderKindGoogle),
+					AuthURL:  "example.com/v1/auth",
+					Scopes:   []string{"openid", "email"},
+				}
+				assert.DeepEqual(t, respBody, expected)
+				assert.Assert(t, respBody.Name != string(models.ProviderKindGoogle))
+			},
+		},
+		{
+			name: "valid provider (name is provided)",
+			body: api.CreateProviderRequest{
+				Name:         "google-123",
 				URL:          "accounts.google.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
@@ -328,7 +367,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 
 				expected := &api.Provider{
 					ID:       respBody.ID, // does not matter
-					Name:     "google",
+					Name:     "google-123",
 					Created:  respBody.Created, // does not matter
 					Updated:  respBody.Updated, // does not matter
 					URL:      "accounts.google.com",
