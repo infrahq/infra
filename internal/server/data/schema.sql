@@ -7,8 +7,10 @@
 CREATE FUNCTION grants_notify() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
+DECLARE
+	destination text := split_part(NEW.resource, '.', 1);
 BEGIN
-PERFORM pg_notify('grants_by_resource_' || NEW.resource, '');
+PERFORM pg_notify('grants_by_destination_' || NEW.organization_id || '_' || destination, '');
 RETURN NULL;
 END; $$;
 

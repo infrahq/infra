@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v4"
 	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
 
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -72,7 +73,7 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 		return handleError(err)
 	}
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
-	return err
+	return nil
 }
 
 func isPgErrorCode(err error, code string) bool {
@@ -240,14 +241,16 @@ func grantsMaxUpdateIndex(tx ReadTxn, opts grantsMaxUpdateIndexOptions) (int64, 
 	return result, err
 }
 
-type ListenGrantsOptions struct {
-	// TODO: change to destination
-	ByResource string
-}
-
 type Listener struct {
 	sqlDB   *sql.DB
 	pgxConn *pgx.Conn
+}
+
+// WaitForNotification blocks until the listener receivers a notification on
+// one of the channels, or until the context is cancelled.
+// Returns the notification on success, or an error on failure or timeout.
+func (l *Listener) WaitForNotification(ctx context.Context) (*pgconn.Notification, error) {
+	return l.pgxConn.WaitForNotification(ctx)
 }
 
 func (l *Listener) Release(ctx context.Context) error {
@@ -264,32 +267,53 @@ func (l *Listener) Release(ctx context.Context) error {
 	return nil
 }
 
-// ListenForGrantsNotify to one or more postgres channels for notifications
-// that a grant has changed. The channels to listen on are determined by opts.
+type ListenForGrantsOptions struct {
+	OrgID         uid.ID
+	ByDestination string
+}
+
+// ListenForGrantsNotify starts listening for notification on one or more
+// postgres channels for notifications that a grant has changed. The channels to
+// listen on are determined by opts. Use Listener.WaitForNotification to block
+// and receive notifications.
 //
 // If error is nil the caller must call Listener.Release to return the database
 // connection to the pool.
 //
 // TODO: fuzz this function to show it is not vulnerable to SQL injection
-func ListenForGrantsNotify(db *DB, opts ListenGrantsOptions) (*Listener, error) {
+func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOptions) (*Listener, error) {
+	if opts.OrgID == 0 {
+		return nil, fmt.Errorf("OrgID is required")
+	}
+
 	sqlDB := db.SQLdb()
 	pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := db.DB.Statement.Context
+	listener := &Listener{sqlDB: sqlDB, pgxConn: pgxConn}
 
-	if opts.ByResource != "" {
-		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", "grants_by_resource_"+opts.ByResource)
+	switch {
+	case opts.ByDestination != "":
+		channel := channelGrantsByDestination(opts.OrgID, opts.ByDestination)
+		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
 		if err != nil {
-			// TODO: log error
-			_ = pgxstdlib.ReleaseConn(sqlDB, pgxConn)
+
+			if err := pgxstdlib.ReleaseConn(sqlDB, pgxConn); err != nil {
+				logging.L.Warn().Err(err).Msgf("release pgx conn")
+			}
 			return nil, err
 		}
+	default:
+		return nil, fmt.Errorf("listen for grants notify requires an ID")
 	}
 
-	return &Listener{sqlDB: sqlDB, pgxConn: pgxConn}, nil
+	return listener, nil
+}
+
+func channelGrantsByDestination(orgID uid.ID, destination string) string {
+	return fmt.Sprintf("grants_by_destination_%d_%v", orgID, destination)
 }
 
 type DeleteGrantsOptions struct {

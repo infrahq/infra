@@ -81,7 +81,11 @@ func TestCreateGrant(t *testing.T) {
 			assert.NilError(t, err)
 		})
 		t.Run("notify", func(t *testing.T) {
-			listener, err := ListenForGrantsNotify(db, ListenGrantsOptions{ByResource: "match"})
+			ctx := context.Background()
+			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -99,9 +103,9 @@ func TestCreateGrant(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
-			notification, err := listener.pgxConn.WaitForNotification(ctx)
+			notification, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, notification.Channel, "grants_by_resource_match")
+			assert.Equal(t, notification.Channel, "grants_by_destination_1000_match")
 		})
 	})
 }
@@ -196,11 +200,15 @@ func TestDeleteGrants(t *testing.T) {
 			g := models.Grant{
 				Subject:   "i:1234567",
 				Privilege: "view",
-				Resource:  "match",
+				Resource:  "match.a.resource",
 			}
 			assert.NilError(t, CreateGrant(db, &g))
 
-			listener, err := ListenForGrantsNotify(db, ListenGrantsOptions{ByResource: "match"})
+			ctx := context.Background()
+			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -214,9 +222,9 @@ func TestDeleteGrants(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			t.Cleanup(cancel)
 
-			notification, err := listener.pgxConn.WaitForNotification(ctx)
+			notification, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, notification.Channel, "grants_by_resource_match")
+			assert.Equal(t, notification.Channel, "grants_by_destination_1000_match")
 		})
 	})
 }
