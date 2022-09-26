@@ -135,6 +135,7 @@ export default function Settings() {
               resource='infra'
               roles={['admin']}
               grants={grants}
+              multiselect={false}
               onSubmit={async ({ user, group }) => {
                 // don't add grants that already exist
                 if (grants?.find(g => g.user === user && g.group === group)) {
