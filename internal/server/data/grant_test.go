@@ -82,7 +82,10 @@ func TestCreateGrant(t *testing.T) {
 		})
 		t.Run("notify", func(t *testing.T) {
 			ctx := context.Background()
-			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{ByResource: "match"})
+			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -102,7 +105,7 @@ func TestCreateGrant(t *testing.T) {
 			defer cancel()
 			channel, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, channel, "grants_by_resource_match")
+			assert.Equal(t, channel, "grants_by_destination_1000_match")
 		})
 	})
 }
@@ -204,11 +207,14 @@ func TestDeleteGrants(t *testing.T) {
 			g := models.Grant{
 				Subject:   "i:1234567",
 				Privilege: "view",
-				Resource:  "match",
+				Resource:  "match.a.resource",
 			}
 			assert.NilError(t, CreateGrant(db, &g))
 
-			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{ByResource: "match"})
+			listener, err := ListenForGrantsNotify(ctx, db, ListenGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
 			assert.NilError(t, err)
 			t.Cleanup(func() {
 				assert.NilError(t, listener.Release(context.Background()))
@@ -224,7 +230,7 @@ func TestDeleteGrants(t *testing.T) {
 
 			channel, err := listener.WaitForNotification(ctx)
 			assert.NilError(t, err)
-			assert.Equal(t, channel, "grants_by_resource_match")
+			assert.Equal(t, channel, "grants_by_destination_1000_match")
 		})
 	})
 }

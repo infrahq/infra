@@ -72,12 +72,16 @@ func CreateGrant(tx WriteTxn, grant *models.Grant) error {
 		return handleError(err)
 	}
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
-	return err
+	return nil
 }
 
 func isPgErrorCode(err error, code string) bool {
 	pgError := &pgconn.PgError{}
 	return errors.As(err, &pgError) && pgError.Code == code
+}
+
+func channelGrantsByDestination(orgID uid.ID, destination string) string {
+	return fmt.Sprintf("grants_by_destination_%d_%v", orgID, destination)
 }
 
 type GetGrantOptions struct {
@@ -255,8 +259,9 @@ func grantsMaxUpdateIndex(tx ReadTxn, opts grantsMaxUpdateIndexOptions) (int64, 
 }
 
 type ListenGrantsOptions struct {
-	// TODO: change to destination
-	ByResource string
+	ByDestination string
+
+	OrgID uid.ID
 }
 
 type Listener struct {
@@ -297,14 +302,19 @@ func (l *Listener) Release(ctx context.Context) error {
 //
 // TODO: fuzz this function to show it is not vulnerable to SQL injection
 func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenGrantsOptions) (*Listener, error) {
+	if opts.OrgID == 0 {
+		return nil, fmt.Errorf("OrgID is required")
+	}
+
 	sqlDB := db.SQLdb()
 	pgxConn, err := pgxstdlib.AcquireConn(sqlDB)
 	if err != nil {
 		return nil, err
 	}
 
-	if opts.ByResource != "" {
-		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", "grants_by_resource_"+opts.ByResource)
+	if opts.ByDestination != "" {
+		channel := channelGrantsByDestination(opts.OrgID, opts.ByDestination)
+		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
 		if err != nil {
 			// TODO: log error
 			_ = pgxstdlib.ReleaseConn(sqlDB, pgxConn)

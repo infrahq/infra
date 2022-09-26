@@ -56,7 +56,11 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 	// TODO: validate that only supported query parameters are set, and that at least
 	// one of the required parameters are set with lastUpdateIndex
 	// TODO: change request timeout for these requests
-	listenOpts := data.ListenGrantsOptions{ByResource: opts.ByResource}
+	listenOpts := data.ListenGrantsOptions{
+		// TODO: must translate resource to destination
+		ByDestination: opts.ByResource,
+		OrgID:         rCtx.DBTxn.OrganizationID(),
+	}
 	listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
 		return resp, fmt.Errorf("listen for notify: %w", err)
