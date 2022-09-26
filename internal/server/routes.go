@@ -14,6 +14,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -215,9 +216,17 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
+		org := getRequestContext(c).Authenticated.Organization
 		if !route.noOrgRequired {
-			if org := getRequestContext(c).Authenticated.Organization; org == nil {
+			if org == nil {
 				return internal.ErrBadRequest
+			}
+		}
+
+		if org != nil {
+			// TODO: limit should be a per-organization setting
+			if err := redis.NewLimiter(a.server.redis).RateOK(org.ID.String(), 5000); err != nil {
+				return err
 			}
 		}
 

@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/testing/database"
 )
 
@@ -186,6 +187,11 @@ users:
   - name: username
     accessKey: access-key
     password: the-password
+
+redis:
+  host: myredis
+  username: myuser
+  password: mypassword
 `
 
 				dir := fs.NewDir(t, t.Name(),
@@ -283,6 +289,13 @@ users:
 						MaxOpenConnections: 100,
 						MaxIdleConnections: 100,
 						MaxIdleTimeout:     5 * time.Minute,
+					},
+
+					Redis: redis.Options{
+						Host:     "myredis",
+						Port:     6379,
+						Username: "myuser",
+						Password: "mypassword",
 					},
 				}
 			},

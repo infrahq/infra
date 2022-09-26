@@ -25,6 +25,7 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
+	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -47,6 +48,9 @@ type Options struct {
 
 	SessionDuration          time.Duration
 	SessionExtensionDeadline time.Duration
+
+	// Redis contains configuration options to the cache server.
+	Redis redis.Options
 
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string
@@ -108,6 +112,7 @@ type TLSOptions struct {
 type Server struct {
 	options         Options
 	db              *data.DB
+	redis           *redis.Redis
 	tel             *Telemetry
 	secrets         map[string]secrets.SecretStorage
 	keys            map[string]secrets.SymmetricKeyProvider
@@ -165,6 +170,18 @@ func New(options Options) (*Server, error) {
 	}
 	server.db = db
 	server.metricsRegistry = setupMetrics(server.db)
+
+	redisPassword, err := secrets.GetSecret(options.Redis.Password, server.secrets)
+	if err != nil {
+		return nil, fmt.Errorf("redis: %w", err)
+	}
+
+	options.Redis.Password = redisPassword
+	redis, err := redis.NewRedis(options.Redis)
+	if err != nil {
+		return nil, err
+	}
+	server.redis = redis
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)

@@ -20,6 +20,7 @@ import (
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/internal/server/redis"
 )
 
 type API struct {
@@ -132,11 +133,31 @@ func wrapLinkWithVerification(link, domain, verificationToken string) string {
 func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, error) {
 	rCtx := getRequestContext(c)
 
+	var onSuccess, onFailure func()
+
 	var loginMethod authn.LoginMethod
 	switch {
 	case r.AccessKey != "":
 		loginMethod = authn.NewKeyExchangeAuthentication(r.AccessKey)
 	case r.PasswordCredentials != nil:
+		if err := redis.NewLimiter(a.server.redis).RateOK(r.PasswordCredentials.Name, 10); err != nil {
+			return nil, err
+		}
+
+		usernameWithOrganization := fmt.Sprintf("%s:%s", r.PasswordCredentials.Name, rCtx.Authenticated.Organization.ID)
+		limiter := redis.NewLimiter(a.server.redis)
+		if err := limiter.LoginOK(usernameWithOrganization); err != nil {
+			return nil, err
+		}
+
+		onSuccess = func() {
+			limiter.LoginGood(usernameWithOrganization)
+		}
+
+		onFailure = func() {
+			limiter.LoginBad(usernameWithOrganization, 10)
+		}
+
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
 		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
@@ -159,6 +180,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	expires := time.Now().UTC().Add(a.server.options.SessionDuration)
 	result, err := authn.Login(rCtx.Request.Context(), rCtx.DBTxn, loginMethod, expires, a.server.options.SessionExtensionDeadline)
 	if err != nil {
+		if onFailure != nil {
+			onFailure()
+		}
+
 		if errors.Is(err, internal.ErrBadGateway) {
 			// the user should be shown this explicitly
 			// this means an external request failed, probably to an IDP
@@ -166,6 +191,10 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 		}
 		// all other failures from login should result in an unauthorized response
 		return nil, fmt.Errorf("%w: login failed: %v", internal.ErrUnauthorized, err)
+	}
+
+	if onSuccess != nil {
+		onSuccess()
 	}
 
 	cookie := cookieConfig{
