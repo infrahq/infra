@@ -686,11 +686,16 @@ func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {
 	return nil
 }
 
-func (Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, error) {
+func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, error) {
 	// provider kind is an optional field
 	kind, err := models.ParseProviderKind(input.Kind)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse provider in config load: %w", err)
+	}
+
+	clientSecret, err := secrets.GetSecret(input.ClientSecret, s.secrets)
+	if err != nil {
+		return nil, fmt.Errorf("could not load provider client secret: %w", err)
 	}
 
 	provider, err := data.GetProvider(db, data.ByName(input.Name))
@@ -703,7 +708,7 @@ func (Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, e
 			Name:         input.Name,
 			URL:          input.URL,
 			ClientID:     input.ClientID,
-			ClientSecret: models.EncryptedAtRest(input.ClientSecret),
+			ClientSecret: models.EncryptedAtRest(clientSecret),
 			AuthURL:      input.AuthURL,
 			Scopes:       input.Scopes,
 			Kind:         kind,
@@ -717,7 +722,7 @@ func (Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, e
 		if provider.Kind != models.ProviderKindInfra {
 			// only call the provider to resolve info if it is not known
 			if input.AuthURL == "" && len(input.Scopes) == 0 {
-				providerClient := providers.NewOIDCClient(*provider, input.ClientSecret, "http://localhost:8301")
+				providerClient := providers.NewOIDCClient(*provider, clientSecret, "http://localhost:8301")
 				authServerInfo, err := providerClient.AuthServerInfo(context.Background())
 				if err != nil {
 					if errors.Is(err, context.DeadlineExceeded) {
@@ -750,7 +755,7 @@ func (Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider, e
 	// provider already exists, update it
 	provider.URL = input.URL
 	provider.ClientID = input.ClientID
-	provider.ClientSecret = models.EncryptedAtRest(input.ClientSecret)
+	provider.ClientSecret = models.EncryptedAtRest(clientSecret)
 	provider.Kind = kind
 
 	if err := data.SaveProvider(db, provider); err != nil {
