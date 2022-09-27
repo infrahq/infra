@@ -79,7 +79,6 @@ module.exports = phase => ({
           permanent: true,
         }
       }),
-
       ...[
         '/docs/getting-started/quickstart',
         '/docs/getting-started/deploy',
@@ -127,7 +126,7 @@ module.exports = phase => ({
       ].map(source => {
         return {
           source,
-          destination: '/docs/reference/cli',
+          destination: '/docs/start/install-infra-cli',
           permanent: true,
         }
       }),
