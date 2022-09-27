@@ -16,11 +16,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T, driver gorm.Dialector) *DB {
+func setupDB(t *testing.T) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
-	db, err := NewDB(driver, NewDBOptions{})
+	db, err := NewDB(NewDBOptions{DSN: database.PostgresDriver(t, "_data").DSN})
 	assert.NilError(t, err)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
@@ -43,8 +43,7 @@ func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := database.PostgresDriver(t, "")
-		db := setupDB(t, pgsql.Dialector)
+		db := setupDB(t)
 		run(t, db)
 		db.Rollback()
 	})

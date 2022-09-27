@@ -29,8 +29,7 @@ CREATE TABLE struct_for_testings (
 func TestEncryptedAtRest(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
-	pg := database.PostgresDriver(t, "_models")
-	db, err := data.NewDB(pg.Dialector, data.NewDBOptions{})
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_models").DSN})
 	assert.NilError(t, err)
 
 	_, err = db.Exec(StructForTesting{}.Schema())
@@ -65,8 +64,7 @@ func TestEncryptedAtRest(t *testing.T) {
 func TestEncryptedAtRest_WithBytes(t *testing.T) {
 	patch.ModelsSymmetricKey(t)
 
-	pg := database.PostgresDriver(t, "_models")
-	db, err := data.NewDB(pg.Dialector, data.NewDBOptions{})
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_models").DSN})
 	assert.NilError(t, err)
 
 	settings, err := data.GetSettings(db)
