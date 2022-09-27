@@ -13,8 +13,8 @@ var (
 )
 
 const (
-	ScopePasswordReset        = "password-reset"
-	ScopeAllowCreateAccessKey = "create-key"
+	ScopePasswordReset        string = "password-reset"
+	ScopeAllowCreateAccessKey string = "create-key"
 )
 
 // AccessKey is a session token presented to the Infra server as proof of authentication

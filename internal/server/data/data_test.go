@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -210,6 +211,40 @@ func TestDB_Begin(t *testing.T) {
 			// using the db shows the commit worked
 			_, err = GetIdentity(db, ByID(user.ID))
 			assert.NilError(t, err)
+		})
+	})
+}
+
+func TestLongRunningQueriesAreCancelled(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+
+		t.Run("Gorm", func(t *testing.T) {
+			started := time.Now()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			tx := db.WithContext(ctx)
+			err := tx.Exec("select pg_sleep(10);").Error
+			assert.Error(t, err, "timeout: context deadline exceeded")
+
+			elapsed := time.Since(started)
+			assert.Assert(t, elapsed < 3*time.Second, "query should have timed out and been cancelled")
+		})
+
+		t.Run("sqlx", func(t *testing.T) {
+			started := time.Now()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			tx, err := db.Begin(ctx)
+			assert.NilError(t, err)
+
+			_, err = tx.Exec("select pg_sleep(10);")
+			assert.Error(t, err, "timeout: context deadline exceeded")
+
+			elapsed := time.Since(started)
+			assert.Assert(t, elapsed < 3*time.Second, "query should have timed out and been cancelled")
 		})
 	})
 }
