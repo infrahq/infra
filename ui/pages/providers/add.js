@@ -353,7 +353,7 @@ export default function ProvidersAddDetails() {
               </div>
             </div>
           )}
-          {error && <ErrorMessage message={error} center />}
+          {error && <ErrorMessage message={error} />}
 
           <div className='flex items-center justify-end space-x-3 pt-5 pb-3'>
             <button

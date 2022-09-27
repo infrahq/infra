@@ -272,6 +272,10 @@ func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
 	return post[CreateProviderRequest, Provider](c, "/api/providers", req)
 }
 
+func (c Client) PatchProvider(req PatchProviderRequest) (*Provider, error) {
+	return patch[PatchProviderRequest, Provider](c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
+}
+
 func (c Client) UpdateProvider(req UpdateProviderRequest) (*Provider, error) {
 	return put[UpdateProviderRequest, Provider](c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
 }
