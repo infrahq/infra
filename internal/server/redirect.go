@@ -11,7 +11,16 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-func (a *API) VerifyAndRedirect(c *gin.Context, r *api.VerifyAndRedirectRequest) (*api.RedirectResponse, error) {
+var verifyAndRedirectRoute = route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
+	handler: VerifyAndRedirect,
+	routeSettings: routeSettings{
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
+	},
+}
+
+func VerifyAndRedirect(c *gin.Context, r *api.VerifyAndRedirectRequest) (*api.RedirectResponse, error) {
 	if err := access.VerifyUserByToken(getRequestContext(c), r.VerificationToken); err != nil {
 		logging.L.Error().Msg("VerifyUserByToken: " + err.Error())
 	}

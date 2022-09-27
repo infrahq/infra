@@ -36,21 +36,10 @@ const ResourceInfraAPI = "infra"
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
 	rCtx := GetRequestContext(c)
-	db := rCtx.DBTxn
-	identity := rCtx.Authenticated.User
-	if identity == nil {
-		return nil, fmt.Errorf("no active identity")
-	}
-
-	ok, err := Can(db, identity.PolyID(), ResourceInfraAPI, oneOfRoles...)
-	switch {
-	case err != nil:
+	if err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
 		return nil, err
-	case ok:
-		return db, nil
-	default:
-		return nil, ErrNotAuthorized
 	}
+	return rCtx.DBTxn, nil
 }
 
 var ErrNotAuthorized = errors.New("not authorized")
@@ -99,18 +88,27 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 	}
 }
 
-// Can checks if an identity has a privilege that means it can perform an action on a resource
-func Can(db data.GormTxn, identity uid.PolymorphicID, resource string, privileges ...string) (bool, error) {
-	grants, err := data.ListGrants(db, data.ListGrantsOptions{
+// IsAuthorized checks if the request has permission to perform the action. The
+// request has permission if the user or one of the groups they belong to
+// has a grant with one of the required roles.
+// The resource is always ResourceInfraAPI.
+func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
+	user := rCtx.Authenticated.User
+	if user == nil {
+		return fmt.Errorf("no authenticated user")
+	}
+	grants, err := data.ListGrants(rCtx.DBTxn, data.ListGrantsOptions{
 		Pagination:                 &data.Pagination{Limit: 1},
-		BySubject:                  identity,
-		ByPrivileges:               privileges,
-		ByResource:                 resource,
+		BySubject:                  uid.NewIdentityPolymorphicID(user.ID),
+		ByPrivileges:               requiredRole,
+		ByResource:                 ResourceInfraAPI,
 		IncludeInheritedFromGroups: true,
 	})
 	if err != nil {
-		return false, fmt.Errorf("has grants: %w", err)
+		return fmt.Errorf("has grants: %w", err)
 	}
-
-	return len(grants) > 0, nil
+	if len(grants) == 0 {
+		return ErrNotAuthorized
+	}
+	return nil
 }
