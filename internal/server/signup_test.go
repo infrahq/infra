@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestAPI_Signup(t *testing.T) {
@@ -163,6 +167,8 @@ func TestAPI_Signup(t *testing.T) {
 
 				assert.Equal(t, respBody.User.Name, "admin@example.com")
 				assert.Equal(t, respBody.Organization.Name, "acme")
+				userID := respBody.User.ID
+				orgID := respBody.Organization.ID
 
 				// the organization exists
 				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme-co.exampledomain.com"))
@@ -190,7 +196,23 @@ func TestAPI_Signup(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Equal(t, userResp.ID, respBody.User.ID)
 
-				// TODO: check the user is an admin
+				// check the user is an admin
+				tx := (&data.Transaction{DB: srv.db.DB}).WithOrgID(orgID)
+				_, err = data.GetGrant(tx, data.GetGrantOptions{
+					BySubject:   uid.NewIdentityPolymorphicID(userID),
+					ByResource:  access.ResourceInfraAPI,
+					ByPrivilege: api.InfraAdminRole,
+				})
+				assert.NilError(t, err)
+
+				// check their access token has the expected scope
+				k, err := data.GetAccessKey(srv.DB(), data.GetAccessKeysOptions{
+					ByKeyID: strings.Split(key, ".")[0],
+				})
+				assert.NilError(t, err)
+
+				assert.DeepEqual(t, k.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
+
 			},
 		},
 	}
