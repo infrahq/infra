@@ -75,7 +75,13 @@ func handleInfraDestinationHeader(c *gin.Context) error {
 // gin.Context.
 // See validateRequestOrganization for a related function used for unauthenticated
 // routes.
-func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) error {
+func authenticateRequest(c *gin.Context, srv *Server) error {
+	tx, err := srv.db.Begin(c.Request.Context())
+	if err != nil {
+		return err
+	}
+	defer logError(tx.Rollback, "failed to rollback middleware transaction")
+
 	authned, err := requireAccessKey(c, tx, srv)
 	if err != nil {
 		return err
@@ -86,6 +92,7 @@ func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) erro
 		return internal.ErrBadRequest
 	}
 
+	// TODO: move to caller
 	rCtx := access.RequestContext{
 		Request:       c.Request,
 		DBTxn:         tx.WithOrgID(authned.Organization.ID),
@@ -96,6 +103,10 @@ func authenticateRequest(c *gin.Context, tx *data.Transaction, srv *Server) erro
 	if err := handleInfraDestinationHeader(c); err != nil {
 		return err
 	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	rCtx.DBTxn = nil
 	return nil
 }
 
@@ -131,7 +142,13 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 //
 // validateRequestOrganization is also responsible for adding RequestContext to the
 // gin.Context.
-func validateRequestOrganization(c *gin.Context, tx *data.Transaction, srv *Server) error {
+func validateRequestOrganization(c *gin.Context, srv *Server) error {
+	tx, err := srv.db.Begin(c.Request.Context())
+	if err != nil {
+		return err
+	}
+	defer logError(tx.Rollback, "failed to rollback middleware transaction")
+
 	// ignore errors, access key is not required
 	authned, _ := requireAccessKey(c, tx, srv)
 
@@ -152,12 +169,15 @@ func validateRequestOrganization(c *gin.Context, tx *data.Transaction, srv *Serv
 	}
 	if org != nil {
 		authned.Organization = org
-		tx = tx.WithOrgID(authned.Organization.ID)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	// TODO: move to caller
 	rCtx := access.RequestContext{
 		Request:       c.Request,
-		DBTxn:         tx,
 		Authenticated: authned,
 	}
 	c.Set(access.RequestContextKey, rCtx)
@@ -295,4 +315,15 @@ func reqBearerToken(c *gin.Context, opts Options) (string, error) {
 	}
 
 	return bearer, nil
+}
+
+// logError calls fn and writes a log line at the warning level if the error is
+// not nil. The log level is a warning because the error is not handled, which
+// generally indicates the problem is not a critical error.
+// logError accepts a function instead of an error so that it can be used with
+// defer.
+func logError(fn func() error, msg string) {
+	if err := fn(); err != nil {
+		logging.L.Warn().Err(err).Msg(msg)
+	}
 }
