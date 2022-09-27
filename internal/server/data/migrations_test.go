@@ -677,6 +677,7 @@ DELETE FROM settings WHERE id=24567;
 				stmt := `
 					DELETE FROM groups;
 					DELETE FROM identities;
+					DELETE from identities_groups;
 				`
 				_, err := tx.Exec(stmt)
 				assert.NilError(t, err)
@@ -737,23 +738,24 @@ DELETE FROM settings WHERE id=24567;
 		m := migrator.New(db, opts, nil)
 		assert.NilError(t, m.Migrate())
 
-		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
+		initialSchema = dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"), "--schema-only")
 
 		_, err = db.Exec("DROP SCHEMA IF EXISTS testing CASCADE")
 		assert.NilError(t, err)
 	})
 
-	db, err := newRawDB(NewDBOptions{DSN: database.PostgresDriver(t, "").DSN})
+	rawDB, err := newRawDB(NewDBOptions{DSN: database.PostgresDriver(t, "").DSN})
 	assert.NilError(t, err)
+	db := &DB{DB: rawDB}
 	for i, tc := range testCases {
 		runStep(t, tc.label.Name, func(t *testing.T) {
 			fmt.Printf("    %v: test case %v\n", tc.label.Line, tc.label.Name)
-			run(t, i, tc, &DB{DB: db})
+			run(t, i, tc, db)
 		})
 	}
 
 	runStep(t, "compare initial schema to migrated schema", func(t *testing.T) {
-		migratedSchema := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"))
+		migratedSchema := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"), "--schema-only")
 
 		if golden.FlagUpdate() {
 			writeSchema(t, migratedSchema)
@@ -771,6 +773,27 @@ changes to schema.sql:
 If you changed schema.sql, add the missing migration to the migrations() function
 in ./migrations.go, add a test case to this test, and run the tests again.
 `)
+		}
+	})
+
+	runStep(t, "check test case cleanup", func(t *testing.T) {
+		// delete the default org, that we expect to exist.
+		_, err := db.Exec(`DELETE from organizations where id = ?`, defaultOrganizationID)
+		assert.NilError(t, err)
+
+		data := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"),
+			"--section=data",
+			"--exclude-table=testing.migrations",
+			"--inserts",
+			"--no-comments")
+		stmts, err := schema.TrimComments(data)
+		assert.NilError(t, err)
+
+		if !assert.Check(t, is.Equal(stmts, "")) {
+			t.Log(`
+Stale data was left over from a migration test case. Make sure the cleanup
+function in the test case removes all rows that are added by the setup function
+and the migration.`)
 		}
 	})
 }
@@ -802,7 +825,7 @@ type testCaseLabel struct {
 
 var isEnvironmentCI = os.Getenv("CI") != ""
 
-func dumpSchema(t *testing.T, conn string) string {
+func dumpSchema(t *testing.T, conn string, args ...string) string {
 	t.Helper()
 	if _, err := exec.LookPath("pg_dump"); err != nil {
 		msg := "pg_dump is required to run this test. Install pg_dump or set $PATH to include it."
@@ -838,7 +861,8 @@ func dumpSchema(t *testing.T, conn string) string {
 
 	out := new(bytes.Buffer)
 	// https://www.postgresql.org/docs/current/app-pgdump.html
-	cmd := exec.Command("pg_dump", "--no-owner", "--no-tablespaces", "--schema-only", "--schema=testing")
+	args = append([]string{"--no-owner", "--no-tablespaces", "--schema=testing"}, args...)
+	cmd := exec.Command("pg_dump", args...)
 	cmd.Env = envs
 	cmd.Stdout = out
 	cmd.Stderr = os.Stderr
