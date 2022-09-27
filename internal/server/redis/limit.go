@@ -77,10 +77,10 @@ func (lim *Limiter) LoginOK(key string) error {
 	lockout, err := lim.redis.client.Get(context.TODO(), loginKeyLockout(key)).Time()
 	switch {
 	case errors.Is(err, redis.Nil):
-	    // err is redis.Nil when the key does not exist, i.e. no previous failures
-	    return nil
+		// err is redis.Nil when the key does not exist, i.e. no previous failures
+		return nil
 	case err != nil:
-	    return err
+		return err
 	}
 
 	retryAfter := time.Until(lockout)

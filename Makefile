@@ -43,9 +43,11 @@ postgres:
 	@echo 'export POSTGRESQL_CONNECTION="host=localhost port=5432 user=postgres dbname=postgres password=password123"'
 
 
+LINT_ARGS ?= --fix
+
 lint:
 	(cd ./internal/tools/querylinter/cmd; go build -o ./querylinter.so -buildmode=plugin .)
-	golangci-lint run --fix
+	golangci-lint run $(LINT_ARGS)
 
 .PHONY: docs
 docs: docs/api/openapi3.json
