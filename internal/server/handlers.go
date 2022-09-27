@@ -9,7 +9,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
-	"github.com/infrahq/secrets"
 	"gopkg.in/square/go-jose.v2"
 
 	"github.com/infrahq/infra/api"
@@ -263,11 +262,5 @@ func (a *API) providerClient(ctx context.Context, provider *models.Provider, red
 		return c, nil
 	}
 
-	clientSecret, err := secrets.GetSecret(string(provider.ClientSecret), a.server.secrets)
-	if err != nil {
-		logging.Debugf("could not get client secret: %s", err)
-		return nil, fmt.Errorf("client secret not found")
-	}
-
-	return providers.NewOIDCClient(*provider, clientSecret, redirectURL), nil
+	return providers.NewOIDCClient(*provider, string(provider.ClientSecret), redirectURL), nil
 }
