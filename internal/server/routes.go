@@ -205,7 +205,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
-		tx, err := a.server.db.Begin(c.Request.Context())
+		tx, err := a.server.db.Begin(c.Request.Context(), nil)
 		if err != nil {
 			return err
 		}
@@ -291,8 +291,10 @@ func responseStatusCode(method string, resp any) int {
 
 func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodGet, path, route[Req, Res]{
-		handler:       handler,
-		routeSettings: routeSettings{omitFromTelemetry: true},
+		handler: handler,
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+		},
 	})
 }
 

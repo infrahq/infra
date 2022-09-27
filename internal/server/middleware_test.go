@@ -99,7 +99,7 @@ func TestDBTimeout(t *testing.T) {
 
 			c.Request = c.Request.WithContext(ctx)
 
-			tx, err := srv.db.Begin(c.Request.Context())
+			tx, err := srv.db.Begin(c.Request.Context(), nil)
 			if err != nil {
 				sendAPIError(c, err)
 				return
@@ -438,7 +438,7 @@ func TestAuthenticateRequest(t *testing.T) {
 	}
 	createOrgs(t, srv.db, otherOrg, org)
 
-	tx, err := srv.db.Begin(context.Background())
+	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	tx = tx.WithOrgID(org.ID)
 
@@ -567,7 +567,7 @@ func TestValidateRequestOrganization(t *testing.T) {
 	}
 	createOrgs(t, srv.db, otherOrg, org)
 
-	tx, err := srv.db.Begin(context.Background())
+	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	tx = tx.WithOrgID(org.ID)
 
