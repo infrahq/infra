@@ -237,7 +237,7 @@ func TestLongRunningQueriesAreCancelled(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
 
-			tx, err := db.Begin(ctx)
+			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
 
 			_, err = tx.Exec("select pg_sleep(10);")
