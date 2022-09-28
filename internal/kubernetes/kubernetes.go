@@ -514,7 +514,7 @@ const namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespa
 func readNamespaceFromInClusterFile() (string, error) {
 	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to read namespace file: %v", err)
+		return "", fmt.Errorf("failed to read namespace file: %w", err)
 	}
 
 	return string(contents), nil
