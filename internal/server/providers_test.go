@@ -12,6 +12,7 @@ import (
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -535,6 +536,113 @@ func TestAPI_UpdateProvider(t *testing.T) {
 					Scopes:   []string{"openid", "email"},
 				}
 				assert.DeepEqual(t, respBody, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAPI_PatchProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	provider := &models.Provider{
+		Name:         "name",
+		Kind:         models.ProviderKindOkta,
+		ClientSecret: "secret",
+	}
+
+	err := data.CreateProvider(srv.DB(), provider)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		body     api.PatchProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		id := provider.ID.String()
+		req, err := http.NewRequest(http.MethodPatch, "/api/providers/"+id, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			body: api.PatchProviderRequest{
+				Name:         "olive",
+				ClientSecret: "client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "valid provider (no external checks)",
+			body: api.PatchProviderRequest{
+				Name:         "new-name-google",
+				ClientSecret: "new-client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				respBody := &api.Provider{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := &api.Provider{
+					ID:      respBody.ID, // does not matter
+					Name:    "new-name-google",
+					Created: respBody.Created, // does not matter
+					Updated: respBody.Updated, // does not matter
+					Kind:    respBody.Kind,
+				}
+				assert.DeepEqual(t, respBody, expected, cmpopts.EquateEmpty())
+
+				// Test secret, which is not returned from the api
+				savedProvider, err := data.GetProvider(srv.DB(), data.ByID(provider.ID))
+				assert.NilError(t, err)
+				assert.Equal(t, savedProvider.ClientSecret, models.EncryptedAtRest("new-client-secret"))
 			},
 		},
 	}
