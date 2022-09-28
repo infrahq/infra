@@ -34,7 +34,7 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 		_, err = CreateAccessKey(c, key)
 		assert.NilError(t, err)
 
-		err = DeleteAccessKey(c, key.ID)
+		err = DeleteAccessKey(c, key.ID, "")
 		assert.NilError(t, err)
 	})
 

@@ -256,13 +256,3 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd
 }
-
-func handleListKeysMissingPrivilege(err error) error {
-	if api.ErrorStatusCode(err) == 403 {
-		logging.Debugf("%s", err.Error())
-		return Error{
-			Message: "Cannot list keys: missing privileges for ListKeys",
-		}
-	}
-	return err
-}

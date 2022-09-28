@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -213,7 +214,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me", nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodDelete, "/api/access-keys?name=delete+me", nil)
 		assert.NilError(t, err)
 
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -233,7 +234,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me+too", nil)
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodDelete, "/api/access-keys?name=delete+me+too", nil)
 		assert.NilError(t, err)
 
 		req.Header.Set("Authorization", "Bearer "+key.Token())

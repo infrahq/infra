@@ -51,6 +51,10 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 	}
 }
 
+// Token is only set when creating a key from CreateAccessKey
 func (ak *AccessKey) Token() string {
+	if len(ak.Secret) == 0 {
+		return ""
+	}
 	return ak.KeyID + "." + ak.Secret
 }

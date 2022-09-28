@@ -177,8 +177,30 @@ type GetAccessKeysOptions struct {
 	ByName  string
 }
 
-// GetAccessKey using the keyID. Note that the keyID is globally unique, so
+// GetAccessKeyByKeyID using the keyID. Note that the keyID is globally unique,
+// and this function is meant to be called as part of autentication so
 // this query is not scoped by an organization_id.
+func GetAccessKeyByKeyID(tx ReadTxn, keyID string) (*models.AccessKey, error) {
+	if len(keyID) == 0 {
+		return nil, fmt.Errorf("GetAccessKeyByKeyID must key_id")
+	}
+
+	accessKey := &accessKeyTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(accessKey))
+	query.B("FROM")
+	query.B(accessKey.Table())
+	query.B("WHERE deleted_at is null")
+	query.B("AND key_id = ?", keyID)
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.AccessKey)(accessKey), nil
+}
+
+// GetAccessKey by any unique field. This must be scoped by organizationID as it's callable by users.
 func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
 	if opts.ByID == 0 && len(opts.ByKeyID) == 0 && len(opts.ByName) == 0 {
 		return nil, fmt.Errorf("GetAccessKey must supply id, key_id, or name")
@@ -189,15 +211,15 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	query.B(columnsForSelect(accessKey))
 	query.B("FROM")
 	query.B(accessKey.Table())
-	query.B("WHERE deleted_at is null")
+	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
 	if len(opts.ByKeyID) > 0 {
 		query.B("AND key_id = ?", opts.ByKeyID)
 	}
 	if opts.ByID > 0 {
-		query.B("and id = ?", opts.ByID)
+		query.B("AND id = ?", opts.ByID)
 	}
 	if opts.ByName != "" {
-		query.B("and name = ?", opts.ByName)
+		query.B("AND name = ?", opts.ByName)
 	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
@@ -243,7 +265,7 @@ func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, 
 		return nil, fmt.Errorf("invalid access key format")
 	}
 
-	t, err := GetAccessKey(tx, GetAccessKeysOptions{ByKeyID: keyID})
+	t, err := GetAccessKeyByKeyID(tx, keyID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
