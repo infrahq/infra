@@ -81,46 +81,6 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
 }
 
-func TestDBTimeout(t *testing.T) {
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	srv := newServer(Options{})
-	srv.db = setupDB(t)
-
-	router := gin.New()
-	router.Use(
-		func(c *gin.Context) {
-			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
-			ctx, cancel = context.WithTimeout(c.Request.Context(), 100*time.Millisecond)
-			defer cancel()
-
-			c.Request = c.Request.WithContext(ctx)
-
-			tx, err := srv.db.Begin(c.Request.Context(), nil)
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			defer func() {
-				_ = tx.Rollback()
-			}()
-
-			c.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
-			c.Next()
-		},
-	)
-	router.GET("/", func(c *gin.Context) {
-		rCtx := getRequestContext(c)
-		cancel()
-		_, err := rCtx.DBTxn.Exec("select 1;")
-		assert.Error(t, err, "context canceled")
-
-		c.Status(200)
-	})
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
-}
-
 func TestRequireAccessKey(t *testing.T) {
 	type testCase struct {
 		setup    func(t *testing.T, db data.GormTxn) *http.Request

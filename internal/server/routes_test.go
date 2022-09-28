@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -280,3 +281,43 @@ func TestInfraVersionHeader(t *testing.T) {
 }
 
 var apiVersionLatest = internal.FullVersion()
+
+func TestRequestTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
+	srv := setupServer(t)
+	routes := srv.GenerateRoutes()
+	router, ok := routes.Handler.(*gin.Engine)
+	assert.Assert(t, ok)
+	a := &API{server: srv}
+
+	group := &routeGroup{RouterGroup: router.Group("/", TimeoutMiddleware(1*time.Second)), noAuthentication: true, noOrgRequired: true}
+	add(a, group, http.MethodGet, "/sleep", route[api.EmptyRequest, *api.EmptyResponse]{
+		handler: func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
+			ctx := getRequestContext(c)
+
+			_, exist := ctx.Request.Context().Deadline()
+			assert.Assert(t, exist)
+
+			_, err := ctx.DBTxn.Exec("select pg_sleep(2)")
+			assert.Error(t, err, "timeout: context deadline exceeded", "expected this query to time out and get cancelled")
+
+			return nil, err
+		},
+	})
+
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/sleep", nil)
+	assert.NilError(t, err)
+
+	req.Header.Add("Infra-Version", "0.13.1")
+
+	resp := httptest.NewRecorder()
+	started := time.Now()
+	routes.ServeHTTP(resp, req)
+	elapsed := time.Since(started)
+
+	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
+
+	assert.Assert(t, elapsed < 1500*time.Millisecond, "expected request to time out due to the timeout context, but it did not")
+}
