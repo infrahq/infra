@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
+import analytics from '../lib/analytics'
 
 export default function SignupForm() {
   const [email, setEmail] = useState('')
@@ -12,10 +13,16 @@ export default function SignupForm() {
       return
     }
 
+    const user = await analytics.user()
+
     try {
       const res = await fetch('/api/signup', {
         method: 'POST',
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({
+          email,
+          code,
+          aid: user.anonymousId(),
+        }),
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
@@ -29,12 +36,7 @@ export default function SignupForm() {
       setSubmitted(true)
     } catch (e) {
       setError(true)
-    }
-
-    if (window.analytics) {
-      window.analytics.identify({
-        email,
-      })
+      console.error(e)
     }
   }
 
@@ -59,6 +61,7 @@ export default function SignupForm() {
         size='invisible'
         sitekey='6Lcld3EcAAAAAONnvAUZR6igONL-TZm9XextIS9U'
         onChange={onReCAPTCHAChange}
+        onError={e => console.log(e)}
       />
       <form className='relative flex flex-1 space-x-2' onSubmit={onSubmit}>
         <input
@@ -78,7 +81,7 @@ export default function SignupForm() {
         />
       </form>
       {error && (
-        <div className='absolute -bottom-8 mt-2 ml-6 text-xs text-red-400'>
+        <div className='absolute -bottom-8 mt-5 ml-6 text-xs text-red-400'>
           Could not register for updates
         </div>
       )}

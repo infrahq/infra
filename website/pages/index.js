@@ -124,7 +124,7 @@ export default function Index() {
               integrations coming soon.
             </h2>
             <div className='z-40 my-6 flex items-center space-x-2 font-display text-base'>
-              <Link href='/docs/getting-started/deploy'>
+              <Link href='/docs/start/quickstart'>
                 <a className='group relative rounded-full bg-blue-500 py-1.5 px-4 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
                   Get Started{' '}
                   <span className='inline-block transition-transform group-hover:translate-x-0.5'>

@@ -16,8 +16,11 @@
     "@heroicons/react": "^2.0.11",
     "@markdoc/markdoc": "^0.1.10",
     "@react-spring/web": "^9.5.4",
+    "@segment/analytics-next": "^1.43.0",
     "@segment/snippet": "^4.15.3",
+    "analytics-node": "^6.2.0",
     "copy-to-clipboard": "^3.3.2",
+    "dayjs": "^1.11.5",
     "image-size": "^1.0.2",
     "js-yaml": "^4.1.0",
     "next": "^12.3.1",
@@ -25,7 +28,6 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-google-recaptcha": "^2.1.0",
-    "dayjs": "^1.11.5",
     "sharp": "^0.31.0"
   },
   "devDependencies": {
