@@ -12,6 +12,7 @@ import (
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -343,7 +344,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "valid provider (name is provided)",
 			body: api.CreateProviderRequest{
-				Name:         "google-1234",
+				Name:         "google-123",
 				URL:          "accounts.google.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
@@ -551,8 +552,9 @@ func TestAPI_PatchProvider(t *testing.T) {
 	routes := srv.GenerateRoutes()
 
 	provider := &models.Provider{
-		Name: "name",
-		Kind: models.ProviderKindOkta,
+		Name:         "name",
+		Kind:         models.ProviderKindOkta,
+		ClientSecret: "secret",
 	}
 
 	err := data.CreateProvider(srv.DB(), provider)
@@ -614,8 +616,8 @@ func TestAPI_PatchProvider(t *testing.T) {
 		{
 			name: "valid provider (no external checks)",
 			body: api.PatchProviderRequest{
-				ID:   provider.ID,
-				Name: "new-name-google",
+				Name:         "new-name-google",
+				ClientSecret: "new-client-secret",
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
@@ -635,7 +637,12 @@ func TestAPI_PatchProvider(t *testing.T) {
 					Updated: respBody.Updated, // does not matter
 					Kind:    respBody.Kind,
 				}
-				assert.DeepEqual(t, respBody, expected)
+				assert.DeepEqual(t, respBody, expected, cmpopts.EquateEmpty())
+
+				// Test secret, which is not returned from the api
+				savedProvider, err := data.GetProvider(srv.DB(), data.ByID(provider.ID))
+				assert.NilError(t, err)
+				assert.Equal(t, savedProvider.ClientSecret, models.EncryptedAtRest("new-client-secret"))
 			},
 		},
 	}

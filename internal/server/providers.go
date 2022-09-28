@@ -118,7 +118,10 @@ func (a *API) PatchProvider(c *gin.Context, r *api.PatchProviderRequest) (*api.P
 	if r.ClientSecret != "" {
 		provider.ClientSecret = models.EncryptedAtRest(r.ClientSecret)
 	}
-	return nil, access.SaveProvider(c, provider)
+	if err = access.SaveProvider(c, provider); err != nil {
+		return nil, err
+	}
+	return provider.ToAPI(), nil
 }
 
 func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api.Provider, error) {

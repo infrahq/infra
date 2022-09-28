@@ -34,7 +34,6 @@ export default function ProvidersEditDetails() {
         const res = await fetch(`/api/providers/${id}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            id,
             name,
             clientSecret,
           }),
