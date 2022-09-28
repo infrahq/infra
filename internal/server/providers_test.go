@@ -551,10 +551,8 @@ func TestAPI_PatchProvider(t *testing.T) {
 	routes := srv.GenerateRoutes()
 
 	provider := &models.Provider{
-		Name:    "private",
-		Kind:    models.ProviderKindAzure,
-		AuthURL: "https://example.com/v1/auth",
-		Scopes:  []string{"openid", "email"},
+		Name: "name",
+		Kind: models.ProviderKindOkta,
 	}
 
 	err := data.CreateProvider(srv.DB(), provider)
@@ -616,8 +614,7 @@ func TestAPI_PatchProvider(t *testing.T) {
 		{
 			name: "valid provider (no external checks)",
 			body: api.PatchProviderRequest{
-				Name:         "new-name-google",
-				ClientSecret: "new-client-secret",
+				Name: "new-name-google",
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
@@ -631,15 +628,11 @@ func TestAPI_PatchProvider(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := &api.Provider{
-					ID:       respBody.ID, // does not matter
-					Name:     "google",
-					Created:  respBody.Created, // does not matter
-					Updated:  respBody.Updated, // does not matter
-					URL:      "accounts.google.com",
-					ClientID: "client-id",
-					Kind:     string(models.ProviderKindGoogle),
-					AuthURL:  "example.com/v1/auth",
-					Scopes:   []string{"openid", "email"},
+					ID:      respBody.ID, // does not matter
+					Name:    "new-name-google",
+					Created: respBody.Created, // does not matter
+					Updated: respBody.Updated, // does not matter
+					Kind:    respBody.Kind,
 				}
 				assert.DeepEqual(t, respBody, expected)
 			},
