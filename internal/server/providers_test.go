@@ -558,11 +558,6 @@ func TestAPI_PatchProvider(t *testing.T) {
 	err := data.CreateProvider(srv.DB(), provider)
 	assert.NilError(t, err)
 
-	selectors := []data.SelectorFunc{
-		data.ByOptionalName(provider.Name),
-	}
-	createdRes, err := data.ListProviders(srv.DB(), &data.Pagination{}, selectors...)
-
 	type testCase struct {
 		name     string
 		body     api.PatchProviderRequest
@@ -619,7 +614,7 @@ func TestAPI_PatchProvider(t *testing.T) {
 		{
 			name: "valid provider (no external checks)",
 			body: api.PatchProviderRequest{
-				ID:   createdRes[0].ID,
+				ID:   provider.ID,
 				Name: "new-name-google",
 			},
 			setup: func(t *testing.T, req *http.Request) {
