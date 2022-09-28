@@ -1,6 +1,10 @@
+import Analytics from 'analytics-node'
+
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY
 const SENDGRID_LIST_ID = process.env.SENDGRID_LIST_ID
+
+const analytics = new Analytics(process.env.NEXT_PUBLIC_SEGMENT_WRITE_KEY)
 
 export default async function signup(req, res) {
   if (req.method !== 'POST') {
@@ -13,7 +17,7 @@ export default async function signup(req, res) {
     return
   }
 
-  if (!SENDGRID_API_KEY || !SENDGRID_LIST_ID || !RECAPTCHA_SECRET_KEY) {
+  if (!SENDGRID_API_KEY || !SENDGRID_LIST_ID) {
     console.error('server not configured')
     res.status(500).end()
     return
@@ -47,6 +51,22 @@ export default async function signup(req, res) {
     console.error('error verifying recaptcha')
     res.status(500).end()
     return
+  }
+
+  if (req.body.aid && process.env.NEXT_PUBLIC_SEGMENT_WRITE_KEY) {
+    analytics.identify({
+      anonymousId: req.body.aid,
+      traits: {
+        email: req.body.email,
+      },
+    })
+    analytics.track({
+      anonymousId: req.body.aid,
+      event: 'website:signup',
+      traits: {
+        email: req.body.email,
+      },
+    })
   }
 
   try {
