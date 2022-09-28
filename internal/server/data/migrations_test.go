@@ -861,7 +861,7 @@ func dumpSchema(t *testing.T, conn string, args ...string) string {
 
 	out := new(bytes.Buffer)
 	// https://www.postgresql.org/docs/current/app-pgdump.html
-	args = append([]string{"--no-owner", "--no-tablespaces", "--schema=testing"}, args...)
+	args = append(args, "--no-owner", "--no-tablespaces", "--schema=testing")
 	cmd := exec.Command("pg_dump", args...)
 	cmd.Env = envs
 	cmd.Stdout = out
