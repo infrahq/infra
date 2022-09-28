@@ -1,7 +1,6 @@
 package connector
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -50,6 +49,15 @@ type ServerOptions struct {
 type ListenerOptions struct {
 	HTTPS   string
 	Metrics string
+}
+
+// connector stores all the dependencies for the connector operations.
+type connector struct {
+	k8s         *kubernetes.Kubernetes
+	client      *api.Client
+	destination *api.Destination
+	certCache   *CertCache
+	options     Options
 }
 
 func Run(ctx context.Context, options Options) error {
@@ -155,8 +163,15 @@ func Run(ctx context.Context, options Options) error {
 		},
 	}
 
+	con := connector{
+		k8s:         k8s,
+		client:      client,
+		destination: destination,
+		certCache:   certCache,
+		options:     options,
+	}
 	// TODO: make polling time configurable
-	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, []byte(options.CACert)))
+	repeat.Start(ctx, 30*time.Second, syncWithServer(con))
 
 	ginutil.SetMode()
 	router := gin.New()
@@ -255,10 +270,9 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 	return transport
 }
 
-func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination *api.Destination, certCache *CertCache, caCertPEM []byte) func(context.Context) {
-
+func syncWithServer(con connector) func(context.Context) {
 	return func(context.Context) {
-		host, port, err := k8s.Endpoint()
+		host, port, err := con.k8s.Endpoint()
 		if err != nil {
 			logging.Errorf("failed to lookup endpoint: %v", err)
 			return
@@ -273,7 +287,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 		}
 
 		// update certificates if the host changed
-		_, err = certCache.AddHost(host)
+		_, err = con.certCache.AddHost(host)
 		if err != nil {
 			logging.Errorf("could not update self-signed certificates")
 			return
@@ -282,21 +296,21 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		logging.Debugf("connector serving on %s", endpoint)
 
-		namespaces, err := k8s.Namespaces()
+		namespaces, err := con.k8s.Namespaces()
 		if err != nil {
 			logging.Errorf("could not get kubernetes namespaces: %v", err)
 			return
 		}
 
-		clusterRoles, err := k8s.ClusterRoles()
+		clusterRoles, err := con.k8s.ClusterRoles()
 		if err != nil {
 			logging.Errorf("could not get kubernetes cluster-roles: %v", err)
 			return
 		}
 
 		switch {
-		case destination.ID == 0:
-			isClusterIP, err := k8s.IsServiceTypeClusterIP()
+		case con.destination.ID == 0:
+			isClusterIP, err := con.k8s.IsServiceTypeClusterIP()
 			if err != nil {
 				logging.Debugf("could not determine service type: %v", err)
 			}
@@ -307,28 +321,28 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 
 			fallthrough
 
-		case !slicesEqual(destination.Resources, namespaces):
-			destination.Resources = namespaces
+		case !slicesEqual(con.destination.Resources, namespaces):
+			con.destination.Resources = namespaces
 			fallthrough
 
-		case !slicesEqual(destination.Roles, clusterRoles):
-			destination.Roles = clusterRoles
+		case !slicesEqual(con.destination.Roles, clusterRoles):
+			con.destination.Roles = clusterRoles
 			fallthrough
 
-		case !bytes.Equal([]byte(destination.Connection.CA), caCertPEM):
-			destination.Connection.CA = api.PEM(caCertPEM)
+		case string(con.destination.Connection.CA) != string(con.options.CACert):
+			con.destination.Connection.CA = api.PEM(con.options.CACert)
 			fallthrough
 
-		case destination.Connection.URL != endpoint:
-			destination.Connection.URL = endpoint
+		case con.destination.Connection.URL != endpoint:
+			con.destination.Connection.URL = endpoint
 
-			if err := createOrUpdateDestination(client, destination); err != nil {
+			if err := createOrUpdateDestination(con.client, con.destination); err != nil {
 				logging.Errorf("initializing destination: %v", err)
 				return
 			}
 		}
 
-		grants, err := client.ListGrants(api.ListGrantsRequest{Resource: destination.Name})
+		grants, err := con.client.ListGrants(api.ListGrantsRequest{Resource: con.destination.Name})
 		if err != nil {
 			logging.Errorf("error listing grants: %v", err)
 			return
@@ -336,7 +350,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 
 		// TODO(https://github.com/infrahq/infra/issues/2422): support wildcard resource searches
 		for _, n := range namespaces {
-			g, err := client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", destination.Name, n)})
+			g, err := con.client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", con.destination.Name, n)})
 			if err != nil {
 				logging.Errorf("error listing grants: %v", err)
 				return
@@ -345,7 +359,7 @@ func syncWithServer(k8s *kubernetes.Kubernetes, client *api.Client, destination 
 			grants.Items = append(grants.Items, g.Items...)
 		}
 
-		err = updateRoles(client, k8s, grants.Items)
+		err = updateRoles(con.client, con.k8s, grants.Items)
 		if err != nil {
 			logging.Errorf("error updating grants: %v", err)
 			return
