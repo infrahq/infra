@@ -343,7 +343,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "valid provider (name is provided)",
 			body: api.CreateProviderRequest{
-				Name:         "google-123",
+				Name:         "google-1234",
 				URL:          "accounts.google.com",
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
