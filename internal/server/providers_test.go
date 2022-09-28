@@ -546,6 +546,113 @@ func TestAPI_UpdateProvider(t *testing.T) {
 	}
 }
 
+func TestAPI_PatchProvider(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	provider := &models.Provider{
+		Name:    "private",
+		Kind:    models.ProviderKindAzure,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
+	}
+
+	err := data.CreateProvider(srv.DB(), provider)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		name     string
+		body     api.PatchProviderRequest
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, response *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+
+		id := provider.ID.String()
+		req, err := http.NewRequest(http.MethodPatch, "/api/providers/"+id, body)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := []testCase{
+		{
+			name: "not authenticated",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, resp.Body.String())
+			},
+		},
+		{
+			name: "not authorized",
+			body: api.PatchProviderRequest{
+				Name:         "olive",
+				ClientSecret: "client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
+				req.Header.Set("Authorization", "Bearer "+accessKey)
+
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden, resp.Body.String())
+			},
+		},
+		{
+			name: "valid provider (no external checks)",
+			body: api.PatchProviderRequest{
+				Name:         "new-name-google",
+				ClientSecret: "new-client-secret",
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				respBody := &api.Provider{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := &api.Provider{
+					ID:       respBody.ID, // does not matter
+					Name:     "google",
+					Created:  respBody.Created, // does not matter
+					Updated:  respBody.Updated, // does not matter
+					URL:      "accounts.google.com",
+					ClientID: "client-id",
+					Kind:     string(models.ProviderKindGoogle),
+					AuthURL:  "example.com/v1/auth",
+					Scopes:   []string{"openid", "email"},
+				}
+				assert.DeepEqual(t, respBody, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
 	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
