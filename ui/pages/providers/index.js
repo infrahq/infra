@@ -100,8 +100,8 @@ export default function Providers() {
             id: 'actions',
             cell: function Cell(info) {
               const [deleteOpen, setDeleteOpen] = useState(false)
-              let [referenceElement, setReferenceElement] = useState()
-              let [popperElement, setPopperElement] = useState()
+              const [referenceElement, setReferenceElement] = useState(null)
+              const [popperElement, setPopperElement] = useState(null)
               let { styles, attributes } = usePopper(
                 referenceElement,
                 popperElement,

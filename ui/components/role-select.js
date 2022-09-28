@@ -27,8 +27,8 @@ export default function RoleSelect({
       resource && `/api/destinations?name=${hasParent ? parts[0] : resource}`
   )
 
-  let [referenceElement, setReferenceElement] = useState()
-  let [popperElement, setPopperElement] = useState()
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
   let { styles, attributes } = usePopper(referenceElement, popperElement, {
     placement: 'bottom-end',
     modifiers: [
