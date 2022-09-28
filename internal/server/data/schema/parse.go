@@ -159,3 +159,28 @@ func parseStatementLine(line string) (table, parsed string, err error) {
 	}
 	return table, strings.TrimSuffix(result.String(), " "), words.Err()
 }
+
+// TrimComments removes blank lines, comment lines, and SET lines from a
+// pg_dump output. The --no-comments flag to pg_dump only removes some comments,
+// and there does not appear to be any way to remove the SET lines.
+func TrimComments(input string) (string, error) {
+	lines := bufio.NewScanner(strings.NewReader(input))
+	lines.Split(bufio.ScanLines)
+	var buf strings.Builder
+
+	for lines.Scan() {
+		line := lines.Text()
+		switch {
+		case strings.TrimSpace(line) == "":
+			continue
+		case strings.HasPrefix(line, "--"):
+			continue
+		case strings.HasPrefix(line, "SET "):
+			continue
+		case strings.HasPrefix(line, "SELECT pg_catalog.set_config"):
+			continue
+		}
+		buf.WriteString(line + "\n")
+	}
+	return buf.String(), lines.Err()
+}
