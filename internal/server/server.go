@@ -15,8 +15,6 @@ import (
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/types"
@@ -152,10 +150,11 @@ func New(options Options) (*Server, error) {
 		return nil, fmt.Errorf("key config: %w", err)
 	}
 
-	driver, err := getDatabaseDriver(options, server.secrets)
+	dsn, err := getPostgresConnectionString(options, server.secrets)
 	if err != nil {
-		return nil, fmt.Errorf("driver: %w", err)
+		return nil, fmt.Errorf("postgres dsn: %w", err)
 	}
+	options.DB.DSN = dsn
 
 	dbKeyProvider, ok := server.keys[options.DBEncryptionKeyProvider]
 	if !ok {
@@ -164,7 +163,7 @@ func New(options Options) (*Server, error) {
 	options.DB.EncryptionKeyProvider = dbKeyProvider
 	options.DB.RootKeyID = options.DBEncryptionKey
 
-	db, err := data.NewDB(driver, options.DB)
+	db, err := data.NewDB(options.DB)
 	if err != nil {
 		return nil, fmt.Errorf("db: %w", err)
 	}
@@ -342,17 +341,6 @@ func (s *Server) setupServer(server *http.Server) (net.Addr, error) {
 type routine struct {
 	run  func() error
 	stop func()
-}
-
-func getDatabaseDriver(options Options, secretStorage map[string]secrets.SecretStorage) (gorm.Dialector, error) {
-	pgDSN, err := getPostgresConnectionString(options, secretStorage)
-	switch {
-	case err != nil:
-		return nil, fmt.Errorf("postgres: %w", err)
-	case pgDSN == "":
-		return nil, fmt.Errorf("missing postgreSQL connection options")
-	}
-	return postgres.Open(pgDSN), nil
 }
 
 // getPostgresConnectionString parses postgres configuration options and returns the connection string

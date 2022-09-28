@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
@@ -24,6 +25,8 @@ import (
 )
 
 type NewDBOptions struct {
+	DSN string
+
 	EncryptionKeyProvider EncryptionKeyProvider
 	RootKeyID             string
 
@@ -35,8 +38,8 @@ type NewDBOptions struct {
 // NewDB creates a new database connection and runs any required database migrations
 // before returning the connection. The loadDBKey function is called after
 // initializing the schema, but before any migrations.
-func NewDB(connection gorm.Dialector, dbOpts NewDBOptions) (*DB, error) {
-	db, err := newRawDB(connection, dbOpts)
+func NewDB(dbOpts NewDBOptions) (*DB, error) {
+	db, err := newRawDB(dbOpts)
 	if err != nil {
 		return nil, fmt.Errorf("db conn: %w", err)
 	}
@@ -215,8 +218,12 @@ func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 }
 
 // newRawDB creates a new database connection without running migrations.
-func newRawDB(connection gorm.Dialector, options NewDBOptions) (*gorm.DB, error) {
-	db, err := gorm.Open(connection, &gorm.Config{
+func newRawDB(options NewDBOptions) (*gorm.DB, error) {
+	if options.DSN == "" {
+		return nil, fmt.Errorf("missing postgres dsn")
+	}
+
+	db, err := gorm.Open(postgres.Open(options.DSN), &gorm.Config{
 		Logger: logging.NewDatabaseLogger(time.Second),
 	})
 	if err != nil {
