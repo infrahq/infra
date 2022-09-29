@@ -206,9 +206,7 @@ func TestAPI_Signup(t *testing.T) {
 				assert.NilError(t, err)
 
 				// check their access token has the expected scope
-				k, err := data.GetAccessKey(srv.DB(), data.GetAccessKeysOptions{
-					ByKeyID: strings.Split(key, ".")[0],
-				})
+				k, err := data.GetAccessKeyByKeyID(srv.DB(), strings.Split(key, ".")[0])
 				assert.NilError(t, err)
 
 				assert.DeepEqual(t, k.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})

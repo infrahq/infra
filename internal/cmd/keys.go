@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -148,37 +147,18 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			logging.Debugf("call server: list access keys named %q", args[0])
-			keys, err := client.ListAccessKeys(api.ListAccessKeysRequest{Name: args[0]})
+			err = client.DeleteAccessKeyByName(args[0])
 			if err != nil {
-				return handleListKeysMissingPrivilege(err)
-			}
-
-			if keys.Count == 0 && !force {
-				return Error{Message: fmt.Sprintf("No access keys named %q", args[0])}
-			}
-
-			logging.Debugf("deleting %d access keys named %q...", keys.Count, args[0])
-			for _, key := range keys.Items {
-				logging.Debugf("...call server: delete access key %s", key.ID)
-				err = client.DeleteAccessKey(key.ID)
-				if err != nil {
-					if api.ErrorStatusCode(err) == 403 {
-						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot delete key: missing privileges for DeleteKey",
-						}
+				if api.ErrorStatusCode(err) == 403 {
+					logging.Debugf("%s", err.Error())
+					return Error{
+						Message: "Cannot delete key: missing privileges for DeleteKey",
 					}
-					return err
 				}
-
-				issuedFor := key.IssuedForName
-				if issuedFor == "" {
-					issuedFor = key.IssuedFor.String()
-				}
-
-				cli.Output("Removed access key %q issued for %q", key.Name, issuedFor)
+				return err
 			}
+
+			cli.Output("Removed access key %q", args[0])
 
 			return nil
 		},
@@ -275,14 +255,4 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
 	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd
-}
-
-func handleListKeysMissingPrivilege(err error) error {
-	if api.ErrorStatusCode(err) == 403 {
-		logging.Debugf("%s", err.Error())
-		return Error{
-			Message: "Cannot list keys: missing privileges for ListKeys",
-		}
-	}
-	return err
 }

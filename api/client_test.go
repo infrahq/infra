@@ -150,7 +150,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	t.Run("headers", func(t *testing.T) {
-		err := delete(c, "/good")
+		err := delete(c, "/good", Query{})
 		assert.NilError(t, err)
 
 		r := <-ch

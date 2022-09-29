@@ -50,3 +50,11 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		ExtensionDeadline: api.Time(ak.ExtensionDeadline),
 	}
 }
+
+// Token is only set when creating a key from CreateAccessKey
+func (ak *AccessKey) Token() string {
+	if len(ak.Secret) == 0 {
+		return ""
+	}
+	return ak.KeyID + "." + ak.Secret
+}
