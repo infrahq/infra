@@ -172,9 +172,8 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 }
 
 type GetAccessKeysOptions struct {
-	ByID    uid.ID
-	ByKeyID string
-	ByName  string
+	ByID   uid.ID
+	ByName string
 }
 
 // GetAccessKeyByKeyID using the keyID. Note that the keyID is globally unique,
@@ -202,7 +201,7 @@ func GetAccessKeyByKeyID(tx ReadTxn, keyID string) (*models.AccessKey, error) {
 
 // GetAccessKey by any unique field. This must be scoped by organizationID as it's callable by users.
 func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
-	if opts.ByID == 0 && len(opts.ByKeyID) == 0 && len(opts.ByName) == 0 {
+	if opts.ByID == 0 && len(opts.ByName) == 0 {
 		return nil, fmt.Errorf("GetAccessKey must supply id, key_id, or name")
 	}
 
@@ -212,9 +211,6 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	query.B("FROM")
 	query.B(accessKey.Table())
 	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
-	if len(opts.ByKeyID) > 0 {
-		query.B("AND key_id = ?", opts.ByKeyID)
-	}
 	if opts.ByID > 0 {
 		query.B("AND id = ?", opts.ByID)
 	}

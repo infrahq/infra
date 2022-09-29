@@ -582,6 +582,61 @@ func TestGetAccessKey(t *testing.T) {
 
 		createAccessKeys(t, db, ak, other)
 
+		t.Run("found by name", func(t *testing.T) {
+			actual, err := GetAccessKey(db, GetAccessKeysOptions{ByName: "the-key"})
+			assert.NilError(t, err)
+			expected := *ak
+			expected.Secret = ""
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
+		})
+
+		t.Run("found by id", func(t *testing.T) {
+			actual, err := GetAccessKey(db, GetAccessKeysOptions{ByID: ak.ID})
+			assert.NilError(t, err)
+			expected := *ak
+			expected.Secret = ""
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
+		})
+
+		t.Run("found by name and id", func(t *testing.T) {
+			actual, err := GetAccessKey(db, GetAccessKeysOptions{ByName: "the-key", ByID: ak.ID})
+			assert.NilError(t, err)
+			expected := *ak
+			expected.Secret = ""
+			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
+		})
+
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetAccessKey(db, GetAccessKeysOptions{ByName: "not-this-key-name"})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
+		t.Run("not found soft deleted", func(t *testing.T) {
+			err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByID: ak.ID})
+			assert.NilError(t, err)
+
+			_, err = GetAccessKey(db, GetAccessKeysOptions{ByID: ak.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+
+	})
+}
+func TestGetAccessKeyByID(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		ak := &models.AccessKey{
+			Name:       "the-key",
+			IssuedFor:  600600,
+			ProviderID: 700700,
+		}
+
+		other := &models.AccessKey{
+			Name:       "the-other-key",
+			IssuedFor:  600600,
+			ProviderID: 700700,
+		}
+
+		createAccessKeys(t, db, ak, other)
+
 		t.Run("found", func(t *testing.T) {
 			actual, err := GetAccessKeyByKeyID(db, ak.KeyID)
 			assert.NilError(t, err)
