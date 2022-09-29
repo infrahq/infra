@@ -547,8 +547,6 @@ func TestAPI_UpdateProvider(t *testing.T) {
 	}
 }
 
-// test
-
 func TestAPI_PatchProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
