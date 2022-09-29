@@ -654,6 +654,8 @@ func TestAPI_PatchProvider(t *testing.T) {
 	}
 }
 
+// adding an unrelated test comment
+
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
 	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
