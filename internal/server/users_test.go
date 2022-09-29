@@ -610,7 +610,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 		t.Run("as a user", func(t *testing.T) {
 			ctx := loginAs(db, user)
 			t.Run("with no existing infra user", func(t *testing.T) {
-				err = data.DeleteProviderUsers(db, data.ByIdentityID(user.ID), data.ByProviderID(data.InfraProvider(db).ID))
+				err = data.DeleteProviderUsers(db, data.DeleteProviderUsersOptions{ByIdentityID: user.ID, ByProviderID: data.InfraProvider(db).ID})
 				assert.NilError(t, err)
 
 				cred, _ := data.GetCredential(db, data.ByIdentityID(user.ID))
@@ -798,7 +798,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 		tc.expected(t, resp)
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "not authenticated",
 			setup: func(t *testing.T, req *http.Request) {
