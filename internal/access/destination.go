@@ -18,14 +18,13 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 	return data.CreateDestination(db, destination)
 }
 
-func SaveDestination(c *gin.Context, destination *models.Destination) error {
+func SaveDestination(rCtx RequestContext, destination *models.Destination) error {
 	roles := []string{models.InfraAdminRole, models.InfraConnectorRole}
-	db, err := RequireInfraRole(c, roles...)
-	if err != nil {
+	if err := IsAuthorized(rCtx, roles...); err != nil {
 		return HandleAuthErr(err, "destination", "update", roles...)
 	}
 
-	return data.SaveDestination(db, destination)
+	return data.SaveDestination(rCtx.DBTxn, destination)
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {

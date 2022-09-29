@@ -16,10 +16,8 @@ import (
 
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
-	driver := database.PostgresDriver(t, "_authn")
-
 	patch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver.Dialector, data.NewDBOptions{})
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_authn").DSN})
 	assert.NilError(t, err)
 
 	return db

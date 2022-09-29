@@ -28,10 +28,8 @@ import (
 
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
-	driver := database.PostgresDriver(t, "_server")
-
 	tpatch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver.Dialector, data.NewDBOptions{})
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_server").DSN})
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, db.Close())
@@ -77,46 +75,6 @@ func TestRequestTimeoutSuccess(t *testing.T) {
 	router.Use(TimeoutMiddleware(60 * time.Second))
 	router.GET("/", func(c *gin.Context) {
 		assert.NilError(t, c.Request.Context().Err())
-
-		c.Status(200)
-	})
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
-}
-
-func TestDBTimeout(t *testing.T) {
-	var ctx context.Context
-	var cancel context.CancelFunc
-
-	srv := newServer(Options{})
-	srv.db = setupDB(t)
-
-	router := gin.New()
-	router.Use(
-		func(c *gin.Context) {
-			// this is a custom copy of the timeout middleware so I can grab and control the cancel() func. Otherwise the test is too flakey with timing race conditions.
-			ctx, cancel = context.WithTimeout(c.Request.Context(), 100*time.Millisecond)
-			defer cancel()
-
-			c.Request = c.Request.WithContext(ctx)
-
-			tx, err := srv.db.Begin(c.Request.Context())
-			if err != nil {
-				sendAPIError(c, err)
-				return
-			}
-			defer func() {
-				_ = tx.Rollback()
-			}()
-
-			c.Set(access.RequestContextKey, access.RequestContext{DBTxn: tx})
-			c.Next()
-		},
-	)
-	router.GET("/", func(c *gin.Context) {
-		rCtx := getRequestContext(c)
-		cancel()
-		_, err := rCtx.DBTxn.Exec("select 1;")
-		assert.Error(t, err, "context canceled")
 
 		c.Status(200)
 	})
@@ -438,7 +396,7 @@ func TestAuthenticateRequest(t *testing.T) {
 	}
 	createOrgs(t, srv.db, otherOrg, org)
 
-	tx, err := srv.db.Begin(context.Background())
+	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	tx = tx.WithOrgID(org.ID)
 
@@ -567,7 +525,7 @@ func TestValidateRequestOrganization(t *testing.T) {
 	}
 	createOrgs(t, srv.db, otherOrg, org)
 
-	tx, err := srv.db.Begin(context.Background())
+	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	tx = tx.WithOrgID(org.ID)
 

@@ -287,20 +287,18 @@ export default function ProvidersAddDetails() {
 
           {kind === 'google' && (
             <div className='space-y-1'>
-              <div className='py-6'>
+              <div className='mb-1 flex items-center space-x-2 text-xs'>
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Optional information for Google Groups
                 </h3>
-                <div className='mt-1 flex flex-row items-center space-x-1 text-sm text-gray-500'>
-                  <a
-                    className='underline hover:text-gray-600'
-                    target='_blank'
-                    href='https://infrahq.com/docs/identity-providers/google#groups'
-                    rel='noreferrer'
-                  >
-                    learn more
-                  </a>
-                </div>
+                <a
+                  className='text-gray-500 underline hover:text-gray-600'
+                  target='_blank'
+                  href='https://infrahq.com/docs/identity-providers/google#groups'
+                  rel='noreferrer'
+                >
+                  learn more
+                </a>
               </div>
               <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
                 <div className='sm:col-span-6 lg:col-span-5'>

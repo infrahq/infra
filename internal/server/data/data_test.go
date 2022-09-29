@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"gorm.io/gorm"
@@ -16,11 +17,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T, driver gorm.Dialector) *DB {
+func setupDB(t *testing.T) *DB {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 
-	db, err := NewDB(driver, NewDBOptions{})
+	db, err := NewDB(NewDBOptions{DSN: database.PostgresDriver(t, "_data").DSN})
 	assert.NilError(t, err)
 
 	logging.PatchLogger(t, zerolog.NewTestWriter(t))
@@ -30,7 +31,7 @@ func setupDB(t *testing.T, driver gorm.Dialector) *DB {
 
 func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 	t.Helper()
-	tx, err := db.Begin(context.Background())
+	tx, err := db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		_ = tx.Rollback()
@@ -43,8 +44,7 @@ func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	t.Run("postgres", func(t *testing.T) {
-		pgsql := database.PostgresDriver(t, "")
-		db := setupDB(t, pgsql.Dialector)
+		db := setupDB(t)
 		run(t, db)
 		db.Rollback()
 	})
@@ -173,7 +173,7 @@ func TestDB_Begin(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		t.Run("rollback", func(t *testing.T) {
 			ctx := context.Background()
-			tx, err := db.Begin(ctx)
+			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
 			tx = tx.WithOrgID(db.DefaultOrg.ID)
 
@@ -193,7 +193,7 @@ func TestDB_Begin(t *testing.T) {
 		})
 		t.Run("commit", func(t *testing.T) {
 			ctx := context.Background()
-			tx, err := db.Begin(ctx)
+			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
 			tx = tx.WithOrgID(db.DefaultOrg.ID)
 
@@ -210,6 +210,43 @@ func TestDB_Begin(t *testing.T) {
 			// using the db shows the commit worked
 			_, err = GetIdentity(db, ByID(user.ID))
 			assert.NilError(t, err)
+		})
+	})
+}
+
+func TestLongRunningQueriesAreCancelled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for short run")
+	}
+
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("Gorm", func(t *testing.T) {
+			started := time.Now()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+			tx := db.WithContext(ctx)
+			err := tx.Exec("select pg_sleep(2);").Error
+			assert.Error(t, err, "timeout: context deadline exceeded")
+
+			elapsed := time.Since(started)
+			assert.Assert(t, elapsed < 1500*time.Millisecond, "query should have timed out and been cancelled")
+		})
+
+		t.Run("sqlx", func(t *testing.T) {
+			started := time.Now()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+			defer cancel()
+
+			tx, err := db.Begin(ctx, nil)
+			assert.NilError(t, err)
+
+			_, err = tx.Exec("select pg_sleep(2);")
+			assert.Error(t, err, "timeout: context deadline exceeded")
+
+			elapsed := time.Since(started)
+			assert.Assert(t, elapsed < 1500*time.Millisecond, "query should have timed out and been cancelled")
 		})
 	})
 }

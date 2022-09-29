@@ -12,10 +12,12 @@ import (
 )
 
 var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
-	handler:                    pprofHandler,
-	omitFromTelemetry:          true,
-	omitFromDocs:               true,
-	infraVersionHeaderOptional: true,
+	handler: pprofHandler,
+	routeSettings: routeSettings{
+		omitFromTelemetry:          true,
+		omitFromDocs:               true,
+		infraVersionHeaderOptional: true,
+	},
 }
 
 func pprofHandler(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {

@@ -6,6 +6,7 @@ const ContentSecurityPolicy = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' user-images.githubusercontent.com raw.githubusercontent.com i.ytimg.com;
   frame-src www.google.com youtube.com www.youtube.com youtube-nocookie.com www.youtube-nocookie.com;
+  connect-src 'self' api.segment.io cdn.segment.com;
 `
 
 module.exports = phase => ({
@@ -79,7 +80,6 @@ module.exports = phase => ({
           permanent: true,
         }
       }),
-
       ...[
         '/docs/getting-started/quickstart',
         '/docs/getting-started/deploy',
@@ -127,7 +127,7 @@ module.exports = phase => ({
       ].map(source => {
         return {
           source,
-          destination: '/docs/reference/cli',
+          destination: '/docs/start/install-infra-cli',
           permanent: true,
         }
       }),

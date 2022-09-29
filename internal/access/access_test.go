@@ -20,10 +20,8 @@ import (
 
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
-	driver := database.PostgresDriver(t, "_access")
-
 	patch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(driver.Dialector, data.NewDBOptions{})
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_access").DSN})
 	assert.NilError(t, err)
 	return db
 }
@@ -70,7 +68,7 @@ func setupAccessTestContext(t *testing.T) (*gin.Context, *data.Transaction, *mod
 
 func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
 	t.Helper()
-	tx, err := db.Begin(context.Background())
+	tx, err := db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, tx.Rollback())
@@ -78,39 +76,27 @@ func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
 	return tx.WithOrgID(db.DefaultOrg.ID)
 }
 
-var (
-	tom       = &models.Identity{Name: "tom@infrahq.com"}
-	tomsGroup = &models.Group{Name: "tom's group"}
-)
-
-func TestCan(t *testing.T) {
+func TestAuthorize(t *testing.T) {
 	db := setupDB(t)
-	err := data.CreateIdentity(db, tom)
+
+	admin := &models.Identity{Name: "admin@infrahq.com"}
+	err := data.CreateIdentity(db, admin)
 	assert.NilError(t, err)
 
-	grant(t, db, tom, "i:steven", "read", "infra.groups.1")
-	can(t, db, "i:steven", "read", "infra.groups.1")
-	cant(t, db, "i:steven", "read", "infra.groups")
-	cant(t, db, "i:steven", "read", "infra.groups.2")
-	cant(t, db, "i:steven", "write", "infra.groups.1")
+	grant(t, db, admin, "i:steven", "read", ResourceInfraAPI)
+	can(t, db, "steven", "read")
+	cant(t, db, "steven", "write")
 
-	grant(t, db, tom, "i:bob", "read", "infra.groups")
-	can(t, db, "i:bob", "read", "infra.groups")
-	cant(t, db, "i:bob", "read", "infra.groups.1") // currently we check for exact grant match, this may change as grants evolve
-	cant(t, db, "i:bob", "write", "infra.groups")
-
-	grant(t, db, tom, "i:a11ce", "read", "infra.machines")
-	can(t, db, "i:a11ce", "read", "infra.machines")
-	cant(t, db, "i:a11ce", "read", "infra")
-	cant(t, db, "i:a11ce", "read", "infra.machines.1")
-	cant(t, db, "i:a11ce", "write", "infra.machines")
+	grant(t, db, admin, "i:a11ce", "write", ResourceInfraAPI)
+	cant(t, db, "a11ce", "read")
+	can(t, db, "a11ce", "write")
 }
 
 func TestRequireInfraRole_GrantsFromGroupMembership(t *testing.T) {
 	db := setupDB(t)
 
-	tom = &models.Identity{Name: "tom@infrahq.com"}
-	tomsGroup = &models.Group{Name: "tom's group"}
+	tom := &models.Identity{Name: "tom@infrahq.com"}
+	tomsGroup := &models.Group{Name: "tom's group"}
 	provider := data.InfraProvider(db)
 
 	err := data.CreateIdentity(db, tom)
@@ -207,17 +193,23 @@ func grant(t *testing.T, db data.GormTxn, createdBy *models.Identity, subject ui
 	assert.NilError(t, err)
 }
 
-func can(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
+func can(t *testing.T, db *data.DB, subject string, privilege string) {
 	t.Helper()
-	canAccess, err := Can(db, subject, resource, privilege)
+	id, err := uid.Parse([]byte(subject))
 	assert.NilError(t, err)
-	assert.Assert(t, canAccess)
+	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
+	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
+	err = IsAuthorized(rCtx, privilege)
+	assert.NilError(t, err)
 }
 
-func cant(t *testing.T, db *data.DB, subject uid.PolymorphicID, privilege, resource string) {
-	canAccess, err := Can(db, subject, resource, privilege)
+func cant(t *testing.T, db *data.DB, subject string, privilege string) {
+	id, err := uid.Parse([]byte(subject))
 	assert.NilError(t, err)
-	assert.Assert(t, !canAccess)
+	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
+	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
+	err = IsAuthorized(rCtx, privilege)
+	assert.ErrorIs(t, err, ErrNotAuthorized)
 }
 
 func TestAuthorizationError(t *testing.T) {

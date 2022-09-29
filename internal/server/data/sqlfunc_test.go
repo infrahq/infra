@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"gotest.tools/v3/assert"
-
-	"github.com/infrahq/infra/internal/testing/database"
 )
 
 func TestSQLUidStrToIntRoundTrip(t *testing.T) {
@@ -15,7 +13,7 @@ func TestSQLUidStrToIntRoundTrip(t *testing.T) {
 		intval int64
 		err    string
 	}
-	db := setupDB(t, database.PostgresDriver(t, "").Dialector)
+	db := setupDB(t)
 
 	run := func(t *testing.T, tc testCase) {
 		var i int64

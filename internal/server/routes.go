@@ -11,11 +11,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -119,12 +117,7 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
-	add(a, noAuthnWithOrg, http.MethodGet, "/link", route[api.VerifyAndRedirectRequest, *api.RedirectResponse]{
-		handler:                    a.VerifyAndRedirect,
-		omitFromDocs:               true,
-		omitFromTelemetry:          true,
-		infraVersionHeaderOptional: true,
-	})
+	add(a, noAuthnWithOrg, http.MethodGet, "/link", verifyAndRedirectRoute)
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
 
@@ -142,12 +135,16 @@ func (s *Server) GenerateRoutes() Routes {
 type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
-	handler                    HandlerFunc[Req, Res]
+	routeSettings
+	handler HandlerFunc[Req, Res]
+}
+
+type routeSettings struct {
 	omitFromDocs               bool
 	omitFromTelemetry          bool
 	infraVersionHeaderOptional bool
-	noAuthentication           bool
-	noOrgRequired              bool
+	authenticationOptional     bool
+	organizationOptional       bool
 }
 
 type routeIdentifier struct {
@@ -173,8 +170,8 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 		a.register(openAPIRouteDefinition(routeID, route))
 	}
 
-	route.noAuthentication = group.noAuthentication
-	route.noOrgRequired = group.noOrgRequired
+	route.authenticationOptional = group.noAuthentication
+	route.organizationOptional = group.noOrgRequired
 
 	handler := func(c *gin.Context) {
 		if err := wrapRoute(a, routeID, route)(c); err != nil {
@@ -199,29 +196,9 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			}
 		}
 
-		var err error
-		if route.noAuthentication {
-			err = validateRequestOrganization(c, a.server)
-		} else {
-			err = authenticateRequest(c, a.server)
-		}
+		authned, err := authenticateRequest(c, route.routeSettings, a.server)
 		if err != nil {
 			return err
-		}
-
-		rCtx := getRequestContext(c)
-		org := rCtx.Authenticated.Organization
-		if !route.noOrgRequired {
-			if org == nil {
-				return internal.ErrBadRequest
-			}
-		}
-
-		if org != nil {
-			// TODO: limit should be a per-organization setting
-			if err := redis.NewLimiter(a.server.redis).RateOK(org.ID.String(), 5000); err != nil {
-				return err
-			}
 		}
 
 		req := new(Req)
@@ -229,12 +206,17 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
-		tx, err := a.server.db.Begin(c.Request.Context())
+		tx, err := a.server.db.Begin(c.Request.Context(), nil)
 		if err != nil {
 			return err
 		}
 		defer logError(tx.Rollback, "failed to rollback request handler transaction")
 
+		rCtx := access.RequestContext{
+			Request:       c.Request,
+			DBTxn:         tx,
+			Authenticated: authned,
+		}
 		if org := rCtx.Authenticated.Organization; org != nil {
 			tx = tx.WithOrgID(org.ID)
 		}
@@ -310,8 +292,10 @@ func responseStatusCode(method string, resp any) int {
 
 func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodGet, path, route[Req, Res]{
-		handler:           handler,
-		omitFromTelemetry: true,
+		handler: handler,
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+		},
 	})
 }
 
@@ -333,9 +317,11 @@ func del[Req any, Res any](a *API, r *routeGroup, path string, handler HandlerFu
 
 func addDeprecated[Req, Res any](a *API, r *routeGroup, method string, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, method, path, route[Req, Res]{
-		handler:           handler,
-		omitFromTelemetry: true,
-		omitFromDocs:      true,
+		handler: handler,
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+			omitFromDocs:      true,
+		},
 	})
 }
 

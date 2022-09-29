@@ -51,10 +51,12 @@ func (a *API) CreateToken(c *gin.Context, r *api.EmptyRequest) (*api.CreateToken
 }
 
 var wellKnownJWKsRoute = route[api.EmptyRequest, WellKnownJWKResponse]{
-	handler:                    wellKnownJWKsHandler,
-	omitFromDocs:               true,
-	omitFromTelemetry:          true,
-	infraVersionHeaderOptional: true,
+	handler: wellKnownJWKsHandler,
+	routeSettings: routeSettings{
+		omitFromDocs:               true,
+		omitFromTelemetry:          true,
+		infraVersionHeaderOptional: true,
+	},
 }
 
 func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResponse, error) {
