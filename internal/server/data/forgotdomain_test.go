@@ -40,7 +40,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Assert(t, len(results) == 1)
 
-			assert.DeepEqual(t, results[0], models.ForgottenDomain{OrganizationName: orgA.Name, OrganizationDomain: orgA.Domain, LastSeenAt: format.HumanTime(time.Now(), "never")})
+			assert.DeepEqual(t, results[0], models.ForgottenDomain{OrganizationName: orgA.Name, OrganizationDomain: orgA.Domain, LastSeenAt: format.HumanTimeWithCase(time.Now(), "never", false)})
 		})
 
 		userB := &models.Identity{Name: "john.smith@ateam.com", OrganizationMember: models.OrganizationMember{OrganizationID: orgB.ID}}

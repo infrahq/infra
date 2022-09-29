@@ -22,7 +22,7 @@ func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDo
 		if err := rows.Scan(&r.OrganizationName, &r.OrganizationDomain, &lastSeenAt); err != nil {
 			return results, err
 		}
-		r.LastSeenAt = format.HumanTime(lastSeenAt, "never")
+		r.LastSeenAt = format.HumanTimeWithCase(lastSeenAt, "never", false)
 		results = append(results, r)
 	}
 
