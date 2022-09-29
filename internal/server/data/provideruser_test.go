@@ -73,17 +73,13 @@ func TestSyncProviderUser(t *testing.T) {
 					err = CreateIdentity(db, user)
 					assert.NilError(t, err)
 
-					pu := &models.ProviderUser{
-						ProviderID: provider.ID,
-						IdentityID: user.ID,
+					pu, err := CreateProviderUser(db, provider, user)
+					assert.NilError(t, err)
 
-						Email:        user.Name,
-						RedirectURL:  "http://example.com",
-						AccessToken:  models.EncryptedAtRest("aaa"),
-						RefreshToken: models.EncryptedAtRest("bbb"),
-						ExpiresAt:    time.Now().UTC().Add(-5 * time.Minute),
-						LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
-					}
+					pu.RedirectURL = "http://example.com"
+					pu.AccessToken = models.EncryptedAtRest("aaa")
+					pu.RefreshToken = models.EncryptedAtRest("bbb")
+					pu.ExpiresAt = time.Now().UTC().Add(-5 * time.Minute)
 
 					err = UpdateProviderUser(db, pu)
 					assert.NilError(t, err)
@@ -137,17 +133,13 @@ func TestSyncProviderUser(t *testing.T) {
 					err = CreateIdentity(db, user)
 					assert.NilError(t, err)
 
-					pu := &models.ProviderUser{
-						ProviderID: provider.ID,
-						IdentityID: user.ID,
+					pu, err := CreateProviderUser(db, provider, user)
+					assert.NilError(t, err)
 
-						Email:        user.Name,
-						RedirectURL:  "http://example.com",
-						AccessToken:  models.EncryptedAtRest("aaa"),
-						RefreshToken: models.EncryptedAtRest("bbb"),
-						ExpiresAt:    time.Now().UTC().Add(5 * time.Minute),
-						LastUpdate:   time.Now().UTC().Add(-1 * time.Hour),
-					}
+					pu.RedirectURL = "http://example.com"
+					pu.AccessToken = models.EncryptedAtRest("aaa")
+					pu.RefreshToken = models.EncryptedAtRest("bbb")
+					pu.ExpiresAt = time.Now().UTC().Add(5 * time.Minute)
 
 					err = UpdateProviderUser(db, pu)
 					assert.NilError(t, err)
@@ -250,7 +242,7 @@ func TestDeleteProviderUser(t *testing.T) {
 		assert.NilError(t, err)
 
 		// hard delete the provider user
-		err = DeleteProviderUsers(db, ByIdentityID(user.ID), ByProviderID(provider.ID))
+		err = DeleteProviderUsers(db, DeleteProviderUsersOptions{ByIdentityID: user.ID, ByProviderID: provider.ID})
 		assert.NilError(t, err)
 
 		// provider user no longer exists

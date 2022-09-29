@@ -8,10 +8,34 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
+
+type providerUserTable models.ProviderUser
+
+func (p providerUserTable) Table() string {
+	return "provider_users"
+}
+
+func (p providerUserTable) Columns() []string {
+	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at"}
+}
+
+func (p providerUserTable) Values() []any {
+	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt}
+}
+
+func (p *providerUserTable) ScanFields() []any {
+	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt}
+}
+
+func (p *providerUserTable) OnInsert() error {
+	p.LastUpdate = time.Now().UTC()
+	return nil
+}
 
 func validateProviderUser(u *models.ProviderUser) error {
 	switch {
@@ -21,15 +45,14 @@ func validateProviderUser(u *models.ProviderUser) error {
 		return fmt.Errorf("identityID is required")
 	case u.Email == "":
 		return fmt.Errorf("email is required")
-	case u.LastUpdate.IsZero():
-		return fmt.Errorf("lastUpdated is required")
 	default:
 		return nil
 	}
 }
 
 func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
-	pu, err := get[models.ProviderUser](db, ByIdentityID(ident.ID), ByProviderID(provider.ID))
+	// check if we already track this provider user
+	pu, err := GetProviderUser(db, provider.ID, ident.ID)
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return nil, err
 	}
@@ -47,26 +70,88 @@ func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Ide
 	if err := validateProviderUser(pu); err != nil {
 		return nil, err
 	}
-	return pu, add(db, pu)
+
+	if err := insert(db, (*providerUserTable)(pu)); err != nil {
+		return nil, err
+	}
+	return pu, nil
 }
 
-func UpdateProviderUser(db GormTxn, providerUser *models.ProviderUser) error {
+func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	if err := validateProviderUser(providerUser); err != nil {
 		return err
 	}
-	return save(db, providerUser)
+	providerUser.LastUpdate = time.Now().UTC()
+
+	pu := (*providerUserTable)(providerUser)
+	query := querybuilder.New("UPDATE")
+	query.B(pu.Table())
+	query.B("SET")
+	query.B(columnsForUpdate(pu), pu.Values()...)
+	query.B("WHERE provider_id = ? AND identity_id = ?;", providerUser.ProviderID, providerUser.IdentityID)
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
 }
 
-func ListProviderUsers(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.ProviderUser, error) {
-	return list[models.ProviderUser](db, p, selectors...)
+func ListProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, error) {
+	table := &providerUserTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	query.B("FROM")
+	query.B(table.Table())
+	query.B("WHERE provider_id = ?", providerID)
+	query.B("ORDER BY email ASC")
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.ProviderUser
+	for rows.Next() {
+		var pu models.ProviderUser
+
+		if err := rows.Scan((*providerUserTable)(&pu).ScanFields()...); err != nil {
+			return nil, err
+		}
+		result = append(result, pu)
+	}
+	return result, rows.Err()
 }
 
-func DeleteProviderUsers(db GormTxn, selectors ...SelectorFunc) error {
-	return deleteAll[models.ProviderUser](db, selectors...)
+type DeleteProviderUsersOptions struct {
+	// ByIdentityID instructs DeleteProviderUsers to delete tracked provider users for this identity ID
+	ByIdentityID uid.ID
+	// ByProviderID instructs DeleteProviderUsers to delete tracked provider users for this provider ID
+	ByProviderID uid.ID
 }
 
-func GetProviderUser(db GormTxn, providerID, userID uid.ID) (*models.ProviderUser, error) {
-	return get[models.ProviderUser](db, ByProviderID(providerID), ByIdentityID(userID))
+func DeleteProviderUsers(tx WriteTxn, opts DeleteProviderUsersOptions) error {
+	if opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteProviderUsers must supply a provider_id")
+	}
+	query := querybuilder.New("DELETE FROM provider_users")
+	query.B("WHERE provider_id = ?", opts.ByProviderID)
+	if opts.ByIdentityID != 0 {
+		query.B("AND identity_id = ?", opts.ByIdentityID)
+	}
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
+
+func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.ProviderUser, error) {
+	pu := &providerUserTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(pu))
+	query.B("FROM")
+	query.B(pu.Table())
+	query.B("WHERE provider_id = ? and identity_id = ?", providerID, identityID)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(pu.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.ProviderUser)(pu), nil
 }
 
 func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
