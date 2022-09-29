@@ -52,7 +52,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		providerUsers, err := ListProviderUsers(db, p.ID)
+		providerUsers, err := listProviderUsers(db, p.ID)
 		if err != nil {
 			return fmt.Errorf("listing provider users: %w", err)
 		}

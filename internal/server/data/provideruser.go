@@ -93,14 +93,13 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	return handleError(err)
 }
 
-func ListProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, error) {
+func listProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, error) {
 	table := &providerUserTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
 	query.B("FROM")
 	query.B(table.Table())
 	query.B("WHERE provider_id = ?", providerID)
-	query.B("ORDER BY email ASC")
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return nil, err
