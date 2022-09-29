@@ -44,6 +44,8 @@ type Options struct {
 	// This value is sent to the infra API server to update the
 	// Destination.Connection.URL.
 	EndpointAddr types.HostPort
+
+	Kubernetes KubernetesOptions
 }
 
 type ServerOptions struct {
@@ -58,6 +60,19 @@ type ListenerOptions struct {
 	Metrics string
 }
 
+type KubernetesOptions struct {
+	// AuthToken may be used to override the token used to authenticate with the
+	// kubernetes API server. When the connector is run in-cluster, the
+	// service account associated with the pod will be used by default.
+	// When run outside of cluster there is no default, and this value must
+	// be set to a token that has permission to impersonate users in the cluster.
+	AuthToken types.StringOrFile
+
+	// Host is looked up from either the in-cluster config, or the kubectl
+	// config.
+	// CA is looked up from either the in-cluster config or the kubectl config.
+}
+
 // connector stores all the dependencies for the connector operations.
 type connector struct {
 	k8s         *kubernetes.Kubernetes
@@ -68,7 +83,7 @@ type connector struct {
 }
 
 func Run(ctx context.Context, options Options) error {
-	k8s, err := kubernetes.NewKubernetes()
+	k8s, err := kubernetes.NewKubernetes(options.Kubernetes.AuthToken.String())
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
