@@ -187,7 +187,7 @@ func Run(ctx context.Context, options Options) error {
 		c.Status(http.StatusOK)
 	})
 
-	proxyHost, err := urlx.Parse(k8s.Config.Host)
+	kubeAPIAddr, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return fmt.Errorf("parsing host config: %w", err)
 	}
@@ -204,8 +204,9 @@ func Run(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
+	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
+	proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
@@ -294,7 +295,7 @@ func syncDestination(con connector) error {
 	// update certificates if the host changed
 	_, err = con.certCache.AddHost(endpoint.Host)
 	if err != nil {
-		return fmt.Errorf("could not update self-signed certificates")
+		return fmt.Errorf("could not update self-signed certificates: %w", err)
 	}
 
 	logging.L.Debug().Str("addr", endpoint.String()).Msg("connector endpoint address")
