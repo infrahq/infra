@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 	"k8s.io/utils/strings/slices"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -547,7 +547,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 	}
 }
 
-//test
+// test
 
 func TestAPI_PatchProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
