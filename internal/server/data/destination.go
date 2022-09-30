@@ -9,6 +9,24 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+type destinationsTable models.Destination
+
+func (d destinationsTable) Table() string {
+	return "destinations"
+}
+
+func (d destinationsTable) Columns() []string {
+	return []string{"connection_ca", "connection_url", "created_at", "deleted_at", "id", "last_seen_at", "name", "organization_id", "resources", "roles", "unique_id", "updated_at", "version"}
+}
+
+func (d destinationsTable) Values() []any {
+	return []any{d.ConnectionCA, d.ConnectionURL, d.CreatedAt, d.DeletedAt, d.ID, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
+}
+
+func (d *destinationsTable) ScanFields() []any {
+	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
+}
+
 func validateDestination(dest *models.Destination) error {
 	if dest.Name == "" {
 		return fmt.Errorf("name is required")
