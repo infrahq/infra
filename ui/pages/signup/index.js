@@ -174,16 +174,14 @@ export default function Signup() {
                   setError('')
                 }}
                 className={`block w-full min-w-0 rounded-l-lg px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors['org.subdomain'] ? 'border-red-500' : 'border-gray-300'
+                  errors.domain ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               <span className='inline-flex select-none items-center rounded-r-lg border border-l-0 border-gray-300 bg-gray-50 px-3 text-2xs text-gray-500 shadow-sm'>
                 .{baseDomain}
               </span>
             </div>
-            {errors['org.subdomain'] && (
-              <ErrorMessage message={errors['org.subdomain']} />
-            )}
+            {errors.domain && <ErrorMessage message={errors.domain} />}
           </div>
         </div>
         <button
