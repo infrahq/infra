@@ -72,26 +72,55 @@ func TestCreateDestination(t *testing.T) {
 	})
 }
 
-func TestDestinationSaveCreatedPersists(t *testing.T) {
+func TestUpdateDestination(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		destination := &models.Destination{
-			Name:     "example-cluster-1",
-			UniqueID: "11111",
-		}
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-		err := CreateDestination(db, destination)
-		assert.NilError(t, err)
-		assert.Assert(t, !destination.CreatedAt.IsZero())
+			created := time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)
+			orig := &models.Destination{
+				Model:    models.Model{CreatedAt: created, UpdatedAt: created},
+				Name:     "example-cluster-1",
+				UniqueID: "11111",
+			}
+			createDestinations(t, tx, orig)
 
-		destination.Name = "example-cluster-2"
-		destination.CreatedAt = time.Time{}
+			// Unlike other update operations, the passed in destination
+			// may be constructed entirely by the caller and may not have the
+			// created, or updated time set.
+			destination := &models.Destination{
+				Model:         models.Model{ID: orig.ID},
+				Name:          "example-cluster-2",
+				UniqueID:      "22222",
+				ConnectionURL: "dest.internal:10001",
+				ConnectionCA:  "the-pem-encoded-cert",
+				Resources:     []string{"res1", "res3"},
+				Roles:         []string{"role1"},
+				Version:       "0.100.2",
+			}
+			err := UpdateDestination(tx, destination)
+			assert.NilError(t, err)
 
-		err = SaveDestination(db, destination)
-		assert.NilError(t, err)
+			actual, err := GetDestination(tx, ByID(destination.ID))
+			assert.NilError(t, err)
 
-		destination, err = GetDestination(db, ByID(destination.ID))
-		assert.NilError(t, err)
-		assert.Assert(t, !destination.CreatedAt.IsZero())
+			expected := &models.Destination{
+				Model: models.Model{
+					ID:        destination.ID,
+					CreatedAt: created,
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+				Name:               "example-cluster-2",
+				UniqueID:           "22222",
+				ConnectionURL:      "dest.internal:10001",
+				ConnectionCA:       "the-pem-encoded-cert",
+				Resources:          []string{"res1", "res3"},
+				Roles:              []string{"role1"},
+				Version:            "0.100.2",
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
 	})
 }
 

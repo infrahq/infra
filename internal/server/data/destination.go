@@ -27,6 +27,23 @@ func (d *destinationsTable) ScanFields() []any {
 	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
 }
 
+// destinationsUpdateTable is used to update the destination. It excludes
+// the CreatedAt field, because that field is not part of the input to
+// UpdateDestination.
+type destinationsUpdateTable models.Destination
+
+func (d destinationsUpdateTable) Table() string {
+	return "destinations"
+}
+
+func (d destinationsUpdateTable) Columns() []string {
+	return []string{"connection_ca", "connection_url", "deleted_at", "id", "last_seen_at", "name", "organization_id", "resources", "roles", "unique_id", "updated_at", "version"}
+}
+
+func (d destinationsUpdateTable) Values() []any {
+	return []any{d.ConnectionCA, d.ConnectionURL, d.DeletedAt, d.ID, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
+}
+
 func validateDestination(dest *models.Destination) error {
 	if dest.Name == "" {
 		return fmt.Errorf("Destination.Name is required")
@@ -37,18 +54,18 @@ func validateDestination(dest *models.Destination) error {
 	return nil
 }
 
-func CreateDestination(db WriteTxn, destination *models.Destination) error {
+func CreateDestination(tx WriteTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}
-	return insert(db, (*destinationsTable)(destination))
+	return insert(tx, (*destinationsTable)(destination))
 }
 
-func SaveDestination(db GormTxn, destination *models.Destination) error {
+func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}
-	return save(db, destination)
+	return update(tx, (*destinationsUpdateTable)(destination))
 }
 
 func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination, error) {

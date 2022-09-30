@@ -24,7 +24,7 @@ func SaveDestination(rCtx RequestContext, destination *models.Destination) error
 		return HandleAuthErr(err, "destination", "update", roles...)
 	}
 
-	return data.SaveDestination(rCtx.DBTxn, destination)
+	return data.UpdateDestination(rCtx.DBTxn, destination)
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
