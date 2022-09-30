@@ -28,14 +28,18 @@ func SaveDestination(rCtx RequestContext, destination *models.Destination) error
 }
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
-	db := getDB(c)
-	return data.GetDestination(db, data.GetDestinationOptions{ByID: id})
+	rCtx := GetRequestContext(c)
+	return data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: id})
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string, p *data.Pagination) ([]models.Destination, error) {
-	db := getDB(c)
-	return data.ListDestinations(db, p, data.ByOptionalUniqueID(uniqueID),
-		data.ByOptionalName(name))
+	rCtx := GetRequestContext(c)
+	opts := data.ListDestinationsOptions{
+		ByName:     name,
+		ByUniqueID: uniqueID,
+		Pagination: p,
+	}
+	return data.ListDestinations(rCtx.DBTxn, opts)
 }
 
 func DeleteDestination(c *gin.Context, id uid.ID) error {
