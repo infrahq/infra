@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -67,8 +68,36 @@ func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 	return update(tx, (*destinationsUpdateTable)(destination))
 }
 
-func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination, error) {
-	return get[models.Destination](db, selectors...)
+type GetDestinationOptions struct {
+	// ByID instructs GetDestination to return the row matching this ID. When
+	// this value is set, all other fields on this strut will be ignored
+	ByID uid.ID
+	// ByUniqueID instructs GetDestination to return the row matching this
+	// uniqueID.
+	ByUniqueID string
+}
+
+func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination, error) {
+	destination := destinationsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(destination))
+	query.B("FROM destinations")
+	query.B("WHERE deleted_at is null AND organization_id = ?", tx.OrganizationID())
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByUniqueID != "":
+		query.B("AND unique_id = ?", opts.ByUniqueID)
+	default:
+		return nil, fmt.Errorf("an ID is required to GetDestination")
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(destination.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.Destination)(&destination), nil
 }
 
 func ListDestinations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {

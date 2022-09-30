@@ -350,7 +350,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		w := httptest.NewRecorder()
 		routes.ServeHTTP(w, r)
 
-		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
+		destination, err = data.GetDestination(db, data.GetDestinationOptions{ByUniqueID: destination.UniqueID})
 		assert.NilError(t, err)
 		assert.DeepEqual(t, destination.LastSeenAt, time.Now(), opt.TimeWithThreshold(time.Second))
 	})
@@ -365,7 +365,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		w := httptest.NewRecorder()
 		routes.ServeHTTP(w, r)
 
-		destination, err = data.GetDestination(db, data.ByOptionalUniqueID(destination.UniqueID))
+		destination, err = data.GetDestination(db, data.GetDestinationOptions{ByUniqueID: destination.UniqueID})
 		assert.NilError(t, err)
 		assert.Equal(t, destination.LastSeenAt.UTC(), time.Time{})
 	})
@@ -377,7 +377,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		w := httptest.NewRecorder()
 		routes.ServeHTTP(w, r)
 
-		_, err := data.GetDestination(db, data.ByOptionalUniqueID("nonexistent"))
+		_, err := data.GetDestination(db, data.GetDestinationOptions{ByUniqueID: "nonexistent"})
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 }

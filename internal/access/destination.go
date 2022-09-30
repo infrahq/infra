@@ -29,7 +29,7 @@ func SaveDestination(rCtx RequestContext, destination *models.Destination) error
 
 func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	db := getDB(c)
-	return data.GetDestination(db, data.ByID(id))
+	return data.GetDestination(db, data.GetDestinationOptions{ByID: id})
 }
 
 func ListDestinations(c *gin.Context, uniqueID, name string, p *data.Pagination) ([]models.Destination, error) {

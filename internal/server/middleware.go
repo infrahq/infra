@@ -41,8 +41,7 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 	if uniqueID == "" {
 		return nil
 	}
-	// not actually optional, but we already check that it's not an empty string
-	destination, err := data.GetDestination(rCtx.DBTxn, data.ByOptionalUniqueID(uniqueID))
+	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByUniqueID: uniqueID})
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		return nil // destination does not exist yet
