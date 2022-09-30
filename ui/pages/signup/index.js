@@ -52,6 +52,10 @@ export default function Signup() {
         for (const error of e.fieldErrors) {
           errors[error.fieldName.toLowerCase()] =
             error.errors[0] || 'invalid value'
+
+          if (error.fieldName.toLowerCase() === 'org.subdomain') {
+            errors.domain = errors[error.fieldName.toLowerCase()]
+          }
         }
         setErrors(errors)
       } else {
