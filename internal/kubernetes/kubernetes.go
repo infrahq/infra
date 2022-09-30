@@ -22,7 +22,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	rest "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -32,18 +32,32 @@ type Kubernetes struct {
 	Config *rest.Config
 }
 
-func NewKubernetes(authToken string) (*Kubernetes, error) {
+func NewKubernetes(authToken, addr, ca string) (*Kubernetes, error) {
+	if authToken != "" && addr != "" && ca != "" {
+		k := &Kubernetes{Config: &rest.Config{}}
+		k.Config.Host = addr
+		k.Config.TLSClientConfig.CAData = []byte(ca)
+		k.Config.BearerToken = authToken
+		return k, nil
+	}
+
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	if err := rest.LoadTLSFiles(config); err != nil {
+		return nil, fmt.Errorf("load TLS files: %w", err)
+	}
+
 	if authToken != "" {
 		config.BearerToken = authToken
 	}
-
-	if err := rest.LoadTLSFiles(config); err != nil {
-		return nil, fmt.Errorf("load TLS files: %w", err)
+	if addr != "" {
+		config.Host = addr
+	}
+	if ca != "" {
+		config.CAData = []byte(ca)
 	}
 
 	k := &Kubernetes{Config: config}
@@ -79,7 +93,7 @@ func (k *Kubernetes) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 
 	for cr, subjs := range subjects {
 		if !validClusterRoles[cr] {
-			logging.Warnf("cluster role binding %s skipped, it does not exist", cr)
+			logging.Warnf("skipping bindings for cluster role %s that does not exist", cr)
 			continue
 		}
 
@@ -99,7 +113,9 @@ func (k *Kubernetes) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subj
 		})
 	}
 
-	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
+	existingInfraCrbs, err := clientset.RbacV1().ClusterRoleBindings().List(
+		context.Background(),
+		metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
 	if err != nil {
 		return err
 	}
@@ -180,7 +196,9 @@ func (k *Kubernetes) UpdateRoleBindings(subjects map[ClusterRoleNamespace][]rbac
 		})
 	}
 
-	existingInfraRbs, err := clientset.RbacV1().RoleBindings("").List(context.TODO(), metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
+	existingInfraRbs, err := clientset.RbacV1().RoleBindings("").List(
+		context.TODO(),
+		metav1.ListOptions{LabelSelector: "app.kubernetes.io/managed-by=infra"})
 	if err != nil {
 		return err
 	}

@@ -113,7 +113,7 @@ var cmpClientHostConfig = cmp.Options{
 		cmpStringNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "UserID"),
-		cmpUserIDNotZero),
+		cmpIDNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "Expires"),
 		cmpApiTimeWithThreshold(20*time.Second)),
@@ -134,7 +134,7 @@ var cmpStringNotZero = cmp.Comparer(func(x, y string) bool {
 	return x != "" && y != ""
 })
 
-var cmpUserIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
+var cmpIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
 	return x > 0 && y > 0
 })
 
