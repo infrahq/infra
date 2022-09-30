@@ -44,5 +44,5 @@ func DeleteDestination(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "destination", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteDestinations(db, data.ByID(id))
+	return data.DeleteDestination(db, id)
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -76,22 +75,13 @@ func ListDestinations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]m
 	return list[models.Destination](db, p, selectors...)
 }
 
-func DeleteDestinations(db GormTxn, selector SelectorFunc) error {
-	toDelete, err := ListDestinations(db, nil, selector)
-	if err != nil {
-		return err
-	}
-
-	if len(toDelete) > 0 {
-		ids := make([]uid.ID, 0)
-		for _, g := range toDelete {
-			ids = append(ids, g.ID)
-		}
-
-		return deleteAll[models.Destination](db, ByIDs(ids))
-	}
-
-	return internal.ErrNotFound
+func DeleteDestination(tx WriteTxn, id uid.ID) error {
+	stmt := `
+		UPDATE destinations SET deleted_at = ?
+		WHERE id = ? AND organization_id = ? AND deleted_at is null
+	`
+	_, err := tx.Exec(stmt, time.Now(), id, tx.OrganizationID())
+	return handleError(err)
 }
 
 type DestinationsCount struct {

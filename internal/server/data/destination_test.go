@@ -7,6 +7,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -121,6 +122,21 @@ func TestUpdateDestination(t *testing.T) {
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
+	})
+}
+
+func TestDeleteDestination(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		dest := &models.Destination{Name: "kube", UniqueID: "1111"}
+		createDestinations(t, tx, dest)
+
+		err := DeleteDestination(tx, dest.ID)
+		assert.NilError(t, err)
+
+		_, err = GetDestination(tx, ByID(dest.ID))
+		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 }
 
