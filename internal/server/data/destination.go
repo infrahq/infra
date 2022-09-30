@@ -74,23 +74,23 @@ func DeleteDestinations(db GormTxn, selector SelectorFunc) error {
 	return internal.ErrNotFound
 }
 
-type destinationsCount struct {
+type DestinationsCount struct {
 	Connected bool
 	Version   string
 	Count     float64
 }
 
-func CountDestinationsByConnectedVersion(tx ReadTxn) ([]destinationsCount, error) {
+func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error) {
 	timeout := time.Now().Add(-5 * time.Minute)
 
 	stmt := `
-		SELECT *, COUNT(*) AS count
-		FROM (
-			SELECT COALESCE(version, '') AS version, last_seen_at >= ? AS connected
-			FROM destinations
-			WHERE deleted_at IS NULL
-		) AS d
-		GROUP BY version, connected`
+		SELECT COALESCE(version, '') as version,
+			   last_seen_at >= ? as connected,
+			   count(*)
+		FROM destinations
+		WHERE deleted_at IS NULL
+		GROUP BY connected, version
+	`
 	rows, err := tx.Query(stmt, timeout)
 	if err != nil {
 		return nil, err
@@ -98,9 +98,9 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]destinationsCount, error
 	}
 	defer rows.Close()
 
-	var result []destinationsCount
+	var result []DestinationsCount
 	for rows.Next() {
-		var item destinationsCount
+		var item DestinationsCount
 		if err := rows.Scan(&item.Version, &item.Connected, &item.Count); err != nil {
 			return nil, err
 		}

@@ -33,22 +33,30 @@ func TestDestinationSaveCreatedPersists(t *testing.T) {
 
 func TestCountDestinationsByConnectedVersion(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()}))
-		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)}))
-		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "3", UniqueID: "3", Version: "0.1.0", LastSeenAt: time.Now()}))
-		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "4", UniqueID: "4", Version: "0.1.0"}))
-		assert.NilError(t, CreateDestination(db, &models.Destination{Name: "5", UniqueID: "5", Version: "0.1.0"}))
-
+		createDestinations(t, db,
+			&models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()},
+			&models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)},
+			&models.Destination{Name: "3", UniqueID: "3", Version: "0.1.0", LastSeenAt: time.Now()},
+			&models.Destination{Name: "4", UniqueID: "4", Version: "0.1.0"},
+			&models.Destination{Name: "5", UniqueID: "5", Version: "0.1.0"},
+		)
 		actual, err := CountDestinationsByConnectedVersion(db)
 		assert.NilError(t, err)
 
-		expected := []destinationsCount{
+		expected := []DestinationsCount{
 			{Connected: false, Version: "", Count: 1},
-			{Connected: true, Version: "", Count: 1},
 			{Connected: false, Version: "0.1.0", Count: 2},
+			{Connected: true, Version: "", Count: 1},
 			{Connected: true, Version: "0.1.0", Count: 1},
 		}
-
 		assert.DeepEqual(t, actual, expected)
 	})
+}
+
+func createDestinations(t *testing.T, tx GormTxn, destinations ...*models.Destination) {
+	t.Helper()
+	for i := range destinations {
+		err := CreateDestination(tx, destinations[i])
+		assert.NilError(t, err, destinations[i].Name)
+	}
 }
