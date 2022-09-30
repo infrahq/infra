@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -9,10 +10,73 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
+func TestCreateDestination(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			destination := &models.Destination{
+				Name:          "kubernetes",
+				UniqueID:      "unique-id",
+				ConnectionURL: "10.0.0.1:1001",
+				ConnectionCA:  "the-pem-encoded-cert",
+				LastSeenAt:    time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
+				Version:       "0.100.1",
+				Resources:     []string{"res1", "res2"},
+				Roles:         []string{"role1", "role2"},
+			}
+
+			err := CreateDestination(tx, destination)
+			assert.NilError(t, err)
+			assert.Assert(t, destination.ID != 0)
+
+			expected := &models.Destination{
+				Model: models.Model{
+					ID:        destination.ID,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+				Name:               "kubernetes",
+				UniqueID:           "unique-id",
+				ConnectionURL:      "10.0.0.1:1001",
+				ConnectionCA:       "the-pem-encoded-cert",
+				LastSeenAt:         time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
+				Version:            "0.100.1",
+				Resources:          []string{"res1", "res2"},
+				Roles:              []string{"role1", "role2"},
+			}
+			assert.DeepEqual(t, destination, expected, cmpModel)
+		})
+		t.Run("conflict on uniqueID", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			destination := &models.Destination{
+				Name:     "kubernetes",
+				UniqueID: "unique-id",
+			}
+			err := CreateDestination(tx, destination)
+			assert.NilError(t, err)
+			assert.Assert(t, destination.ID != 0)
+
+			next := &models.Destination{
+				Name:     "other",
+				UniqueID: "unique-id",
+			}
+			err = CreateDestination(tx, next)
+			var ucErr UniqueConstraintError
+			assert.Assert(t, errors.As(err, &ucErr))
+			expected := UniqueConstraintError{Table: "destinations", Column: "uniqueID"}
+			assert.DeepEqual(t, ucErr, expected)
+		})
+	})
+}
+
 func TestDestinationSaveCreatedPersists(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		destination := &models.Destination{
-			Name: "example-cluster-1",
+			Name:     "example-cluster-1",
+			UniqueID: "11111",
 		}
 
 		err := CreateDestination(db, destination)

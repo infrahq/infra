@@ -439,9 +439,9 @@ func handleError(err error) error {
 				"idx_groups_name":             "name",
 				"idx_providers_name":          "name",
 				"idx_access_keys_name":        "name",
-				"idx_destinations_unique_id":  "uniqueId",
+				"idx_destinations_unique_id":  "uniqueID",
 				"idx_access_keys_key_id":      "keyId",
-				"idx_credentials_identity_id": "identityId",
+				"idx_credentials_identity_id": "identityID",
 				"idx_organizations_domain":    "domain",
 			}
 

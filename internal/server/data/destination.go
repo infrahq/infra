@@ -29,16 +29,19 @@ func (d *destinationsTable) ScanFields() []any {
 
 func validateDestination(dest *models.Destination) error {
 	if dest.Name == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("Destination.Name is required")
+	}
+	if dest.UniqueID == "" {
+		return fmt.Errorf("Destination.UniqueID is required")
 	}
 	return nil
 }
 
-func CreateDestination(db GormTxn, destination *models.Destination) error {
+func CreateDestination(db WriteTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}
-	return add(db, destination)
+	return insert(db, (*destinationsTable)(destination))
 }
 
 func SaveDestination(db GormTxn, destination *models.Destination) error {
