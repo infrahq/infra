@@ -149,6 +149,37 @@ func TestAPI_Signup(t *testing.T) {
 			},
 		},
 		{
+			name: "duplicate organization name",
+			setup: func(t *testing.T) api.SignupRequest {
+				err := data.CreateOrganization(srv.DB(), &models.Organization{
+					Name:   "Something",
+					Domain: "taken.exampledomain.com",
+				})
+				assert.NilError(t, err)
+
+				return api.SignupRequest{
+					Name:     "admin@example.com",
+					Password: "password",
+					Org:      api.SignupOrg{Name: "Example", Subdomain: "taken"},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusConflict, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{
+						FieldName: "org.subDomain",
+						Errors:    []string{"an organization with that domain already exists"},
+					},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		{
 			name: "successful signup",
 			setup: func(t *testing.T) api.SignupRequest {
 				return api.SignupRequest{
@@ -210,7 +241,6 @@ func TestAPI_Signup(t *testing.T) {
 				assert.NilError(t, err)
 
 				assert.DeepEqual(t, k.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
-
 			},
 		},
 	}

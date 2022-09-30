@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
@@ -88,7 +89,7 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	}
 	identity, bearer, err := access.Signup(c, keyExpires, a.server.options.BaseDomain, suDetails)
 	if err != nil {
-		return nil, err
+		return nil, handleSignupError(err)
 	}
 
 	/*
@@ -124,6 +125,22 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		User:         identity.ToAPI(),
 		Organization: suDetails.Org.ToAPI(),
 	}, nil
+}
+
+// handleSignupError updates internal errors to have the right structure for
+// handling by sendAPIError.
+func handleSignupError(err error) error {
+	var ucErr data.UniqueConstraintError
+	if errors.As(err, &ucErr) {
+		switch {
+		case ucErr.Table == "organizations" && ucErr.Column == "domain":
+			// SignupRequest.Org.SubDomain is the field in the request struct.
+			apiError := newAPIErrorForUniqueConstraintError(ucErr, err.Error())
+			apiError.FieldErrors[0].FieldName = "org.subDomain"
+			return apiError
+		}
+	}
+	return err
 }
 
 func wrapLinkWithVerification(link, domain, verificationToken string) string {
