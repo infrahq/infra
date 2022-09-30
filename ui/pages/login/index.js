@@ -8,6 +8,7 @@ import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
+import ErrorMessage from '../../components/error-message'
 
 function oidcLogin({ id, clientID, authURL, scopes }, next) {
   window.localStorage.setItem('providerID', id)
@@ -98,6 +99,7 @@ export default function Login() {
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState({})
   const { baseDomain, isEmailConfigured } = useServerConfig()
 
   async function onSubmit(e) {
@@ -137,7 +139,20 @@ export default function Login() {
       )
     } catch (e) {
       console.error(e)
-      setError('Invalid credentials')
+      if (e.fieldErrors) {
+        const errors = {}
+        for (const error of e.fieldErrors) {
+          errors[error.fieldName.toLowerCase()] =
+            error.errors[0] || 'invalid value'
+        }
+        setErrors(errors)
+      } else {
+        if (e.code === 401 && e.message === 'unauthorized') {
+          setError('Invalid Credentials')
+        } else {
+          setError(e.message)
+        }
+      }
     }
 
     return false
@@ -179,12 +194,14 @@ export default function Login() {
             type='email'
             onChange={e => {
               setName(e.target.value)
+              setErrors({})
               setError('')
             }}
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              error ? 'border-red-500' : 'border-gray-300'
+              errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
           />
+          {errors.name && <ErrorMessage message={errors.name} />}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -200,12 +217,14 @@ export default function Login() {
             data-testid='form-field-password'
             onChange={e => {
               setPassword(e.target.value)
+              setErrors({})
               setError('')
             }}
             className={`mt-1 block w-full rounded-md  shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              error ? 'border-red-500' : 'border-gray-300'
+              errors.password ? 'border-red-500' : 'border-gray-300'
             }`}
           />
+          {errors.password && <ErrorMessage message={errors.password} />}
         </div>
         {isEmailConfigured && (
           <div className='mt-4 flex items-center justify-end text-sm'>
@@ -219,11 +238,7 @@ export default function Login() {
         <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
           Log in
         </button>
-        {error && (
-          <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
-            {error}
-          </p>
-        )}
+        {error && <ErrorMessage message={error} />}
       </form>
     </div>
   )
