@@ -19,6 +19,13 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 )
 
+var countCtxKey = key{}
+
+type counter struct {
+	count     int
+	threshold int
+}
+
 func newAgentCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:    "agent",
@@ -39,6 +46,8 @@ func newAgentCmd() *cobra.Command {
 			// start background tasks
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
+
+			ctx = context.WithValue(ctx, countCtxKey, &counter{count: 0, threshold: 3})
 
 			repeat.InGroup(&wg, ctx, cancel, 1*time.Minute, syncKubeConfig)
 			// add the next agent task here
@@ -143,23 +152,41 @@ func writeAgentConfig(pid int) error {
 	return nil
 }
 
+func maybeCancel(msg string, err error, count *counter, cancel context.CancelFunc) {
+	count.count++
+	logging.L.Error().Err(err).Int("count", count.count).Int("threshold", count.threshold).Msg(msg)
+	if count.count > count.threshold {
+		cancel()
+	}
+}
+
 // syncKubeConfig updates the local kubernetes configuration from Infra grants
 func syncKubeConfig(ctx context.Context, cancel context.CancelFunc) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		logging.Errorf("api client: %v\n", err)
+	start := time.Now()
+	count, ok := ctx.Value(countCtxKey).(*counter)
+	if !ok {
+		logging.L.Error().Msg("failed to get counter")
 		cancel()
 	}
 
+	client, err := defaultAPIClient()
+	if err != nil {
+		maybeCancel("failed to get client", err, count, cancel)
+		return
+	}
 	client.Name = "agent"
 
 	user, destinations, grants, err := getUserDestinationGrants(client)
 	if err != nil {
-		logging.Errorf("agent failed to get user destination grants: %v\n", err)
-		cancel()
+		maybeCancel("failed to get grants", err, count, cancel)
+		return
 	}
+
 	if err := writeKubeconfig(user, destinations, grants); err != nil {
-		logging.Errorf("agent failed to update kube config: %v\n", err)
-		cancel()
+		maybeCancel("failed to update kubeconfig", err, count, cancel)
+		return
 	}
+
+	logging.L.Info().Dur("elapsed", time.Since(start)).Msg("finished kubeconfig sync")
+	count.count = 0
 }
