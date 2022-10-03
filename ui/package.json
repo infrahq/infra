@@ -40,7 +40,7 @@
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-jest": "^27.0.4",
     "jest": "^29.1.2",
-    "jest-environment-jsdom": "^29.0.3",
+    "jest-environment-jsdom": "^29.1.2",
     "postcss": "^8.4.17",
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
