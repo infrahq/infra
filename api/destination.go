@@ -23,6 +23,7 @@ type Destination struct {
 }
 
 type DestinationConnection struct {
+	// TODO: URL is not a full url, it's set to a host:port by the connector
 	URL string `json:"url" example:"aa60eexample.us-west-2.elb.amazonaws.com"`
 	CA  PEM    `json:"ca" example:"-----BEGIN CERTIFICATE-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END CERTIFICATE-----\n"`
 }

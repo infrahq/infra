@@ -37,6 +37,15 @@ type Options struct {
 	CAKey  types.StringOrFile
 
 	Addr ListenerOptions
+	// EndpointAddr is the host:port address where the connector proxy receives
+	// requests to the destination. If this value is empty then the host:port
+	// will be looked up from the kube API, using the name of the connector
+	// service.
+	// This value is sent to the infra API server to update the
+	// Destination.Connection.URL.
+	EndpointAddr types.HostPort
+
+	Kubernetes KubernetesOptions
 }
 
 type ServerOptions struct {
@@ -51,6 +60,19 @@ type ListenerOptions struct {
 	Metrics string
 }
 
+type KubernetesOptions struct {
+	// AuthToken may be used to override the token used to authenticate with the
+	// kubernetes API server. When the connector is run in-cluster, the
+	// service account associated with the pod will be used by default.
+	// When run outside of cluster there is no default, and this value must
+	// be set to a token that has permission to impersonate users in the cluster.
+	AuthToken types.StringOrFile
+
+	// Host is looked up from either the in-cluster config, or the kubectl
+	// config.
+	// CA is looked up from either the in-cluster config or the kubectl config.
+}
+
 // connector stores all the dependencies for the connector operations.
 type connector struct {
 	k8s         *kubernetes.Kubernetes
@@ -61,7 +83,7 @@ type connector struct {
 }
 
 func Run(ctx context.Context, options Options) error {
-	k8s, err := kubernetes.NewKubernetes()
+	k8s, err := kubernetes.NewKubernetes(options.Kubernetes.AuthToken.String())
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
@@ -93,6 +115,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	// server is localhost which should never be the case. try to infer the actual host
+	// TODO: do this lookup when Host is "" instead of localhost
 	if strings.HasPrefix(u.Host, "localhost") {
 		server, err := k8s.Service("server")
 		if err != nil {
@@ -179,7 +202,7 @@ func Run(ctx context.Context, options Options) error {
 		c.Status(http.StatusOK)
 	})
 
-	proxyHost, err := urlx.Parse(k8s.Config.Host)
+	kubeAPIAddr, err := urlx.Parse(k8s.Config.Host)
 	if err != nil {
 		return fmt.Errorf("parsing host config: %w", err)
 	}
@@ -196,8 +219,9 @@ func Run(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(proxyHost)
+	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
+	proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
 
 	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
@@ -271,26 +295,25 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 }
 
 func syncDestination(con connector) error {
-	host, port, err := con.k8s.Endpoint()
+	endpoint, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
-		return fmt.Errorf("failed to lookup endpoint: %w", err)
+		return err
 	}
 
-	if ipv4 := net.ParseIP(host); ipv4 == nil {
-		// wait for DNS resolution if endpoint is not an IPv4 address
-		if _, err := net.LookupIP(host); err != nil {
+	if ipAddr := net.ParseIP(endpoint.Host); ipAddr == nil {
+		// wait for DNS resolution if endpoint is not an IP address
+		if _, err := net.LookupIP(endpoint.Host); err != nil {
 			return fmt.Errorf("host could not be resolved: %w", err)
 		}
 	}
 
 	// update certificates if the host changed
-	_, err = con.certCache.AddHost(host)
+	_, err = con.certCache.AddHost(endpoint.Host)
 	if err != nil {
-		return fmt.Errorf("could not update self-signed certificates")
+		return fmt.Errorf("could not update self-signed certificates: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s:%d", host, port)
-	logging.Debugf("connector serving on %s", endpoint)
+	logging.L.Debug().Str("addr", endpoint.String()).Msg("connector endpoint address")
 
 	namespaces, err := con.k8s.Namespaces()
 	if err != nil {
@@ -328,14 +351,26 @@ func syncDestination(con connector) error {
 		con.destination.Connection.CA = api.PEM(con.options.CACert)
 		fallthrough
 
-	case con.destination.Connection.URL != endpoint:
-		con.destination.Connection.URL = endpoint
+	case con.destination.Connection.URL != endpoint.String():
+		con.destination.Connection.URL = endpoint.String()
 
 		if err := createOrUpdateDestination(con.client, con.destination); err != nil {
 			return fmt.Errorf("create or update destination: %w", err)
 		}
 	}
 	return nil
+}
+
+func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPort, error) {
+	if opts.EndpointAddr.Host != "" {
+		return opts.EndpointAddr, nil
+	}
+
+	host, port, err := k8s.Endpoint()
+	if err != nil {
+		return types.HostPort{}, fmt.Errorf("failed to lookup endpoint: %w", err)
+	}
+	return types.HostPort{Host: host, Port: port}, nil
 }
 
 func syncWithServer(con connector) func(context.Context) {

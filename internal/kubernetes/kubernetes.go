@@ -32,10 +32,14 @@ type Kubernetes struct {
 	Config *rest.Config
 }
 
-func NewKubernetes() (*Kubernetes, error) {
+func NewKubernetes(authToken string) (*Kubernetes, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
+	}
+
+	if authToken != "" {
+		config.BearerToken = authToken
 	}
 
 	if err := rest.LoadTLSFiles(config); err != nil {
