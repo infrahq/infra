@@ -37,7 +37,7 @@
     "eslint-config-next": "^12.3.1",
     "eslint-config-prettier": "^8.5.0",
     "next-sitemap": "^3.1.22",
-    "postcss": "^8.4.12",
+    "postcss": "^8.4.17",
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
     "standard": "^17.0.0",
