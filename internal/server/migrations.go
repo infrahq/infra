@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,9 +31,15 @@ func (a *API) deprecatedRoutes(noAuthnNoOrg *routeGroup) {
 	type SignupEnabledResponse struct {
 		Enabled bool `json:"enabled"`
 	}
-	addDeprecated(a, noAuthnNoOrg, http.MethodGet, "/api/signup",
-		func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
+
+	add(a, noAuthnNoOrg, http.MethodGet, "/api/signup", route[api.EmptyRequest, *SignupEnabledResponse]{
+		handler: func(c *gin.Context, _ *api.EmptyRequest) (*SignupEnabledResponse, error) {
 			return &SignupEnabledResponse{Enabled: false}, nil
 		},
-	)
+		routeSettings: routeSettings{
+			omitFromTelemetry: true,
+			omitFromDocs:      true,
+			txnOptions:        &sql.TxOptions{ReadOnly: true},
+		},
+	})
 }

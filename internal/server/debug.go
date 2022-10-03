@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/pprof"
 
@@ -17,6 +18,7 @@ var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
 		omitFromTelemetry:          true,
 		omitFromDocs:               true,
 		infraVersionHeaderOptional: true,
+		txnOptions:                 &sql.TxOptions{ReadOnly: true},
 	},
 }
 
