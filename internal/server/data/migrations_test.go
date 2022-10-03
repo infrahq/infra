@@ -714,6 +714,20 @@ DELETE FROM settings WHERE id=24567;
 				}
 			},
 		},
+		{
+			label: testCaseLine("2022-09-22T13:00:00"),
+			setup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec("INSERT INTO provider_users(provider_id, identity_id) VALUES(1001, 1002)")
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec("DELETE FROM provider_users")
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

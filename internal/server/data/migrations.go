@@ -68,6 +68,7 @@ func migrations() []*migrator.Migration {
 		setDefaultOrgID(),
 		addIdentityVerifiedFields(),
 		cleanCrossOrgGroupMemberships(),
+		fixProviderUserIndex(),
 		// next one here
 	}
 }
@@ -676,6 +677,21 @@ func cleanCrossOrgGroupMemberships() *migrator.Migration {
 			}
 
 			return nil
+		},
+	}
+}
+
+func fixProviderUserIndex() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-22T13:00:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+ALTER TABLE provider_users DROP CONSTRAINT IF EXISTS provider_users_pkey;
+ALTER TABLE provider_users ADD CONSTRAINT
+    provider_users_pkey PRIMARY KEY (provider_id, identity_id);
+`
+			_, err := tx.Exec(stmt)
+			return err
 		},
 	}
 }

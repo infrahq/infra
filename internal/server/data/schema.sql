@@ -266,7 +266,7 @@ ALTER TABLE ONLY password_reset_tokens
     ADD CONSTRAINT password_reset_tokens_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY provider_users
-    ADD CONSTRAINT provider_users_pkey PRIMARY KEY (identity_id, provider_id);
+    ADD CONSTRAINT provider_users_pkey PRIMARY KEY (provider_id, identity_id);
 
 ALTER TABLE ONLY providers
     ADD CONSTRAINT providers_pkey PRIMARY KEY (id);
