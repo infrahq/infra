@@ -66,12 +66,12 @@ export function Providers({ providers }) {
                   className='h-4'
                   src={`/providers/${p.kind}.svg`}
                 />
-                <span className='items-center pl-4 text-gray-800'>
+                <span className='items-center truncate pl-4 text-gray-800'>
                   {providersList.filter(i => i.kind === p.kind) ? (
-                    <span>
+                    <div className='truncate'>
                       <span>Log in with </span>
                       <span className='capitalize'>{p.name}</span>
-                    </span>
+                    </div>
                   ) : (
                     'Single Sign-On'
                   )}

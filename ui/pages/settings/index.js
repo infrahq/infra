@@ -51,46 +51,50 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
           cell: function Cell(info) {
             const [open, setOpen] = useState(false)
             const [deleteId, setDeleteId] = useState(null)
+
             return (
-              <div className='text-right'>
-                <button
-                  onClick={() => {
-                    setDeleteId(info.row.original.id)
-                    setOpen(true)
-                  }}
-                  className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
-                >
-                  Revoke
-                  <span className='sr-only'>{info.row.original.name}</span>
-                </button>
-                <DeleteModal
-                  open={open}
-                  setOpen={setOpen}
-                  primaryButtonText='Revoke'
-                  onSubmit={() => {
-                    onRemove(deleteId)
-                    setOpen(false)
-                  }}
-                  title='Revoke Admin'
-                  message={
-                    !grantsList?.find(grant => grant.id === deleteId)
-                      ?.message ? (
-                      <>
-                        Are you sure you want to revoke admin access for{' '}
-                        <span className='font-bold'>
-                          {
-                            grantsList?.find(grant => grant.id === deleteId)
-                              ?.name
-                          }
-                        </span>
-                        ?
-                      </>
-                    ) : (
-                      grantsList?.find(grant => grant.id === deleteId)?.message
-                    )
-                  }
-                />
-              </div>
+              grants.length > 1 && (
+                <div className='text-right'>
+                  <button
+                    onClick={() => {
+                      setDeleteId(info.row.original.id)
+                      setOpen(true)
+                    }}
+                    className='p-1 text-2xs text-gray-500/75 hover:text-gray-600'
+                  >
+                    Revoke
+                    <span className='sr-only'>{info.row.original.name}</span>
+                  </button>
+                  <DeleteModal
+                    open={open}
+                    setOpen={setOpen}
+                    primaryButtonText='Revoke'
+                    onSubmit={() => {
+                      onRemove(deleteId)
+                      setOpen(false)
+                    }}
+                    title='Revoke Admin'
+                    message={
+                      !grantsList?.find(grant => grant.id === deleteId)
+                        ?.message ? (
+                        <>
+                          Are you sure you want to revoke admin access for{' '}
+                          <span className='font-bold'>
+                            {
+                              grantsList?.find(grant => grant.id === deleteId)
+                                ?.name
+                            }
+                          </span>
+                          ?
+                        </>
+                      ) : (
+                        grantsList?.find(grant => grant.id === deleteId)
+                          ?.message
+                      )
+                    }
+                  />
+                </div>
+              )
             )
           },
           id: 'delete',
@@ -127,10 +131,9 @@ export default function Settings() {
             Organization Admins
           </h2>
           <p className='mt-1 mb-4 text-xs text-gray-500'>
-            These users have full access to this organization and its clusters.
+            These users have full access to this organization.
           </p>
           <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-            <h3 className='text-sm font-medium'>Add organization admin</h3>
             <GrantForm
               resource='infra'
               roles={['admin']}

@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from 'react'
 import useSWR from 'swr'
 import { Combobox } from '@headlessui/react'
 import { PlusIcon } from '@heroicons/react/outline'
+import { CheckIcon } from '@heroicons/react/solid'
+
+import { sortByRole } from '../lib/grants'
 
 import RoleSelect from './role-select'
-
-import { CheckIcon } from '@heroicons/react/solid'
 
 export default function GrantForm({
   grants,
@@ -18,14 +19,14 @@ export default function GrantForm({
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
     useSWR('/api/groups?limit=1000')
 
-  const [role, setRole] = useState(roles?.[0])
+  const [role, setRole] = useState(sortByRole(roles)?.[0])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [options, setOptions] = useState([])
 
   const button = useRef()
 
-  useEffect(() => setRole(roles?.[0]), [roles])
+  useEffect(() => setRole(sortByRole(roles)?.[0]), [roles])
 
   useEffect(() => {
     if (users && groups) {
