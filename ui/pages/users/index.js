@@ -19,7 +19,6 @@ import { useServerConfig } from '../../lib/serverconfig'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import ErrorMessage from '../../components/error-message'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
