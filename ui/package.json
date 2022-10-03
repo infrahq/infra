@@ -10,7 +10,7 @@
     "export": "next export"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.2",
+    "@headlessui/react": "^1.7.3",
     "@heroicons/react": "^1.0.6",
     "@tanstack/react-table": "^8.5.15",
     "copy-to-clipboard": "^3.3.2",
