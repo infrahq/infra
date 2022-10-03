@@ -90,7 +90,7 @@ func (t *Telemetry) EnqueueHeartbeat() {
 		logging.Debugf("%s", err.Error())
 	}
 
-	t.Event("heartbeat", "", map[string]interface{}{
+	t.Event("heartbeat", "", "", map[string]interface{}{
 		"users":        users,
 		"groups":       groups,
 		"providers":    providers,
@@ -100,17 +100,22 @@ func (t *Telemetry) EnqueueHeartbeat() {
 }
 
 func (t *Telemetry) RouteEvent(c *gin.Context, event string, properties ...map[string]interface{}) {
-	var uid string
+	var uid, oid string
 	if c != nil {
-		if u := access.GetRequestContext(c).Authenticated.User; u != nil {
-			uid = u.ID.String()
+		a := access.GetRequestContext(c).Authenticated
+		if user := a.User; user != nil {
+			uid = user.ID.String()
+		}
+
+		if org := a.Organization; org != nil {
+			oid = org.ID.String()
 		}
 	}
 
-	t.Event(event, uid, properties...)
+	t.Event(event, uid, oid, properties...)
 }
 
-func (t *Telemetry) Event(event string, userId string, properties ...map[string]interface{}) {
+func (t *Telemetry) Event(event string, userId string, orgId string, properties ...map[string]interface{}) {
 	if t == nil {
 		return
 	}
@@ -119,7 +124,9 @@ func (t *Telemetry) Event(event string, userId string, properties ...map[string]
 		UserId:      userId,
 		Timestamp:   time.Now().UTC(),
 		Event:       "server:" + event,
-		Properties:  analytics.Properties{},
+		Properties: map[string]interface{}{
+			"orgId": orgId,
+		},
 	}
 
 	if len(properties) > 0 {
@@ -147,13 +154,19 @@ func (t *Telemetry) User(id string, name string) {
 	}
 }
 
-func (t *Telemetry) Org(id, userID, name string) {
+func (t *Telemetry) Org(id, userID, name, domain string) {
 	if t == nil {
 		return
 	}
 	err := t.Enqueue(analytics.Group{
-		GroupId:   id,
-		Traits:    analytics.NewTraits().SetName(name),
+		GroupId: id,
+		UserId:  userID,
+		Traits: map[string]interface{}{
+			"name":   name,
+			"$name":  name,
+			"domain": domain,
+			"orgId":  id,
+		},
 		Timestamp: time.Now().UTC(),
 	})
 	if err != nil {
@@ -169,6 +182,9 @@ func (t *Telemetry) OrgMembership(orgID, userID string) {
 		GroupId:   orgID,
 		UserId:    userID,
 		Timestamp: time.Now().UTC(),
+		Traits: map[string]interface{}{
+			"orgId": orgID,
+		},
 	})
 	if err != nil {
 		logging.Debugf("%s", err.Error())

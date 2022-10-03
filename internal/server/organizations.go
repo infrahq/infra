@@ -48,7 +48,7 @@ func (a *API) CreateOrganization(c *gin.Context, r *api.CreateOrganizationReques
 		return nil, err
 	}
 
-	a.t.Org(org.ID.String(), authIdent.ID.String(), org.Name)
+	a.t.Org(org.ID.String(), authIdent.ID.String(), org.Name, org.Domain)
 
 	return org.ToAPI(), nil
 }
