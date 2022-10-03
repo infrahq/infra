@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/infrahq/secrets"
 	"github.com/jessevdk/go-flags"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,40 +27,23 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-const (
-	podLabelsFilePath = "/etc/podinfo/labels"
-	namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	caFilePath        = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-)
-
+// Kubernetes provides access to the kubernetes API.
 type Kubernetes struct {
-	Config       *rest.Config
-	SecretReader secrets.SecretStorage
+	Config *rest.Config
 }
 
 func NewKubernetes() (*Kubernetes, error) {
-	k := &Kubernetes{}
-
 	config, err := rest.InClusterConfig()
-	if err != nil {
-		return k, err
-	}
-
-	k.Config = config
-
-	namespace, err := Namespace()
-	if err != nil {
-		return k, err
-	}
-
-	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return nil, err
 	}
 
-	k.SecretReader = secrets.NewKubernetesSecretProvider(clientset, namespace)
+	if err := rest.LoadTLSFiles(config); err != nil {
+		return nil, fmt.Errorf("load TLS files: %w", err)
+	}
 
-	return k, err
+	k := &Kubernetes{Config: config}
+	return k, nil
 }
 
 // namespaceRole is used as a tuple to pair namespaces and grants as a map key
@@ -461,16 +443,13 @@ func (k *Kubernetes) kubeControllerManagerClusterName() (string, error) {
 	return opts.ClusterName, nil
 }
 
-func (k *Kubernetes) Checksum() (string, error) {
-	ca, err := CA()
-	if err != nil {
-		return "", err
-	}
-
+// Checksum returns a sha256 hash of the PEM encoded CA certificate used for
+// TLS by this kubernetes cluster.
+func (k *Kubernetes) Checksum() string {
 	h := sha256.New()
-	h.Write(ca)
+	h.Write(k.Config.CAData)
 	hash := h.Sum(nil)
-	return hex.EncodeToString(hash), nil
+	return hex.EncodeToString(hash)
 }
 
 func (k *Kubernetes) Name(chksm string) (string, error) {
@@ -501,6 +480,8 @@ func (k *Kubernetes) Name(chksm string) (string, error) {
 	return name, nil
 }
 
+const podLabelsFilePath = "/etc/podinfo/labels"
+
 func PodLabels() ([]string, error) {
 	contents, err := ioutil.ReadFile(podLabelsFilePath)
 	if err != nil {
@@ -528,22 +509,15 @@ func InstancePodLabels() ([]string, error) {
 	return instanceLabels, nil
 }
 
-func Namespace() (string, error) {
+const namespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
+func readNamespaceFromInClusterFile() (string, error) {
 	contents, err := ioutil.ReadFile(namespaceFilePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read namespace file: %w", err)
 	}
 
 	return string(contents), nil
-}
-
-func CA() ([]byte, error) {
-	contents, err := ioutil.ReadFile(caFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	return contents, nil
 }
 
 // Find the first suitable Service, filtering on infrahq.com/component
@@ -553,7 +527,7 @@ func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Servic
 		return nil, err
 	}
 
-	namespace, err := Namespace()
+	namespace, err := readNamespaceFromInClusterFile()
 	if err != nil {
 		return nil, err
 	}
