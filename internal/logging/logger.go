@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/rs/zerolog"
 	"golang.org/x/term"
@@ -57,6 +58,7 @@ func isTerminal() bool {
 // UseFileLogger changes L to a logger that writes log output to a file that is
 // rotated.
 func UseFileLogger(filepath string) {
+	zerolog.TimeFieldFormat = time.RFC3339
 	writer := &lumberjack.Logger{
 		Filename:   filepath,
 		MaxSize:    10, // megabytes
