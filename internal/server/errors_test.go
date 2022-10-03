@@ -80,12 +80,29 @@ func TestSendAPIError(t *testing.T) {
 			result: api.Error{Code: http.StatusNotImplemented, Message: "not implemented"},
 		},
 		{
-			err: data.UniqueConstraintError{Table: "user", Column: "name"},
+			err: fmt.Errorf("with context: %w",
+				data.UniqueConstraintError{Table: "user", Column: "name"}),
 			result: api.Error{
 				Code:    http.StatusConflict,
-				Message: "a user with that name already exists",
+				Message: "with context: a user with that name already exists",
 				FieldErrors: []api.FieldError{
 					{FieldName: "name", Errors: []string{"a user with that name already exists"}},
+				},
+			},
+		},
+		{
+			err: api.Error{
+				Code:    http.StatusLocked,
+				Message: "it's locked",
+				FieldErrors: []api.FieldError{
+					{FieldName: "first", Errors: []string{"at max callers"}},
+				},
+			},
+			result: api.Error{
+				Code:    http.StatusLocked,
+				Message: "it's locked",
+				FieldErrors: []api.FieldError{
+					{FieldName: "first", Errors: []string{"at max callers"}},
 				},
 			},
 		},

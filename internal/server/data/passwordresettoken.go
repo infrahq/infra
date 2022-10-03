@@ -30,6 +30,7 @@ retry:
 
 	tries++
 	if err = save(db, prt); err != nil {
+		// TODO: must use errors.As for error types
 		if tries <= 3 && errors.Is(err, UniqueConstraintError{}) {
 			logging.Warnf("generated random token %q already exists in the database", token)
 			goto retry // on the off chance the token exists.

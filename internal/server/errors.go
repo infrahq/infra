@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -33,10 +32,15 @@ func sendAPIError(c *gin.Context, err error) {
 	var uniqueConstraintError data.UniqueConstraintError
 	var authzError access.AuthorizationError
 	var overLimitError redis.OverLimitError
+	var apiError api.Error
 
 	log := logging.L.Debug()
 
 	switch {
+	case errors.As(err, &apiError):
+		// the handler has already created an appropriate error to return
+		resp = &apiError
+
 	case errors.Is(err, internal.ErrUnauthorized):
 		resp.Code = http.StatusUnauthorized
 		// hide the error text, it may contain sensitive information
@@ -54,18 +58,7 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Message = authzError.Error()
 
 	case errors.As(err, &uniqueConstraintError):
-		resp.Code = http.StatusConflict
-		resp.Message = err.Error()
-		// remove the error trace from field error message
-		errMsg := err.Error()
-		errTrace := strings.Split(err.Error(), ":")
-		if len(errTrace) > 0 {
-			errMsg = errTrace[len(errTrace)-1]
-		}
-		resp.FieldErrors = append(resp.FieldErrors, api.FieldError{
-			FieldName: uniqueConstraintError.Column,
-			Errors:    []string{errMsg},
-		})
+		*resp = newAPIErrorForUniqueConstraintError(uniqueConstraintError, err.Error())
 
 	case errors.Is(err, internal.ErrNotFound):
 		resp.Code = http.StatusNotFound
@@ -123,4 +116,16 @@ func sendAPIError(c *gin.Context, err error) {
 
 	c.JSON(int(resp.Code), resp)
 	c.Abort()
+}
+
+func newAPIErrorForUniqueConstraintError(ucErr data.UniqueConstraintError, msg string) api.Error {
+	apiError := api.Error{
+		Code:    http.StatusConflict,
+		Message: msg,
+	}
+	apiError.FieldErrors = []api.FieldError{{
+		FieldName: ucErr.Column,
+		Errors:    []string{ucErr.Error()},
+	}}
+	return apiError
 }
