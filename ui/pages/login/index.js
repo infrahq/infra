@@ -8,7 +8,6 @@ import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
-import ErrorMessage from '../../components/error-message'
 
 function oidcLogin({ id, clientID, authURL, scopes }, next) {
   window.localStorage.setItem('providerID', id)
@@ -201,7 +200,9 @@ export default function Login() {
               errors.name ? 'border-red-500' : 'border-gray-300'
             }`}
           />
-          {errors.name && <ErrorMessage message={errors.name} />}
+          {errors.name && (
+            <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+          )}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -235,7 +236,7 @@ export default function Login() {
         <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
           Log in
         </button>
-        {error && <ErrorMessage message={error} />}
+        {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
       </form>
     </div>
   )

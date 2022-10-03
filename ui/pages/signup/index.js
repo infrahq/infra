@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import Login from '../../components/layouts/login'
-import ErrorMessage from '../../components/error-message'
 import { saveToVisitedOrgs } from '../login'
 
 export default function Signup() {
@@ -101,7 +100,9 @@ export default function Signup() {
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.name && <ErrorMessage message={errors.name} />}
+            {errors.name && (
+              <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+            )}
           </div>
           <div className='w-full'>
             <label
@@ -123,7 +124,9 @@ export default function Signup() {
                 errors.password ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.password && <ErrorMessage message={errors.password} />}
+            {errors.password && (
+              <p className='my-1 text-xs text-red-500'>{errors.password}</p>
+            )}
           </div>
           <div className='w-full'>
             <label
@@ -149,7 +152,7 @@ export default function Signup() {
               }`}
             />
             {errors['org.name'] && (
-              <ErrorMessage message={errors['org.name']} />
+              <p className='my-1 text-xs text-red-500'>{errors['org.name']}</p>
             )}
           </div>
           <div className='w-full'>
@@ -182,7 +185,9 @@ export default function Signup() {
               </span>
             </div>
             {errors['org.subdomain'] && (
-              <ErrorMessage message={errors['org.subdomain']} />
+              <p className='my-1 text-xs text-red-500'>
+                {errors['org.subdomain']}
+              </p>
             )}
           </div>
         </div>
@@ -193,7 +198,7 @@ export default function Signup() {
         >
           Sign Up
         </button>
-        {error && <ErrorMessage message={error} />}
+        {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
         <div className='my-3 text-center text-2xs text-gray-400'>
           By continuing, you agree to Infra&apos;s{' '}
           <a

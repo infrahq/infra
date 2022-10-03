@@ -5,7 +5,6 @@ import Link from 'next/link'
 import useSWR, { useSWRConfig } from 'swr'
 import dayjs from 'dayjs'
 
-import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 

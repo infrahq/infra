@@ -6,7 +6,6 @@ import { InformationCircleIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
-import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Tooltip from '../../components/tooltip'
 
@@ -217,7 +216,9 @@ export default function ProvidersAddDetails() {
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
             />
-            {errors.name && <ErrorMessage message={errors.name} />}
+            {errors.name && (
+              <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+            )}
             <div className='mt-6 space-y-3'>
               {kind !== 'google' && (
                 <div>
@@ -237,7 +238,9 @@ export default function ProvidersAddDetails() {
                       errors.url ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
-                  {errors.url && <ErrorMessage message={errors.url} />}
+                  {errors.url && (
+                    <p className='my-1 text-xs text-red-500'>{errors.url}</p>
+                  )}
                 </div>
               )}
 
@@ -258,7 +261,9 @@ export default function ProvidersAddDetails() {
                     errors.clientid ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {errors.clientid && <ErrorMessage message={errors.clientid} />}
+                {errors.clientid && (
+                  <p className='my-1 text-xs text-red-500'>{errors.clientid}</p>
+                )}
               </div>
 
               <div>
@@ -279,7 +284,9 @@ export default function ProvidersAddDetails() {
                   }`}
                 />
                 {errors.clientsecret && (
-                  <ErrorMessage message={errors.clientsecret} />
+                  <p className='my-1 text-xs text-red-500'>
+                    {errors.clientsecret}
+                  </p>
                 )}
               </div>
             </div>
@@ -322,7 +329,9 @@ export default function ProvidersAddDetails() {
                       sm:text-sm'
                   />
                   {errors.privatekey && (
-                    <ErrorMessage message={errors.privatekey} />
+                    <p className='my-1 text-xs text-red-500'>
+                      {errors.privatekey}
+                    </p>
                   )}
                 </div>
                 <div className='sm:col-span-6 lg:col-span-5'>
@@ -345,13 +354,15 @@ export default function ProvidersAddDetails() {
                     }`}
                   />
                   {errors.domainadminemail && (
-                    <ErrorMessage message={errors.domainadminemail} />
+                    <p className='my-1 text-xs text-red-500'>
+                      {errors.domainadminemail}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
           )}
-          {error && <ErrorMessage message={error} />}
+          {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
 
           <div className='flex items-center justify-end space-x-3 pt-5 pb-3'>
             <button

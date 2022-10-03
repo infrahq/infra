@@ -150,7 +150,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                     error ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {error && <ErrorMessage message={error} />}
+                {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
               </div>
             </div>
             <div className='flex flex-row items-center justify-end space-x-3'>
