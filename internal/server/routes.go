@@ -12,6 +12,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
@@ -97,6 +98,16 @@ func (s *Server) GenerateRoutes() Routes {
 
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
+
+	// SCIM inbound provisioning
+	add(a, authn, http.MethodGet, "/api/scim/v2/Users", route[api.SCIMParametersRequest, *api.ListProviderUsersResponse]{
+		handler: a.ListProviderUsers,
+		routeSettings: routeSettings{
+			omitFromTelemetry:          true,
+			omitFromDocs:               true,
+			infraVersionHeaderOptional: true,
+		},
+	})
 
 	put(a, authn, "/api/settings", a.UpdateSettings)
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"github.com/infrahq/infra/uid"
 )
 
 // mockOIDC is a mock oidc identity provider
@@ -253,4 +254,109 @@ func TestDeleteProviderUser(t *testing.T) {
 		_, err = CreateProviderUser(db, provider, user)
 		assert.NilError(t, err)
 	})
+}
+
+func TestListProviderUsers(t *testing.T) {
+	type testCase struct {
+		name  string
+		setup func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser)
+	}
+
+	testCases := []testCase{
+		{
+			name: "list all provider users",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu := createTestProviderUser(t, tx, provider, "david@example.com")
+				return provider.ID, nil, []models.ProviderUser{pu}
+			},
+		},
+		{
+			name: "list all provider users invalid provider ID",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				return 1234, nil, nil
+			},
+		},
+		{
+			name: "limit less than total",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu := createTestProviderUser(t, tx, provider, "david@example.com")
+				_ = createTestProviderUser(t, tx, provider, "lucy@example.com")
+				return provider.ID, &SCIMParameters{Count: 1}, []models.ProviderUser{pu}
+			},
+		},
+		{
+			name: "offset from start",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu}
+			},
+		},
+	}
+
+	runDBTests(t, func(t *testing.T, db *DB) {
+		org := &models.Organization{Name: "something", Domain: "example.com"}
+		assert.NilError(t, CreateOrganization(db, org))
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				tx := txnForTestCase(t, db, org.ID)
+
+				providerID, p, expected := tc.setup(t, tx)
+
+				result, err := ListProviderUsers(tx, providerID, p)
+
+				assert.NilError(t, err)
+				assert.DeepEqual(t, result, expected, cmpTimeWithDBPrecision)
+			})
+		}
+	})
+}
+
+func createTestProviderUser(t *testing.T, tx *Transaction, provider *models.Provider, userName string) models.ProviderUser {
+	user := &models.Identity{
+		Name: userName,
+	}
+	err := CreateIdentity(tx, user)
+	assert.NilError(t, err)
+
+	pu, err := CreateProviderUser(tx, provider, user)
+	assert.NilError(t, err)
+
+	pu.Groups = models.CommaSeparatedStrings{}
+
+	return *pu
 }

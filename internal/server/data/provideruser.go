@@ -93,29 +93,60 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	return handleError(err)
 }
 
-func listProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, error) {
+func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]models.ProviderUser, error) {
 	table := &providerUserTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
 	query.B("FROM")
 	query.B(table.Table())
 	query.B("WHERE provider_id = ?", providerID)
+
+	query.B("ORDER BY email ASC")
+
+	if p != nil {
+		// apply scim parameters
+		if p.Count != 0 {
+			query.B("LIMIT ?", p.Count)
+		}
+		if p.StartIndex != 0 {
+			query.B("OFFSET ?", p.StartIndex)
+		}
+	}
+
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var result []models.ProviderUser
 	for rows.Next() {
 		var pu models.ProviderUser
 
 		if err := rows.Scan((*providerUserTable)(&pu).ScanFields()...); err != nil {
+			rows.Close()
 			return nil, err
 		}
 		result = append(result, pu)
 	}
-	return result, rows.Err()
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if p != nil {
+		row := tx.QueryRow(`SELECT count(identity_id) FROM provider_users WHERE provider_id = ?`, providerID)
+		var count int
+		if err := row.Scan(&count); err != nil {
+			return nil, err
+		}
+		p.TotalCount = count
+	}
+
+	return result, nil
 }
 
 type DeleteProviderUsersOptions struct {
@@ -187,4 +218,11 @@ func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, pr
 	}
 
 	return nil
+}
+
+type SCIMParameters struct {
+	Count      int // the number of items to return
+	StartIndex int // the offset to start counting from
+	TotalCount int
+	// TODO: filter query param
 }
