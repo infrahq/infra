@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"io"
 	"os"
 
@@ -22,10 +23,17 @@ func (s *StringOrFile) String() string {
 
 func (s *StringOrFile) Set(raw string) error {
 	fh, err := os.Open(raw)
-	if err != nil {
-		logging.L.Debug().Err(err).Msg("failed to open file")
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		// Only log a small prefix of the value, at trace level, in case the value is sensitive.
+		logging.L.Trace().
+			Str("valuePrefix", raw[:len(raw)/2]).
+			Msg("value does not appear to be a file, assuming string literal")
+
 		*s = StringOrFile(raw)
 		return nil
+	case err != nil:
+		return err
 	}
 
 	content, err := io.ReadAll(fh)

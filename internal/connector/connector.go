@@ -11,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,7 +18,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
-	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
 	rbacv1 "k8s.io/api/rbac/v1"
 
@@ -36,15 +34,15 @@ import (
 type Options struct {
 	Server ServerOptions
 	Name   string
-	CACert string
-	CAKey  string
+	CACert types.StringOrFile
+	CAKey  types.StringOrFile
 
 	Addr ListenerOptions
 }
 
 type ServerOptions struct {
 	URL                string
-	AccessKey          string
+	AccessKey          types.StringOrFile
 	SkipTLSVerify      bool
 	TrustedCertificate types.StringOrFile
 }
@@ -55,18 +53,6 @@ type ListenerOptions struct {
 }
 
 func Run(ctx context.Context, options Options) error {
-	basicSecretStorage := map[string]secrets.SecretStorage{
-		"env":       secrets.NewEnvSecretProviderFromConfig(secrets.GenericConfig{}),
-		"file":      secrets.NewFileSecretProviderFromConfig(secrets.FileConfig{}),
-		"plaintext": secrets.NewPlainSecretProviderFromConfig(secrets.GenericConfig{}),
-	}
-
-	accessKey, err := secrets.GetSecret(options.Server.AccessKey, basicSecretStorage)
-	if err != nil {
-		return err
-	}
-	options.Server.AccessKey = accessKey
-
 	k8s, err := kubernetes.NewKubernetes()
 	if err != nil {
 		return err
@@ -87,17 +73,7 @@ func Run(ctx context.Context, options Options) error {
 		options.Name = autoname
 	}
 
-	caCertPEM, err := os.ReadFile(options.CACert)
-	if err != nil {
-		return err
-	}
-
-	caKeyPEM, err := os.ReadFile(options.CAKey)
-	if err != nil {
-		return err
-	}
-
-	certCache := NewCertCache(caCertPEM, caKeyPEM)
+	certCache := NewCertCache([]byte(options.CACert), []byte(options.CAKey))
 
 	// Generate TLS certificates on the fly for clients
 	// GenerateCertificate caches certificates
@@ -152,7 +128,7 @@ func Run(ctx context.Context, options Options) error {
 		Name:      "connector",
 		Version:   internal.Version,
 		URL:       u.String(),
-		AccessKey: accessKey,
+		AccessKey: options.Server.AccessKey.String(),
 		HTTP: http.Client{
 			Transport: httpTransportFromOptions(options.Server),
 		},
@@ -183,7 +159,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	// TODO: make polling time configurable
-	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, caCertPEM))
+	repeat.Start(ctx, 30*time.Second, syncWithServer(k8s, client, destination, certCache, []byte(options.CACert)))
 
 	ginutil.SetMode()
 	router := gin.New()

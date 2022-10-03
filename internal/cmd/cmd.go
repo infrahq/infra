@@ -21,6 +21,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
 )
@@ -294,6 +295,30 @@ func newConnectorCmd() *cobra.Command {
 				return err
 			}
 
+			// backwards compat for old access key values with a prefix
+			accessKey := options.Server.AccessKey.String()
+			switch {
+			case strings.HasPrefix(accessKey, "file:"):
+				filename := strings.TrimPrefix(accessKey, "file:")
+				if err := options.Server.AccessKey.Set(filename); err != nil {
+					return err
+				}
+				logging.L.Warn().Msg("accessKey with 'file:' prefix is deprecated. Use the filename without the file: prefix instead.")
+			case strings.HasPrefix(accessKey, "env:"):
+				key := strings.TrimPrefix(accessKey, "env:")
+				options.Server.AccessKey = types.StringOrFile(os.Getenv(key))
+				logging.L.Warn().Msg("accessKey with 'env:' prefix is deprecated. Use the INFRA_ACCESS_KEY env var instead.")
+			case strings.HasPrefix(accessKey, "plaintext:"):
+				options.Server.AccessKey = types.StringOrFile(strings.TrimPrefix(accessKey, "plaintext:"))
+				logging.L.Warn().Msg("accessKey with 'plaintext:' prefix is deprecated. Use the literal value without a prefix.")
+			}
+
+			// Also accept the same env var as the CLI for setting the access key
+			if accessKey, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
+				if err := options.Server.AccessKey.Set(accessKey); err != nil {
+					return err
+				}
+			}
 			return runConnector(cmd.Context(), options)
 		},
 	}

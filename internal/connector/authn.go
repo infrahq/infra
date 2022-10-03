@@ -36,7 +36,7 @@ func newAuthenticator(url string, options Options) *authenticator {
 	return &authenticator{
 		client:          &http.Client{Transport: transport},
 		baseURL:         url,
-		serverAccessKey: options.Server.AccessKey,
+		serverAccessKey: options.Server.AccessKey.String(),
 	}
 }
 

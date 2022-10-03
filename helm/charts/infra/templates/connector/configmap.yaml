@@ -22,7 +22,7 @@ data:
 {{- if and $accessKey (or (hasPrefix "file:" $accessKey) (hasPrefix "env:" $accessKey)) }}
       accessKey: {{ $accessKey }}
 {{- else }}
-      accessKey: file:/var/run/secrets/infrahq.com/access-key/access-key
+      accessKey: /var/run/secrets/infrahq.com/access-key/access-key
 {{- end }}
 
 {{- with .Values.connector.config.serverTrustedCertificate }}
