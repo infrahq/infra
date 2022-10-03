@@ -148,7 +148,7 @@ export default function Login() {
         setErrors(errors)
       } else {
         if (e.code === 401 && e.message === 'unauthorized') {
-          setError('Invalid Credentials')
+          setError('Invalid credentials')
         } else {
           setError(e.message)
         }
@@ -220,11 +220,8 @@ export default function Login() {
               setErrors({})
               setError('')
             }}
-            className={`mt-1 block w-full rounded-md  shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              errors.password ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className='rounded-mdshadow-sm mt-1 block w-full focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
           />
-          {errors.password && <ErrorMessage message={errors.password} />}
         </div>
         {isEmailConfigured && (
           <div className='mt-4 flex items-center justify-end text-sm'>
