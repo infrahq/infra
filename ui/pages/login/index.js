@@ -46,7 +46,7 @@ export function saveToVisitedOrgs(domain, orgName) {
     if (parts.length > 2) {
       cookieDomain = parts.slice(-2).join('.') // join the last two parts of the domain
     }
-    
+
     cookies.set('orgs', visitedOrgs, {
       path: '/',
       domain: `.${cookieDomain}`,
