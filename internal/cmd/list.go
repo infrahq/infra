@@ -46,6 +46,7 @@ func list(cli *CLI) error {
 		if isResourceForDestination(g.Resource, "infra") {
 			continue
 		}
+
 		if !destinationForResourceExists(g.Resource, destinations) {
 			continue
 		}
@@ -94,11 +95,18 @@ func list(cli *CLI) error {
 
 func destinationForResourceExists(resource string, destinations []api.Destination) bool {
 	for _, d := range destinations {
-		if isResourceForDestination(resource, d.Name) {
-			return true
+		if !isResourceForDestination(resource, d.Name) {
+			continue
 		}
+
+		return isDestinationAvailable(d)
 	}
+
 	return false
+}
+
+func isDestinationAvailable(destination api.Destination) bool {
+	return destination.Connected && destination.Connection.URL != ""
 }
 
 func isResourceForDestination(resource string, destination string) bool {

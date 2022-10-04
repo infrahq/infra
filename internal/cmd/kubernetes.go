@@ -108,13 +108,14 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		)
 
 		for _, d := range destinations {
-			// eg resource:  "foo.bar"
-			// eg dest name: "foo"
-			if strings.HasPrefix(g.Resource, d.Name) {
+			if !isResourceForDestination(g.Resource, d.Name) {
+				continue
+			}
+
+			if isDestinationAvailable(d) {
 				url = d.Connection.URL
 				ca = []byte(d.Connection.CA)
 				exists = true
-
 				break
 			}
 		}

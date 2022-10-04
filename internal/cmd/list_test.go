@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -74,6 +75,19 @@ func TestListCmd(t *testing.T) {
 		},
 	})
 	assert.NilError(t, err)
+
+	for _, uniqueID := range []string{"space", "moon", "maintain"} {
+		// set client.Headers so each destination becomes connected
+		c.Headers = http.Header{
+			"Infra-Destination": {uniqueID},
+		}
+
+		_, err := c.ListGrants(api.ListGrantsRequest{})
+		assert.NilError(t, err)
+	}
+
+	// reset client.Headers
+	c.Headers = http.Header{}
 
 	users, err := c.ListUsers(api.ListUsersRequest{})
 	assert.NilError(t, err)

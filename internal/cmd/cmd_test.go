@@ -90,9 +90,10 @@ func TestUse(t *testing.T) {
 				destinations := api.ListResponse[api.Destination]{
 					Items: []api.Destination{
 						{
-							ID:       destinationID,
-							UniqueID: "uniqueID",
-							Name:     "cluster",
+							ID:        destinationID,
+							UniqueID:  "uniqueID",
+							Name:      "cluster",
+							Connected: true,
 							Connection: api.DestinationConnection{
 								URL: "kubernetes.docker.local",
 								CA:  destinationCA,

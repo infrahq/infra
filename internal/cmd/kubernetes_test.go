@@ -25,16 +25,32 @@ func TestWriteKubeconfig(t *testing.T) {
 	user := api.User{Name: "user"}
 	destinations := []api.Destination{
 		{
-			Name: "cluster",
+			Name:      "connected",
+			Connected: true,
 			Connection: api.DestinationConnection{
-				URL: "cluster.example.com",
+				URL: "connected.example.com",
+				CA:  destinationCA,
+			},
+		},
+		{
+			Name:      "pending",
+			Connected: true,
+			Connection: api.DestinationConnection{
+				CA: destinationCA,
+			},
+		},
+		{
+			Name:      "disconnected",
+			Connected: false,
+			Connection: api.DestinationConnection{
+				URL: "disconnected.example.com",
 				CA:  destinationCA,
 			},
 		},
 	}
 	grants := []api.Grant{
 		{
-			Resource: "cluster",
+			Resource: "connected",
 		},
 	}
 
@@ -43,15 +59,15 @@ func TestWriteKubeconfig(t *testing.T) {
 
 	expected := clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
-			"infra:cluster": {
-				Server:                   "https://cluster.example.com",
+			"infra:connected": {
+				Server:                   "https://connected.example.com",
 				CertificateAuthorityData: []byte(destinationCA),
 			},
 		},
 		Contexts: map[string]*clientcmdapi.Context{
-			"infra:cluster": {
+			"infra:connected": {
 				AuthInfo: "user",
-				Cluster:  "infra:cluster",
+				Cluster:  "infra:connected",
 			},
 		},
 		AuthInfos: map[string]*clientcmdapi.AuthInfo{
@@ -110,7 +126,8 @@ func TestWriteKubeconfig_UserNamespaceOverride(t *testing.T) {
 	user := api.User{Name: "user"}
 	destinations := []api.Destination{
 		{
-			Name: "cluster",
+			Name:      "cluster",
+			Connected: true,
 			Connection: api.DestinationConnection{
 				URL: "cluster.example.com",
 				CA:  destinationCA,
@@ -164,7 +181,8 @@ func TestWriteKubeconfig_UserNamespaceOverrideResetNamespacedContext(t *testing.
 	user := api.User{Name: "user"}
 	destinations := []api.Destination{
 		{
-			Name: "cluster",
+			Name:      "cluster",
+			Connected: true,
 			Connection: api.DestinationConnection{
 				URL: "cluster.example.com",
 				CA:  destinationCA,
