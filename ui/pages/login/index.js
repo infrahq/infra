@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
-import useSWR, { useSWRConfig } from 'swr'
+import useSWR from 'swr'
 import Cookies from 'universal-cookie'
 import Link from 'next/link'
 
@@ -91,7 +91,7 @@ export default function Login() {
       fallbackData: [],
     }
   )
-  const { mutate } = useSWRConfig()
+
   const router = useRouter()
   const { next } = router.query
 
@@ -129,8 +129,7 @@ export default function Login() {
         return false
       }
 
-      await mutate('/api/users/self')
-      router.replace('/')
+      router.replace(next ? decodeURIComponent(next) : '/')
       saveToVisitedOrgs(
         window.location.host,
         baseDomain,

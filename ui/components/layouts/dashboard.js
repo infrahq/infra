@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Fragment, useState, forwardRef } from 'react'
 import { useRouter } from 'next/router'
-import useSWR, { useSWRConfig } from 'swr'
 import { Dialog, Transition, Menu } from '@headlessui/react'
 import {
   ChipIcon,
@@ -13,9 +12,7 @@ import {
   CogIcon,
 } from '@heroicons/react/outline'
 
-import { useAdmin } from '../../lib/admin'
-
-import AuthRequired from '../auth-required'
+import { useUser } from '../../lib/hooks'
 
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
   let { href, children, ...rest } = props
@@ -88,25 +85,16 @@ function SidebarNav({ children, open, setOpen }) {
   )
 }
 
-function Layout({ children }) {
+export default function Dashboard({ children }) {
   const router = useRouter()
 
-  const { data: auth } = useSWR('/api/users/self')
-  const { admin, loading } = useAdmin()
-  const { cache } = useSWRConfig()
-
+  const { user, loading, isAdmin, logout } = useUser({
+    redirectTo: `/login?next=${encodeURIComponent(router.asPath)}`,
+  })
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   if (loading) {
     return null
-  }
-
-  async function logout() {
-    await fetch('/api/logout', {
-      method: 'POST',
-    })
-    cache.clear()
-    router.replace('/login')
   }
 
   const navigation = [
@@ -145,12 +133,12 @@ function Layout({ children }) {
     {
       name: 'Account',
       href: '/account',
-      show: auth?.providerNames.includes('infra'),
+      show: user?.providerNames.includes('infra'),
     },
   ]
 
   for (const n of [...navigation]) {
-    if (router.pathname.startsWith(n.href) && n.admin && !admin) {
+    if (router.pathname.startsWith(n.href) && n.admin && !isAdmin) {
       router.replace('/')
       return null
     }
@@ -169,7 +157,7 @@ function Layout({ children }) {
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
           <nav className='flex-1 space-y-1'>
             {navigation
-              ?.filter(n => (n.admin ? admin : true))
+              ?.filter(n => (n.admin ? isAdmin : true))
               .map(item => (
                 <Link key={item.name} href={item.href}>
                   <a
@@ -205,10 +193,10 @@ function Layout({ children }) {
     <div className='relative flex'>
       <>
         <SidebarNav open={sidebarOpen} setOpen={setSidebarOpen}>
-          <Nav navigation={navigation} admin={admin} />
+          <Nav navigation={navigation} admin={isAdmin} />
         </SidebarNav>
         <div className='sticky top-0 hidden h-screen w-48 flex-none flex-col border-r border-gray-100 px-3 pt-5 pb-4 md:flex lg:w-60'>
-          <Nav navigation={navigation} admin={admin} />
+          <Nav navigation={navigation} admin={isAdmin} />
         </div>
       </>
 
@@ -232,7 +220,7 @@ function Layout({ children }) {
                 <span className='sr-only'>Open current user menu</span>
                 <Menu.Button className='flex h-8 w-8 select-none items-center justify-center rounded-full bg-blue-500 text-white'>
                   <span className='text-center text-xs font-semibold capitalize leading-none'>
-                    {auth?.name?.[0]}
+                    {user?.name?.[0]}
                   </span>
                 </Menu.Button>
                 <Transition
@@ -248,7 +236,7 @@ function Layout({ children }) {
                     <div className='px-4 py-3'>
                       <p className='text-xs text-gray-600'>Signed in as</p>
                       <p className='truncate text-sm font-semibold text-gray-900'>
-                        {auth?.name}
+                        {user?.name}
                       </p>
                     </div>
                     {subNavigation?.filter(n => n.show).length > 0 && (
@@ -289,13 +277,5 @@ function Layout({ children }) {
         </main>
       </div>
     </div>
-  )
-}
-
-export default function Dashboard(props) {
-  return (
-    <AuthRequired>
-      <Layout {...props} />
-    </AuthRequired>
   )
 }

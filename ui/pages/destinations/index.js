@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import dayjs from 'dayjs'
 
-import { useAdmin } from '../../lib/admin'
+import { useUser } from '../../lib/hooks'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -14,7 +14,7 @@ export default function Destinations() {
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 20
 
-  const { admin, loading } = useAdmin()
+  const { isAdmin, loading } = useUser()
 
   const { data: { items: destinations, totalCount, totalPages } = {} } = useSWR(
     `/api/destinations?page=${page}&limit=${limit}`
@@ -33,8 +33,9 @@ export default function Destinations() {
         <h1 className='py-1 font-display text-xl font-medium'>
           Infrastructure
         </h1>
+
         {/* Add dialog */}
-        {admin && (
+        {isAdmin && (
           <Link href='/destinations/add'>
             <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'>
               Connect cluster

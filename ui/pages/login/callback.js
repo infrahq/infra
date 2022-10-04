@@ -33,13 +33,9 @@ export default function Callback() {
       }
 
       const data = await res.json()
-      await mutate('/api/users/self')
 
-      if (next) {
-        router.replace(`/${next}`)
-      } else {
-        router.replace('/')
-      }
+      router.replace(decodeURIComponent(next) || '/')
+
       window.localStorage.removeItem('next')
       saveToVisitedOrgs(
         window.location.host,

@@ -1,14 +1,12 @@
 import Head from 'next/head'
 import { useState } from 'react'
-import useSWR from 'swr'
 
+import { useUser } from '../../lib/hooks'
 import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Notification from '../../components/notification'
 
-function PasswordReset({ onReset = () => {} }) {
-  const { data: auth } = useSWR('/api/users/self')
-
+function PasswordReset({ user, onReset = () => {} }) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -30,10 +28,10 @@ function PasswordReset({ onReset = () => {} }) {
     setErrors({})
 
     try {
-      const rest = await fetch(`/api/users/${auth?.id}`, {
+      const rest = await fetch(`/api/users/${user?.id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          ...auth,
+          ...user,
           password: confirmPassword,
         }),
       })
@@ -129,11 +127,11 @@ function PasswordReset({ onReset = () => {} }) {
 }
 
 export default function Account() {
-  const { data: auth } = useSWR('/api/users/self')
+  const { user } = useUser()
 
   const [showNotification, setshowNotification] = useState(false)
 
-  const hasInfraProvider = auth?.providerNames.includes('infra')
+  const hasInfraProvider = user?.providerNames?.includes('infra')
 
   return (
     <div className='mx-auto w-full max-w-2xl'>
@@ -143,13 +141,14 @@ export default function Account() {
       <h1 className='my-6 py-1 font-display text-lg font-medium'>
         Account settings
       </h1>
-      {auth && hasInfraProvider && (
+      {user && hasInfraProvider && (
         <div className='flex flex-1 flex-col'>
           <h2 className='text-md py-2 font-medium text-gray-600'>
             Reset Password
           </h2>
           <div className='flex flex-col space-y-2'>
             <PasswordReset
+              user={user}
               onReset={() => {
                 setshowNotification(true)
                 setTimeout(() => {

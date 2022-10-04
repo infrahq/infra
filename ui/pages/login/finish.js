@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
-import { useSWRConfig } from 'swr'
 
 import ErrorMessage from '../../components/error-message'
 import Login from '../../components/layouts/login'
@@ -13,18 +12,8 @@ export default function Finish() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState('')
 
-  const { mutate } = useSWRConfig()
-
   const { query } = router
   const { next, user } = query
-
-  if (!user) {
-    if (next) {
-      router.replace(`/login?next=${next}`)
-    } else {
-      router.replace('/login')
-    }
-  }
 
   async function finish(e) {
     e.preventDefault()
@@ -46,13 +35,7 @@ export default function Finish() {
         throw await res.json()
       }
 
-      await mutate('/api/users/self')
-
-      if (next) {
-        router.replace(`/login?next=${next}`)
-      } else {
-        router.replace('/login')
-      }
+      router.replace(next ? decodeURIComponent(next) : '/')
     } catch (e) {
       if (e.fieldErrors) {
         const errors = {}

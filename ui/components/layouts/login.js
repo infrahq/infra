@@ -1,24 +1,18 @@
-import useSWR from 'swr'
 import { useRouter } from 'next/router'
 
+import { useUser } from '../../lib/hooks'
+
 export default function Login({ children }) {
-  const { data: auth, error } = useSWR('/api/users/self')
   const router = useRouter()
   const { next } = router.query
 
-  if (!auth && !error) {
-    return null
-  }
+  const { loading } = useUser({
+    redirectTo: next ? decodeURIComponent(next) : '/',
+    redirectIfFound: true,
+  })
 
-  if (auth?.id) {
-    if (next) {
-      router.replace(decodeURIComponent(next))
-    } else if (router.pathname !== '/login/finish') {
-      // TODO (https://github.com/infrahq/infra/issues/1441): remove me when
-      // using an OTP doesn't trigger authentication
-      router.replace('/')
-    }
-    return false
+  if (loading) {
+    return null
   }
 
   return (

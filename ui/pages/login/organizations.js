@@ -10,7 +10,7 @@ export default function Organizations() {
   const organizations = cookies.get('orgs')
   const router = useRouter()
 
-  if (!organizations?.length) {
+  if (router.isReady && !organizations?.length) {
     router.replace('/forgot-domain')
     return null
   }

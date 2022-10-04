@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/outline'
 import Confetti from 'react-dom-confetti'
 
-import { useAdmin } from '../../lib/admin'
+import { useUser } from '../../lib/hooks'
 
 import Dashboard from '../../components/layouts/dashboard'
 import useSWR from 'swr'
@@ -26,7 +26,7 @@ export default function DestinationsAdd() {
   const [accessKey, setAccessKey] = useState('')
   const [focused, setFocused] = useState(true)
 
-  const { admin } = useAdmin()
+  const { isAdmin } = useUser()
 
   const { data: { items: destinations } = {}, mutate } = useSWR(
     '/api/destinations?limit=999'
@@ -57,7 +57,7 @@ export default function DestinationsAdd() {
         clearInterval(interval)
       }
     }
-  }, [submitted])
+  }, [submitted, mutate, name])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -105,7 +105,7 @@ export default function DestinationsAdd() {
 
   const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${window.location.host} --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
 
-  if (!admin) {
+  if (!isAdmin) {
     router.replace('/')
     return null
   }

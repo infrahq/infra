@@ -7,7 +7,7 @@ import { CheckIcon } from '@heroicons/react/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 import dayjs from 'dayjs'
 
-import { useAdmin } from '../../lib/admin'
+import { useUser } from '../../lib/hooks'
 
 import Table from '../../components/table'
 import RemoveButton from '../../components/remove-button'
@@ -95,7 +95,7 @@ export default function GroupDetails() {
   const id = router.query.id
   const page = Math.max(parseInt(router.query.p) || 1, 1)
   const limit = 999
-  const { admin } = useAdmin()
+  const { isAdmin } = useUser()
   const { data: group, mutate: mutate } = useSWR(`/api/groups/${id}`)
   const {
     data: { items: users, totalCount, totalPages } = {},
@@ -120,7 +120,7 @@ export default function GroupDetails() {
 
   // Don't allow deleting the last group
   const hideRemoveGroupBtn =
-    !admin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
+    !isAdmin || (infraAdmins?.length === 1 && adminGroups.includes(group?.id))
 
   return (
     <div className='mb-10'>
