@@ -124,7 +124,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                   setOpen(false)
                 }}
                 autoFocus
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-6 py-2 text-xs font-medium text-white hover:bg-gray-700'
+                className='inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700'
               >
                 Done
               </button>
@@ -163,7 +163,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
               </button>
               <button
                 type='submit'
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                className='inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-700'
               >
                 Add
               </button>
@@ -203,7 +203,7 @@ export default function Users() {
         <h1 className='py-1 font-display text-xl font-medium'>Users</h1>
         <button
           onClick={() => setOpen(true)}
-          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+          className='inline-flex items-center rounded-md border border-transparent bg-blue-700 px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-blue-800'
         >
           Add user
         </button>
