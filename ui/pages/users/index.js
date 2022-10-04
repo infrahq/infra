@@ -10,6 +10,8 @@ import {
   CheckIcon,
   DotsHorizontalIcon,
   XIcon,
+  MenuIcon,
+  DotsVerticalIcon,
 } from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
@@ -358,7 +360,7 @@ export default function Users() {
                       ref={setReferenceElement}
                       className='cursor-pointer rounded-md border border-transparent px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
                     >
-                      <DotsHorizontalIcon className='z-0 h-[18px]' />
+                      <DotsVerticalIcon className='z-0 h-[18px]' />
                     </Menu.Button>
                     {ReactDOM.createPortal(
                       <div

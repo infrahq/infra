@@ -3,7 +3,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { Fragment, useState } from 'react'
-import dayjs from 'dayjs'
 import { usePopper } from 'react-popper'
 import { Menu, Transition } from '@headlessui/react'
 import * as ReactDOM from 'react-dom'
@@ -38,6 +37,7 @@ export default function Providers() {
       </header>
 
       <Table
+        href={row => `/providers/${row.original.id}`}
         data={providers}
         empty='No providers'
         columns={[
@@ -69,17 +69,6 @@ export default function Providers() {
           },
           {
             cell: info => (
-              <div className='truncate'>
-                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-              </div>
-            ),
-            header: () => (
-              <span className='hidden truncate lg:table-cell'>Added</span>
-            ),
-            accessorKey: 'created',
-          },
-          {
-            cell: info => (
               <div className='hidden sm:table-cell'>{info.getValue()}</div>
             ),
             header: () => <span className='hidden sm:table-cell'>URL</span>,
@@ -95,119 +84,6 @@ export default function Providers() {
               <span className='hidden lg:table-cell'>Client ID</span>
             ),
             accessorKey: 'clientID',
-          },
-          {
-            id: 'actions',
-            cell: function Cell(info) {
-              const [deleteOpen, setDeleteOpen] = useState(false)
-              const [referenceElement, setReferenceElement] = useState(null)
-              const [popperElement, setPopperElement] = useState(null)
-              let { styles, attributes } = usePopper(
-                referenceElement,
-                popperElement,
-                {
-                  placement: 'bottom-end',
-                  modifiers: [
-                    {
-                      name: 'flip',
-                      enabled: false,
-                    },
-                  ],
-                }
-              )
-
-              return (
-                <div className='flex justify-end'>
-                  <Menu as='div' className='relative inline-block text-left'>
-                    <Menu.Button
-                      ref={setReferenceElement}
-                      className='cursor-pointer rounded-md border border-transparent px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
-                    >
-                      <DotsHorizontalIcon className='z-0 h-[18px]' />
-                    </Menu.Button>
-                    {ReactDOM.createPortal(
-                      <div
-                        ref={setPopperElement}
-                        style={styles.popper}
-                        {...attributes.popper}
-                      >
-                        <Transition
-                          as={Fragment}
-                          enter='transition ease-out duration-100'
-                          enterFrom='transform opacity-0 scale-95'
-                          enterTo='transform opacity-100 scale-100'
-                          leave='transition ease-in duration-75'
-                          leaveFrom='transform opacity-100 scale-100'
-                          leaveTo='transform opacity-0 scale-95'
-                        >
-                          <Menu.Items className='absolute right-0 z-10 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
-                            <div className='px-1 py-1'>
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    className={`${
-                                      active ? 'bg-gray-50' : 'bg-white'
-                                    } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-gray-600`}
-                                    onClick={() =>
-                                      router.replace(
-                                        `/providers/${info.row.original.id}`
-                                      )
-                                    }
-                                  >
-                                    <PencilIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                    Edit
-                                  </button>
-                                )}
-                              </Menu.Item>
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    className={`${
-                                      active ? 'bg-gray-50' : 'bg-white'
-                                    } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
-                                    onClick={() => setDeleteOpen(true)}
-                                  >
-                                    <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                    Remove
-                                  </button>
-                                )}
-                              </Menu.Item>
-                            </div>
-                          </Menu.Items>
-                        </Transition>
-                      </div>,
-                      document.querySelector('body')
-                    )}
-                  </Menu>
-                  <DeleteModal
-                    open={deleteOpen}
-                    setOpen={setDeleteOpen}
-                    onSubmit={async () => {
-                      await fetch(`/api/providers/${info.row.original.id}`, {
-                        method: 'DELETE',
-                      })
-                      setDeleteOpen(false)
-
-                      mutate({
-                        items: providers.filter(
-                          p => p.id !== info.row.original.id
-                        ),
-                      })
-                    }}
-                    title='Remove Identity Provider'
-                    message={
-                      <>
-                        Are you sure you want to remove{' '}
-                        <span className='font-bold'>
-                          {info.row.original.name}
-                        </span>
-                        ?
-                      </>
-                    }
-                  />
-                </div>
-              )
-            },
           },
         ]}
       />
