@@ -3,7 +3,6 @@ import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
 
-import ErrorMessage from '../../components/error-message'
 import Dashboard from '../../components/layouts/dashboard'
 import Notification from '../../components/notification'
 

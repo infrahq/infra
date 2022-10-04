@@ -166,7 +166,9 @@ export default function ProvidersEditDetails() {
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
-              {errors.name && <ErrorMessage message={errors.name} />}
+              {errors.name && (
+                <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+              )}{' '}
             </div>
 
             <div>
@@ -210,12 +212,14 @@ export default function ProvidersEditDetails() {
                 }`}
               />
               {errors.clientsecret && (
-                <ErrorMessage message={errors.clientsecret} />
+                <p className='my-1 text-xs text-red-500'>
+                  {errors.clientsecret}
+                </p>
               )}
             </div>
 
             <div className='flex items-center justify-between'>
-              <div>{error && <ErrorMessage message={error} />}</div>
+              {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
               <div className='pt-5 pb-3'>
                 <button
                   disabled={
