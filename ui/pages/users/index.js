@@ -186,6 +186,12 @@ export default function Users() {
   const { data: { items: providers } = {} } = useSWR(`/api/providers?limit=999`)
   const { data: auth } = useSWR('/api/users/self')
 
+  const sortedUsers = users?.sort((a, b) => {
+    if (a?.id === auth.id) return -1
+    if (b?.id === auth.id) return 1
+    return 0
+  })
+
   return (
     <div className='mb-10'>
       <Head>
@@ -254,7 +260,7 @@ export default function Users() {
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
         pageSize={limit}
-        data={users}
+        data={sortedUsers}
         columns={[
           {
             cell: info => (
