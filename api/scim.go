@@ -37,8 +37,9 @@ type SCIMUser struct {
 
 type SCIMParametersRequest struct {
 	// these pagination parameters must conform to the SCIM spec, rather than our standard pagination
-	StartIndex int `form:"startIndex"`
-	Count      int `form:"count"`
+	StartIndex int    `form:"startIndex"`
+	Count      int    `form:"count"`
+	Filter     string `form:"filter"`
 }
 
 func (r SCIMParametersRequest) ValidationRules() []validate.ValidationRule {

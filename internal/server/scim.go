@@ -1,7 +1,10 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
+	"github.com/scim2/filter-parser/v2"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
@@ -21,6 +24,13 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 	p := data.SCIMParameters{
 		StartIndex: r.StartIndex,
 		Count:      r.Count,
+	}
+	if r.Filter != "" {
+		exp, err := filter.ParseFilter([]byte(r.Filter))
+		if err != nil {
+			return nil, fmt.Errorf("parse SCIM filter expression: %w", err)
+		}
+		p.Filter = &exp
 	}
 	users, err := access.ListProviderUsers(c, &p)
 	if err != nil {

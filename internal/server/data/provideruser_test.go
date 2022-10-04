@@ -2,10 +2,12 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/scim2/filter-parser/v2"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
@@ -327,6 +329,158 @@ func TestListProviderUsers(t *testing.T) {
 				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu1, pu2}, 2
 			},
 		},
+		{
+			name: "equality filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("id eq \"%d\"", pu.IdentityID)))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+			},
+		},
+		{
+			name: "present filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu1 := createTestProviderUser(t, tx, provider, "david@example.com")
+				pu2 := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte("email pr"))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+			},
+		},
+		{
+			name: "not equal filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu1 := createTestProviderUser(t, tx, provider, "david@example.com")
+				pu2 := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("id ne \"%d\"", pu1.IdentityID)))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu2}, 1
+			},
+		},
+		{
+			name: "starts with filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email sw \"%s\"", "lucy")))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+			},
+		},
+		{
+			name: "contains filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email co \"%s\"", "lucy")))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+			},
+		},
+		{
+			name: "ends with filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu1 := createTestProviderUser(t, tx, provider, "david@example.com")
+				pu2 := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email ew \"%s\"", "example.com")))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+			},
+		},
+		{
+			name: "logical and filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_ = createTestProviderUser(t, tx, provider, "david@example.com")
+				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email ew \"%s\" and id eq \"%d\"", "example.com", pu.IdentityID)))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+			},
+		},
+		{
+			name: "logical or filter",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
+				provider := &models.Provider{
+					Name: "mockta",
+					Kind: models.ProviderKindOkta,
+				}
+
+				err := CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				pu1 := createTestProviderUser(t, tx, provider, "david@example.com")
+				pu2 := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email co \"%s\" or email co \"%s\"", "david", "lucy")))
+				assert.NilError(t, err)
+
+				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+			},
+		},
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -352,7 +506,7 @@ func TestListProviderUsers(t *testing.T) {
 				assert.NilError(t, err)
 				assert.DeepEqual(t, result, expected, cmpTimeWithDBPrecision)
 				if p != nil {
-					assert.Equal(t, p.TotalCount, totalCount)
+					assert.Equal(t, p.TotalCount, totalCount, tc.name)
 				}
 			})
 		}
