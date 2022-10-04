@@ -542,8 +542,8 @@ func readNamespaceFromInClusterFile() (string, error) {
 	return string(contents), nil
 }
 
-// Find the first suitable Service, filtering on infrahq.com/component
-func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Service, error) {
+// Find the first suitable Service, filtering on app.infrahq.com/component
+func (k *Kubernetes) Service(labels ...string) (*corev1.Service, error) {
 	clientset, err := kubernetes.NewForConfig(k.Config)
 	if err != nil {
 		return nil, err
@@ -554,21 +554,16 @@ func (k *Kubernetes) Service(component string, labels ...string) (*corev1.Servic
 		return nil, err
 	}
 
-	selector := []string{
-		fmt.Sprintf("app.infrahq.com/component=%s", component),
-	}
-
-	selector = append(selector, labels...)
-
 	services, err := clientset.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{
-		LabelSelector: strings.Join(selector, ","),
+		// TODO: this should use configurable label selectors instead of using pod labels or static labels
+		LabelSelector: strings.Join(append(labels, "app.infrahq.com/component=connector"), ","),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if len(services.Items) == 0 {
-		return nil, fmt.Errorf("no service found for component %s", component)
+		return nil, fmt.Errorf("no service found for labels %v", labels)
 	}
 
 	return &services.Items[0], nil
@@ -633,7 +628,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		return "", -1, err
 	}
 
-	service, err := k.Service("connector", labels...)
+	service, err := k.Service(labels...)
 	if err != nil {
 		return "", -1, err
 	}
@@ -674,7 +669,7 @@ func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	service, err := k.Service("connector", labels...)
+	service, err := k.Service(labels...)
 	if err != nil {
 		return false, err
 	}
