@@ -14,8 +14,8 @@ import {
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
+import { useUser } from '../../lib/hooks'
 import { useServerConfig } from '../../lib/serverconfig'
-
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -184,11 +184,11 @@ export default function Users() {
   const [open, setOpen] = useState(false)
 
   const { data: { items: providers } = {} } = useSWR(`/api/providers?limit=999`)
-  const { data: auth } = useSWR('/api/users/self')
+  const { user } = useUser()
 
   const sortedUsers = users?.sort((a, b) => {
-    if (a?.id === auth.id) return -1
-    if (b?.id === auth.id) return 1
+    if (a?.id === user?.id) return -1
+    if (b?.id === user?.id) return 1
     return 0
   })
 
@@ -347,7 +347,7 @@ export default function Users() {
                 }
               )
 
-              if (info.row.original.id === auth?.id) {
+              if (info.row.original.id === user?.id) {
                 return null
               }
 

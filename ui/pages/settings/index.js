@@ -2,8 +2,8 @@ import useSWR from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
 
+import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
-
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
@@ -105,7 +105,7 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
 }
 
 export default function Settings() {
-  const { data: auth } = useSWR('/api/users/self')
+  const { user } = useUser()
 
   const { data: { items: users } = {} } = useSWR('/api/users?limit=999')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=999')
@@ -113,7 +113,7 @@ export default function Settings() {
     '/api/grants?resource=infra&privilege=admin&limit=999'
   )
   const { data: { items: selfGroups } = {} } = useSWR(
-    `/api/groups?userID=${auth?.id}&limit=999`
+    () => `/api/groups?userID=${user?.id}&limit=999`
   )
 
   return (
@@ -166,7 +166,7 @@ export default function Settings() {
           users={users}
           groups={groups}
           selfGroups={selfGroups}
-          auth={auth}
+          auth={user}
           onRemove={async grantId => {
             await fetch(`/api/grants/${grantId}`, {
               method: 'DELETE',

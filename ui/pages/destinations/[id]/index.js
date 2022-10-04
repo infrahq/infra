@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/outline'
 import { Popover, Transition } from '@headlessui/react'
 
-import { useAdmin } from '../../../lib/admin'
+import { useUser } from '../../../lib/hooks'
 import { sortByPrivilege } from '../../../lib/grants'
 
 import Table from '../../../components/table'
@@ -78,29 +78,27 @@ export default function DestinationDetail() {
   const router = useRouter()
   const destinationId = router.query.id
 
-  const { admin } = useAdmin()
-
   const { data: destination } = useSWR(`/api/destinations/${destinationId}`)
-  const { data: auth } = useSWR('/api/users/self')
+  const { user, isAdmin } = useUser()
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
     `/api/grants?resource=${destination?.name}&limit=1000`
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
-    `/api/grants?user=${auth?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
+    `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
   )
 
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
 
-  const tabs = admin ? [TAB_ACCESS, TAB_NAMESPACES] : []
+  const tabs = isAdmin ? [TAB_ACCESS, TAB_NAMESPACES] : []
   const tab = router.query.tab || tabs[0]
 
   useEffect(() => {
     mutateCurrentUserGrants(
-      `/api/grants?user=${auth?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
+      `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
     )
 
     const roles = currentUserGrants
@@ -109,7 +107,7 @@ export default function DestinationDetail() {
       .sort(sortByPrivilege)
 
     setCurrentUserRoles(roles)
-  }, [grants, auth, destination, currentUserGrants, mutateCurrentUserGrants])
+  }, [grants, user, destination, currentUserGrants, mutateCurrentUserGrants])
 
   return (
     <div className='mb-10'>
@@ -153,7 +151,7 @@ export default function DestinationDetail() {
               >
                 <Popover.Panel className='absolute left-0 z-10 flex w-80 overflow-hidden rounded-xl bg-black text-white shadow-2xl shadow-black/40 md:left-auto md:right-0'>
                   <AccessCluster
-                    userID={auth?.id}
+                    userID={user?.id}
                     roles={currentUserRoles}
                     kind={destination?.kind}
                     resource={destination?.name}
@@ -162,7 +160,7 @@ export default function DestinationDetail() {
               </Transition>
             </Popover>
           )}
-          {admin && (
+          {isAdmin && (
             <RemoveButton
               onRemove={async () => {
                 await fetch(`/api/destinations/${destination?.id}`, {

@@ -4,7 +4,7 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 
-import { useAdmin } from '../../../lib/admin'
+import { useUser } from '../../../lib/hooks'
 
 import AccessTable from '../../../components/access-table'
 import Dashboard from '../../../components/layouts/dashboard'
@@ -18,7 +18,7 @@ export default function ResourceDetail() {
   const [namespaceResource, setNamespaceResource] = useState(null)
   const [roles, setRoles] = useState([])
 
-  const { admin, loading: adminLoading } = useAdmin()
+  const { isAdmin, userLoading } = useUser()
 
   const { data: destination } = useSWR(
     `/api/destinations/${parentDestinationId}`
@@ -34,9 +34,8 @@ export default function ResourceDetail() {
     setRoles(destination?.roles?.filter(r => r != 'cluster-admin'))
   }, [destination, resource])
 
-  const loading = [!adminLoading, users, groups, grants, destination].some(
-    x => !x
-  )
+  const loading =
+    userLoading || [users, groups, grants, destination].some(x => !x)
 
   return (
     <div className='mb-10'>
@@ -68,7 +67,7 @@ export default function ResourceDetail() {
       </header>
       {!loading && (
         <div className='mt-6 space-y-10'>
-          {admin && (
+          {isAdmin && (
             <div>
               <div className='flex flex-col space-y-2'>
                 <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
