@@ -198,7 +198,10 @@ CREATE TABLE provider_users (
     redirect_url text,
     access_token text,
     refresh_token text,
-    expires_at timestamp with time zone
+    expires_at timestamp with time zone,
+    given_name text,
+    family_name text,
+    active boolean DEFAULT true
 );
 
 CREATE TABLE providers (
@@ -281,6 +284,8 @@ CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organizatio
 CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (organization_id, identity_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations USING btree (organization_id, unique_id) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_emails_providers ON provider_users USING btree (email, provider_id);
 
 CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);
 
