@@ -53,7 +53,7 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
             const [deleteId, setDeleteId] = useState(null)
 
             return (
-              grants.length > 1 && (
+              grants?.length > 1 && (
                 <div className='text-right'>
                   <button
                     onClick={() => {
