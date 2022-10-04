@@ -34,13 +34,10 @@ var anyUID = uid.ID(99)
 // runAndWait runs fn in a goroutine and adds a t.Cleanup function to wait for
 // the goroutine to exit before ending cleanup. runAndWait is used to ensure
 // that the goroutine exits before a new test starts.
-//
-// Returns the context used to cancel the goroutine so that it can be used by
-// other functions in the test.
-func runAndWait(t *testing.T, fn func(ctx context.Context) error) context.Context {
+func runAndWait(ctx context.Context, t *testing.T, fn func(ctx context.Context) error) {
 	t.Helper()
 	done := make(chan struct{})
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 
 	go func() {
 		t.Helper()
@@ -51,7 +48,6 @@ func runAndWait(t *testing.T, fn func(ctx context.Context) error) context.Contex
 		cancel()
 		<-done
 	})
-	return ctx
 }
 
 func TestLoginCmd_Options(t *testing.T) {
@@ -69,7 +65,8 @@ func TestLoginCmd_Options(t *testing.T) {
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx := runAndWait(t, srv.Run)
+	ctx := context.Background()
+	runAndWait(ctx, t, srv.Run)
 
 	runStep(t, "login without background agent", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
@@ -116,7 +113,7 @@ var cmpClientHostConfig = cmp.Options{
 		cmpStringNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "UserID"),
-		cmpUserIDNotZero),
+		cmpIDNotZero),
 	cmp.FilterPath(
 		opt.PathField(ClientHostConfig{}, "Expires"),
 		cmpApiTimeWithThreshold(20*time.Second)),
@@ -137,7 +134,7 @@ var cmpStringNotZero = cmp.Comparer(func(x, y string) bool {
 	return x != "" && y != ""
 })
 
-var cmpUserIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
+var cmpIDNotZero = cmp.Comparer(func(x, y uid.ID) bool {
 	return x > 0 && y > 0
 })
 
@@ -241,7 +238,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
 
-	ctx := runAndWait(t, srv.Run)
+	ctx := context.Background()
+	runAndWait(ctx, t, srv.Run)
 
 	runStep(t, "reject server certificate", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)

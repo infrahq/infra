@@ -70,19 +70,19 @@ func UseFileLogger(filepath string) {
 }
 
 func Debugf(format string, v ...interface{}) {
-	L.Debug().Msgf(format, v...)
+	L.Debug().CallerSkipFrame(1).Msgf(format, v...)
 }
 
 func Infof(format string, v ...interface{}) {
-	L.Info().Msgf(format, v...)
+	L.Info().CallerSkipFrame(1).Msgf(format, v...)
 }
 
 func Warnf(format string, v ...interface{}) {
-	L.Warn().Msgf(format, v...)
+	L.Warn().CallerSkipFrame(1).Msgf(format, v...)
 }
 
 func Errorf(format string, v ...interface{}) {
-	L.Error().Msgf(format, v...)
+	L.Error().CallerSkipFrame(1).Msgf(format, v...)
 }
 
 func SetLevel(levelName string) error {

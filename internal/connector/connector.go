@@ -68,9 +68,12 @@ type KubernetesOptions struct {
 	// be set to a token that has permission to impersonate users in the cluster.
 	AuthToken types.StringOrFile
 
-	// Host is looked up from either the in-cluster config, or the kubectl
-	// config.
-	// CA is looked up from either the in-cluster config or the kubectl config.
+	// Addr is the host:port used to connect to the kubernetes API server. The
+	// default value is looked up from the in-cluster config.
+	Addr string
+	// CA is the CA certificate used by the kubernetes API server. The default
+	// value is looked up from the in-cluster config.
+	CA types.StringOrFile
 }
 
 // connector stores all the dependencies for the connector operations.
@@ -83,7 +86,10 @@ type connector struct {
 }
 
 func Run(ctx context.Context, options Options) error {
-	k8s, err := kubernetes.NewKubernetes(options.Kubernetes.AuthToken.String())
+	k8s, err := kubernetes.NewKubernetes(
+		options.Kubernetes.AuthToken.String(),
+		options.Kubernetes.Addr,
+		options.Kubernetes.CA.String())
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
@@ -116,6 +122,7 @@ func Run(ctx context.Context, options Options) error {
 
 	// server is localhost which should never be the case. try to infer the actual host
 	// TODO: do this lookup when Host is "" instead of localhost
+	// https://github.com/infrahq/infra/issues/3380
 	if strings.HasPrefix(u.Host, "localhost") {
 		server, err := k8s.Service("server")
 		if err != nil {
@@ -233,6 +240,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	go func() {
+		// TODO: failing to bind should cause process to exit
 		if err := metricsServer.ListenAndServe(); err != nil {
 			logging.Errorf("server: %s", err)
 		}
@@ -261,13 +269,17 @@ func Run(ctx context.Context, options Options) error {
 		<-ctx.Done()
 		shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
 		defer shutdownCancel()
-		err = tlsServer.Shutdown(shutdownCtx)
-		logging.Warnf("shutdown: %s", err)
+		if err := tlsServer.Shutdown(shutdownCtx); err != nil {
+			logging.Warnf("shutdown: %s", err)
+		}
 		wg.Done()
 	}()
 
 	err = tlsServer.ListenAndServeTLS("", "")
 	wg.Wait() // must wait for shutdown to complete.
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
 	return err
 }
 
@@ -477,7 +489,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 	}
 
 	if err := k.UpdateRoleBindings(crnSubjects); err != nil {
-		return fmt.Errorf("update cluster role bindings: %w", err)
+		return fmt.Errorf("update role bindings: %w", err)
 	}
 
 	return nil
