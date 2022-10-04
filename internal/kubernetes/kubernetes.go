@@ -643,7 +643,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		return k.NodePort(service)
 	case corev1.ServiceTypeLoadBalancer:
 		if len(service.Status.LoadBalancer.Ingress) == 0 {
-			return "", -1, fmt.Errorf("load balancer has no ingress objects")
+			return "", -1, fmt.Errorf("no address available for load balancer, it may still be provisioning")
 		}
 
 		ingress := service.Status.LoadBalancer.Ingress[0]
