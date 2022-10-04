@@ -8,9 +8,7 @@ import copy from 'copy-to-clipboard'
 import {
   DuplicateIcon,
   CheckIcon,
-  DotsHorizontalIcon,
   XIcon,
-  MenuIcon,
   DotsVerticalIcon,
 } from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'

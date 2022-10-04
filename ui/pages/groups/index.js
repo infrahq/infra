@@ -1,7 +1,6 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useRouter } from 'next/router'
-import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 

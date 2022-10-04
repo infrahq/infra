@@ -2,22 +2,15 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { Fragment, useState } from 'react'
-import { usePopper } from 'react-popper'
-import { Menu, Transition } from '@headlessui/react'
-import * as ReactDOM from 'react-dom'
-
-import { DotsHorizontalIcon, XIcon, PencilIcon } from '@heroicons/react/outline'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import DeleteModal from '../../components/delete-modal'
 
 export default function Providers() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 999
-  const { data: { items: providers } = {}, mutate } = useSWR(
+  const { data: { items: providers } = {} } = useSWR(
     `/api/providers?page=${page}&limit=${limit}`
   )
 
