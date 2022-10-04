@@ -40,11 +40,6 @@ export default function ProvidersEditDetails() {
     setName(provider?.name)
   }, [provider])
 
-  function reset() {
-    setName(provider?.name)
-    setClientSecret(CLIENT_SECRET_INIT)
-  }
-
   async function onSubmit(e) {
     e.preventDefault()
 
@@ -84,7 +79,7 @@ export default function ProvidersEditDetails() {
       return false
     }
 
-    router.replace('/providers')
+    setClientSecret(CLIENT_SECRET_INIT)
 
     return false
   }
@@ -222,17 +217,14 @@ export default function ProvidersEditDetails() {
 
             <div className='flex items-center justify-between'>
               <div>{error && <ErrorMessage message={error} />}</div>
-              <div className='space-x-2 pt-5 pb-3'>
+              <div className='pt-5 pb-3'>
                 <button
-                  type='button'
-                  onClick={() => reset()}
-                  className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
-                >
-                  Cancel
-                </button>
-                <button
+                  disabled={
+                    clientSecret === CLIENT_SECRET_INIT &&
+                    name === provider?.name
+                  }
                   type='submit'
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
                 >
                   Save Changes
                 </button>
