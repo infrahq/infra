@@ -39,7 +39,7 @@ func TestAPI_ListProviderUsers(t *testing.T) {
 					Resources:    expectedUsers,
 					TotalResults: 1,
 					StartIndex:   0,
-					ItemsPerPage: 100,
+					ItemsPerPage: 1,
 				}
 
 				return bearer, "", routes, expected
@@ -98,7 +98,7 @@ func TestAPI_ListProviderUsers(t *testing.T) {
 				)
 				assert.NilError(t, err)
 
-				return bearer, "", routes, api.ListProviderUsersResponse{Schemas: []string{api.ListResponseSchema}, ItemsPerPage: 100}
+				return bearer, "", routes, api.ListProviderUsersResponse{Schemas: []string{api.ListResponseSchema}, ItemsPerPage: 0}
 			},
 			verify: func(t *testing.T, expected api.ListProviderUsersResponse, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusOK, resp.Code)

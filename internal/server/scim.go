@@ -10,8 +10,20 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 )
 
-func (a *API) ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
-	p := SCIMParametersFromRequest(r)
+var listProviderUsersRoute = route[api.SCIMParametersRequest, *api.ListProviderUsersResponse]{
+	handler: ListProviderUsers,
+	routeSettings: routeSettings{
+		omitFromTelemetry:          true,
+		omitFromDocs:               true,
+		infraVersionHeaderOptional: true,
+	},
+}
+
+func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListProviderUsersResponse, error) {
+	p := data.SCIMParameters{
+		StartIndex: r.StartIndex,
+		Count:      r.Count,
+	}
 	providerID := getRequestContext(c).Authenticated.AccessKey.IssuedFor // TODO: ability to create tokens for providers
 	if providerID == 0 {
 		// should not happen
@@ -35,21 +47,4 @@ func (a *API) ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*
 	}
 
 	return result, nil
-}
-
-func SCIMParametersFromRequest(f *api.SCIMParametersRequest) data.SCIMParameters {
-	startIndex, count := 0, 100
-
-	if f.StartIndex != 0 {
-		startIndex = f.StartIndex
-	}
-
-	if f.Count != 0 {
-		count = f.Count
-	}
-
-	return data.SCIMParameters{
-		StartIndex: startIndex,
-		Count:      count,
-	}
 }

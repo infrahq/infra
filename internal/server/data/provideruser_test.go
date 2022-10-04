@@ -259,13 +259,13 @@ func TestDeleteProviderUser(t *testing.T) {
 func TestListProviderUsers(t *testing.T) {
 	type testCase struct {
 		name  string
-		setup func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser)
+		setup func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int)
 	}
 
 	testCases := []testCase{
 		{
 			name: "list all provider users",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
 				provider := &models.Provider{
 					Name: "mockta",
 					Kind: models.ProviderKindOkta,
@@ -275,12 +275,12 @@ func TestListProviderUsers(t *testing.T) {
 				assert.NilError(t, err)
 
 				pu := createTestProviderUser(t, tx, provider, "david@example.com")
-				return provider.ID, nil, []models.ProviderUser{pu}
+				return provider.ID, nil, []models.ProviderUser{pu}, 0
 			},
 		},
 		{
 			name: "list all provider users invalid provider ID",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
 				provider := &models.Provider{
 					Name: "mockta",
 					Kind: models.ProviderKindOkta,
@@ -290,12 +290,12 @@ func TestListProviderUsers(t *testing.T) {
 				assert.NilError(t, err)
 
 				_ = createTestProviderUser(t, tx, provider, "david@example.com")
-				return 1234, nil, nil
+				return 1234, nil, nil, 0
 			},
 		},
 		{
 			name: "limit less than total",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
 				provider := &models.Provider{
 					Name: "mockta",
 					Kind: models.ProviderKindOkta,
@@ -306,12 +306,12 @@ func TestListProviderUsers(t *testing.T) {
 
 				pu := createTestProviderUser(t, tx, provider, "david@example.com")
 				_ = createTestProviderUser(t, tx, provider, "lucy@example.com")
-				return provider.ID, &SCIMParameters{Count: 1}, []models.ProviderUser{pu}
+				return provider.ID, &SCIMParameters{Count: 1}, []models.ProviderUser{pu}, 2
 			},
 		},
 		{
 			name: "offset from start",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser) {
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, p *SCIMParameters, expected []models.ProviderUser, totalCount int) {
 				provider := &models.Provider{
 					Name: "mockta",
 					Kind: models.ProviderKindOkta,
@@ -322,7 +322,7 @@ func TestListProviderUsers(t *testing.T) {
 
 				_ = createTestProviderUser(t, tx, provider, "david@example.com")
 				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
-				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu}
+				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu}, 2
 			},
 		},
 	}
@@ -331,16 +331,27 @@ func TestListProviderUsers(t *testing.T) {
 		org := &models.Organization{Name: "something", Domain: "example.com"}
 		assert.NilError(t, CreateOrganization(db, org))
 
+		// create some dummy data for another org to test multi-tenancy
+		stmt := `
+					INSERT INTO provider_users(identity_id, provider_id, email)
+					VALUES (?, ?, ?);
+				`
+		_, err := db.Exec(stmt, 123, 123, "otherorg@example.com")
+		assert.NilError(t, err)
+
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				tx := txnForTestCase(t, db, org.ID)
 
-				providerID, p, expected := tc.setup(t, tx)
+				providerID, p, expected, totalCount := tc.setup(t, tx)
 
 				result, err := ListProviderUsers(tx, providerID, p)
 
 				assert.NilError(t, err)
 				assert.DeepEqual(t, result, expected, cmpTimeWithDBPrecision)
+				if p != nil {
+					assert.Equal(t, p.TotalCount, totalCount)
+				}
 			})
 		}
 	})

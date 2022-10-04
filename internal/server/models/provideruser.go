@@ -34,6 +34,10 @@ func (pu *ProviderUser) ToAPI() *api.SCIMUser {
 		Schemas:  []string{api.UserSchema},
 		ID:       pu.IdentityID.String(),
 		UserName: pu.Email,
+		Name: api.SCIMUserName{
+			GivenName:  pu.GivenName,
+			FamilyName: pu.FamilyName,
+		},
 		Emails: []api.SCIMUserEmail{
 			{
 				Primary: true,

@@ -97,8 +97,12 @@ func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]mode
 	table := &providerUserTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
+	if p != nil {
+		query.B(", count(*) OVER()")
+	}
 	query.B("FROM")
 	query.B(table.Table())
+	query.B("INNER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
 	query.B("WHERE provider_id = ?", providerID)
 
 	query.B("ORDER BY email ASC")
@@ -122,28 +126,24 @@ func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]mode
 	for rows.Next() {
 		var pu models.ProviderUser
 
-		if err := rows.Scan((*providerUserTable)(&pu).ScanFields()...); err != nil {
-			rows.Close()
+		fields := (*providerUserTable)(&pu).ScanFields()
+		if p != nil {
+			fields = append(fields, &p.TotalCount)
+		}
+		if err := rows.Scan(fields...); err != nil {
 			return nil, err
 		}
 		result = append(result, pu)
 	}
 
-	if err := rows.Close(); err != nil {
-		return nil, err
+	if p != nil && p.Count == 0 {
+		p.Count = p.TotalCount
 	}
+
+	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
 		return nil, err
-	}
-
-	if p != nil {
-		row := tx.QueryRow(`SELECT count(identity_id) FROM provider_users WHERE provider_id = ?`, providerID)
-		var count int
-		if err := row.Scan(&count); err != nil {
-			return nil, err
-		}
-		p.TotalCount = count
 	}
 
 	return result, nil
