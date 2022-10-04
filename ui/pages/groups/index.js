@@ -74,7 +74,7 @@ function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
             </button>
             <button
               disabled={submitting}
-              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-700'
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
             >
               Add
             </button>

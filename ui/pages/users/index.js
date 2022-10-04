@@ -124,7 +124,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                   setOpen(false)
                 }}
                 autoFocus
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-700'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
               >
                 Done
               </button>
@@ -163,7 +163,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
               </button>
               <button
                 type='submit'
-                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-700'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
               >
                 Add
               </button>
