@@ -284,17 +284,6 @@ export default function Users() {
           },
           {
             cell: info => (
-              <div className='truncate'>
-                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-              </div>
-            ),
-            header: () => (
-              <span className='hidden truncate md:table-cell'>Added</span>
-            ),
-            accessorKey: 'created',
-          },
-          {
-            cell: info => (
               <div className='flex space-x-1'>
                 {info?.getValue()?.map(pn => {
                   if (pn === 'infra') {

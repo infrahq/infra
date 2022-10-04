@@ -188,15 +188,6 @@ export default function Groups() {
               header: () => <span className='hidden sm:table-cell'>Users</span>,
               accessorKey: 'totalUsers',
             },
-            {
-              cell: info => (
-                <div className='hidden sm:table-cell'>
-                  {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-                </div>
-              ),
-              header: () => <span className='hidden sm:table-cell'>Added</span>,
-              accessorKey: 'created',
-            },
           ]}
         />
       </div>

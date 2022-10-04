@@ -90,15 +90,6 @@ export default function Destinations() {
           },
           {
             cell: info => (
-              <div className='hidden truncate lg:table-cell'>
-                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-              </div>
-            ),
-            header: () => <span className='hidden lg:table-cell'>Added</span>,
-            accessorKey: 'created',
-          },
-          {
-            cell: info => (
               <span className='hidden lg:table-cell'>{info.getValue()}</span>
             ),
             header: () => (
