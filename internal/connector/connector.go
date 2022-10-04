@@ -309,23 +309,26 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 func syncDestination(con connector) error {
 	endpoint, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
-		return err
+		logging.L.Warn().Err(err).Msg("could not get host")
 	}
 
-	if ipAddr := net.ParseIP(endpoint.Host); ipAddr == nil {
-		// wait for DNS resolution if endpoint is not an IP address
-		if _, err := net.LookupIP(endpoint.Host); err != nil {
-			return fmt.Errorf("host could not be resolved: %w", err)
+	if endpoint.Host != "" {
+		if ipAddr := net.ParseIP(endpoint.Host); ipAddr == nil {
+			// wait for DNS resolution if endpoint is not an IP address
+			if _, err := net.LookupIP(endpoint.Host); err != nil {
+				logging.L.Warn().Err(err).Msg("host could not be resolved")
+				endpoint.Host = ""
+			}
 		}
-	}
 
-	// update certificates if the host changed
-	_, err = con.certCache.AddHost(endpoint.Host)
-	if err != nil {
-		return fmt.Errorf("could not update self-signed certificates: %w", err)
-	}
+		// update certificates if the host changed
+		_, err = con.certCache.AddHost(endpoint.Host)
+		if err != nil {
+			return fmt.Errorf("could not update self-signed certificates: %w", err)
+		}
 
-	logging.L.Debug().Str("addr", endpoint.String()).Msg("connector endpoint address")
+		logging.L.Debug().Str("addr", endpoint.String()).Msg("connector endpoint address")
+	}
 
 	namespaces, err := con.k8s.Namespaces()
 	if err != nil {
@@ -382,6 +385,7 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	if err != nil {
 		return types.HostPort{}, fmt.Errorf("failed to lookup endpoint: %w", err)
 	}
+
 	return types.HostPort{Host: host, Port: port}, nil
 }
 

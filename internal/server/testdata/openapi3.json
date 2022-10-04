@@ -146,7 +146,7 @@
               }
             },
             "required": [
-              "url"
+              "ca"
             ],
             "type": "object"
           },
@@ -403,7 +403,7 @@
                     }
                   },
                   "required": [
-                    "url"
+                    "ca"
                   ],
                   "type": "object"
                 },
@@ -1671,7 +1671,7 @@
                       }
                     },
                     "required": [
-                      "url"
+                      "ca"
                     ],
                     "type": "object"
                   },
@@ -2010,7 +2010,7 @@
                       }
                     },
                     "required": [
-                      "url"
+                      "ca"
                     ],
                     "type": "object"
                   },

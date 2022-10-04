@@ -14,6 +14,7 @@ import (
 
 const (
 	DestinationStatusConnected    = "Connected"
+	DestinationStatusPending      = "Pending"
 	DestinationStatusDisconnected = "Disconnected"
 )
 
@@ -79,8 +80,13 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 
 				var rows []row
 				for _, d := range destinations {
-					status := DestinationStatusDisconnected
-					if d.Connected {
+					var status string
+					switch {
+					case !d.Connected:
+						status = DestinationStatusDisconnected
+					case d.Connection.URL == "":
+						status = DestinationStatusPending
+					default:
 						status = DestinationStatusConnected
 					}
 

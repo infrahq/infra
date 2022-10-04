@@ -92,7 +92,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "connection.url", Errors: []string{"is required"}},
+					{FieldName: "connection.ca", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
 					{FieldName: "uniqueID", Errors: []string{"is required"}},
 				}
