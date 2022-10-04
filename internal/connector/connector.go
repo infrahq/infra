@@ -192,9 +192,19 @@ func Run(ctx context.Context, options Options) error {
 			if err := syncWithServer(con); err != nil {
 				return err
 			}
-			wait(ctx, 30*time.Second)
-			if err := ctx.Err(); err != nil {
-				return nil
+			if err := wait(ctx, 30*time.Second); err != nil {
+				return err
+			}
+		}
+	})
+	group.Go(func() error {
+		for {
+			if err := syncDestination(con); err != nil {
+				logging.Errorf("failed to update destination in infra: %v", err)
+			}
+			// TODO: how long should this wait?
+			if err := wait(ctx, 30*time.Second); err != nil {
+				return err
 			}
 		}
 	})
@@ -280,7 +290,11 @@ func Run(ctx context.Context, options Options) error {
 	}
 
 	// wait for goroutines to shutdown
-	return group.Wait()
+	err = group.Wait()
+	if errors.Is(err, context.Canceled) {
+		return nil
+	}
+	return err
 }
 
 func httpTransportFromOptions(opts ServerOptions) *http.Transport {
@@ -390,11 +404,6 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 }
 
 func syncWithServer(con connector) error {
-	if err := syncDestination(con); err != nil {
-		logging.Errorf("failed to update destination in infra: %v", err)
-		return nil
-	}
-
 	grants, err := con.client.ListGrants(api.ListGrantsRequest{Resource: con.destination.Name})
 	if err != nil {
 		logging.Errorf("error listing grants: %v", err)
@@ -568,13 +577,15 @@ func slicesEqual(s1, s2 []string) bool {
 }
 
 // wait blocks for the duration of delay, or until the context is done.
-func wait(ctx context.Context, delay time.Duration) {
+// Returns the context error when the context is done, and returns nil if
+// the timer waited the full duration.
+func wait(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)
 	select {
 	case <-timer.C:
-		return
+		return nil
 	case <-ctx.Done():
 		timer.Stop()
-		return
+		return ctx.Err()
 	}
 }

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -42,6 +43,12 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 		Resources:     r.Resources,
 		Roles:         r.Roles,
 		Version:       r.Version,
+	}
+
+	// set LastSeenAt if this request came from a connector. The middleware
+	// can't do this update in the case where the destination did not exist yet
+	if c.Request.Header.Get(headerInfraDestination) == r.UniqueID {
+		destination.LastSeenAt = time.Now()
 	}
 
 	err := access.CreateDestination(c, destination)
