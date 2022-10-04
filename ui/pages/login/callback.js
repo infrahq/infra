@@ -34,7 +34,7 @@ export default function Callback() {
 
       const data = await res.json()
 
-      router.replace(decodeURIComponent(next) || '/')
+      router.replace(next ? decodeURIComponent(next) : '/')
 
       window.localStorage.removeItem('next')
       saveToVisitedOrgs(
