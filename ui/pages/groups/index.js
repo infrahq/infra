@@ -1,7 +1,6 @@
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useRouter } from 'next/router'
-import dayjs from 'dayjs'
 import { Transition, Dialog } from '@headlessui/react'
 import { Fragment, useState } from 'react'
 
@@ -187,15 +186,6 @@ export default function Groups() {
               ),
               header: () => <span className='hidden sm:table-cell'>Users</span>,
               accessorKey: 'totalUsers',
-            },
-            {
-              cell: info => (
-                <div className='hidden sm:table-cell'>
-                  {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-                </div>
-              ),
-              header: () => <span className='hidden sm:table-cell'>Added</span>,
-              accessorKey: 'created',
             },
           ]}
         />

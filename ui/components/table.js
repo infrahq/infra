@@ -47,7 +47,7 @@ export default function Table({
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
                 <th
-                  className='py-2 px-5 text-left font-medium first:w-[35%]'
+                  className='w-auto py-2 px-5 text-left font-medium first:w-[40%]'
                   key={header.id}
                 >
                   {header.isPlaceholder

@@ -2,7 +2,6 @@ import useSWR from 'swr'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import dayjs from 'dayjs'
 
 import { useUser } from '../../lib/hooks'
 
@@ -88,15 +87,6 @@ export default function Destinations() {
             ),
             header: () => <span>Name</span>,
             accessorKey: 'name',
-          },
-          {
-            cell: info => (
-              <div className='hidden truncate lg:table-cell'>
-                {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-              </div>
-            ),
-            header: () => <span className='hidden lg:table-cell'>Added</span>,
-            accessorKey: 'created',
           },
           {
             cell: info => (
