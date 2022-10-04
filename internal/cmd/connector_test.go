@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 	"gotest.tools/v3/poll"
@@ -133,24 +133,42 @@ func TestConnector_Run(t *testing.T) {
 	})
 
 	// check kube bindings were updated
-	expectedWrites := []*http.Request{
+	expectedWrites := []kubeRequest{
 		{
 			Method: "PUT",
-			URL:    &url.URL{Path: "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/infra:view"},
+			Path:   "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/infra:view",
+			Body: kubeBindingRequestBody{
+				Kind:     "ClusterRoleBinding",
+				Metadata: metav1.ObjectMeta{Name: "infra:view"},
+				RoleRef:  rbacv1.RoleRef{Kind: "ClusterRole", Name: "view"},
+				Subjects: []rbacv1.Subject{{Kind: "User", Name: "user2@example.com"}},
+			},
 		},
 		{
 			Method: "PUT",
-			URL:    &url.URL{Path: "/apis/rbac.authorization.k8s.io/v1/namespaces/ns1/rolebindings/infra:admin"},
+			Path:   "/apis/rbac.authorization.k8s.io/v1/namespaces/ns1/rolebindings/infra:admin",
+			Body: kubeBindingRequestBody{
+				Kind:     "RoleBinding",
+				Metadata: metav1.ObjectMeta{Name: "infra:admin", Namespace: "ns1"},
+				RoleRef:  rbacv1.RoleRef{Kind: "ClusterRole", Name: "admin"},
+				Subjects: []rbacv1.Subject{{Kind: "User", Name: "user1@example.com"}},
+			},
 		},
 		{
 			Method: "PUT",
-			URL:    &url.URL{Path: "/apis/rbac.authorization.k8s.io/v1/namespaces/ns1/rolebindings/infra:logs"},
+			Path:   "/apis/rbac.authorization.k8s.io/v1/namespaces/ns1/rolebindings/infra:logs",
+			Body: kubeBindingRequestBody{
+				Kind:     "RoleBinding",
+				Metadata: metav1.ObjectMeta{Name: "infra:logs", Namespace: "ns1"},
+				RoleRef:  rbacv1.RoleRef{Kind: "ClusterRole", Name: "logs"},
+				Subjects: []rbacv1.Subject{{Kind: "Group", Name: "group1@example.com"}},
+			},
 		},
 	}
 	sort.Slice(fakeKube.writes, func(i, j int) bool {
-		return fakeKube.writes[i].URL.Path < fakeKube.writes[j].URL.Path
+		return fakeKube.writes[i].Path < fakeKube.writes[j].Path
 	})
-	assert.DeepEqual(t, fakeKube.writes, expectedWrites, cmpHTTPRequestShallow)
+	assert.DeepEqual(t, fakeKube.writes, expectedWrites, cmpKubeRequest)
 
 	// TODO: check proxy is listening
 }
@@ -165,11 +183,12 @@ var cmpDestinationModel = cmp.Options{
 		opt.TimeWithThreshold(5*time.Second)),
 }
 
-var cmpHTTPRequestShallow = cmp.Comparer(func(x, y *http.Request) bool {
-	return x.Method == y.Method &&
-		x.URL.Path == y.URL.Path &&
-		reflect.DeepEqual(x.URL.Query(), y.URL.Query())
-})
+var cmpKubeRequest = cmp.Options{
+	cmpopts.EquateEmpty(),
+	cmpopts.IgnoreFields(metav1.ObjectMeta{}, "Labels"),
+	cmpopts.IgnoreFields(rbacv1.RoleRef{}, "APIGroup"),
+	cmpopts.IgnoreFields(rbacv1.Subject{}, "APIGroup"),
+}
 
 func readFile(t *testing.T, p string) string {
 	t.Helper()
@@ -180,14 +199,26 @@ func readFile(t *testing.T, p string) string {
 
 type fakeKubeAPI struct {
 	t          *testing.T
-	writes     []*http.Request
+	writes     []kubeRequest
 	writesLock sync.Mutex
 }
 
 func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	switch req.Method {
+	case http.MethodGet:
+		f.handleGET(w, req)
+	case http.MethodPut:
+		f.handlePUT(w, req)
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "unexpected request to fakeKube: %v %v", req.Method, req.URL)
+	}
+}
+
+func (f *fakeKubeAPI) handleGET(w http.ResponseWriter, req *http.Request) {
 	headers := w.Header()
 	switch {
-	case req.Method == http.MethodGet && req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/clusterroles":
+	case req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/clusterroles":
 		roleMap := map[string][]string{
 			"kubernetes.io/bootstrapping=rbac-defaults": {"admin", "view", "edit"},
 			"app.infrahq.com/include-role=true":         {"custom", "logs"},
@@ -212,7 +243,7 @@ func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		assert.Check(f.t, json.NewEncoder(w).Encode(result))
 
-	case req.Method == http.MethodGet && req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings":
+	case req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings":
 		headers.Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -221,7 +252,7 @@ func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		assert.Check(f.t, json.NewEncoder(w).Encode(result))
 
-	case req.Method == http.MethodGet && req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/rolebindings":
+	case req.URL.Path == "/apis/rbac.authorization.k8s.io/v1/rolebindings":
 		headers.Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -230,7 +261,7 @@ func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		assert.Check(f.t, json.NewEncoder(w).Encode(result))
 
-	case req.Method == http.MethodGet && req.URL.Path == "/api/v1/namespaces":
+	case req.URL.Path == "/api/v1/namespaces":
 		headers.Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		result := corev1.NamespaceList{
@@ -241,21 +272,34 @@ func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			},
 		}
 		assert.Check(f.t, json.NewEncoder(w).Encode(result))
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "unexpected request to fakeKube: %v %v", req.Method, req.URL)
+	}
+}
 
-	case req.Method == http.MethodPut && strings.HasPrefix(req.URL.Path, "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/"):
-		f.writes = append(f.writes, req)
+func (f *fakeKubeAPI) handlePUT(w http.ResponseWriter, req *http.Request) {
+	f.writesLock.Lock()
+	defer f.writesLock.Unlock()
+
+	kubeReq := kubeRequest{
+		Method: req.Method,
+		Path:   req.URL.Path,
+		Query:  req.URL.Query(),
+	}
+	assert.NilError(f.t, json.NewDecoder(req.Body).Decode(&kubeReq.Body))
+	f.writes = append(f.writes, kubeReq)
+
+	headers := w.Header()
+	switch {
+	case strings.HasPrefix(req.URL.Path, "/apis/rbac.authorization.k8s.io/v1/clusterrolebindings/"):
 		headers.Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		result := rbacv1.ClusterRoleBinding{}
 		assert.Check(f.t, json.NewEncoder(w).Encode(result))
 
-	// /apis/rbac.authorization.k8s.io/v1/namespaces/ns1/rolebindings/
-	// /apis/rbac.authorization.k8s.io/v1/clusterrolebindings/
-	case req.Method == http.MethodPut && strings.HasPrefix(req.URL.Path, "/apis/rbac.authorization.k8s.io/v1/"):
-		f.writesLock.Lock()
-		defer f.writesLock.Unlock()
-		f.writes = append(f.writes, req)
+	case strings.HasPrefix(req.URL.Path, "/apis/rbac.authorization.k8s.io/v1/"):
 		headers.Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -266,4 +310,18 @@ func (f *fakeKubeAPI) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "unexpected request to fakeKube: %v %v", req.Method, req.URL)
 	}
+}
+
+type kubeRequest struct {
+	Method string
+	Path   string
+	Query  url.Values
+	Body   kubeBindingRequestBody
+}
+
+type kubeBindingRequestBody struct {
+	Kind     string
+	Metadata metav1.ObjectMeta
+	RoleRef  rbacv1.RoleRef
+	Subjects []rbacv1.Subject
 }
