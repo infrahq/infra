@@ -23,7 +23,7 @@ export default function Providers() {
       <header className='my-6 flex items-center justify-between'>
         <h1 className='py-1 font-display text-xl font-medium'>Providers</h1>
         <Link href='/providers/add'>
-          <a className='inline-flex items-center rounded-md border border-transparent bg-blue-700 px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-blue-800'>
+          <a className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
             Connect provider
           </a>
         </Link>

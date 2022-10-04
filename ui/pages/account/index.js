@@ -116,7 +116,7 @@ function PasswordReset({ user, onReset = () => {} }) {
         <button
           type='submit'
           disabled={(!password && !confirmPassword) || submitting}
-          className='inline-flex cursor-pointer items-center rounded-md border border-transparent bg-blue-700 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30'
+          className='inline-flex cursor-pointer items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30'
         >
           Reset Password
         </button>

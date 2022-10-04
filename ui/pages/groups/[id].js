@@ -213,7 +213,7 @@ export default function GroupDetails() {
                 setAddUser('')
               }}
               disabled={addUser === ''}
-              className='flex-none rounded-md bg-blue-700 px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-30'
+              className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
             >
               Add User
             </button>
