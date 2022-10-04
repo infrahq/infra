@@ -224,7 +224,7 @@ export default function ProvidersEditDetails() {
                     name === provider?.name
                   }
                   type='submit'
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+                  className='inline-flex items-center rounded-md border border-transparent bg-blue-700 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-30'
                 >
                   Save Changes
                 </button>
