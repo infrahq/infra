@@ -7,6 +7,7 @@ import {
   CheckIcon,
   DuplicateIcon,
   ExternalLinkIcon,
+  XIcon,
 } from '@heroicons/react/outline'
 import Confetti from 'react-dom-confetti'
 
@@ -115,9 +116,19 @@ export default function DestinationsAdd() {
       <Head>
         <title>Add Infrastructure - Infra</title>
       </Head>
-      <h1 className='my-6 py-1 font-display text-xl font-medium'>
-        Connect Cluster
-      </h1>
+      <div className='flex items-center justify-between'>
+        <h1 className='my-6 py-1 font-display text-xl font-medium'>
+          Connect Cluster
+        </h1>
+        <Link href='/destinations'>
+          <a>
+            <XIcon
+              className='h-5 w-5 text-gray-500 hover:text-gray-800'
+              aria-hidden='true'
+            />
+          </a>
+        </Link>
+      </div>
       <div className='flex w-full flex-col'>
         {/* Name form */}
         <form

@@ -40,7 +40,7 @@ export default function ProvidersEditDetails() {
   ]
 
   useEffect(() => {
-    setName(provider.name)
+    setName(provider?.name)
   }, [provider])
 
   async function onSubmit(e) {

@@ -47,7 +47,7 @@ export default function Table({
             <tr key={headerGroup.id}>
               {headerGroup.headers.map(header => (
                 <th
-                  className='w-auto py-2 px-5 text-left font-medium first:w-[40%]'
+                  className='w-auto py-2 px-5 text-left font-medium first:max-w-[40%]'
                   key={header.id}
                 >
                   {header.isPlaceholder
@@ -65,14 +65,14 @@ export default function Table({
           {data &&
             table.getRowModel().rows.map(row => (
               <tr
-                className={`group ${
+                className={`group truncate ${
                   href ? 'cursor-pointer hover:bg-gray-50/50' : ''
                 }`}
                 key={row.id}
               >
                 {row.getVisibleCells().map(cell => (
                   <td
-                    className={`border-gray-100 text-sm ${
+                    className={`border-gray-100 text-sm  ${
                       href ? '' : 'px-5 py-2'
                     }`}
                     key={cell.id}
