@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 
+import { useUser } from '../../lib/hooks'
 import { useServerConfig } from '../../lib/serverconfig'
 import { saveToVisitedOrgs } from '.'
 
@@ -10,29 +11,21 @@ import LoginLayout from '../../components/layouts/login'
 export default function Callback() {
   const { mutate } = useSWRConfig()
   const { baseDomain } = useServerConfig()
+  const { login } = useUser()
 
   const router = useRouter()
   const { isReady } = router
   const { code, state } = router.query
 
   useEffect(() => {
-    async function login({ providerID, code, redirectURL, next }) {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          oidc: {
-            providerID,
-            code,
-            redirectURL,
-          },
-        }),
+    async function finish({ providerID, code, redirectURL, next }) {
+      const user = await login({
+        oidc: {
+          providerID,
+          code,
+          redirectURL,
+        },
       })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      const data = await res.json()
 
       router.replace(next ? decodeURIComponent(next) : '/')
 
@@ -40,7 +33,7 @@ export default function Callback() {
       saveToVisitedOrgs(
         window.location.host,
         baseDomain,
-        data?.organizationName
+        user?.organizationName
       )
     }
 
@@ -55,7 +48,7 @@ export default function Callback() {
       redirectURL &&
       baseDomain
     ) {
-      login({
+      finish({
         providerID,
         code,
         redirectURL,
@@ -65,7 +58,7 @@ export default function Callback() {
       window.localStorage.removeItem('state')
       window.localStorage.removeItem('redirectURL')
     }
-  }, [code, state, mutate, router, baseDomain])
+  }, [code, state, mutate, router, baseDomain, login])
 
   if (!isReady) {
     return null

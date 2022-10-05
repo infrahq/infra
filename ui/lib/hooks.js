@@ -4,7 +4,7 @@ import useSWR from 'swr'
 const INFRA_ADMIN_ROLE = 'admin'
 
 export function useUser({ redirectTo, redirectIfFound } = {}) {
-  const { data: user, error, isValidating } = useSWR('/api/users/self')
+  const { data: user, error, isValidating, mutate } = useSWR('/api/users/self')
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
       ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
@@ -22,8 +22,9 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
     return { loading }
   }
 
-  // Redirect
+  // Redirect only if we aren't loading or fetching new data
   if (
+    !loading &&
     !isValidating &&
     ((redirectTo && !redirectIfFound && !user) || (redirectIfFound && user))
   ) {
@@ -35,6 +36,32 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
     user,
     loading,
     isAdmin: grants?.some(g => g.privilege === INFRA_ADMIN_ROLE),
+
+    // login logs the user in and clears the local cache
+    login: async body => {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
+
+      if (!res.ok) {
+        throw await res.json()
+      }
+
+      const data = await res.json()
+
+      // Don't reset state if a password change is required
+      if (data.passwordUpdateRequired) {
+        return data
+      }
+
+      // Clear user cache
+      mutate(undefined, false)
+
+      return data
+    },
+
+    // logout logs the user out and redirects them to the login page
     logout: async () => {
       await fetch('/api/logout', {
         method: 'POST',

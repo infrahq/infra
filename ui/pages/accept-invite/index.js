@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 
-import LoginLayout from '../../components/layouts/login'
+import Login from '../../components/layouts/login'
 import PasswordResetForm from '../../components/password-reset-form'
 
 export default function AcceptInvite() {
@@ -27,4 +27,4 @@ export default function AcceptInvite() {
   )
 }
 
-AcceptInvite.layout = page => <LoginLayout>{page}</LoginLayout>
+AcceptInvite.layout = page => <Login>{page}</Login>
