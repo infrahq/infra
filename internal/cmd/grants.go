@@ -15,12 +15,13 @@ import (
 )
 
 type grantsCmdOptions struct {
-	UserName  string
-	GroupName string
-	Resource  string
-	Role      string
-	Force     bool
-	Inherited bool
+	UserName    string
+	GroupName   string
+	Resource    string
+	Destination string
+	Role        string
+	Force       bool
+	Inherited   bool
 }
 
 func newGrantsCmd(cli *CLI) *cobra.Command {
@@ -60,6 +61,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			listReq := api.ListGrantsRequest{
 				Privilege:     options.Role,
 				Resource:      options.Resource,
+				Destination:   options.Destination,
 				ShowInherited: options.Inherited,
 			}
 
@@ -114,7 +116,8 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&options.Resource, "destination", "", "Filter by destination")
+	cmd.Flags().StringVar(&options.Destination, "destination", "", "Filter by destination")
+	cmd.Flags().StringVar(&options.Resource, "resource", "", "Filter by resource")
 	cmd.Flags().StringVar(&options.GroupName, "group", "", "Filter by group name or id")
 	cmd.Flags().StringVar(&options.UserName, "user", "", "Filter by user name or id")
 	cmd.Flags().BoolVar(&options.Inherited, "inherited", false, "Include grants a user inherited through a group")

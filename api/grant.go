@@ -35,7 +35,8 @@ func (r *CreateGrantResponse) StatusCode() int {
 type ListGrantsRequest struct {
 	User          uid.ID `form:"user"`
 	Group         uid.ID `form:"group"`
-	Resource      string `form:"resource" example:"production"`
+	Resource      string `form:"resource" example:"production.namespace"`
+	Destination   string `form:"destination" example:"production"`
 	Privilege     string `form:"privilege" example:"view"`
 	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
 	ShowSystem    bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants"`
@@ -48,6 +49,10 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 			validate.Field{Name: "user", Value: r.User},
 			validate.Field{Name: "group", Value: r.Group},
 		),
+		validate.MutuallyExclusive(
+			validate.Field{Name: "resource", Value: r.Resource},
+			validate.Field{Name: "destination", Value: r.Destination},
+		),
 		validate.ValidatorFunc(func() *validate.Failure {
 			if r.ShowInherited && r.User == 0 {
 				return &validate.Failure{
@@ -58,6 +63,11 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 			return nil
 		}),
 	}
+}
+
+func (r ListGrantsRequest) SetPage(page int) Paginatable {
+	r.PaginationRequest.Page = page
+	return r
 }
 
 type CreateGrantRequest struct {
@@ -76,10 +86,4 @@ func (r CreateGrantRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("privilege", r.Privilege),
 		validate.Required("resource", r.Resource),
 	}
-}
-
-func (req ListGrantsRequest) SetPage(page int) Paginatable {
-	req.PaginationRequest.Page = page
-
-	return req
 }

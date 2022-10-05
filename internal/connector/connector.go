@@ -404,27 +404,10 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 }
 
 func syncWithServer(con connector) error {
-	grants, err := con.client.ListGrants(api.ListGrantsRequest{Resource: con.destination.Name})
+	grants, err := con.client.ListGrants(api.ListGrantsRequest{Destination: con.destination.Name})
 	if err != nil {
 		logging.Errorf("error listing grants: %v", err)
 		return nil
-	}
-
-	namespaces, err := con.k8s.Namespaces()
-	if err != nil {
-		logging.Errorf("could not get kubernetes namespaces: %v", err)
-		return nil
-	}
-
-	// TODO(https://github.com/infrahq/infra/issues/2422): support wildcard resource searches
-	for _, n := range namespaces {
-		g, err := con.client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", con.destination.Name, n)})
-		if err != nil {
-			logging.Errorf("error listing grants: %v", err)
-			return nil
-		}
-
-		grants.Items = append(grants.Items, g.Items...)
 	}
 
 	err = updateRoles(con.client, con.k8s, grants.Items)
