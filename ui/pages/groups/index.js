@@ -7,7 +7,9 @@ import { Fragment, useState } from 'react'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
-function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
+function AddGroupsDialog({ setOpen }) {
+  const router = useRouter()
+
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -29,8 +31,9 @@ function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
         throw group
       }
 
-      onAdded(group)
       setOpen(false)
+
+      router.replace(`/groups/${group.id}`)
     } catch (e) {
       setError(e.message)
     }
@@ -132,12 +135,7 @@ export default function Groups() {
                   leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
                 >
                   <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white px-8 py-4 text-left shadow-xl shadow-gray-300/10 transition-all sm:max-w-sm'>
-                    <AddGroupsDialog
-                      setOpen={setOpen}
-                      onAdded={() => {
-                        mutate()
-                      }}
-                    />
+                    <AddGroupsDialog setOpen={setOpen} />
                   </Dialog.Panel>
                 </Transition.Child>
               </div>

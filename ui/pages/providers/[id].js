@@ -139,26 +139,26 @@ export default function ProvidersEditDetails() {
             </RemoveButton>
           </div>
         </div>
-        <div className='flex flex-row border-t border-gray-100'>
-          {metadata.map(g => (
-            <div
-              key={g.label}
-              className='px-6 py-5 text-left first:pr-6 first:pl-0'
-            >
-              <div className='text-2xs text-gray-400'>{g.label}</div>
-              <span
-                className={`text-sm ${
-                  g.font ? g.font : 'font-medium'
-                } text-gray-800`}
+        {provider && (
+          <div className='flex flex-row border-t border-gray-100'>
+            {metadata.map(g => (
+              <div
+                key={g.label}
+                className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
-                {g.value}
-              </span>
-            </div>
-          ))}
-        </div>
+                <div className='text-2xs text-gray-400'>{g.label}</div>
+                <span
+                  className={`text-sm ${
+                    g.font ? g.font : 'font-medium'
+                  } text-gray-800`}
+                >
+                  {g.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
-      {/* Edit Form */}
-      <h2 className='text-lg font-medium'>Information</h2>
       <div className='my-2.5'>
         {provider && (
           <form onSubmit={onSubmit} className='mb-6 space-y-2'>

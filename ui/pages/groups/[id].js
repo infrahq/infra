@@ -162,27 +162,28 @@ export default function GroupDetails() {
             </div>
           )}
         </div>
-        <div className='flex flex-row border-t border-gray-100'>
-          {metadata.map(g => (
-            <div
-              key={g.label}
-              className='px-6 py-5 text-left first:pr-6 first:pl-0'
-            >
-              <div className='text-2xs text-gray-400'>{g.label}</div>
-              <span
-                className={`text-sm ${
-                  g.font ? g.font : 'font-medium'
-                } text-gray-800`}
+        {group && (
+          <div className='flex flex-row border-t border-gray-100'>
+            {metadata.map(g => (
+              <div
+                key={g.label}
+                className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
-                {g.value}
-              </span>
-            </div>
-          ))}
-        </div>
+                <div className='text-2xs text-gray-400'>{g.label}</div>
+                <span
+                  className={`text-sm ${
+                    g.font ? g.font : 'font-medium'
+                  } text-gray-800`}
+                >
+                  {g.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Users */}
-      <h2 className='text-lg font-medium'>Users</h2>
       <div className='my-2.5 flex'>
         <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
           <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
@@ -212,8 +213,7 @@ export default function GroupDetails() {
                 mutate()
                 setAddUser('')
               }}
-              disabled={addUser === ''}
-              className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-700'
             >
               Add User
             </button>
@@ -226,7 +226,7 @@ export default function GroupDetails() {
         pageCount={totalPages}
         count={totalCount}
         data={users}
-        empty='No users'
+        empty={`No users in ${group?.name}`}
         onPageChange={({ pageIndex }) => {
           router.push({
             pathname: router.pathname,
