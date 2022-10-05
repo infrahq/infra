@@ -89,7 +89,10 @@ export default function Dashboard({ children }) {
   const router = useRouter()
 
   const { user, loading, isAdmin, logout } = useUser({
-    redirectTo: `/login?next=${encodeURIComponent(router.asPath)}`,
+    redirectTo:
+      router.asPath === '/'
+        ? '/login'
+        : `/login?next=${encodeURIComponent(router.asPath)}`,
   })
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -133,7 +136,7 @@ export default function Dashboard({ children }) {
     {
       name: 'Account',
       href: '/account',
-      show: user?.providerNames.includes('infra'),
+      show: user?.providerNames?.includes('infra'),
     },
   ]
 

@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import Cookies from 'universal-cookie'
 import Link from 'next/link'
 
+import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 
@@ -100,26 +101,18 @@ export default function Login() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const { baseDomain, isEmailConfigured } = useServerConfig()
+  const { login } = useUser()
 
   async function onSubmit(e) {
     e.preventDefault()
 
     try {
-      const res = await fetch('/api/login', {
-        method: 'post',
-        body: JSON.stringify({
-          passwordCredentials: {
-            name,
-            password,
-          },
-        }),
+      const data = await login({
+        passwordCredentials: {
+          name,
+          password,
+        },
       })
-
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      const data = await res.json()
 
       if (data.passwordUpdateRequired) {
         router.replace({
@@ -131,6 +124,7 @@ export default function Login() {
       }
 
       router.replace(next ? decodeURIComponent(next) : '/')
+
       saveToVisitedOrgs(
         window.location.host,
         baseDomain,
