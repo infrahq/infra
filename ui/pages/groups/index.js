@@ -91,8 +91,9 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 10
-  const { data: { items: groups, totalPages, totalCount } = {}, mutate } =
-    useSWR(`/api/groups?page=${page}&limit=${limit}`)
+  const { data: { items: groups, totalPages, totalCount } = {} } = useSWR(
+    `/api/groups?page=${page}&limit=${limit}`
+  )
   const [open, setOpen] = useState(false)
 
   return (
