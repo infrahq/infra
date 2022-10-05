@@ -141,8 +141,6 @@ type ListGrantsOptions struct {
 	ExcludeConnectorGrant bool
 
 	Pagination *Pagination
-	// TODO: return this value instead?
-	MaxUpdateIndex *int64
 }
 
 func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
@@ -186,7 +184,7 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 		query.B("AND resource = ?", opts.ByResource)
 	}
 	if opts.ByDestination != "" {
-		query.B("AND (resource = ? OR resource LIKE ?)", opts.ByDestination, opts.ByDestination+".%")
+		grantsByDestination(query, opts.ByDestination)
 	}
 	if opts.ExcludeConnectorGrant {
 		query.B("AND NOT (privilege = 'connector' AND resource = 'infra')")
@@ -201,39 +199,33 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	if err != nil {
 		return nil, err
 	}
-	result, err := scanRows(rows, func(grant *models.Grant) []any {
+	return scanRows(rows, func(grant *models.Grant) []any {
 		fields := append((*grantsTable)(grant).ScanFields(), &grant.UpdateIndex)
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
 		return fields
 	})
-
-	// TODO: validate this is only used with supported parameters
-	if opts.MaxUpdateIndex != nil {
-		maxIndex, err := grantsMaxUpdateIndex(tx, grantsMaxUpdateIndexOptions{
-			ByResource: opts.ByResource,
-		})
-		*opts.MaxUpdateIndex = maxIndex
-		return result, err
-	}
-	return result, nil
 }
 
-type grantsMaxUpdateIndexOptions struct {
-	ByResource string
+func grantsByDestination(query *querybuilder.Query, destination string) {
+	query.B("AND (resource = ? OR resource LIKE ?)", destination, destination+".%")
 }
 
-// grantsMaxUpdateIndex returns the maximum update_index all the grants that
+type GrantsMaxUpdateIndexOptions struct {
+	ByDestination string
+}
+
+// GrantsMaxUpdateIndex returns the maximum update_index all the grants that
 // match the query. This MUST include soft-deleted rows as well.
 //
 // TODO: any way to assert this tx has the right isolation level?
-func grantsMaxUpdateIndex(tx ReadTxn, opts grantsMaxUpdateIndexOptions) (int64, error) {
+func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, error) {
 	query := querybuilder.New("SELECT max(update_index) FROM grants")
 	query.B("WHERE organization_id = ?", tx.OrganizationID())
 
-	if opts.ByResource != "" {
-		query.B("AND resource = ?", opts.ByResource)
+	if opts.ByDestination != "" {
+		grantsByDestination(query, opts.ByDestination)
 	}
 
 	var result int64

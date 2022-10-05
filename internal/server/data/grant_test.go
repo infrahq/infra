@@ -131,13 +131,15 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
 			assert.Equal(t, maxIndex, startUpdateIndex+3) // 2 inserts, 1 delete
 			startUpdateIndex = maxIndex
 		})
@@ -155,17 +157,20 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
 			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
 			startUpdateIndex = maxIndex
 
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByResource: "any"})
+			// other org still has the grant
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
@@ -185,14 +190,16 @@ func TestDeleteGrants(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			var maxIndex int64
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any", MaxUpdateIndex: &maxIndex})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep1.ID}},
 				{Model: models.Model{ID: toKeep2.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
 			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
 			startUpdateIndex = maxIndex
 		})
