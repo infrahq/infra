@@ -19,7 +19,6 @@ import { useServerConfig } from '../../lib/serverconfig'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import ErrorMessage from '../../components/error-message'
 
 function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   const [email, setEmail] = useState('')
@@ -150,7 +149,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                     error ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
-                {error && <ErrorMessage message={error} />}
+                {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
               </div>
             </div>
             <div className='flex flex-row items-center justify-end space-x-3'>

@@ -2,7 +2,7 @@ import Head from 'next/head'
 import { useState } from 'react'
 
 import { useUser } from '../../lib/hooks'
-import ErrorMessage from '../../components/error-message'
+
 import Dashboard from '../../components/layouts/dashboard'
 import Notification from '../../components/notification'
 
@@ -85,7 +85,9 @@ function PasswordReset({ user, onReset = () => {} }) {
             errors.password ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.password && <ErrorMessage message={errors.password} />}
+        {errors.password && (
+          <p className='my-1 text-xs text-red-500'>{errors.password}</p>
+        )}
       </div>
       <div className='relative my-2 w-full'>
         <label
@@ -109,7 +111,7 @@ function PasswordReset({ user, onReset = () => {} }) {
           }`}
         />
         {errors.confirmPassword && (
-          <ErrorMessage message={errors.confirmPassword} />
+          <p className='my-1 text-xs text-red-500'>{errors.confirmPassword}</p>
         )}
       </div>
       <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
@@ -121,7 +123,7 @@ function PasswordReset({ user, onReset = () => {} }) {
           Reset Password
         </button>
       </div>
-      {error && <ErrorMessage message={error} />}
+      {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
     </form>
   )
 }

@@ -1,7 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 
-import ErrorMessage from '../../components/error-message'
 import Login from '../../components/layouts/login'
 
 export default function Finish() {
@@ -87,7 +86,9 @@ export default function Finish() {
               error ? 'border-red-500' : 'border-gray-300'
             }`}
           />
-          {errors.password && <ErrorMessage message={errors.password} />}
+          {errors.password && (
+            <p className='my-1 text-xs text-red-500'>{errors.password}</p>
+          )}
         </div>
         <div className='my-2 w-full'>
           <label
@@ -111,13 +112,15 @@ export default function Finish() {
             }`}
           />
           {errors.confirmPassword && (
-            <ErrorMessage message={errors.confirmPassword} />
+            <p className='my-1 text-xs text-red-500'>
+              {errors.confirmPassword}
+            </p>
           )}
         </div>
         <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
           Log in
         </button>
-        {error && <ErrorMessage message={error} />}
+        {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
       </form>
     </>
   )
