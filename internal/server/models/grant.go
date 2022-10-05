@@ -10,7 +10,6 @@ const (
 	InfraAdminRole        = "admin"
 	InfraViewRole         = "view"
 	InfraConnectorRole    = "connector"
-	InfraSCIMRole         = "scim"
 )
 
 // BasePermissionConnect is the first-principle permission that all other permissions are defined from.
