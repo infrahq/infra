@@ -7,7 +7,9 @@ import { Fragment, useState } from 'react'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
 
-function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
+function AddGroupsDialog({ setOpen }) {
+  const router = useRouter()
+
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -29,8 +31,9 @@ function AddGroupsDialog({ setOpen, onAdded = () => {} }) {
         throw group
       }
 
-      onAdded(group)
       setOpen(false)
+
+      router.replace(`/groups/${group.id}`)
     } catch (e) {
       setError(e.message)
     }
@@ -88,8 +91,9 @@ export default function Groups() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
   const limit = 10
-  const { data: { items: groups, totalPages, totalCount } = {}, mutate } =
-    useSWR(`/api/groups?page=${page}&limit=${limit}`)
+  const { data: { items: groups, totalPages, totalCount } = {} } = useSWR(
+    `/api/groups?page=${page}&limit=${limit}`
+  )
   const [open, setOpen] = useState(false)
 
   return (
@@ -132,12 +136,7 @@ export default function Groups() {
                   leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
                 >
                   <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white px-8 py-4 text-left shadow-xl shadow-gray-300/10 transition-all sm:max-w-sm'>
-                    <AddGroupsDialog
-                      setOpen={setOpen}
-                      onAdded={() => {
-                        mutate()
-                      }}
-                    />
+                    <AddGroupsDialog setOpen={setOpen} />
                   </Dialog.Panel>
                 </Transition.Child>
               </div>
@@ -164,7 +163,7 @@ export default function Groups() {
             {
               cell: info => (
                 <div className='flex flex-col py-0.5'>
-                  <div className='text-sm font-medium text-gray-700'>
+                  <div className='truncate text-sm font-medium text-gray-700'>
                     {info.getValue()}
                   </div>
                   <div className='text-2xs text-gray-500 sm:hidden'>

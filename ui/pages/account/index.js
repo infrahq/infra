@@ -131,7 +131,7 @@ function PasswordReset({ user, onReset = () => {} }) {
 export default function Account() {
   const { user } = useUser()
 
-  const [showNotification, setshowNotification] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
 
   const hasInfraProvider = user?.providerNames?.includes('infra')
 
@@ -152,9 +152,9 @@ export default function Account() {
             <PasswordReset
               user={user}
               onReset={() => {
-                setshowNotification(true)
+                setShowNotification(true)
                 setTimeout(() => {
-                  setshowNotification(false)
+                  setShowNotification(false)
                 }, 5000)
               }}
             />
@@ -164,7 +164,7 @@ export default function Account() {
       {/* Notification */}
       <Notification
         show={showNotification}
-        setShow={setshowNotification}
+        setShow={setShowNotification}
         text='Password Successfully Reset'
       />
     </div>

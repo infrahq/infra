@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
+import Link from 'next/link'
 import { useSWRConfig } from 'swr'
-import { InformationCircleIcon } from '@heroicons/react/outline'
+import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
@@ -159,9 +160,19 @@ export default function ProvidersAddDetails() {
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
-      <h1 className='my-6 py-1 font-display text-xl font-medium'>
-        Connect Provider
-      </h1>
+      <div className='flex items-center justify-between'>
+        <h1 className='my-6 py-1 font-display text-xl font-medium'>
+          Connect Provider
+        </h1>
+        <Link href='/providers'>
+          <a>
+            <XIcon
+              className='h-5 w-5 text-gray-500 hover:text-gray-800'
+              aria-hidden='true'
+            />
+          </a>
+        </Link>
+      </div>
       <div className='flex w-full flex-col'>
         <form onSubmit={onSubmit} className='mb-6 space-y-8'>
           {/* Overview */}
@@ -200,26 +211,28 @@ export default function ProvidersAddDetails() {
                 learn more
               </a>
             </div>
+            <div className='mt-3 space-y-3'>
+              <div>
+                <label className='text-2xs font-medium text-gray-700'>
+                  Name (optional)
+                </label>
+                <input
+                  type='text'
+                  value={name}
+                  onChange={e => {
+                    setName(e.target.value)
+                    setErrors({})
+                    setError('')
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {errors.name && (
+                  <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+                )}
+              </div>
 
-            <label className='text-2xs font-medium text-gray-700'>
-              Name (optional)
-            </label>
-            <input
-              type='text'
-              value={name}
-              onChange={e => {
-                setName(e.target.value)
-                setErrors({})
-                setError('')
-              }}
-              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
-            />
-            {errors.name && (
-              <p className='my-1 text-xs text-red-500'>{errors.name}</p>
-            )}
-            <div className='mt-6 space-y-3'>
               {kind !== 'google' && (
                 <div>
                   <label className='text-2xs font-medium text-gray-700'>
@@ -293,7 +306,7 @@ export default function ProvidersAddDetails() {
           </div>
 
           {kind === 'google' && (
-            <div className='space-y-1'>
+            <div className='w-full'>
               <div className='mb-1 flex items-center space-x-2 text-xs'>
                 <h3 className='text-base font-medium leading-6 text-gray-900'>
                   Optional information for Google Groups
@@ -307,9 +320,9 @@ export default function ProvidersAddDetails() {
                   learn more
                 </a>
               </div>
-              <div className='mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6'>
-                <div className='sm:col-span-6 lg:col-span-5'>
-                  <label className='flex text-2xs font-medium text-gray-700'>
+              <div className='mt-3 space-y-3'>
+                <div>
+                  <label className='flex items-center text-2xs font-medium text-gray-700'>
                     Private Key
                     <Tooltip
                       message='upload the private key json file that was created for
@@ -334,7 +347,7 @@ export default function ProvidersAddDetails() {
                     </p>
                   )}
                 </div>
-                <div className='sm:col-span-6 lg:col-span-5'>
+                <div>
                   <label className='text-2xs font-medium text-gray-700'>
                     Workspace Domain Admin Email
                   </label>

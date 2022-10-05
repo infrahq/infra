@@ -44,7 +44,7 @@ export default function DeleteModal({
               leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
             >
               <Dialog.Panel
-                className={`relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-md`}
+                className={`relative w-full transform break-words rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-md`}
               >
                 <div>
                   <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100'>
@@ -60,9 +60,7 @@ export default function DeleteModal({
                     >
                       {title}
                     </Dialog.Title>
-                    <div className='mt-2'>
-                      <p className='text-sm text-gray-500'>{message}</p>
-                    </div>
+                    <div className='mt-2 text-sm text-gray-500'>{message}</div>
                   </div>
                 </div>
                 <div className='mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'>

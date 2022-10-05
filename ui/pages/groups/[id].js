@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Head from 'next/head'
 import useSWR from 'swr'
 import { useState, useRef } from 'react'
-import { CheckIcon } from '@heroicons/react/outline'
+import { CheckIcon, PlusIcon } from '@heroicons/react/outline'
 import { Combobox as HeadlessUIComboBox } from '@headlessui/react'
 import dayjs from 'dayjs'
 
@@ -40,7 +40,7 @@ function ComboBox({ options = [], selected, setSelected }) {
           }}
           className='w-full rounded-md border border-gray-300 bg-white py-[7px] pl-2.5 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 md:text-xs'
           value={query}
-          placeholder='User'
+          placeholder='Enter user'
           type='search'
           onChange={event => setQuery(event.target.value)}
         />
@@ -151,7 +151,7 @@ export default function GroupDetails() {
                 }}
                 modalTitle='Remove group'
                 modalMessage={
-                  <div className='truncate'>
+                  <div>
                     Are you sure you want to remove{' '}
                     <span className='font-bold'>{group?.name}</span>?
                   </div>
@@ -162,27 +162,28 @@ export default function GroupDetails() {
             </div>
           )}
         </div>
-        <div className='flex flex-row border-t border-gray-100'>
-          {metadata.map(g => (
-            <div
-              key={g.label}
-              className='px-6 py-5 text-left first:pr-6 first:pl-0'
-            >
-              <div className='text-2xs text-gray-400'>{g.label}</div>
-              <span
-                className={`text-sm ${
-                  g.font ? g.font : 'font-medium'
-                } text-gray-800`}
+        {group && (
+          <div className='flex flex-row border-t border-gray-100'>
+            {metadata.map(g => (
+              <div
+                key={g.label}
+                className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
-                {g.value}
-              </span>
-            </div>
-          ))}
-        </div>
+                <div className='text-2xs text-gray-400'>{g.label}</div>
+                <span
+                  className={`text-sm ${
+                    g.font ? g.font : 'font-medium'
+                  } text-gray-800`}
+                >
+                  {g.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Users */}
-      <h2 className='text-lg font-medium'>Users</h2>
       <div className='my-2.5 flex'>
         <div className='flex w-full flex-col rounded-lg border border-gray-200/75 px-4 pt-3 pb-4'>
           <h3 className='mb-2 text-sm font-medium'>Add user to group</h3>
@@ -195,6 +196,7 @@ export default function GroupDetails() {
               setSelected={setAddUser}
             />
             <button
+              disabled={!addUser}
               onClick={async () => {
                 const user = allUsers?.find(au => au.name === addUser)
 
@@ -212,10 +214,10 @@ export default function GroupDetails() {
                 mutate()
                 setAddUser('')
               }}
-              disabled={addUser === ''}
-              className='flex-none rounded-md bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
             >
-              Add User
+              <PlusIcon className='mr-1 h-3 w-3' />
+              Add
             </button>
           </div>
         </div>
@@ -273,7 +275,15 @@ export default function GroupDetails() {
                       mutateUsers()
                     }}
                     title='Remove user from this group?'
-                    message='Are you sure you want to remove this user from the group?'
+                    message={
+                      <div>
+                        Are you sure you want to remove{' '}
+                        <span className='font-bold'>
+                          {info.row.original.name}
+                        </span>{' '}
+                        from the group ?
+                      </div>
+                    }
                   />
                 </div>
               )
