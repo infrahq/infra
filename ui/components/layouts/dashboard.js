@@ -237,7 +237,7 @@ export default function Dashboard({ children }) {
                 >
                   <Menu.Items className='absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
                     <div className='px-4 py-3'>
-                      <p className='text-xs text-gray-600'>Signed in as</p>
+                      <p className='text-xs text-gray-600'>Logged in as</p>
                       <p className='truncate text-sm font-semibold text-gray-900'>
                         {user?.name}
                       </p>
@@ -264,7 +264,7 @@ export default function Dashboard({ children }) {
                           onClick={() => logout()}
                           className='block w-full cursor-pointer py-2 px-4 text-left text-sm text-gray-700 hover:bg-gray-100'
                         >
-                          Sign out
+                          Log out
                         </button>
                       </Menu.Item>
                     </div>
