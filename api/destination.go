@@ -30,7 +30,7 @@ type DestinationConnection struct {
 
 func (r DestinationConnection) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("url", r.URL),
+		validate.Required("ca", r.CA),
 	}
 }
 

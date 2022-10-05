@@ -103,12 +103,18 @@ export default function Destinations() {
                 <div
                   className={`h-2 w-2 flex-none rounded-full border ${
                     info.getValue()
-                      ? ' border-teal-500/50 bg-teal-400'
+                      ? info.row.original.connection.url === ''
+                        ? 'animate-pulse border-yellow-600 bg-yellow-500'
+                        : 'border-teal-500/50 bg-teal-400'
                       : 'border-gray-300 bg-gray-200'
                   }`}
                 />
                 <span className='flex-none px-2'>
-                  {info.getValue() ? 'Connected' : 'Disconnected'}
+                  {info.getValue()
+                    ? info.row.original.connection.url === ''
+                      ? 'Pending'
+                      : 'Connected'
+                    : 'Disconnected'}
                 </span>
               </div>
             ),
