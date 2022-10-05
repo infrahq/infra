@@ -280,6 +280,8 @@ CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organizatio
 
 CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (organization_id, identity_id) WHERE (deleted_at IS NULL);
 
+CREATE UNIQUE INDEX idx_destinations_name ON destinations USING btree (organization_id, name) WHERE (deleted_at IS NULL);
+
 CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations USING btree (organization_id, unique_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (key_id);

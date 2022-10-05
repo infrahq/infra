@@ -71,6 +71,7 @@ func migrations() []*migrator.Migration {
 		cleanCrossOrgGroupMemberships(),
 		fixProviderUserIndex(),
 		removeDotFromDestinationName(),
+		destinationNameUnique(),
 		// next one here
 	}
 }
@@ -730,6 +731,23 @@ func removeDotFromDestinationName() *migrator.Migration {
 				if err != nil {
 					return err
 				}
+			}
+			return nil
+		},
+	}
+}
+
+func destinationNameUnique() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-05T11:12",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_destinations_name
+				ON destinations USING btree (organization_id, name)
+				WHERE (deleted_at IS NULL);`
+			if _, err := tx.Exec(stmt); err != nil {
+				return fmt.Errorf("failed to create unique index on destination name, "+
+					"delete the duplicate destination before proceeding with this upgrade: %w", err)
 			}
 			return nil
 		},
