@@ -228,7 +228,7 @@ export default function GroupDetails() {
         pageCount={totalPages}
         count={totalCount}
         data={users}
-        empty={`No users in ${group?.name}`}
+        empty='No users'
         onPageChange={({ pageIndex }) => {
           router.push({
             pathname: router.pathname,
