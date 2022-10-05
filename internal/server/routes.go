@@ -98,9 +98,6 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/tokens", a.CreateToken)
 	post(a, authn, "/api/logout", a.Logout)
 
-	// SCIM inbound provisioning
-	add(a, authn, http.MethodGet, "/api/scim/v2/Users", listProviderUsersRoute)
-
 	put(a, authn, "/api/settings", a.UpdateSettings)
 
 	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", pprofRoute)

@@ -64,7 +64,7 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 		}
 		addIDs = append(addIDs, item)
 	}
-	if err := rows.Err(); err != nil {
+	if rows.Err() != nil {
 		return err
 	}
 
@@ -105,7 +105,7 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 			}
 			ids = append(ids, item)
 		}
-		if err := rows.Err(); err != nil {
+		if rows.Err() != nil {
 			return err
 		}
 

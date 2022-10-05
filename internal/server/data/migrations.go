@@ -69,7 +69,6 @@ func migrations() []*migrator.Migration {
 		addIdentityVerifiedFields(),
 		cleanCrossOrgGroupMemberships(),
 		fixProviderUserIndex(),
-		addProviderUserSCIMFields(),
 		// next one here
 	}
 }
@@ -691,24 +690,6 @@ ALTER TABLE provider_users DROP CONSTRAINT IF EXISTS provider_users_pkey;
 ALTER TABLE provider_users ADD CONSTRAINT
     provider_users_pkey PRIMARY KEY (provider_id, identity_id);
 `
-			_, err := tx.Exec(stmt)
-			return err
-		},
-	}
-}
-
-func addProviderUserSCIMFields() *migrator.Migration {
-	return &migrator.Migration{
-		ID: "2022-09-28T13:00",
-		Migrate: func(tx migrator.DB) error {
-			stmt := `
-				ALTER TABLE provider_users
-				ADD COLUMN IF NOT EXISTS given_name text,
-				ADD COLUMN IF NOT EXISTS family_name text,
-				ADD COLUMN IF NOT EXISTS active boolean DEFAULT true;
-
-				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers ON provider_users (email, provider_id);
-			`
 			_, err := tx.Exec(stmt)
 			return err
 		},
