@@ -367,7 +367,7 @@ export default function ProvidersAddDetails() {
           <div className='flex items-center justify-end space-x-3 pt-5 pb-3'>
             <button
               type='submit'
-              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
             >
               Connect Provider
             </button>

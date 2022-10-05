@@ -136,7 +136,7 @@ export default function GrantForm({
         <button
           disabled={!selected}
           type='submit'
-          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+          className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-[7px] text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
         >
           <PlusIcon className='mr-1 h-3 w-3' />
           Add
