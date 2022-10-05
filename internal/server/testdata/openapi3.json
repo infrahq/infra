@@ -2256,9 +2256,18 @@
             }
           },
           {
-            "example": "production",
+            "example": "production.namespace",
             "in": "query",
             "name": "resource",
+            "schema": {
+              "example": "production.namespace",
+              "type": "string"
+            }
+          },
+          {
+            "example": "production",
+            "in": "query",
+            "name": "destination",
             "schema": {
               "example": "production",
               "type": "string"

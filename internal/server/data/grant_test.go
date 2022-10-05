@@ -291,6 +291,12 @@ func TestListGrants(t *testing.T) {
 			Resource:  "infra",
 			CreatedBy: uid.ID(777),
 		}
+		grant5 := &models.Grant{
+			Subject:   "i:userdelta",
+			Privilege: "logs",
+			Resource:  "any.namespace",
+			CreatedBy: uid.ID(777),
+		}
 		deleted := &models.Grant{
 			Subject:   "i:userchar",
 			Privilege: "view",
@@ -299,7 +305,7 @@ func TestListGrants(t *testing.T) {
 		}
 		deleted.DeletedAt.Time = time.Now()
 		deleted.DeletedAt.Valid = true
-		createGrants(t, tx, grant1, grant2, grant3, grant4, deleted)
+		createGrants(t, tx, grant1, grant2, grant3, grant4, grant5, deleted)
 
 		userID, err := uid.Parse([]byte("userchar"))
 		assert.NilError(t, err)
@@ -311,7 +317,7 @@ func TestListGrants(t *testing.T) {
 		gGrant1 := &models.Grant{
 			Subject:   uid.NewGroupPolymorphicID(111),
 			Privilege: "view",
-			Resource:  "shared",
+			Resource:  "anyother",
 			CreatedBy: uid.ID(777),
 		}
 		gGrant2 := &models.Grant{
@@ -359,6 +365,7 @@ func TestListGrants(t *testing.T) {
 				*grant2,
 				*grant3,
 				*grant4,
+				*grant5,
 				*gGrant1,
 				*gGrant2,
 				*gGrant3,
@@ -418,6 +425,7 @@ func TestListGrants(t *testing.T) {
 				*grant2,
 				*grant3,
 				*grant4,
+				*grant5,
 				*gGrant1,
 				*gGrant2,
 				*gGrant3,
@@ -429,10 +437,10 @@ func TestListGrants(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{Pagination: pagination})
 			assert.NilError(t, err)
 
-			expected := []models.Grant{*grant3, *grant4, *gGrant1}
+			expected := []models.Grant{*grant3, *grant4, *grant5}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			expectedPagination := &Pagination{Page: 2, Limit: 3, TotalCount: 8}
+			expectedPagination := &Pagination{Page: 2, Limit: 3, TotalCount: 9}
 			assert.DeepEqual(t, pagination, expectedPagination)
 		})
 		t.Run("by resource with pagination", func(t *testing.T) {
@@ -448,6 +456,15 @@ func TestListGrants(t *testing.T) {
 
 			expectedPagination := &Pagination{Page: 1, Limit: 2, TotalCount: 3}
 			assert.DeepEqual(t, pagination, expectedPagination)
+		})
+		t.Run("by destination", func(t *testing.T) {
+			actual, err := ListGrants(tx, ListGrantsOptions{
+				ByDestination: "any",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Grant{*grant1, *grant2, *grant3, *grant5}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
 	})
 }

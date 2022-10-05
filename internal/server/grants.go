@@ -16,7 +16,6 @@ import (
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
 	var subject uid.PolymorphicID
-	p := PaginationFromRequest(r.PaginationRequest)
 	switch {
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
@@ -24,7 +23,20 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	grants, err := access.ListGrants(c, subject, r.Resource, r.Privilege, r.ShowInherited, r.ShowSystem, &p)
+	p := PaginationFromRequest(r.PaginationRequest)
+	opts := data.ListGrantsOptions{
+		ByResource:                 r.Resource,
+		BySubject:                  subject,
+		ByDestination:              r.Destination,
+		ExcludeConnectorGrant:      !r.ShowSystem,
+		IncludeInheritedFromGroups: r.ShowInherited,
+		Pagination:                 &p,
+	}
+	if r.Privilege != "" {
+		opts.ByPrivileges = []string{r.Privilege}
+	}
+
+	grants, err := access.ListGrants(c, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +77,12 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 	var ucerr data.UniqueConstraintError
 
 	if errors.As(err, &ucerr) {
-		grants, err := access.ListGrants(c, grant.Subject, grant.Resource, grant.Privilege, false, false, nil)
+		opts := data.ListGrantsOptions{
+			ByResource:   grant.Resource,
+			BySubject:    grant.Subject,
+			ByPrivileges: []string{grant.Privilege},
+		}
+		grants, err := access.ListGrants(c, opts)
 
 		if err != nil {
 			return nil, err
@@ -93,7 +110,11 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	if grant.Resource == access.ResourceInfraAPI && grant.Privilege == models.InfraAdminRole {
-		infraAdminGrants, err := access.ListGrants(c, "", grant.Resource, grant.Privilege, false, false, nil)
+		opts := data.ListGrantsOptions{
+			ByResource:   access.ResourceInfraAPI,
+			ByPrivileges: []string{models.InfraAdminRole},
+		}
+		infraAdminGrants, err := access.ListGrants(c, opts)
 		if err != nil {
 			return nil, err
 		}
