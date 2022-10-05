@@ -38,6 +38,8 @@ func createIdentities(t *testing.T, db GormTxn, identities ...*models.Identity) 
 	for i := range identities {
 		err := CreateIdentity(db, identities[i])
 		assert.NilError(t, err, identities[i].Name)
+		_, err = CreateProviderUser(db, InfraProvider(db), identities[i])
+		assert.NilError(t, err, identities[i].Name)
 	}
 }
 
@@ -155,14 +157,14 @@ func TestDeleteIdentity(t *testing.T) {
 		_, err := GetIdentity(db, ByName(bond.Name))
 		assert.NilError(t, err)
 
-		err = DeleteIdentities(db, ByName(bond.Name))
+		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
 		assert.NilError(t, err)
 
 		_, err = GetIdentity(db, ByName(bond.Name))
 		assert.Error(t, err, "record not found")
 
 		// deleting a nonexistent identity should not fail
-		err = DeleteIdentities(db, ByName(bond.Name))
+		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
 		assert.NilError(t, err)
 
 		// deleting a identity should not delete unrelated identities
@@ -187,7 +189,7 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 		err = AddUsersToGroup(db, group.ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
 		assert.NilError(t, err)
 
-		err = DeleteIdentities(db, ByName(bond.Name))
+		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
 		assert.NilError(t, err)
 
 		group, err = GetGroup(db, ByID(group.ID))
@@ -206,7 +208,7 @@ func TestReCreateIdentitySameName(t *testing.T) {
 
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
-		err := DeleteIdentities(db, ByName(bond.Name))
+		err := DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
 		assert.NilError(t, err)
 
 		err = CreateIdentity(db, &models.Identity{Name: bond.Name})

@@ -39,7 +39,6 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	return data.CreateIdentity(db, identity)
 }
 
-// TODO (https://github.com/infrahq/infra/issues/2318) remove provider user, not user.
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	rCtx := GetRequestContext(c)
 	self, err := isIdentitySelf(c, id)
@@ -60,39 +59,7 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
-	if err := data.DeleteAccessKeys(db, data.DeleteAccessKeysOptions{ByIssuedForID: id}); err != nil {
-		return fmt.Errorf("delete identity access keys: %w", err)
-	}
-
-	groups, err := data.ListGroups(db, nil, data.ByGroupMember(id))
-	if err != nil {
-		return fmt.Errorf("list groups for identity: %w", err)
-	}
-	for _, group := range groups {
-		err = data.RemoveUsersFromGroup(db, group.ID, []uid.ID{id})
-		if err != nil {
-			return fmt.Errorf("delete group membership for identity: %w", err)
-		}
-	}
-	// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
-	credential, err := data.GetCredential(db, data.ByIdentityID(id))
-	if err != nil && !errors.Is(err, internal.ErrNotFound) {
-		return fmt.Errorf("get delete identity creds: %w", err)
-	}
-
-	if credential != nil {
-		err := data.DeleteCredential(db, credential.ID)
-		if err != nil {
-			return fmt.Errorf("delete identity creds: %w", err)
-		}
-	}
-
-	err = data.DeleteGrants(db, data.DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(id)})
-	if err != nil {
-		return fmt.Errorf("delete identity creds: %w", err)
-	}
-
-	return data.DeleteIdentity(db, id)
+	return data.DeleteIdentities(db, data.InfraProvider(db).ID, data.ByID(id))
 }
 
 func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, showSystem bool, p *data.Pagination) ([]models.Identity, error) {

@@ -1,12 +1,14 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/ssoroka/slice"
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -147,11 +149,11 @@ func ListIdentities(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]mod
 	return list[models.Identity](db, p, selectors...)
 }
 
-func DeleteIdentity(db GormTxn, id uid.ID) error {
-	return delete[models.Identity](db, id)
+func SaveIdentity(db GormTxn, identity *models.Identity) error {
+	return save(db, identity)
 }
 
-func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
+func DeleteIdentities(tx GormTxn, providerID uid.ID, selectors ...SelectorFunc) error {
 	selectID := func(db *gorm.DB) *gorm.DB {
 		return db.Select("id")
 	}
@@ -161,31 +163,61 @@ func DeleteIdentities(tx GormTxn, selectors ...SelectorFunc) error {
 		return err
 	}
 
-	ids := make([]uid.ID, 0)
-	for _, i := range toDelete {
-		ids = append(ids, i.ID)
-
-		err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: i.PolyID()})
-		if err != nil {
-			return err
-		}
-
-		groups, err := ListGroups(tx, nil, ByGroupMember(i.ID))
-		if err != nil {
-			return err
-		}
-
-		for _, group := range groups {
-			err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
-			if err != nil {
-				return err
-			}
-		}
+	ids, err := deleteReferencesToIdentities(tx, providerID, toDelete)
+	if err != nil {
+		return fmt.Errorf("remove identities: %w", err)
 	}
 
-	return deleteAll[models.Identity](tx, ByIDs(ids))
+	if len(ids) > 0 {
+		return deleteAll[models.Identity](tx, ByIDs(ids))
+	}
+
+	return nil
 }
 
-func SaveIdentity(db GormTxn, identity *models.Identity) error {
-	return save(db, identity)
+func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
+	for _, i := range toDelete {
+		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
+			return []uid.ID{}, fmt.Errorf("delete identity access keys: %w", err)
+		}
+		// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
+		credential, err := GetCredential(tx, ByIdentityID(i.ID))
+		if err != nil && !errors.Is(err, internal.ErrNotFound) {
+			return []uid.ID{}, fmt.Errorf("get delete identity creds: %w", err)
+		}
+		if credential != nil {
+			err := DeleteCredential(tx, credential.ID)
+			if err != nil {
+				return []uid.ID{}, fmt.Errorf("delete identity creds: %w", err)
+			}
+		}
+		if err := DeleteProviderUsers(tx, DeleteProviderUsersOptions{ByIdentityID: i.ID, ByProviderID: providerID}); err != nil {
+			return []uid.ID{}, fmt.Errorf("remove provider user: %w", err)
+		}
+
+		// if this identity only exists from an infra identity provider, remove all their groups and grants, then delete the user
+		user, err := GetIdentity(tx, Preload("Providers"), ByID(i.ID))
+		if err != nil {
+			return []uid.ID{}, fmt.Errorf("check user providers: %w", err)
+		}
+
+		if len(user.Providers) == 0 {
+			groups, err := ListGroups(tx, nil, ByGroupMember(i.ID))
+			if err != nil {
+				return []uid.ID{}, fmt.Errorf("list groups for identity: %w", err)
+			}
+			for _, group := range groups {
+				err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
+				if err != nil {
+					return []uid.ID{}, fmt.Errorf("delete group membership for identity: %w", err)
+				}
+			}
+			err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(i.ID)})
+			if err != nil {
+				return []uid.ID{}, fmt.Errorf("delete identity creds: %w", err)
+			}
+			unreferencedIdentityIDs = append(unreferencedIdentityIDs, user.ID)
+		}
+	}
+	return unreferencedIdentityIDs, nil
 }
