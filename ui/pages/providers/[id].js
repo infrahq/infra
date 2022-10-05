@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
+import Notification from '../../components/notification'
 
 const CLIENT_SECRET_INIT = '***********'
 
@@ -16,12 +17,15 @@ export default function ProvidersEditDetails() {
   const id = router.query.id
 
   const { mutate } = useSWRConfig()
-  const { data: provider } = useSWR(`/api/providers/${id}`)
+  const { data: provider, mutate: providerMutate } = useSWR(
+    `/api/providers/${id}`
+  )
 
   const [name, setName] = useState('')
-  const [clientSecret, setClientSecret] = useState(CLIENT_SECRET_INIT)
   const [error, setError] = useState('')
+  const [clientSecret, setClientSecret] = useState(CLIENT_SECRET_INIT)
   const [errors, setErrors] = useState({})
+  const [showNotification, setshowNotification] = useState(false)
 
   const metadata = [
     { label: 'ID', value: provider?.id, font: 'font-mono' },
@@ -36,7 +40,7 @@ export default function ProvidersEditDetails() {
   ]
 
   useEffect(() => {
-    setName(provider?.name)
+    setName(provider.name)
   }, [provider])
 
   async function onSubmit(e) {
@@ -61,6 +65,11 @@ export default function ProvidersEditDetails() {
           throw data
         }
 
+        setshowNotification(true)
+        setTimeout(() => {
+          setshowNotification(false)
+        }, 5000)
+
         return {}
       })
     } catch (e) {
@@ -78,6 +87,7 @@ export default function ProvidersEditDetails() {
       return false
     }
 
+    providerMutate()
     setClientSecret(CLIENT_SECRET_INIT)
 
     return false
@@ -147,11 +157,11 @@ export default function ProvidersEditDetails() {
           ))}
         </div>
       </header>
+      {/* Edit Form */}
       <h2 className='text-lg font-medium'>Information</h2>
       <div className='my-2.5'>
         {provider && (
           <form onSubmit={onSubmit} className='mb-6 space-y-2'>
-            {/* Overview */}
             <div>
               <label className='text-2xs font-medium text-gray-700'>Name</label>
               <input
@@ -218,7 +228,7 @@ export default function ProvidersEditDetails() {
               )}
             </div>
 
-            <div className='flex items-center justify-between'>
+            <div className='flex items-center justify-end'>
               {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
               <div className='pt-5 pb-3'>
                 <button
@@ -236,6 +246,12 @@ export default function ProvidersEditDetails() {
           </form>
         )}
       </div>
+      {/* Notification */}
+      <Notification
+        show={showNotification}
+        setShow={setshowNotification}
+        text={`${provider?.name} was successfully updated`}
+      />
     </div>
   )
 }
