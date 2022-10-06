@@ -13,15 +13,6 @@ function PasswordReset({ user, onReset = () => {} }) {
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    return clearTimer()
-  }, [])
-
-  function clearTimer() {
-    setshowNotification(false)
-    return clearTimeout(timerRef.current)
-  }
-
   async function onSubmit(e) {
     e.preventDefault()
 
@@ -142,7 +133,18 @@ export default function Account() {
 
   const [showNotification, setShowNotification] = useState(false)
 
+  const timerRef = useRef(null)
+
   const hasInfraProvider = user?.providerNames?.includes('infra')
+
+  useEffect(() => {
+    return clearTimer()
+  }, [])
+
+  function clearTimer() {
+    setShowNotification(false)
+    return clearTimeout(timerRef.current)
+  }
 
   return (
     <div className='mx-auto w-full max-w-2xl'>

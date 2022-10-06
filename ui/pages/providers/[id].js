@@ -26,7 +26,7 @@ export default function ProvidersEditDetails() {
   const [error, setError] = useState('')
   const [clientSecret, setClientSecret] = useState(CLIENT_SECRET_INIT)
   const [errors, setErrors] = useState({})
-  const [showNotification, setshowNotification] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
 
   const metadata = [
     { label: 'ID', value: provider?.id, font: 'font-mono' },
@@ -49,7 +49,7 @@ export default function ProvidersEditDetails() {
   }, [])
 
   function clearTimer() {
-    setshowNotification(false)
+    setShowNotification(false)
     return clearTimeout(timerRef.current)
   }
 
@@ -75,9 +75,9 @@ export default function ProvidersEditDetails() {
           throw data
         }
 
-        setshowNotification(true)
+        setShowNotification(true)
         timerRef.current = setTimeout(() => {
-          setshowNotification(false)
+          setShowNotification(false)
         }, 5000)
 
         return {}
@@ -259,7 +259,7 @@ export default function ProvidersEditDetails() {
       {/* Notification */}
       <Notification
         show={showNotification}
-        setShow={setshowNotification}
+        setShow={setShowNotification}
         text={`${provider?.name} was successfully updated`}
         setClearNotification={() => clearTimer()}
       />
