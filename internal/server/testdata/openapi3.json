@@ -3809,9 +3809,10 @@
             "name": "id",
             "required": true,
             "schema": {
+              "description": "a uid or the literal self",
               "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+              "format": "uid|self",
+              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}|self",
               "type": "string"
             }
           }

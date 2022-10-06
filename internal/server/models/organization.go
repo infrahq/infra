@@ -15,9 +15,11 @@ type Organization struct {
 
 func (o *Organization) ToAPI() *api.Organization {
 	return &api.Organization{
-		ID:     o.ID,
-		Name:   o.Name,
-		Domain: o.Domain,
+		ID:      o.ID,
+		Name:    o.Name,
+		Created: api.Time(o.CreatedAt),
+		Updated: api.Time(o.UpdatedAt),
+		Domain:  o.Domain,
 	}
 }
 

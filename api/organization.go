@@ -13,6 +13,10 @@ type Organization struct {
 	Domain  string `json:"domain"`
 }
 
+type GetOrganizationRequest struct {
+	ID IDOrSelf `uri:"id"`
+}
+
 type ListOrganizationsRequest struct {
 	Name string `form:"name"`
 	PaginationRequest

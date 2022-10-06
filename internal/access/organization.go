@@ -10,6 +10,12 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// isOrganizationSelf is used by authorization checks to see if the calling identity is requesting their own organization
+func isOrganizationSelf(c *gin.Context, orgID uid.ID) (bool, error) {
+	org := GetRequestContext(c).Authenticated.Organization
+	return org != nil && org.ID == orgID, nil
+}
+
 func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
 	selectors := []data.SelectorFunc{}
 	if name != "" {
@@ -29,7 +35,11 @@ func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]mode
 }
 
 func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
-	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
+	roles := []string{models.InfraSupportAdminRole}
+
+	// If the user is in the org, allow them to call this endpoint, otherwise they must be
+	// an InfraSupportAdmin.
+	db, err := hasAuthorization(c, id, isOrganizationSelf, roles...)
 	if err != nil {
 		return nil, HandleAuthErr(err, "organizations", "get", models.InfraSupportAdminRole)
 	}
