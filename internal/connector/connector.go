@@ -120,20 +120,6 @@ func Run(ctx context.Context, options Options) error {
 		return fmt.Errorf("invalid server url: %w", err)
 	}
 
-	// server is localhost which should never be the case. try to infer the actual host
-	// TODO: do this lookup when Host is "" instead of localhost
-	// https://github.com/infrahq/infra/issues/3380
-	if strings.HasPrefix(u.Host, "localhost") {
-		server, err := k8s.Service("server")
-		if err != nil {
-			logging.Warnf("no cluster-local infra server found for %q. check connector configurations", u.Host)
-		} else {
-			host := fmt.Sprintf("%s.%s", server.ObjectMeta.Name, server.ObjectMeta.Namespace)
-			logging.Debugf("using cluster-local infra server at %q instead of %q", host, u.Host)
-			u.Host = host
-		}
-	}
-
 	u.Scheme = "https"
 
 	destination := &api.Destination{
