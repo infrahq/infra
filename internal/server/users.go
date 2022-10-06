@@ -78,10 +78,6 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 		return nil, fmt.Errorf("create credential: %w", err)
 	}
 
-	a.t.User(user.ID.String(), user.Name)
-	a.t.OrgMembership(user.OrganizationID.String(), user.ID.String())
-	a.t.Event("create_user", user.ID.String(), Properties{})
-
 	if email.IsConfigured() {
 		rCtx := access.GetRequestContext(c)
 		org := rCtx.Authenticated.Organization

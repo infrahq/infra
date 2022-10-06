@@ -110,8 +110,8 @@ func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 	setCookie(c, cookie)
 
 	a.t.User(identity.ID.String(), r.Name)
-	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name)
-	a.t.Event("signup", identity.ID.String(), Properties{})
+	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name, suDetails.Org.Domain)
+	a.t.Event("signup", identity.ID.String(), suDetails.Org.ID.String(), Properties{})
 
 	link := fmt.Sprintf("https://%s", suDetails.Org.Domain)
 	err = email.SendSignupEmail("", r.Name, email.SignupData{
@@ -228,7 +228,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 	key := result.AccessKey
 	a.t.User(key.IssuedFor.String(), result.User.Name)
 	a.t.OrgMembership(key.OrganizationID.String(), key.IssuedFor.String())
-	a.t.Event("login", key.IssuedFor.String(), Properties{"method": loginMethod.Name()})
+	a.t.Event("login", key.IssuedFor.String(), key.OrganizationID.String(), Properties{"method": loginMethod.Name()})
 
 	// Update the request context so that logging middleware can include the userID
 	rCtx.Authenticated.User = result.User
