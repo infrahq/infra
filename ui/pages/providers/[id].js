@@ -9,8 +9,6 @@ import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 import Notification from '../../components/notification'
 
-const CLIENT_SECRET_INIT = '***********'
-
 export default function ProvidersEditDetails() {
   const router = useRouter()
 
@@ -23,7 +21,7 @@ export default function ProvidersEditDetails() {
 
   const [name, setName] = useState('')
   const [error, setError] = useState('')
-  const [clientSecret, setClientSecret] = useState(CLIENT_SECRET_INIT)
+  const [clientSecret, setClientSecret] = useState('')
   const [errors, setErrors] = useState({})
   const [showNotification, setshowNotification] = useState(false)
 
@@ -88,7 +86,7 @@ export default function ProvidersEditDetails() {
     }
 
     providerMutate()
-    setClientSecret(CLIENT_SECRET_INIT)
+    setClientSecret('')
 
     return false
   }
@@ -211,6 +209,7 @@ export default function ProvidersEditDetails() {
               </label>
               <input
                 type='password'
+                placeholder='(unchanged)'
                 value={clientSecret}
                 onChange={e => {
                   setClientSecret(e.target.value)
@@ -233,8 +232,7 @@ export default function ProvidersEditDetails() {
               <div className='pt-5 pb-3'>
                 <button
                   disabled={
-                    clientSecret === CLIENT_SECRET_INIT &&
-                    name === provider?.name
+                    clientSecret.length === 0 && name === provider?.name
                   }
                   type='submit'
                   className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
