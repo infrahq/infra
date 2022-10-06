@@ -1,12 +1,34 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useRef, useCallback } from 'react'
 import { Transition } from '@headlessui/react'
 import { CheckCircleIcon } from '@heroicons/react/outline'
 import { XIcon } from '@heroicons/react/solid'
 
-export default function Notification({ show, text, setShow }) {
+export default function Notification({
+  show,
+  text,
+  setShow,
+  setClearNotification,
+}) {
+  const wrapperRef = useRef(null)
+
+  const handleClickOutside = useCallback(event => {
+    if (wrapperRef && !wrapperRef.current.contains(event.target)) {
+      setShow(false)
+      setClearNotification()
+    }
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [handleClickOutside])
+
   return (
     <div
       aria-live='assertive'
+      ref={wrapperRef}
       className='pointer-events-none fixed inset-0 z-10 flex items-end px-4 py-6 sm:items-end sm:p-6'
     >
       <div className='flex w-full flex-col items-center space-y-4 sm:items-end'>

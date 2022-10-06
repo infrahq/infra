@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -13,13 +13,14 @@ const CLIENT_SECRET_INIT = '***********'
 
 export default function ProvidersEditDetails() {
   const router = useRouter()
-
   const id = router.query.id
 
   const { mutate } = useSWRConfig()
   const { data: provider, mutate: providerMutate } = useSWR(
     `/api/providers/${id}`
   )
+
+  const timerRef = useRef(null)
 
   const [name, setName] = useState('')
   const [error, setError] = useState('')
@@ -42,6 +43,16 @@ export default function ProvidersEditDetails() {
   useEffect(() => {
     setName(provider?.name)
   }, [provider])
+
+  useEffect(() => {
+    return clearTimer()
+  }, [])
+
+  function clearTimer() {
+    console.log('should clear timer')
+    setshowNotification(false)
+    return clearTimeout(timerRef.current)
+  }
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -66,7 +77,7 @@ export default function ProvidersEditDetails() {
         }
 
         setshowNotification(true)
-        setTimeout(() => {
+        timerRef.current = setTimeout(() => {
           setshowNotification(false)
         }, 5000)
 
@@ -251,6 +262,7 @@ export default function ProvidersEditDetails() {
         show={showNotification}
         setShow={setshowNotification}
         text={`${provider?.name} was successfully updated`}
+        setClearNotification={() => clearTimer()}
       />
     </div>
   )
