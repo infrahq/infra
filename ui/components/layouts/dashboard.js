@@ -238,11 +238,11 @@ export default function Dashboard({ children }) {
                   <Menu.Items className='absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-xl shadow-black/5 ring-1 ring-black ring-opacity-5 focus:outline-none'>
                     <div className='px-4 py-3'>
                       <p className='text-xs text-gray-400'>Logged in as</p>
-                      <p className='mt-2 truncate text-sm text-gray-600'>
-                        {org?.name} - {org?.domain}
-                      </p>
-                      <p className='truncate text-sm font-semibold text-gray-900'>
+                      <p className='mt-2 truncate text-sm font-semibold text-gray-900'>
                         {user?.name}
+                      </p>
+                      <p className='truncate text-sm text-gray-600'>
+                        {org?.name}
                       </p>
                     </div>
 
