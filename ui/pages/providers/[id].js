@@ -49,7 +49,6 @@ export default function ProvidersEditDetails() {
   }, [])
 
   function clearTimer() {
-    console.log('should clear timer')
     setshowNotification(false)
     return clearTimeout(timerRef.current)
   }

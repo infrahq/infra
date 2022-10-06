@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import { useUser } from '../../lib/hooks'
 
@@ -12,6 +12,15 @@ function PasswordReset({ user, onReset = () => {} }) {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    return clearTimer()
+  }, [])
+
+  function clearTimer() {
+    setshowNotification(false)
+    return clearTimeout(timerRef.current)
+  }
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -166,6 +175,7 @@ export default function Account() {
         show={showNotification}
         setShow={setShowNotification}
         text='Password Successfully Reset'
+        setClearNotification={() => clearTimer()}
       />
     </div>
   )
