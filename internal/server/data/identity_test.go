@@ -145,31 +145,91 @@ var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
 })
 
 func TestDeleteIdentity(t *testing.T) {
+	type testCase struct {
+		name   string
+		setup  func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity)
+		verify func(t *testing.T, tx *Transaction, err error)
+	}
+	testCases := []testCase{
+		{
+			name: "valid delete infra provider user",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
+				var (
+					bond   = models.Identity{Name: "jbond@infrahq.com"}
+					bourne = models.Identity{Name: "jbourne@infrahq.com"}
+				)
+
+				createIdentities(t, tx, &bond, &bourne)
+
+				return InfraProvider(tx).ID, bond
+			},
+			verify: func(t *testing.T, tx *Transaction, err error) {
+				assert.NilError(t, err)
+
+				_, err = GetIdentity(tx, ByName("jbond@infrahq.com"))
+				assert.Error(t, err, "record not found")
+
+				// deleting a identity should not delete unrelated identities
+				_, err = GetIdentity(tx, ByName("jbourne@infrahq.com"))
+				assert.NilError(t, err)
+			},
+		},
+		{
+			name: "deleting non-existent user does not fail",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
+				return InfraProvider(tx).ID, models.Identity{Name: "DNE"}
+			},
+			verify: func(t *testing.T, tx *Transaction, err error) {
+				assert.NilError(t, err)
+			},
+		},
+		{
+			name: "delete identity in provider outside infra does not delete credentials",
+			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
+				id := &models.Identity{Name: "jbond@infrahq.com"}
+				createIdentities(t, tx, id)
+
+				err := CreateCredential(tx, &models.Credential{IdentityID: id.ID, PasswordHash: []byte("abc")})
+				assert.NilError(t, err)
+
+				provider := &models.Provider{
+					Name: "other",
+					Kind: models.ProviderKindOIDC,
+				}
+				err = CreateProvider(tx, provider)
+				assert.NilError(t, err)
+
+				_, err = CreateProviderUser(tx, provider, id)
+				assert.NilError(t, err)
+
+				return provider.ID, *id
+			},
+			verify: func(t *testing.T, tx *Transaction, err error) {
+				assert.NilError(t, err)
+
+				id, err := GetIdentity(tx, ByName("jbond@infrahq.com"))
+				assert.NilError(t, err) // still exists in infra provider
+
+				_, err = GetCredential(tx, ByIdentityID(id.ID))
+				assert.NilError(t, err) // still exists in infra provider
+			},
+		},
+	}
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com"}
-			bourne = models.Identity{Name: "jbourne@infrahq.com"}
-			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
-		)
+		org := &models.Organization{Name: "something", Domain: "example.com"}
+		assert.NilError(t, CreateOrganization(db, org))
 
-		createIdentities(t, db, &bond, &bourne, &bauer)
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				tx := txnForTestCase(t, db, org.ID)
 
-		_, err := GetIdentity(db, ByName(bond.Name))
-		assert.NilError(t, err)
+				providerID, identity := tc.setup(t, tx)
 
-		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
-		assert.NilError(t, err)
+				err := DeleteIdentities(tx, providerID, ByName(identity.Name))
 
-		_, err = GetIdentity(db, ByName(bond.Name))
-		assert.Error(t, err, "record not found")
-
-		// deleting a nonexistent identity should not fail
-		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
-		assert.NilError(t, err)
-
-		// deleting a identity should not delete unrelated identities
-		_, err = GetIdentity(db, ByName(bourne.Name))
-		assert.NilError(t, err)
+				tc.verify(t, tx, err)
+			})
+		}
 	})
 }
 

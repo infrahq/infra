@@ -98,6 +98,9 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	_, err = data.GetIdentity(db, data.ByID(identity.ID))
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
+	_, err = data.GetProviderUser(db, infraProvider.ID, identity.ID)
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+
 	_, err = data.GetAccessKeyByKeyID(db, keyID)
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
