@@ -9,8 +9,9 @@ import {
   DuplicateIcon,
   DownloadIcon,
   ChevronDownIcon,
+  PlusIcon,
 } from '@heroicons/react/outline'
-import { Popover, Transition } from '@headlessui/react'
+import { Popover, Transition, Listbox } from '@headlessui/react'
 import dayjs from 'dayjs'
 
 import { useUser } from '../../../lib/hooks'
@@ -21,6 +22,8 @@ import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
+
+const OPTION_RESET = 'reset'
 
 function AccessCluster({ roles, resource }) {
   const [commandCopied, setCommandCopied] = useState(false)
@@ -72,6 +75,129 @@ function AccessCluster({ roles, resource }) {
   )
 }
 
+function GrantAccessTypesMenu({
+  destination,
+  typeList,
+  selectedList,
+  onChange,
+}) {
+  const [showReset, setShowReset] = useState(false)
+
+  return (
+    <Listbox
+      value={selectedList}
+      onChange={v => {
+        setShowReset(typeList.filter(x => v.includes(x)).length > 0)
+
+        if (v.includes(OPTION_RESET)) {
+          onChange([destination])
+          setShowReset(false)
+          return
+        }
+
+        onChange(v)
+      }}
+      multiple
+    >
+      <div className='relative mt-1'>
+        <Listbox.Button className='relative w-full cursor-default py-2 text-left text-sm hover:cursor-pointer'>
+          <div className='flex items-center truncate font-semibold text-gray-500'>
+            <PlusIcon className='mr-1 h-3 w-3' />
+            <span>select resources</span>
+          </div>
+        </Listbox.Button>
+
+        <Listbox.Options className='absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
+          <div className='w-full bg-gray-100'>
+            <div className='py-2 px-3 text-xs font-bold text-gray-400'>
+              cluster
+            </div>
+          </div>
+          <div className='max-h-64 overflow-auto'>
+            <Listbox.Option
+              key={destination}
+              className={({ active }) =>
+                `${active ? 'bg-blue-600 text-white' : 'text-gray-900'}
+                          relative cursor-pointer select-none py-2 pl-3 pr-9`
+              }
+              value={destination}
+            >
+              {({ selected, active }) => (
+                <>
+                  <span
+                    className={`${selected ? 'font-semibold' : 'font-normal'}
+                              block truncate`}
+                  >
+                    {destination}
+                  </span>
+
+                  {selected ? (
+                    <span
+                      className={`
+                                ${active ? 'text-white' : 'text-blue-600'}
+                                absolute inset-y-0 right-0 flex items-center pr-4`}
+                    >
+                      <CheckIcon className='h-5 w-5' aria-hidden='true' />
+                    </span>
+                  ) : null}
+                </>
+              )}
+            </Listbox.Option>
+            <div className='w-full bg-gray-100'>
+              <div className='py-2 px-3 text-xs font-bold text-gray-400'>
+                namespaces
+              </div>
+            </div>
+            {typeList.map(type => (
+              <Listbox.Option
+                key={type}
+                className={({ active }) =>
+                  `${active ? 'bg-blue-600 text-white' : 'text-gray-900'}
+                          relative cursor-pointer select-none py-2 pl-3 pr-9`
+                }
+                value={type}
+              >
+                {({ selected, active }) => (
+                  <>
+                    <span
+                      className={`${selected ? 'font-semibold' : 'font-normal'}
+                              block truncate`}
+                    >
+                      {type}
+                    </span>
+
+                    {selected ? (
+                      <span
+                        className={`
+                                ${active ? 'text-white' : 'text-blue-600'}
+                                absolute inset-y-0 right-0 flex items-center pr-4`}
+                      >
+                        <CheckIcon className='h-5 w-5' aria-hidden='true' />
+                      </span>
+                    ) : null}
+                  </>
+                )}
+              </Listbox.Option>
+            ))}
+          </div>
+          {showReset && (
+            <Listbox.Option
+              className={({ active }) =>
+                `${
+                  active ? 'bg-gray-50' : 'bg-white'
+                } group flex w-full cursor-pointer items-center border-t border-gray-100 px-3 py-2 text-xs font-medium text-blue-500`
+              }
+              value={OPTION_RESET}
+            >
+              <div className='flex flex-row items-center'>Reset</div>
+            </Listbox.Option>
+          )}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  )
+}
+
 export default function DestinationDetail() {
   const router = useRouter()
   const destinationId = router.query.id
@@ -90,6 +216,7 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
+  const [grantAccessTypeLists, setGrantAccessTypeLists] = useState([])
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -103,6 +230,10 @@ export default function DestinationDetail() {
 
     setCurrentUserRoles(roles)
   }, [grants, user, destination, currentUserGrants, mutateCurrentUserGrants])
+
+  useEffect(() => {
+    setGrantAccessTypeLists([destination?.name])
+  }, [destination])
 
   const metadata = [
     { label: 'ID', value: destination?.id, font: 'font-mono' },
@@ -135,6 +266,17 @@ export default function DestinationDetail() {
                   src={`/kubernetes.svg`}
                 />
               </div>
+              {/* <div
+                className={`h-2 w-2 flex-none rounded-full border ${
+                  
+                  // info.getValue()
+                  //   ? destination?.connection.url === ''
+                  //     ? 'animate-pulse border-yellow-600 bg-yellow-500'
+                  //     : 'border-teal-500/50 bg-teal-400'
+                  //   : 'border-gray-300 bg-gray-200'
+
+                }`}
+              /> */}
               <span className='truncate'>{destination?.name}</span>
             </div>
           </h1>
@@ -244,6 +386,14 @@ export default function DestinationDetail() {
                   mutate()
                 }}
               />
+              {destination && (
+                <GrantAccessTypesMenu
+                  destination={destination?.name}
+                  typeList={destination?.resources}
+                  selectedList={grantAccessTypeLists}
+                  onChange={setGrantAccessTypeLists}
+                />
+              )}
             </div>
             <AccessTable
               grants={grants}
