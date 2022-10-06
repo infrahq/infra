@@ -94,7 +94,8 @@ func TestConnector_Run(t *testing.T) {
 	// check destination has been registered
 	var destination *models.Destination
 	poll.WaitOn(t, func(t poll.LogT) poll.Result {
-		destination, err = data.GetDestination(srv.DB(), data.ByName("testing"))
+		destination, err = data.GetDestination(srv.DB(),
+			data.GetDestinationOptions{ByName: "testing"})
 		switch {
 		case errors.Is(err, internal.ErrNotFound):
 			return poll.Continue("destination not registered")

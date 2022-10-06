@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -67,12 +68,92 @@ func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 	return update(tx, (*destinationsUpdateTable)(destination))
 }
 
-func GetDestination(db GormTxn, selectors ...SelectorFunc) (*models.Destination, error) {
-	return get[models.Destination](db, selectors...)
+type GetDestinationOptions struct {
+	// ByID instructs GetDestination to return the row matching this ID. When
+	// this value is set, all other fields on this strut will be ignored
+	ByID uid.ID
+	// ByUniqueID instructs GetDestination to return the row matching this
+	// uniqueID.
+	ByUniqueID string
+	// ByName instructs GetDestination to return the row matching this name.
+	ByName string
 }
 
-func ListDestinations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Destination, error) {
-	return list[models.Destination](db, p, selectors...)
+func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination, error) {
+	destination := destinationsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(destination))
+	query.B("FROM destinations")
+	query.B("WHERE deleted_at is null AND organization_id = ?", tx.OrganizationID())
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByUniqueID != "":
+		query.B("AND unique_id = ?", opts.ByUniqueID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	default:
+		return nil, fmt.Errorf("an ID is required to GetDestination")
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(destination.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+	return (*models.Destination)(&destination), nil
+}
+
+type ListDestinationsOptions struct {
+	ByUniqueID string
+	ByName     string
+
+	Pagination *Pagination
+}
+
+func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destination, error) {
+	table := destinationsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM destinations")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.ByUniqueID != "" {
+		query.B("AND unique_id = ?", opts.ByUniqueID)
+	}
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+
+	query.B("ORDER BY name")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []models.Destination
+	for rows.Next() {
+		var dest models.Destination
+
+		fields := (*destinationsTable)(&dest).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		if err := rows.Scan(fields...); err != nil {
+			return nil, err
+		}
+		result = append(result, dest)
+	}
+	return result, rows.Err()
 }
 
 func DeleteDestination(tx WriteTxn, id uid.ID) error {

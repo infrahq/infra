@@ -102,7 +102,7 @@ func TestUpdateDestination(t *testing.T) {
 			err := UpdateDestination(tx, destination)
 			assert.NilError(t, err)
 
-			actual, err := GetDestination(tx, ByID(destination.ID))
+			actual, err := GetDestination(tx, GetDestinationOptions{ByID: destination.ID})
 			assert.NilError(t, err)
 
 			expected := &models.Destination{
@@ -125,6 +125,139 @@ func TestUpdateDestination(t *testing.T) {
 	})
 }
 
+func TestGetDestination(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		destination := &models.Destination{
+			Name:          "kubernetes",
+			UniqueID:      "unique-id",
+			ConnectionURL: "10.0.0.1:1001",
+			ConnectionCA:  "the-pem-encoded-cert",
+			LastSeenAt:    time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
+			Version:       "0.100.1",
+			Resources:     []string{"res1", "res2"},
+			Roles:         []string{"role1", "role2"},
+		}
+		other := &models.Destination{
+			Name:     "other",
+			UniqueID: "other-unique-id",
+		}
+		otherOrgDest := &models.Destination{
+			Name:               "kubernetes",
+			UniqueID:           "unique-id",
+			OrganizationMember: models.OrganizationMember{OrganizationID: 200},
+		}
+		deleted := &models.Destination{
+			Name:     "deleted",
+			UniqueID: "unique-id",
+		}
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
+		createDestinations(t, db, other, destination, otherOrgDest, deleted)
+
+		t.Run("default opts", func(t *testing.T) {
+			_, err := GetDestination(db, GetDestinationOptions{})
+			assert.ErrorContains(t, err, "an ID is required")
+		})
+		t.Run("by ID", func(t *testing.T) {
+			actual, err := GetDestination(db, GetDestinationOptions{ByID: destination.ID})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, destination, cmpTimeWithDBPrecision)
+		})
+		t.Run("by uniqueID", func(t *testing.T) {
+			actual, err := GetDestination(db, GetDestinationOptions{ByUniqueID: "unique-id"})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, destination, cmpTimeWithDBPrecision)
+		})
+		t.Run("by name", func(t *testing.T) {
+			actual, err := GetDestination(db, GetDestinationOptions{ByName: "kubernetes"})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, destination, cmpTimeWithDBPrecision)
+		})
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetDestination(db, GetDestinationOptions{ByID: 12345})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("not found soft deleted", func(t *testing.T) {
+			_, err := GetDestination(db, GetDestinationOptions{ByID: deleted.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+	})
+}
+
+func TestListDestinations(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		destination := &models.Destination{
+			Name:          "kubernetes",
+			UniqueID:      "unique-id",
+			ConnectionURL: "10.0.0.1:1001",
+			ConnectionCA:  "the-pem-encoded-cert",
+			LastSeenAt:    time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
+			Version:       "0.100.1",
+			Resources:     []string{"res1", "res2"},
+			Roles:         []string{"role1", "role2"},
+		}
+		other := &models.Destination{
+			Name:     "other",
+			UniqueID: "other-unique-id",
+		}
+		otherOrgDest := &models.Destination{
+			Name:               "kubernetes",
+			UniqueID:           "unique-id",
+			OrganizationMember: models.OrganizationMember{OrganizationID: 200},
+		}
+		deleted := &models.Destination{
+			Name:     "deleted",
+			UniqueID: "unique-id",
+		}
+		deleted.DeletedAt.Time = time.Now()
+		deleted.DeletedAt.Valid = true
+		createDestinations(t, db, destination, other, otherOrgDest, deleted)
+
+		t.Run("default options", func(t *testing.T) {
+			actual, err := ListDestinations(db, ListDestinationsOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.Destination{
+				{Model: models.Model{ID: destination.ID}},
+				{Model: models.Model{ID: other.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by uniqueID", func(t *testing.T) {
+			actual, err := ListDestinations(db, ListDestinationsOptions{
+				ByUniqueID: "unique-id",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Destination{
+				{Model: models.Model{ID: destination.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by name", func(t *testing.T) {
+			actual, err := ListDestinations(db, ListDestinationsOptions{ByName: "kubernetes"})
+			assert.NilError(t, err)
+
+			expected := []models.Destination{
+				{Model: models.Model{ID: destination.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+		})
+		t.Run("with pagination", func(t *testing.T) {
+			page := &Pagination{Page: 2, Limit: 1}
+			actual, err := ListDestinations(db, ListDestinationsOptions{Pagination: page})
+			assert.NilError(t, err)
+
+			expected := []models.Destination{
+				{Model: models.Model{ID: other.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.Equal(t, page.TotalCount, 2)
+		})
+	})
+}
+
 func TestDeleteDestination(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -135,7 +268,7 @@ func TestDeleteDestination(t *testing.T) {
 		err := DeleteDestination(tx, dest.ID)
 		assert.NilError(t, err)
 
-		_, err = GetDestination(tx, ByID(dest.ID))
+		_, err = GetDestination(tx, GetDestinationOptions{ByID: dest.ID})
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 }
