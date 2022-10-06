@@ -24,7 +24,7 @@ type AccessKey struct {
 	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
 	// IssuedFor is the ID of the user that this access key was created for
 	IssuedFor     uid.ID
-	IssuedForName string
+	IssuedForName string `db:"-"`
 	ProviderID    uid.ID
 
 	ExpiresAt         time.Time
