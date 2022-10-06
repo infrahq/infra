@@ -1,9 +1,12 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -22,8 +25,15 @@ func (a *API) ListOrganizations(c *gin.Context, r *api.ListOrganizationsRequest)
 	return result, nil
 }
 
-func (a *API) GetOrganization(c *gin.Context, r *api.Resource) (*api.Organization, error) {
-	org, err := access.GetOrganization(c, r.ID)
+func (a *API) GetOrganization(c *gin.Context, r *api.GetOrganizationRequest) (*api.Organization, error) {
+	if r.ID.IsSelf {
+		iden := access.GetRequestContext(c).Authenticated.Organization
+		if iden == nil {
+			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
+		}
+		r.ID.ID = iden.ID
+	}
+	org, err := access.GetOrganization(c, r.ID.ID)
 	if err != nil {
 		return nil, err
 	}

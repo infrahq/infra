@@ -1,16 +1,20 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
 func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
@@ -19,6 +23,158 @@ func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
 		err := data.CreateOrganization(db, orgs[i])
 		assert.NilError(t, err, orgs[i].Name)
 	}
+}
+
+func TestAPI_GetOrganization(t *testing.T) {
+	srv := setupServer(t, withAdminUser, withSupportAdminGrant, withMultiOrgEnabled)
+	routes := srv.GenerateRoutes()
+
+	var (
+		first = models.Organization{Name: "first", Domain: "first.com"}
+	)
+
+	createOrgs(t, srv.DB(), &first)
+	createID := func(t *testing.T, name string) uid.ID {
+		t.Helper()
+		var buf bytes.Buffer
+		body := api.CreateUserRequest{Name: name}
+		err := json.NewEncoder(&buf).Encode(body)
+		assert.NilError(t, err)
+
+		// nolint:noctx
+		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+		respObj := &api.CreateUserResponse{}
+		err = json.Unmarshal(resp.Body.Bytes(), respObj)
+		assert.NilError(t, err)
+		return respObj.ID
+	}
+	idMe := createID(t, "me@example.com")
+
+	token := &models.AccessKey{
+		IssuedFor:  idMe,
+		ProviderID: data.InfraProvider(srv.DB()).ID,
+		ExpiresAt:  time.Now().Add(10 * time.Second),
+	}
+
+	accessKeyMe, err := data.CreateAccessKey(srv.DB(), token)
+	assert.NilError(t, err)
+
+	type testCase struct {
+		urlPath  string
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Add("Infra-Version", "0.15.2")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"not authenticated": {
+			urlPath: "/api/organizations/" + first.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized)
+			},
+		},
+		"not authorized": {
+			urlPath: "/api/organizations/" + first.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				key, _ := createAccessKey(t, srv.DB(), "someonenew@example.com")
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
+		"organization by ID for default org": {
+			urlPath: "/api/organizations/" + srv.db.DefaultOrg.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+			},
+		},
+		"organization by ID for a different org": {
+			urlPath: "/api/organizations/" + first.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusForbidden)
+			},
+		},
+		"organization by ID for a different org by support admin": {
+			urlPath: "/api/organizations/" + first.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+			},
+		},
+		"organization by self": {
+			urlPath: "/api/organizations/self",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+			},
+		},
+		"JSON response": {
+			urlPath: "/api/organizations/" + srv.db.DefaultOrg.ID.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+accessKeyMe)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+					{
+						"id": "%[1]v",
+						"name": "%[2]v",
+						"created": "%[3]v",
+						"updated": "%[3]v",
+						"domain": "%[4]v"
+					}`,
+					srv.db.DefaultOrg.ID.String(),
+					srv.db.DefaultOrg.Name,
+					time.Now().UTC().Format(time.RFC3339),
+					srv.db.DefaultOrg.Domain,
+				))
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPIOrganizationJSON)
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
 }
 
 func TestAPI_ListOrganizations(t *testing.T) {

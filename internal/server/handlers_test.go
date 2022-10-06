@@ -176,6 +176,10 @@ func jsonUnmarshal(t *testing.T, raw string) interface{} {
 	return out
 }
 
+var cmpAPIOrganizationJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+}
+
 var cmpAPIUserJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
