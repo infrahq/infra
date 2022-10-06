@@ -178,20 +178,26 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	db = db.WithOrgID(org.ID)
 
 	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: accessKey.IssuedFor})
-	if err != nil {
-		return u, fmt.Errorf("identity for access key: %w", err)
-	}
-
-	if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
-		identity.LastSeenAt = time.Now().UTC()
-		if err = data.UpdateIdentity(db, identity); err != nil {
-			return u, fmt.Errorf("identity update fail: %w", err)
+	if err == nil {
+		// this access key was issued for a user
+		if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
+			identity.LastSeenAt = time.Now().UTC()
+			if err = data.UpdateIdentity(db, identity); err != nil {
+				return u, fmt.Errorf("identity update fail: %w", err)
+			}
+		}
+		u.User = identity
+	} else {
+		// fallback to checking if this access key was issued to a provider
+		_, nestedErr := data.GetProvider(db, data.ByID(accessKey.IssuedFor))
+		if nestedErr != nil {
+			logging.L.Debug().Err(nestedErr).Msg("fallback lookup for access key issued for provider failed")
+			return u, fmt.Errorf("identity for access key: %w", err)
 		}
 	}
 
 	u.AccessKey = accessKey
 	u.Organization = org
-	u.User = identity
 	return u, nil
 }
 
