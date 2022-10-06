@@ -775,10 +775,10 @@ DELETE FROM settings WHERE id=24567;
 				assert.NilError(t, err)
 			},
 			expected: func(t *testing.T, db WriteTxn) {
-				var remainingProviderUser uid.ID
-				err := db.QueryRow(`SELECT identity_id FROM provider_users`).Scan(&remainingProviderUser)
+				var count int
+				err := db.QueryRow(`SELECT count(*) from provider_users where identity_id = 1111`).Scan(&count)
 				assert.NilError(t, err)
-				assert.Equal(t, remainingProviderUser, uid.ID(2222))
+				assert.Equal(t, count, 0)
 			},
 		},
 	}
