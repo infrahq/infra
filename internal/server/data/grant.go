@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgconn"
@@ -271,8 +272,6 @@ type ListenForGrantsOptions struct {
 //
 // If error is nil the caller must call Listener.Release to return the database
 // connection to the pool.
-//
-// TODO: fuzz this function to show it is not vulnerable to SQL injection
 func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOptions) (*Listener, error) {
 	if opts.OrgID == 0 {
 		return nil, fmt.Errorf("OrgID is required")
@@ -305,6 +304,8 @@ func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOpti
 }
 
 func channelGrantsByDestination(orgID uid.ID, destination string) string {
+	destination = strings.ToValidUTF8(destination, "")
+	destination = strings.ReplaceAll(destination, "\x00", "")
 	return fmt.Sprintf("grants_by_destination_%d_%v", orgID, destination)
 }
 
