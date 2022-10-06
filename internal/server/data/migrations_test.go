@@ -728,6 +728,31 @@ DELETE FROM settings WHERE id=24567;
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-10-04T11:44"),
+			setup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec(`
+					INSERT INTO destinations(id, name) VALUES
+					(10009, 'with.dot.no.more'),
+					(10010, 'no-dots')`)
+				assert.NilError(t, err)
+
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec("DELETE FROM destinations")
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db WriteTxn) {
+				row := db.QueryRow("SELECT name from destinations where id=?", 10009)
+				var name string
+				assert.NilError(t, row.Scan(&name))
+				assert.Equal(t, name, "with_dot_no_more")
+
+				row = db.QueryRow("SELECT name from destinations where id=?", 10010)
+				assert.NilError(t, row.Scan(&name))
+				assert.Equal(t, name, "no-dots")
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

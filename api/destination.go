@@ -59,7 +59,7 @@ type CreateDestinationRequest struct {
 func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.Required("uniqueID", r.UniqueID),
-		ValidateName(r.Name),
+		validateDestinationName(r.Name),
 		validate.Required("name", r.Name),
 	}
 }
@@ -80,7 +80,7 @@ func (r UpdateDestinationRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("uniqueID", r.UniqueID),
 		validate.Required("id", r.ID),
 		validate.Required("name", r.Name),
-		ValidateName(r.Name),
+		validateDestinationName(r.Name),
 	}
 }
 
@@ -88,4 +88,18 @@ func (req ListDestinationsRequest) SetPage(page int) Paginatable {
 	req.PaginationRequest.Page = page
 
 	return req
+}
+
+func validateDestinationName(value string) validate.StringRule {
+	rule := ValidateName(value)
+	// dots are not allowed in destination name, because it would make grants
+	// ambiguous. We use dots to separate destination name from resource name in
+	// the Grant.Resource field.
+	rule.CharacterRanges = []validate.CharRange{
+		validate.AlphabetLower,
+		validate.AlphabetUpper,
+		validate.Numbers,
+		validate.Dash, validate.Underscore,
+	}
+	return rule
 }

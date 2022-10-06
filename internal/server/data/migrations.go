@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -69,6 +70,7 @@ func migrations() []*migrator.Migration {
 		addIdentityVerifiedFields(),
 		cleanCrossOrgGroupMemberships(),
 		fixProviderUserIndex(),
+		removeDotFromDestinationName(),
 		// next one here
 	}
 }
@@ -692,6 +694,44 @@ ALTER TABLE provider_users ADD CONSTRAINT
 `
 			_, err := tx.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func removeDotFromDestinationName() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-04T11:44",
+		Migrate: func(tx migrator.DB) error {
+			type idName struct {
+				id   uid.ID
+				name string
+			}
+
+			rows, err := tx.Query(`SELECT id, name FROM destinations WHERE name LIKE '%.%'`)
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+			var toRename []idName
+			for rows.Next() {
+				pair := idName{}
+				if err := rows.Scan(&pair.id, &pair.name); err != nil {
+					return err
+				}
+				toRename = append(toRename, pair)
+			}
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			for _, item := range toRename {
+				item.name = strings.ReplaceAll(item.name, ".", "_")
+				_, err := tx.Exec(`UPDATE destinations SET name = ? WHERE id = ?`,
+					item.name, item.id)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	}
 }
