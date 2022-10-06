@@ -132,10 +132,7 @@ export default function Login() {
 
       router.replace(next ? decodeURIComponent(next) : '/')
 
-      saveToVisitedOrgs(
-        window.location.host,
-        data?.organizationName
-      )
+      saveToVisitedOrgs(window.location.host, data?.organizationName)
     } catch (e) {
       console.error(e)
       if (e.fieldErrors) {

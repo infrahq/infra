@@ -28,10 +28,7 @@ export default function Callback() {
       router.replace(next ? decodeURIComponent(next) : '/')
 
       window.localStorage.removeItem('next')
-      saveToVisitedOrgs(
-        window.location.host,
-        user?.organizationName
-      )
+      saveToVisitedOrgs(window.location.host, user?.organizationName)
     }
 
     const providerID = window.localStorage.getItem('providerID')
