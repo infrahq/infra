@@ -5,6 +5,7 @@ const INFRA_ADMIN_ROLE = 'admin'
 
 export function useUser({ redirectTo, redirectIfFound } = {}) {
   const { data: user, error, isValidating, mutate } = useSWR('/api/users/self')
+  const { data: org } = useSWR('/api/organizations/self')
   const { data: { items: grants } = {}, grantsError } = useSWR(() =>
     user
       ? `/api/grants?user=${user?.id}&showInherited=1&resource=infra&limit=1000`
@@ -35,6 +36,7 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
   return {
     user,
     loading,
+    org,
     isAdmin: grants?.some(g => g.privilege === INFRA_ADMIN_ROLE),
 
     // login logs the user in and clears the local cache
