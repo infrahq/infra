@@ -12,12 +12,12 @@ import (
 	"net/http/httputil"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
+	"golang.org/x/sync/errgroup"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/api"
@@ -26,7 +26,6 @@ import (
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -179,6 +178,8 @@ func Run(ctx context.Context, options Options) error {
 		},
 	}
 
+	group, ctx := errgroup.WithContext(ctx)
+
 	con := connector{
 		k8s:         k8s,
 		client:      client,
@@ -186,8 +187,27 @@ func Run(ctx context.Context, options Options) error {
 		certCache:   certCache,
 		options:     options,
 	}
-	// TODO: make polling time configurable
-	repeat.Start(ctx, 30*time.Second, syncWithServer(con))
+	group.Go(func() error {
+		for {
+			if err := syncWithServer(con); err != nil {
+				return err
+			}
+			if err := wait(ctx, 30*time.Second); err != nil {
+				return err
+			}
+		}
+	})
+	group.Go(func() error {
+		for {
+			if err := syncDestination(con); err != nil {
+				logging.Errorf("failed to update destination in infra: %v", err)
+			}
+			// TODO: how long should this wait?
+			if err := wait(ctx, 30*time.Second); err != nil {
+				return err
+			}
+		}
+	})
 
 	ginutil.SetMode()
 	router := gin.New()
@@ -225,12 +245,13 @@ func Run(ctx context.Context, options Options) error {
 		ErrorLog:          httpErrorLog,
 	}
 
-	go func() {
-		// TODO: failing to bind should cause process to exit
-		if err := metricsServer.ListenAndServe(); err != nil {
-			logging.Errorf("server: %s", err)
+	group.Go(func() error {
+		err := metricsServer.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
 		}
-	}()
+		return err
+	})
 
 	authn := newAuthenticator(u.String(), options)
 	router.Use(
@@ -248,22 +269,29 @@ func Run(ctx context.Context, options Options) error {
 
 	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		// listen for shutdown from main context.
-		<-ctx.Done()
-		shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
-		defer shutdownCancel()
-		if err := tlsServer.Shutdown(shutdownCtx); err != nil {
-			logging.Warnf("shutdown: %s", err)
+	group.Go(func() error {
+		err = tlsServer.ListenAndServeTLS("", "")
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
 		}
-		wg.Done()
-	}()
+		return err
+	})
 
-	err = tlsServer.ListenAndServeTLS("", "")
-	wg.Wait() // must wait for shutdown to complete.
-	if errors.Is(err, http.ErrServerClosed) {
+	// wait for shutdown signal
+	<-ctx.Done()
+
+	shutdownCtx, shutdownCancel := context.WithDeadline(context.Background(), time.Now().Add(10*time.Second))
+	defer shutdownCancel()
+	if err := tlsServer.Shutdown(shutdownCtx); err != nil {
+		logging.L.Warn().Err(err).Msgf("shutdown proxy server")
+	}
+	if err := metricsServer.Close(); err != nil {
+		logging.L.Warn().Err(err).Msgf("shutdown metrics server")
+	}
+
+	// wait for goroutines to shutdown
+	err = group.Wait()
+	if errors.Is(err, context.Canceled) {
 		return nil
 	}
 	return err
@@ -375,42 +403,36 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	return types.HostPort{Host: host, Port: port}, nil
 }
 
-func syncWithServer(con connector) func(context.Context) {
-	return func(context.Context) {
-		if err := syncDestination(con); err != nil {
-			logging.Errorf("failed to update destination in infra: %v", err)
-			return
-		}
+func syncWithServer(con connector) error {
+	grants, err := con.client.ListGrants(api.ListGrantsRequest{Resource: con.destination.Name})
+	if err != nil {
+		logging.Errorf("error listing grants: %v", err)
+		return nil
+	}
 
-		grants, err := con.client.ListGrants(api.ListGrantsRequest{Resource: con.destination.Name})
+	namespaces, err := con.k8s.Namespaces()
+	if err != nil {
+		logging.Errorf("could not get kubernetes namespaces: %v", err)
+		return nil
+	}
+
+	// TODO(https://github.com/infrahq/infra/issues/2422): support wildcard resource searches
+	for _, n := range namespaces {
+		g, err := con.client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", con.destination.Name, n)})
 		if err != nil {
 			logging.Errorf("error listing grants: %v", err)
-			return
+			return nil
 		}
 
-		namespaces, err := con.k8s.Namespaces()
-		if err != nil {
-			logging.Errorf("could not get kubernetes namespaces: %v", err)
-			return
-		}
-
-		// TODO(https://github.com/infrahq/infra/issues/2422): support wildcard resource searches
-		for _, n := range namespaces {
-			g, err := con.client.ListGrants(api.ListGrantsRequest{Resource: fmt.Sprintf("%s.%s", con.destination.Name, n)})
-			if err != nil {
-				logging.Errorf("error listing grants: %v", err)
-				return
-			}
-
-			grants.Items = append(grants.Items, g.Items...)
-		}
-
-		err = updateRoles(con.client, con.k8s, grants.Items)
-		if err != nil {
-			logging.Errorf("error updating grants: %v", err)
-			return
-		}
+		grants.Items = append(grants.Items, g.Items...)
 	}
+
+	err = updateRoles(con.client, con.k8s, grants.Items)
+	if err != nil {
+		logging.Errorf("error updating grants: %v", err)
+		return nil
+	}
+	return nil
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
@@ -552,4 +574,18 @@ func slicesEqual(s1, s2 []string) bool {
 	}
 
 	return true
+}
+
+// wait blocks for the duration of delay, or until the context is done.
+// Returns the context error when the context is done, and returns nil if
+// the timer waited the full duration.
+func wait(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		timer.Stop()
+		return ctx.Err()
+	}
 }

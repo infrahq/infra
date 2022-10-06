@@ -113,7 +113,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 	}
 
 	if authned.User != nil {
-		if uniqueID := c.Request.Header.Get("Infra-Destination"); uniqueID != "" {
+		if uniqueID := c.Request.Header.Get(headerInfraDestination); uniqueID != "" {
 			tx = tx.WithOrgID(authned.Organization.ID)
 			rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
 			if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
@@ -125,6 +125,8 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 	err = tx.Commit()
 	return authned, err
 }
+
+const headerInfraDestination = "Infra-Destination"
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
 // from the request are set they have the same ID. If only one is set no
