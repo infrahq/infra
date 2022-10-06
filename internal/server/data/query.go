@@ -1,6 +1,8 @@
 package data
 
 import (
+	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
@@ -123,4 +125,21 @@ func columnsForUpdate(table Table) string {
 func columnsForSelect(table Table) string {
 	name := table.Table()
 	return name + "." + strings.Join(table.Columns(), ", "+name+".")
+}
+
+// scanRows iterates over rows and builds a slice of T by scanning each row
+// into fields. rows is closed before returning.
+func scanRows[T any](rows *sql.Rows, fields func(*T) []any) ([]T, error) {
+	defer rows.Close()
+
+	var result []T
+	for rows.Next() {
+		var target T
+
+		if err := rows.Scan(fields(&target)...); err != nil {
+			return nil, fmt.Errorf("scan row: %w", err)
+		}
+		result = append(result, target)
+	}
+	return result, rows.Err()
 }

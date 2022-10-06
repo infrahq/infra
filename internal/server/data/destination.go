@@ -138,22 +138,13 @@ func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destin
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []models.Destination
-	for rows.Next() {
-		var dest models.Destination
-
-		fields := (*destinationsTable)(&dest).ScanFields()
+	return scanRows(rows, func(d *models.Destination) []any {
+		fields := (*destinationsTable)(d).ScanFields()
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
-		if err := rows.Scan(fields...); err != nil {
-			return nil, err
-		}
-		result = append(result, dest)
-	}
-	return result, rows.Err()
+		return fields
+	})
 }
 
 func DeleteDestination(tx WriteTxn, id uid.ID) error {
@@ -187,16 +178,7 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error
 		return nil, err
 
 	}
-	defer rows.Close()
-
-	var result []DestinationsCount
-	for rows.Next() {
-		var item DestinationsCount
-		if err := rows.Scan(&item.Version, &item.Connected, &item.Count); err != nil {
-			return nil, err
-		}
-		result = append(result, item)
-	}
-
-	return result, rows.Err()
+	return scanRows(rows, func(item *DestinationsCount) []any {
+		return []any{&item.Version, &item.Connected, &item.Count}
+	})
 }

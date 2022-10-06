@@ -104,18 +104,9 @@ func listProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []models.ProviderUser
-	for rows.Next() {
-		var pu models.ProviderUser
-
-		if err := rows.Scan((*providerUserTable)(&pu).ScanFields()...); err != nil {
-			return nil, err
-		}
-		result = append(result, pu)
-	}
-	return result, rows.Err()
+	return scanRows(rows, func(pu *models.ProviderUser) []any {
+		return (*providerUserTable)(pu).ScanFields()
+	})
 }
 
 type DeleteProviderUsersOptions struct {

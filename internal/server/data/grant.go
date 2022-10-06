@@ -173,22 +173,13 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []models.Grant
-	for rows.Next() {
-		var grant models.Grant
-
-		fields := (*grantsTable)(&grant).ScanFields()
+	return scanRows(rows, func(grant *models.Grant) []any {
+		fields := (*grantsTable)(grant).ScanFields()
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
-		if err := rows.Scan(fields...); err != nil {
-			return nil, err
-		}
-		result = append(result, grant)
-	}
-	return result, rows.Err()
+		return fields
+	})
 }
 
 type DeleteGrantsOptions struct {
