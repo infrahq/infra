@@ -81,24 +81,8 @@ function GrantAccessTypesMenu({
   selectedList,
   onChange,
 }) {
-  const [showReset, setShowReset] = useState(false)
-
   return (
-    <Listbox
-      value={selectedList}
-      onChange={v => {
-        setShowReset(typeList.filter(x => v.includes(x)).length > 0)
-
-        if (v.includes(OPTION_RESET)) {
-          onChange([destination])
-          setShowReset(false)
-          return
-        }
-
-        onChange(v)
-      }}
-      multiple
-    >
+    <Listbox value={selectedList} onChange={v => onChange(v)} multiple>
       <div className='relative mt-1'>
         <Listbox.Button className='relative w-full cursor-default py-2 text-left text-sm hover:cursor-pointer'>
           <div className='flex items-center truncate font-semibold text-gray-500'>
@@ -107,8 +91,8 @@ function GrantAccessTypesMenu({
           </div>
         </Listbox.Button>
 
-        <Listbox.Options className='absolute z-10 mt-1 w-full overflow-auto rounded-md bg-white text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
-          <div className='w-full bg-gray-100'>
+        <Listbox.Options className='absolute z-10 mt-1 w-56 overflow-auto rounded-md bg-white text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
+          <div className='bg-gray-100'>
             <div className='py-2 px-3 text-xs font-bold text-gray-400'>
               cluster
             </div>
@@ -143,7 +127,7 @@ function GrantAccessTypesMenu({
                 </>
               )}
             </Listbox.Option>
-            <div className='w-full bg-gray-100'>
+            <div className='bg-gray-100'>
               <div className='py-2 px-3 text-xs font-bold text-gray-400'>
                 namespaces
               </div>
@@ -180,18 +164,35 @@ function GrantAccessTypesMenu({
               </Listbox.Option>
             ))}
           </div>
-          {showReset && (
-            <Listbox.Option
-              className={({ active }) =>
-                `${
-                  active ? 'bg-gray-50' : 'bg-white'
-                } group flex w-full cursor-pointer items-center border-t border-gray-100 px-3 py-2 text-xs font-medium text-blue-500`
-              }
-              value={OPTION_RESET}
-            >
-              <div className='flex flex-row items-center'>Reset</div>
-            </Listbox.Option>
-          )}
+          <div className='border-t'>
+            <div className='flex items-center justify-between py-2 px-3 text-xs font-medium text-blue-500'>
+              <button
+                className='disabled:cursor-not-allowed disabled:opacity-30'
+                disabled={
+                  selectedList.length === 1 &&
+                  selectedList.includes(destination)
+                }
+                onClick={() => {
+                  onChange([destination])
+                }}
+              >
+                clear
+              </button>
+              <button
+                className='disabled:cursor-not-allowed disabled:opacity-30'
+                disabled={
+                  selectedList.length === typeList.length + 1 &&
+                  selectedList.sort().join(',') ===
+                    [destination, ...typeList].sort().join(',')
+                }
+                onClick={() => {
+                  onChange([destination, ...typeList])
+                }}
+              >
+                select all
+              </button>
+            </div>
+          </div>
         </Listbox.Options>
       </div>
     </Listbox>
@@ -346,11 +347,11 @@ export default function DestinationDetail() {
           </div>
         </div>
         {destination && (
-          <div className='flex flex-row border-t border-gray-100'>
+          <div className='flex flex-col border-t border-gray-100 sm:flex-row'>
             {metadata.map(g => (
               <div
                 key={g.label}
-                className='px-6 py-5 text-left first:pr-6 first:pl-0'
+                className='py-5 text-left sm:px-6 sm:first:pr-6 sm:first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
                 {g.label !== 'Status' && (
@@ -378,7 +379,12 @@ export default function DestinationDetail() {
         <>
           <div className='my-5 flex flex-col space-y-4'>
             <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-              <h3 className='mb-3 text-sm font-medium'>Grant access</h3>
+              <h3 className='mb-3 text-sm font-medium'>
+                Grant access to{' '}
+                <span className='font-bold'>
+                  {grantAccessTypeLists.join(', ')}
+                </span>
+              </h3>{' '}
               <GrantForm
                 roles={destination?.roles}
                 grants={grants}
