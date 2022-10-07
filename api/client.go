@@ -204,11 +204,6 @@ func (c Client) DeleteUser(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
-// Deprecated: use ListGrants
-func (c Client) ListUserGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/users/%s/grants", id), Query{})
-}
-
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
 	return get[ListResponse[Group]](c, "/api/groups", Query{
 		"name": {req.Name}, "userID": {req.UserID.String()},
@@ -231,11 +226,6 @@ func (c Client) DeleteGroup(id uid.ID) error {
 func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
 	_, err := patch[UpdateUsersInGroupRequest, EmptyResponse](c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
 	return err
-}
-
-// Deprecated: use ListGrants
-func (c Client) ListGroupGrants(id uid.ID) (*ListResponse[Grant], error) {
-	return get[ListResponse[Grant]](c, fmt.Sprintf("/api/groups/%s/grants", id), Query{})
 }
 
 func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider], error) {
@@ -289,6 +279,7 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 		"user":          {req.User.String()},
 		"group":         {req.Group.String()},
 		"resource":      {req.Resource},
+		"destination":   {req.Destination},
 		"privilege":     {req.Privilege},
 		"showInherited": {strconv.FormatBool(req.ShowInherited)},
 		"showSystem":    {strconv.FormatBool(req.ShowSystem)},

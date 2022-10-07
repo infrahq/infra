@@ -105,9 +105,10 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 }
 
 type ListGrantsOptions struct {
-	BySubject    uid.PolymorphicID
-	ByPrivileges []string
-	ByResource   string
+	BySubject     uid.PolymorphicID
+	ByPrivileges  []string
+	ByResource    string
+	ByDestination string
 
 	// IncludeInheritedFromGroups instructs ListGrants to include grants from
 	// groups where the user is a member. This option can only be used when
@@ -159,6 +160,9 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 	}
 	if opts.ByResource != "" {
 		query.B("AND resource = ?", opts.ByResource)
+	}
+	if opts.ByDestination != "" {
+		query.B("AND (resource = ? OR resource LIKE ?)", opts.ByDestination, opts.ByDestination+".%")
 	}
 	if opts.ExcludeConnectorGrant {
 		query.B("AND NOT (privilege = 'connector' AND resource = 'infra')")

@@ -19,8 +19,9 @@ func GetGrant(c *gin.Context, id uid.ID) (*models.Grant, error) {
 	return data.GetGrant(db, data.GetGrantOptions{ByID: id})
 }
 
-func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, privilege string, inherited bool, showSystem bool, p *data.Pagination) ([]models.Grant, error) {
+func ListGrants(c *gin.Context, opts data.ListGrantsOptions) ([]models.Grant, error) {
 	rCtx := GetRequestContext(c)
+	subject := opts.BySubject
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	_, err := RequireInfraRole(c, roles...)
@@ -40,17 +41,6 @@ func ListGrants(c *gin.Context, subject uid.PolymorphicID, resource string, priv
 		}
 	} else if err != nil {
 		return nil, err
-	}
-
-	opts := data.ListGrantsOptions{
-		ByResource:                 resource,
-		BySubject:                  subject,
-		ExcludeConnectorGrant:      !showSystem,
-		IncludeInheritedFromGroups: inherited,
-		Pagination:                 p,
-	}
-	if privilege != "" {
-		opts.ByPrivileges = []string{privilege}
 	}
 	return data.ListGrants(rCtx.DBTxn, opts)
 }

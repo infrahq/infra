@@ -44,13 +44,13 @@ func TestAPI_ListGrants(t *testing.T) {
 		return respObj.ID
 	}
 
-	createGrant := func(t *testing.T, user uid.ID, privilege string) {
+	createGrant := func(t *testing.T, user uid.ID, privilege, resource string) {
 		t.Helper()
 		var buf bytes.Buffer
 		body := api.CreateGrantRequest{
 			User:      user,
 			Privilege: privilege,
-			Resource:  "res1",
+			Resource:  resource,
 		}
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
@@ -82,9 +82,9 @@ func TestAPI_ListGrants(t *testing.T) {
 	idInGroup := createID(t, "inagroup@example.com")
 	idOther := createID(t, "other@example.com")
 
-	createGrant(t, idInGroup, "custom1")
-	createGrant(t, idOther, "custom2")
-	createGrant(t, idOther, "connector")
+	createGrant(t, idInGroup, "custom1", "res1")
+	createGrant(t, idOther, "custom2", "res1.ns1")
+	createGrant(t, idOther, "connector", "res1.ns2")
 
 	groupID := createGroup(t, "humans", idInGroup)
 	otherGroup := createGroup(t, "others", idOther)
@@ -252,12 +252,12 @@ func TestAPI_ListGrants(t *testing.T) {
 					{
 						User:      idOther,
 						Privilege: "custom2",
-						Resource:  "res1",
+						Resource:  "res1.ns1",
 					},
 					{
 						User:      idOther,
 						Privilege: "connector",
-						Resource:  "res1",
+						Resource:  "res1.ns2",
 					},
 				}
 				// check sort
@@ -287,7 +287,7 @@ func TestAPI_ListGrants(t *testing.T) {
 					{
 						User:      idOther,
 						Privilege: "custom2",
-						Resource:  "res1",
+						Resource:  "res1.ns1",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
@@ -319,12 +319,12 @@ func TestAPI_ListGrants(t *testing.T) {
 					{
 						User:      idOther,
 						Privilege: "custom2",
-						Resource:  "res1",
+						Resource:  "res1.ns1",
 					},
 					{
 						User:      idOther,
 						Privilege: "connector",
-						Resource:  "res1",
+						Resource:  "res1.ns2",
 					},
 				}
 				// check sort
@@ -352,16 +352,6 @@ func TestAPI_ListGrants(t *testing.T) {
 						Privilege: "custom1",
 						Resource:  "res1",
 					},
-					{
-						User:      idOther,
-						Privilege: "custom2",
-						Resource:  "res1",
-					},
-					{
-						User:      idOther,
-						Privilege: "connector",
-						Resource:  "res1",
-					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
 			},
@@ -382,6 +372,37 @@ func TestAPI_ListGrants(t *testing.T) {
 						User:      idInGroup,
 						Privilege: "custom1",
 						Resource:  "res1",
+					},
+				}
+				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+			},
+		},
+		"filter by destination": {
+			urlPath: "/api/grants?destination=res1",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+				var grants api.ListResponse[api.Grant]
+				err = json.NewDecoder(resp.Body).Decode(&grants)
+				assert.NilError(t, err)
+
+				expected := []api.Grant{
+					{
+						User:      idInGroup,
+						Privilege: "custom1",
+						Resource:  "res1",
+					},
+					{
+						User:      idOther,
+						Privilege: "custom2",
+						Resource:  "res1.ns1",
+					},
+					{
+						User:      idOther,
+						Privilege: "connector",
+						Resource:  "res1.ns2",
 					},
 				}
 				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
