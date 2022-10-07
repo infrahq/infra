@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal"
@@ -50,6 +51,17 @@ func validateProviderUser(u *models.ProviderUser) error {
 	}
 }
 
+func validateProviderUserPatch(u *models.ProviderUser) error {
+	switch {
+	case u.ProviderID == 0:
+		return fmt.Errorf("providerID is required")
+	case u.IdentityID == 0:
+		return fmt.Errorf("identityID is required")
+	default:
+		return nil
+	}
+}
+
 func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
 	// check if we already track this provider user
 	pu, err := GetProviderUser(db, provider.ID, ident.ID)
@@ -78,11 +90,32 @@ func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Ide
 	return pu, nil
 }
 
-func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
+var ErrSourceOfTruthConflict = fmt.Errorf("cannot update user's email, this user exists in multiple identity providers")
+
+func UpdateProviderUser(tx GormTxn, providerUser *models.ProviderUser) error {
 	if err := validateProviderUser(providerUser); err != nil {
 		return err
 	}
 	providerUser.LastUpdate = time.Now().UTC()
+
+	// check if the user's email has changed
+	identity, err := GetIdentity(tx, ByID(providerUser.IdentityID), Preload("Providers"))
+	if err != nil {
+		return fmt.Errorf("check identity before provider update: %w", err)
+	}
+
+	if identity.Name != providerUser.Email {
+		// this user no longer matches the unique identifier of the parent identity
+		if len(identity.Providers) > 1 {
+			// this identity exists in different sources, we cannot update the email without effecting other identity providers
+			return ErrSourceOfTruthConflict
+		}
+		// this is the only provider for this identity so we can safely update the parent identity email
+		identity.Name = providerUser.Email
+		if err := SaveIdentity(tx, identity); err != nil {
+			return fmt.Errorf("update provider user identity: %w", err)
+		}
+	}
 
 	pu := (*providerUserTable)(providerUser)
 	query := querybuilder.New("UPDATE")
@@ -90,7 +123,7 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	query.B("SET")
 	query.B(columnsForUpdate(pu), pu.Values()...)
 	query.B("WHERE provider_id = ? AND identity_id = ?;", providerUser.ProviderID, providerUser.IdentityID)
-	_, err := tx.Exec(query.String(), query.Args...)
+	_, err = tx.Exec(query.String(), query.Args...)
 	return handleError(err)
 }
 
@@ -164,6 +197,31 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 	return result, nil
 }
 
+func PatchProviderUserActiveStatus(tx WriteTxn, providerUser *models.ProviderUser) (*models.ProviderUser, error) {
+	if err := validateProviderUserPatch(providerUser); err != nil {
+		return nil, err
+	}
+	providerUser.LastUpdate = time.Now().UTC()
+
+	pu := (*providerUserTable)(providerUser)
+	query := querybuilder.New("UPDATE")
+	query.B(pu.Table())
+	query.B("SET")
+	query.B("active = ?, last_update = ?", providerUser.Active, providerUser.LastUpdate)
+	query.B("WHERE provider_id = ? AND identity_id = ?", providerUser.ProviderID, providerUser.IdentityID)
+	query.B("RETURNING")
+	query.B(columnsForSelect(pu))
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(pu.ScanFields()...)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil, internal.ErrNotFound
+		}
+		return nil, handleError(err)
+	}
+	return (*models.ProviderUser)(pu), nil
+}
+
 type DeleteProviderUsersOptions struct {
 	// ByIdentityID instructs DeleteProviderUsers to delete tracked provider users for this identity ID
 	ByIdentityID uid.ID
@@ -197,6 +255,30 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 		return nil, handleReadError(err)
 	}
 	return (*models.ProviderUser)(pu), nil
+}
+
+func ProvisionProviderUser(tx GormTxn, user *models.ProviderUser) error {
+	// create an identity if this is the first time we are seeing the user with this email
+	identity, err := GetIdentity(tx, ByName(user.Email))
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return fmt.Errorf("get existing user on provision: %w", err)
+		}
+
+		identity = &models.Identity{Name: user.Email}
+
+		if err := CreateIdentity(tx, identity); err != nil {
+			return fmt.Errorf("create identity on provision: %w", err)
+		}
+	}
+
+	user.IdentityID = identity.ID
+	user.LastUpdate = time.Now().UTC()
+	if err := validateProviderUser(user); err != nil {
+		return fmt.Errorf("validate provisioning: %w", err)
+	}
+
+	return insert(tx, (*providerUserTable)(user))
 }
 
 func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
