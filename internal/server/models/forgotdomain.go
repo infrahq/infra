@@ -1,7 +1,9 @@
 package models
 
+import "time"
+
 type ForgottenDomain struct {
 	OrganizationName   string
 	OrganizationDomain string
-	LastSeenAt         string
+	LastSeenAt         time.Time
 }

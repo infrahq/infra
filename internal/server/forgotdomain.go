@@ -24,7 +24,7 @@ func (a *API) RequestForgotDomains(c *gin.Context, r *api.ForgotDomainRequest) (
 		return nil, nil // This is okay. we don't notify the user if we failed to find the email.
 	}
 
-	err = email.SendForgotDomainsEmail("", r.Email, email.ForgottenDomainData{Domains: domains})
+	err = email.SendForgotDomainsEmail("", r.Email, email.ForgottenDomainData{Organizations: domains})
 	if err != nil {
 		return nil, err
 	}

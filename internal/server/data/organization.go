@@ -158,3 +158,21 @@ func UpdateOrganization(tx WriteTxn, org *models.Organization) error {
 func CountOrganizations(tx ReadTxn) (int64, error) {
 	return countRows(tx, organizationsTable{})
 }
+
+func GetForgottenDomainsForEmail(tx ReadTxn, email string) ([]models.ForgottenDomain, error) {
+	var results []models.ForgottenDomain
+
+	rows, err := tx.Query(`
+		SELECT organizations.name, organizations.domain, identities.last_seen_at
+		FROM identities
+		INNER JOIN organizations ON identities.organization_id = organizations.id
+		WHERE identities.name = ?
+		AND identities.deleted_at IS NULL
+		AND organizations.deleted_at IS NULL`, email)
+	if err != nil {
+		return results, err
+	}
+	return scanRows(rows, func(r *models.ForgottenDomain) []any {
+		return []any{&r.OrganizationName, &r.OrganizationDomain, &r.LastSeenAt}
+	})
+}

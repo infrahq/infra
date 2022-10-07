@@ -5,7 +5,7 @@ import (
 )
 
 type ForgottenDomainData struct {
-	Domains []models.ForgottenDomain
+	Organizations []models.ForgottenDomain
 }
 
 func SendForgotDomainsEmail(name, address string, data ForgottenDomainData) error {

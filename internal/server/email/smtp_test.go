@@ -12,7 +12,6 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -277,11 +276,11 @@ func TestSendForgotDomainsEmail(t *testing.T) {
 	setupClient(srv)
 
 	err := SendForgotDomainsEmail("", "hannibal@ateam.org", ForgottenDomainData{
-		Domains: []models.ForgottenDomain{
+		Organizations: []models.ForgottenDomain{
 			{
 				OrganizationName:   "A Team",
 				OrganizationDomain: "ateam.infrahq.com",
-				LastSeenAt:         format.HumanTimeWithCase(time.Now(), "never", false),
+				LastSeenAt:         time.Now(),
 			},
 		},
 	})

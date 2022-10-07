@@ -1,13 +1,11 @@
 package data
 
 import (
-	"strings"
 	"testing"
 	"time"
 
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -25,37 +23,56 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 		err = CreateOrganization(db, orgC)
 		assert.NilError(t, err)
 
-		userA := &models.Identity{Name: "john.smith@ateam.com", OrganizationMember: models.OrganizationMember{OrganizationID: orgA.ID}, LastSeenAt: time.Now()}
+		userA := &models.Identity{
+			Name:               "john.smith@ateam.com",
+			OrganizationMember: models.OrganizationMember{OrganizationID: orgA.ID},
+			LastSeenAt:         time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
+		}
 		err = CreateIdentity(db, userA)
 		assert.NilError(t, err)
 
 		t.Run("no orgs", func(t *testing.T) {
 			results, err := GetForgottenDomainsForEmail(db, "francis.lynch@teamusa.org")
 			assert.NilError(t, err)
-			assert.Assert(t, len(results) == 0)
+			assert.Equal(t, len(results), 0)
 		})
 
 		t.Run("single orgs", func(t *testing.T) {
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
-			assert.Assert(t, len(results) == 1)
 
-			assert.DeepEqual(t, results[0], models.ForgottenDomain{OrganizationName: orgA.Name, OrganizationDomain: orgA.Domain, LastSeenAt: format.HumanTimeWithCase(time.Now(), "never", false)})
+			expected := []models.ForgottenDomain{{
+				OrganizationName:   orgA.Name,
+				OrganizationDomain: orgA.Domain,
+				LastSeenAt:         userA.LastSeenAt,
+			}}
+			assert.DeepEqual(t, results, expected, cmpTimeWithDBPrecision)
 		})
 
-		userB := &models.Identity{Name: "john.smith@ateam.com", OrganizationMember: models.OrganizationMember{OrganizationID: orgB.ID}}
+		userB := &models.Identity{
+			Name:               "john.smith@ateam.com",
+			OrganizationMember: models.OrganizationMember{OrganizationID: orgB.ID},
+		}
 		err = CreateIdentity(db, userB)
 		assert.NilError(t, err)
 
 		t.Run("multi orgs", func(t *testing.T) {
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
-			assert.Assert(t, len(results) == 2)
 
-			for _, r := range results {
-				assert.Assert(t, strings.Contains(r.OrganizationName, " Team"))
-				assert.Assert(t, strings.Contains(r.OrganizationDomain, "team"))
+			expected := []models.ForgottenDomain{
+				{
+					OrganizationName:   orgA.Name,
+					OrganizationDomain: orgA.Domain,
+					LastSeenAt:         userA.LastSeenAt,
+				},
+				{
+					OrganizationName:   orgB.Name,
+					OrganizationDomain: orgB.Domain,
+					LastSeenAt:         time.Time{},
+				},
 			}
+			assert.DeepEqual(t, results, expected, cmpTimeWithDBPrecision)
 		})
 
 		t.Run("deleted user", func(t *testing.T) {
@@ -66,7 +83,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
-			assert.Assert(t, len(results) == 2)
+			assert.Equal(t, len(results), 2)
 		})
 
 		t.Run("deleted organization", func(t *testing.T) {
@@ -83,7 +100,7 @@ func TestGetForgottenDomainsForEmail(t *testing.T) {
 
 			results, err := GetForgottenDomainsForEmail(db, userA.Name)
 			assert.NilError(t, err)
-			assert.Assert(t, len(results) == 2, "wrong number of users")
+			assert.Equal(t, len(results), 2, "wrong number of users")
 		})
 	})
 }
