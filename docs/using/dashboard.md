@@ -16,7 +16,7 @@ Infrastructure is where you go to configure your Kubernetes Cluster, and to conf
 
 ## Providers
 
-Providers is where you go to configure your Identity Providers, such as Okta, Azure, and Google.
+**Providers** is where you go to configure your Identity Providers, such as Okta, Azure, and Google.
 
 - [Go to the Okta Identity Provider page to learn how to configure Okta with Infra](../manage/idp/okta.md)
 - [Go to the Azure AD Identity Provider page to learn how to configure Azure AD with Infra](../manage/idp/azure-ad.md)
@@ -25,18 +25,18 @@ Providers is where you go to configure your Identity Providers, such as Okta, Az
 
 ## Groups
 
-Groups allows you to configure groups of users that can then be granted access to your clusters.
+**Groups** allows you to grant access to your clusters to groups of users.
 
 - [Go to the Working with Groups page to learn about groups](../manage/groups.md)
 
 ## Users
 
-Users allows you to configure users that can be used in groups and grants.
+**Users** allows you to configure users to include in groups and grants.
 
 - [Go to the Working with Users page to learn about users](../manage/users.md)
 
 ## Settings
 
-Settings is where you configure Infra Administrators.
+**Settings** is where you configure Infra Administrators.
 
 - [Go to Working with Admins to learn about Admins](../manage/admins.md)

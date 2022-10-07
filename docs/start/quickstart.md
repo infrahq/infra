@@ -9,7 +9,7 @@ position: 2
 
 {% callout type="info" %}
 
-We are rolling out our SaaS product. If you are interested in onboarding before we open it up completely, let us know. Until then you can [install the self-hosted version of the Infra Server](../reference/selfhosted.md).
+We are rolling out our SaaS product. If you are interested in onboarding before we open it up completely, let us know. Until then, you can [install the self-hosted version of the Infra Server](../reference/selfhosted.md).
 
 {% /callout %}
 
@@ -23,7 +23,7 @@ After signing up for Infra, you should be automatically redirected to your Infra
 
 ## 3. Add a Kubernetes Cluster
 
-Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already installed.
+Make sure you have [Helm](https://helm.sh/docs/intro/install/) (v3+) already installed.
 
 1. Navigate to **Clusters** in your Dashboard.
 2. Click the **Connect cluster** button and provide a cluster name.
@@ -32,12 +32,12 @@ Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already ins
 
 3. Then run this set of commands to install the Infra Helm repo:
 
-   ```
+   ```bash
    helm repo add infrahq https://helm.infrahq.com
    helm repo update
    ```
 
-4. Finally, run the command shown in the UI to install the connector. If you save the values file as something other than `values.yaml` you will need to change that part of the command.
+4. Finally, run the command shown in the UI to install the connector. If you save the values file with a name that isn't `values.yaml` you will need to change that part of the command.
 
 [Learn more about Adding Clusters](../manage/connectors/kubernetes.md).
 
@@ -46,7 +46,7 @@ Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already ins
 1. Navigate to **Users** in the Dashboard.
 2. Click the **+ User** button and enter the email of the user you wish to add.
 
-   They will receive an email which will allow them to set their password and login to Infra.
+   They will receive an email which allows them to set their password and login to Infra.
 
 3. Navigate back to **Clusters** and choose the cluster you added above.
 4. On the right side of the window, choose your user and select a role to assign to that user.
@@ -55,7 +55,7 @@ Make sure you have [helm](https://helm.sh/docs/intro/install/) (v3+) already ins
 
 {% callout type="info" %}
 
-If you want to see your own roles in this list, refer to the [Using Roles](../manage/roles.md) page to see how to enable them.
+If you want to see your cluster's roles in this list, refer to the [Using Roles](../manage/roles.md) page to see how to enable them.
 
 {% /callout %}
 
@@ -65,6 +65,6 @@ Consider adding your organization's Identity Provider, such as [Okta](../manage/
 
 ## 5. Install the CLI
 
-The last step to actually signin to a cluster is to install the CLI. You can find the instructions to do this for your Operating System on the [Install Infra CLI page](install-infra-cli.md).
+The last step to actually sign in to a cluster is to install the CLI. You can find the instructions to do this for your Operating System on the [Install Infra CLI page](install-infra-cli.md).
 
 Then run `infra login <dashboard url>`. Now you can use all your usual tools to set the context and work with Kubernetes.

@@ -5,11 +5,11 @@ position: 5
 
 # Self-hosted Infra
 
-In most ways, self-hosted offers similar features to our Software as a Service offering. In fact, the main difference is that you host the "Server" on your own Kubernetes cluster. This document will show you how to install that server. Since the rest of the product is the same in the SaaS model and Self Hosted, you can refer to the rest of the documentation for everything else.
+In most ways, self-hosted offers similar features to our Software as a Service offering. In fact, the main difference is that you host the "Server" on your organization's Kubernetes cluster. This document will show you how to install that server. Since the rest of the product is the same in the SaaS model and Self Hosted, you can refer to the rest of the documentation for everything else.
 
 ## Prerequisites
 
-- Install [helm](https://helm.sh/docs/intro/install/) (v3+)
+- Install [Helm](https://helm.sh/docs/intro/install/) (v3+)
 - Kubernetes (v1.14+)
 
 ## Deploy Infra
@@ -55,7 +55,7 @@ This example shows two ways to use secrets in the values file. You can learn mor
 
 Deploy Infra via `helm`:
 
-```
+```bash
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 helm upgrade --install infra infrahq/infra --values values.yaml
@@ -67,9 +67,9 @@ In rare cases, we have seen `helm upgrade --install` not behave correctly. If yo
 
 {% /callout %}
 
-Find your load balancer endpoint:
+Find your Load Balancer endpoint:
 
-```
+```bash
 kubectl get service infra-server -o jsonpath="{.status.loadBalancer.ingress[*]['ip', 'hostname']}"
 ```
 
