@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -11,7 +11,6 @@ import Notification from '../../components/notification'
 
 export default function ProvidersEditDetails() {
   const router = useRouter()
-
   const id = router.query.id
 
   const { mutate } = useSWRConfig()
@@ -19,11 +18,13 @@ export default function ProvidersEditDetails() {
     `/api/providers/${id}`
   )
 
+  const timerRef = useRef(null)
+
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [clientSecret, setClientSecret] = useState('')
   const [errors, setErrors] = useState({})
-  const [showNotification, setshowNotification] = useState(false)
+  const [showNotification, setShowNotification] = useState(false)
 
   const metadata = [
     { label: 'ID', value: provider?.id, font: 'font-mono' },
@@ -40,6 +41,15 @@ export default function ProvidersEditDetails() {
   useEffect(() => {
     setName(provider?.name)
   }, [provider])
+
+  useEffect(() => {
+    return clearTimer()
+  }, [])
+
+  function clearTimer() {
+    setShowNotification(false)
+    return clearTimeout(timerRef.current)
+  }
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -63,9 +73,9 @@ export default function ProvidersEditDetails() {
           throw data
         }
 
-        setshowNotification(true)
-        setTimeout(() => {
-          setshowNotification(false)
+        setShowNotification(true)
+        timerRef.current = setTimeout(() => {
+          setShowNotification(false)
         }, 5000)
 
         return {}
@@ -247,8 +257,9 @@ export default function ProvidersEditDetails() {
       {/* Notification */}
       <Notification
         show={showNotification}
-        setShow={setshowNotification}
+        setShow={setShowNotification}
         text={`${provider?.name} was successfully updated`}
+        setClearNotification={() => clearTimer()}
       />
     </div>
   )

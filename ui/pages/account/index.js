@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import { useUser } from '../../lib/hooks'
 
@@ -133,7 +133,18 @@ export default function Account() {
 
   const [showNotification, setShowNotification] = useState(false)
 
+  const timerRef = useRef(null)
+
   const hasInfraProvider = user?.providerNames?.includes('infra')
+
+  useEffect(() => {
+    return clearTimer()
+  }, [])
+
+  function clearTimer() {
+    setShowNotification(false)
+    return clearTimeout(timerRef.current)
+  }
 
   return (
     <div className='mx-auto w-full max-w-2xl'>
@@ -166,6 +177,7 @@ export default function Account() {
         show={showNotification}
         setShow={setShowNotification}
         text='Password Successfully Reset'
+        setClearNotification={() => clearTimer()}
       />
     </div>
   )
