@@ -63,7 +63,7 @@ type captureSentEmail struct {
 	From    string
 	Subject string
 	Text    string
-	Html    string
+	HTML    string
 }
 
 func (e *captureSentEmail) successCase(t *testing.T, c net.Conn) {
@@ -135,7 +135,7 @@ func (e *captureSentEmail) successCase(t *testing.T, c net.Conn) {
 					if isPlain {
 						e.Text = string(b)
 					} else {
-						e.Html = string(b)
+						e.HTML = string(b)
 					}
 				}
 			}
@@ -170,19 +170,19 @@ func TestSendEmail(t *testing.T) {
 		From:    `"Also Steven" <steven@example.com>`,
 		Subject: "The art of emails",
 		Text:    "Hello world\n.\n.",
-		Html:    "<h2> HELLO WORLD <h2>",
+		HTML:    "<h2> HELLO WORLD <h2>",
 	}
 	assert.DeepEqual(t, result, expected)
 }
 
-func TestSendPasswordReset(t *testing.T) {
+func TestSendPasswordResetEmail(t *testing.T) {
 	result := &captureSentEmail{}
 	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
-	err := SendTemplate("steven", "steven@example.com", EmailTemplatePasswordReset, PasswordResetData{
+	err := SendPasswordResetEmail("", "steven@example.com", PasswordResetData{
 		Link: "https://example.com?himom=1",
-	}, BypassListManagement)
+	})
 	assert.NilError(t, err)
 
 	// Run tests with -update to automatically update these expected values.
@@ -193,7 +193,7 @@ func TestSendPasswordReset(t *testing.T) {
 Click here to reset your password:
   https://example.com?himom=1
 `
-	expectedHtml := `
+	expectedHTML := `
 <p>Someone has requested a password reset for your Infra account. If this was not you, you can safely ignore this email.</p>
 
 <p>
@@ -201,18 +201,18 @@ Click here to reset your password:
 </p>
 `
 	assert.Equal(t, result.Text, expectedText)
-	assert.Equal(t, result.Html, expectedHtml)
+	assert.Equal(t, result.HTML, expectedHTML)
 }
 
-func TestSendUserInvite(t *testing.T) {
+func TestSendUserInviteEmail(t *testing.T) {
 	result := &captureSentEmail{}
 	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
-	err := SendTemplate("steven", "steven@example.com", EmailTemplateUserInvite, UserInviteData{
+	err := SendUserInviteEmail("", "steven@example.com", UserInviteData{
 		FromUserName: "joe bill",
 		Link:         "https://example.com?himom=1",
-	}, BypassListManagement)
+	})
 	assert.NilError(t, err)
 
 	// Run tests with -update to automatically update these expected values.
@@ -225,7 +225,7 @@ Infra is the simplest way to manage infrastructure access.
 Log in to access your infrastructure:
   https://example.com?himom=1
 `
-	expectedHtml := `<p>joe bill has invited you to Infra!</p>
+	expectedHTML := `<p>joe bill has invited you to Infra!</p>
 
 <p>Infra is the simplest way to manage infrastructure access.</p>
 
@@ -233,18 +233,18 @@ Log in to access your infrastructure:
   <a href="https://example.com?himom=1">Login to access your infrastructure</a>
 </p>`
 	assert.Equal(t, result.Text, expectedText)
-	assert.Equal(t, result.Html, expectedHtml)
+	assert.Equal(t, result.HTML, expectedHTML)
 }
 
-func TestSendSignup(t *testing.T) {
+func TestSendSignupEmail(t *testing.T) {
 	result := &captureSentEmail{}
 	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
-	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
+	err := SendSignupEmail("", "steven@example.com", SignupData{
 		Link:        "https://supahdomain.example.com/login",
 		WrappedLink: "https://supahdomain.example.com/login",
-	}, BypassListManagement)
+	})
 	assert.NilError(t, err)
 
 	// Run tests with -update to automatically update these expected values.
@@ -256,7 +256,7 @@ You can sign into your account any time from https://supahdomain.example.com/log
 
 Please verify your email address by clicking this link: https://supahdomain.example.com/login
 `
-	expectedHtml := `<h3>Welcome to Infra!</h3>
+	expectedHTML := `<h3>Welcome to Infra!</h3>
 
 <p>
   You can sign into your account any time from 
@@ -268,15 +268,15 @@ Please verify your email address by clicking this link: https://supahdomain.exam
 </p>`
 
 	assert.Equal(t, result.Text, expectedText)
-	assert.Equal(t, result.Html, expectedHtml)
+	assert.Equal(t, result.HTML, expectedHTML)
 }
 
-func TestSendForgotDomain(t *testing.T) {
+func TestSendForgotDomainsEmail(t *testing.T) {
 	result := &captureSentEmail{}
 	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
-	err := SendTemplate("", "hannibal@ateam.org", EmailTemplateForgottenDomains, ForgottenDomainData{
+	err := SendForgotDomainsEmail("", "hannibal@ateam.org", ForgottenDomainData{
 		Domains: []models.ForgottenDomain{
 			{
 				OrganizationName:   "A Team",
@@ -284,7 +284,7 @@ func TestSendForgotDomain(t *testing.T) {
 				LastSeenAt:         format.HumanTimeWithCase(time.Now(), "never", false),
 			},
 		},
-	}, BypassListManagement)
+	})
 	assert.NilError(t, err)
 
 	// Run tests with -update to automatically update these expected values.
@@ -296,12 +296,12 @@ You can sign in to your organization here:
   A Team	https://ateam.infrahq.com/login 	(last seen less than a second ago)
 
 `
-	expectedHtml := `
+	expectedHTML := `
 <p>Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.</p>
 
 <p>A Team <a href="https://ateam.infrahq.com/login">https://ateam.infrahq.com/login</a> (last seen less than a second ago)</p>
 
 `
 	assert.Equal(t, result.Text, expectedText)
-	assert.Equal(t, result.Html, expectedHtml)
+	assert.Equal(t, result.HTML, expectedHTML)
 }
