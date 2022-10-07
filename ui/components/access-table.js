@@ -12,6 +12,7 @@ export default function AccessTable({
   onRemove,
   onChange,
 }) {
+  console.log(grants)
   return (
     <Table
       data={grants?.sort(sortByPrivilege)?.sort(sortBySubject)}
@@ -34,17 +35,6 @@ export default function AccessTable({
               </div>
             )
           },
-        },
-        {
-          accessorKey: 'created',
-          header: (
-            <span className='hidden truncate lg:table-cell'>Last edited</span>
-          ),
-          cell: info => (
-            <div className='hidden truncate lg:table-cell'>
-              {info.getValue() ? dayjs(info.getValue()).fromNow() : '-'}
-            </div>
-          ),
         },
         {
           id: 'role',

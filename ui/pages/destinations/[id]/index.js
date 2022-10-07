@@ -23,8 +23,6 @@ import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
 
-const OPTION_RESET = 'reset'
-
 function AccessCluster({ roles, resource }) {
   const [commandCopied, setCommandCopied] = useState(false)
 
@@ -208,7 +206,7 @@ export default function DestinationDetail() {
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    `/api/grants?resource=${destination?.name}&limit=1000`
+    `/api/grants?destination=${destination?.name}&limit=1000`
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
