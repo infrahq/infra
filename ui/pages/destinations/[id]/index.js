@@ -239,6 +239,19 @@ export default function DestinationDetail() {
     { label: 'ID', value: destination?.id, font: 'font-mono' },
     { label: '# of namespaces', value: destination?.resources.length },
     {
+      label: 'Status',
+      value: destination?.connected
+        ? destination?.connection.url === ''
+          ? 'Pending'
+          : 'Connected'
+        : 'Disconnected',
+      color: destination?.connected
+        ? destination?.connection.url === ''
+          ? 'yellow'
+          : 'green'
+        : 'gray',
+    },
+    {
       label: 'Created',
       value: destination?.created ? dayjs(destination?.created).fromNow() : '-',
     },
@@ -266,18 +279,18 @@ export default function DestinationDetail() {
                   src={`/kubernetes.svg`}
                 />
               </div>
-              {/* <div
-                className={`h-2 w-2 flex-none rounded-full border ${
-                  
-                  // info.getValue()
-                  //   ? destination?.connection.url === ''
-                  //     ? 'animate-pulse border-yellow-600 bg-yellow-500'
-                  //     : 'border-teal-500/50 bg-teal-400'
-                  //   : 'border-gray-300 bg-gray-200'
-
-                }`}
-              /> */}
-              <span className='truncate'>{destination?.name}</span>
+              <div className='flex items-center space-x-2'>
+                <span className='truncate'>{destination?.name}</span>
+                <div
+                  className={`h-2 w-2 flex-none rounded-full border ${
+                    destination?.connected
+                      ? destination?.connection.url === ''
+                        ? 'animate-pulse border-yellow-500 bg-yellow-500'
+                        : 'border-teal-400 bg-teal-400'
+                      : 'border-gray-200 bg-gray-200'
+                  }`}
+                />
+              </div>
             </div>
           </h1>
           <div className='my-3 flex space-x-2 md:my-0'>
@@ -340,13 +353,22 @@ export default function DestinationDetail() {
                 className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
-                <span
-                  className={`text-sm ${
-                    g.font ? g.font : 'font-medium'
-                  } text-gray-800`}
-                >
-                  {g.value}
-                </span>
+                {g.label !== 'Status' && (
+                  <span
+                    className={`text-sm ${
+                      g.font ? g.font : 'font-medium'
+                    } text-gray-800`}
+                  >
+                    {g.value}
+                  </span>
+                )}
+                {g.label === 'Status' && (
+                  <span
+                    className={`inline-flex items-center rounded-full bg-${g.color}-100 px-2.5 py-px text-2xs font-medium text-${g.color}-800`}
+                  >
+                    {g.value}
+                  </span>
+                )}
               </div>
             ))}
           </div>

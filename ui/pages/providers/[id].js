@@ -105,7 +105,7 @@ export default function ProvidersEditDetails() {
       {/* Header */}
       <header className='mt-6 mb-12 space-y-4'>
         <div className='flex flex-col justify-between md:flex-row md:items-center'>
-          <h1 className='flex truncate py-1 font-display text-xl font-medium'>
+          <h1 className='flex max-w-[75%] truncate py-1 font-display text-xl font-medium'>
             <Link href='/providers'>
               <a className='text-gray-500/75 hover:text-gray-600'>Providers</a>
             </Link>{' '}
@@ -259,7 +259,12 @@ export default function ProvidersEditDetails() {
       <Notification
         show={showNotification}
         setShow={setShowNotification}
-        text={`${provider?.name} was successfully updated`}
+        text={
+          <div>
+            <span className='break-all font-bold'>{provider?.name}</span> was
+            updated successfully
+          </div>
+        }
         setClearNotification={() => clearTimer()}
       />
     </div>
