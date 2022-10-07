@@ -55,7 +55,7 @@ require (
 	golang.org/x/tools v0.1.12
 	google.golang.org/api v0.98.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	gotest.tools/v3 v3.3.0
+	gotest.tools/v3 v3.4.0
 )
 
 require github.com/invopop/yaml v0.1.0 // indirect

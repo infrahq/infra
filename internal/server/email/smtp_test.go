@@ -58,15 +58,15 @@ EKTcWGekdmdDPsHloRNtsiCa697B2O9IFA==
 	return listener
 }
 
-var (
-	to      string
-	from    string
-	subject string
-	plain   string
-	html    string
-)
+type captureSentEmail struct {
+	To      string
+	From    string
+	Subject string
+	Text    string
+	Html    string
+}
 
-func successCase(t *testing.T, c net.Conn) {
+func (e *captureSentEmail) successCase(t *testing.T, c net.Conn) {
 	reader := bufio.NewReader(c)
 	read := func(msg string) string {
 		_ = c.SetDeadline(time.Now().Add(5 * time.Second))
@@ -109,11 +109,11 @@ func successCase(t *testing.T, c net.Conn) {
 	for s := read(""); s != "."; s = read("") {
 		switch {
 		case strings.HasPrefix(s, "To: "):
-			to = strings.SplitN(s, ": ", 2)[1]
+			e.To = strings.SplitN(s, ": ", 2)[1]
 		case strings.HasPrefix(s, "From: "):
-			from = strings.SplitN(s, ": ", 2)[1]
+			e.From = strings.SplitN(s, ": ", 2)[1]
 		case strings.HasPrefix(s, "Subject: "):
-			subject = strings.SplitN(s, ": ", 2)[1]
+			e.Subject = strings.SplitN(s, ": ", 2)[1]
 		case strings.HasPrefix(s, "MIME-Version: "):
 			// read until end of mime block
 			isPlain := true
@@ -133,9 +133,9 @@ func successCase(t *testing.T, c net.Conn) {
 					b, err := base64.StdEncoding.DecodeString(s)
 					assert.NilError(t, err)
 					if isPlain {
-						plain = string(b)
+						e.Text = string(b)
 					} else {
-						html = string(b)
+						e.Html = string(b)
 					}
 				}
 			}
@@ -150,7 +150,8 @@ func successCase(t *testing.T, c net.Conn) {
 }
 
 func TestSendEmail(t *testing.T) {
-	srv := setupSMTPServer(t, successCase)
+	result := &captureSentEmail{}
+	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
 	err := SendSMTP(Message{
@@ -164,22 +165,48 @@ func TestSendEmail(t *testing.T) {
 	}, BypassListManagement)
 	assert.NilError(t, err)
 
-	assert.Equal(t, plain, "Hello world\n.\n.")
-	assert.Equal(t, html, "<h2> HELLO WORLD <h2>")
+	expected := &captureSentEmail{
+		To:      `"Steven" <steven@example.com>`,
+		From:    `"Also Steven" <steven@example.com>`,
+		Subject: "The art of emails",
+		Text:    "Hello world\n.\n.",
+		Html:    "<h2> HELLO WORLD <h2>",
+	}
+	assert.DeepEqual(t, result, expected)
 }
 
 func TestSendPasswordReset(t *testing.T) {
-	srv := setupSMTPServer(t, successCase)
+	result := &captureSentEmail{}
+	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplatePasswordReset, PasswordResetData{
 		Link: "https://example.com?himom=1",
 	}, BypassListManagement)
 	assert.NilError(t, err)
+
+	// Run tests with -update to automatically update these expected values.
+	// If these expected values get much larger consider changing to golden.Assert
+	// to store the expected values in a separate file.
+	expectedText := `Someone has requested a password reset for your Infra account. If this was not you, you can safely ignore this email.
+
+Click here to reset your password:
+  https://example.com?himom=1
+`
+	expectedHtml := `
+<p>Someone has requested a password reset for your Infra account. If this was not you, you can safely ignore this email.</p>
+
+<p>
+  <a href="https://example.com?himom=1">Click here to reset your password</a>
+</p>
+`
+	assert.Equal(t, result.Text, expectedText)
+	assert.Equal(t, result.Html, expectedHtml)
 }
 
 func TestSendUserInvite(t *testing.T) {
-	srv := setupSMTPServer(t, successCase)
+	result := &captureSentEmail{}
+	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateUserInvite, UserInviteData{
@@ -187,10 +214,31 @@ func TestSendUserInvite(t *testing.T) {
 		Link:         "https://example.com?himom=1",
 	}, BypassListManagement)
 	assert.NilError(t, err)
+
+	// Run tests with -update to automatically update these expected values.
+	// If these expected values get much larger consider changing to golden.Assert
+	// to store the expected values in a separate file.
+	expectedText := `joe bill has invited you to Infra!
+
+Infra is the simplest way to manage infrastructure access.
+
+Log in to access your infrastructure:
+  https://example.com?himom=1
+`
+	expectedHtml := `<p>joe bill has invited you to Infra!</p>
+
+<p>Infra is the simplest way to manage infrastructure access.</p>
+
+<p>
+  <a href="https://example.com?himom=1">Login to access your infrastructure</a>
+</p>`
+	assert.Equal(t, result.Text, expectedText)
+	assert.Equal(t, result.Html, expectedHtml)
 }
 
 func TestSendSignup(t *testing.T) {
-	srv := setupSMTPServer(t, successCase)
+	result := &captureSentEmail{}
+	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
 	err := SendTemplate("steven", "steven@example.com", EmailTemplateSignup, SignupData{
@@ -199,12 +247,33 @@ func TestSendSignup(t *testing.T) {
 	}, BypassListManagement)
 	assert.NilError(t, err)
 
-	assert.Assert(t, strings.Contains(plain, `You can sign into your account any time from https://supahdomain.example.com`))
-	assert.Assert(t, strings.Contains(html, `<a href="https://supahdomain.example.com`))
+	// Run tests with -update to automatically update these expected values.
+	// If these expected values get much larger consider changing to golden.Assert
+	// to store the expected values in a separate file.
+	expectedText := `Welcome to Infra!
+
+You can sign into your account any time from https://supahdomain.example.com/login
+
+Please verify your email address by clicking this link: https://supahdomain.example.com/login
+`
+	expectedHtml := `<h3>Welcome to Infra!</h3>
+
+<p>
+  You can sign into your account any time from 
+  <a href="https://supahdomain.example.com/login">https://supahdomain.example.com/login</a>.
+</p>
+
+<p>
+  Please <a href="https://supahdomain.example.com/login">verify your email address</a>.
+</p>`
+
+	assert.Equal(t, result.Text, expectedText)
+	assert.Equal(t, result.Html, expectedHtml)
 }
 
 func TestSendForgotDomain(t *testing.T) {
-	srv := setupSMTPServer(t, successCase)
+	result := &captureSentEmail{}
+	srv := setupSMTPServer(t, result.successCase)
 	setupClient(srv)
 
 	err := SendTemplate("", "hannibal@ateam.org", EmailTemplateForgottenDomains, ForgottenDomainData{
@@ -212,9 +281,27 @@ func TestSendForgotDomain(t *testing.T) {
 			{
 				OrganizationName:   "A Team",
 				OrganizationDomain: "ateam.infrahq.com",
-				LastSeenAt:         format.HumanTime(time.Now(), "never"),
+				LastSeenAt:         format.HumanTimeWithCase(time.Now(), "never", false),
 			},
 		},
 	}, BypassListManagement)
 	assert.NilError(t, err)
+
+	// Run tests with -update to automatically update these expected values.
+	// If these expected values get much larger consider changing to golden.Assert
+	// to store the expected values in a separate file.
+	expectedText := `Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.
+
+You can sign in to your organization here:
+  A Team	https://ateam.infrahq.com/login 	(last seen less than a second ago)
+
+`
+	expectedHtml := `
+<p>Someone has requested links to each of the organizations associated with your Infra account. If this was not you, you can safely ignore this email.</p>
+
+<p>A Team <a href="https://ateam.infrahq.com/login">https://ateam.infrahq.com/login</a> (last seen less than a second ago)</p>
+
+`
+	assert.Equal(t, result.Text, expectedText)
+	assert.Equal(t, result.Html, expectedHtml)
 }
