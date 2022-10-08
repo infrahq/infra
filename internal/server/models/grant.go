@@ -2,14 +2,15 @@ package models
 
 import (
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/uid"
 )
 
 const (
-	InfraSupportAdminRole = "support-admin"
-	InfraAdminRole        = "admin"
-	InfraViewRole         = "view"
-	InfraConnectorRole    = "connector"
+	InfraSupportAdminRole = access.RoleSupportAdmin
+	InfraAdminRole        = access.RoleAdmin
+	InfraViewRole         = access.RoleView
+	InfraConnectorRole    = access.RoleConnector
 )
 
 // BasePermissionConnect is the first-principle permission that all other permissions are defined from.
