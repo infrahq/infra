@@ -32,7 +32,7 @@ func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
 		// request is authorized because the user is a member of the org
 	} else {
 		roles := []string{models.InfraSupportAdminRole}
-		err := IsAuthorized(rCtx, roles...)
+		_, err := IsAuthorized(rCtx, roles...)
 		if err != nil {
 			return nil, HandleAuthErr(err, "organizations", "get", roles...)
 		}

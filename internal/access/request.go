@@ -3,6 +3,7 @@ package access
 import (
 	"net/http"
 
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -20,6 +21,8 @@ type RequestContext struct {
 	// start transactions. Most routes should use DBTxn and should not use
 	// DataDB directly.
 	DataDB *data.DB
+
+	Permissions access.PermissionSet
 }
 
 // Authenticated stores data about the authenticated user. If the AccessKey or

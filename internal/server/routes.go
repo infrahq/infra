@@ -15,6 +15,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
+	ac "github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/metrics"
 )
@@ -149,7 +150,8 @@ type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
 	routeSettings
-	handler HandlerFunc[Req, Res]
+	handler       HandlerFunc[Req, Res]
+	authorization func(rCtx access.RequestContext, req any) (ac.PermissionSet, error)
 }
 
 type routeSettings struct {
@@ -248,6 +250,12 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			DataDB:        a.server.db,
 		}
 		c.Set(access.RequestContextKey, rCtx)
+
+		perms, err := route.authorization(rCtx, req)
+		if err != nil {
+			return err
+		}
+		rCtx.Permissions = perms
 
 		resp, err := route.handler(c, req)
 		if err != nil {

@@ -57,7 +57,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPas
 
 	// anyone can update their own credentials, so check authorization when not self
 	if !isSelf {
-		err := IsAuthorized(rCtx, models.InfraAdminRole)
+		_, err := IsAuthorized(rCtx, models.InfraAdminRole)
 		if err != nil {
 			return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
 		}

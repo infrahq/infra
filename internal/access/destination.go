@@ -20,7 +20,7 @@ func CreateDestination(c *gin.Context, destination *models.Destination) error {
 
 func SaveDestination(rCtx RequestContext, destination *models.Destination) error {
 	roles := []string{models.InfraAdminRole, models.InfraConnectorRole}
-	if err := IsAuthorized(rCtx, roles...); err != nil {
+	if _, err := IsAuthorized(rCtx, roles...); err != nil {
 		return HandleAuthErr(err, "destination", "update", roles...)
 	}
 

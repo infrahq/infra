@@ -15,6 +15,7 @@ import (
 	pgxstdlib "github.com/jackc/pgx/v4/stdlib"
 
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -38,7 +39,13 @@ func (g *grantsTable) ScanFields() []any {
 	return []any{&g.CreatedAt, &g.CreatedBy, &g.DeletedAt, &g.ID, &g.OrganizationID, &g.Privilege, &g.Resource, &g.Subject, &g.UpdatedAt}
 }
 
+var grantWrite = access.Access{Resource: access.ResourceGrants, Operation: access.OperationWrite}
+
 func CreateGrant(tx WriteTxn, grant *models.Grant) error {
+	if err := tx.Allows(grantWrite); err != nil {
+		return err
+	}
+
 	switch {
 	case grant.Subject == "":
 		return fmt.Errorf("subject is required")

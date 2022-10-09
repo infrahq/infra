@@ -46,6 +46,8 @@ func (r Resource) String() string {
 		return "access keys"
 	case ResourceCredentials:
 		return "credentials"
+	case ResourceSettings:
+		return "settings"
 	default:
 		return ""
 	}

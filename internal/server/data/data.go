@@ -19,6 +19,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data/migrator"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -80,6 +81,8 @@ func NewDB(dbOpts NewDBOptions) (*DB, error) {
 // and settings.
 type DB struct {
 	*gorm.DB // embedded for now to minimize the diff
+
+	access.PermissionSet
 
 	DefaultOrg *models.Organization
 	// DefaultOrgSettings are the settings for DefaultOrg
@@ -149,6 +152,7 @@ type GormTxn interface {
 
 type Transaction struct {
 	*gorm.DB
+	access.PermissionSet
 	orgID     uid.ID
 	completed *atomic.Bool
 }

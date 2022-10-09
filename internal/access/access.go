@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/uid"
 )
@@ -16,7 +17,7 @@ const ResourceInfraAPI = "infra"
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
 	rCtx := GetRequestContext(c)
-	if err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
+	if _, err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
 		return nil, err
 	}
 	return rCtx.DBTxn, nil
@@ -72,10 +73,10 @@ func HandleAuthErr(err error, resource, operation string, roles ...string) error
 // request has permission if the user or one of the groups they belong to
 // has a grant with one of the required roles.
 // The resource is always ResourceInfraAPI.
-func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
+func IsAuthorized(rCtx RequestContext, requiredRole ...string) (access.PermissionSet, error) {
 	user := rCtx.Authenticated.User
 	if user == nil {
-		return fmt.Errorf("no authenticated user")
+		return nil, fmt.Errorf("no authenticated user")
 	}
 	grants, err := data.ListGrants(rCtx.DBTxn, data.ListGrantsOptions{
 		Pagination:                 &data.Pagination{Limit: 1},
@@ -85,10 +86,11 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) error {
 		IncludeInheritedFromGroups: true,
 	})
 	if err != nil {
-		return fmt.Errorf("has grants: %w", err)
+		return nil, fmt.Errorf("has grants: %w", err)
 	}
 	if len(grants) == 0 {
-		return ErrNotAuthorized
+		return nil, ErrNotAuthorized
 	}
-	return nil
+	// TODO: must merge when there are multiple roles assigned
+	return access.RolePermissions[grants[0].Privilege], nil
 }

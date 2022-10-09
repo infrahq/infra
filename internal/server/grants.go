@@ -11,6 +11,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	ac "github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -22,6 +23,25 @@ func (r ListGrantsResponse) SetHeaders(h http.Header) {
 	if r.LastUpdateIndex.Index > 0 {
 		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
 	}
+}
+
+type requestID interface {
+	RequestID() uid.ID
+}
+
+var listGrantsRoute = route[api.ListGrantsRequest, *api.ListResponse[api.Grant]]{
+	authorization: func(rCtx access.RequestContext, req any) (ac.PermissionSet, error) {
+		if reqID, ok := req.(requestID); ok {
+			if reqID.RequestID() == rCtx.Authenticated.User.ID {
+				// TODO: how does permission set work in this case?
+				return nil, nil
+			}
+
+			// TODO: user in group
+		}
+		// TODO: check ownership first
+		return access.IsAuthorized(rCtx, ac.RoleAdmin, ac.RoleView, ac.RoleConnector)
+	},
 }
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsResponse, error) {

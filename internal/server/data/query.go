@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/uid"
 )
@@ -15,6 +16,8 @@ type ReadTxn interface {
 	QueryRow(query string, args ...any) *sql.Row
 
 	OrganizationID() uid.ID
+
+	Allows(access.Access) error
 }
 
 // WriteTxn extends ReadTxn by adding write queries.

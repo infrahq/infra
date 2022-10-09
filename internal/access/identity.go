@@ -25,7 +25,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 	// anyone can get their own user data
 	if !isIdentitySelf(rCtx, id) {
 		roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-		err := IsAuthorized(rCtx, roles...)
+		_, err := IsAuthorized(rCtx, roles...)
 		if err != nil {
 			return nil, HandleAuthErr(err, "user", "get", roles...)
 		}

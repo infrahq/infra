@@ -199,7 +199,7 @@ func can(t *testing.T, db *data.DB, subject string, privilege string) {
 	assert.NilError(t, err)
 	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
 	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
-	err = IsAuthorized(rCtx, privilege)
+	_, err = IsAuthorized(rCtx, privilege)
 	assert.NilError(t, err)
 }
 
@@ -208,7 +208,7 @@ func cant(t *testing.T, db *data.DB, subject string, privilege string) {
 	assert.NilError(t, err)
 	rCtx := RequestContext{DBTxn: txnForTestCase(t, db)}
 	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: id}}
-	err = IsAuthorized(rCtx, privilege)
+	_, err = IsAuthorized(rCtx, privilege)
 	assert.ErrorIs(t, err, ErrNotAuthorized)
 }
 
