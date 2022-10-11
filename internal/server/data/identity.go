@@ -197,7 +197,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 			return []uid.ID{}, fmt.Errorf("remove provider user: %w", err)
 		}
 
-		// if this identity only exists from an infra identity provider, remove all their groups and grants, then delete the user
+		// if this identity no longer exists in any identity providers then remove all their references
 		user, err := GetIdentity(tx, Preload("Providers"), ByID(i.ID))
 		if err != nil {
 			return []uid.ID{}, fmt.Errorf("check user providers: %w", err)

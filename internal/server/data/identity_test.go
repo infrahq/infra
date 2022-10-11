@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -148,7 +149,7 @@ func TestDeleteIdentity(t *testing.T) {
 	type testCase struct {
 		name   string
 		setup  func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity)
-		verify func(t *testing.T, tx *Transaction, err error)
+		verify func(t *testing.T, tx *Transaction, err error, identity models.Identity)
 	}
 	testCases := []testCase{
 		{
@@ -161,13 +162,39 @@ func TestDeleteIdentity(t *testing.T) {
 
 				createIdentities(t, tx, &bond, &bourne)
 
+				hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+				assert.NilError(t, err)
+				err = CreateCredential(tx, &models.Credential{IdentityID: bond.ID, PasswordHash: hash})
+				assert.NilError(t, err)
+
+				group := &models.Group{
+					Name: "test group",
+				}
+				err = CreateGroup(tx, group)
+				assert.NilError(t, err)
+				err = AddUsersToGroup(tx, group.ID, []uid.ID{bond.ID})
+				assert.NilError(t, err)
+
+				err = CreateGrant(tx, &models.Grant{Subject: bond.PolyID(), Privilege: "admin", Resource: "infra"})
+				assert.NilError(t, err)
+
 				return InfraProvider(tx).ID, bond
 			},
-			verify: func(t *testing.T, tx *Transaction, err error) {
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
 
 				_, err = GetIdentity(tx, ByName("jbond@infrahq.com"))
 				assert.Error(t, err, "record not found")
+
+				// when an identity has no more references its resources are cleaned up
+				_, err = GetCredential(tx, ByIdentityID(identity.ID))
+				assert.Error(t, err, "record not found")
+				groupIDs, err := groupIDsForUser(tx, identity.ID)
+				assert.NilError(t, err)
+				assert.Equal(t, len(groupIDs), 0)
+				grants, err := ListGrants(tx, ListGrantsOptions{BySubject: identity.PolyID()})
+				assert.NilError(t, err)
+				assert.Equal(t, len(grants), 0)
 
 				// deleting a identity should not delete unrelated identities
 				_, err = GetIdentity(tx, ByName("jbourne@infrahq.com"))
@@ -179,7 +206,7 @@ func TestDeleteIdentity(t *testing.T) {
 			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
 				return InfraProvider(tx).ID, models.Identity{Name: "DNE"}
 			},
-			verify: func(t *testing.T, tx *Transaction, err error) {
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
 			},
 		},
@@ -204,10 +231,10 @@ func TestDeleteIdentity(t *testing.T) {
 
 				return provider.ID, *id
 			},
-			verify: func(t *testing.T, tx *Transaction, err error) {
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
 
-				id, err := GetIdentity(tx, ByName("jbond@infrahq.com"))
+				id, err := GetIdentity(tx, ByName(identity.Name))
 				assert.NilError(t, err) // still exists in infra provider
 
 				_, err = GetCredential(tx, ByIdentityID(id.ID))
@@ -227,7 +254,7 @@ func TestDeleteIdentity(t *testing.T) {
 
 				err := DeleteIdentities(tx, providerID, ByName(identity.Name))
 
-				tc.verify(t, tx, err)
+				tc.verify(t, tx, err, identity)
 			})
 		}
 	})
