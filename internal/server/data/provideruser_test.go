@@ -107,6 +107,7 @@ func TestSyncProviderUser(t *testing.T) {
 						AccessToken:  "any-access-token",
 						ExpiresAt:    time.Now().Add(time.Hour).UTC(),
 						LastUpdate:   time.Now().UTC(),
+						Active:       true,
 					}
 
 					cmpProviderUser := cmp.Options{
@@ -167,6 +168,7 @@ func TestSyncProviderUser(t *testing.T) {
 						AccessToken:  "any-access-token",
 						ExpiresAt:    time.Now().Add(5 * time.Minute).UTC(),
 						LastUpdate:   time.Now().UTC(),
+						Active:       true,
 					}
 
 					cmpProviderUser := cmp.Options{

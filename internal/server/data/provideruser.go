@@ -21,15 +21,15 @@ func (p providerUserTable) Table() string {
 }
 
 func (p providerUserTable) Columns() []string {
-	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at"}
+	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at", "given_name", "family_name", "active"}
 }
 
 func (p providerUserTable) Values() []any {
-	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt}
+	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt, p.GivenName, p.FamilyName, p.Active}
 }
 
 func (p *providerUserTable) ScanFields() []any {
-	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt}
+	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt, &p.GivenName, &p.FamilyName, &p.Active}
 }
 
 func (p *providerUserTable) OnInsert() error {
@@ -66,6 +66,7 @@ func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Ide
 		IdentityID: ident.ID,
 		Email:      ident.Name,
 		LastUpdate: time.Now().UTC(),
+		Active:     true,
 	}
 	if err := validateProviderUser(pu); err != nil {
 		return nil, err
