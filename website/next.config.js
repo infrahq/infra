@@ -111,15 +111,11 @@ module.exports = phase => ({
           permanent: true,
         }
       }),
-      ...[
-        '/docs/reference/cli-reference',
-      ].map(source => {
-        return {
-          source,
-          destination: '/docs/reference/cli',
-          permanent: true,
-        }
-      }),
+      {
+        source: '/docs/reference/cli-reference',
+        destination: '/docs/reference/cli',
+        permanent: true,
+      },
       ...[
         '/docs/getting-started/key-concepts',
         '/docs/reference/how-infra-works',
