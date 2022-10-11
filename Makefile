@@ -38,7 +38,7 @@ postgres:
 		--tmpfs=/var/lib/postgresql/data \
 		-p 127.0.0.1:15432:5432 \
 		postgres:14-alpine -c fsync=off -c full_page_writes=off \
-			-c listen_addresses=127.0.0.1 -c max_connections=100
+			-c max_connections=100
 	@echo
 	@echo Copy the line below into the shell used to run tests
 	@echo 'export POSTGRESQL_CONNECTION="host=localhost port=15432 user=postgres dbname=postgres password=password123"'
