@@ -199,8 +199,8 @@ CREATE TABLE provider_users (
     access_token text,
     refresh_token text,
     expires_at timestamp with time zone,
-    given_name text,
-    family_name text,
+    given_name text DEFAULT ''::text,
+    family_name text DEFAULT ''::text,
     active boolean DEFAULT true
 );
 

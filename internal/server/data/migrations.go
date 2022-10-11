@@ -785,8 +785,8 @@ func addProviderUserSCIMFields() *migrator.Migration {
 		Migrate: func(tx migrator.DB) error {
 			stmt := `
 				ALTER TABLE provider_users
-				ADD COLUMN IF NOT EXISTS given_name text,
-				ADD COLUMN IF NOT EXISTS family_name text,
+				ADD COLUMN IF NOT EXISTS given_name text DEFAULT '',
+				ADD COLUMN IF NOT EXISTS family_name text DEFAULT '',
 				ADD COLUMN IF NOT EXISTS active boolean DEFAULT true;
 
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers ON provider_users (email, provider_id);
