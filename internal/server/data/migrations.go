@@ -645,18 +645,11 @@ func cleanCrossOrgGroupMemberships() *migrator.Migration {
 				GroupID    uid.ID
 			}
 
-			var idGroups []identityGroup
-			for rows.Next() {
-				var idGroup identityGroup
-				if err := rows.Scan(&idGroup.IdentityID, &idGroup.GroupID); err != nil {
-					return fmt.Errorf("scan identity and group: %w", err)
-				}
-
-				idGroups = append(idGroups, idGroup)
-			}
-
-			if err := rows.Close(); err != nil {
-				return fmt.Errorf("close read identity group rows: %w", err)
+			idGroups, err := scanRows(rows, func(idGroup *identityGroup) []any {
+				return []any{&idGroup.IdentityID, &idGroup.GroupID}
+			})
+			if err != nil {
+				return fmt.Errorf("read identity group rows: %w", err)
 			}
 
 			for _, idGroup := range idGroups {
@@ -713,16 +706,10 @@ func removeDotFromDestinationName() *migrator.Migration {
 			if err != nil {
 				return err
 			}
-			defer rows.Close()
-			var toRename []idName
-			for rows.Next() {
-				pair := idName{}
-				if err := rows.Scan(&pair.id, &pair.name); err != nil {
-					return err
-				}
-				toRename = append(toRename, pair)
-			}
-			if err := rows.Err(); err != nil {
+			toRename, err := scanRows(rows, func(pair *idName) []any {
+				return []any{&pair.id, &pair.name}
+			})
+			if err != nil {
 				return err
 			}
 			for _, item := range toRename {

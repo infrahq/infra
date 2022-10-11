@@ -153,22 +153,13 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []models.AccessKey
-	for rows.Next() {
-		var key models.AccessKey
-
-		fields := append((*accessKeyTable)(&key).ScanFields(), &key.IssuedForName)
+	return scanRows(rows, func(key *models.AccessKey) []any {
+		fields := append((*accessKeyTable)(key).ScanFields(), &key.IssuedForName)
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
-		if err := rows.Scan(fields...); err != nil {
-			return nil, err
-		}
-		result = append(result, key)
-	}
-	return result, rows.Err()
+		return fields
+	})
 }
 
 type GetAccessKeysOptions struct {

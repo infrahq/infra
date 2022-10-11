@@ -459,13 +459,10 @@ DELETE FROM settings WHERE id=24567;
 				rows, err := db.Query(stmt)
 				assert.NilError(t, err)
 
-				var orgs []models.Organization
-				for rows.Next() {
-					org := models.Organization{}
-					err := rows.Scan(&org.ID, &org.Name, &org.CreatedAt, &org.UpdatedAt)
-					assert.NilError(t, err)
-					orgs = append(orgs, org)
-				}
+				orgs, err := scanRows(rows, func(org *models.Organization) []any {
+					return []any{&org.ID, &org.Name, &org.CreatedAt, &org.UpdatedAt}
+				})
+				assert.NilError(t, err)
 
 				now := time.Now()
 				expected := []models.Organization{

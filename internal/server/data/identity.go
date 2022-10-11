@@ -51,22 +51,16 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 		ID   uid.ID
 		Name string
 	}
-	var addIDs []idNamePair
 
 	stmt := `SELECT id, name FROM groups WHERE deleted_at is null AND name IN (?) AND organization_id = ?`
 	rows, err := tx.Query(stmt, groupsToBeAdded, tx.OrganizationID())
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var item idNamePair
-		if err := rows.Scan(&item.ID, &item.Name); err != nil {
-			return err
-		}
-		addIDs = append(addIDs, item)
-	}
-	if rows.Err() != nil {
+	addIDs, err := scanRows(rows, func(item *idNamePair) []any {
+		return []any{&item.ID, &item.Name}
+	})
+	if err != nil {
 		return err
 	}
 
@@ -93,21 +87,14 @@ func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.
 			groupID = group.ID
 		}
 
-		var ids []uid.ID
 		rows, err := tx.Query("SELECT identity_id FROM identities_groups WHERE identity_id = ? AND group_id = ?", user.ID, groupID)
 		if err != nil {
 			return err
 		}
-
-		for rows.Next() {
-			var item uid.ID
-			if err := rows.Scan(&item); err != nil {
-				rows.Close()
-				return err
-			}
-			ids = append(ids, item)
-		}
-		if rows.Err() != nil {
+		ids, err := scanRows(rows, func(item *uid.ID) []any {
+			return []any{item}
+		})
+		if err != nil {
 			return err
 		}
 
