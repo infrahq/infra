@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.7.3",
-    "@heroicons/react": "^2.0.11",
+    "@heroicons/react": "^2.0.12",
     "@markdoc/markdoc": "^0.1.12",
     "@react-spring/web": "^9.5.4",
     "@segment/analytics-next": "^1.43.2",
