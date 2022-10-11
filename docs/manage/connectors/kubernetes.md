@@ -17,7 +17,7 @@ Navigate to the **Infrastructure** tab in the dashboard and click the **Connect 
 
 Enter a **Cluster name** in the text box.
 
-Copy the commands shown. They will add the Helm repo and update it, and then install the Infra Connector onto the cluster. Ensure you are connected to the appropriate Kubernetes cluster and then paste the commands into your terminal to connect Infra to your cluster.
+Copy the commands shown. They will add the Helm repo and update it, and then install the Infra Connector onto the cluster. Ensure you are connected to the appropriate Kubernetes cluster, and then paste the commands into your terminal to connect Infra to your cluster.
 
 {% /tab %}
 
@@ -42,11 +42,11 @@ helm upgrade --install infra-connector infrahq/infra \
 
 {% callout type="info" %}
 
-Note: it may take a few minutes for the Load Balancer to be provisioned.
+Note: it may take a few minutes for the LoadBalancer resource to be provisioned.
 
 If your load balancer does not have a hostname (often true for GKE and AKS clusters), Infra will not be able to automatically create a TLS certificate for the server. On GKE, you can use the hostname `<LoadBalancer IP>.bc.googleusercontent.com`.
 
-Otherwise, you'll need to configure the Load Balancer with a static IP and hostname (see
+Otherwise, you'll need to configure the load balancer with a static IP and hostname (see
 [GKE docs](https://cloud.google.com/kubernetes-engine/docs/tutorials/configuring-domain-name-static-ip), or
 [AKS docs](https://docs.microsoft.com/en-us/azure/aks/static-ip#create-a-static-ip-address)).
 Alternatively you can use the `--skip-tls-verify` with `infra login`, or set up your own TLS certificates for Infra.
