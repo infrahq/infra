@@ -322,9 +322,9 @@ func TestListProviderUsers(t *testing.T) {
 				err := CreateProvider(tx, provider)
 				assert.NilError(t, err)
 
-				_ = createTestProviderUser(t, tx, provider, "david@example.com")
-				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
-				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu}, 2
+				pu1 := createTestProviderUser(t, tx, provider, "david@example.com")
+				pu2 := createTestProviderUser(t, tx, provider, "lucy@example.com")
+				return provider.ID, &SCIMParameters{StartIndex: 1}, []models.ProviderUser{pu1, pu2}, 2
 			},
 		},
 	}

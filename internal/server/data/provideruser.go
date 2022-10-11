@@ -113,8 +113,9 @@ func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]mode
 		if p.Count != 0 {
 			query.B("LIMIT ?", p.Count)
 		}
-		if p.StartIndex != 0 {
-			query.B("OFFSET ?", p.StartIndex)
+		if p.StartIndex > 0 {
+			offset := p.StartIndex - 1 // start index begins at 1, not 0
+			query.B("OFFSET ?", offset)
 		}
 	}
 
