@@ -74,7 +74,7 @@ $ infra users add johndoe@example.com`,
 				return err
 			}
 
-			cli.Output("Added user %q", args[0])
+			cli.Output("Added user %q to Infra", args[0])
 
 			if createResp.OneTimePassword != "" {
 				cli.Output("Password: %s", createResp.OneTimePassword)
@@ -241,7 +241,7 @@ $ infra users remove janedoe@example.com`,
 					return err
 				}
 
-				cli.Output("Removed user %q", user.Name)
+				cli.Output("Removed user %q from Infra", user.Name)
 			}
 
 			return nil

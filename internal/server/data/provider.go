@@ -74,7 +74,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		}
 
 		if len(userIDsToDelete) > 0 {
-			if err := DeleteIdentities(db, ByIDs(userIDsToDelete)); err != nil {
+			if err := DeleteIdentities(db, p.ID, ByIDs(userIDsToDelete)); err != nil {
 				return fmt.Errorf("delete users: %w", err)
 			}
 		}

@@ -335,7 +335,11 @@ export default function Users() {
                 }
               )
 
-              if (info.row.original.id === user?.id) {
+              // can only delete users that exist within Infra which are not the currently logged in user
+              if (
+                info.row.original.id === user?.id ||
+                !info.row.original.providerNames.includes('infra')
+              ) {
                 return null
               }
 
@@ -374,7 +378,7 @@ export default function Users() {
                                     onClick={() => setOpen(true)}
                                   >
                                     <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
-                                    Remove user
+                                    Remove Infra user
                                   </button>
                                 )}
                               </Menu.Item>

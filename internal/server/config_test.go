@@ -702,7 +702,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 
 	err = s.db.Raw("SELECT COUNT(*) FROM provider_users").Scan(&providerUsers).Error
 	assert.NilError(t, err)
-	assert.Equal(t, int64(0), providerUsers)
+	assert.Equal(t, int64(1), providerUsers)
 
 	// previous config is cleared on new config application
 	newConfig := Config{

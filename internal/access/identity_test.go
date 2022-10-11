@@ -53,6 +53,9 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	err := data.CreateIdentity(db, identity)
 	assert.NilError(t, err)
 
+	_, err = data.CreateProviderUser(db, infraProvider, identity)
+	assert.NilError(t, err)
+
 	// create some resources for this identity
 
 	keyID := generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
@@ -93,6 +96,9 @@ func TestDeleteIdentityCleansUpResources(t *testing.T) {
 	assert.NilError(t, err)
 
 	_, err = data.GetIdentity(db, data.ByID(identity.ID))
+	assert.ErrorIs(t, err, internal.ErrNotFound)
+
+	_, err = data.GetProviderUser(db, infraProvider.ID, identity.ID)
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 
 	_, err = data.GetAccessKeyByKeyID(db, keyID)

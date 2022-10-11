@@ -873,7 +873,7 @@ func (s Server) loadUsers(db data.GormTxn, users []User) error {
 	}
 
 	// remove any users previously defined by config
-	if err := data.DeleteIdentities(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteIdentities(db, data.InfraProvider(db).ID, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
 		return err
 	}
 
@@ -902,6 +902,12 @@ func (s Server) loadUser(db data.GormTxn, input User) (*models.Identity, error) 
 		if err := data.CreateIdentity(db, identity); err != nil {
 			return nil, err
 		}
+
+		_, err = data.CreateProviderUser(db, data.InfraProvider(db), identity)
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	if err := s.loadCredential(db, identity, input.Password); err != nil {

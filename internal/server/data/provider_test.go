@@ -161,6 +161,9 @@ func TestDeleteProviders(t *testing.T) {
 		t.Run("access keys issued using different provider from deleted are NOT revoked", func(t *testing.T) {
 			setup()
 
+			_, err := CreateProviderUser(db, &providerProduction, user)
+			assert.NilError(t, err)
+
 			key := &models.AccessKey{
 				Name:       "test key",
 				IssuedFor:  user.ID,
@@ -168,13 +171,17 @@ func TestDeleteProviders(t *testing.T) {
 				ExpiresAt:  time.Now().Add(5 * time.Minute),
 			}
 
-			_, err := CreateAccessKey(db, key)
+			_, err = CreateAccessKey(db, key)
 			assert.NilError(t, err)
 
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
 			_, err = GetAccessKeyByKeyID(db, key.KeyID)
+			assert.NilError(t, err)
+
+			// clean up
+			err = DeleteProviders(db, ByOptionalName(providerProduction.Name))
 			assert.NilError(t, err)
 		})
 
