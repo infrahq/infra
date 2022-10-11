@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -501,21 +500,6 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10004")
 			},
 		},
-		"with latest update index and timeout": {
-			urlPath: "/api/grants?destination=res1&lastUpdateIndex=100100",
-			setup: func(t *testing.T, req *http.Request) {
-				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-
-				ctx, cancel := context.WithTimeout(req.Context(), 200*time.Millisecond)
-				t.Cleanup(cancel)
-
-				*req = *req.WithContext(ctx)
-			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				// TODO: update test to expect 304 or 200
-				assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
-			},
-		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -712,6 +696,35 @@ var cmpAPIGrantShallow = gocmp.Comparer(func(x, y api.Grant) bool {
 var cmpAPIGrantJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+}
+
+func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too long for short run")
+	}
+
+	withShortRequestTimeout := func(t *testing.T, options *Options) {
+		options.API.RequestTimeout = 50 * time.Millisecond
+		options.API.BlockingRequestTimeout = 400 * time.Millisecond
+	}
+	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
+	routes := srv.GenerateRoutes()
+
+	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+	assert.NilError(t, err)
+	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", apiVersionLatest)
+
+	start := time.Now()
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	elapsed := time.Since(start)
+	assert.Assert(t, elapsed >= srv.options.API.BlockingRequestTimeout,
+		"elapsed=%v", elapsed)
+
+	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
 }
 
 func TestAPI_CreateGrant(t *testing.T) {

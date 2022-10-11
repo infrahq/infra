@@ -192,6 +192,11 @@ redis:
   host: myredis
   username: myuser
   password: mypassword
+
+api:
+  requestTimeout: 2m
+  blockingRequestTimeout: 4m
+
 `
 
 				dir := fs.NewDir(t, t.Name(),
@@ -296,6 +301,11 @@ redis:
 						Port:     6379,
 						Username: "myuser",
 						Password: "mypassword",
+					},
+
+					API: server.APIOptions{
+						RequestTimeout:         2 * time.Minute,
+						BlockingRequestTimeout: 4 * time.Minute,
 					},
 				}
 			},

@@ -167,6 +167,18 @@ func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
 	return nil
 }
 
+// BlockingRequest is used to identify the last update index that was
+// visible to the client. The API endpoint will block until there is a
+// new updated index for the query.
+// BlockingRequests use a longer request timeout than a standard request.
+type BlockingRequest struct {
+	LastUpdateIndex int64 `form:"lastUpdateIndex" note:"set this to the value of the Last-Update-Index response header to block until the list results have changed"`
+}
+
+func (r BlockingRequest) IsBlockingRequest() bool {
+	return r.LastUpdateIndex != 0
+}
+
 // PEM is a base64 encoded string, commonly used to store certificates and
 // private keys. PEM values will be normalized to remove any leading whitespace
 // and all but a single trailing newline.

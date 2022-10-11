@@ -111,6 +111,11 @@ func defaultServerOptions(infraDir string) server.Options {
 		Redis: redis.Options{
 			Port: 6379,
 		},
+
+		API: server.APIOptions{
+			RequestTimeout:         time.Minute,
+			BlockingRequestTimeout: 5 * time.Minute,
+		},
 	}
 }
 
