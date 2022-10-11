@@ -63,18 +63,13 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return ListGrantsResponse{}, err
 	}
 
-	var resp ListGrantsResponse
-
-	// TODO: validate that only supported query parameters are set, and that at least
-	// one of the required parameters are set with lastUpdateIndex
-	// TODO: change request timeout for these requests
 	listenOpts := data.ListenForGrantsOptions{
 		ByDestination: opts.ByDestination,
 		OrgID:         rCtx.DBTxn.OrganizationID(),
 	}
 	listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
-		return resp, fmt.Errorf("listen for notify: %w", err)
+		return ListGrantsResponse{}, fmt.Errorf("listen for notify: %w", err)
 	}
 	defer func() {
 		// use a context with a separate deadline so that we still release
@@ -98,7 +93,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 
 	_, err = listener.WaitForNotification(rCtx.Request.Context())
 	if err != nil {
-		return resp, fmt.Errorf("waiting for notify: %w", err)
+		return result, fmt.Errorf("waiting for notify: %w", err)
 	}
 
 	result, err = listGrantsWithMaxUpdateIndex(rCtx, opts)

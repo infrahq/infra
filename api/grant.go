@@ -1,7 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
@@ -56,14 +58,80 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 		),
 		validate.ValidatorFunc(func() *validate.Failure {
 			if r.ShowInherited && r.User == 0 {
-				return &validate.Failure{
-					Name:     "showInherited",
-					Problems: []string{"requires a user ID"},
-				}
+				return validate.Fail("showInherited", "requires a user ID")
 			}
 			return nil
 		}),
+		validate.ValidatorFunc(r.validateLastUpdateIndex),
 	}
+}
+
+func (r ListGrantsRequest) validateLastUpdateIndex() *validate.Failure {
+	if r.LastUpdateIndex == 0 {
+		return nil
+	}
+
+	// At least one of the supported query parameters must be set, and no other
+	// query parameters can be set
+	switch {
+	case r.Destination != "":
+		// TODO: require limit=-1
+		if fields := r.fieldsWithValues("destination", "lastUpdateIndex"); len(fields) > 0 {
+			return validate.Fail("lastUpdateIndex",
+				fmt.Sprintf("can not be used with %v parameter(s)", strings.Join(fields, ",")))
+		}
+
+	default:
+		return validate.Fail("lastUpdateIndex", "requires a supported filter")
+	}
+	return nil
+}
+
+// TODO: completeness test
+func (r ListGrantsRequest) fieldsWithValues(ignored ...string) []string {
+	var result []string
+	add := func(v string) {
+		result = append(result, v)
+	}
+	ignore := func(v string) bool {
+		for _, item := range ignored {
+			if item == v {
+				return true
+			}
+		}
+		return false
+	}
+	if r.User != 0 && !ignore("user") {
+		add("user")
+	}
+	if r.Group != 0 && !ignore("group") {
+		add("group")
+	}
+	if r.Resource != "" && !ignore("resource") {
+		add("resource")
+	}
+	if r.Destination != "" && !ignore("destination") {
+		add("destination")
+	}
+	if r.Privilege != "" && !ignore("privilege") {
+		add("privilege")
+	}
+	if r.ShowSystem && !ignore("showSystem") {
+		add("showSystem")
+	}
+	if r.ShowInherited && !ignore("showInherited") {
+		add("showInherited")
+	}
+	if r.LastUpdateIndex != 0 && !ignore("lastUpdateIndex") {
+		add("lastUpdateIndex")
+	}
+	if r.Page != 0 && !ignore("page") {
+		add("page")
+	}
+	if r.Limit != 0 && !ignore("limit") {
+		add("limit")
+	}
+	return result
 }
 
 func (r ListGrantsRequest) SetPage(page int) Paginatable {

@@ -439,6 +439,48 @@ func TestAPI_ListGrants(t *testing.T) {
 				assert.DeepEqual(t, actual, expected, cmpAPIGrantJSON)
 			},
 		},
+		"unsupported filter with update index": {
+			urlPath: "/api/grants?destination=res1&lastUpdateIndex=1&user=1234",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{
+						FieldName: "lastUpdateIndex",
+						Errors:    []string{"can not be used with user parameter(s)"},
+					},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+		"no filter with update index": {
+			urlPath: "/api/grants?lastUpdateIndex=1",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
+
+				respBody := &api.Error{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := []api.FieldError{
+					{
+						FieldName: "lastUpdateIndex",
+						Errors:    []string{"requires a supported filter"},
+					},
+				}
+				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
 		"with stale update index": {
 			urlPath: "/api/grants?destination=res1&lastUpdateIndex=1",
 			setup: func(t *testing.T, req *http.Request) {
