@@ -2,11 +2,10 @@
 title: CLI Reference
 position: 1
 ---
+
 # CLI Reference
 
 ## Commands
-
-
 
 ### `infra login`
 
@@ -60,6 +59,7 @@ $ infra login
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra logout`
 
 Log out of Infra
@@ -78,20 +78,20 @@ infra logout [SERVER] [flags]
 ```
 # Log out of current server
 $ infra logout
-		
+
 # Log out of a specific server
 $ infra logout infraexampleserver.com
-		
+
 # Logout of all servers
-$ infra logout --all 
-		
-# Log out of current server and clear from list 
+$ infra logout --all
+
+# Log out of current server and clear from list
 $ infra logout --clear
-		
+
 # Log out of a specific server and clear from list
-$ infra logout infraexampleserver.com --clear 
-		
-# Logout and clear list of all servers 
+$ infra logout infraexampleserver.com --clear
+
+# Logout and clear list of all servers
 $ infra logout --all --clear
 ```
 
@@ -108,6 +108,7 @@ $ infra logout --all --clear
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra list`
 
 List accessible destinations
@@ -122,6 +123,7 @@ infra list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra use`
 
 Access a destination
@@ -147,6 +149,7 @@ $ infra use development.kube-system
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra destinations list`
 
 List connected destinations
@@ -167,6 +170,7 @@ infra destinations list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra destinations remove`
 
 Disconnect a destination
@@ -193,6 +197,7 @@ $ infra destinations remove docker-desktop
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra grants list`
 
 List grants
@@ -217,6 +222,7 @@ infra grants list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra grants add`
 
 Grant a user or group access to a destination
@@ -256,6 +262,7 @@ $ infra grants add johndoe@example.com infra --role admin
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra grants remove`
 
 Revoke a user or group's access to a destination
@@ -295,6 +302,7 @@ $ infra grants remove janedoe@example.com infra --role admin
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra users add`
 
 Create a user
@@ -322,6 +330,7 @@ $ infra users add johndoe@example.com
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra users edit`
 
 Update a user
@@ -349,6 +358,7 @@ $ infra users edit janedoe@example.com --password
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra users list`
 
 List users
@@ -369,6 +379,7 @@ infra users list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra users remove`
 
 Delete a user
@@ -396,6 +407,7 @@ $ infra users remove janedoe@example.com
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra groups add`
 
 Create a group
@@ -417,6 +429,7 @@ $ infra groups add Engineering
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra groups adduser`
 
 Add a user to a group
@@ -439,6 +452,7 @@ $ infra groups adduser johndoe@example.com Engineering
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra groups list`
 
 List groups
@@ -460,6 +474,7 @@ infra groups list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra groups remove`
 
 Delete a group
@@ -487,6 +502,7 @@ $ infra groups remove Engineering
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra groups removeuser`
 
 Remove a user from a group
@@ -515,6 +531,7 @@ $ infra groups removeuser johndoe@example.com Engineering
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra keys list`
 
 List access keys
@@ -536,6 +553,7 @@ infra keys list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra keys add`
 
 Create an access key
@@ -574,6 +592,7 @@ $ infra keys add connector
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra keys remove`
 
 Delete an access key
@@ -594,6 +613,7 @@ infra keys remove KEY [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra providers list`
 
 List connected identity providers
@@ -614,6 +634,7 @@ infra providers list [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra providers add`
 
 Connect an identity provider
@@ -655,6 +676,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra providers edit`
 
 Update a provider
@@ -689,6 +711,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra providers remove`
 
 Disconnect an identity provider
@@ -715,6 +738,7 @@ $ infra providers remove okta
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra info`
 
 Display the info about the current session
@@ -729,6 +753,7 @@ infra info [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra version`
 
 Display the Infra version
@@ -743,6 +768,7 @@ infra version [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra about`
 
 Display information about Infra
@@ -757,6 +783,7 @@ infra about [flags]
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
+
 ### `infra completion`
 
 Generate shell auto-completion for the CLI
@@ -770,9 +797,10 @@ To load completions:
 `$ source <(infra completion bash)`
 
 To load completions for each session, execute once:
-* Linux:
+
+- Linux:
   `$ infra completion bash > /etc/bash_completion.d/infra`
-* macOS:
+- macOS:
   `$ infra completion bash > /usr/local/etc/bash_completion.d/infra`
 
 ##### Zsh:
@@ -799,7 +827,6 @@ To load completions for each session, execute once:
 To load completions for every new session, run:
 `PS> infra completion powershell > infra.ps1`
 and source this file from your PowerShell profile.
-
 
 ```
 infra completion

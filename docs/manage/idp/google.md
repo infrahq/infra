@@ -9,13 +9,13 @@ position: 3
 
 To connect Google, run the following command:
 
-```
+```bash
 infra providers add google \
   --url accounts.google.com \
-  --client-id <your google client id> \
-  --client-secret <your google client secret> \
-  --service-account-key <path to your google service account's private key file> \
-  --workspace-domain-admin <your google workspace domain admin's email> \
+  --client-id <your_google_client_id> \
+  --client-secret <your_google_client_secret> \
+  --service-account-key <path_to_your_google_service_accounts_private_key_file> \
+  --workspace-domain-admin <your_google_workspace_domain_admins_email> \
   --kind google
 ```
 
@@ -31,7 +31,7 @@ infra providers add google \
    - For **App information** enter an **App name** and a **User support email**.
    - For **Developer contact information** enter an email.
    - Click **Save and continue**.
-   - On the scopes page select **Add or remove scopes**. From the list of scopes select `.../auth/userinfo.email ` and `openid`. Scroll to the bottom of the selected scopes page and click **Update**.
+   - On the scopes page select **Add or remove scopes**. From the list of scopes select `.../auth/userinfo.email` and `openid`. Scroll to the bottom of the selected scopes page and click **Update**.
    - Click **Save and continue**.
    - Verify your OAuth consent and click **Back to dashboard**.
      ![OAuth consent summary](../../images/google-setup/connect-users-google-3.png)
@@ -65,4 +65,4 @@ infra providers add google \
    - Click **Manage Domain Wide Delegation**
    - Click **Add new**.
    - For **Client ID** enter the service account's unique ID noted in step 6.
-   - For **OAuth scopes** enter **https://www.googleapis.com/auth/admin.directory.group.readonly**.
+   - For **OAuth scopes** enter **<https://www.googleapis.com/auth/admin.directory.group.readonly>**.

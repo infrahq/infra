@@ -9,14 +9,14 @@ The Infra Helm chart is the recommended way of installing Infra on Kubernetes.
 
 ## Add the chart repository
 
-```
+```bash
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
 ```
 
 ## Installing
 
-```
+```bash
 helm upgrade --install infra infrahq/infra
 ```
 
@@ -32,12 +32,13 @@ server:
 
 Then deploy Infra with these custom values:
 
-```
+```bash
 helm upgrade --install infra infrahq/infra -f values.yaml
 ```
 
 ## Users
-Users can be added in the helm values file by specifying a name which should be a valid email address, and a password or access key. The password is the more likely way to validate the user, though a process or service account will probably use an access key. Access keys must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>). Three of the more common ways of dealing with secrets is shown here. For more options, scroll down to the [Secrets](#secrets) section.
+
+Add users to the Helm values file by specifying a name which should be a valid email address, and a password or access key. The password is the more likely way to validate the user, though a process or service account will probably use an access key. Access keys must be in the form of XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY (<10 character ascii key>.<24 character ascii secret>). Here are three of the more common ways of dealing with secrets. For more options, scroll down to the [Secrets](#secrets) section.
 
 ```yaml
 server:
@@ -74,7 +75,7 @@ server:
 
 ## Grants
 
-For each user and resource (Infra or a Kubernetes cluster) defined, you can add a grant. A grant includes a user name or group name, a role, and a resource. 
+For each user and resource (Infra or a Kubernetes cluster) defined, you can add a grant. A grant includes a user name or group name, a role, and a resource.
 
 ```yaml
 # example values.yaml
@@ -260,7 +261,7 @@ Infra supports many secret storage backends, including, but not limited to:
 - AWS Secrets Manager
 - AWS SSM (Systems Manager Parameter Store)
 - Environment variables
-- Files on the file system
+- Files on the filesystem
 - plaintext secrets (though not recommended)
 
 ### Kubernetes
@@ -394,7 +395,7 @@ server:
         clientSecret: env:OKTA_CLIENT_SECRET
 ```
 
-**env** is built-in and does not need to be declared, but if you do want to declare the configuration for it, you could use this to create a custom env handler which base64 encodes the secret:
+**env** is built-in and does not need to be declared. If you do want to declare the configuration for the **env**, you could use this to create a custom env handler which base64 encodes the secret:
 
 ```yaml
 # example values.yaml
@@ -410,10 +411,10 @@ server:
           base64Raw: false
 ```
 
-which you would then use like this. First define an environment variable in the context where it will be accessed. [There are many ways to do this in Kubernetes](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/). Typically the environment variable in Kubernetes will be defined in the [deployment](/helm/charts/infra/templates/server/deployment.yaml). To temporarily define an environment variable you can use `kubectl`:
+To use this, first define an environment variable in the context where it will be accessed. [There are many ways to do this in Kubernetes](https://kubernetes.io/docs/tasks/inject-data-application/define-environment-variable-container/). Typically, the environment variable in Kubernetes will be defined in the [deployment](/helm/charts/infra/templates/server/deployment.yaml). To temporarily define an environment variable you can use `kubectl`:
 
 ```bash
-$ kubectl set env deployment/infra OKTA_CLIENT_SECRET=c3VwZXIgc2VjcmV0IQ==
+kubectl set env deployment/infra OKTA_CLIENT_SECRET=c3VwZXIgc2VjcmV0IQ==
 ```
 
 Then use the name of the secret back-end and the name of the environment variable in the `infra.yaml` file:
@@ -430,7 +431,7 @@ server:
 
 ### Files on the file system
 
-It's a common pattern to write secrets to a set of files on disk and then have an app read them. Note that one secret is stored per file in plaintext.
+It's a common pattern to write secrets to a set of files on disk and then have an app read them. Note that each file can store a single secret, and that secret must be in plaintext.
 
 ```yaml
 # example values.yaml
@@ -459,10 +460,10 @@ server:
           path: /var/secrets # optional: assume all files mentioned are in this root directory
 ```
 
-which you would then use as follows. First base64 encode a string and write it to a file:
+To use the file, first base64 encode a string and write it to a file:
 
 ```bash
-$ echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
+echo "c3VwZXIgc2VjcmV0IQ==" > /var/secrets/okta-client-secret.txt
 ```
 
 Then in the `infra.yaml` file, use the name of the secrets config declaration and then the name of the file.
@@ -479,7 +480,7 @@ server:
 
 ### plaintext secrets (though probably not recommended)
 
-Sometimes it can be handy to support plain text secrets right in the yaml config, especially when the yaml is being generated and the secrets are coming from elsewhere.
+Sometimes it can be handy to support plain text secrets right in the YAML config, especially when the YAML is being generated and the secrets are coming from elsewhere.
 
 ```yaml
 # example values.yaml
@@ -519,7 +520,7 @@ server:
           base64Raw: false
 ```
 
-Which you would then use in the `infra.yaml` file as shown:
+You can then use this in the `infra.yaml` file as shown:
 
 ```yaml
 # example values.yaml
@@ -535,9 +536,9 @@ server:
 
 ### Encryption Keys
 
-Sensitive data is always encrypted at rest in the db using a symmetric key. The symmetric key is stored in the database encrypted by a root key. By default this root key is generated by Infra and stored in a secret (default: `~/.infra/key`, or in Kubernetes, a as secret named `infra-x` with the key `/__root_key`). Encrpytion at rest can be configured using another key provider service such as KMS or Vault.
+The database always encrypts sensitive data at rest using a symmetric key. The symmetric key is stored in the database encrypted by a root key. By default, Infra generates this root key and stores it in a secret (default: `~/.infra/key`, or in Kubernetes, as a secret named `infra-x` with the key `/__root_key`). Encryption at rest can be configured using another key provider service such as KMS or Vault.
 
-The process of retrieving the db key is to load the encrypted key from the database, request that the db key be decrypted by the root key, and at which point the db key is used to decrypt all the data. In the case of AWS KMS and Vault, the Infra app never sees the root key, and so these options are preferred over the default built-in `native` key provider.
+The process of retrieving the database key is to load the encrypted key from the database, request that the database key be decrypted by the root key, and at which point the database key is used to decrypt all the data. In the case of AWS KMS and Vault, the Infra app never sees the root key, and so these options are preferred over the default built-in `native` key provider.
 
 ### Root key configuration examples
 
@@ -590,7 +591,7 @@ server:
     dbEncryptionKey: /var/run/secret/my/db/encryption/secret
 ```
 
-If an encryption key is not provided, one will be randomly generated during install time. It is the responsibility of the operator to back up this key.
+If an encryption key is not available, one will be generated during install time. It is the responsibility of the operator to back up this key.
 
 ## Service Accounts
 

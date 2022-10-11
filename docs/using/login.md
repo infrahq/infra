@@ -11,7 +11,7 @@ position: 2
 
 ## Login to Infra
 
-```
+```text
 infra login SERVER
 ```
 
@@ -19,19 +19,19 @@ infra login SERVER
 
 Run `infra list` to view what you have access to:
 
-```
+```text
 infra list
 ```
 
 ## Switch to the cluster context you want
 
-```
+```text
 infra use DESTINATION
 ```
 
 ## Use your preferred tool to run commands
 
-```
+```text
 # for example, you can run kubectl commands directly after the infra context is set
 kubectl [command]
 ```

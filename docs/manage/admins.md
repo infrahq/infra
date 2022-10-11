@@ -18,12 +18,12 @@ This will provide `admin@example.com` full access to the Infra API, including cr
 
 {% tabs %}
 {% tab label="Dashboard" %}
-Navigate to **Settings**. Enter an existing user email into the textbox and click the **+ Add** button.
+Navigate to **Settings**. Enter an existing user email into the text box and click the **+ Add** button.
 ![Add admin](../images/addadmin.png)
 {% /tab %}
 {% tab label="CLI" %}
 
-```
+```bash
 infra grants add admin@example.com infra --role admin
 ```
 
@@ -34,12 +34,12 @@ infra grants add admin@example.com infra --role admin
 
 {% tabs %}
 {% tab label="Dashboard" %}
-Navigate to **Settings**. Enter an existing group into the textbox and click the **+ Add** button.
+Navigate to **Settings**. Enter an existing group into the text box and click the **+ Add** button.
 ![Add admin](../images/addadmin.png)
 {% /tab %}
 {% tab label="CLI" %}
 
-```
+```bash
 infra grants add --group engineering infra --role admin
 ```
 
@@ -55,7 +55,7 @@ Navigate to **Settings**. Click **Revoke** on the right side of one of the exist
 {% /tab %}
 {% tab label="CLI" %}
 
-```
+```bash
 infra grants remove admin@example.com infra --role admin
 ```
 

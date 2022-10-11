@@ -35,7 +35,7 @@ This is an example article with front matter.
 
 ## Tags
 
-Category directories are denoted by adding a `.category` file in the directory.
+Category directories have a `.category` file in the directory.
 
 ## Category front matter
 
@@ -104,9 +104,9 @@ Linux instructions
 {% /tabs %}
 ```
 
-### Youtube
+### YouTube
 
-Youtube videos are embeddable:
+YouTube videos are embeddable:
 
 ```md
 {% youtube id="kxlIDUPu-AY /%}
