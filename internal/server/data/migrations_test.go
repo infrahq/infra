@@ -736,7 +736,6 @@ DELETE FROM settings WHERE id=24567;
 					(10009, 'with.dot.no.more'),
 					(10010, 'no-dots')`)
 				assert.NilError(t, err)
-
 			},
 			cleanup: func(t *testing.T, db WriteTxn) {
 				_, err := db.Exec("DELETE FROM destinations")
@@ -757,6 +756,29 @@ DELETE FROM settings WHERE id=24567;
 			label: testCaseLine("2022-10-05T11:12"),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine("2022-10-05T18:00:00"),
+			setup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec("INSERT INTO identities(id, name, deleted_at) VALUES(1111, 'hello@example.com', ?)", time.Now())
+				assert.NilError(t, err)
+				_, err = db.Exec("INSERT INTO provider_users(provider_id, identity_id, email) VALUES(9999, 1111, 'hello@example.com')")
+				assert.NilError(t, err)
+				_, err = db.Exec("INSERT INTO provider_users(provider_id, identity_id, email) VALUES(9999, 2222, 'hello@example.com')")
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, db WriteTxn) {
+				_, err := db.Exec("DELETE FROM identities")
+				assert.NilError(t, err)
+				_, err = db.Exec("DELETE FROM provider_users")
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, db WriteTxn) {
+				var count int
+				err := db.QueryRow(`SELECT count(*) from provider_users where identity_id = 1111`).Scan(&count)
+				assert.NilError(t, err)
+				assert.Equal(t, count, 0)
 			},
 		},
 	}

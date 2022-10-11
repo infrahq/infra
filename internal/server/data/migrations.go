@@ -72,6 +72,7 @@ func migrations() []*migrator.Migration {
 		fixProviderUserIndex(),
 		removeDotFromDestinationName(),
 		destinationNameUnique(),
+		removeDeletedIdentityProviderUsers(),
 		// next one here
 	}
 }
@@ -749,6 +750,42 @@ func destinationNameUnique() *migrator.Migration {
 				return fmt.Errorf("failed to create unique index on destination name, "+
 					"delete the duplicate destination before proceeding with this upgrade: %w", err)
 			}
+			return nil
+		},
+	}
+}
+
+func removeDeletedIdentityProviderUsers() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-05T18:00:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `SELECT id FROM identities WHERE deleted_at IS NOT NULL;`
+			rows, err := tx.Query(stmt)
+			if err != nil {
+				return fmt.Errorf("select all deleted identities: %w", err)
+			}
+
+			var ids []uid.ID
+			for rows.Next() {
+				var id uid.ID
+				if err := rows.Scan(&id); err != nil {
+					return fmt.Errorf("scan identity id: %w", err)
+				}
+
+				ids = append(ids, id)
+			}
+
+			if err := rows.Close(); err != nil {
+				return fmt.Errorf("close read identity rows: %w", err)
+			}
+
+			if len(ids) > 0 {
+				_, err := tx.Exec(`DELETE FROM provider_users WHERE identity_id IN ?`, ids)
+				if err != nil {
+					return fmt.Errorf("delete removed provider_users: %w", err)
+				}
+			}
+
 			return nil
 		},
 	}
