@@ -131,7 +131,7 @@ func TestUpdateCredentials(t *testing.T) {
 
 		updatedKey, err := data.GetAccessKeyByKeyID(db, key.KeyID)
 		assert.NilError(t, err)
-		assert.Equal(t, updatedKey.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
+		assert.DeepEqual(t, updatedKey.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
 	})
 }
 
