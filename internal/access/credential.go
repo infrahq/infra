@@ -112,7 +112,7 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 		if raw, ok := c.Get(RequestContextKey); ok {
 			if rCtx, ok := raw.(RequestContext); ok {
 				if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
-					accessKey.Scopes = models.CommaSeparatedStrings{}
+					accessKey.Scopes = sliceWithoutElement(accessKey.Scopes, models.ScopePasswordReset)
 					if err = data.UpdateAccessKey(db, accessKey); err != nil {
 						return fmt.Errorf("updating access key: %w", err)
 					}
@@ -122,6 +122,16 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 	}
 
 	return nil
+}
+
+func sliceWithoutElement(s []string, without string) []string {
+	result := []string{}
+	for _, v := range s {
+		if v != without {
+			result = append(result, v)
+		}
+	}
+	return result
 }
 
 func GetRequestContext(c *gin.Context) RequestContext {

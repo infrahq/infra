@@ -107,6 +107,32 @@ func TestUpdateCredentials(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, creds.OneTimePassword, false)
 	})
+
+	t.Run("Update own credentials removes password reset scope, but keeps other scopes", func(t *testing.T) {
+		rCtx := GetRequestContext(c)
+		rCtx.Authenticated.User = user
+
+		key := &models.AccessKey{
+			IssuedFor:  user.ID,
+			ProviderID: data.InfraProvider(db).ID,
+			Scopes:     []string{models.ScopeAllowCreateAccessKey, models.ScopePasswordReset},
+		}
+		_, err = CreateAccessKey(c, key)
+		assert.NilError(t, err)
+		rCtx.Authenticated.AccessKey = key
+		c.Set(RequestContextKey, rCtx)
+
+		err := UpdateCredential(c, user, "newPassword")
+		assert.NilError(t, err)
+
+		creds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		assert.NilError(t, err)
+		assert.Equal(t, creds.OneTimePassword, false)
+
+		updatedKey, err := data.GetAccessKeyByKeyID(db, key.KeyID)
+		assert.NilError(t, err)
+		assert.DeepEqual(t, updatedKey.Scopes, models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey})
+	})
 }
 
 func TestLowercaseRequirements(t *testing.T) {
