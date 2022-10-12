@@ -94,7 +94,7 @@ $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq
 # Connect Google to Infra with group sync
 $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --workspace-domain-admin admin@example.com
 `,
-		Args: MaxArgs(5),
+		Args: MaxArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return updateProvider(cli, args[0], opts)
 		},
@@ -258,12 +258,6 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 					ExtensionDeadline: api.Duration(time.Hour * 87600), // 10 years
 				})
 				if err != nil {
-					if api.ErrorStatusCode(err) == 403 {
-						logging.Debugf("%s", err.Error())
-						return Error{
-							Message: "Cannot create SCIM key: missing privileges for CreateKey",
-						}
-					}
 					return err
 				}
 				cli.Output("Access key for SCIM provisioning: %s", key.AccessKey)
