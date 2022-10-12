@@ -11,6 +11,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
@@ -50,7 +51,7 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	return tmpPassword, nil
 }
 
-func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string) error {
+func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
 	rCtx := GetRequestContext(c)
 	_, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
@@ -62,13 +63,44 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return err
 	}
 
+	// Users have to supply their old password to change their existing password
+	if isSelf {
+		if oldPassword == "" {
+			errs := make(validate.Error)
+			errs["oldPassword"] = append(errs["oldPassword"], "is required")
+			return errs
+		}
+
+		db := getDB(c)
+
+		userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		if err != nil {
+			return fmt.Errorf("existing credential: %w", err)
+		}
+
+		// compare the stored hash of the user's password and the hash of the presented password
+		err = bcrypt.CompareHashAndPassword(userCredential.PasswordHash, []byte(oldPassword))
+		if err != nil {
+			// this probably means the password was wrong
+			logging.L.Trace().Err(err).Msg("bcrypt comparison with oldpassword/newpassword failed")
+
+			errs := make(validate.Error)
+			errs["oldPassword"] = append(errs["oldPassword"], "invalid oldPassword")
+			return errs
+		}
+
+	}
+
 	if err := updateCredential(c, user, newPassword, isSelf); err != nil {
 		return err
 	}
 
-	// if the request is from an admin, the infra user may not exist yet, so create the
-	// provider_user if it's missing.
-	_, _ = data.CreateProviderUser(rCtx.DBTxn, data.InfraProvider(rCtx.DBTxn), user)
+	if !isSelf {
+		// if the request is from an admin, the infra user may not exist yet, so create the
+		// provider_user if it's missing.
+		_, _ = data.CreateProviderUser(rCtx.DBTxn, data.InfraProvider(rCtx.DBTxn), user)
+	}
+
 	return nil
 }
 

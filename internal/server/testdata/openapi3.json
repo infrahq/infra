@@ -5791,6 +5791,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "oldPassword": {
+                    "type": "string"
+                  },
                   "password": {
                     "type": "string"
                   }
