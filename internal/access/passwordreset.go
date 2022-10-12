@@ -59,7 +59,7 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 		}
 	}
 
-	if err := updateCredential(c, user, "", newPassword, true, false); err != nil {
+	if err := updateCredential(c, user, newPassword, true); err != nil {
 		return nil, err
 	}
 

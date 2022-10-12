@@ -132,8 +132,11 @@ func TestUpdateCredentials(t *testing.T) {
 		rCtx.Authenticated.AccessKey = key
 		c.Set(RequestContextKey, rCtx)
 
+		err = UpdateCredential(c, user, "", "newPassword")
+		assert.ErrorContains(t, err, "oldPassword: is required")
+
 		err = UpdateCredential(c, user, "somePassword", "newPassword")
-		assert.ErrorContains(t, err, "invalid oldPassword")
+		assert.ErrorContains(t, err, "oldPassword: invalid oldPassword")
 
 		err = UpdateCredential(c, user, tmpPassword, "newPassword")
 		assert.NilError(t, err)
