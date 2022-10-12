@@ -218,16 +218,15 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		defer logError(tx.Rollback, "failed to rollback request handler transaction")
 
+		if org := authned.Organization; org != nil {
+			tx = tx.WithOrgID(org.ID)
+		}
 		rCtx := access.RequestContext{
 			Request:       c.Request,
 			DBTxn:         tx,
 			Authenticated: authned,
 			DataDB:        a.server.db,
 		}
-		if org := rCtx.Authenticated.Organization; org != nil {
-			tx = tx.WithOrgID(org.ID)
-		}
-		rCtx.DBTxn = tx
 		c.Set(access.RequestContextKey, rCtx)
 
 		resp, err := route.handler(c, req)
