@@ -215,6 +215,6 @@ func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, pr
 type SCIMParameters struct {
 	Count      int // the number of items to return
 	StartIndex int // the offset to start counting from
-	TotalCount int
+	TotalCount int // the total number of items that match the query
 	// TODO: filter query param
 }
