@@ -778,6 +778,12 @@ DELETE FROM settings WHERE id=24567;
 				assert.Equal(t, count, 0)
 			},
 		},
+		{
+			label: testCaseLine("2022-09-28T13:00"),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

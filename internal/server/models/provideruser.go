@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -12,6 +13,8 @@ type ProviderUser struct {
 	ProviderID uid.ID `gorm:"primaryKey"`
 
 	Email      string
+	GivenName  string
+	FamilyName string
 	Groups     CommaSeparatedStrings
 	LastUpdate time.Time
 
@@ -20,6 +23,30 @@ type ProviderUser struct {
 	AccessToken  EncryptedAtRest
 	RefreshToken EncryptedAtRest
 	ExpiresAt    time.Time
+
+	Active bool
 }
 
 func (ProviderUser) IsAModel() {}
+
+func (pu *ProviderUser) ToAPI() *api.SCIMUser {
+	return &api.SCIMUser{
+		Schemas:  []string{api.UserSchema},
+		ID:       pu.IdentityID.String(),
+		UserName: pu.Email,
+		Name: api.SCIMUserName{
+			GivenName:  pu.GivenName,
+			FamilyName: pu.FamilyName,
+		},
+		Emails: []api.SCIMUserEmail{
+			{
+				Primary: true,
+				Value:   pu.Email,
+			},
+		},
+		Active: pu.Active,
+		Meta: api.SCIMMetadata{
+			ResourceType: "User",
+		},
+	}
+}

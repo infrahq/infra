@@ -21,15 +21,15 @@ func (p providerUserTable) Table() string {
 }
 
 func (p providerUserTable) Columns() []string {
-	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at"}
+	return []string{"identity_id", "provider_id", "email", "groups", "last_update", "redirect_url", "access_token", "refresh_token", "expires_at", "given_name", "family_name", "active"}
 }
 
 func (p providerUserTable) Values() []any {
-	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt}
+	return []any{p.IdentityID, p.ProviderID, p.Email, p.Groups, p.LastUpdate, p.RedirectURL, p.AccessToken, p.RefreshToken, p.ExpiresAt, p.GivenName, p.FamilyName, p.Active}
 }
 
 func (p *providerUserTable) ScanFields() []any {
-	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt}
+	return []any{&p.IdentityID, &p.ProviderID, &p.Email, &p.Groups, &p.LastUpdate, &p.RedirectURL, &p.AccessToken, &p.RefreshToken, &p.ExpiresAt, &p.GivenName, &p.FamilyName, &p.Active}
 }
 
 func (p *providerUserTable) OnInsert() error {
@@ -66,6 +66,7 @@ func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Ide
 		IdentityID: ident.ID,
 		Email:      ident.Name,
 		LastUpdate: time.Now().UTC(),
+		Active:     true,
 	}
 	if err := validateProviderUser(pu); err != nil {
 		return nil, err
@@ -93,20 +94,51 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	return handleError(err)
 }
 
-func listProviderUsers(tx ReadTxn, providerID uid.ID) ([]models.ProviderUser, error) {
+func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]models.ProviderUser, error) {
 	table := &providerUserTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
+	if p != nil {
+		query.B(", count(*) OVER()")
+	}
 	query.B("FROM")
 	query.B(table.Table())
+	query.B("INNER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
 	query.B("WHERE provider_id = ?", providerID)
+
+	query.B("ORDER BY email ASC")
+
+	if p != nil {
+		// apply scim parameters
+		if p.Count != 0 {
+			query.B("LIMIT ?", p.Count)
+		}
+		if p.StartIndex > 0 {
+			offset := p.StartIndex - 1 // start index begins at 1, not 0
+			query.B("OFFSET ?", offset)
+		}
+	}
+
 	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return nil, err
 	}
-	return scanRows(rows, func(pu *models.ProviderUser) []any {
-		return (*providerUserTable)(pu).ScanFields()
+	result, err := scanRows(rows, func(pu *models.ProviderUser) []any {
+		fields := (*providerUserTable)(pu).ScanFields()
+		if p != nil {
+			fields = append(fields, &p.TotalCount)
+		}
+		return fields
 	})
+	if err != nil {
+		return nil, fmt.Errorf("scan provider users: %w", err)
+	}
+
+	if p != nil && p.Count == 0 {
+		p.Count = p.TotalCount
+	}
+
+	return result, nil
 }
 
 type DeleteProviderUsersOptions struct {
@@ -178,4 +210,11 @@ func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, pr
 	}
 
 	return nil
+}
+
+type SCIMParameters struct {
+	Count      int // the number of items to return
+	StartIndex int // the offset to start counting from
+	TotalCount int // the total number of items that match the query
+	// TODO: filter query param
 }
