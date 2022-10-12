@@ -76,11 +76,11 @@ export default function RoleSelect({
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
-            className={`absolute z-10 w-48 ${
+            className={`absolute z-[8] w-48 ${
               direction === 'right' ? '' : 'right-0'
             } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
           >
-            <div className={`max-h-64 overflow-auto`}>
+            <div className='max-h-64 overflow-auto'>
               {roles?.map(r => (
                 <Listbox.Option
                   key={r}

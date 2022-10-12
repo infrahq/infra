@@ -206,7 +206,7 @@ export default function DestinationDetail() {
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    `/api/grants?destination=${destination?.name}&limit=1000`
+    `/api/grants?destination=${destination?.name}`
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
@@ -426,8 +426,21 @@ export default function DestinationDetail() {
               users={users}
               groups={groups}
               destination={destination}
-              onRemove={async groupId => {
-                await fetch(`/api/grants/${groupId}`, {
+              onUpdate={async (privilege, user, group, resource) => {
+                await fetch('/api/grants', {
+                  method: 'POST',
+                  body: JSON.stringify({
+                    user,
+                    group,
+                    privilege,
+                    resource,
+                  }),
+                })
+
+                mutate()
+              }}
+              onRemove={async grantId => {
+                await fetch(`/api/grants/${grantId}`, {
                   method: 'DELETE',
                 })
                 mutate()
