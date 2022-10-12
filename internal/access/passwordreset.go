@@ -13,7 +13,8 @@ import (
 
 func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (token string, user *models.Identity, err error) {
 	// no auth required
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
 
 	users, err := data.ListIdentities(db, &data.Pagination{Limit: 1}, data.ByName(email))
 	if err != nil {
@@ -40,7 +41,8 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 
 func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.Identity, error) {
 	// no auth required
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
 
 	prt, err := data.GetPasswordResetTokenByToken(db, token)
 	if err != nil {

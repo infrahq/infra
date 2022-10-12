@@ -11,24 +11,22 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// TODO: replace calls to this function with GetRequestContext once the
-// data interface has stabilized.
-func getDB(c *gin.Context) *data.Transaction {
-	return GetRequestContext(c).DBTxn
-}
-
 // hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
-func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(c *gin.Context, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (data.GormTxn, error) {
-	owner, err := isResourceOwner(c, requestedResource)
+func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(rCtx RequestContext, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (data.GormTxn, error) {
+	rCtx := GetRequestContext(c)
+	owner, err := isResourceOwner(rCtx, requestedResource)
 	if err != nil {
 		return nil, fmt.Errorf("owner lookup: %w", err)
 	}
 
 	if owner {
-		return getDB(c), nil
+		return rCtx.DBTxn, nil
 	}
 
-	return RequireInfraRole(c, oneOfRoles...)
+	if err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
+		return nil, err
+	}
+	return rCtx.DBTxn, nil
 }
 
 const ResourceInfraAPI = "infra"

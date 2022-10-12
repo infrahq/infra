@@ -10,9 +10,9 @@ import (
 
 func ForgotDomainRequest(c *gin.Context, email string) ([]models.ForgottenDomain, error) {
 	// no auth required
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
 
-	domains, err := data.GetForgottenDomainsForEmail(db, email)
+	domains, err := data.GetForgottenDomainsForEmail(rCtx.DBTxn, email)
 	if err != nil {
 		return nil, err
 	}

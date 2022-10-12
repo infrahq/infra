@@ -10,10 +10,11 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// isOrganizationSelf is used by authorization checks to see if the calling identity is requesting their own organization
-func isOrganizationSelf(c *gin.Context, orgID uid.ID) (bool, error) {
-	org := GetRequestContext(c).Authenticated.Organization
-	return org != nil && org.ID == orgID, nil
+// isOrganizationSelf is used by authorization checks to see if the calling
+// identity is requesting their own organization.
+func isOrganizationSelf(rCtx RequestContext, orgID uid.ID) (bool, error) {
+	user := rCtx.Authenticated.User
+	return user != nil && user.OrganizationID == orgID, nil
 }
 
 func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {

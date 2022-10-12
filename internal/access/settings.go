@@ -25,8 +25,8 @@ func GetPublicJWK(c RequestContext) ([]jose.JSONWebKey, error) {
 }
 
 func GetSettings(c *gin.Context) (*models.Settings, error) {
-	db := getDB(c)
-	return data.GetSettings(db)
+	rCtx := GetRequestContext(c)
+	return data.GetSettings(rCtx.DBTxn)
 }
 
 func SaveSettings(c *gin.Context, settings *models.Settings) error {

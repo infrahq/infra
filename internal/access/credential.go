@@ -58,7 +58,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPas
 		return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
 	}
 
-	isSelf, err := isIdentitySelf(c, user.ID)
+	isSelf, err := isIdentitySelf(rCtx, user.ID)
 	if err != nil {
 		return err
 	}
@@ -71,9 +71,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPas
 			return errs
 		}
 
-		db := getDB(c)
-
-		userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		userCredential, err := data.GetCredential(rCtx.DBTxn, data.ByIdentityID(user.ID))
 		if err != nil {
 			return fmt.Errorf("existing credential: %w", err)
 		}
@@ -105,7 +103,8 @@ func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPas
 }
 
 func updateCredential(c *gin.Context, user *models.Identity, newPassword string, isSelf bool) error {
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
+	db := rCtx.DBTxn
 
 	err := checkPasswordRequirements(db, newPassword)
 	if err != nil {
@@ -141,18 +140,13 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 
 	if isSelf {
 		// if we updated our own password, remove the password-reset scope from our access key.
-		if raw, ok := c.Get(RequestContextKey); ok {
-			if rCtx, ok := raw.(RequestContext); ok {
-				if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
-					accessKey.Scopes = sliceWithoutElement(accessKey.Scopes, models.ScopePasswordReset)
-					if err = data.UpdateAccessKey(db, accessKey); err != nil {
-						return fmt.Errorf("updating access key: %w", err)
-					}
-				}
+		if accessKey := rCtx.Authenticated.AccessKey; accessKey != nil {
+			accessKey.Scopes = sliceWithoutElement(accessKey.Scopes, models.ScopePasswordReset)
+			if err = data.UpdateAccessKey(db, accessKey); err != nil {
+				return fmt.Errorf("updating access key: %w", err)
 			}
 		}
 	}
-
 	return nil
 }
 

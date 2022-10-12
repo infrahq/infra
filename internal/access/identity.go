@@ -15,8 +15,8 @@ import (
 )
 
 // isIdentitySelf is used by authorization checks to see if the calling identity is requesting their own attributes
-func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
-	identity := GetRequestContext(c).Authenticated.User
+func isIdentitySelf(rCtx RequestContext, userID uid.ID) (bool, error) {
+	identity := rCtx.Authenticated.User
 	return identity != nil && identity.ID == userID, nil
 }
 
@@ -41,7 +41,7 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	rCtx := GetRequestContext(c)
-	self, err := isIdentitySelf(c, id)
+	self, err := isIdentitySelf(rCtx, id)
 	if err != nil {
 		return err
 	}
