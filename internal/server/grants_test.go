@@ -491,12 +491,15 @@ func TestAPI_ListGrants(t *testing.T) {
 				err = json.NewDecoder(resp.Body).Decode(&grants)
 				assert.NilError(t, err)
 
-				expected := []api.Grant{
-					{User: idInGroup, Privilege: "custom1", Resource: "res1"},
-					{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
-					{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+				expected := api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{User: idInGroup, Privilege: "custom1", Resource: "res1"},
+						{User: idOther, Privilege: "custom2", Resource: "res1.ns1"},
+						{User: idOther, Privilege: "connector", Resource: "res1.ns2"},
+					},
+					Count: 3,
 				}
-				assert.DeepEqual(t, grants.Items, expected, cmpAPIGrantShallow)
+				assert.DeepEqual(t, grants, expected, cmpAPIGrantShallow)
 				assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10004")
 			},
 		},

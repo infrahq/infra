@@ -79,7 +79,6 @@ func (r ListGrantsRequest) validateLastUpdateIndex() *validate.Failure {
 	// query parameters can be set
 	switch {
 	case r.Destination != "":
-		// TODO: require limit=-1
 		if fields := r.fieldsWithValues("destination", "lastUpdateIndex"); len(fields) > 0 {
 			return validate.Fail("lastUpdateIndex",
 				fmt.Sprintf("can not be used with %v parameter(s)", strings.Join(fields, ",")))

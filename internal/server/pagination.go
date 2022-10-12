@@ -29,6 +29,9 @@ func PaginationFromRequest(pr api.PaginationRequest) data.Pagination {
 // PaginationToResponse translates an internal Pagination type into the pagination
 // response.
 func PaginationToResponse(p data.Pagination) api.PaginationResponse {
+	if p.Limit == 0 {
+		return api.PaginationResponse{}
+	}
 	return api.PaginationResponse{
 		Page:       p.Page,
 		Limit:      p.Limit,
