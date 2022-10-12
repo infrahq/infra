@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	f, err := os.Create("./docs/reference/cli-reference.md")
+	f, err := os.Create("./docs/reference/cli.md")
 	if err != nil {
 		log.Println(err.Error())
 		return
