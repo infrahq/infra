@@ -7,6 +7,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import Notification from '../../components/notification'
 
 function PasswordReset({ user, onReset = () => {} }) {
+  const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
@@ -32,6 +33,7 @@ function PasswordReset({ user, onReset = () => {} }) {
         method: 'PUT',
         body: JSON.stringify({
           ...user,
+          oldPassword: oldPassword,
           password: confirmPassword,
         }),
       })
@@ -44,6 +46,7 @@ function PasswordReset({ user, onReset = () => {} }) {
         throw data
       }
 
+      setOldPassword('')
       setPassword('')
       setConfirmPassword('')
       onReset()
@@ -64,6 +67,31 @@ function PasswordReset({ user, onReset = () => {} }) {
 
   return (
     <form onSubmit={onSubmit} className='flex flex-col'>
+      <div className='relative my-2 w-full'>
+        <label
+          htmlFor='old-password'
+          className='text-2xs font-medium text-gray-700'
+        >
+          Old Password
+        </label>
+        <input
+          required
+          name='oldPassword'
+          type='password'
+          value={oldPassword}
+          onChange={e => {
+            setOldPassword(e.target.value)
+            setErrors({})
+            setError('')
+          }}
+          className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+            errors.oldPassword ? 'border-red-500' : 'border-gray-300'
+          }`}
+        />
+        {errors.oldPassword && (
+          <p className='my-1 text-xs text-red-500'>{errors.oldPassword}</p>
+        )}
+      </div>
       <div className='relative my-2 w-full'>
         <label
           htmlFor='password'

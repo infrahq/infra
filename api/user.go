@@ -57,8 +57,9 @@ type CreateUserResponse struct {
 }
 
 type UpdateUserRequest struct {
-	ID       uid.ID `uri:"id" json:"-"`
-	Password string `json:"password"`
+	ID          uid.ID `uri:"id" json:"-"`
+	OldPassword string `json:"oldPassword"`
+	Password    string `json:"password"`
 }
 
 func (r UpdateUserRequest) ValidationRules() []validate.ValidationRule {

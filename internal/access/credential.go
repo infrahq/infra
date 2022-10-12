@@ -50,7 +50,7 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 	return tmpPassword, nil
 }
 
-func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string) error {
+func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
 	rCtx := GetRequestContext(c)
 	_, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
 	if err != nil {
@@ -62,7 +62,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 		return err
 	}
 
-	if err := updateCredential(c, user, newPassword, isSelf); err != nil {
+	if err := updateCredential(c, user, oldPassword, newPassword, isSelf, true); err != nil {
 		return err
 	}
 
@@ -72,8 +72,23 @@ func UpdateCredential(c *gin.Context, user *models.Identity, newPassword string)
 	return nil
 }
 
-func updateCredential(c *gin.Context, user *models.Identity, newPassword string, isSelf bool) error {
+func updateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string, isSelf, requireOldPassword bool) error {
 	db := getDB(c)
+
+	// Users have to supply their old password to change their existing password
+	if isSelf && requireOldPassword {
+		userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		if err != nil {
+			return fmt.Errorf("existing credential: %w", err)
+		}
+
+		// compare the stored hash of the user's password and the hash of the presented password
+		err = bcrypt.CompareHashAndPassword(userCredential.PasswordHash, []byte(oldPassword))
+		if err != nil {
+			// this probably means the password was wrong
+			return fmt.Errorf("%w: invalid oldPassword", internal.ErrBadRequest)
+		}
+	}
 
 	err := checkPasswordRequirements(db, newPassword)
 	if err != nil {

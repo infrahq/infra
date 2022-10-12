@@ -43,7 +43,7 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp1.Code)
 
 	// change password
-	changePassword(t, routes, key, loginResp.UserID, "balloons")
+	changePassword(t, routes, key, loginResp.UserID, resp.OneTimePassword, "balloons")
 
 	// can access other urls.
 	resp2 := tryOtherURL()
@@ -77,9 +77,10 @@ func createUser(t *testing.T, srv *Server, routes Routes, email string) *api.Cre
 	return result
 }
 
-func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, password string) *api.User {
+func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, oldPassword, password string) *api.User {
 	r := &api.UpdateUserRequest{
-		Password: password,
+		OldPassword: oldPassword,
+		Password:    password,
 	}
 	body, err := json.Marshal(r)
 	assert.NilError(t, err)

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -613,15 +614,17 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 				err = data.DeleteProviderUsers(db, data.DeleteProviderUsersOptions{ByIdentityID: user.ID, ByProviderID: data.InfraProvider(db).ID})
 				assert.NilError(t, err)
 
-				cred, _ := data.GetCredential(db, data.ByIdentityID(user.ID))
-				if cred != nil {
-					_ = data.DeleteCredential(db, cred.ID)
-				}
-
 				t.Run("I cannot set a password", func(t *testing.T) {
-					_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-						ID:       user.ID,
-						Password: "1234567890987654321a!",
+					cred, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+					assert.NilError(t, err)
+					if cred != nil {
+						_ = data.DeleteCredential(db, cred.ID)
+					}
+
+					_, err = a.UpdateUser(ctx, &api.UpdateUserRequest{
+						ID:          user.ID,
+						OldPassword: "whatever",
+						Password:    "1234567890987654321a!",
 					})
 					assert.Error(t, err, "existing credential: record not found")
 				})
@@ -629,15 +632,24 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			t.Run("with an existing infra user", func(t *testing.T) {
 				_, _ = data.CreateProviderUser(db, data.InfraProvider(db), user)
 
+				cred, _ := data.GetCredential(db, data.ByIdentityID(user.ID))
+				if cred != nil {
+					_ = data.DeleteCredential(db, cred.ID)
+				}
+
+				hash, err := bcrypt.GenerateFromPassword([]byte("random password"), bcrypt.DefaultCost)
+				assert.NilError(t, err)
+
 				_ = data.CreateCredential(db, &models.Credential{
 					IdentityID:   user.ID,
-					PasswordHash: []byte("random password"),
+					PasswordHash: hash,
 				})
 
 				t.Run("I can change my password", func(t *testing.T) {
 					_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-						ID:       user.ID,
-						Password: "1234567890987654321a!",
+						ID:          user.ID,
+						OldPassword: "random password",
+						Password:    "1234567890987654321a!",
 					})
 					assert.NilError(t, err)
 				})
@@ -674,17 +686,21 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			_, err = data.CreateProviderUser(db, data.InfraProvider(db), user)
 			assert.NilError(t, err)
 
+			hash, err := bcrypt.GenerateFromPassword([]byte("random password"), bcrypt.DefaultCost)
+			assert.NilError(t, err)
+
 			err = data.CreateCredential(db, &models.Credential{
 				IdentityID:   user.ID,
-				PasswordHash: []byte("random password"),
+				PasswordHash: hash,
 			})
 			assert.NilError(t, err)
 
 			ctx := loginAs(db, user)
 			t.Run("I can change my password", func(t *testing.T) {
 				_, err := a.UpdateUser(ctx, &api.UpdateUserRequest{
-					ID:       user.ID,
-					Password: "123454676twefdhsds",
+					ID:          user.ID,
+					OldPassword: "random password",
+					Password:    "123454676twefdhsds",
 				})
 				assert.NilError(t, err)
 			})

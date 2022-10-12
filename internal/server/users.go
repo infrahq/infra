@@ -112,7 +112,7 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 		return nil, err
 	}
 
-	err = access.UpdateCredential(c, identity, r.Password)
+	err = access.UpdateCredential(c, identity, r.OldPassword, r.Password)
 	if err != nil {
 		return nil, err
 	}
