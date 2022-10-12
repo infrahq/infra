@@ -73,7 +73,7 @@ function EditRoleMenu({
       value={selectedRoles}
       onChange={v => {
         console.log(v)
-        if (v === OPTION_REMOVE) {
+        if (v.includes(OPTION_REMOVE)) {
           onRemove()
           return
         }
@@ -192,7 +192,7 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate }) {
         resource={resource}
         privileges={sortByRole(privileges)}
         roles={roles}
-        onUpdate={onUpdate}
+        onUpdate={(v, r) => onUpdate(v, r)}
       />
     )
   )
@@ -225,7 +225,9 @@ function GrantCell({ grant, destination }) {
           <RoleList
             privileges={sortByRole(destinationPrivileges)}
             roles={destination.roles}
-            onUpdate={() => {}}
+            onUpdate={v => {
+              console.log(v)
+            }}
           />
         </div>
       )}
@@ -237,7 +239,10 @@ function GrantCell({ grant, destination }) {
               <NamespacesRoleList
                 reousrcesMap={namespacesPrivilegeMap}
                 roles={destination.roles.filter(r => r != 'cluster-admin')}
-                onUpdate={() => {}}
+                onUpdate={(v, r) => {
+                  console.log(v)
+                  console.log(r)
+                }}
               />
             </div>
           </NamespacesRolesComponent>
@@ -334,81 +339,4 @@ export default function AccessTable({
       </table>
     </div>
   )
-
-  // return (
-  //   <Table
-  //     data={grantsList?.sort(sortBySubject)}
-  //     columns={[
-  //       {
-  //         id: 'subject',
-  //         header: 'User or group',
-  //         cell: function Cell(info) {
-  //           return (
-  //             <div className='flex w-[60%] flex-col truncate'>
-  //               <div className='text-sm font-medium text-gray-700'>
-  //                 {users?.find(u => u.id === info.row.original.user)?.name}
-  //                 {groups?.find(g => g.id === info.row.original.group)?.name}
-  //               </div>
-  //               <div className='text-2xs text-gray-500'>
-  //                 {users?.find(u => u.id === info.row.original.user) && 'User'}
-  //                 {groups?.find(g => g.id === info.row.original.group)?.name &&
-  //                   'Group'}
-  //               </div>
-  //             </div>
-  //           )
-  //         },
-  //       },
-  //       {
-  //         id: 'role',
-  //         cell: function Cell(info) {
-  //           const destinationPrivileges =
-  //             info.row.original.resourcePrivilegeMap.get(destination.name)
-
-  //           const namespacesPrivilegeMap = new Map(
-  //             Array.from(info.row.original.resourcePrivilegeMap).filter(
-  //               ([key]) => {
-  //                 if (key.includes('.')) {
-  //                   return true
-  //                 }
-
-  //                 return false
-  //               }
-  //             )
-  //           )
-
-  //           console.log('destinationPrivileges:', destinationPrivileges)
-  //           console.log('namespace map:', namespacesPrivilegeMap)
-  //           return (
-  //             <div className='py-1'>
-  //               {/* Destination Resource */}
-  //               {destinationPrivileges?.length > 0 && (
-  //                 <div className='py-2'>
-  //                   <RoleList
-  //                     privileges={sortByRole(destinationPrivileges)}
-  //                     roles={destination.roles}
-  //                     onUpdate={() => {}}
-  //                   />
-  //                 </div>
-  //               )}
-  //               {/* Namespaces List */}
-  //               {namespacesPrivilegeMap.size > 0 && (
-  //                 <div className='py-2'>
-  //                   <NamespacesRolesComponent>
-  //                     <div className='space-y-1'>
-  //                       <NamespacesRoleList
-  //                         reousrcesMap={namespacesPrivilegeMap}
-  //                         roles={destination.roles}
-  //                         onUpdate={() => {}}
-  //                       />
-  //                     </div>
-  //                   </NamespacesRolesComponent>
-  //                 </div>
-  //               )}
-  //             </div>
-  //           )
-  //         },
-  //       },
-  //     ]}
-  //   />
-  // )
 }
