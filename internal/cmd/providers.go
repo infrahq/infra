@@ -70,13 +70,23 @@ type providerEditOptions struct {
 	ProviderAPIOptions providerAPIOptions
 }
 
+func (o providerEditOptions) IsUpdatingGoogleAPIOptions(providerKind string) bool {
+	if providerKind == "google" {
+		return o.ProviderAPIOptions.PrivateKey != "" || o.ProviderAPIOptions.ClientEmail != "" || o.ProviderAPIOptions.WorkspaceDomainAdminEmail != ""
+	}
+
+	return false
+}
+
 func (o providerEditOptions) Validate(providerKind string) error {
 	if !o.SCIM && o.ClientSecret == "" {
 		return fmt.Errorf("scim or client-secret flag are required for updates")
 	}
 
-	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
-		return fmt.Errorf("client secret, private key, client email, and workspace domain admin email are required.'\n\n%s", newProvidersEditCmd(nil).UsageString())
+	if o.IsUpdatingGoogleAPIOptions(providerKind) {
+		if o.ProviderAPIOptions.PrivateKey == "" || o.ProviderAPIOptions.ClientEmail == "" || o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
+			return fmt.Errorf("client secret or private key, client email, and workspace domain admin email are required to update google provider.'\n\n%s", newProvidersEditCmd(nil).UsageString())
+		}
 	}
 
 	return o.ProviderAPIOptions.Validate(providerKind)
@@ -296,7 +306,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 	}
 	provider := res.Items[0]
 
-	if err := opts.ProviderAPIOptions.Validate(provider.Kind); err != nil {
+	if err := opts.Validate(provider.Kind); err != nil {
 		return err
 	}
 
