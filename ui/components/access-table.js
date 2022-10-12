@@ -1,14 +1,49 @@
-import { ChevronDownIcon, XIcon, CheckIcon } from '@heroicons/react/solid'
-import { Listbox } from '@headlessui/react'
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  XIcon,
+  CheckIcon,
+} from '@heroicons/react/solid'
+import { Listbox, Disclosure, Transition } from '@headlessui/react'
 import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
 import { sortByRole, sortBySubject, descriptions } from '../lib/grants'
 
-import Table from './table'
-
 const OPTION_REMOVE = 'remove'
+
+function NamespacesRolesComponent({ children }) {
+  return (
+    <Disclosure>
+      {({ open }) => (
+        <>
+          <Disclosure.Button className='w-full'>
+            <span className='flex items-center text-xs font-medium text-gray-500 '>
+              <ChevronUpIcon
+                className={`${
+                  open ? 'rotate-180 transform' : ''
+                } h-4 w-4 text-gray-500 duration-300 ease-in`}
+              />
+              Namespaces
+            </span>
+          </Disclosure.Button>
+          <Transition
+            show={open}
+            enter='ease-out duration-1000'
+            enterFrom='opacity-0'
+            enterTo='opacity-100'
+            leave='ease-in duration-300'
+            leaveFrom='opacity-100'
+            leaveTo='opacity-0'
+          >
+            <Disclosure.Panel static>{children}</Disclosure.Panel>
+          </Transition>
+        </>
+      )}
+    </Disclosure>
+  )
+}
 
 function EditRoleMenu({
   roles,
@@ -52,29 +87,18 @@ function EditRoleMenu({
       <div className='relative'>
         <Listbox.Button
           ref={setReferenceElement}
-          className='relative w-[15rem] cursor-default rounded-md border border-gray-300 bg-white py-2 pr-8 text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
+          className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
         >
           <div className='flex space-x-1 truncate'>
-            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-700'>
               <ChevronDownIcon
                 className='h-4 w-4 stroke-1 text-gray-700'
                 aria-hidden='true'
               />
             </span>
-            <span
-              className={`inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800`}
-            >
-              {privileges[0]}
-            </span>
-            {privileges[1] && (
-              <span
-                className={`inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800`}
-              >
-                {privileges[1]}
-              </span>
-            )}
-            {privileges.length - 2 > 0 && (
-              <span className='text-gray-700'> + {privileges.length - 2}</span>
+            <span>{privileges[0]}</span>
+            {privileges.length - 1 > 0 && (
+              <span className='font-medium'> + {privileges.length - 1}</span>
             )}
           </div>
         </Listbox.Button>
@@ -135,30 +159,92 @@ function EditRoleMenu({
   )
 }
 
-function RoleList({ resourcePrivilegeMap, roles, onUpdate }) {
-  const roleListComponent = []
-  resourcePrivilegeMap.forEach((privileges, resource) =>
-    roleListComponent.push(
-      <div
-        className='item-center flex flex-col justify-between py-2'
+function RoleList({ resource, privileges, roles, onUpdate }) {
+  return (
+    <div className='item-center flex justify-between space-x-2'>
+      {resource && (
+        <div className='py-2 text-xs font-medium text-gray-900'>
+          {resource.split('.').pop()}
+        </div>
+      )}
+      <EditRoleMenu
+        roles={roles}
+        selectedRoles={privileges}
+        onChange={v => {
+          console.log(resource)
+          onUpdate(v, resource)
+        }}
+        onRemove={() => {}}
+        resource={resource}
+        privileges={privileges}
+      />
+    </div>
+  )
+}
+
+function NamespacesRoleList({ reousrcesMap, roles, onUpdate }) {
+  const namespacesRoleListComponent = []
+
+  reousrcesMap.forEach((privileges, resource) =>
+    namespacesRoleListComponent.push(
+      <RoleList
         key={resource}
-      >
-        <div className='text-xs font-medium text-gray-900'>{resource}</div>
-        <EditRoleMenu
-          roles={roles}
-          selectedRoles={privileges}
-          onChange={v => {
-            console.log(resource)
-            onUpdate(v, resource)
-          }}
-          onRemove={() => {}}
-          resource={resource}
-          privileges={privileges}
-        />
-      </div>
+        resource={resource}
+        privileges={sortByRole(privileges)}
+        roles={roles}
+        onUpdate={onUpdate}
+      />
     )
   )
-  return roleListComponent
+  return namespacesRoleListComponent
+}
+
+function GrantCell({ grant, destination }) {
+  const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
+
+  const namespacesPrivilegeMap = new Map(
+    Array.from(grant.resourcePrivilegeMap).filter(([key]) => {
+      if (key.includes('.')) {
+        return true
+      }
+
+      return false
+    })
+  )
+
+  console.log('destinationPrivileges:', destinationPrivileges)
+  console.log('namespace map:', namespacesPrivilegeMap)
+  return (
+    <div className='py-1'>
+      {/* Destination Resource */}
+      {destinationPrivileges?.length > 0 && (
+        <div className='flex justify-between space-x-2 py-2'>
+          <div className='py-2 text-xs font-medium text-gray-900'>
+            cluster-wide access
+          </div>
+          <RoleList
+            privileges={sortByRole(destinationPrivileges)}
+            roles={destination.roles}
+            onUpdate={() => {}}
+          />
+        </div>
+      )}
+      {/* Namespaces List */}
+      {namespacesPrivilegeMap.size > 0 && (
+        <div className='py-2'>
+          <NamespacesRolesComponent>
+            <div className='space-y-1'>
+              <NamespacesRoleList
+                reousrcesMap={namespacesPrivilegeMap}
+                roles={destination.roles.filter(r => r != 'cluster-admin')}
+                onUpdate={() => {}}
+              />
+            </div>
+          </NamespacesRolesComponent>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function AccessTable({
@@ -209,48 +295,120 @@ export default function AccessTable({
   console.log(grantsList)
 
   return (
-    <Table
-      data={grantsList?.sort(sortBySubject)}
-      columns={[
-        {
-          id: 'subject',
-          header: 'User or group',
-          cell: function Cell(info) {
-            return (
-              <div className='flex w-[60%] flex-col truncate'>
-                <div className='text-sm font-medium text-gray-700'>
-                  {users?.find(u => u.id === info.row.original.user)?.name}
-                  {groups?.find(g => g.id === info.row.original.group)?.name}
-                </div>
-                <div className='text-2xs text-gray-500'>
-                  {users?.find(u => u.id === info.row.original.user) && 'User'}
-                  {groups?.find(g => g.id === info.row.original.group)?.name &&
-                    'Group'}
-                </div>
-              </div>
-            )
-          },
-        },
-        {
-          id: 'role',
-          cell: function Cell(info) {
-            return (
-              <RoleList
-                resourcePrivilegeMap={info.row.original.resourcePrivilegeMap}
-                roles={destination.roles}
-                onUpdate={(newPrivilege, resource) =>
-                  onUpdate(
-                    newPrivilege[0],
-                    info.row.original.user,
-                    info.row.original.group,
-                    resource
-                  )
-                }
-              />
-            )
-          },
-        },
-      ]}
-    />
+    <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
+      <table className='w-full text-sm text-gray-600'>
+        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
+          <tr>
+            <th
+              scope='col'
+              className='py-2 px-5 text-left font-medium  sm:pl-6'
+            >
+              User or group
+            </th>
+            <th scope='col' className='py-2 px-5 text-left font-medium '>
+              Roles
+            </th>
+          </tr>
+        </thead>
+        <tbody className='divide-y divide-gray-200 bg-white'>
+          {grantsList?.sort(sortBySubject).map(grant => (
+            <tr key={grant.user || grant.group}>
+              <td className='w-[60%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                <div className='flex w-[60%] flex-col truncate'>
+                  <div className='text-sm font-medium text-gray-700'>
+                    {users?.find(u => u.id === grant.user)?.name}
+                    {groups?.find(g => g.id === grant.group)?.name}
+                  </div>
+                  <div className='text-2xs text-gray-500'>
+                    {users?.find(u => u.id === grant.user) && 'User'}
+                    {groups?.find(g => g.id === grant.group)?.name && 'Group'}
+                  </div>
+                </div>{' '}
+              </td>
+              <td className='w-[40%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+                <GrantCell grant={grant} destination={destination} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
+
+  // return (
+  //   <Table
+  //     data={grantsList?.sort(sortBySubject)}
+  //     columns={[
+  //       {
+  //         id: 'subject',
+  //         header: 'User or group',
+  //         cell: function Cell(info) {
+  //           return (
+  //             <div className='flex w-[60%] flex-col truncate'>
+  //               <div className='text-sm font-medium text-gray-700'>
+  //                 {users?.find(u => u.id === info.row.original.user)?.name}
+  //                 {groups?.find(g => g.id === info.row.original.group)?.name}
+  //               </div>
+  //               <div className='text-2xs text-gray-500'>
+  //                 {users?.find(u => u.id === info.row.original.user) && 'User'}
+  //                 {groups?.find(g => g.id === info.row.original.group)?.name &&
+  //                   'Group'}
+  //               </div>
+  //             </div>
+  //           )
+  //         },
+  //       },
+  //       {
+  //         id: 'role',
+  //         cell: function Cell(info) {
+  //           const destinationPrivileges =
+  //             info.row.original.resourcePrivilegeMap.get(destination.name)
+
+  //           const namespacesPrivilegeMap = new Map(
+  //             Array.from(info.row.original.resourcePrivilegeMap).filter(
+  //               ([key]) => {
+  //                 if (key.includes('.')) {
+  //                   return true
+  //                 }
+
+  //                 return false
+  //               }
+  //             )
+  //           )
+
+  //           console.log('destinationPrivileges:', destinationPrivileges)
+  //           console.log('namespace map:', namespacesPrivilegeMap)
+  //           return (
+  //             <div className='py-1'>
+  //               {/* Destination Resource */}
+  //               {destinationPrivileges?.length > 0 && (
+  //                 <div className='py-2'>
+  //                   <RoleList
+  //                     privileges={sortByRole(destinationPrivileges)}
+  //                     roles={destination.roles}
+  //                     onUpdate={() => {}}
+  //                   />
+  //                 </div>
+  //               )}
+  //               {/* Namespaces List */}
+  //               {namespacesPrivilegeMap.size > 0 && (
+  //                 <div className='py-2'>
+  //                   <NamespacesRolesComponent>
+  //                     <div className='space-y-1'>
+  //                       <NamespacesRoleList
+  //                         reousrcesMap={namespacesPrivilegeMap}
+  //                         roles={destination.roles}
+  //                         onUpdate={() => {}}
+  //                       />
+  //                     </div>
+  //                   </NamespacesRolesComponent>
+  //                 </div>
+  //               )}
+  //             </div>
+  //           )
+  //         },
+  //       },
+  //     ]}
+  //   />
+  // )
 }

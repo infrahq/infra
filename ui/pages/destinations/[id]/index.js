@@ -467,29 +467,6 @@ export default function DestinationDetail() {
               }}
             />
           </div>
-          <div>
-            <header className='mt-6 mb-3 flex'>
-              <h1 className='font-display text-base font-medium'>Namespaces</h1>
-            </header>
-            <Table
-              data={destination?.resources}
-              empty='No namespaces'
-              href={row => `/destinations/${destination?.id}/${row.original}`}
-              columns={[
-                {
-                  id: 'name',
-                  cell: info => {
-                    return (
-                      <span className='font-medium text-gray-700'>
-                        {info.row.original}
-                      </span>
-                    )
-                  },
-                  header: () => <span>Name</span>,
-                },
-              ]}
-            />
-          </div>
         </>
       )}
     </div>
