@@ -10,13 +10,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// isOrganizationSelf is used by authorization checks to see if the calling
-// identity is requesting their own organization.
-func isOrganizationSelf(rCtx RequestContext, orgID uid.ID) (bool, error) {
-	user := rCtx.Authenticated.User
-	return user != nil && user.OrganizationID == orgID, nil
-}
-
 func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
 	selectors := []data.SelectorFunc{}
 	if name != "" {
@@ -36,16 +29,18 @@ func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]mode
 }
 
 func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
-	roles := []string{models.InfraSupportAdminRole}
-
-	// If the user is in the org, allow them to call this endpoint, otherwise they must be
-	// an InfraSupportAdmin.
-	db, err := hasAuthorization(c, id, isOrganizationSelf, roles...)
-	if err != nil {
-		return nil, HandleAuthErr(err, "organizations", "get", models.InfraSupportAdminRole)
+	rCtx := GetRequestContext(c)
+	if user := rCtx.Authenticated.User; user != nil && user.OrganizationID == id {
+		// request is authorized because the user is a member of the org
+	} else {
+		roles := []string{models.InfraSupportAdminRole}
+		err := IsAuthorized(rCtx, roles...)
+		if err != nil {
+			return nil, HandleAuthErr(err, "organizations", "get", roles...)
+		}
 	}
 
-	return data.GetOrganization(db, data.ByID(id))
+	return data.GetOrganization(rCtx.DBTxn, data.ByID(id))
 }
 
 func CreateOrganization(c *gin.Context, org *models.Organization) error {

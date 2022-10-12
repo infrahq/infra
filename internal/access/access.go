@@ -11,24 +11,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// hasAuthorization checks if a caller is the owner of a resource before checking if they have an approprite role to access it
-func hasAuthorization(c *gin.Context, requestedResource uid.ID, isResourceOwner func(rCtx RequestContext, requestedResourceID uid.ID) (bool, error), oneOfRoles ...string) (data.GormTxn, error) {
-	rCtx := GetRequestContext(c)
-	owner, err := isResourceOwner(rCtx, requestedResource)
-	if err != nil {
-		return nil, fmt.Errorf("owner lookup: %w", err)
-	}
-
-	if owner {
-		return rCtx.DBTxn, nil
-	}
-
-	if err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
-		return nil, err
-	}
-	return rCtx.DBTxn, nil
-}
-
 const ResourceInfraAPI = "infra"
 
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles

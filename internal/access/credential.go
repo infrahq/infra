@@ -53,14 +53,14 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 
 func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
 	rCtx := GetRequestContext(c)
-	_, err := hasAuthorization(c, user.ID, isIdentitySelf, models.InfraAdminRole)
-	if err != nil {
-		return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
-	}
+	isSelf := isIdentitySelf(rCtx, user.ID)
 
-	isSelf, err := isIdentitySelf(rCtx, user.ID)
-	if err != nil {
-		return err
+	// anyone can update their own credentials, so check authorization when not self
+	if !isSelf {
+		err := IsAuthorized(rCtx, models.InfraAdminRole)
+		if err != nil {
+			return HandleAuthErr(err, "user", "update", models.InfraAdminRole)
+		}
 	}
 
 	// Users have to supply their old password to change their existing password
