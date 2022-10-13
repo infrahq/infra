@@ -214,7 +214,8 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
   return namespacesRoleListComponent
 }
 
-function GrantCell({ grant, destination, onRemove }) {
+function GrantCell({ grantsList, grant, destination, onRemove }) {
+  console.log(grantsList)
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
   const namespacesPrivilegeMap = new Map(
@@ -242,11 +243,12 @@ function GrantCell({ grant, destination, onRemove }) {
               console.log(v)
             }}
             onRemove={() => {
-              console.log(destination.name)
-              console.log(grant.id)
-              const deleteGrantIdList =
-                typeof grant.id === 'string' ? [grant.id] : grant.id
-              onRemove(deleteGrantIdList)
+              console.log(grantsList)
+              const deleteGrantIdList = grantsList
+                .filter(g => g.resource === destination.name)
+                .map(g => g.id)
+              console.log(deleteGrantIdList)
+              // onRemove(deleteGrantIdList)
             }}
           />
         </div>
@@ -349,6 +351,7 @@ export default function AccessTable({
               </td>
               <td className='w-[40%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
                 <GrantCell
+                  grantsList={grants}
                   grant={grant}
                   destination={destination}
                   onRemove={grantsIdList => onRemove(grantsIdList)}
