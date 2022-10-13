@@ -47,6 +47,9 @@ type ListGrantsRequest struct {
 }
 
 func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
+	destNameRule := validateDestinationName(r.Destination)
+	destNameRule.Name = "destination"
+
 	return []validate.ValidationRule{
 		validate.MutuallyExclusive(
 			validate.Field{Name: "user", Value: r.User},
@@ -56,6 +59,7 @@ func (r ListGrantsRequest) ValidationRules() []validate.ValidationRule {
 			validate.Field{Name: "resource", Value: r.Resource},
 			validate.Field{Name: "destination", Value: r.Destination},
 		),
+		destNameRule,
 		validate.ValidatorFunc(func() *validate.Failure {
 			if r.ShowInherited && r.User == 0 {
 				return validate.Fail("showInherited", "requires a user ID")

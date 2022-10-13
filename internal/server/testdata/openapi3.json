@@ -2270,6 +2270,9 @@
             "name": "destination",
             "schema": {
               "example": "production",
+              "format": "[a-zA-Z0-9\\-_]",
+              "maxLength": 256,
+              "minLength": 2,
               "type": "string"
             }
           },
