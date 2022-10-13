@@ -149,7 +149,8 @@ type GormTxn interface {
 
 // MetadataSource provides metadata for Transaction.
 //
-// TODO: change Transaction.WithOrgID to WithMetadata.
+// IMPORTANT: any new methods on this struct also need to be added as args to
+// Transaction.WithMetadata, and the metadata struct.
 type MetadataSource interface {
 	OrganizationID() uid.ID
 }
@@ -206,12 +207,12 @@ func (t *Transaction) Commit() error {
 	return err
 }
 
-// WithOrgID returns a shallow copy of the Transaction with the OrganizationID
-// set to orgID. Note that the underlying database transaction and commit state
+// WithMetadata returns a shallow copy of the Transaction with the MetadataSource
+// update to the new values.
+// Note that the underlying database transaction and commit state
 // is shared with the new copy.
-func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
+func (t *Transaction) WithMetadata(orgID uid.ID) *Transaction {
 	newTxn := *t
-	// TODO: copy other fields from existing MetadataSource if not nil.
 	newTxn.MetadataSource = metadata{orgID: orgID}
 	return &newTxn
 }

@@ -99,7 +99,7 @@ func txnForTestCase(t *testing.T, db *data.DB, orgID uid.ID) *data.Transaction {
 	t.Cleanup(func() {
 		assert.NilError(t, tx.Rollback())
 	})
-	return tx.WithOrgID(orgID)
+	return tx.WithMetadata(orgID)
 }
 
 func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {

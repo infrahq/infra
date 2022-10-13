@@ -429,7 +429,7 @@ func TestAuthenticateRequest(t *testing.T) {
 
 	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
-	tx = tx.WithOrgID(org.ID)
+	tx = tx.WithMetadata(org.ID)
 
 	user := &models.Identity{
 		Name:               "userone@example.com",
@@ -624,7 +624,7 @@ func TestValidateRequestOrganization(t *testing.T) {
 
 	tx, err := srv.db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
-	tx = tx.WithOrgID(org.ID)
+	tx = tx.WithMetadata(org.ID)
 
 	provider := &models.Provider{
 		Name:               "electric",

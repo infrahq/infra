@@ -152,7 +152,7 @@ func TestDeleteGrants(t *testing.T) {
 			createGrants(t, tx, grant1, grant2, toKeep)
 
 			otherOrgGrant := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "any"}
-			createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
+			createGrants(t, tx.WithMetadata(otherOrg.ID), otherOrgGrant)
 
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
@@ -170,7 +170,7 @@ func TestDeleteGrants(t *testing.T) {
 			startUpdateIndex = maxIndex
 
 			// other org still has the grant
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "any"})
+			actual, err = ListGrants(tx.WithMetadata(otherOrg.ID), ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
@@ -263,7 +263,7 @@ func TestGetGrant(t *testing.T) {
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(tx, otherOrg))
 		other := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "any"}
-		createGrants(t, tx.WithOrgID(otherOrg.ID), other)
+		createGrants(t, tx.WithMetadata(otherOrg.ID), other)
 
 		t.Run("default options", func(t *testing.T) {
 			_, err := GetGrant(tx, GetGrantOptions{})
@@ -421,7 +421,7 @@ func TestListGrants(t *testing.T) {
 			CreatedBy:          uid.ID(778),
 			OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
 		}
-		createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
+		createGrants(t, tx.WithMetadata(otherOrg.ID), otherOrgGrant)
 
 		connectorUser := InfraConnectorIdentity(db)
 
@@ -608,7 +608,7 @@ func TestListenForGrantsNotify(t *testing.T) {
 				t.Run(op.name, func(t *testing.T) {
 					tx, err := db.Begin(ctx, nil)
 					assert.NilError(t, err)
-					tx = tx.WithOrgID(mainOrg.ID)
+					tx = tx.WithMetadata(mainOrg.ID)
 					op.run(t, tx)
 					assert.NilError(t, tx.Commit())
 

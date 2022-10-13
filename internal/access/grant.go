@@ -116,7 +116,7 @@ func listGrantsWithMaxUpdateIndex(rCtx RequestContext, opts data.ListGrantsOptio
 		return ListGrantsResponse{}, err
 	}
 	defer logError(tx.Rollback, "failed to rollback transaction")
-	tx = tx.WithOrgID(rCtx.DBTxn.OrganizationID())
+	tx = tx.WithMetadata(rCtx.DBTxn.OrganizationID())
 
 	result, err := data.ListGrants(tx, opts)
 	if err != nil {

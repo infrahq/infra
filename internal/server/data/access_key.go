@@ -273,7 +273,7 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 	if err != nil {
 		return nil, fmt.Errorf("%w: could not get access key from database, it may not exist", err)
 	}
-	tx = tx.WithOrgID(t.OrganizationID)
+	tx = tx.WithMetadata(t.OrganizationID)
 
 	sum := secretChecksum(secret)
 

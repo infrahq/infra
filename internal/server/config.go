@@ -611,7 +611,7 @@ func (s Server) loadConfig(config Config) error {
 		return err
 	}
 	defer logError(tx.Rollback, "failed to rollback loadConfig transaction")
-	tx = tx.WithOrgID(org.ID)
+	tx = tx.WithMetadata(org.ID)
 
 	if config.DefaultOrganizationDomain != org.Domain {
 		org.Domain = config.DefaultOrganizationDomain

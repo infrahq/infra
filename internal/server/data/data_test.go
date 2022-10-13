@@ -36,7 +36,7 @@ func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 	t.Cleanup(func() {
 		_ = tx.Rollback()
 	})
-	return tx.WithOrgID(orgID)
+	return tx.WithMetadata(orgID)
 }
 
 // runDBTests against all supported databases.
@@ -176,7 +176,7 @@ func TestDB_Begin(t *testing.T) {
 			ctx := context.Background()
 			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
-			tx = tx.WithOrgID(db.DefaultOrg.ID)
+			tx = tx.WithMetadata(db.DefaultOrg.ID)
 
 			user := &models.Identity{Name: "something@example.com"}
 			err = CreateIdentity(tx, user)
@@ -196,7 +196,7 @@ func TestDB_Begin(t *testing.T) {
 			ctx := context.Background()
 			tx, err := db.Begin(ctx, nil)
 			assert.NilError(t, err)
-			tx = tx.WithOrgID(db.DefaultOrg.ID)
+			tx = tx.WithMetadata(db.DefaultOrg.ID)
 
 			user := &models.Identity{Name: "something@example.com"}
 			err = CreateIdentity(tx, user)

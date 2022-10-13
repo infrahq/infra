@@ -174,8 +174,8 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 
 	// now that the org is loaded scope all db calls to that org
 	// TODO: set the orgID explicitly in the options passed to GetIdentity to
-	// remove the need for this WithOrgID.
-	db = db.WithOrgID(org.ID)
+	// remove the need for this WithMetadata.
+	db = db.WithMetadata(org.ID)
 
 	// either this access key was issued for a user or for an identity provider to do SCIM
 	if accessKey.IssuedFor == accessKey.ProviderID {

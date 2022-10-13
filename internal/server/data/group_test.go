@@ -161,7 +161,7 @@ func TestDeleteGroup(t *testing.T) {
 		createGrants(t, tx, groupGrant)
 
 		otherOrgGroup := &models.Group{Name: "Everyone"}
-		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
+		createGroups(t, tx.WithMetadata(otherOrg.ID), otherOrgGroup)
 
 		t.Run("success", func(t *testing.T) {
 			_, err := GetGroup(tx, ByID(everyone.ID))
@@ -176,7 +176,7 @@ func TestDeleteGroup(t *testing.T) {
 			// deleting a group should not delete unrelated groups
 			_, err = GetGroup(tx, ByID(engineers.ID))
 			assert.NilError(t, err)
-			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), ByID(otherOrgGroup.ID))
+			_, err = GetGroup(tx.WithMetadata(otherOrg.ID), ByID(otherOrgGroup.ID))
 			assert.NilError(t, err)
 
 			// grants and group membership should also be removed.
