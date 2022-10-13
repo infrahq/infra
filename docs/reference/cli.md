@@ -640,6 +640,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
       --client-id string                OIDC client ID
       --client-secret string            OIDC client secret
       --kind string                     The identity provider kind. One of 'oidc, okta, azure, or google' (default "oidc")
+      --scim                            Create an access key for SCIM provisioning
       --service-account-email string    The email assigned to the Infra service client in Google
       --service-account-key filepath    The private key used to make authenticated requests to Google's API, can be a file or the key string directly
       --url string                      Base URL of the domain of the OIDC identity provider (eg. acme.okta.com)
@@ -675,6 +676,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 
 ```console
       --client-secret string            Set a new client secret
+      --scim                            Create a new access key for SCIM provisioning
       --service-account-email string    The email assigned to the Infra service client in Google
       --service-account-key filepath    The private key used to make authenticated requests to Google's API
       --workspace-domain-admin string   The email of your Google workspace domain admin
