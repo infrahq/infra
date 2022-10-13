@@ -17,7 +17,6 @@ import dayjs from 'dayjs'
 import { useUser } from '../../../lib/hooks'
 import { sortByPrivilege } from '../../../lib/grants'
 
-import Table from '../../../components/table'
 import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
@@ -439,10 +438,16 @@ export default function DestinationDetail() {
 
                 mutate()
               }}
-              onRemove={async grantId => {
-                await fetch(`/api/grants/${grantId}`, {
-                  method: 'DELETE',
-                })
+              onRemove={async grantsIdList => {
+                console.log(grantsIdList)
+                const promises = grantsIdList.map(
+                  async id =>
+                    await fetch(`/api/grants/${id}`, {
+                      method: 'DELETE',
+                    })
+                )
+
+                await Promise.all(promises)
                 mutate()
               }}
               onChange={async (privilege, group) => {

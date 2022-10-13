@@ -36,6 +36,12 @@ export default function RoleSelect({
         name: 'flip',
         enabled: false,
       },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
     ],
   })
 
@@ -78,7 +84,7 @@ export default function RoleSelect({
             {...attributes.popper}
             className={`absolute z-[8] w-48 ${
               direction === 'right' ? '' : 'right-0'
-            } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
+            } overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
           >
             <div className='max-h-64 overflow-auto'>
               {roles?.map(r => (

@@ -65,6 +65,12 @@ function EditRoleMenu({
         name: 'flip',
         enabled: false,
       },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
     ],
   })
 
@@ -78,9 +84,10 @@ function EditRoleMenu({
           return
         }
 
-        const newSelectedRole = v.filter(x => !selectedRoles.includes(x))
+        const newSelectedRoles = v.filter(x => !selectedRoles.includes(x))
 
-        onChange(newSelectedRole)
+        console.log(newSelectedRoles)
+        onChange(newSelectedRoles)
       }}
       multiple
     >
@@ -90,15 +97,18 @@ function EditRoleMenu({
           className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
         >
           <div className='flex space-x-1 truncate'>
-            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-gray-700'>
+            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
               <ChevronDownIcon
                 className='h-4 w-4 stroke-1 text-gray-700'
                 aria-hidden='true'
               />
             </span>
-            <span>{privileges[0]}</span>
+            <span className='text-gray-700'>{privileges[0]}</span>
             {privileges.length - 1 > 0 && (
-              <span className='font-medium'> + {privileges.length - 1}</span>
+              <span className='font-medium'>
+                {' '}
+                + {privileges.length - 1} roles
+              </span>
             )}
           </div>
         </Listbox.Button>
@@ -107,48 +117,50 @@ function EditRoleMenu({
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
-            className={`sm:w-54 absolute z-[8] mt-2 max-h-64 w-48 overflow-auto rounded-md border border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
+            className='absolute z-[8] w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
           >
-            {roles?.map(r => (
-              <Listbox.Option
-                key={r}
-                className={({ active }) =>
-                  `${
-                    active ? 'bg-gray-100' : ''
-                  } select-none py-2 px-3 hover:cursor-pointer`
-                }
-                value={r}
-              >
-                {({ selected }) => (
-                  <div className='flex flex-row'>
-                    <div className='flex flex-1 flex-col'>
-                      <div className='flex justify-between py-0.5 font-medium'>
-                        {r}
-                        {selected && (
-                          <CheckIcon
-                            className='h-3 w-3 stroke-1 text-gray-600'
-                            aria-hidden='true'
-                          />
-                        )}
-                      </div>
-                      <div className='text-3xs text-gray-600'>
-                        {descriptions[r]}
+            <div className='max-h-64 overflow-auto'>
+              {roles?.map(r => (
+                <Listbox.Option
+                  key={r}
+                  className={({ active }) =>
+                    `${
+                      active ? 'bg-gray-100' : ''
+                    } select-none py-2 px-3 hover:cursor-pointer`
+                  }
+                  value={r}
+                >
+                  {({ selected }) => (
+                    <div className='flex flex-row'>
+                      <div className='flex flex-1 flex-col'>
+                        <div className='flex justify-between py-0.5 font-medium'>
+                          {r}
+                          {selected && (
+                            <CheckIcon
+                              className='h-3 w-3 stroke-1 text-gray-600'
+                              aria-hidden='true'
+                            />
+                          )}
+                        </div>
+                        <div className='text-3xs text-gray-600'>
+                          {descriptions[r]}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </Listbox.Option>
-            ))}
+                  )}
+                </Listbox.Option>
+              ))}
+            </div>
             <Listbox.Option
               className={({ active }) =>
                 `${
                   active ? 'bg-gray-50' : 'bg-white'
-                } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-red-500`
+                } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-red-500 hover:cursor-pointer`
               }
               value={OPTION_REMOVE}
             >
               <div className='flex flex-row items-center py-0.5'>
-                <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove
+                <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove access
               </div>
             </Listbox.Option>
           </Listbox.Options>,
@@ -159,7 +171,7 @@ function EditRoleMenu({
   )
 }
 
-function RoleList({ resource, privileges, roles, onUpdate }) {
+function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
   return (
     <div className='item-center flex justify-between space-x-2'>
       {resource && (
@@ -174,7 +186,9 @@ function RoleList({ resource, privileges, roles, onUpdate }) {
           console.log(resource)
           onUpdate(v, resource)
         }}
-        onRemove={() => {}}
+        onRemove={() => {
+          onRemove(resource)
+        }}
         resource={resource}
         privileges={privileges}
       />
@@ -182,7 +196,7 @@ function RoleList({ resource, privileges, roles, onUpdate }) {
   )
 }
 
-function NamespacesRoleList({ reousrcesMap, roles, onUpdate }) {
+function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
   const namespacesRoleListComponent = []
 
   reousrcesMap.forEach((privileges, resource) =>
@@ -193,13 +207,14 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate }) {
         privileges={sortByRole(privileges)}
         roles={roles}
         onUpdate={(v, r) => onUpdate(v, r)}
+        onRemove={r => onRemove(r)}
       />
     )
   )
   return namespacesRoleListComponent
 }
 
-function GrantCell({ grant, destination }) {
+function GrantCell({ grant, destination, onRemove }) {
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
   const namespacesPrivilegeMap = new Map(
@@ -212,8 +227,6 @@ function GrantCell({ grant, destination }) {
     })
   )
 
-  console.log('destinationPrivileges:', destinationPrivileges)
-  console.log('namespace map:', namespacesPrivilegeMap)
   return (
     <div className='py-1'>
       {/* Destination Resource */}
@@ -228,6 +241,13 @@ function GrantCell({ grant, destination }) {
             onUpdate={v => {
               console.log(v)
             }}
+            onRemove={() => {
+              console.log(destination.name)
+              console.log(grant.id)
+              const deleteGrantIdList =
+                typeof grant.id === 'string' ? [grant.id] : grant.id
+              onRemove(deleteGrantIdList)
+            }}
           />
         </div>
       )}
@@ -241,6 +261,9 @@ function GrantCell({ grant, destination }) {
                 roles={destination.roles.filter(r => r != 'cluster-admin')}
                 onUpdate={(v, r) => {
                   console.log(v)
+                  console.log(r)
+                }}
+                onRemove={r => {
                   console.log(r)
                 }}
               />
@@ -296,9 +319,6 @@ export default function AccessTable({
     }
   })
 
-  console.log(grants)
-  console.log(grantsList)
-
   return (
     <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
       <table className='w-full text-sm text-gray-600'>
@@ -308,10 +328,7 @@ export default function AccessTable({
               scope='col'
               className='py-2 px-5 text-left font-medium  sm:pl-6'
             >
-              User or group
-            </th>
-            <th scope='col' className='py-2 px-5 text-left font-medium '>
-              Roles
+              Group or user
             </th>
           </tr>
         </thead>
@@ -331,7 +348,11 @@ export default function AccessTable({
                 </div>{' '}
               </td>
               <td className='w-[40%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
-                <GrantCell grant={grant} destination={destination} />
+                <GrantCell
+                  grant={grant}
+                  destination={destination}
+                  onRemove={grantsIdList => onRemove(grantsIdList)}
+                />
               </td>
             </tr>
           ))}
