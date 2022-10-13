@@ -425,21 +425,24 @@ export default function DestinationDetail() {
               users={users}
               groups={groups}
               destination={destination}
-              onUpdate={async (privilege, user, group, resource) => {
-                await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    user,
-                    group,
-                    privilege,
-                    resource,
-                  }),
-                })
+              onUpdate={async (privileges, user, group, resource) => {
+                const promises = privileges.map(
+                  async privilege =>
+                    await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        user,
+                        group,
+                        privilege,
+                        resource,
+                      }),
+                    })
+                )
 
+                await Promise.all(promises)
                 mutate()
               }}
               onRemove={async grantsIdList => {
-                console.log(grantsIdList)
                 const promises = grantsIdList.map(
                   async id =>
                     await fetch(`/api/grants/${id}`, {
