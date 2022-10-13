@@ -84,38 +84,33 @@ func TestFilterParser(t *testing.T) {
 
 func TestFilterParserError(t *testing.T) {
 	type testCase struct {
-		name           string
-		expression     string
-		expectedErrMsg string
+		name       string
+		expression string
 	}
 
 	testCases := []testCase{
 		{
-			name:           "attempt to return all",
-			expression:     "1=1",
-			expectedErrMsg: "parse conflict",
+			name:       "unsupported operator",
+			expression: "id gt 1 EAND id lt 123",
 		},
 		{
-			name:           "attempt to return all with comparator",
-			expression:     "id eq 1 OR 1=1",
-			expectedErrMsg: "parse conflict",
+			name:       "attempt to return all",
+			expression: "1=1",
 		},
 		{
-			name:           "attempt always true equality",
-			expression:     "name eq \"test\" OR \" or \"\"=\"",
-			expectedErrMsg: "parse conflict",
+			name:       "attempt to return all with comparator",
+			expression: "id eq 1 OR 1=1",
 		},
 		{
-			name:           "attempt drop table",
-			expression:     "name eq \"test; drop table *\"",
-			expectedErrMsg: "parse conflict",
+			name:       "attempt always true equality",
+			expression: "name eq \"test\" OR \" or \"\"=\"",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := filter.ParseFilter([]byte(tc.expression))
-			assert.ErrorContains(t, err, tc.expectedErrMsg)
+			assert.ErrorContains(t, err, "parse conflict")
 		})
 	}
 }
@@ -137,21 +132,6 @@ func TestFilterSQLError(t *testing.T) {
 			name:           "unsupported comparator",
 			expression:     "id lt 123",
 			expectedErrMsg: "unsupported comparator",
-		},
-		{
-			name:           "unsupported operator",
-			expression:     "id gt 1 EAND id lt 123",
-			expectedErrMsg: "unsupported operator",
-		},
-		{
-			name:           "attempt to return all",
-			expression:     "1=1",
-			expectedErrMsg: "parse conflict",
-		},
-		{
-			name:           "attempt to return all with comparator",
-			expression:     "id eq 1 OR 1=1",
-			expectedErrMsg: "parse conflict",
 		},
 	}
 
