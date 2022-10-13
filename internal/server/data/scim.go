@@ -74,23 +74,23 @@ func sqlComparator(c filter.CompareOperator, compare any, query *querybuilder.Qu
 	case filter.SW:
 		cmp, ok := compare.(string)
 		if !ok {
-			return fmt.Errorf("upsupported match comparator: %q", c)
+			return fmt.Errorf("unsupported match comparator: %q", c)
 		}
 		query.B("LIKE ?", cmp+"%")
 	case filter.CO:
 		cmp, ok := compare.(string)
 		if !ok {
-			return fmt.Errorf("upsupported match comparator: %q", c)
+			return fmt.Errorf("unsupported match comparator: %q", c)
 		}
 		query.B("LIKE ?", "%"+cmp+"%")
 	case filter.EW:
 		cmp, ok := compare.(string)
 		if !ok {
-			return fmt.Errorf("upsupported match comparator: %q", c)
+			return fmt.Errorf("unsupported match comparator: %q", c)
 		}
 		query.B("LIKE ?", "%"+cmp)
 	case filter.GE, filter.GT, filter.LE, filter.LT:
-		return fmt.Errorf("upsupported comparator: %q", c)
+		return fmt.Errorf("unsupported comparator: %q", c)
 	}
 
 	return nil
