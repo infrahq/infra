@@ -708,8 +708,8 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 	}
 
 	withShortRequestTimeout := func(t *testing.T, options *Options) {
-		options.API.RequestTimeout = 50 * time.Millisecond
-		options.API.BlockingRequestTimeout = 400 * time.Millisecond
+		options.API.RequestTimeout = 250 * time.Millisecond
+		options.API.BlockingRequestTimeout = 1500 * time.Millisecond
 	}
 	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
 	routes := srv.GenerateRoutes()
@@ -726,7 +726,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 
 	elapsed := time.Since(start)
 	assert.Assert(t, elapsed >= srv.options.API.BlockingRequestTimeout,
-		"elapsed=%v", elapsed)
+		"elapsed=%v, resp=%#v", elapsed, resp)
 
 	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
 }
