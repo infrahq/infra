@@ -78,12 +78,12 @@ function EditRoleMenu({
     <Listbox
       value={selectedRoles}
       onChange={v => {
-        console.log(v)
         if (v.includes(OPTION_REMOVE)) {
           onRemove()
           return
         }
 
+        console.log(v)
         const newSelectedRoles = v.filter(x => !selectedRoles.includes(x))
 
         console.log(newSelectedRoles)
@@ -215,7 +215,6 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
 }
 
 function GrantCell({ grantsList, grant, destination, onRemove }) {
-  console.log(grantsList)
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
   const namespacesPrivilegeMap = new Map(
@@ -267,7 +266,7 @@ function GrantCell({ grantsList, grant, destination, onRemove }) {
                   const deleteGrantIdList = grantsList
                     .filter(g => g.resource === resource)
                     .map(g => g.id)
-                  console.log(deleteGrantIdList)
+                  onRemove(deleteGrantIdList)
                 }}
               />
             </div>
