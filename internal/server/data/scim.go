@@ -15,7 +15,8 @@ func filterSQL(e filter.Expression, query *querybuilder.Query) error {
 		if err != nil {
 			return fmt.Errorf("left: %w", err)
 		}
-		query.B(strings.ToUpper(string(v.Operator)))
+		op := strings.ToUpper(string(v.Operator))
+		query.B(op)
 		err = filterSQL(v.Right, query)
 		if err != nil {
 			return fmt.Errorf("right: %w", err)
@@ -65,12 +66,24 @@ func sqlComparator(c filter.CompareOperator, compare any, query *querybuilder.Qu
 	case filter.NE:
 		query.B("!= ?", compare)
 	case filter.SW:
-		query.B("LIKE ?", compare.(string)+"%")
+		cmp, ok := compare.(string)
+		if !ok {
+			return fmt.Errorf("upsupported match comparator: %q", c)
+		}
+		query.B("LIKE ?", cmp+"%")
 	case filter.CO:
-		query.B("LIKE ?", "%"+compare.(string)+"%")
+		cmp, ok := compare.(string)
+		if !ok {
+			return fmt.Errorf("upsupported match comparator: %q", c)
+		}
+		query.B("LIKE ?", "%"+cmp+"%")
 	case filter.EW:
-		query.B("LIKE ?", "%"+compare.(string))
-	default:
+		cmp, ok := compare.(string)
+		if !ok {
+			return fmt.Errorf("upsupported match comparator: %q", c)
+		}
+		query.B("LIKE ?", "%"+cmp)
+	case filter.GE, filter.GT, filter.LE, filter.LT:
 		return fmt.Errorf("upsupported comparator: %q", c)
 	}
 
