@@ -34,8 +34,9 @@ tools:
 
 postgres:
 	docker run -d --name=postgres-dev --rm \
-		--tmpfs=/var/lib/postgresql/data \
+		--tmpfs=/var/lib/postgresql/tmpfs \
 		-e POSTGRES_HOST_AUTH_METHOD=trust \
+		-e PGDATA=/var/lib/postgresql/tmpfs \
 		-p 127.0.0.1:15432:5432 \
 		postgres:14-alpine -c fsync=off -c full_page_writes=off \
 			-c max_connections=100

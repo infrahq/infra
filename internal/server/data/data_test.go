@@ -5,29 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
-	"github.com/infrahq/infra/internal/testing/database"
-	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
-
-func setupDB(t *testing.T) *DB {
-	t.Helper()
-	patch.ModelsSymmetricKey(t)
-
-	db, err := NewDB(NewDBOptions{DSN: database.PostgresDriver(t, "_data").DSN})
-	assert.NilError(t, err)
-
-	logging.PatchLogger(t, zerolog.NewTestWriter(t))
-
-	return db
-}
 
 func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 	t.Helper()
