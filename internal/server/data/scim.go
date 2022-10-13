@@ -2,7 +2,6 @@ package data
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/scim2/filter-parser/v2"
@@ -15,8 +14,14 @@ func filterSQL(e filter.Expression, query *querybuilder.Query) error {
 		if err != nil {
 			return fmt.Errorf("left: %w", err)
 		}
-		op := strings.ToUpper(string(v.Operator))
-		query.B(op)
+		switch v.Operator {
+		case filter.AND:
+			query.B("AND")
+		case filter.OR:
+			query.B("OR")
+		default:
+			return fmt.Errorf("unsupported operator %q", v.Operator)
+		}
 		err = filterSQL(v.Right, query)
 		if err != nil {
 			return fmt.Errorf("right: %w", err)
