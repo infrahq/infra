@@ -34,14 +34,14 @@ tools:
 
 postgres:
 	docker run -d --name=postgres-dev --rm \
-		-e POSTGRES_PASSWORD=password123 \
 		--tmpfs=/var/lib/postgresql/data \
+		-e POSTGRES_HOST_AUTH_METHOD=trust \
 		-p 127.0.0.1:15432:5432 \
 		postgres:14-alpine -c fsync=off -c full_page_writes=off \
 			-c max_connections=100
 	@echo
 	@echo Copy the line below into the shell used to run tests
-	@echo 'export POSTGRESQL_CONNECTION="host=localhost port=15432 user=postgres dbname=postgres password=password123"'
+	@echo 'export POSTGRESQL_CONNECTION="host=localhost port=15432 user=postgres dbname=postgres"'
 
 
 LINT_ARGS ?= --fix
