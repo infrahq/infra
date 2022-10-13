@@ -220,6 +220,9 @@ type GrantsMaxUpdateIndexOptions struct {
 // GrantsMaxUpdateIndex returns the maximum update_index all the grants that
 // match the query. This MUST include soft-deleted rows as well.
 //
+// Returns 1 if no records match the query, so that the caller can block until
+// a record exists.
+//
 // TODO: any way to assert this tx has the right isolation level?
 func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, error) {
 	query := querybuilder.New("SELECT max(update_index) FROM grants")
@@ -229,9 +232,12 @@ func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, 
 		grantsByDestination(query, opts.ByDestination)
 	}
 
-	var result int64
+	var result *int64
 	err := tx.QueryRow(query.String(), query.Args...).Scan(&result)
-	return result, err
+	if err != nil || result == nil {
+		return 1, err
+	}
+	return *result, err
 }
 
 type Listener struct {

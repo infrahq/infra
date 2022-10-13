@@ -11,6 +11,7 @@ import (
 	"time"
 
 	gocmp "github.com/google/go-cmp/cmp"
+	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -728,6 +729,111 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 		"elapsed=%v", elapsed)
 
 	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
+}
+
+func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too long for short run")
+	}
+
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	g := errgroup.Group{}
+	respCh := make(chan *httptest.ResponseRecorder)
+	g.Go(func() error {
+		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		respCh <- resp
+		return nil
+	})
+
+	isBlocked(t, respCh)
+
+	err := data.CreateGrant(srv.db, &models.Grant{
+		Subject:   "i:abcd",
+		Privilege: "view",
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	resp := isNotBlocked(t, respCh)
+	assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002")
+
+	respBody := &api.ListResponse[api.Grant]{}
+	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
+
+	assert.Equal(t, len(respBody.Items), 2)
+}
+
+func isBlocked[T any](t *testing.T, ch chan T) {
+	t.Helper()
+	select {
+	case item := <-ch:
+		t.Fatalf("expected request to be blocked, but it returned: %v", item)
+	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+func isNotBlocked[T any](t *testing.T, ch chan T) (result T) {
+	t.Helper()
+	timeout := 100 * time.Millisecond
+	select {
+	case item := <-ch:
+		return item
+	case <-time.After(timeout):
+		t.Fatalf("expected request to not block, timeout after: %v", timeout)
+		return result
+	}
+}
+
+func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too long for short run")
+	}
+
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	g := errgroup.Group{}
+	respCh := make(chan *httptest.ResponseRecorder)
+	g.Go(func() error {
+		urlPath := "/api/grants?destination=deferred&lastUpdateIndex=1"
+		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		respCh <- resp
+		return nil
+	})
+
+	isBlocked(t, respCh)
+
+	err := data.CreateGrant(srv.db, &models.Grant{
+		Subject:   "i:abcd",
+		Privilege: "view",
+		Resource:  "deferred.ns1",
+	})
+	assert.NilError(t, err)
+
+	resp := isNotBlocked(t, respCh)
+	assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002")
+
+	respBody := &api.ListResponse[api.Grant]{}
+	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
+
+	assert.Equal(t, len(respBody.Items), 1)
 }
 
 func TestAPI_CreateGrant(t *testing.T) {

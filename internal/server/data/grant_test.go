@@ -597,3 +597,15 @@ func FuzzListenForGrantsNotify(f *testing.F) {
 		assert.NilError(t, l.Release(ctx))
 	})
 }
+
+func TestGrantsMaxUpdateIndex(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("no results match the query", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			idx, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "nope"})
+			assert.NilError(t, err)
+			assert.Equal(t, idx, int64(1))
+		})
+	})
+}
