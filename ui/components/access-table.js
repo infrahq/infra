@@ -187,7 +187,7 @@ function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
           onUpdate(v, resource)
         }}
         onRemove={() => {
-          onRemove(resource)
+          onRemove()
         }}
         resource={resource}
         privileges={privileges}
@@ -207,7 +207,7 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
         privileges={sortByRole(privileges)}
         roles={roles}
         onUpdate={(v, r) => onUpdate(v, r)}
-        onRemove={r => onRemove(r)}
+        onRemove={() => onRemove(resource)}
       />
     )
   )
@@ -243,12 +243,10 @@ function GrantCell({ grantsList, grant, destination, onRemove }) {
               console.log(v)
             }}
             onRemove={() => {
-              console.log(grantsList)
               const deleteGrantIdList = grantsList
                 .filter(g => g.resource === destination.name)
                 .map(g => g.id)
-              console.log(deleteGrantIdList)
-              // onRemove(deleteGrantIdList)
+              onRemove(deleteGrantIdList)
             }}
           />
         </div>
@@ -265,8 +263,11 @@ function GrantCell({ grantsList, grant, destination, onRemove }) {
                   console.log(v)
                   console.log(r)
                 }}
-                onRemove={r => {
-                  console.log(r)
+                onRemove={resource => {
+                  const deleteGrantIdList = grantsList
+                    .filter(g => g.resource === resource)
+                    .map(g => g.id)
+                  console.log(deleteGrantIdList)
                 }}
               />
             </div>
