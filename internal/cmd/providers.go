@@ -85,7 +85,7 @@ func (o providerEditOptions) Validate(providerKind string) error {
 
 	if o.IsUpdatingGoogleAPIOptions(providerKind) {
 		if o.ProviderAPIOptions.PrivateKey == "" || o.ProviderAPIOptions.ClientEmail == "" || o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
-			return fmt.Errorf("client secret or private key, client email, and workspace domain admin email are required to update google provider.'\n\n%s", newProvidersEditCmd(nil).UsageString())
+			return fmt.Errorf("client secret or private key, client email, and workspace domain admin email are required to update google provider.\n\n%s", newProvidersEditCmd(nil).UsageString())
 		}
 	}
 

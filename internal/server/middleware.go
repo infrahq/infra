@@ -177,23 +177,28 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	// remove the need for this WithOrgID.
 	db = db.WithOrgID(org.ID)
 
-	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: accessKey.IssuedFor})
-	if err == nil {
-		// this access key was issued for a user
+	// either this access key was issued for a user or for an identity provider to do SCIM
+	if accessKey.IssuedFor == accessKey.ProviderID {
+		// this access key was issued for SCIM for an identity provider, validate the provider still exists
+		_, err := data.GetProvider(db, data.ByID(accessKey.IssuedFor))
+		if err != nil {
+			return u, fmt.Errorf("provider for access key: %w", err)
+		}
+	} else {
+		// the typical case, this is an access key for a user, validate the user still exists
+		identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: accessKey.IssuedFor})
+		if err != nil {
+			return u, fmt.Errorf("identity for access key: %w", err)
+		}
+
 		if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
 			identity.LastSeenAt = time.Now().UTC()
 			if err = data.UpdateIdentity(db, identity); err != nil {
 				return u, fmt.Errorf("identity update fail: %w", err)
 			}
 		}
+
 		u.User = identity
-	} else {
-		// fallback to checking if this access key was issued to a provider
-		_, nestedErr := data.GetProvider(db, data.ByID(accessKey.IssuedFor))
-		if nestedErr != nil {
-			logging.L.Debug().Err(nestedErr).Msg("fallback lookup for access key issued for provider failed")
-			return u, fmt.Errorf("identity for access key: %w", err)
-		}
 	}
 
 	u.AccessKey = accessKey

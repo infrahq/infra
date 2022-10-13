@@ -97,6 +97,28 @@ func TestRequireAccessKey(t *testing.T) {
 				assert.Assert(t, actual.User == nil)
 			},
 		},
+		"AccessKeyInvalidForProviderNotMatchingIssuedAndProvider": {
+			setup: func(t *testing.T, db data.GormTxn) *http.Request {
+				provider := data.InfraProvider(db)
+				token := &models.AccessKey{
+					IssuedFor: provider.ID,
+					Name:      fmt.Sprintf("%s-scim", provider.Name),
+					ExpiresAt: time.Now().Add(1 * time.Minute).UTC(),
+				}
+				authentication, err := data.CreateAccessKey(db, token)
+				assert.NilError(t, err)
+				token.ProviderID = 123
+				err = data.UpdateAccessKey(db, token)
+				assert.NilError(t, err)
+
+				r := httptest.NewRequest(http.MethodGet, "/", nil)
+				r.Header.Add("Authorization", "Bearer "+authentication)
+				return r
+			},
+			expected: func(t *testing.T, actual access.Authenticated, err error) {
+				assert.ErrorContains(t, err, "identity for access key: record not found")
+			},
+		},
 		"ValidAuthCookie": {
 			setup: func(t *testing.T, db data.GormTxn) *http.Request {
 				authentication := issueToken(t, db, "existing@infrahq.com", time.Minute*1)
