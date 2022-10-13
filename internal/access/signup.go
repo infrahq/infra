@@ -31,9 +31,8 @@ func Signup(c *gin.Context, keyExpiresAt time.Time, baseDomain string, details S
 		return nil, "", fmt.Errorf("create org on sign-up: %w", err)
 	}
 
-	db = db.WithOrgID(details.Org.ID)
-	rCtx.DBTxn = db
 	rCtx.Authenticated.Organization = details.Org
+	db.MetadataSource = rCtx.Authenticated
 	c.Set(RequestContextKey, rCtx)
 
 	identity := &models.Identity{

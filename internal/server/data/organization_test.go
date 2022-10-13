@@ -16,7 +16,7 @@ func TestCreateOrganization(t *testing.T) {
 		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
 
-		tx := &Transaction{DB: db.DB, orgID: org.ID}
+		tx := &Transaction{DB: db.DB, MetadataSource: metadata{orgID: org.ID}}
 
 		// org is created
 		readOrg, err := GetOrganization(db, ByID(org.ID))

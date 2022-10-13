@@ -147,18 +147,25 @@ type GormTxn interface {
 	GormDB() *gorm.DB
 }
 
+// MetadataSource provides metadata for Transaction.
+//
+// TODO: change Transaction.WithOrgID to WithMetadata.
+type MetadataSource interface {
+	OrganizationID() uid.ID
+}
+
+// Transaction is a shim that allows us to add functionality to the query
+// methods of sql.Txn.
+// Transaction provides query logging, and request metadata
+// (currently OrganizationID).
 type Transaction struct {
 	*gorm.DB
-	orgID     uid.ID
+	MetadataSource
 	completed *atomic.Bool
 }
 
 func (t *Transaction) DriverName() string {
 	return t.Dialector.Name()
-}
-
-func (t *Transaction) OrganizationID() uid.ID {
-	return t.orgID
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
@@ -204,8 +211,17 @@ func (t *Transaction) Commit() error {
 // is shared with the new copy.
 func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 	newTxn := *t
-	newTxn.orgID = orgID
+	// TODO: copy other fields from existing MetadataSource if not nil.
+	newTxn.MetadataSource = metadata{orgID: orgID}
 	return &newTxn
+}
+
+type metadata struct {
+	orgID uid.ID
+}
+
+func (m metadata) OrganizationID() uid.ID {
+	return m.orgID
 }
 
 // newRawDB creates a new database connection without running migrations.

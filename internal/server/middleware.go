@@ -95,7 +95,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 
 	if authned.User != nil {
 		if uniqueID := c.Request.Header.Get(headerInfraDestination); uniqueID != "" {
-			tx = tx.WithOrgID(authned.Organization.ID)
+			tx.MetadataSource = authned
 			rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
 			if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
 				return authned, err

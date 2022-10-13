@@ -237,9 +237,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		defer logError(tx.Rollback, "failed to rollback request handler transaction")
 
-		if org := authned.Organization; org != nil {
-			tx = tx.WithOrgID(org.ID)
-		}
+		tx.MetadataSource = authned
 		rCtx := access.RequestContext{
 			Request:       c.Request,
 			DBTxn:         tx,

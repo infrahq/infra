@@ -26,13 +26,14 @@ func setupDB(t *testing.T) *data.DB {
 	return db
 }
 
-func loginAs(db *data.Transaction, user *models.Identity, org *models.Organization) (*gin.Context, *data.Transaction) {
+func loginAs(tx *data.Transaction, user *models.Identity, org *models.Organization) (*gin.Context, *data.Transaction) {
 	ctx, _ := gin.CreateTestContext(nil)
-	tx := db.WithOrgID(org.ID)
-	ctx.Set(RequestContextKey, RequestContext{
+	rCtx := RequestContext{
 		DBTxn:         tx,
 		Authenticated: Authenticated{User: user, Organization: org},
-	})
+	}
+	tx.MetadataSource = rCtx.Authenticated
+	ctx.Set(RequestContextKey, rCtx)
 
 	return ctx, tx
 }
@@ -73,7 +74,8 @@ func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
 	t.Cleanup(func() {
 		assert.NilError(t, tx.Rollback())
 	})
-	return tx.WithOrgID(db.DefaultOrg.ID)
+	tx.MetadataSource = Authenticated{Organization: db.DefaultOrg}
+	return tx
 }
 
 func TestAuthorize(t *testing.T) {
