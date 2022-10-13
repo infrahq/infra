@@ -8,9 +8,6 @@ import (
 
 func setupExampleTable(t *testing.T, db DB) {
 	t.Helper()
-	if db.DriverName() == "sqlite" {
-		t.Skip("does not work with sqlite")
-	}
 
 	_, _ = db.Exec("DROP TABLE example")
 

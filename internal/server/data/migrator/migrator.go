@@ -34,9 +34,6 @@ type Migration struct {
 }
 
 type DB interface {
-	// DriverName returns the name of the database driver.
-	DriverName() string
-
 	Exec(stmt string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
