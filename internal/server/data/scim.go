@@ -3,8 +3,9 @@ package data
 import (
 	"fmt"
 
-	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/scim2/filter-parser/v2"
+
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 )
 
 func filterSQL(e filter.Expression, query *querybuilder.Query) error {
