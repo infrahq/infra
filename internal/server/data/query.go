@@ -10,6 +10,7 @@ import (
 )
 
 type Table interface {
+	// Table returns the name of the database table.
 	Table() string
 	// Columns returns the names of the table's columns. Columns must return
 	// a slice literal where every item in the slice is a string literal.
@@ -32,7 +33,10 @@ type Insertable interface {
 }
 
 type Updatable interface {
-	Insertable
+	Table
+	// Values returns the values for all fields. The values must be in the same
+	// order as the column names returned by Columns.
+	Values() []any
 	// Primary returns the value for the field that is mapped to the primary key
 	// of the table.
 	Primary() uid.ID
@@ -53,6 +57,9 @@ type Selectable interface {
 	ScanFields() []any
 }
 
+// insert an item into the database using tx. insert is a convenience function
+// for the common case. Not all create functions use this function. Special
+// cases warrant copying the implementation of insert to make the necessary changes.
 func insert(tx WriteTxn, item Insertable) error {
 	if err := item.OnInsert(); err != nil {
 		return err
@@ -70,7 +77,12 @@ func insert(tx WriteTxn, item Insertable) error {
 	return handleError(err)
 }
 
-// columnsForInsert is a privileged function that is not checked by
+// columnsForInsert returns the list of columns names for table as a string
+// appropriate for an INSERT statement.
+//
+//	column1, column2, column3, ...
+//
+// columnsForInsert is a special function that is not checked by
 // internal/tools/querylinter. If the arguments to this function change
 // the linter will likely need to be updated.
 // The return value must only include trusted strings from the source code,
@@ -79,7 +91,11 @@ func columnsForInsert(table Table) string {
 	return strings.Join(table.Columns(), ", ")
 }
 
-// placeholderForColumns is a privileged function that is not checked by
+// placeholderForColumns returns a list of argument placeholders as a string
+// appropriate for an INSERT statement. The number of placeholders is equal to
+// the number of columns on table.
+//
+// placeholderForColumns is a special function that is not checked by
 // internal/tools/querylinter. If the arguments to this function change
 // the linter will likely need to be updated.
 // The return value must only include trusted strings from the source code,
@@ -93,6 +109,9 @@ func placeholderForColumns(table Table) string {
 	return strings.Join(result, ", ")
 }
 
+// update an item in the database using tx. update is a convenience function
+// for the common case. Not all UpdateType functions use this function. Special
+// cases warrant copying the implementation of update to make the necessary changes.
 func update(tx WriteTxn, item Updatable) error {
 	if err := item.OnUpdate(); err != nil {
 		return err
@@ -103,12 +122,21 @@ func update(tx WriteTxn, item Updatable) error {
 	query.B(item.Table())
 	query.B("SET")
 	query.B(columnsForUpdate(item), item.Values()...)
-	query.B("WHERE deleted_at is null AND id = ?;", item.Primary())
+	query.B("WHERE deleted_at is null")
+	query.B("AND id = ?", item.Primary())
+	if isOrgMember(item) {
+		query.B("AND organization_id = ?;", tx.OrganizationID())
+	}
 	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)
 }
 
-// columnsForUpdate is a privileged function that is not checked by
+// columnsForUpdate returns a list of column assignment expressions as a string
+// appropriate for an UPDATE statement.
+//
+//	column1 = ?, column2 = ?, column3 = ?, ...
+//
+// columnsForUpdate is a special function that is not checked by
 // internal/tools/querylinter. If the arguments to this function change
 // the linter will likely need to be updated.
 // The return value must only include trusted strings from the source code,
@@ -117,7 +145,12 @@ func columnsForUpdate(table Table) string {
 	return strings.Join(table.Columns(), " = ?, ") + " = ?"
 }
 
-// columnsForSelect is a privileged function that is not checked by
+// columnsForSelect returns a list of column names as a string appropriate for
+// a SELECT statement.
+//
+//	table.column1, table.column2, table.column3, ...
+//
+// columnsForSelect is a special function that is not checked by
 // internal/tools/querylinter. If the arguments to this function change
 // the linter will likely need to be updated.
 // The return value must only include trusted strings from the source code,
