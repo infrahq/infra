@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/migrator"
@@ -25,9 +23,6 @@ func migrations() []*migrator.Migration {
 			ID: "202204281130",
 			Migrate: func(tx migrator.DB) error {
 				stmt := `ALTER TABLE settings DROP COLUMN IF EXISTS signup_enabled`
-				if tx.DriverName() == "sqlite" {
-					stmt = `ALTER TABLE settings DROP COLUMN signup_enabled`
-				}
 				_, err := tx.Exec(stmt)
 				return err
 			},
@@ -37,9 +32,6 @@ func migrations() []*migrator.Migration {
 			ID: "202204291613",
 			Migrate: func(tx migrator.DB) error {
 				stmt := `ALTER TABLE identities DROP COLUMN IF EXISTS kind`
-				if tx.DriverName() == "sqlite" {
-					stmt = `ALTER TABLE identities DROP COLUMN kind`
-				}
 				_, err := tx.Exec(stmt)
 				return err
 			},
@@ -82,42 +74,9 @@ func migrations() []*migrator.Migration {
 var schemaSQL string
 
 func initializeSchema(db migrator.DB) error {
-	if db.DriverName() == "sqlite" {
-		dataDB, ok := db.(*DB)
-		if !ok {
-			panic("unexpected DB type, remove this with gorm")
-		}
-		return autoMigrateSchema(dataDB.DB)
-	}
-
 	if _, err := db.Exec(schemaSQL); err != nil {
 		return fmt.Errorf("failed to exec sql: %w", err)
 	}
-	return nil
-}
-
-func autoMigrateSchema(db *gorm.DB) error {
-	tables := []interface{}{
-		&models.ProviderUser{},
-		&models.Group{},
-		&models.Identity{},
-		&models.Provider{},
-		&models.Grant{},
-		&models.Destination{},
-		&models.AccessKey{},
-		&models.Settings{},
-		&models.EncryptionKey{},
-		&models.Credential{},
-		&models.Organization{},
-		&models.PasswordResetToken{},
-	}
-
-	for _, table := range tables {
-		if err := db.AutoMigrate(table); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -127,9 +86,6 @@ func addKindToProviders() *migrator.Migration {
 		ID: "202206151027",
 		Migrate: func(tx migrator.DB) error {
 			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS kind text`
-			if tx.DriverName() == "sqlite" {
-				stmt = `ALTER TABLE providers ADD COLUMN kind text`
-			}
 			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}
@@ -248,9 +204,6 @@ func setDestinationLastSeenAt() *migrator.Migration {
 			}
 
 			stmt := `ALTER TABLE destinations ADD COLUMN last_seen_at timestamp with time zone`
-			if tx.DriverName() == "sqlite" {
-				stmt = `ALTER TABLE destinations ADD COLUMN last_seen_at datetime`
-			}
 			if _, err := tx.Exec(stmt); err != nil {
 				return err
 			}

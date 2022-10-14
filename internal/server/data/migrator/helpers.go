@@ -17,10 +17,6 @@ func HasTable(tx DB, name string) bool {
 		WHERE table_schema = CURRENT_SCHEMA()
 		AND table_name = ? AND table_type = 'BASE TABLE'
 	`
-	if tx.DriverName() == "sqlite" {
-		stmt = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?`
-	}
-
 	if err := tx.QueryRow(stmt, name).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if table exists")
 		return false
@@ -40,17 +36,6 @@ func HasColumn(tx DB, table string, column string) bool {
 		WHERE table_schema = CURRENT_SCHEMA()
 		AND table_name = ? AND column_name = ?
 	`
-
-	if tx.DriverName() == "sqlite" {
-		stmt = `
-			SELECT count(*)
-			FROM sqlite_master
-			WHERE type = 'table' AND name = ?
-			AND sql LIKE ?
-		`
-		column = "% " + column + " %"
-	}
-
 	if err := tx.QueryRow(stmt, table, column).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if column exists")
 		return false
@@ -69,16 +54,6 @@ func HasConstraint(tx DB, table string, constraint string) bool {
 		WHERE table_schema = CURRENT_SCHEMA()
 		AND table_name = ? AND constraint_name = ?
 	`
-	if tx.DriverName() == "sqlite" {
-		stmt = `
-			SELECT count(*)
-			FROM sqlite_master
-			WHERE type = 'table' AND tbl_name = ?
-			AND sql LIKE ?
-		`
-		constraint = "%CONSTRAINT `" + constraint + "`%"
-	}
-
 	if err := tx.QueryRow(stmt, table, constraint).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if constraint exists")
 		return false

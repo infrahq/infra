@@ -9,6 +9,20 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+// ReadTxn can perform read queries and contains metadata about the request.
+type ReadTxn interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+
+	OrganizationID() uid.ID
+}
+
+// WriteTxn extends ReadTxn by adding write queries.
+type WriteTxn interface {
+	ReadTxn
+	Exec(sql string, values ...interface{}) (sql.Result, error)
+}
+
 type Table interface {
 	Table() string
 	// Columns returns the names of the table's columns. Columns must return

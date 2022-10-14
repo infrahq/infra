@@ -137,19 +137,6 @@ func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, erro
 	return &Transaction{DB: tx, committed: new(atomic.Bool)}, nil
 }
 
-type WriteTxn interface {
-	ReadTxn
-	Exec(sql string, values ...interface{}) (sql.Result, error)
-}
-
-type ReadTxn interface {
-	DriverName() string
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-
-	OrganizationID() uid.ID
-}
-
 // GormTxn is used as a shim in preparation for removing gorm.
 type GormTxn interface {
 	WriteTxn
@@ -371,16 +358,12 @@ func add[T models.Modelable](tx GormTxn, model *T) error {
 	setOrg(tx, model)
 
 	var err error
-	if tx.DriverName() == "postgres" {
-		// failures on postgres need to be rolled back in order to
-		// continue using the same transaction
-		db.SavePoint("beforeCreate")
-		err = db.Create(model).Error
-		if err != nil {
-			db.RollbackTo("beforeCreate")
-		}
-	} else {
-		err = db.Create(model).Error
+	// failures on postgres need to be rolled back in order to
+	// continue using the same transaction
+	db.SavePoint("beforeCreate")
+	err = db.Create(model).Error
+	if err != nil {
+		db.RollbackTo("beforeCreate")
 	}
 	return handleError(err)
 }
