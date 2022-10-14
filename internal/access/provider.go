@@ -25,18 +25,9 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	return data.GetProvider(rCtx.DBTxn, data.ByID(id))
 }
 
-func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *data.Pagination) ([]models.Provider, error) {
+func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Provider, error) {
 	rCtx := GetRequestContext(c)
-
-	selectors := []data.SelectorFunc{
-		data.ByOptionalName(name),
-	}
-
-	for _, exclude := range excludeByKind {
-		selectors = append(selectors, data.NotProviderKind(exclude))
-	}
-
-	return data.ListProviders(rCtx.DBTxn, p, selectors...)
+	return data.ListProviders(rCtx.DBTxn, opts)
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
@@ -60,5 +51,5 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 		return fmt.Errorf("%w: the infra provider can not be deleted", internal.ErrBadRequest)
 	}
 
-	return data.DeleteProviders(db, data.ByID(id))
+	return data.DeleteProviders(db, data.DeleteProvidersOptions{ByID: id})
 }

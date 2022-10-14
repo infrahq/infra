@@ -488,18 +488,6 @@ func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
 	return db.Delete(new(T), id).Error
 }
 
-func deleteAll[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) error {
-	db := tx.GormDB()
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-	if isOrgMember(new(T)) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-
-	return db.Delete(new(T)).Error
-}
-
 // GlobalCount gives the count of all records, not scoped by org.
 func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int64, error) {
 	db := tx.GormDB()

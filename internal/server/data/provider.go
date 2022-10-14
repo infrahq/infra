@@ -3,8 +3,12 @@ package data
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -49,8 +53,73 @@ func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error
 	return get[models.Provider](db, selectors...)
 }
 
-func ListProviders(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
-	return list[models.Provider](db, p, selectors...)
+// TODO: remove
+func ByProviderKind(kind models.ProviderKind) SelectorFunc {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("kind = ?", kind)
+	}
+}
+
+type ListProvidersOptions struct {
+	ByName               string
+	ExcludeInfraProvider bool
+	ByIDs                []uid.ID
+
+	// CreatedBy instructs DeleteProviders to delete all the providers that were
+	// created by this user. Can be used with NotIDs.
+	CreatedBy uid.ID
+	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
+	// be excluded. In other words, these IDs will not be deleted, even if they
+	// match CreatedBy.
+	// Can only be used with CreatedBy.
+	NotIDs []uid.ID
+
+	Pagination *Pagination
+}
+
+func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, error) {
+	table := providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.ExcludeInfraProvider {
+		query.B("AND kind <> ?", models.ProviderKindInfra)
+	}
+	if len(opts.ByIDs) > 0 {
+		query.B("AND id IN (?)", opts.ByIDs)
+	}
+	if opts.CreatedBy != 0 {
+		query.B("AND created_by = ?", opts.CreatedBy)
+		if len(opts.NotIDs) > 0 {
+			query.B("AND id NOT IN (?)", opts.NotIDs)
+		}
+	}
+
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	return scanRows(rows, func(grant *models.Provider) []any {
+		fields := (*providersTable)(grant).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
 }
 
 func UpdateProvider(tx WriteTxn, provider *models.Provider) error {
@@ -60,10 +129,35 @@ func UpdateProvider(tx WriteTxn, provider *models.Provider) error {
 	return update(tx, (*providersTable)(provider))
 }
 
-func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := ListProviders(db, nil, selectors...)
-	if err != nil {
-		return fmt.Errorf("listing providers: %w", err)
+type DeleteProvidersOptions struct {
+	// ByID instructs DeleteProviders to delete the provider matching this ID.
+	// When non-zero all other fields on this struct will be ignored
+	ByID uid.ID
+
+	// CreatedBy instructs DeleteProviders to delete all the providers that were
+	// created by this user. Can be used with NotIDs.
+	CreatedBy uid.ID
+	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
+	// be excluded. In other words, these IDs will not be deleted, even if they
+	// match CreatedBy.
+	// Can only be used with CreatedBy.
+	NotIDs []uid.ID
+}
+
+func DeleteProviders(db GormTxn, opts DeleteProvidersOptions) error {
+	var toDelete []models.Provider
+	if opts.ByID != 0 {
+		// TODO: check the id is in the right org?
+		toDelete = []models.Provider{{Model: models.Model{ID: opts.ByID}}}
+	} else {
+		var err error
+		toDelete, err = ListProviders(db, ListProvidersOptions{
+			CreatedBy: opts.CreatedBy,
+			NotIDs:    opts.NotIDs,
+		})
+		if err != nil {
+			return fmt.Errorf("listing providers: %w", err)
+		}
 	}
 
 	ids := make([]uid.ID, 0)
@@ -115,7 +209,12 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		}
 	}
 
-	return deleteAll[models.Provider](db, ByIDs(ids))
+	stmt := `
+		UPDATE providers
+		SET deleted_at = ?
+		WHERE deleted_at is null AND id IN (?) AND organization_id = ?`
+	_, err := db.Exec(stmt, time.Now(), ids, db.OrganizationID())
+	return err
 }
 
 type providersCount struct {

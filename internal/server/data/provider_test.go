@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/models"
@@ -61,9 +60,7 @@ func TestCreateProvider_RecreateWithDuplicateDomain(t *testing.T) {
 
 		createProviders(t, db, &providerDevelop, &providerProduction)
 
-		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-			return db.Where(&models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
-		})
+		err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 		assert.NilError(t, err)
 
 		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
@@ -95,16 +92,33 @@ func TestListProviders(t *testing.T) {
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 		)
-
+		// TODO: deleted provider
+		// TODO: provider in other org
 		createProviders(t, db, &providerDevelop, &providerProduction)
 
-		providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
-		assert.NilError(t, err)
-		assert.Equal(t, 2, len(providers))
+		// TODO: test case with default options
 
-		providers, err = ListProviders(db, nil, ByOptionalName("okta-development"))
-		assert.NilError(t, err)
-		assert.Equal(t, 1, len(providers))
+		t.Run("exclude infra provider", func(t *testing.T) {
+			providers, err := ListProviders(db, ListProvidersOptions{
+				ExcludeInfraProvider: true,
+			})
+			assert.NilError(t, err)
+			assert.Equal(t, 2, len(providers))
+			// TODO: check ids
+		})
+
+		t.Run("by name", func(t *testing.T) {
+			providers, err := ListProviders(db, ListProvidersOptions{
+				ByName: "okta-development",
+			})
+			assert.NilError(t, err)
+			assert.Equal(t, 1, len(providers))
+			// TODO: check ids
+		})
+
+		// TODO: test case for ByIDs
+		// TODO: test cases for byCreatedBy + NotIDs
+		// TODO: test case with pagination
 	})
 }
 
@@ -181,7 +195,9 @@ func TestDeleteProviders(t *testing.T) {
 			err = CreateProvider(db, &providerProduction)
 			assert.NilError(t, err)
 
-			providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
+			providers, err := ListProviders(db, ListProvidersOptions{
+				ExcludeInfraProvider: true,
+			})
 			assert.NilError(t, err)
 			assert.Assert(t, len(providers) >= 2)
 
@@ -195,7 +211,7 @@ func TestDeleteProviders(t *testing.T) {
 
 		t.Run("Deletes work", func(t *testing.T) {
 			setup()
-			err := DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetProvider(db, ByOptionalName(providerDevelop.Name))
@@ -225,7 +241,7 @@ func TestDeleteProviders(t *testing.T) {
 			_, err := CreateAccessKey(db, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetAccessKeyByKeyID(db, key.KeyID)
@@ -248,14 +264,14 @@ func TestDeleteProviders(t *testing.T) {
 			_, err = CreateAccessKey(db, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetAccessKeyByKeyID(db, key.KeyID)
 			assert.NilError(t, err)
 
 			// clean up
-			err = DeleteProviders(db, ByOptionalName(providerProduction.Name))
+			err = DeleteProviders(db, DeleteProvidersOptions{ByID: providerProduction.ID})
 			assert.NilError(t, err)
 		})
 
@@ -265,7 +281,7 @@ func TestDeleteProviders(t *testing.T) {
 			pu, err := CreateProviderUser(db, &providerProduction, user)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
 			_, err = GetIdentity(db, GetIdentityOptions{ByID: pu.IdentityID})

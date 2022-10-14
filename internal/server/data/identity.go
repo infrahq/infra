@@ -192,7 +192,7 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 			providerIDs = append(providerIDs, relation.ProviderID)
 		}
 
-		providers, err := ListProviders(tx, nil, ByIDs(providerIDs))
+		providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: providerIDs})
 		if err != nil {
 			return nil, fmt.Errorf("list providers for identity: %w", err)
 		}
@@ -365,7 +365,7 @@ func loadIdentitiesGroups(tx GormTxn, identities []models.Identity) error {
 	return nil
 }
 
-func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
+func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 	// get the ids of all the identities
 	identityIDs := []uid.ID{}
 	for _, i := range identities {
@@ -393,7 +393,7 @@ func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
 		providerIDs[pID] = true
 	}
 
-	providers, err := ListProviders(tx, nil, ByIDs(maps.Keys(providerIDs)))
+	providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: maps.Keys(providerIDs)})
 	if err != nil {
 		return err
 	}

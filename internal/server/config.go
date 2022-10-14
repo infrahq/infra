@@ -675,7 +675,10 @@ func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {
 	}
 
 	// remove any provider previously defined by config
-	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteProviders(db, data.DeleteProvidersOptions{
+		CreatedBy: models.CreatedBySystem,
+		NotIDs:    keep,
+	}); err != nil {
 		return err
 	}
 

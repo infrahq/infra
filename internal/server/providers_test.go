@@ -33,7 +33,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	err := data.CreateProvider(s.DB(), testProvider)
 	assert.NilError(t, err)
 
-	dbProviders, err := data.ListProviders(s.DB(), nil)
+	dbProviders, err := data.ListProviders(s.DB(), data.ListProvidersOptions{})
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2)
 

@@ -3,7 +3,6 @@ package data
 import (
 	"gorm.io/gorm"
 
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -78,12 +77,6 @@ func ByPagination(p Pagination) SelectorFunc {
 	}
 }
 
-func CreatedBy(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("created_by = ?", id)
-	}
-}
-
 func Limit(limit int) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Limit(limit)
@@ -93,18 +86,6 @@ func Limit(limit int) SelectorFunc {
 func NotName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("name = ?", name)
-	}
-}
-
-func NotProviderKind(kind models.ProviderKind) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Not("kind = ?", kind)
-	}
-}
-
-func ByProviderKind(kind models.ProviderKind) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("kind = ?", kind)
 	}
 }
 
