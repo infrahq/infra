@@ -44,7 +44,8 @@ export function saveToVisitedOrgs(domain, orgName) {
     let cookieDomain = window.location.host
     let parts = cookieDomain.split('.')
     if (parts.length > 2) {
-      cookieDomain = parts.slice(-2).join('.') // join the last two parts of the domain
+      parts.shift() // remove the org
+      cookieDomain = parts.join('.') // join the last two parts of the domain
     }
 
     cookies.set('orgs', visitedOrgs, {
