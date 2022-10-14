@@ -29,7 +29,7 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
-export function saveToVisitedOrgs(domain, baseDomain, orgName) {
+export function saveToVisitedOrgs(domain, orgName) {
   const cookies = new Cookies()
 
   let visitedOrgs = cookies.get('orgs') || []
@@ -40,9 +40,17 @@ export function saveToVisitedOrgs(domain, baseDomain, orgName) {
       name: orgName,
     })
 
+    // set the cookie domain to a general base domain
+    let cookieDomain = window.location.host
+    let parts = cookieDomain.split('.')
+    if (parts.length > 2) {
+      parts.shift() // remove the org
+      cookieDomain = parts.join('.') // join the last two parts of the domain
+    }
+
     cookies.set('orgs', visitedOrgs, {
       path: '/',
-      domain: `.${baseDomain}`,
+      domain: `.${cookieDomain}`,
     })
   }
 }
@@ -100,7 +108,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const { baseDomain, isEmailConfigured } = useServerConfig()
+  const { isEmailConfigured } = useServerConfig()
   const { login } = useUser()
 
   async function onSubmit(e) {
@@ -125,11 +133,7 @@ export default function Login() {
 
       router.replace(next ? decodeURIComponent(next) : '/')
 
-      saveToVisitedOrgs(
-        window.location.host,
-        baseDomain,
-        data?.organizationName
-      )
+      saveToVisitedOrgs(window.location.host, data?.organizationName)
     } catch (e) {
       console.error(e)
       if (e.fieldErrors) {

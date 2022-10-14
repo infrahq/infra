@@ -3,14 +3,12 @@ import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 
 import { useUser } from '../../lib/hooks'
-import { useServerConfig } from '../../lib/serverconfig'
 import { saveToVisitedOrgs } from '.'
 
 import LoginLayout from '../../components/layouts/login'
 
 export default function Callback() {
   const { mutate } = useSWRConfig()
-  const { baseDomain } = useServerConfig()
   const { login } = useUser()
 
   const router = useRouter()
@@ -30,11 +28,7 @@ export default function Callback() {
       router.replace(next ? decodeURIComponent(next) : '/')
 
       window.localStorage.removeItem('next')
-      saveToVisitedOrgs(
-        window.location.host,
-        baseDomain,
-        user?.organizationName
-      )
+      saveToVisitedOrgs(window.location.host, user?.organizationName)
     }
 
     const providerID = window.localStorage.getItem('providerID')
@@ -45,8 +39,7 @@ export default function Callback() {
       state === window.localStorage.getItem('state') &&
       code &&
       providerID &&
-      redirectURL &&
-      baseDomain
+      redirectURL
     ) {
       finish({
         providerID,
@@ -58,7 +51,7 @@ export default function Callback() {
       window.localStorage.removeItem('state')
       window.localStorage.removeItem('redirectURL')
     }
-  }, [code, state, mutate, router, baseDomain, login])
+  }, [code, state, mutate, router, login])
 
   if (!isReady) {
     return null
