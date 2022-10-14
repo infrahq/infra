@@ -9,9 +9,10 @@ import {
   DuplicateIcon,
   DownloadIcon,
   ChevronDownIcon,
+  ChevronUpIcon,
   PlusIcon,
 } from '@heroicons/react/outline'
-import { Popover, Transition, Listbox } from '@headlessui/react'
+import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
 import dayjs from 'dayjs'
 
 import { useUser } from '../../../lib/hooks'
@@ -21,6 +22,38 @@ import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
+
+function NamespacesGrantAccessForm({ children }) {
+  return (
+    <Disclosure>
+      {({ open }) => (
+        <>
+          <Disclosure.Button className='w-full'>
+            <span className='flex items-center text-xs font-medium text-gray-500 '>
+              <ChevronUpIcon
+                className={`${
+                  open ? 'rotate-180 transform' : ''
+                } h-4 w-4 text-gray-500 duration-300 ease-in`}
+              />
+              More Options
+            </span>
+          </Disclosure.Button>
+          <Transition
+            show={open}
+            enter='ease-out duration-1000'
+            enterFrom='opacity-0'
+            enterTo='opacity-100'
+            leave='ease-in duration-300'
+            leaveFrom='opacity-100'
+            leaveTo='opacity-0'
+          >
+            <Disclosure.Panel static>{children}</Disclosure.Panel>
+          </Transition>
+        </>
+      )}
+    </Disclosure>
+  )
+}
 
 function AccessCluster({ roles, resource }) {
   const [commandCopied, setCommandCopied] = useState(false)
@@ -230,7 +263,7 @@ export default function DestinationDetail() {
   }, [grants, user, destination, currentUserGrants, mutateCurrentUserGrants])
 
   useEffect(() => {
-    setGrantAccessTypeLists([destination?.name])
+    setGrantAccessTypeLists([destination?.resources])
   }, [destination])
 
   const metadata = [
@@ -376,49 +409,98 @@ export default function DestinationDetail() {
         <>
           <div className='my-5 flex flex-col space-y-4'>
             <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-              <h3 className='mb-3 text-sm font-medium'>
-                Grant access to{' '}
-                <span className='font-bold'>
-                  {grantAccessTypeLists.join(', ')}
-                </span>
-              </h3>{' '}
-              <GrantForm
-                roles={destination?.roles}
-                grants={grants}
-                onSubmit={async ({ user, group, privilege }) => {
-                  // don't add grants that already exist
-                  if (
-                    grants?.find(
-                      g =>
-                        g.user === user &&
-                        g.group === group &&
-                        g.privilege === privilege
-                    )
-                  ) {
-                    return false
-                  }
+              <div className='flex flex-col space-y-4'>
+                <div>
+                  <h3 className='mb-3 text-sm font-medium'>
+                    Grant access to <span className='font-bold'>cluster</span>
+                  </h3>{' '}
+                  <GrantForm
+                    roles={destination?.roles}
+                    grants={grants}
+                    onSubmit={async ({ user, group, privilege }) => {
+                      // don't add grants that already exist
+                      if (
+                        grants?.find(
+                          g =>
+                            g.user === user &&
+                            g.group === group &&
+                            g.privilege === privilege
+                        )
+                      ) {
+                        return false
+                      }
 
-                  await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      user,
-                      group,
-                      privilege,
-                      resource: destination?.name,
-                    }),
-                  })
+                      await fetch('/api/grants', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          user,
+                          group,
+                          privilege,
+                          resource: destination?.name,
+                        }),
+                      })
 
-                  mutate()
-                }}
-              />
-              {destination && (
-                <GrantAccessTypesMenu
-                  destination={destination?.name}
-                  typeList={destination?.resources}
-                  selectedList={grantAccessTypeLists}
-                  onChange={setGrantAccessTypeLists}
-                />
-              )}
+                      mutate()
+                    }}
+                  />
+                </div>
+                {destination?.resources.length > 0 && (
+                  <div>
+                    <NamespacesGrantAccessForm>
+                      <div className='pt-2'>
+                        <h3 className='mb-3 text-sm font-medium'>
+                          Grant access to{' '}
+                          <span className='font-bold'>namespaces</span>
+                        </h3>
+                        <GrantForm
+                          roles={destination?.roles.filter(
+                            r => r != 'cluster-admin'
+                          )}
+                          grants={grants}
+                          resources={destination?.resources}
+                          onSubmit={async ({
+                            user,
+                            group,
+                            privilege,
+                            selectedResources,
+                          }) => {
+                            const promises = selectedResources.map(
+                              async resource => {
+                                // // don't add grants that already exist
+                                if (
+                                  grants?.find(
+                                    g =>
+                                      g.user === user &&
+                                      g.group === group &&
+                                      g.privilege === privilege &&
+                                      g.resource ===
+                                        `${destination?.name}.${resource}`
+                                  )
+                                ) {
+                                  return false
+                                }
+
+                                await fetch('/api/grants', {
+                                  method: 'POST',
+                                  body: JSON.stringify({
+                                    user,
+                                    group,
+                                    privilege,
+                                    resource: `${destination?.name}.${resource}`,
+                                  }),
+                                })
+                              }
+                            )
+
+                            await Promise.all(promises)
+                            mutate()
+                          }}
+                        />
+                      </div>
+                    </NamespacesGrantAccessForm>
+                  </div>
+                )}
+              </div>
             </div>
             <AccessTable
               grants={grants}
@@ -451,26 +533,6 @@ export default function DestinationDetail() {
                 )
 
                 await Promise.all(promises)
-                mutate()
-              }}
-              onChange={async (privilege, group) => {
-                if (privilege === group.privilege) {
-                  return
-                }
-
-                await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    ...group,
-                    privilege,
-                  }),
-                })
-
-                // delete old grant
-                await fetch(`/api/grants/${group.id}`, {
-                  method: 'DELETE',
-                })
-
                 mutate()
               }}
             />

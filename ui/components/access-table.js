@@ -50,7 +50,6 @@ function EditRoleMenu({
   selectedRoles,
   onChange,
   onRemove,
-  resource,
   privileges,
 }) {
   roles = roles || []
@@ -179,8 +178,7 @@ function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
         roles={roles}
         selectedRoles={privileges}
         onChange={v => {
-          console.log(resource, v)
-          onUpdate(v, resource)
+          onUpdate(v)
         }}
         onRemove={() => {
           onRemove()
@@ -202,7 +200,7 @@ function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
         resource={resource}
         privileges={sortByRole(privileges)}
         roles={roles}
-        onUpdate={(v, r) => onUpdate(v, r)}
+        onUpdate={v => onUpdate(v, resource, privileges)}
         onRemove={() => onRemove(resource)}
       />
     )
@@ -223,6 +221,37 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
     })
   )
 
+  function handleRemove(resource) {
+    const deleteGrantIdList = grantsList
+      .filter(g => g.resource === resource)
+      .filter(g => g.user === grant.user)
+      .filter(g => g.group === grant.group)
+      .map(g => g.id)
+
+    onRemove(deleteGrantIdList)
+  }
+
+  function handleUpdate(newPrivilege, selectedPrivilege, resource) {
+    // update to add roles
+    if (newPrivilege.length > selectedPrivilege.length) {
+      const newRole = newPrivilege.filter(x => !selectedPrivilege.includes(x))
+      onUpdate(newRole, resource)
+    } else {
+      // update to delete roles
+      const removeRoles = selectedPrivilege.filter(
+        x => !newPrivilege.includes(x)
+      )
+
+      const deleteGrantIdList = grantsList
+        .filter(g => g.resource === resource)
+        .filter(g => g.user === grant.user)
+        .filter(g => g.group === grant.group)
+        .filter(g => removeRoles.includes(g.privilege))
+        .map(g => g.id)
+      onRemove(deleteGrantIdList)
+    }
+  }
+
   return (
     <div className='py-1'>
       {/* Destination Resource */}
@@ -234,38 +263,10 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
           <RoleList
             privileges={sortByRole(destinationPrivileges)}
             roles={destination.roles}
-            onUpdate={v => {
-              console.log(v)
-              // update to add roles
-              if (v.length > destinationPrivileges.length) {
-                const newRole = v.filter(
-                  x => !destinationPrivileges.includes(x)
-                )
-                onUpdate(newRole, destination.name)
-              } else {
-                // update to delete roles
-                const removeRoles = destinationPrivileges.filter(
-                  x => !v.includes(x)
-                )
-
-                const deleteGrantIdList = grantsList.filter(
-                  g => g.resource === destination.name
-                )
-                // .filter(g => removeRoles.includes(g.privilege))
-                console.log('removeRoles ', removeRoles)
-                console.log(deleteGrantIdList)
-              }
-            }}
-            onRemove={() => {
-              const deleteGrantIdList = grantsList
-                .filter(g => g.resource === destination.name)
-                .filter(g => g.user === grant.user || grant.group)
-                .map(g => g.id)
-
-              console.log(grantsList)
-              console.log(deleteGrantIdList)
-              // onRemove(deleteGrantIdList)
-            }}
+            onUpdate={v =>
+              handleUpdate(v, destinationPrivileges, destination.name)
+            }
+            onRemove={() => handleRemove(destination.name)}
           />
         </div>
       )}
@@ -277,17 +278,10 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
               <NamespacesRoleList
                 reousrcesMap={namespacesPrivilegeMap}
                 roles={destination.roles.filter(r => r != 'cluster-admin')}
-                onUpdate={(v, r) => {
-                  console.log(v)
-                  console.log(r)
-                }}
-                onRemove={resource => {
-                  const deleteGrantIdList = grantsList
-                    .filter(g => g.resource === resource)
-                    // .filter(g => g.user)
-                    .map(g => g.id)
-                  onRemove(deleteGrantIdList)
-                }}
+                onUpdate={(v, resource, namespacesPrivileges) =>
+                  handleUpdate(v, namespacesPrivileges, resource)
+                }
+                onRemove={resource => handleRemove(resource)}
               />
             </div>
           </NamespacesRolesComponent>
@@ -304,7 +298,6 @@ export default function AccessTable({
   destination,
   onUpdate,
   onRemove,
-  onChange,
 }) {
   const grantsSubject = [...new Set(grants?.map(g => g.user || g.group))]
   let grantsList = []
