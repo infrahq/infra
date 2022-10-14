@@ -193,7 +193,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	}
 
 	identity.LastSeenAt = time.Now().UTC()
-	if err = data.SaveIdentity(db, identity); err != nil {
+	if err = data.UpdateIdentity(db, identity); err != nil {
 		return u, fmt.Errorf("identity update fail: %w", err)
 	}
 

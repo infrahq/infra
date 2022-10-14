@@ -207,7 +207,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Assert(t, len(user.Groups) == 2)
 
-				err = data.SaveIdentity(db, user)
+				err = data.UpdateIdentity(db, user)
 				assert.NilError(t, err)
 				g, err := data.GetGroup(db, data.ByName("Foo"))
 				assert.NilError(t, err)

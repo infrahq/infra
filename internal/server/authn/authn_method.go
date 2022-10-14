@@ -71,7 +71,7 @@ func Login(
 	}
 
 	authenticated.Identity.LastSeenAt = time.Now().UTC()
-	if err := data.SaveIdentity(db, authenticated.Identity); err != nil {
+	if err := data.UpdateIdentity(db, authenticated.Identity); err != nil {
 		return LoginResult{}, fmt.Errorf("login failed to update last seen: %w", err)
 	}
 

@@ -422,6 +422,7 @@ func handleError(err error) error {
 			// user facing name of that field.
 			constraintFields := map[string]string{
 				"idx_identities_name":         "name",
+				"idx_identities_verified":     "verificationToken",
 				"idx_groups_name":             "name",
 				"idx_providers_name":          "name",
 				"idx_access_keys_name":        "name",
