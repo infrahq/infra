@@ -349,6 +349,9 @@ func list[T models.Modelable](tx GormTxn, p *Pagination, selectors ...SelectorFu
 func save[T models.Modelable](tx GormTxn, model *T) error {
 	db := tx.GormDB()
 	setOrg(tx, model)
+	if isOrgMember(model) {
+		db = ByOrgID(tx.OrganizationID())(db)
+	}
 	err := db.Save(model).Error
 	return handleError(err)
 }

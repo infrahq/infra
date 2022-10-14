@@ -6,6 +6,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -39,6 +40,11 @@ func (e example) OnUpdate() error {
 	return nil
 }
 
+func (e example) IsOrganizationMember() {}
+
+func (e example) SetOrganizationID(_ models.OrganizationIDSource) {
+}
+
 func TestInsert(t *testing.T) {
 	e := example{ID: 123, First: "first", Age: 111}
 	tx := &txnCapture{}
@@ -62,13 +68,17 @@ func (t *txnCapture) Exec(query string, args ...any) (sql.Result, error) {
 	return nil, nil
 }
 
+func (t *txnCapture) OrganizationID() uid.ID {
+	return 7
+}
+
 func TestUpdate(t *testing.T) {
 	e := example{ID: 123, First: "first", Age: 111}
 	tx := &txnCapture{}
 	err := update(tx, e)
 	assert.NilError(t, err)
-	expected := `UPDATE examples SET id = ?, first = ?, age = ? WHERE deleted_at is null AND id = ?; `
+	expected := `UPDATE examples SET id = ?, first = ?, age = ? WHERE deleted_at is null AND id = ? AND organization_id = ?; `
 	assert.Equal(t, tx.query, expected)
-	expectedArgs := []any{uid.ID(123), "first", 111, uid.ID(123)}
+	expectedArgs := []any{uid.ID(123), "first", 111, uid.ID(123), uid.ID(7)}
 	assert.DeepEqual(t, tx.args, expectedArgs)
 }

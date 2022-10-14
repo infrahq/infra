@@ -166,9 +166,7 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error
 	timeout := time.Now().Add(-5 * time.Minute)
 
 	stmt := `
-		SELECT COALESCE(version, '') as version,
-			   last_seen_at >= ? as connected,
-			   count(*)
+		SELECT COALESCE(version, '') as version, last_seen_at >= ? as connected, count(*)
 		FROM destinations
 		WHERE deleted_at IS NULL
 		GROUP BY connected, version
