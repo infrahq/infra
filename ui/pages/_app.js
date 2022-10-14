@@ -7,11 +7,7 @@ import '../styles/globals.css'
 
 async function fetcher(resource, init) {
   const res = await fetch(resource, init)
-  const data = await res.json()
-
-  if (!res.ok) {
-    throw data
-  }
+  const data = await jsonBody(res)
 
   return data
 }

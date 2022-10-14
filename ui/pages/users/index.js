@@ -40,11 +40,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
           name: email,
         }),
       })
-      const user = await res.json()
-
-      if (!res.ok) {
-        throw user
-      }
+      const user = await jsonBody(res)
 
       setSuccess(true)
       setPassword(user.oneTimePassword)

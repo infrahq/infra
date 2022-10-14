@@ -24,11 +24,7 @@ export default function PasswordReset() {
         }),
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      await res.json()
+      await jsonBody(res)
     } catch (e) {
       console.error(e)
     }

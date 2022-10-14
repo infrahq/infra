@@ -43,6 +43,7 @@ type loginMethod int8
 
 const (
 	localLogin loginMethod = iota
+	deviceLogin
 	oidcLogin
 )
 
@@ -176,6 +177,17 @@ func login(cli *CLI, options loginCmdOptions) error {
 			if err != nil {
 				return err
 			}
+		case deviceLogin:
+			resp, err := deviceFlowLogin(lc.APIClient, cli)
+			if err != nil {
+				return err
+			}
+
+			loginReq.AccessKey = resp.AccessKey
+			err = updateInfraConfig(lc, loginReq, resp)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return loginToInfra(cli, lc, loginReq, options.NoAgent)
@@ -194,7 +206,6 @@ func equalHosts(x, y string) bool {
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
-		logging.Debugf("login: %s", err)
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
 			case loginReq.AccessKey != "":
@@ -488,6 +499,55 @@ func attemptTLSRequest(options loginCmdOptions) error {
 	return err
 }
 
+func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
+	resp, err := client.StartDeviceFlow(&api.StartDeviceFlowRequest{ClientID: "some-client-id"})
+	if err != nil {
+		return nil, err
+	}
+
+	// display to user
+	cli.Output("Navigate to " + resp.VerificationURI + " and enter the following code:\n")
+	cli.Output("\t\t" + resp.UserCode + "\n")
+
+	// we don't care if this fails. some devices won't be able to open the browser
+	_ = browser.OpenURL(resp.VerificationURI + "?code=" + resp.UserCode)
+
+	// poll for response
+	timeout := time.NewTimer(time.Duration(resp.ExpiresInSeconds) * time.Second)
+	defer timeout.Stop()
+	poll := time.NewTicker(time.Duration(resp.PollIntervalSeconds) * time.Second)
+	defer poll.Stop()
+
+	var pollResp *api.DevicePollResponse
+loop:
+	for {
+		select {
+		case <-timeout.C:
+			// too late. return an error
+			return nil, api.ErrDeviceLoginTimeout
+		case <-poll.C:
+			// check to see if user is authed yet
+			pollResp, err = client.PollDeviceFlow(&api.PollDeviceFlowRequest{ClientID: "some-client-id", DeviceCode: resp.DeviceCode})
+			if err != nil {
+				return nil, err
+			}
+			switch pollResp.Status {
+			case "rejected":
+				return nil, Error{Message: "device approval request rejected"}
+			case "expired":
+				return nil, Error{Message: "device approval request expired"}
+			case "confirmed":
+				break loop // success!
+			case "pending": // wait more
+			default:
+				logging.Warnf("unexpected response status: " + pollResp.Status)
+			}
+		}
+	}
+
+	return pollResp.LoginResponse, nil
+}
+
 func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 	var credentials struct {
 		Username string
@@ -518,7 +578,6 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 }
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
-	logging.Debugf("call server: list providers")
 	providers, err := client.ListProviders(api.ListProvidersRequest{})
 	if err != nil {
 		return nil, err
@@ -533,16 +592,13 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 		return 0, nil, err
 	}
 
-	if len(providers) == 0 {
-		return localLogin, nil, nil
-	}
-
 	var options []string
 	for _, p := range providers {
 		options = append(options, fmt.Sprintf("%s (%s)", p.Name, p.URL))
 	}
 
 	options = append(options, "Login with username and password")
+	options = append(options, "Login with device code")
 
 	var i int
 	selectPrompt := &survey.Select{
@@ -554,8 +610,11 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 		return 0, nil, err
 	}
 
-	if i == len(options)-1 {
+	if i == len(options)-2 {
 		return localLogin, nil, nil
+	}
+	if i == len(options)-1 {
+		return deviceLogin, nil, nil
 	}
 	return oidcLogin, &providers[i], nil
 }

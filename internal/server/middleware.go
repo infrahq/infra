@@ -86,8 +86,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 
 	org, err := validateOrgMatchesRequest(c.Request, tx, authned.Organization)
 	if err != nil {
-		logging.L.Warn().Err(err).Msg("org validation failed")
-		return authned, internal.ErrBadRequest
+		return authned, err
 	}
 
 	if route.authenticationOptional {
@@ -100,7 +99,7 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 			org = srv.db.DefaultOrg
 		}
 		if org == nil && !route.organizationOptional {
-			return authned, internal.ErrBadRequest
+			return authned, fmt.Errorf("%w: missing organization", internal.ErrBadRequest)
 		}
 		authned.Organization = org
 	}
@@ -146,8 +145,8 @@ func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg 
 	case accessKeyOrg == nil:
 		return orgFromRequest, nil
 	case orgFromRequest.ID != accessKeyOrg.ID:
-		return nil, fmt.Errorf("org from access key %v does not match org from request %v",
-			accessKeyOrg.ID, orgFromRequest.ID)
+		return nil, fmt.Errorf("%w: org from access key %v does not match org from request %v",
+			internal.ErrBadRequest, accessKeyOrg.ID, orgFromRequest.ID)
 	default:
 		return orgFromRequest, nil
 	}

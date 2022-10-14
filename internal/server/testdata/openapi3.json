@@ -198,6 +198,78 @@
           }
         }
       },
+      "DeviceFlowResponse": {
+        "properties": {
+          "deviceCode": {
+            "description": "a long string the device will use to exchange for an access token",
+            "example": "NGU4QWFiNjQ5YmQwNG3YTdmZMEyNzQ3YzQ1YSA",
+            "type": "string"
+          },
+          "expiresIn": {
+            "description": "The number of seconds that this set of values is valid",
+            "example": "1800",
+            "format": "int16",
+            "type": "integer"
+          },
+          "interval": {
+            "description": "the number of seconds the device should wait between polling to see if the user has finished logging in",
+            "example": "5",
+            "format": "int8",
+            "type": "integer"
+          },
+          "userCode": {
+            "description": "This is the text the user will enter at the URL above",
+            "example": "BDSD-HQMK",
+            "type": "string"
+          },
+          "verificationURI": {
+            "description": "This is the URL the user needs to enter into their browser to start logging in",
+            "example": "https://infrahq.com/device",
+            "type": "string"
+          }
+        }
+      },
+      "DevicePollResponse": {
+        "properties": {
+          "deviceCode": {
+            "example": "",
+            "type": "string"
+          },
+          "login": {
+            "properties": {
+              "accessKey": {
+                "type": "string"
+              },
+              "expires": {
+                "description": "formatted as an RFC3339 date-time",
+                "example": "2022-03-14T09:48:00Z",
+                "format": "date-time",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "organizationName": {
+                "type": "string"
+              },
+              "passwordUpdateRequired": {
+                "type": "boolean"
+              },
+              "userID": {
+                "example": "4yJ3n3D8E2",
+                "format": "uid",
+                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "status": {
+            "description": "can be one of pending, rejected, expired, confirmed",
+            "type": "string"
+          }
+        }
+      },
       "EmptyResponse": {},
       "Error": {
         "properties": {
@@ -2113,6 +2185,309 @@
         "summary": "UpdateDestination",
         "tags": [
           "Destinations"
+        ]
+      }
+    },
+    "/api/device": {
+      "post": {
+        "description": "StartDeviceFlow",
+        "operationId": "StartDeviceFlow",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "client_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "StartDeviceFlow",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
+    "/api/device/approve": {
+      "post": {
+        "description": "ApproveDeviceAdd",
+        "operationId": "ApproveDeviceAdd",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "userCode": {
+                    "example": "BDSD-HQMK",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ApproveDeviceAdd",
+        "tags": [
+          "Misc"
+        ]
+      }
+    },
+    "/api/device/status": {
+      "post": {
+        "description": "GetDeviceFlowStatus",
+        "operationId": "GetDeviceFlowStatus",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "clientID": {
+                    "type": "string"
+                  },
+                  "deviceCode": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePollResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "GetDeviceFlowStatus",
+        "tags": [
+          "Misc"
         ]
       }
     },

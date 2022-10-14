@@ -27,9 +27,9 @@ type AccessKey struct {
 	IssuedForName string `db:"-"`
 	ProviderID    uid.ID
 
-	ExpiresAt         time.Time
+	ExpiresAt         time.Time     // time at which the key must expire. Extensions do not extend this value.
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
-	ExtensionDeadline time.Time
+	ExtensionDeadline time.Time     // time by which the key must be used or it is forced to expire early. using the key sets this to now() + Extension
 
 	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
 	Secret         string `gorm:"-" db:"-"`

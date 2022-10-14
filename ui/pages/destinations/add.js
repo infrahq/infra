@@ -76,7 +76,7 @@ export default function DestinationsAdd() {
     setConnected(false)
 
     let res = await fetch('/api/users?name=connector&showSystem=true')
-    const { items: connectors } = await res.json()
+    const { items: connectors } = await jsonBody(res)
 
     // TODO (https://github.com/infrahq/infra/issues/2056): handle the case where connector does not exist
     if (!connectors.length) {
@@ -98,7 +98,7 @@ export default function DestinationsAdd() {
         extensionDeadline: '720h',
       }),
     })
-    const key = await res.json()
+    const key = await jsonBody(res)
 
     setAccessKey(key.accessKey)
     setSubmitted(true)

@@ -89,11 +89,7 @@ export default function ProvidersAddDetails() {
             }),
           })
 
-          const data = await res.json()
-
-          if (!res.ok) {
-            throw data
-          }
+          const data = await jsonBody(res)
 
           return { items: [...providers, data] }
         }

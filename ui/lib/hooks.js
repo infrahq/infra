@@ -29,7 +29,10 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
     !isValidating &&
     ((redirectTo && !redirectIfFound && !user) || (redirectIfFound && user))
   ) {
-    router.replace(redirectTo)
+    if (router.asPath === "/device")
+      router.replace(`/login/organizations?next=${encodeURIComponent(router.asPath)}`)
+    else 
+      router.replace(redirectTo)
     return { loading: true }
   }
 
@@ -46,11 +49,7 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
         body: JSON.stringify(body),
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      const data = await res.json()
+      const data = await jsonBody(res)
 
       // Don't reset state if a password change is required
       if (data.passwordUpdateRequired) {

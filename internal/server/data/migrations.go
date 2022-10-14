@@ -68,6 +68,7 @@ func migrations() []*migrator.Migration {
 		addProviderUserSCIMFields(),
 		addUpdateIndexAndGrantNotify(),
 		addUpdateIndexToExistingGrants(),
+		addDeviceFlowAuthRequestTable(),
 		// next one here
 	}
 }
@@ -807,6 +808,33 @@ func addUpdateIndexToExistingGrants() *migrator.Migration {
 		ID: "2022-10-17T12:40",
 		Migrate: func(tx migrator.DB) error {
 			_, err := tx.Exec(`UPDATE grants SET update_index=2 WHERE update_index is null`)
+			return err
+		},
+	}
+}
+
+func addDeviceFlowAuthRequestTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-06T14:58",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				CREATE TABLE IF NOT EXISTS device_flow_auth_requests (
+					id 							 bigint NOT NULL,
+					client_id 			 text NOT NULL,
+					user_code 			 text NOT NULL,
+					device_code 		 text NOT NULL,
+					approved 				 bool DEFAULT NULL,
+					access_key_id 	 bigint,
+					access_key_token text,
+					expires_at 			 timestamp with time zone,
+					created_at 			 timestamp with time zone,
+					updated_at 			 timestamp with time zone,
+					deleted_at 			 timestamp with time zone
+				);
+
+				CREATE UNIQUE INDEX IF NOT EXISTS idx_dfar_user_code on device_flow_auth_requests (user_code) WHERE (deleted_at IS NULL);
+
+			`)
 			return err
 		},
 	}
