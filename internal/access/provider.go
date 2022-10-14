@@ -48,7 +48,7 @@ func SaveProvider(c *gin.Context, provider *models.Provider) error {
 		return fmt.Errorf("%w: the infra provider can not be modified", internal.ErrBadRequest)
 	}
 
-	return data.SaveProvider(db, provider)
+	return data.UpdateProvider(db, provider)
 }
 
 func DeleteProvider(c *gin.Context, id uid.ID) error {

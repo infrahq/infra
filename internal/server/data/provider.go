@@ -38,11 +38,11 @@ func validateProvider(p *models.Provider) error {
 	}
 }
 
-func CreateProvider(db GormTxn, provider *models.Provider) error {
+func CreateProvider(tx WriteTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
-	return add(db, provider)
+	return insert(tx, (*providersTable)(provider))
 }
 
 func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error) {
@@ -53,11 +53,11 @@ func ListProviders(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]mode
 	return list[models.Provider](db, p, selectors...)
 }
 
-func SaveProvider(db GormTxn, provider *models.Provider) error {
+func UpdateProvider(tx WriteTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
-	return save(db, provider)
+	return update(tx, (*providersTable)(provider))
 }
 
 func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {

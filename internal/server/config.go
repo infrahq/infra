@@ -754,7 +754,7 @@ func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider,
 	provider.ClientSecret = models.EncryptedAtRest(clientSecret)
 	provider.Kind = kind
 
-	if err := data.SaveProvider(db, provider); err != nil {
+	if err := data.UpdateProvider(db, provider); err != nil {
 		return nil, err
 	}
 
