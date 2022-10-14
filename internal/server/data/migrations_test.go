@@ -140,16 +140,13 @@ func TestMigrations(t *testing.T) {
 				}
 
 				query := `SELECT name, kind FROM providers where deleted_at is null`
-				var actual []provider
 				rows, err := db.Query(query)
 				assert.NilError(t, err)
 
-				for rows.Next() {
-					var p provider
-					err := rows.Scan(&p.Name, &p.Kind)
-					assert.NilError(t, err)
-					actual = append(actual, p)
-				}
+				actual, err := scanRows(rows, func(p *provider) []any {
+					return []any{&p.Name, &p.Kind}
+				})
+				assert.NilError(t, err)
 
 				expected := []provider{
 					{Name: "infra", Kind: models.ProviderKindInfra},
