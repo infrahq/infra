@@ -708,18 +708,11 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 				return fmt.Errorf("select all deleted identities: %w", err)
 			}
 
-			var ids []uid.ID
-			for rows.Next() {
-				var id uid.ID
-				if err := rows.Scan(&id); err != nil {
-					return fmt.Errorf("scan identity id: %w", err)
-				}
-
-				ids = append(ids, id)
-			}
-
-			if err := rows.Close(); err != nil {
-				return fmt.Errorf("close read identity rows: %w", err)
+			ids, err := scanRows(rows, func(id *uid.ID) []any {
+				return []any{id}
+			})
+			if err != nil {
+				return fmt.Errorf("read identity rows: %w", err)
 			}
 
 			if len(ids) > 0 {

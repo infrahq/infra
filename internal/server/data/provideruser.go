@@ -176,7 +176,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 	return (*models.ProviderUser)(pu), nil
 }
 
-func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
 	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
