@@ -19,6 +19,7 @@ var tables = []tabler{
 	encryptionKeysTable{},
 	grantsTable{},
 	groupsTable{},
+	identitiesTable{},
 	providerUserTable{},
 }
 
