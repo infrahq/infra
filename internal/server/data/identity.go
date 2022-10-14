@@ -15,7 +15,25 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
+type identitiesTable models.Identity
+
+func (i identitiesTable) Table() string {
+	return "identities"
+}
+
+func (i identitiesTable) Columns() []string {
+	return []string{"created_at", "created_by", "deleted_at", "id", "last_seen_at", "name", "organization_id", "updated_at", "verification_token", "verified"}
+}
+
+func (i identitiesTable) Values() []any {
+	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, i.UpdatedAt, i.VerificationToken, i.Verified}
+}
+
+func (i *identitiesTable) ScanFields() []any {
+	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
+}
+
+func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
 	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
