@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -49,15 +47,39 @@ func CreateProvider(tx WriteTxn, provider *models.Provider) error {
 	return insert(tx, (*providersTable)(provider))
 }
 
-func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error) {
-	return get[models.Provider](db, selectors...)
+type GetProviderOptions struct {
+	ByID   uid.ID
+	ByName string
+
+	// KindInfra instructs GetProvider to return the infra provider. There should
+	// only ever be a single provider with this kind for each org.
+	KindInfra bool
 }
 
-// TODO: remove
-func ByProviderKind(kind models.ProviderKind) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("kind = ?", kind)
+func GetProvider(tx ReadTxn, opts GetProviderOptions) (*models.Provider, error) {
+	provider := &providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(provider))
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	case opts.KindInfra:
+		query.B("AND kind = ?", models.ProviderKindInfra)
+	default:
+		return nil, fmt.Errorf("an ID is required to get provider")
 	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(provider.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.Provider)(provider), nil
 }
 
 type ListProvidersOptions struct {

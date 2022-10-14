@@ -22,7 +22,7 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 
 func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	rCtx := GetRequestContext(c)
-	return data.GetProvider(rCtx.DBTxn, data.ByID(id))
+	return data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: id})
 }
 
 func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Provider, error) {

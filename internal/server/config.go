@@ -697,7 +697,7 @@ func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider,
 		return nil, fmt.Errorf("could not load provider client secret: %w", err)
 	}
 
-	provider, err := data.GetProvider(db, data.ByName(input.Name))
+	provider, err := data.GetProvider(db, data.GetProviderOptions{ByName: input.Name})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err

@@ -57,7 +57,7 @@ func validateAccessKey(accessKey *models.AccessKey) error {
 
 func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
 	// check if this is an access key being issued for identity provider scim
-	provider, err := GetProvider(db, ByID(accessKey.IssuedFor))
+	provider, err := GetProvider(db, GetProviderOptions{ByID: accessKey.IssuedFor})
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
 		return "", fmt.Errorf("check create scim key: %w", err)
 	}

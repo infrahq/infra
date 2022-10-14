@@ -640,7 +640,7 @@ func TestAPI_PatchProvider(t *testing.T) {
 				assert.DeepEqual(t, respBody, expected, cmpopts.EquateEmpty())
 
 				// Test secret, which is not returned from the api
-				savedProvider, err := data.GetProvider(srv.DB(), data.ByID(provider.ID))
+				savedProvider, err := data.GetProvider(srv.DB(), data.GetProviderOptions{ByID: provider.ID})
 				assert.NilError(t, err)
 				assert.Equal(t, savedProvider.ClientSecret, models.EncryptedAtRest("new-client-secret"))
 			},

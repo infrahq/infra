@@ -8,6 +8,7 @@ import (
 
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -72,17 +73,75 @@ func TestCreateProvider_RecreateWithDuplicateDomain(t *testing.T) {
 
 func TestGetProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
-		)
+		providerDevelop := models.Provider{
+			Name:             "okta-development",
+			URL:              "example.com",
+			ClientID:         "the-client-id",
+			ClientSecret:     "the-client-secret",
+			Kind:             models.ProviderKindOkta,
+			AuthURL:          "https://example.com/auth",
+			Scopes:           models.CommaSeparatedStrings{"scope1"},
+			PrivateKey:       "private-key",
+			ClientEmail:      "client@example.com",
+			DomainAdminEmail: "admin@domain.example.com",
+		}
+		providerProduction := models.Provider{
+			Name: "okta-production",
+			URL:  "prod.okta.com",
+			Kind: models.ProviderKindOkta,
+		}
+		providerDeleted := models.Provider{
+			Name: "deleted",
+			URL:  "somewhere.example.com",
+			Kind: models.ProviderKindAzure,
+		}
+		providerDeleted.DeletedAt.Time = time.Now()
+		providerDeleted.DeletedAt.Valid = true
+		createProviders(t, db, &providerDevelop, &providerProduction, &providerDeleted)
 
-		createProviders(t, db, &providerDevelop, &providerProduction)
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{})
+			assert.ErrorContains(t, err, "an ID is required")
+		})
+		t.Run("by name", func(t *testing.T) {
+			provider, err := GetProvider(db, GetProviderOptions{ByName: "okta-development"})
+			assert.NilError(t, err)
+			assert.Assert(t, provider.ID != 0)
 
-		provider, err := GetProvider(db, ByName("okta-development"))
-		assert.NilError(t, err)
-		assert.Assert(t, provider.ID != 0)
-		assert.Equal(t, providerDevelop.URL, provider.URL)
+			expected := models.Provider{
+				Model: models.Model{
+					ID:        provider.ID,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+				Name:               "okta-development",
+				URL:                "example.com",
+				ClientID:           "the-client-id",
+				ClientSecret:       "the-client-secret",
+				Kind:               models.ProviderKindOkta,
+				AuthURL:            "https://example.com/auth",
+				Scopes:             models.CommaSeparatedStrings{"scope1"},
+				PrivateKey:         "private-key",
+				ClientEmail:        "client@example.com",
+				DomainAdminEmail:   "admin@domain.example.com",
+			}
+			assert.DeepEqual(t, providerDevelop, expected, cmpModel)
+		})
+		t.Run("by id", func(t *testing.T) {
+			provider, err := GetProvider(db, GetProviderOptions{ByName: "okta-development"})
+			assert.NilError(t, err)
+			assert.Assert(t, provider.ID != 0)
+			assert.Equal(t, providerDevelop.URL, provider.URL)
+		})
+		t.Run("get deleted", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{ByID: providerDeleted.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{ByName: "does-not-exist"})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 
@@ -214,7 +273,7 @@ func TestDeleteProviders(t *testing.T) {
 			err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
-			_, err = GetProvider(db, ByOptionalName(providerDevelop.Name))
+			_, err = GetProvider(db, GetProviderOptions{ByName: providerDevelop.Name})
 			assert.Error(t, err, "record not found")
 
 			t.Run("provider users are removed", func(t *testing.T) {
