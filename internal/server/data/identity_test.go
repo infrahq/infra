@@ -18,33 +18,44 @@ var cmpModelsGroupShallow = cmp.Comparer(func(x, y models.Group) bool {
 	return x.Name == y.Name && x.OrganizationID == y.OrganizationID
 })
 
-func TestIdentity(t *testing.T) {
+func TestCreateIdentity(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		bond := models.Identity{Name: "jbond@infrahq.com"}
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			bond := models.Identity{
+				Name:      "jbond@infrahq.com",
+				CreatedBy: uid.ID(777),
+			}
+			err := CreateIdentity(tx, &bond)
+			assert.NilError(t, err)
+			assert.Assert(t, bond.ID != 0)
+			assert.Assert(t, bond.VerificationToken != "", "verification token must be set")
 
-		err := db.Create(&bond).Error
-		assert.NilError(t, err)
-
-		var identity models.Identity
-		err = db.First(&identity, &models.Identity{Name: bond.Name}).Error
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != identity.ID)
-		assert.Equal(t, bond.Name, identity.Name)
-		assert.Assert(t, len(identity.VerificationToken) > 0, "verification token must be set")
+			actual, err := GetIdentity(tx, ByID(bond.ID))
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, &bond, cmpTimeWithDBPrecision)
+		})
 	})
 }
 
 func createIdentities(t *testing.T, db GormTxn, identities ...*models.Identity) {
 	t.Helper()
-	for i := range identities {
-		err := CreateIdentity(db, identities[i])
-		assert.NilError(t, err, identities[i].Name)
-		_, err = CreateProviderUser(db, InfraProvider(db), identities[i])
-		assert.NilError(t, err, identities[i].Name)
+	for _, user := range identities {
+		err := CreateIdentity(db, user)
+		assert.NilError(t, err, user.Name)
+		_, err = CreateProviderUser(db, InfraProvider(db), user)
+		assert.NilError(t, err, user.Name)
+
+		for _, group := range user.Groups {
+			err = AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
+			assert.NilError(t, err)
+		}
 	}
 }
 
-func TestCreateDuplicateUser(t *testing.T) {
+// TODO: combine test cases for CreateIdentity
+
+func TestCreateIdentity_DuplicateName(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
@@ -58,6 +69,24 @@ func TestCreateDuplicateUser(t *testing.T) {
 		b.ID = 0
 		err := CreateIdentity(db, &b)
 		assert.ErrorContains(t, err, "a user with that name already exists")
+	})
+}
+
+func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		var (
+			bond   = models.Identity{Name: "jbond@infrahq.com"}
+			bourne = models.Identity{Name: "jbourne@infrahq.com"}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+		)
+
+		createIdentities(t, db, &bond, &bourne, &bauer)
+
+		err := DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
+		assert.NilError(t, err)
+
+		err = CreateIdentity(db, &models.Identity{Name: bond.Name})
+		assert.NilError(t, err)
 	})
 }
 
@@ -76,6 +105,8 @@ func TestGetIdentity(t *testing.T) {
 		assert.Assert(t, 0 != identity.ID)
 	})
 }
+
+// TODO: test cases for UpdateIdentity
 
 func TestListIdentities(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
@@ -285,24 +316,6 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 	})
 }
 
-func TestReCreateIdentitySameName(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com"}
-			bourne = models.Identity{Name: "jbourne@infrahq.com"}
-			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
-		)
-
-		createIdentities(t, db, &bond, &bourne, &bauer)
-
-		err := DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
-		assert.NilError(t, err)
-
-		err = CreateIdentity(db, &models.Identity{Name: bond.Name})
-		assert.NilError(t, err)
-	})
-}
-
 func TestAssignIdentityToGroups(t *testing.T) {
 	tests := []struct {
 		Name           string
@@ -388,12 +401,10 @@ func TestAssignIdentityToGroups(t *testing.T) {
 					if errors.Is(err, internal.ErrNotFound) {
 						g = &models.Group{Name: gn}
 						err = CreateGroup(db, g)
+						assert.NilError(t, err)
 					}
-					assert.NilError(t, err)
-					identity.Groups = append(identity.Groups, *g)
+					assert.NilError(t, AddUsersToGroup(db, g.ID, []uid.ID{identity.ID}))
 				}
-				err = SaveIdentity(db, identity)
-				assert.NilError(t, err)
 
 				// setup providerUser record
 				provider := InfraProvider(db)

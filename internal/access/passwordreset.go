@@ -56,7 +56,7 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 
 	if !user.Verified {
 		user.Verified = true
-		if err = data.SaveIdentity(db, user); err != nil {
+		if err = data.UpdateIdentity(db, user); err != nil {
 			return nil, err
 		}
 	}
