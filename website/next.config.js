@@ -183,6 +183,5 @@ module.exports = phase => ({
   },
   images: {
     domains: ['raw.githubusercontent.com', 'user-images.githubusercontent.com'],
-  },
-  experimental: { images: { allowFutureImage: true } },
+  }
 })

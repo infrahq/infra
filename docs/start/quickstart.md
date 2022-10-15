@@ -9,7 +9,7 @@ position: 2
 
 {% callout type="info" %}
 
-We are rolling out our SaaS product. If you are interested in onboarding before we open it up completely, let us know. Until then, you can [install the self-hosted version of the Infra Server](../reference/selfhosted.md).
+Infra's cloud service is in early access. If you are interested in being part of the early access program, [let us know](/signup).
 
 {% /callout %}
 
