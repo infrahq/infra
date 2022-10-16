@@ -88,11 +88,11 @@ export default function Index() {
                     <button
                       type='submit'
                       disabled={submitted}
-                      className='mb-3 w-[160px] flex justify-center items-center whitespace-nowrap rounded-full bg-white px-10 py-2 text-lg font-medium text-black focus:outline-none disabled:bg-zinc-100 disabled:pointer-events-none md:ml-6 md:mb-0'
+                      className='mb-3 flex w-[160px] items-center justify-center whitespace-nowrap rounded-full bg-white px-10 py-2 text-lg font-medium text-black focus:outline-none disabled:pointer-events-none disabled:bg-zinc-100 md:ml-6 md:mb-0'
                     >
                       {submitted ? (
                         <svg
-                          className='animate-spin h-5 w-5 text-black'
+                          className='h-5 w-5 animate-spin text-black'
                           xmlns='http://www.w3.org/2000/svg'
                           fill='none'
                           viewBox='0 0 24 24'

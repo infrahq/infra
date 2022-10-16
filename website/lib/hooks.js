@@ -13,7 +13,6 @@ export function useSignup({ email }) {
     if (!code) {
       return
     }
-
     try {
       const res = await fetch('/api/signup', {
         method: 'POST',

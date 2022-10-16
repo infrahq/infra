@@ -189,7 +189,7 @@ export default function DocsLayout({ children, items = [], headings = [] }) {
             </optgroup>
           ))}
         </select>
-        <div className='relative mb-32 flex w-full min-w-0 flex-1 flex-col md:pl-0 prose-docs prose-md prose w-full max-w-none break-words'>
+        <div className='prose-docs prose-md prose relative mb-32 flex w-full w-full min-w-0 max-w-none flex-1 flex-col break-words md:pl-0'>
           {children}
         </div>
         <aside className='left-full ml-6 hidden w-48 lg:ml-8 lg:block xl:ml-12'>
