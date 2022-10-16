@@ -82,15 +82,37 @@ export default function Index() {
                       type='email'
                       required
                       placeholder='your email'
-                      className='mb-3 block w-full rounded-md border-white/10 bg-white/5 py-4 px-5 text-lg font-medium text-white shadow-md shadow-black/5 placeholder:text-zinc-500 focus:border-white/10 focus:outline-none focus:ring-0 md:mb-0'
+                      className='mb-3 block w-full max-w-md rounded-lg border border-white/10 bg-white/5 py-4 px-5 text-lg font-medium text-white shadow-md shadow-black/5 placeholder:text-zinc-500 focus:border-white/25 focus:outline-none focus:ring-0 md:mb-0'
                       onChange={e => setEmail(e.target.value)}
                     />
                     <button
                       type='submit'
                       disabled={submitted}
-                      className='mb-3 whitespace-nowrap rounded-full bg-white px-10 py-2 text-lg font-medium text-black focus:outline-none disabled:pointer-events-none md:ml-6 md:mb-0'
+                      className='mb-3 w-[160px] flex justify-center items-center whitespace-nowrap rounded-full bg-white px-10 py-2 text-lg font-medium text-black focus:outline-none disabled:bg-zinc-100 disabled:pointer-events-none md:ml-6 md:mb-0'
                     >
-                      Sign Up
+                      {submitted ? (
+                        <svg
+                          className='animate-spin h-5 w-5 text-black'
+                          xmlns='http://www.w3.org/2000/svg'
+                          fill='none'
+                          viewBox='0 0 24 24'
+                        >
+                          <circle
+                            className='opacity-25'
+                            cx='12'
+                            cy='12'
+                            r='10'
+                            strokeWidth='4'
+                          ></circle>
+                          <path
+                            className='opacity-75'
+                            fill='currentColor'
+                            d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+                          ></path>
+                        </svg>
+                      ) : (
+                        'Sign up'
+                      )}
                     </button>
                     {error && (
                       <p className='absolute top-full text-sm text-red-400'>

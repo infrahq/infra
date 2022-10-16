@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import ReCAPTCHA from 'react-google-recaptcha'
 
+import analytics from '../lib/analytics'
+
 export function useSignup({ email }) {
   const [error, setError] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -18,7 +20,7 @@ export function useSignup({ email }) {
         body: JSON.stringify({
           email,
           code,
-          aid: window?.analytics.user().anonymousId(),
+          aid: (await analytics?.user())?.anonymousId(),
         }),
         headers: {
           Accept: 'application/json',
@@ -30,6 +32,7 @@ export function useSignup({ email }) {
         throw await res.json()
       }
     } catch (e) {
+      console.error(e)
       setError(true)
       return
     }
