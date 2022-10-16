@@ -76,8 +76,8 @@ export default function Index() {
               {table
                 .replace(/ /g, '\u00A0')
                 .split('\n')
-                .map(r => (
-                  <div key={r}>{r}</div>
+                .map((r, i) => (
+                  <div key={i}>{r}</div>
                 ))}
             </div>
           </div>
