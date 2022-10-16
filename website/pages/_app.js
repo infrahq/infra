@@ -35,7 +35,7 @@ export default function App({ Component, pageProps }) {
         <meta property='og:title' content='Infra' />
         <meta
           property='og:description'
-          content='Connect your team to your infrastructure'
+          content='Connect your team to Kubernetes'
         />
         <meta property='og:image' content='/images/og.png' />
       </Head>

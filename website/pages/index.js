@@ -26,14 +26,14 @@ export default function Index() {
         <meta property='og:title' content='Infrastructure Access' key='title' />
         <meta
           property='og:description'
-          content='Connect your team to your Kubernetes'
+          content='Connect your team to Kubernetes'
         />
       </Head>
       <section className='flex flex-1 flex-col px-6'>
         <div className='relative mx-auto my-24 flex w-full max-w-7xl flex-1 flex-col items-center justify-between md:flex-row md:space-x-16'>
           <div className='flex flex-1 flex-col font-display'>
             <h1 className='my-4 overflow-visible text-3xl font-bold md:text-4xl lg:text-6xl'>
-              Connect your team to your Kubernetes.
+              Connect your team to Kubernetes.
             </h1>
             <h2 className='text-md max-w-xl font-[450] text-gray-600 md:text-lg lg:text-2xl'>
               Infra is the easiest way to manage secure access to Kubernetes,
