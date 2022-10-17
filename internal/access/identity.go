@@ -15,19 +15,23 @@ import (
 )
 
 // isIdentitySelf is used by authorization checks to see if the calling identity is requesting their own attributes
-func isIdentitySelf(c *gin.Context, userID uid.ID) (bool, error) {
-	identity := GetRequestContext(c).Authenticated.User
-	return identity != nil && identity.ID == userID, nil
+func isIdentitySelf(rCtx RequestContext, userID uid.ID) bool {
+	identity := rCtx.Authenticated.User
+	return identity != nil && identity.ID == userID
 }
 
 func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
-	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	db, err := hasAuthorization(c, id, isIdentitySelf, roles...)
-	if err != nil {
-		return nil, HandleAuthErr(err, "user", "get", roles...)
+	rCtx := GetRequestContext(c)
+	// anyone can get their own user data
+	if !isIdentitySelf(rCtx, id) {
+		roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+		err := IsAuthorized(rCtx, roles...)
+		if err != nil {
+			return nil, HandleAuthErr(err, "user", "get", roles...)
+		}
 	}
 
-	return data.GetIdentity(db, data.Preload("Providers"), data.ByID(id))
+	return data.GetIdentity(rCtx.DBTxn, data.Preload("Providers"), data.ByID(id))
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -41,12 +45,7 @@ func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 
 func DeleteIdentity(c *gin.Context, id uid.ID) error {
 	rCtx := GetRequestContext(c)
-	self, err := isIdentitySelf(c, id)
-	if err != nil {
-		return err
-	}
-
-	if self {
+	if isIdentitySelf(rCtx, id) {
 		return fmt.Errorf("cannot delete self: %w", internal.ErrBadRequest)
 	}
 

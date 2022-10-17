@@ -21,13 +21,12 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 }
 
 func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
-	db := getDB(c)
-
-	return data.GetProvider(db, data.ByID(id))
+	rCtx := GetRequestContext(c)
+	return data.GetProvider(rCtx.DBTxn, data.ByID(id))
 }
 
 func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderKind, p *data.Pagination) ([]models.Provider, error) {
-	db := getDB(c)
+	rCtx := GetRequestContext(c)
 
 	selectors := []data.SelectorFunc{
 		data.ByOptionalName(name),
@@ -37,7 +36,7 @@ func ListProviders(c *gin.Context, name string, excludeByKind []models.ProviderK
 		selectors = append(selectors, data.NotProviderKind(exclude))
 	}
 
-	return data.ListProviders(db, p, selectors...)
+	return data.ListProviders(rCtx.DBTxn, p, selectors...)
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
