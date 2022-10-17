@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -243,13 +244,32 @@ func GrantsMaxUpdateIndex(tx ReadTxn, opts GrantsMaxUpdateIndexOptions) (int64, 
 type Listener struct {
 	sqlDB   *sql.DB
 	pgxConn *pgx.Conn
+
+	isMatchingNotify func(payload string) error
 }
+
+var errNotificationNoMatch = fmt.Errorf("notification did not match")
 
 // WaitForNotification blocks until the listener receivers a notification on
 // one of the channels, or until the context is cancelled.
 // Returns the notification on success, or an error on failure or timeout.
-func (l *Listener) WaitForNotification(ctx context.Context) (*pgconn.Notification, error) {
-	return l.pgxConn.WaitForNotification(ctx)
+func (l *Listener) WaitForNotification(ctx context.Context) error {
+	for {
+		notficaition, err := l.pgxConn.WaitForNotification(ctx)
+		if err != nil {
+			return err
+		}
+
+		err = l.isMatchingNotify(notficaition.Payload)
+		switch {
+		case errors.Is(err, errNotificationNoMatch):
+			continue
+		case err != nil:
+			return err
+		default:
+			return nil
+		}
+	}
 }
 
 func (l *Listener) Release(ctx context.Context) error {
@@ -291,28 +311,39 @@ func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOpti
 
 	listener := &Listener{sqlDB: sqlDB, pgxConn: pgxConn}
 
-	switch {
-	case opts.ByDestination != "":
-		channel := channelGrantsByDestination(opts.OrgID, opts.ByDestination)
-		_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
-		if err != nil {
+	channel := fmt.Sprintf("grants_%d", opts.OrgID)
+	_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
+	if err != nil {
 
-			if err := pgxstdlib.ReleaseConn(sqlDB, pgxConn); err != nil {
-				logging.L.Warn().Err(err).Msgf("release pgx conn")
-			}
-			return nil, err
+		if err := pgxstdlib.ReleaseConn(sqlDB, pgxConn); err != nil {
+			logging.L.Warn().Err(err).Msgf("release pgx conn")
 		}
-	default:
-		return nil, fmt.Errorf("listen for grants notify requires an ID")
+		return nil, err
 	}
 
+	switch {
+	case opts.ByDestination != "":
+		listener.isMatchingNotify = func(payload string) error {
+			var grant grantJSON
+			err := json.Unmarshal([]byte(payload), &grant)
+			if err != nil {
+				return err
+			}
+			destination, _, _ := strings.Cut(grant.Resource, ".")
+			if destination != opts.ByDestination {
+				return errNotificationNoMatch
+			}
+			return nil
+		}
+	}
 	return listener, nil
 }
 
-func channelGrantsByDestination(orgID uid.ID, destination string) string {
-	destination = strings.ToValidUTF8(destination, "")
-	destination = strings.ReplaceAll(destination, "\x00", "")
-	return fmt.Sprintf("grants_by_destination_%d_%v", orgID, destination)
+// grantJSON is used to decode the JSON payload from a channel notification.
+// models.Grant does not work because it expects to decode uid.ID from a string
+// not a number.
+type grantJSON struct {
+	Resource string
 }
 
 type DeleteGrantsOptions struct {

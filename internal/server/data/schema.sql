@@ -7,10 +7,8 @@
 CREATE FUNCTION grants_notify() RETURNS trigger
     LANGUAGE plpgsql
     AS $$
-DECLARE
-	destination text := split_part(NEW.resource, '.', 1);
 BEGIN
-PERFORM pg_notify('grants_by_destination_' || NEW.organization_id || '_' || destination, '');
+PERFORM pg_notify(current_schema() || '.grants_' || NEW.organization_id, row_to_json(NEW)::text);
 RETURN NULL;
 END; $$;
 
@@ -18,7 +16,7 @@ CREATE FUNCTION listen_on_chan(chan text) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    EXECUTE format('LISTEN %I', chan);
+    EXECUTE format('LISTEN %I', current_schema() || '.' || chan);
 END; $$;
 
 CREATE FUNCTION uidinttostr(id bigint) RETURNS text
