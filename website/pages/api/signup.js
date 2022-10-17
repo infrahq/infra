@@ -57,9 +57,7 @@ export default async function signup(req, res) {
     analytics.track({
       anonymousId: req.body.aid,
       event: 'website:signup',
-      traits: {
-        email: req.body.email,
-      },
+      email: req.body.email,
     })
   }
 
