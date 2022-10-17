@@ -63,7 +63,7 @@ func createJWT(db GormTxn, identity *models.Identity, groups []string, expires t
 }
 
 func CreateIdentityToken(db GormTxn, identityID uid.ID) (token *models.Token, err error) {
-	identity, err := GetIdentity(db, ByID(identityID))
+	identity, err := GetIdentity(db, GetIdentityOptions{ByID: identityID})
 	if err != nil {
 		return nil, err
 	}

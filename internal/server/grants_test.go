@@ -98,7 +98,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	accessKey, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
-	admin, err := data.GetIdentity(srv.DB(), data.ByName("admin@example.com"))
+	admin, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "admin@example.com"})
 	assert.NilError(t, err)
 
 	otherOrg := createOtherOrg(t, srv.db)
@@ -225,7 +225,7 @@ func TestAPI_ListGrants(t *testing.T) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				connector, err := data.GetIdentity(srv.DB(), data.ByName("connector"))
+				connector, err := data.GetIdentity(srv.DB(), data.GetIdentityOptions{ByName: "connector"})
 				assert.NilError(t, err)
 
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())

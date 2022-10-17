@@ -37,7 +37,7 @@ func TestVerifyAndRedirect_Works(t *testing.T) {
 	loc := resp.Result().Header.Get("Location")
 	assert.Equal(t, loc, redirectURL)
 
-	storedUser, err := data.GetIdentity(s.db, data.ByID(user.ID))
+	storedUser, err := data.GetIdentity(s.db, data.GetIdentityOptions{ByID: user.ID})
 	assert.NilError(t, err)
 	assert.Equal(t, storedUser.Verified, true)
 }

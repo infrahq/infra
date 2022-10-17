@@ -22,6 +22,11 @@ func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Ident
 	for i := range identities {
 		err := data.CreateIdentity(db, identities[i])
 		assert.NilError(t, err, identities[i].Name)
+		for _, g := range identities[i].Groups {
+			err := data.AddUsersToGroup(db, g.ID, []uid.ID{identities[i].ID})
+			assert.NilError(t, err)
+		}
+		assert.NilError(t, err, identities[i].Name)
 	}
 }
 
@@ -276,15 +281,13 @@ func TestAPI_DeleteGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
-	var humans = models.Group{Name: "humans"}
+	humans := models.Group{Name: "humans"}
 	createGroups(t, srv.DB(), &humans)
 
-	var (
-		inGroup = models.Identity{
-			Name:   "inagroup@example.com",
-			Groups: []models.Group{humans},
-		}
-	)
+	inGroup := models.Identity{
+		Name:   "inagroup@example.com",
+		Groups: []models.Group{humans},
+	}
 
 	createIdentities(t, srv.DB(), &inGroup)
 
@@ -354,7 +357,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
-	var humans = models.Group{Name: "humans"}
+	humans := models.Group{Name: "humans"}
 	createGroups(t, srv.DB(), &humans)
 
 	var (
@@ -415,7 +418,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.DB(), nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.DB(), data.ListIdentityOptions{ByGroupID: humans.ID})
 				assert.NilError(t, err)
 				assert.DeepEqual(t, idents, []models.Identity{first, second}, cmpModelsIdentityShallow)
 			},
@@ -432,7 +435,7 @@ func TestAPI_UpdateUsersInGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-				idents, err := data.ListIdentities(srv.DB(), nil, []data.SelectorFunc{data.ByOptionalIdentityGroupID(humans.ID)}...)
+				idents, err := data.ListIdentities(srv.DB(), data.ListIdentityOptions{ByGroupID: humans.ID})
 				assert.NilError(t, err)
 				assert.Assert(t, len(idents) == 0)
 			},

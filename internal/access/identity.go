@@ -31,7 +31,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		}
 	}
 
-	return data.GetIdentity(rCtx.DBTxn, data.Preload("Providers"), data.ByID(id))
+	return data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByID: id, PreloadProviders: true})
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -58,7 +58,11 @@ func DeleteIdentity(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "user", "delete", models.InfraAdminRole)
 	}
 
-	return data.DeleteIdentities(db, data.InfraProvider(db).ID, data.ByID(id))
+	opts := data.DeleteIdentitiesOptions{
+		ByProviderID: data.InfraProvider(db).ID,
+		ByID:         id,
+	}
+	return data.DeleteIdentities(db, opts)
 }
 
 func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, showSystem bool, p *data.Pagination) ([]models.Identity, error) {
@@ -68,18 +72,19 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 		return nil, HandleAuthErr(err, "users", "list", roles...)
 	}
 
-	selectors := []data.SelectorFunc{
-		data.Preload("Providers"),
-		data.ByOptionalName(name),
-		data.ByOptionalIDs(ids),
-		data.ByOptionalIdentityGroupID(groupID),
+	opts := data.ListIdentityOptions{
+		Pagination:       p,
+		ByName:           name,
+		ByIDs:            ids,
+		ByGroupID:        groupID,
+		PreloadProviders: true,
 	}
 
 	if !showSystem {
-		selectors = append(selectors, data.NotName(models.InternalInfraConnectorIdentityName))
+		opts.ByNotName = models.InternalInfraConnectorIdentityName
 	}
 
-	return data.ListIdentities(db, p, selectors...)
+	return data.ListIdentities(db, opts)
 }
 
 func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {

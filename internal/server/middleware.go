@@ -187,7 +187,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 	// remove the need for this WithOrgID.
 	db = db.WithOrgID(org.ID)
 
-	identity, err := data.GetIdentity(db, data.ByID(accessKey.IssuedFor))
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: accessKey.IssuedFor})
 	if err != nil {
 		return u, fmt.Errorf("identity for access key: %w", err)
 	}

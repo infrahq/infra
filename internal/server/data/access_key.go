@@ -82,7 +82,7 @@ func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err 
 			accessKey.ID = uid.New()
 		}
 
-		identityIssuedFor, err := GetIdentity(db, ByID(accessKey.IssuedFor))
+		identityIssuedFor, err := GetIdentity(db, GetIdentityOptions{ByID: accessKey.IssuedFor})
 		if err != nil {
 			return "", fmt.Errorf("key name from identity: %w", err)
 		}

@@ -70,7 +70,6 @@ func ByIdentityID(identityID uid.ID) SelectorFunc {
 
 func ByPagination(p Pagination) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
-
 		if p.Page == 0 && p.Limit == 0 {
 			return db
 		}
@@ -112,17 +111,6 @@ func ByProviderKind(kind models.ProviderKind) SelectorFunc {
 func NotPrivilege(privilege string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Not("privilege = ?", privilege)
-	}
-}
-
-func ByOptionalIdentityGroupID(groupID uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		if groupID == 0 {
-			return db
-		}
-		return db.
-			Joins("join identities_groups on identities_groups.identity_id = id").
-			Where("identities_groups.group_id = ?", groupID)
 	}
 }
 

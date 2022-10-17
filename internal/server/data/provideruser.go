@@ -94,27 +94,50 @@ func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	return handleError(err)
 }
 
-func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]models.ProviderUser, error) {
+type ListProviderUsersOptions struct {
+	ByProviderID   uid.ID
+	ByIdentityID   uid.ID
+	ByIdentityIDs  []uid.ID
+	HideInactive   bool
+	SCIMParameters *SCIMParameters
+}
+
+func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.ProviderUser, error) {
+	if opts.ByProviderID == 0 && opts.ByIdentityID == 0 && len(opts.ByIdentityIDs) == 0 {
+		return nil, fmt.Errorf("ListProviderUsers must specify provider ID, identity ID, or a list of identity IDs")
+	}
 	table := &providerUserTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(table))
-	if p != nil {
+	if opts.SCIMParameters != nil {
 		query.B(", count(*) OVER()")
 	}
 	query.B("FROM")
 	query.B(table.Table())
 	query.B("INNER JOIN providers ON provider_users.provider_id = providers.id AND providers.organization_id = ?", tx.OrganizationID())
-	query.B("WHERE provider_id = ?", providerID)
+	query.B("WHERE 1=1") // this is always true, used to make the logic of adding clauses simpler by always appending them with an AND
+	if opts.ByProviderID != 0 {
+		query.B("AND provider_id = ?", opts.ByProviderID)
+	}
+	if opts.ByIdentityID != 0 {
+		query.B("AND identity_id = ?", opts.ByIdentityID)
+	}
+	if len(opts.ByIdentityIDs) != 0 {
+		query.B("AND identity_id IN (?)", opts.ByIdentityIDs)
+	}
+	if opts.HideInactive {
+		query.B("AND active = ?", opts.HideInactive)
+	}
 
 	query.B("ORDER BY email ASC")
 
-	if p != nil {
+	if opts.SCIMParameters != nil {
 		// apply scim parameters
-		if p.Count != 0 {
-			query.B("LIMIT ?", p.Count)
+		if opts.SCIMParameters.Count != 0 {
+			query.B("LIMIT ?", opts.SCIMParameters.Count)
 		}
-		if p.StartIndex > 0 {
-			offset := p.StartIndex - 1 // start index begins at 1, not 0
+		if opts.SCIMParameters.StartIndex > 0 {
+			offset := opts.SCIMParameters.StartIndex - 1 // start index begins at 1, not 0
 			query.B("OFFSET ?", offset)
 		}
 	}
@@ -125,8 +148,8 @@ func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]mode
 	}
 	result, err := scanRows(rows, func(pu *models.ProviderUser) []any {
 		fields := (*providerUserTable)(pu).ScanFields()
-		if p != nil {
-			fields = append(fields, &p.TotalCount)
+		if opts.SCIMParameters != nil {
+			fields = append(fields, &opts.SCIMParameters.TotalCount)
 		}
 		return fields
 	})
@@ -134,8 +157,8 @@ func ListProviderUsers(tx ReadTxn, providerID uid.ID, p *SCIMParameters) ([]mode
 		return nil, fmt.Errorf("scan provider users: %w", err)
 	}
 
-	if p != nil && p.Count == 0 {
-		p.Count = p.TotalCount
+	if opts.SCIMParameters != nil && opts.SCIMParameters.Count == 0 {
+		opts.SCIMParameters.Count = opts.SCIMParameters.TotalCount
 	}
 
 	return result, nil

@@ -52,7 +52,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 	for _, p := range toDelete {
 		ids = append(ids, p.ID)
 
-		providerUsers, err := ListProviderUsers(db, p.ID, nil)
+		providerUsers, err := ListProviderUsers(db, ListProviderUsersOptions{ByProviderID: p.ID})
 		if err != nil {
 			return fmt.Errorf("listing provider users: %w", err)
 		}
@@ -60,7 +60,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		// if a user has no other providers, we need to remove the user.
 		userIDsToDelete := []uid.ID{}
 		for _, providerUser := range providerUsers {
-			user, err := GetIdentity(db, Preload("Providers"), ByID(providerUser.IdentityID))
+			user, err := GetIdentity(db, GetIdentityOptions{ByID: providerUser.IdentityID, PreloadProviders: true})
 			if err != nil {
 				if errors.Is(err, internal.ErrNotFound) {
 					continue
@@ -74,7 +74,11 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		}
 
 		if len(userIDsToDelete) > 0 {
-			if err := DeleteIdentities(db, p.ID, ByIDs(userIDsToDelete)); err != nil {
+			opts := DeleteIdentitiesOptions{
+				ByProviderID: p.ID,
+				ByIDs:        userIDsToDelete,
+			}
+			if err := DeleteIdentities(db, opts); err != nil {
 				return fmt.Errorf("delete users: %w", err)
 			}
 		}

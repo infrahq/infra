@@ -532,7 +532,7 @@ func InfraProvider(db GormTxn) *models.Provider {
 // InfraConnectorIdentity returns the connector identity for the organization set
 // in the db context.
 func InfraConnectorIdentity(db GormTxn) *models.Identity {
-	connector, err := GetIdentity(db, ByName(models.InternalInfraConnectorIdentityName), ByOrgID(db.OrganizationID()))
+	connector, err := GetIdentity(db, GetIdentityOptions{ByName: models.InternalInfraConnectorIdentityName})
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 		return nil // unreachable, the line above panics

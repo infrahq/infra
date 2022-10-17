@@ -31,7 +31,7 @@ func TestCreateIdentity(t *testing.T) {
 			assert.Assert(t, bond.ID != 0)
 			assert.Assert(t, bond.VerificationToken != "", "verification token must be set")
 
-			actual, err := GetIdentity(tx, ByID(bond.ID))
+			actual, err := GetIdentity(tx, GetIdentityOptions{ByID: bond.ID})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, &bond, cmpTimeWithDBPrecision)
 		})
@@ -82,7 +82,11 @@ func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
 
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
-		err := DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
+		opts := DeleteIdentitiesOptions{
+			ByProviderID: InfraProvider(db).ID,
+			ByName:       bond.Name,
+		}
+		err := DeleteIdentities(db, opts)
 		assert.NilError(t, err)
 
 		err = CreateIdentity(db, &models.Identity{Name: bond.Name})
@@ -92,82 +96,155 @@ func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
 
 func TestGetIdentity(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
+		group := models.Group{Name: "usa"}
+		err := CreateGroup(db, &group)
+		group.TotalUsers = 1
+		assert.NilError(t, err)
+
 		var (
 			bond   = models.Identity{Name: "jbond@infrahq.com"}
-			bourne = models.Identity{Name: "jbourne@infrahq.com"}
-			bauer  = models.Identity{Name: "jbauer@infrahq.com"}
+			bourne = models.Identity{Name: "jbourne@infrahq.com", Groups: []models.Group{group}}
+			bauer  = models.Identity{Name: "jbauer@infrahq.com", Providers: []models.Provider{*InfraProvider(db)}}
 		)
 
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
-		identity, err := GetIdentity(db, ByName(bond.Name))
-		assert.NilError(t, err)
-		assert.Assert(t, 0 != identity.ID)
+		t.Run("ID or name are required", func(t *testing.T) {
+			_, err := GetIdentity(db, GetIdentityOptions{})
+			assert.ErrorContains(t, err, "GetIdentity must specify id or name")
+		})
+		t.Run("by ID", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByID: bond.ID})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, *identity, bond)
+		})
+		t.Run("by name", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bond.Name})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, *identity, bond)
+		})
+		t.Run("preload groups", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bourne.Name, PreloadGroups: true})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, *identity, bourne)
+		})
+		t.Run("preload providers", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bauer.Name, PreloadProviders: true})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, *identity, bauer)
+		})
 	})
 }
-
-// TODO: test cases for UpdateIdentity
 
 func TestListIdentities(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
-			everyone  = models.Group{Name: "Everyone"}
-			engineers = models.Group{Name: "Engineering"}
-			product   = models.Group{Name: "Product"}
+			everyone = models.Group{Name: "Everyone"}
+			product  = models.Group{Name: "Product"}
 		)
-		createGroups(t, db, &everyone, &engineers, &product)
+		createGroups(t, db, &everyone, &product)
 
+		providers := []models.Provider{*InfraProvider(db)}
 		var (
 			bond = models.Identity{
-				Name:   "jbond@infrahq.com",
-				Groups: []models.Group{everyone, engineers},
+				Name:      "jbond@infrahq.com",
+				Providers: providers,
+			}
+			salt = models.Identity{
+				Name:      "salt@infrahq.com",
+				CreatedBy: 1000,
+				Providers: providers,
 			}
 			bourne = models.Identity{
-				Name:   "jbourne@infrahq.com",
-				Groups: []models.Group{everyone, product},
+				Name:      "jbourne@infrahq.com",
+				Groups:    []models.Group{everyone, product},
+				Providers: providers,
 			}
 			bauer = models.Identity{
-				Name:   "jbauer@infrahq.com",
-				Groups: []models.Group{everyone},
+				Name:      "jbauer@infrahq.com",
+				Groups:    []models.Group{everyone},
+				Providers: providers,
 			}
 		)
-		createIdentities(t, db, &bond, &bourne, &bauer)
+		createIdentities(t, db, &bond, &salt, &bourne, &bauer)
 
 		connector := InfraConnectorIdentity(db)
 
 		t.Run("list all", func(t *testing.T) {
-			identities, err := ListIdentities(db, nil)
+			identities, err := ListIdentities(db, ListIdentityOptions{})
 			assert.NilError(t, err)
-			expected := []models.Identity{*connector, bauer, bond, bourne}
+			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
+			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter by ID", func(t *testing.T) {
+			identities, err := ListIdentities(db, ListIdentityOptions{ByID: bond.ID})
+			assert.NilError(t, err)
+			expected := []models.Identity{bond}
+			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter by IDs", func(t *testing.T) {
+			identities, err := ListIdentities(db, ListIdentityOptions{ByIDs: []uid.ID{bond.ID, salt.ID}})
+			assert.NilError(t, err)
+			expected := []models.Identity{bond, salt}
+			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter by not IDs", func(t *testing.T) {
+			identities, err := ListIdentities(db, ListIdentityOptions{ByNotIDs: []uid.ID{bourne.ID, bauer.ID}})
+			assert.NilError(t, err)
+			expected := []models.Identity{*connector, bond, salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter by name", func(t *testing.T) {
-			identities, err := ListIdentities(db, nil, ByName(bourne.Name))
+			identities, err := ListIdentities(db, ListIdentityOptions{ByName: bond.Name})
 			assert.NilError(t, err)
-			expected := []models.Identity{bourne}
+			expected := []models.Identity{bond}
+			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("filter by not name", func(t *testing.T) {
+			identities, err := ListIdentities(db, ListIdentityOptions{ByNotName: bond.Name})
+			assert.NilError(t, err)
+			expected := []models.Identity{*connector, bauer, bourne, salt}
 			assert.DeepEqual(t, identities, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group", func(t *testing.T) {
-			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID))
+			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID})
 			assert.NilError(t, err)
-			expected := []models.Identity{bauer, bond, bourne}
+			expected := []models.Identity{bauer, bourne}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
-		t.Run("filter identities by different group", func(t *testing.T) {
-			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(engineers.ID))
+		t.Run("filter identities by created by", func(t *testing.T) {
+			actual, err := ListIdentities(db, ListIdentityOptions{CreatedBy: uid.ID(1000)})
 			assert.NilError(t, err)
-			expected := []models.Identity{bond}
+			expected := []models.Identity{salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
 		t.Run("filter identities by group and name", func(t *testing.T) {
-			actual, err := ListIdentities(db, nil, ByOptionalIdentityGroupID(everyone.ID), ByName(bauer.Name))
+			actual, err := ListIdentities(db, ListIdentityOptions{ByGroupID: everyone.ID, ByName: bauer.Name})
 			assert.NilError(t, err)
 			expected := []models.Identity{bauer}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
+		})
+
+		t.Run("preload groups", func(t *testing.T) {
+			actual, err := ListIdentities(db, ListIdentityOptions{PreloadGroups: true})
+			assert.NilError(t, err)
+			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadGroupsShallow)
+		})
+
+		t.Run("preload providers", func(t *testing.T) {
+			actual, err := ListIdentities(db, ListIdentityOptions{PreloadProviders: true})
+			assert.NilError(t, err)
+			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
+			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadProvidersShallow)
 		})
 	})
 }
@@ -176,16 +253,72 @@ var cmpModelsIdentityShallow = cmp.Comparer(func(x, y models.Identity) bool {
 	return x.Name == y.Name
 })
 
-func TestDeleteIdentity(t *testing.T) {
+var cmpModelsIdentityPreloadGroupsShallow = cmp.Comparer(func(x, y models.Identity) bool {
+	if len(x.Groups) != len(y.Groups) {
+		return false
+	}
+	for i := range x.Groups {
+		if x.Groups[i].Name != y.Groups[i].Name {
+			return false
+		}
+	}
+	return x.Name == y.Name
+})
+
+var cmpModelsIdentityPreloadProvidersShallow = cmp.Comparer(func(x, y models.Identity) bool {
+	if len(x.Providers) != len(y.Providers) {
+		return false
+	}
+	for i := range x.Providers {
+		if x.Providers[i].Name != y.Providers[i].Name {
+			return false
+		}
+	}
+	return x.Name == y.Name
+})
+
+func TestUpdateIdentity(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		identity := models.Identity{
+			Name:              "Alice",
+			Verified:          false,
+			VerificationToken: "aaa",
+		}
+		err := CreateIdentity(db, &identity)
+		assert.NilError(t, err)
+
+		identity.Name = "Bob"
+		identity.Verified = true
+		identity.VerificationToken = "bbb"
+
+		err = UpdateIdentity(db, &identity)
+		assert.NilError(t, err)
+
+		result, err := GetIdentity(db, GetIdentityOptions{ByID: identity.ID})
+		assert.NilError(t, err)
+		assert.DeepEqual(t, *result, identity)
+	})
+}
+
+func TestDeleteIdentities(t *testing.T) {
 	type testCase struct {
 		name   string
-		setup  func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity)
+		setup  func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity)
 		verify func(t *testing.T, tx *Transaction, err error, identity models.Identity)
 	}
 	testCases := []testCase{
 		{
+			name: "provider ID is required",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				return DeleteIdentitiesOptions{}, models.Identity{}
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.ErrorContains(t, err, "DeleteIdentities requires a provider ID")
+			},
+		},
+		{
 			name: "valid delete infra provider user",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
 				var (
 					bond   = models.Identity{Name: "jbond@infrahq.com"}
 					bourne = models.Identity{Name: "jbourne@infrahq.com"}
@@ -209,12 +342,15 @@ func TestDeleteIdentity(t *testing.T) {
 				err = CreateGrant(tx, &models.Grant{Subject: bond.PolyID(), Privilege: "admin", Resource: "infra"})
 				assert.NilError(t, err)
 
-				return InfraProvider(tx).ID, bond
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByName:       bond.Name,
+				}, bond
 			},
 			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
 
-				_, err = GetIdentity(tx, ByName("jbond@infrahq.com"))
+				_, err = GetIdentity(tx, GetIdentityOptions{ByName: "jbond@infrahq.com"})
 				assert.Error(t, err, "record not found")
 
 				// when an identity has no more references its resources are cleaned up
@@ -228,14 +364,17 @@ func TestDeleteIdentity(t *testing.T) {
 				assert.Equal(t, len(grants), 0)
 
 				// deleting a identity should not delete unrelated identities
-				_, err = GetIdentity(tx, ByName("jbourne@infrahq.com"))
+				_, err = GetIdentity(tx, GetIdentityOptions{ByName: "jbourne@infrahq.com"})
 				assert.NilError(t, err)
 			},
 		},
 		{
 			name: "deleting non-existent user does not fail",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
-				return InfraProvider(tx).ID, models.Identity{Name: "DNE"}
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByName:       "DNE",
+				}, models.Identity{}
 			},
 			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
@@ -243,7 +382,7 @@ func TestDeleteIdentity(t *testing.T) {
 		},
 		{
 			name: "delete identity in provider outside infra does not delete credentials",
-			setup: func(t *testing.T, tx *Transaction) (providerID uid.ID, identity models.Identity) {
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
 				id := &models.Identity{Name: "jbond@infrahq.com"}
 				createIdentities(t, tx, id)
 
@@ -260,16 +399,148 @@ func TestDeleteIdentity(t *testing.T) {
 				_, err = CreateProviderUser(tx, provider, id)
 				assert.NilError(t, err)
 
-				return provider.ID, *id
+				return DeleteIdentitiesOptions{
+					ByProviderID: provider.ID,
+					ByName:       id.Name,
+				}, *id
 			},
 			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
 				assert.NilError(t, err)
 
-				id, err := GetIdentity(tx, ByName(identity.Name))
+				id, err := GetIdentity(tx, GetIdentityOptions{ByName: identity.Name})
 				assert.NilError(t, err) // still exists in infra provider
 
 				_, err = GetCredential(tx, ByIdentityID(id.ID))
 				assert.NilError(t, err) // still exists in infra provider
+			},
+		},
+		{
+			name: "delete by ID",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				id := &models.Identity{Name: "name@infrahq.com"}
+				createIdentities(t, tx, id)
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByID:         id.ID,
+				}, *id
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.NilError(t, err)
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: identity.ID})
+				assert.Error(t, err, "record not found")
+			},
+		},
+		{
+			name: "delete by IDs",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				id1 := &models.Identity{
+					Model: models.Model{ID: 1},
+					Name:  "name1@infrahq.com",
+				}
+				id2 := &models.Identity{
+					Model: models.Model{ID: 2},
+					Name:  "name2@infrahq.com",
+				}
+				id3 := &models.Identity{
+					Model: models.Model{ID: 3},
+					Name:  "name3@infrahq.com",
+				}
+				createIdentities(t, tx, id1, id2, id3)
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByIDs:        []uid.ID{id1.ID, id2.ID},
+				}, models.Identity{} // not used
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.NilError(t, err)
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
+				assert.Error(t, err, "record not found")
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
+				assert.Error(t, err, "record not found")
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 3})
+				assert.NilError(t, err) // still exists
+			},
+		},
+		{
+			name: "delete by not IDs",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				id1 := &models.Identity{
+					Model: models.Model{ID: 1},
+					Name:  "name1@infrahq.com",
+				}
+				id2 := &models.Identity{
+					Model: models.Model{ID: 2},
+					Name:  "name2@infrahq.com",
+				}
+				id3 := &models.Identity{
+					Model: models.Model{ID: 3},
+					Name:  "name3@infrahq.com",
+				}
+				createIdentities(t, tx, id1, id2, id3)
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByNotIDs:     []uid.ID{id1.ID, id2.ID},
+				}, models.Identity{} // not used
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.NilError(t, err)
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 3})
+				assert.Error(t, err, "record not found")
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
+				assert.NilError(t, err) // still exists
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
+				assert.NilError(t, err) // still exists
+			},
+		},
+		{
+			name: "delete by created by",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				id1 := &models.Identity{
+					Model:     models.Model{ID: 1},
+					Name:      "name1@infrahq.com",
+					CreatedBy: 1,
+				}
+				id2 := &models.Identity{
+					Model: models.Model{ID: 2},
+					Name:  "name2@infrahq.com",
+				}
+				createIdentities(t, tx, id1, id2)
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					CreatedBy:    uid.ID(1),
+				}, models.Identity{} // not used
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.NilError(t, err)
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
+				assert.Error(t, err, "record not found")
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
+				assert.NilError(t, err) // still exists
+			},
+		},
+		{
+			name: "delete by name",
+			setup: func(t *testing.T, tx *Transaction) (opts DeleteIdentitiesOptions, identity models.Identity) {
+				id1 := &models.Identity{
+					Model: models.Model{ID: 1},
+					Name:  "name1@infrahq.com",
+				}
+				id2 := &models.Identity{
+					Model: models.Model{ID: 2},
+					Name:  "name2@infrahq.com",
+				}
+				createIdentities(t, tx, id1, id2)
+				return DeleteIdentitiesOptions{
+					ByProviderID: InfraProvider(tx).ID,
+					ByName:       id1.Name,
+				}, models.Identity{} // not used
+			},
+			verify: func(t *testing.T, tx *Transaction, err error, identity models.Identity) {
+				assert.NilError(t, err)
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 1})
+				assert.Error(t, err, "record not found")
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: 2})
+				assert.NilError(t, err) // still exists
 			},
 		},
 	}
@@ -281,9 +552,8 @@ func TestDeleteIdentity(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				tx := txnForTestCase(t, db, org.ID)
 
-				providerID, identity := tc.setup(t, tx)
-
-				err := DeleteIdentities(tx, providerID, ByName(identity.Name))
+				opts, identity := tc.setup(t, tx)
+				err := DeleteIdentities(tx, opts)
 
 				tc.verify(t, tx, err, identity)
 			})
@@ -307,7 +577,11 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 		err = AddUsersToGroup(db, group.ID, []uid.ID{bond.ID, bourne.ID, bauer.ID})
 		assert.NilError(t, err)
 
-		err = DeleteIdentities(db, InfraProvider(db).ID, ByName(bond.Name))
+		opts := DeleteIdentitiesOptions{
+			ByProviderID: InfraProvider(db).ID,
+			ByName:       bond.Name,
+		}
+		err = DeleteIdentities(db, opts)
 		assert.NilError(t, err)
 
 		group, err = GetGroup(db, ByID(group.ID))

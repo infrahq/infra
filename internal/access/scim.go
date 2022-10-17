@@ -14,7 +14,11 @@ func ListProviderUsers(c *gin.Context, p *data.SCIMParameters) ([]models.Provide
 	// IssuedFor will match no providers if called with a regular access key. When called with
 	// a SCIM access key it will be the provider ID. This effectively restricts this endpoint to
 	// only SCIM access keys.
-	users, err := data.ListProviderUsers(ctx.DBTxn, ctx.Authenticated.AccessKey.IssuedFor, p)
+	opts := data.ListProviderUsersOptions{
+		ByProviderID:   ctx.Authenticated.AccessKey.IssuedFor,
+		SCIMParameters: p,
+	}
+	users, err := data.ListProviderUsers(ctx.DBTxn, opts)
 	if err != nil {
 		return nil, fmt.Errorf("list provider users: %w", err)
 	}
