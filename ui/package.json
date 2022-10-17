@@ -13,6 +13,7 @@
     "@headlessui/react": "^1.7.3",
     "@heroicons/react": "^1.0.6",
     "@tanstack/react-table": "^8.5.15",
+    "@tippyjs/react": "^4.2.6",
     "copy-to-clipboard": "^3.3.2",
     "dayjs": "^1.11.5",
     "js-yaml": "^4.1.0",
