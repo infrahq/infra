@@ -78,8 +78,7 @@ export function Providers({ providers }) {
                 <span className='items-center truncate pl-4 text-gray-800'>
                   {providersList.filter(i => i.kind === p.kind) ? (
                     <div className='truncate'>
-                      <span>Log in with </span>
-                      <span className='capitalize'>{p.name}</span>
+                      <span>Log in with {p.name}</span>
                     </div>
                   ) : (
                     'Single Sign-On'

@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 
 import { useUser } from '../../lib/hooks'
@@ -33,7 +34,7 @@ function PasswordReset({ user, onReset = () => {} }) {
         method: 'PUT',
         body: JSON.stringify({
           ...user,
-          oldPassword: oldPassword,
+          oldPassword,
           password: confirmPassword,
         }),
       })
@@ -51,13 +52,14 @@ function PasswordReset({ user, onReset = () => {} }) {
       setConfirmPassword('')
       onReset()
     } catch (e) {
+      console.log(e)
       setSubmitting(false)
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName.toLowerCase()] =
-            error.errors[0] || 'invalid value'
+          errors[error.fieldName] = error.errors[0] || 'invalid value'
         }
+        console.log(errors)
         setErrors(errors)
       } else {
         setError(e.message)

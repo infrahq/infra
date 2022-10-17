@@ -59,7 +59,7 @@ export default function GrantForm({
           group: selected.group ? selected.id : undefined,
           privilege: role,
         })
-        setRole(roles?.[0])
+        setRole(sortByRole(roles)?.[0])
         setSelected(null)
       }}
     >

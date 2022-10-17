@@ -175,6 +175,11 @@ export default function ProvidersEditDetails() {
               <input
                 type='search'
                 value={name}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                  }
+                }}
                 onChange={e => {
                   setName(e.target.value)
                   setErrors({})
@@ -219,7 +224,7 @@ export default function ProvidersEditDetails() {
               </label>
               <input
                 type='password'
-                placeholder='(unchanged)'
+                placeholder='*********************'
                 value={clientSecret}
                 onChange={e => {
                   setClientSecret(e.target.value)

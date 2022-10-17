@@ -57,6 +57,11 @@ function AddGroupsDialog({ setOpen }) {
                 autoFocus
                 spellCheck='false'
                 type='search'
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault()
+                  }
+                }}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
