@@ -37,9 +37,9 @@ func TestMigrations(t *testing.T) {
 
 	type testCase struct {
 		label    testCaseLabel
-		setup    func(t *testing.T, db WriteTxn)
-		expected func(t *testing.T, db WriteTxn)
-		cleanup  func(t *testing.T, db WriteTxn)
+		setup    func(t *testing.T, tx WriteTxn)
+		expected func(t *testing.T, tx WriteTxn)
+		cleanup  func(t *testing.T, tx WriteTxn)
 	}
 
 	run := func(t *testing.T, index int, tc testCase, db *DB) {
@@ -788,6 +788,26 @@ DELETE FROM settings WHERE id=24567;
 			label: testCaseLine("2022-09-21T13:50"),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine("2022-10-17T12:40"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				stmt := `
+					INSERT into grants(id, subject, resource, organization_id)
+					VALUES (1001, 'i:abcd', 'any', ?)`
+				_, err := tx.Exec(stmt, defaultOrganizationID)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM grants`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				var updateIndex int64
+				err := tx.QueryRow(`SELECT update_index FROM grants`).Scan(&updateIndex)
+				assert.NilError(t, err)
+				assert.Equal(t, updateIndex, int64(2))
 			},
 		},
 	}
