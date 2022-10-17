@@ -41,7 +41,7 @@ export default function Index() {
             </h2>
             <div className='space-x-0font-display z-40 my-6 flex flex-col space-y-4 text-base lg:flex-row lg:items-center lg:space-x-2 lg:space-y-0'>
               <Link href='/signup'>
-                <a className='group relative rounded-full bg-black  py-1.5 px-4 text-center font-semibold text-white transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
+                <a className='group relative flex-none rounded-full bg-black  py-1.5 px-4 text-center font-semibold text-white transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 md:py-2 md:px-5 md:text-lg'>
                   Sign up for early access{' '}
                   <span className='inline-block transition-transform group-hover:translate-x-0.5'>
                     ›
@@ -49,7 +49,7 @@ export default function Index() {
                 </a>
               </Link>
               <Link href='https://github.com/infrahq/infra'>
-                <a className='flex items-center justify-center rounded-full border border-gray-300 py-1.5 px-3 text-base font-semibold text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 md:py-2 md:px-4 md:text-lg'>
+                <a className='flex flex-none items-center justify-center rounded-full border border-gray-300 py-1.5 px-3 text-base font-semibold text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 md:py-2 md:px-4 md:text-lg'>
                   <StarIcon className='relative mr-1.5 h-5 stroke-current' />{' '}
                   Star on GitHub
                 </a>
