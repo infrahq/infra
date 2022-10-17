@@ -726,9 +726,22 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 
 	elapsed := time.Since(start)
 	assert.Assert(t, elapsed >= srv.options.API.BlockingRequestTimeout,
-		"elapsed=%v, resp=%#v", elapsed, resp)
+		"elapsed=%v %v", elapsed, (*responseDebug)(resp))
 
-	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
+	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, (*responseDebug)(resp))
+}
+
+type responseDebug httptest.ResponseRecorder
+
+func (r *responseDebug) String() string {
+	if r == nil {
+		return "<nil>"
+	}
+	resp := (*httptest.ResponseRecorder)(r)
+	return fmt.Sprintf("code=%v headers=%v\n%v",
+		r.Code,
+		resp.Result().Header,
+		resp.Body.String())
 }
 
 func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
@@ -764,8 +777,8 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	assert.NilError(t, err)
 
 	resp := isNotBlocked(t, respCh)
-	assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002")
+	assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002", (*responseDebug)(resp))
 
 	respBody := &api.ListResponse[api.Grant]{}
 	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
@@ -827,8 +840,8 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 	assert.NilError(t, err)
 
 	resp := isNotBlocked(t, respCh)
-	assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
-	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002")
+	assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002", (*responseDebug)(resp))
 
 	respBody := &api.ListResponse[api.Grant]{}
 	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
