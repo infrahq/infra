@@ -133,7 +133,7 @@ func TestDeleteProviders(t *testing.T) {
 			})
 
 			t.Run("user is removed when last providerUser is removed", func(t *testing.T) {
-				_, err = GetIdentity(db, ByID(pu.IdentityID))
+				_, err = GetIdentity(db, GetIdentityOptions{ByID: pu.IdentityID})
 				assert.Error(t, err, "record not found")
 			})
 		})
@@ -194,7 +194,7 @@ func TestDeleteProviders(t *testing.T) {
 			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
 			assert.NilError(t, err)
 
-			_, err = GetIdentity(db, ByID(pu.IdentityID))
+			_, err = GetIdentity(db, GetIdentityOptions{ByID: pu.IdentityID})
 			assert.NilError(t, err)
 		})
 	})

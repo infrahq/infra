@@ -45,7 +45,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db data.GormTxn, requested
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	identity, err := data.GetIdentity(db, data.Preload("Groups"), data.ByName(email))
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: email, PreloadGroups: true})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return AuthenticatedIdentity{}, fmt.Errorf("get user: %w", err)

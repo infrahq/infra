@@ -79,9 +79,12 @@ func TestPaginationSelector(t *testing.T) {
 			assert.NilError(t, CreateIdentity(db, g))
 		}
 
-		p := Pagination{Page: 1, Limit: 10}
-
-		actual, err := ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
+		p := &Pagination{Page: 1, Limit: 10}
+		opts := ListIdentityOptions{
+			Pagination: p,
+			ByNotName:  models.InternalInfraConnectorIdentityName,
+		}
+		actual, err := ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -91,8 +94,8 @@ func TestPaginationSelector(t *testing.T) {
 			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
-		p.Page = 2
-		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
+		p.Page = 2 // TODO: does this work
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)
 		for i := 0; i < p.Limit; i++ {
@@ -100,7 +103,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page = 3
-		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 6)
 
@@ -109,7 +112,7 @@ func TestPaginationSelector(t *testing.T) {
 		}
 
 		p.Page, p.Limit = 1, 26
-		actual, err = ListIdentities(db, &p, NotName(models.InternalInfraConnectorIdentityName))
+		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		for i, user := range actual {
 			assert.Equal(t, user.Name, alphabeticalIdentities[i])
@@ -184,11 +187,11 @@ func TestDB_Begin(t *testing.T) {
 			assert.NilError(t, tx.Rollback())
 
 			// using the tx fails
-			_, err = GetIdentity(tx, ByID(user.ID))
+			_, err = GetIdentity(tx, GetIdentityOptions{ByID: user.ID})
 			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
 
 			// using the db shows to show the rollback worked
-			_, err = GetIdentity(db, ByID(user.ID))
+			_, err = GetIdentity(db, GetIdentityOptions{ByID: user.ID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 		t.Run("commit", func(t *testing.T) {
@@ -204,11 +207,11 @@ func TestDB_Begin(t *testing.T) {
 			assert.NilError(t, tx.Commit())
 
 			// using the tx fails
-			_, err = GetIdentity(tx, ByID(user.ID))
+			_, err = GetIdentity(tx, GetIdentityOptions{ByID: user.ID})
 			assert.ErrorContains(t, err, "transaction has already been committed or rolled back")
 
 			// using the db shows the commit worked
-			_, err = GetIdentity(db, ByID(user.ID))
+			_, err = GetIdentity(db, GetIdentityOptions{ByID: user.ID})
 			assert.NilError(t, err)
 		})
 	})

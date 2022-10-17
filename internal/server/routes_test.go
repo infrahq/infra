@@ -223,7 +223,7 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 
 	// The user should not exist, because the txn was rollbed back
-	_, err := data.GetIdentity(srv.db, data.ByID(uid.ID(1555)))
+	_, err := data.GetIdentity(srv.db, data.GetIdentityOptions{ByID: uid.ID(1555)})
 	assert.ErrorIs(t, err, internal.ErrNotFound)
 }
 

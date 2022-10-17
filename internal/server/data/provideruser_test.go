@@ -347,7 +347,7 @@ func TestListProviderUsers(t *testing.T) {
 
 				providerID, p, expected, totalCount := tc.setup(t, tx)
 
-				result, err := ListProviderUsers(tx, providerID, p)
+				result, err := ListProviderUsers(tx, ListProviderUsersOptions{ByProviderID: providerID, SCIMParameters: p})
 
 				assert.NilError(t, err)
 				assert.DeepEqual(t, result, expected, cmpTimeWithDBPrecision)

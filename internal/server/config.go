@@ -789,7 +789,7 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 
 	switch {
 	case input.User != "":
-		user, err := data.GetIdentity(db, data.ByName(input.User))
+		user, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.User})
 		if err != nil {
 			return nil, err
 		}
@@ -820,7 +820,7 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 
 	// TODO: remove this when deprecated machines in config are removed
 	case input.Machine != "":
-		machine, err := data.GetIdentity(db, data.ByName(input.Machine))
+		machine, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.Machine})
 		if err != nil {
 			return nil, err
 		}
@@ -873,7 +873,12 @@ func (s Server) loadUsers(db data.GormTxn, users []User) error {
 	}
 
 	// remove any users previously defined by config
-	if err := data.DeleteIdentities(db, data.InfraProvider(db).ID, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	opts := data.DeleteIdentitiesOptions{
+		ByProviderID: data.InfraProvider(db).ID,
+		ByNotIDs:     keep,
+		CreatedBy:    models.CreatedBySystem,
+	}
+	if err := data.DeleteIdentities(db, opts); err != nil {
 		return err
 	}
 
@@ -881,7 +886,7 @@ func (s Server) loadUsers(db data.GormTxn, users []User) error {
 }
 
 func (s Server) loadUser(db data.GormTxn, input User) (*models.Identity, error) {
-	identity, err := data.GetIdentity(db, data.ByName(input.Name))
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.Name})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err

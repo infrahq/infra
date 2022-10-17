@@ -16,7 +16,11 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 	rCtx := GetRequestContext(c)
 	db := rCtx.DBTxn
 
-	users, err := data.ListIdentities(db, &data.Pagination{Limit: 1}, data.ByName(email))
+	opts := data.ListIdentityOptions{
+		Pagination: &data.Pagination{Limit: 1},
+		ByName:     email,
+	}
+	users, err := data.ListIdentities(db, opts)
 	if err != nil {
 		return "", nil, err
 	}
@@ -49,7 +53,7 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 		return nil, err
 	}
 
-	user, err := data.GetIdentity(db, data.ByID(prt.IdentityID))
+	user, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: prt.IdentityID})
 	if err != nil {
 		return nil, err
 	}

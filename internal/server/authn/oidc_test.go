@@ -202,21 +202,18 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 					group := &models.Group{Name: name}
 					err = data.CreateGroup(db, group)
 					assert.NilError(t, err)
-					user.Groups = append(user.Groups, *group)
+					err = data.AddUsersToGroup(db, group.ID, []uid.ID{user.ID})
+					assert.NilError(t, err)
 				}
-				assert.NilError(t, err)
-				assert.Assert(t, len(user.Groups) == 2)
 
-				err = data.UpdateIdentity(db, user)
-				assert.NilError(t, err)
 				g, err := data.GetGroup(db, data.ByName("Foo"))
 				assert.NilError(t, err)
 				assert.Assert(t, g != nil)
 
-				user, err = data.GetIdentity(db, data.Preload("Groups"), data.ByID(user.ID))
+				user, err = data.GetIdentity(db, data.GetIdentityOptions{ByID: user.ID, PreloadGroups: true})
 				assert.NilError(t, err)
 				assert.Assert(t, user != nil)
-				assert.Assert(t, len(user.Groups) == 2)
+				assert.Equal(t, len(user.Groups), 2)
 
 				p, err := data.GetProvider(db, data.ByName("mockoidc"))
 				assert.NilError(t, err)
@@ -268,7 +265,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 			if err == nil {
 				// make sure the associations are still set when you reload the object.
-				u, err := data.GetIdentity(db, data.Preload("Groups"), data.ByID(a.Identity.ID))
+				u, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: a.Identity.ID, PreloadGroups: true})
 				assert.NilError(t, err)
 				a.Identity = u
 				tc.expected(t, a)

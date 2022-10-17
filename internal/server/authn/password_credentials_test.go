@@ -174,7 +174,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
 				return NewPasswordCredentialAuthentication("", "whatever")
 			},
-			expectedErr: "record not found",
+			expectedErr: "username required for password authentication",
 		},
 	}
 

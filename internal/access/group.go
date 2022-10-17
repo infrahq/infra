@@ -78,7 +78,11 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 }
 
 func checkIdentitiesInList(db data.GormTxn, ids []uid.ID) ([]uid.ID, error) {
-	identities, err := data.ListIdentities(db, nil, data.ByIDs(ids))
+	if len(ids) == 0 {
+		return ids, nil
+	}
+
+	identities, err := data.ListIdentities(db, data.ListIdentityOptions{ByIDs: ids})
 	if err != nil {
 		return nil, err
 	}

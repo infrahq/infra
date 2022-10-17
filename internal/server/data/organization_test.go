@@ -38,7 +38,7 @@ func TestCreateOrganization(t *testing.T) {
 		assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP, cmpTimeWithDBPrecision)
 
 		// the org connector is created and granted approprite access
-		connector, err := GetIdentity(tx, ByName(models.InternalInfraConnectorIdentityName))
+		connector, err := GetIdentity(tx, GetIdentityOptions{ByName: models.InternalInfraConnectorIdentityName})
 		assert.NilError(t, err)
 
 		expectedConnector := &models.Identity{

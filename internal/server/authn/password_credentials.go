@@ -24,7 +24,10 @@ func NewPasswordCredentialAuthentication(username, password string) LoginMethod 
 }
 
 func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
-	identity, err := data.GetIdentity(db, data.ByName(a.Username))
+	if a.Username == "" {
+		return AuthenticatedIdentity{}, fmt.Errorf("username required for password authentication")
+	}
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: a.Username})
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("could not get identity for username: %w", err)
 	}

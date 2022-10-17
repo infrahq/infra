@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ssoroka/slice"
-	"gorm.io/gorm"
+	"golang.org/x/exp/maps"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
@@ -138,43 +138,322 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 	return insert(tx, (*identitiesTable)(identity))
 }
 
-func GetIdentity(db GormTxn, selectors ...SelectorFunc) (*models.Identity, error) {
-	return get[models.Identity](db, selectors...)
+type GetIdentityOptions struct {
+	ByID             uid.ID
+	ByName           string
+	PreloadGroups    bool
+	PreloadProviders bool
 }
 
-func SetIdentityVerified(db WriteTxn, token string) error {
-	q := querybuilder.New(`UPDATE identities SET verified = true`)
-	q.B("WHERE verified = ? AND verification_token = ? AND organization_id = ?", false, token, db.OrganizationID())
+func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) {
+	if opts.ByID == 0 && opts.ByName == "" {
+		return nil, fmt.Errorf("GetIdentity must specify id or name")
+	}
+	identity := &identitiesTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(identity))
+	query.B("FROM")
+	query.B(identity.Table())
+	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	if opts.ByID > 0 {
+		query.B("AND id = ?", opts.ByID)
+	}
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
 
-	_, err := db.Exec(q.String(), q.Args...)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(identity.ScanFields()...)
+	if err != nil {
+		return nil, handleReadError(err)
+	}
+
+	if opts.PreloadGroups {
+		groups, err := ListGroups(tx, nil, ByGroupMember(identity.ID))
+		if err != nil {
+			return nil, fmt.Errorf("load identity groups: %w", err)
+		}
+		identity.Groups = groups
+	}
+	if opts.PreloadProviders {
+		// find the providers that this identity is active in
+		opts := ListProviderUsersOptions{
+			ByIdentityID: identity.ID,
+			HideInactive: true,
+		}
+		existsInProviders, err := ListProviderUsers(tx, opts)
+		if err != nil {
+			return nil, err
+		}
+
+		var providerIDs []uid.ID
+		for _, relation := range existsInProviders {
+			providerIDs = append(providerIDs, relation.ProviderID)
+		}
+
+		providers, err := ListProviders(tx, nil, ByIDs(providerIDs))
+		if err != nil {
+			return nil, fmt.Errorf("list providers for identity: %w", err)
+		}
+		identity.Providers = providers
+	}
+
+	return (*models.Identity)(identity), nil
+}
+
+func SetIdentityVerified(tx WriteTxn, token string) error {
+	q := querybuilder.New(`UPDATE identities SET verified = true`)
+	q.B("WHERE verified = ? AND verification_token = ? AND organization_id = ?", false, token, tx.OrganizationID())
+
+	_, err := tx.Exec(q.String(), q.Args...)
 	return err
 }
 
-func ListIdentities(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Identity, error) {
-	return list[models.Identity](db, p, selectors...)
+type ListIdentityOptions struct {
+	ByID             uid.ID
+	ByIDs            []uid.ID
+	ByNotIDs         []uid.ID
+	ByName           string
+	ByNotName        string
+	ByGroupID        uid.ID
+	CreatedBy        uid.ID
+	Pagination       *Pagination
+	PreloadGroups    bool
+	PreloadProviders bool
+}
+
+func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, error) {
+	identities := &identitiesTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(identities))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM")
+	query.B(identities.Table())
+	if opts.ByGroupID != 0 {
+		query.B("JOIN identities_groups ON identities_groups.identity_id = id")
+	}
+	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	if opts.ByID != 0 {
+		query.B("AND id = ?", opts.ByID)
+	}
+	if len(opts.ByIDs) > 0 {
+		query.B("AND id IN (?)", opts.ByIDs)
+	}
+	if len(opts.ByNotIDs) > 0 {
+		query.B("AND id NOT IN (?)", opts.ByNotIDs)
+	}
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.ByNotName != "" {
+		query.B("AND name != ?", opts.ByNotName)
+	}
+	if opts.ByGroupID != 0 {
+		query.B("AND identities_groups.group_id = ?", opts.ByGroupID)
+	}
+	if opts.CreatedBy != 0 {
+		query.B("AND created_by = ?", opts.CreatedBy)
+	}
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	result, err := scanRows(rows, func(identity *models.Identity) []any {
+		fields := (*identitiesTable)(identity).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result) == 0 {
+		// return without attempting pre-loads
+		return []models.Identity{}, nil
+	}
+
+	if opts.PreloadGroups {
+		if err := loadIdentitiesGroups(tx, result); err != nil {
+			return nil, err
+		}
+	}
+
+	if opts.PreloadProviders {
+		if err := loadIdentitiesProviders(tx, result); err != nil {
+			return nil, err
+		}
+	}
+
+	return result, nil
+}
+
+func loadIdentitiesGroups(tx GormTxn, identities []models.Identity) error {
+	// get the ids of all the identities
+	identityIDs := []uid.ID{}
+	for _, i := range identities {
+		identityIDs = append(identityIDs, i.ID)
+	}
+
+	// get the groups that contain these identities
+	stmt := `
+		SELECT identity_id, group_id
+		FROM identities_groups
+		WHERE identity_id IN (?)
+	`
+	rows, err := tx.Query(stmt, identityIDs)
+	if err != nil {
+		return err
+	}
+
+	type identityGroup struct {
+		IdentityID uid.ID
+		GroupID    uid.ID
+	}
+	identGrps, err := scanRows(rows, func(identGrp *identityGroup) []any {
+		return []any{&identGrp.IdentityID, &identGrp.GroupID}
+	})
+	if err != nil {
+		return err
+	}
+
+	// get the ids of the groups these users exist in to look-up the actual group entities
+	identityToGroups := make(map[uid.ID][]uid.ID) // map which groups an identity is in to assign them
+	groupIDs := make(map[uid.ID]bool)             // track all the distinct group ID
+	for _, identGrp := range identGrps {
+		iID := identGrp.IdentityID
+		gID := identGrp.GroupID
+
+		identityToGroups[iID] = append(identityToGroups[iID], gID)
+		groupIDs[gID] = true
+	}
+
+	// look-up the group entities
+	groups, err := ListGroups(tx, nil, ByIDs(maps.Keys(groupIDs)))
+	if err != nil {
+		return err
+	}
+
+	// create a look-up map for reading info about the group associated with the ID
+	groupsByID := make(map[uid.ID]models.Group)
+	for _, g := range groups {
+		groupsByID[g.ID] = g
+	}
+
+	// now we have all the info we need, add the groups to each identity
+	for i := range identities {
+		groups := []models.Group{}
+		grpIDs := identityToGroups[identities[i].ID]
+		for _, gID := range grpIDs {
+			groups = append(groups, groupsByID[gID])
+		}
+		identities[i].Groups = groups
+	}
+
+	return nil
+}
+
+func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
+	// get the ids of all the identities
+	identityIDs := []uid.ID{}
+	for _, i := range identities {
+		identityIDs = append(identityIDs, i.ID)
+	}
+
+	// look-up the relation of these identities to providers
+	opts := ListProviderUsersOptions{
+		ByIdentityIDs: identityIDs,
+		HideInactive:  true,
+	}
+	existsInProviders, err := ListProviderUsers(tx, opts)
+	if err != nil {
+		return err
+	}
+
+	// get the ids of the providers these users exist in to look-up the actual provider entities
+	identityToProviders := make(map[uid.ID][]uid.ID) // map which providers an identity is in to apply to them
+	providerIDs := make(map[uid.ID]bool)             // track all the distinct provider ID
+	for _, relation := range existsInProviders {
+		iID := relation.IdentityID
+		pID := relation.ProviderID
+
+		identityToProviders[iID] = append(identityToProviders[iID], pID)
+		providerIDs[pID] = true
+	}
+
+	providers, err := ListProviders(tx, nil, ByIDs(maps.Keys(providerIDs)))
+	if err != nil {
+		return err
+	}
+
+	// create a look-up map for reading info about the provider associated with the ID
+	providersByID := make(map[uid.ID]models.Provider)
+	for _, p := range providers {
+		providersByID[p.ID] = p
+	}
+
+	// now we have all the info we need, add the providers to each identity
+	for i := range identities {
+		providers := []models.Provider{}
+		pIDs := identityToProviders[identities[i].ID]
+		for _, pID := range pIDs {
+			providers = append(providers, providersByID[pID])
+		}
+		identities[i].Providers = providers
+	}
+
+	return nil
 }
 
 func UpdateIdentity(tx WriteTxn, identity *models.Identity) error {
 	return update(tx, (*identitiesTable)(identity))
 }
 
-func DeleteIdentities(tx GormTxn, providerID uid.ID, selectors ...SelectorFunc) error {
-	selectID := func(db *gorm.DB) *gorm.DB {
-		return db.Select("id")
+type DeleteIdentitiesOptions struct {
+	ByID         uid.ID
+	ByIDs        []uid.ID
+	ByNotIDs     []uid.ID
+	CreatedBy    uid.ID
+	ByName       string
+	ByProviderID uid.ID
+}
+
+func DeleteIdentities(tx GormTxn, opts DeleteIdentitiesOptions) error {
+	if opts.ByProviderID == 0 {
+		return fmt.Errorf("DeleteIdentities requires a provider ID")
 	}
-	selectors = append([]SelectorFunc{selectID}, selectors...)
-	toDelete, err := ListIdentities(tx, nil, selectors...)
+	listOpts := ListIdentityOptions{
+		ByID:      opts.ByID,
+		ByIDs:     opts.ByIDs,
+		ByNotIDs:  opts.ByNotIDs,
+		CreatedBy: opts.CreatedBy,
+		ByName:    opts.ByName,
+	}
+	toDelete, err := ListIdentities(tx, listOpts)
 	if err != nil {
 		return err
 	}
 
-	ids, err := deleteReferencesToIdentities(tx, providerID, toDelete)
+	ids, err := deleteReferencesToIdentities(tx, opts.ByProviderID, toDelete)
 	if err != nil {
 		return fmt.Errorf("remove identities: %w", err)
 	}
 
 	if len(ids) > 0 {
-		return deleteAll[models.Identity](tx, ByIDs(ids))
+		query := querybuilder.New("UPDATE identities")
+		query.B("SET deleted_at = ?", time.Now())
+		query.B("WHERE id IN (?)", ids)
+		query.B("AND organization_id = ?", tx.OrganizationID())
+
+		_, err := tx.Exec(query.String(), query.Args...)
+		return err
 	}
 
 	return nil
@@ -203,7 +482,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 		}
 
 		// if this identity no longer exists in any identity providers then remove all their references
-		user, err := GetIdentity(tx, Preload("Providers"), ByID(i.ID))
+		user, err := GetIdentity(tx, GetIdentityOptions{ByID: i.ID, PreloadProviders: true})
 		if err != nil {
 			return []uid.ID{}, fmt.Errorf("check user providers: %w", err)
 		}
