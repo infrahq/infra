@@ -59,7 +59,6 @@ function PasswordReset({ user, onReset = () => {} }) {
           errors[error.fieldName.toLowerCase()] =
             error.errors[0] || 'invalid value'
         }
-        console.log(errors)
         setErrors(errors)
       } else {
         setError(e.message)
