@@ -35,7 +35,7 @@ function NamespacesGrantAccessForm({ children }) {
                   open ? 'rotate-180 transform' : ''
                 } h-4 w-4 text-gray-500 duration-300 ease-in`}
               />
-              More Options
+              Namespaces access
             </span>
           </Disclosure.Button>
           <Transition
@@ -320,10 +320,6 @@ export default function DestinationDetail() {
                   <div>
                     <NamespacesGrantAccessForm>
                       <div className='pt-2'>
-                        <h3 className='mb-3 text-sm font-medium'>
-                          Grant access to{' '}
-                          <span className='font-bold'>namespaces</span>
-                        </h3>
                         <GrantForm
                           roles={destination?.roles.filter(
                             r => r != 'cluster-admin'
