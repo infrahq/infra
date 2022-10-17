@@ -52,12 +52,12 @@ function PasswordReset({ user, onReset = () => {} }) {
       setConfirmPassword('')
       onReset()
     } catch (e) {
-      console.log(e)
       setSubmitting(false)
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
-          errors[error.fieldName] = error.errors[0] || 'invalid value'
+          errors[error.fieldName.toLowerCase()] =
+            error.errors[0] || 'invalid value'
         }
         console.log(errors)
         setErrors(errors)
@@ -87,11 +87,11 @@ function PasswordReset({ user, onReset = () => {} }) {
             setError('')
           }}
           className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-            errors.oldPassword ? 'border-red-500' : 'border-gray-300'
+            errors.oldpassword ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.oldPassword && (
-          <p className='my-1 text-xs text-red-500'>{errors.oldPassword}</p>
+        {errors.oldpassword && (
+          <p className='my-1 text-xs text-red-500'>{errors.oldpassword}</p>
         )}
       </div>
       <div className='relative my-2 w-full'>
