@@ -23,7 +23,7 @@ func NewPasswordCredentialAuthentication(username, password string) LoginMethod 
 	}
 }
 
-func (a *passwordCredentialAuthn) Authenticate(_ context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *passwordCredentialAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	if a.Username == "" {
 		return AuthenticatedIdentity{}, fmt.Errorf("username required for password authentication")
 	}

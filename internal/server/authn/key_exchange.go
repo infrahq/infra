@@ -20,7 +20,7 @@ func NewKeyExchangeAuthentication(requestingAccessKey string) LoginMethod {
 	}
 }
 
-func (a *keyExchangeAuthn) Authenticate(_ context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *keyExchangeAuthn) Authenticate(_ context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	validatedRequestKey, err := data.ValidateRequestAccessKey(db, a.RequestingAccessKey)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("invalid access key in exchange: %w", err)

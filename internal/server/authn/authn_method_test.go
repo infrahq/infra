@@ -12,15 +12,25 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/testing/database"
 	"github.com/infrahq/infra/internal/testing/patch"
+	"github.com/infrahq/infra/uid"
 )
 
-func setupDB(t *testing.T) *data.DB {
+func setupDB(t *testing.T) *data.Transaction {
 	t.Helper()
 	patch.ModelsSymmetricKey(t)
 	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_authn").DSN})
 	assert.NilError(t, err)
+	return txnForTestCase(t, db, db.DefaultOrg.ID)
+}
 
-	return db
+func txnForTestCase(t *testing.T, db *data.DB, orgID uid.ID) *data.Transaction {
+	t.Helper()
+	tx, err := db.Begin(context.Background(), nil)
+	assert.NilError(t, err)
+	t.Cleanup(func() {
+		_ = tx.Rollback()
+	})
+	return tx.WithMetadata(orgID)
 }
 
 func TestLogin(t *testing.T) {

@@ -20,7 +20,7 @@ type AuthenticatedIdentity struct {
 }
 
 type LoginMethod interface {
-	Authenticate(ctx context.Context, db data.GormTxn, requestedExpiry time.Time) (AuthenticatedIdentity, error)
+	Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error)
 	Name() string // Name returns the name of the authentication method used
 }
 
@@ -38,7 +38,7 @@ type LoginResult struct {
 
 func Login(
 	ctx context.Context,
-	db data.GormTxn,
+	db *data.Transaction,
 	loginMethod LoginMethod,
 	requestedExpiry time.Time,
 	keyExtension time.Duration,
