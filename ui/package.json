@@ -31,7 +31,7 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
-    "@types/node": "^18.8.3",
+    "@types/node": "^18.11.0",
     "@types/react": "18.0.21",
     "autoprefixer": "^10.4.12",
     "concurrently": "^7.4.0",
