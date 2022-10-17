@@ -67,6 +67,7 @@ func migrations() []*migrator.Migration {
 		removeDeletedIdentityProviderUsers(),
 		addProviderUserSCIMFields(),
 		addUpdateIndexAndGrantNotify(),
+		addUpdateIndexToExistingGrants(),
 		// next one here
 	}
 }
@@ -805,6 +806,16 @@ func addProviderUserSCIMFields() *migrator.Migration {
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers ON provider_users (email, provider_id);
 			`
 			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addUpdateIndexToExistingGrants() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-17T12:40",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`UPDATE grants SET update_index=2 WHERE update_index is null`)
 			return err
 		},
 	}
