@@ -105,130 +105,6 @@ function AccessCluster({ roles, resource }) {
   )
 }
 
-function GrantAccessTypesMenu({
-  destination,
-  typeList,
-  selectedList,
-  onChange,
-}) {
-  return (
-    <Listbox value={selectedList} onChange={v => onChange(v)} multiple>
-      <div className='relative mt-1'>
-        <Listbox.Button className='relative w-full cursor-default py-2 text-left text-sm hover:cursor-pointer'>
-          <div className='flex items-center truncate font-semibold text-gray-500'>
-            <PlusIcon className='mr-1 h-3 w-3' />
-            <span>select resources</span>
-          </div>
-        </Listbox.Button>
-
-        <Listbox.Options className='absolute z-10 mt-1 w-56 overflow-auto rounded-md bg-white text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
-          <div className='bg-gray-100'>
-            <div className='py-2 px-3 text-xs font-bold text-gray-400'>
-              cluster
-            </div>
-          </div>
-          <div className='max-h-64 overflow-auto'>
-            <Listbox.Option
-              key={destination}
-              className={({ active }) =>
-                `${active ? 'bg-blue-600 text-white' : 'text-gray-900'}
-                          relative cursor-pointer select-none py-2 pl-3 pr-9`
-              }
-              value={destination}
-            >
-              {({ selected, active }) => (
-                <>
-                  <span
-                    className={`${selected ? 'font-semibold' : 'font-normal'}
-                              block truncate`}
-                  >
-                    {destination}
-                  </span>
-
-                  {selected ? (
-                    <span
-                      className={`
-                                ${active ? 'text-white' : 'text-blue-600'}
-                                absolute inset-y-0 right-0 flex items-center pr-4`}
-                    >
-                      <CheckIcon className='h-5 w-5' aria-hidden='true' />
-                    </span>
-                  ) : null}
-                </>
-              )}
-            </Listbox.Option>
-            <div className='bg-gray-100'>
-              <div className='py-2 px-3 text-xs font-bold text-gray-400'>
-                namespaces
-              </div>
-            </div>
-            {typeList.map(type => (
-              <Listbox.Option
-                key={type}
-                className={({ active }) =>
-                  `${active ? 'bg-blue-600 text-white' : 'text-gray-900'}
-                          relative cursor-pointer select-none py-2 pl-3 pr-9`
-                }
-                value={type}
-              >
-                {({ selected, active }) => (
-                  <>
-                    <span
-                      className={`${selected ? 'font-semibold' : 'font-normal'}
-                              block truncate`}
-                    >
-                      {type}
-                    </span>
-
-                    {selected ? (
-                      <span
-                        className={`
-                                ${active ? 'text-white' : 'text-blue-600'}
-                                absolute inset-y-0 right-0 flex items-center pr-4`}
-                      >
-                        <CheckIcon className='h-5 w-5' aria-hidden='true' />
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </Listbox.Option>
-            ))}
-          </div>
-          <div className='border-t'>
-            <div className='flex items-center justify-between py-2 px-3 text-xs font-medium text-blue-500'>
-              <button
-                className='disabled:cursor-not-allowed disabled:opacity-30'
-                disabled={
-                  selectedList.length === 1 &&
-                  selectedList.includes(destination)
-                }
-                onClick={() => {
-                  onChange([destination])
-                }}
-              >
-                clear
-              </button>
-              <button
-                className='disabled:cursor-not-allowed disabled:opacity-30'
-                disabled={
-                  selectedList.length === typeList.length + 1 &&
-                  selectedList.sort().join(',') ===
-                    [destination, ...typeList].sort().join(',')
-                }
-                onClick={() => {
-                  onChange([destination, ...typeList])
-                }}
-              >
-                select all
-              </button>
-            </div>
-          </div>
-        </Listbox.Options>
-      </div>
-    </Listbox>
-  )
-}
-
 export default function DestinationDetail() {
   const router = useRouter()
   const destinationId = router.query.id
@@ -247,7 +123,6 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
-  const [grantAccessTypeLists, setGrantAccessTypeLists] = useState([])
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -261,10 +136,6 @@ export default function DestinationDetail() {
 
     setCurrentUserRoles(roles)
   }, [grants, user, destination, currentUserGrants, mutateCurrentUserGrants])
-
-  useEffect(() => {
-    setGrantAccessTypeLists([destination?.resources])
-  }, [destination])
 
   const metadata = [
     { label: 'ID', value: destination?.id, font: 'font-mono' },
@@ -424,7 +295,8 @@ export default function DestinationDetail() {
                           g =>
                             g.user === user &&
                             g.group === group &&
-                            g.privilege === privilege
+                            g.privilege === privilege &&
+                            g.resource === `${destination?.name}`
                         )
                       ) {
                         return false
