@@ -1,15 +1,22 @@
 package data
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"gotest.tools/v3/assert"
 	is "gotest.tools/v3/assert/cmp"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/testing/database"
+	"github.com/infrahq/infra/internal/testing/patch"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -79,6 +86,33 @@ func TestCreateGrant(t *testing.T) {
 			err = CreateGrant(tx, &g3)
 			assert.NilError(t, err)
 		})
+		t.Run("notify", func(t *testing.T) {
+			ctx := context.Background()
+			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
+			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			g := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "match",
+			}
+			err = CreateGrant(tx, &g)
+			assert.NilError(t, err)
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			notification, err := listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
+			assert.Equal(t, notification.Channel, "grants_by_destination_1000_match")
+		})
 	})
 }
 
@@ -86,6 +120,8 @@ func TestDeleteGrants(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
 		assert.NilError(t, CreateOrganization(db, otherOrg))
+
+		var startUpdateIndex int64 = 10001
 
 		t.Run("empty options", func(t *testing.T) {
 			err := DeleteGrants(db, DeleteGrantsOptions{})
@@ -101,12 +137,17 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{ByID: grant.ID})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
+			assert.Equal(t, maxIndex, startUpdateIndex+3) // 2 inserts, 1 delete
+			startUpdateIndex = maxIndex
 		})
 		t.Run("by subject", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -122,14 +163,20 @@ func TestDeleteGrants(t *testing.T) {
 			err := DeleteGrants(tx, DeleteGrantsOptions{BySubject: grant1.Subject})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 
-			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByResource: "any"})
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
+			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = maxIndex
+
+			// other org still has the grant
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			assert.Equal(t, len(actual), 1)
 		})
@@ -149,13 +196,48 @@ func TestDeleteGrants(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			actual, err := ListGrants(tx, ListGrantsOptions{ByResource: "any"})
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "any"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
 				{Model: models.Model{ID: toKeep1.ID}},
 				{Model: models.Model{ID: toKeep2.ID}},
 			}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			maxIndex, err := GrantsMaxUpdateIndex(tx, GrantsMaxUpdateIndexOptions{ByDestination: "any"})
+			assert.NilError(t, err)
+			assert.Equal(t, maxIndex, startUpdateIndex+6) // 4 inserts, 2 deletes
+			startUpdateIndex = maxIndex
+		})
+		t.Run("notify", func(t *testing.T) {
+			g := models.Grant{
+				Subject:   "i:1234567",
+				Privilege: "view",
+				Resource:  "match.a.resource",
+			}
+			assert.NilError(t, CreateGrant(db, &g))
+
+			ctx := context.Background()
+			listener, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
+				ByDestination: "match",
+				OrgID:         defaultOrganizationID,
+			})
+			assert.NilError(t, err)
+			t.Cleanup(func() {
+				assert.NilError(t, listener.Release(context.Background()))
+			})
+
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: "i:1234567"})
+			assert.NilError(t, err)
+			assert.NilError(t, tx.Commit())
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			t.Cleanup(cancel)
+
+			notification, err := listener.WaitForNotification(ctx)
+			assert.NilError(t, err)
+			assert.Equal(t, notification.Channel, "grants_by_destination_1000_match")
 		})
 	})
 }
@@ -232,6 +314,7 @@ func TestGetGrant(t *testing.T) {
 				Privilege:          "view",
 				Resource:           "any",
 				CreatedBy:          uid.ID(777),
+				UpdateIndex:        10001,
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
@@ -254,6 +337,7 @@ func TestGetGrant(t *testing.T) {
 				Privilege:          "view",
 				Resource:           "any",
 				CreatedBy:          uid.ID(777),
+				UpdateIndex:        10001,
 			}
 			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
@@ -466,5 +550,50 @@ func TestListGrants(t *testing.T) {
 			expected := []models.Grant{*grant1, *grant2, *grant3, *grant5}
 			assert.DeepEqual(t, actual, expected, cmpModelByID)
 		})
+	})
+}
+
+func FuzzListenForGrantsNotify(f *testing.F) {
+	patch.ModelsSymmetricKey(f)
+	logging.PatchLogger(f, zerolog.NewTestWriter(f))
+
+	// Fuzz runs multiple processes, and we don't want the schemas to conflict,
+	// so use the pid as part of the schema name.
+	suffix := fmt.Sprintf("_data_%d", os.Getpid())
+	db, err := NewDB(NewDBOptions{
+		DSN: database.PostgresDriver(f, suffix).DSN,
+		// Limit the number of connections to prevent connection errors. This
+		// number must be at most postgres.max_connections / n_workers.
+		MaxOpenConnections: 10,
+		// Must be non-zero to avoid closing the connection and exhausting all
+		// the ports on the host.
+		MaxIdleConnections: 10,
+	})
+	assert.NilError(f, err)
+
+	testCases := []string{
+		"okname",
+		"--",
+		"; bogus --",
+		"'; bogus --",
+		"; drop table organizations; --",
+		"\x99", "\x00",
+		"0", "@", ";", "'", `"`,
+	}
+	for _, tc := range testCases {
+		f.Add(tc)
+	}
+	f.Fuzz(func(t *testing.T, name string) {
+		if name == "" {
+			return
+		}
+
+		ctx := context.Background()
+		l, err := ListenForGrantsNotify(ctx, db, ListenForGrantsOptions{
+			OrgID:         db.DefaultOrg.ID,
+			ByDestination: name,
+		})
+		assert.NilError(t, err)
+		assert.NilError(t, l.Release(ctx))
 	})
 }

@@ -4,6 +4,23 @@
 --     go test -run TestMigrations ./internal/server/data -update
 --
 
+CREATE FUNCTION grants_notify() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+	destination text := split_part(NEW.resource, '.', 1);
+BEGIN
+PERFORM pg_notify('grants_by_destination_' || NEW.organization_id || '_' || destination, '');
+RETURN NULL;
+END; $$;
+
+CREATE FUNCTION listen_on_chan(chan text) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    EXECUTE format('LISTEN %I', chan);
+END; $$;
+
 CREATE FUNCTION uidinttostr(id bigint) RETURNS text
     LANGUAGE plpgsql
     AS $$
@@ -139,7 +156,8 @@ CREATE TABLE grants (
     privilege text,
     resource text,
     created_by bigint,
-    organization_id bigint
+    organization_id bigint,
+    update_index bigint
 );
 
 CREATE TABLE groups (
@@ -223,6 +241,13 @@ CREATE TABLE providers (
     organization_id bigint
 );
 
+CREATE SEQUENCE seq_update_index
+    START WITH 10000
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
 CREATE TABLE settings (
     id bigint NOT NULL,
     created_at timestamp with time zone,
@@ -293,6 +318,8 @@ CREATE UNIQUE INDEX idx_encryption_keys_key_id ON encryption_keys USING btree (k
 
 CREATE UNIQUE INDEX idx_grant_srp ON grants USING btree (organization_id, subject, privilege, resource) WHERE (deleted_at IS NULL);
 
+CREATE INDEX idx_grants_update_index ON grants USING btree (organization_id, update_index);
+
 CREATE UNIQUE INDEX idx_groups_name ON groups USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_id, name) WHERE (deleted_at IS NULL);
@@ -306,3 +333,5 @@ CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USI
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
+
+CREATE TRIGGER grants_notify_trigger AFTER INSERT OR UPDATE ON grants FOR EACH ROW EXECUTE FUNCTION grants_notify();

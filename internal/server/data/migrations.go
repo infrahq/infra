@@ -66,6 +66,7 @@ func migrations() []*migrator.Migration {
 		destinationNameUnique(),
 		removeDeletedIdentityProviderUsers(),
 		addProviderUserSCIMFields(),
+		addUpdateIndexAndGrantNotify(),
 		// next one here
 	}
 }
@@ -726,7 +727,66 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 					return fmt.Errorf("delete removed provider_users: %w", err)
 				}
 			}
+			return nil
+		},
+	}
+}
 
+func addUpdateIndexAndGrantNotify() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-09-21T13:50",
+		Migrate: func(tx migrator.DB) error {
+			if _, err := tx.Exec(`
+				CREATE SEQUENCE IF NOT EXISTS seq_update_index
+				START 10000 CACHE 1;
+			`); err != nil {
+				return err
+			}
+
+			if _, err := tx.Exec(`
+				ALTER TABLE grants
+				ADD COLUMN IF NOT EXISTS update_index bigint;
+
+				CREATE INDEX IF NOT EXISTS idx_grants_update_index ON grants
+					USING btree (organization_id, update_index);
+			`); err != nil {
+				return err
+			}
+
+			fn := `
+CREATE OR REPLACE FUNCTION grants_notify() RETURNS trigger
+	LANGUAGE PLPGSQL
+	AS $$
+DECLARE
+	destination text := split_part(NEW.resource, '.', 1);
+BEGIN
+PERFORM pg_notify('grants_by_destination_' || NEW.organization_id || '_' || destination, '');
+RETURN NULL;
+END; $$;
+
+CREATE OR REPLACE TRIGGER grants_notify_trigger AFTER insert OR update
+ON grants
+FOR EACH ROW EXECUTE FUNCTION grants_notify();
+`
+			if _, err := tx.Exec(fn); err != nil {
+				return err
+			}
+
+			// LISTEN does not support parameter substitution, so we create
+			// a function that will EXECUTE listen, which allows us to pass
+			// untrusted input. The input is sanitized by the driver, and again
+			// by format().
+			fn = `
+CREATE OR REPLACE FUNCTION listen_on_chan(chan text) RETURNS void
+LANGUAGE PLPGSQL
+AS $$
+BEGIN
+    EXECUTE format('LISTEN %I', chan);
+END; $$;
+`
+			if _, err := tx.Exec(fn); err != nil {
+				return err
+			}
 			return nil
 		},
 	}
