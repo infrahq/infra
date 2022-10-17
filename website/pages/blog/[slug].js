@@ -6,7 +6,6 @@ import dayjs from 'dayjs'
 import Markdoc from '@markdoc/markdoc'
 import { ArrowLeftIcon } from '@heroicons/react/24/solid'
 
-import SignupForm from '../../components/signup-form'
 import { posts } from '../../lib/blog'
 import Layout from '../../components/layout'
 import components from '../../lib/markdoc/components'
@@ -37,13 +36,6 @@ export default function Blog({ markdoc, date, author, title }) {
             {Markdoc.renderers.react(JSON.parse(markdoc), React, {
               components,
             })}
-          </div>
-          <hr className='my-16' />
-          <div className='my-8 flex flex-col items-center'>
-            <h3 className='mb-6 text-xl font-bold tracking-tight'>
-              Sign up for updates
-            </h3>
-            <SignupForm />
           </div>
         </div>
       </section>

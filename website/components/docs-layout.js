@@ -6,8 +6,6 @@ import {
   ChevronRightIcon,
 } from '@heroicons/react/24/outline'
 
-import SignupForm from './signup-form'
-
 function Expandable({ expanded, children }) {
   const ref = useRef()
   const [height, setHeight] = useState('auto')
@@ -191,18 +189,8 @@ export default function DocsLayout({ children, items = [], headings = [] }) {
             </optgroup>
           ))}
         </select>
-        <div className='relative flex w-full min-w-0 flex-1 flex-col md:pl-0'>
-          <div className='prose-docs prose-md prose w-full max-w-none break-words'>
-            {children}
-          </div>
-          <hr className='my-12 border-zinc-200' />
-          <div className='mx-auto mb-20 max-w-sm text-center'>
-            <h1 className='my-6 text-xl font-semibold'>Subscribe to updates</h1>
-            <SignupForm />
-            <h2 className='my-2 text-[11px] text-zinc-600'>
-              You can unsubscribe at any time.
-            </h2>
-          </div>
+        <div className='prose-docs prose-md prose relative mb-32 flex w-full w-full min-w-0 max-w-none flex-1 flex-col break-words md:pl-0'>
+          {children}
         </div>
         <aside className='left-full ml-6 hidden w-48 lg:ml-8 lg:block xl:ml-12'>
           <div className='sticky top-32 mb-32 overflow-y-auto text-xs text-zinc-500'>

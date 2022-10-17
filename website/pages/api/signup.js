@@ -54,12 +54,6 @@ export default async function signup(req, res) {
   }
 
   if (req.body.aid && process.env.NEXT_PUBLIC_SEGMENT_WRITE_KEY) {
-    analytics.identify({
-      anonymousId: req.body.aid,
-      traits: {
-        email: req.body.email,
-      },
-    })
     analytics.track({
       anonymousId: req.body.aid,
       event: 'website:signup',

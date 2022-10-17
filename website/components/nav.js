@@ -40,9 +40,14 @@ export default function Nav() {
                 <a className='mx-4 hidden md:inline'>{l.text}</a>
               </Link>
             ))}
-            <Link href='/docs/start/quickstart'>
-              <a className='group ml-4 inline-flex flex-none items-center rounded-full bg-blue-500 py-2.5 px-3.5 text-[14px] font-semibold leading-3 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
-                Get Started{' '}
+            <Link href='https://github.com/infrahq/infra'>
+              <a className='mx-4 hidden md:inline' target='_blank'>
+                GitHub
+              </a>
+            </Link>
+            <Link href='/signup'>
+              <a className='group ml-4 inline-flex flex-none items-center rounded-full bg-black py-2.5 px-3.5 text-[14px] font-semibold leading-3 text-white shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2'>
+                Sign up{' '}
                 <span className='ml-1 transition-transform group-hover:translate-x-0.5'>
                   ›
                 </span>
