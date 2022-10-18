@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/infrahq/secrets"
 	"github.com/prometheus/client_golang/prometheus"
@@ -212,13 +213,14 @@ func (s *Server) DB() data.GormTxn {
 }
 
 func (s *Server) Run(ctx context.Context) error {
+	group, ctx := errgroup.WithContext(ctx)
+
 	if s.tel != nil {
-		repeat.Start(ctx, 1*time.Hour, func(context.Context) {
-			s.tel.EnqueueHeartbeat()
+		group.Go(func() error {
+			return runTelemetryHeartbeat(ctx, s.tel)
 		})
 	}
 
-	group, _ := errgroup.WithContext(ctx)
 	for i := range s.routines {
 		group.Go(s.routines[i].run)
 	}
@@ -242,6 +244,16 @@ func (s *Server) Run(ctx context.Context) error {
 		return nil
 	}
 	return err
+}
+
+func runTelemetryHeartbeat(ctx context.Context, tel *Telemetry) error {
+	waiter := repeat.NewWaiter(backoff.NewConstantBackOff(time.Hour))
+	for {
+		tel.EnqueueHeartbeat()
+		if err := waiter.Wait(ctx); err != nil {
+			return err
+		}
+	}
 }
 
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
