@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,6 +27,7 @@ import (
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
 	"github.com/infrahq/infra/uid"
 )
@@ -202,15 +204,25 @@ func Run(ctx context.Context, options Options) error {
 		options:     options,
 	}
 	group.Go(func() error {
-		return syncWithServer(ctx, con)
+		backOff := &backoff.ExponentialBackOff{
+			InitialInterval:     2 * time.Second,
+			MaxInterval:         time.Minute,
+			RandomizationFactor: 0.2,
+			Multiplier:          1.5,
+		}
+		waiter := repeat.NewWaiter(backOff)
+		return syncWithServer(ctx, con, waiter)
 	})
 	group.Go(func() error {
+		// TODO: how long should this wait? Use exponential backoff on error?
+		waiter := repeat.NewWaiter(backoff.NewConstantBackOff(30 * time.Second))
 		for {
 			if err := syncDestination(ctx, con); err != nil {
 				logging.Errorf("failed to update destination in infra: %v", err)
+			} else {
+				waiter.Reset()
 			}
-			// TODO: how long should this wait?
-			if err := wait(ctx, 30*time.Second); err != nil {
+			if err := waiter.Wait(ctx); err != nil {
 				return err
 			}
 		}
@@ -410,7 +422,7 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	return types.HostPort{Host: host, Port: port}, nil
 }
 
-func syncWithServer(ctx context.Context, con connector) error {
+func syncWithServer(ctx context.Context, con connector, waiter *repeat.Waiter) error {
 	var latestIndex int64 = 1
 
 	sync := func() error {
@@ -424,15 +436,15 @@ func syncWithServer(ctx context.Context, con connector) error {
 			// a timeout is expected when there are no changes
 			logging.L.Info().
 				Int64("updateIndex", latestIndex).
-				Msgf("no updated grants from server")
+				Msg("no updated grants from server")
 			return nil
 		case err != nil:
 			return fmt.Errorf("list grants: %w", err)
 		}
 		logging.L.Info().
 			Int64("updateIndex", latestIndex).
-			Int("numGrants", len(grants.Items)).
-			Msgf("received grants from server")
+			Int("grants", len(grants.Items)).
+			Msg("received grants from server")
 
 		err = updateRoles(con.client, con.k8s, grants.Items)
 		if err != nil {
@@ -447,12 +459,14 @@ func syncWithServer(ctx context.Context, con connector) error {
 	for {
 		if err := sync(); err != nil {
 			logging.L.Error().Err(err).Msg("sync grants with kubernetes")
+		} else {
+			waiter.Reset()
 		}
-		// TODO: exponential backoff when there are errors.
 
 		// sleep for a short duration between updates to allow batches of
-		// updates to apply before querying again.
-		if err := wait(ctx, 2*time.Second); err != nil {
+		// updates to apply before querying again, and to prevent unnecessary
+		// load when part of the operation is failing.
+		if err := waiter.Wait(ctx); err != nil {
 			return err
 		}
 	}
@@ -597,18 +611,4 @@ func slicesEqual(s1, s2 []string) bool {
 	}
 
 	return true
-}
-
-// wait blocks for the duration of delay, or until the context is done.
-// Returns the context error when the context is done, and returns nil if
-// the timer waited the full duration.
-func wait(ctx context.Context, delay time.Duration) error {
-	timer := time.NewTimer(delay)
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		timer.Stop()
-		return ctx.Err()
-	}
 }
