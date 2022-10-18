@@ -948,7 +948,7 @@ func TestLoadAccessKey(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = s.loadAccessKey(s.DB(), alice, testAccessKey)
-		assert.Error(t, err, "access key assigned to \"alice\" is already assigned to another user, a user's access key must have a unique ID")
+		assert.Error(t, err, "access key assigned to \"alice@example.com\" is already assigned to another user, a user's access key must have a unique ID")
 	})
 }
 
