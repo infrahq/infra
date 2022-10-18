@@ -4,7 +4,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
-import { usePopper } from 'react-popper'
 import Tippy from '@tippyjs/react'
 
 import { providers } from '../../lib/providers'
@@ -50,20 +49,6 @@ export default function ProvidersAddDetails() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState('')
-
-  const [referenceElement, setReferenceElement] = useState(null)
-  const [popperElement, setPopperElement] = useState(null)
-  let { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: 'top',
-    modifiers: [
-      {
-        name: 'flip',
-        options: {
-          fallbackPlacements: ['top', 'right'],
-        },
-      },
-    ],
-  })
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
