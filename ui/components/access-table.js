@@ -1,49 +1,14 @@
-import {
-  ChevronDownIcon,
-  ChevronUpIcon,
-  XIcon,
-  CheckIcon,
-} from '@heroicons/react/solid'
-import { Listbox, Disclosure, Transition } from '@headlessui/react'
+import { ChevronDownIcon, XIcon, CheckIcon } from '@heroicons/react/solid'
+import { Listbox } from '@headlessui/react'
 import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
 import { sortByRole, sortBySubject, descriptions } from '../lib/grants'
 
-const OPTION_REMOVE = 'remove'
+import DisclosureForm from './disclosure-form'
 
-function NamespacesRolesComponent({ children }) {
-  return (
-    <Disclosure>
-      {({ open }) => (
-        <>
-          <Disclosure.Button className='w-full'>
-            <span className='flex items-center text-xs font-medium text-gray-500 '>
-              <ChevronUpIcon
-                className={`${
-                  open ? 'rotate-180 transform' : ''
-                } h-4 w-4 text-gray-500 duration-300 ease-in`}
-              />
-              Namespaces
-            </span>
-          </Disclosure.Button>
-          <Transition
-            show={open}
-            enter='ease-out duration-1000'
-            enterFrom='opacity-0'
-            enterTo='opacity-100'
-            leave='ease-in duration-300'
-            leaveFrom='opacity-100'
-            leaveTo='opacity-0'
-          >
-            <Disclosure.Panel static>{children}</Disclosure.Panel>
-          </Transition>
-        </>
-      )}
-    </Disclosure>
-  )
-}
+const OPTION_REMOVE = 'remove'
 
 function EditRoleMenu({
   roles,
@@ -100,10 +65,7 @@ function EditRoleMenu({
             </span>
             <span className='text-gray-700'>{privileges[0]}</span>
             {privileges.length - 1 > 0 && (
-              <span className='font-medium'>
-                {' '}
-                + {privileges.length - 1} roles
-              </span>
+              <span className='font-medium'> + {privileges.length - 1}</span>
             )}
           </div>
         </Listbox.Button>
@@ -168,9 +130,9 @@ function EditRoleMenu({
 
 function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
   return (
-    <div className='item-center flex justify-between space-x-2'>
+    <div className='item-center flex justify-between'>
       {resource && (
-        <div className='py-2 text-xs font-medium text-gray-900'>
+        <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
           {resource.split('.').pop()}
         </div>
       )}
@@ -256,10 +218,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
     <div className='py-1'>
       {/* Destination Resource */}
       {destinationPrivileges?.length > 0 && (
-        <div className='flex justify-between space-x-2 py-2'>
-          <div className='py-2 text-xs font-medium text-gray-900'>
-            cluster-wide access
-          </div>
+        <div className='flex justify-end space-x-2 py-2'>
           <RoleList
             privileges={sortByRole(destinationPrivileges)}
             roles={destination.roles}
@@ -273,8 +232,8 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {/* Namespaces List */}
       {namespacesPrivilegeMap.size > 0 && (
         <div className='py-2'>
-          <NamespacesRolesComponent>
-            <div className='space-y-1'>
+          <DisclosureForm title='Namespaces'>
+            <div className='space-y-2 pt-2'>
               <NamespacesRoleList
                 reousrcesMap={namespacesPrivilegeMap}
                 roles={destination.roles.filter(r => r != 'cluster-admin')}
@@ -284,7 +243,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                 onRemove={resource => handleRemove(resource)}
               />
             </div>
-          </NamespacesRolesComponent>
+          </DisclosureForm>
         </div>
       )}
     </div>
@@ -362,7 +321,7 @@ export default function AccessTable({
                   </div>
                 </div>{' '}
               </td>
-              <td className='w-[40%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+              <td className='w-[35%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
                 <GrantCell
                   grantsList={grants}
                   grant={grant}
@@ -377,6 +336,30 @@ export default function AccessTable({
           ))}
         </tbody>
       </table>
+      {grantsList && grantsList.length === 0 && (
+        <div className='flex justify-center py-5 text-sm text-gray-500'>
+          No data
+        </div>
+      )}
+      {!grantsList && (
+        <div className='flex min-h-[100px] items-center justify-center py-4 text-xs text-gray-400'>
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            viewBox='0 0 100 100'
+            preserveAspectRatio='xMidYMid'
+            className='h-10 w-10 animate-spin-fast stroke-current text-gray-400'
+          >
+            <circle
+              cx='50'
+              cy='50'
+              fill='none'
+              strokeWidth='1.5'
+              r='24'
+              strokeDasharray='113.09733552923255 39.69911184307752'
+            ></circle>
+          </svg>
+        </div>
+      )}
     </div>
   )
 }

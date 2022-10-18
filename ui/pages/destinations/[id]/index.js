@@ -9,11 +9,11 @@ import {
   DuplicateIcon,
   DownloadIcon,
   ChevronDownIcon,
-  ChevronUpIcon,
-  PlusIcon,
 } from '@heroicons/react/outline'
-import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
+import { Popover, Transition, Listbox } from '@headlessui/react'
 import dayjs from 'dayjs'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
 
 import { useUser } from '../../../lib/hooks'
 import { sortByPrivilege } from '../../../lib/grants'
@@ -22,36 +22,131 @@ import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
+import DisclosureForm from '../../../components/disclosure-form'
 
-function NamespacesGrantAccessForm({ children }) {
+const OPTION_SELECT_ALL = 'select all'
+
+function NamespacesDropdownMenu({
+  selectedResources,
+  setSelectedResources,
+  resources,
+}) {
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
+  let { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: 'bottom-end',
+    modifiers: [
+      {
+        name: 'flip',
+        enabled: false,
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
+    ],
+  })
+
   return (
-    <Disclosure>
-      {({ open }) => (
-        <>
-          <Disclosure.Button className='w-full'>
-            <span className='flex items-center text-xs font-medium text-gray-500 '>
-              <ChevronUpIcon
-                className={`${
-                  open ? 'rotate-180 transform' : ''
-                } h-4 w-4 text-gray-500 duration-300 ease-in`}
-              />
-              Namespaces access
-            </span>
-          </Disclosure.Button>
-          <Transition
-            show={open}
-            enter='ease-out duration-1000'
-            enterFrom='opacity-0'
-            enterTo='opacity-100'
-            leave='ease-in duration-300'
-            leaveFrom='opacity-100'
-            leaveTo='opacity-0'
+    <div className='relative'>
+      <Listbox
+        value={selectedResources}
+        onChange={v => {
+          if (v.includes(OPTION_SELECT_ALL)) {
+            if (selectedResources.length !== resources.length) {
+              setSelectedResources([...resources])
+            } else {
+              setSelectedResources([])
+            }
+            return
+          }
+
+          setSelectedResources(v)
+        }}
+        multiple
+      >
+        <div className='relative'>
+          <Listbox.Button
+            ref={setReferenceElement}
+            className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
           >
-            <Disclosure.Panel static>{children}</Disclosure.Panel>
-          </Transition>
-        </>
-      )}
-    </Disclosure>
+            <div className='flex space-x-1 truncate'>
+              <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+                <ChevronDownIcon
+                  className='h-4 w-4 stroke-1 text-gray-700'
+                  aria-hidden='true'
+                />
+              </span>
+              <span className='text-gray-700'>
+                {selectedResources.length > 0
+                  ? selectedResources[0]
+                  : 'select namespaces'}
+              </span>
+              {selectedResources.length - 1 > 0 && (
+                <span> + {selectedResources.length - 1}</span>
+              )}
+            </div>
+          </Listbox.Button>
+          {ReactDOM.createPortal(
+            <Listbox.Options
+              ref={setPopperElement}
+              style={styles.popper}
+              {...attributes.popper}
+              className='absolute z-[8] w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
+            >
+              <div className='max-h-64 overflow-auto'>
+                {resources?.map(r => (
+                  <Listbox.Option
+                    key={r}
+                    className={({ active }) =>
+                      `${
+                        active ? 'bg-gray-100' : ''
+                      } select-none py-2 px-3 hover:cursor-pointer`
+                    }
+                    value={r}
+                  >
+                    {({ selected }) => (
+                      <div className='flex flex-row'>
+                        <div className='flex flex-1 flex-col'>
+                          <div className='flex justify-between py-0.5 font-medium'>
+                            {r}
+                            {selected && (
+                              <CheckIcon
+                                className='h-3 w-3 stroke-1 text-gray-600'
+                                aria-hidden='true'
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </div>
+              {resources.length > 1 && (
+                <Listbox.Option
+                  className={({ active }) =>
+                    `${
+                      active ? 'bg-gray-50' : 'bg-white'
+                    } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
+                  }
+                  value={OPTION_SELECT_ALL}
+                >
+                  <div className='flex flex-row items-center py-0.5'>
+                    {selectedResources.length !== resources.length
+                      ? 'Select all'
+                      : 'Reset'}
+                  </div>
+                </Listbox.Option>
+              )}
+            </Listbox.Options>,
+            document.querySelector('body')
+          )}
+        </div>
+      </Listbox>
+    </div>
   )
 }
 
@@ -123,6 +218,7 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
+  const [selectedResources, setSelectedResources] = useState([])
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -283,89 +379,97 @@ export default function DestinationDetail() {
               <div className='flex flex-col space-y-4'>
                 <div>
                   <h3 className='mb-3 text-sm font-medium'>
-                    Grant access to <span className='font-bold'>cluster</span>
+                    Grant access to{' '}
+                    <span className='font-bold'>
+                      {selectedResources.length > 0
+                        ? selectedResources.join(', ')
+                        : 'cluster'}
+                    </span>
                   </h3>{' '}
                   <GrantForm
                     roles={destination?.roles}
+                    selectedResources={selectedResources}
                     grants={grants}
-                    onSubmit={async ({ user, group, privilege }) => {
+                    onSubmit={async ({
+                      user,
+                      group,
+                      privilege,
+                      selectedResources,
+                    }) => {
                       // don't add grants that already exist
-                      if (
-                        grants?.find(
-                          g =>
-                            g.user === user &&
-                            g.group === group &&
-                            g.privilege === privilege &&
-                            g.resource === `${destination?.name}`
+                      if (selectedResources.length === 0) {
+                        if (
+                          grants?.find(
+                            g =>
+                              g.user === user &&
+                              g.group === group &&
+                              g.privilege === privilege &&
+                              g.resource === `${destination?.name}`
+                          )
+                        ) {
+                          return false
+                        }
+
+                        await fetch('/api/grants', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            user,
+                            group,
+                            privilege,
+                            resource: destination?.name,
+                          }),
+                        })
+                        mutate()
+                      } else {
+                        const promises = selectedResources.map(
+                          async resource => {
+                            // // don't add grants that already exist
+                            if (
+                              grants?.find(
+                                g =>
+                                  g.user === user &&
+                                  g.group === group &&
+                                  g.privilege === privilege &&
+                                  g.resource ===
+                                    `${destination?.name}.${resource}`
+                              )
+                            ) {
+                              return false
+                            }
+
+                            await fetch('/api/grants', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                user,
+                                group,
+                                privilege,
+                                resource: `${destination?.name}.${resource}`,
+                              }),
+                            })
+                          }
                         )
-                      ) {
-                        return false
+
+                        await Promise.all(promises)
+                        mutate()
+                        setSelectedResources([])
                       }
-
-                      await fetch('/api/grants', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                          user,
-                          group,
-                          privilege,
-                          resource: destination?.name,
-                        }),
-                      })
-
-                      mutate()
                     }}
                   />
                 </div>
                 {destination?.resources.length > 0 && (
                   <div>
-                    <NamespacesGrantAccessForm>
-                      <div className='pt-2'>
-                        <GrantForm
-                          roles={destination?.roles.filter(
-                            r => r != 'cluster-admin'
-                          )}
-                          grants={grants}
+                    <DisclosureForm title='Scope access'>
+                      <div className='flex items-center space-x-4 px-4 pt-2 '>
+                        <p className='text-xs font-medium text-gray-900'>
+                          Namespaces
+                        </p>
+                        <NamespacesDropdownMenu
+                          selectedResources={selectedResources}
+                          setSelectedResources={setSelectedResources}
                           resources={destination?.resources}
-                          onSubmit={async ({
-                            user,
-                            group,
-                            privilege,
-                            selectedResources,
-                          }) => {
-                            const promises = selectedResources.map(
-                              async resource => {
-                                // // don't add grants that already exist
-                                if (
-                                  grants?.find(
-                                    g =>
-                                      g.user === user &&
-                                      g.group === group &&
-                                      g.privilege === privilege &&
-                                      g.resource ===
-                                        `${destination?.name}.${resource}`
-                                  )
-                                ) {
-                                  return false
-                                }
-
-                                await fetch('/api/grants', {
-                                  method: 'POST',
-                                  body: JSON.stringify({
-                                    user,
-                                    group,
-                                    privilege,
-                                    resource: `${destination?.name}.${resource}`,
-                                  }),
-                                })
-                              }
-                            )
-
-                            await Promise.all(promises)
-                            mutate()
-                          }}
                         />
                       </div>
-                    </NamespacesGrantAccessForm>
+                    </DisclosureForm>
                   </div>
                 )}
               </div>
