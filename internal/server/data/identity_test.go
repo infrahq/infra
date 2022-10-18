@@ -116,22 +116,22 @@ func TestGetIdentity(t *testing.T) {
 		t.Run("by ID", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByID: bond.ID})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, *identity, bond)
+			assert.DeepEqual(t, *identity, bond, cmpTimeWithDBPrecision)
 		})
 		t.Run("by name", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bond.Name})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, *identity, bond)
+			assert.DeepEqual(t, *identity, bond, cmpTimeWithDBPrecision)
 		})
 		t.Run("preload groups", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bourne.Name, PreloadGroups: true})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, *identity, bourne)
+			assert.DeepEqual(t, *identity, bourne, cmpTimeWithDBPrecision)
 		})
 		t.Run("preload providers", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bauer.Name, PreloadProviders: true})
 			assert.NilError(t, err)
-			assert.DeepEqual(t, *identity, bauer)
+			assert.DeepEqual(t, *identity, bauer, cmpTimeWithDBPrecision)
 		})
 	})
 }
@@ -296,7 +296,7 @@ func TestUpdateIdentity(t *testing.T) {
 
 		result, err := GetIdentity(db, GetIdentityOptions{ByID: identity.ID})
 		assert.NilError(t, err)
-		assert.DeepEqual(t, *result, identity)
+		assert.DeepEqual(t, *result, identity, cmpTimeWithDBPrecision)
 	})
 }
 
