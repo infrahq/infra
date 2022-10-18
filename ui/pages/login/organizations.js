@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Cookies from 'universal-cookie'
 import { useRouter } from 'next/router'
 import { ChevronRightIcon } from '@heroicons/react/outline'
+import Tippy from '@tippyjs/react'
 
 import LoginLayout from '../../components/layouts/login'
 
@@ -26,6 +27,7 @@ export default function Organizations() {
       <div className='my-6 w-full max-w-[240px] flex-1'>
         {organizations?.map(o => (
           <Tippy
+            key={o.url}
             content={`${o.name} — ${o.url}`}
             className='whitespace-no-wrap z-8 relative w-auto rounded-md bg-black p-2 text-xs text-white shadow-lg'
             interactive={true}
@@ -36,7 +38,6 @@ export default function Organizations() {
           >
             <a
               href={`//${o.url}`}
-              key={o.url}
               className='group my-2 flex w-full items-center justify-between
              rounded-md border border-gray-300 bg-white py-2.5 px-4
               hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'

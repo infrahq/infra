@@ -184,12 +184,7 @@ function ProviderImg({ content, src }) {
       delay={[100, 0]}
       placement='right'
     >
-      <img
-        alt='provider icon'
-        key={content}
-        className='translate-[-50%] h-3.5'
-        src={src}
-      />
+      <img alt='provider icon' className='translate-[-50%] h-3.5' src={src} />
     </Tippy>
   )
 }
@@ -304,7 +299,9 @@ export default function Users() {
               <div className='flex space-x-1'>
                 {info?.getValue()?.map(pn => {
                   if (pn === 'infra') {
-                    return <ProviderImg content={pn} src={'/icon.svg'} />
+                    return (
+                      <ProviderImg key={pn} content={pn} src={'/icon.svg'} />
+                    )
                   } else {
                     const provider = providers?.find(p => p.name === pn)
                     if (!provider) {
@@ -313,6 +310,7 @@ export default function Users() {
 
                     return (
                       <ProviderImg
+                        key={pn}
                         content={pn}
                         src={`/providers/${provider.kind}.svg`}
                       />
