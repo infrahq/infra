@@ -769,7 +769,17 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	isBlocked(t, respCh)
 
+	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
+		Subject:   "i:abcd",
+		Privilege: "view",
+		Resource:  "somethingelse",
+	})
+	assert.NilError(t, err)
+	isBlocked(t, respCh)
+
+	// matching grant
+	err = data.CreateGrant(srv.db, &models.Grant{
 		Subject:   "i:abcd",
 		Privilege: "view",
 		Resource:  "infra",
@@ -778,7 +788,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 
 	resp := isNotBlocked(t, respCh)
 	assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
-	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002", (*responseDebug)(resp))
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10003", (*responseDebug)(resp))
 
 	respBody := &api.ListResponse[api.Grant]{}
 	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))
@@ -832,7 +842,17 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	isBlocked(t, respCh)
 
+	// unrelated grant
 	err := data.CreateGrant(srv.db, &models.Grant{
+		Subject:   "i:abcd",
+		Privilege: "view",
+		Resource:  "somethingelse",
+	})
+	assert.NilError(t, err)
+	isBlocked(t, respCh)
+
+	// matching grant
+	err = data.CreateGrant(srv.db, &models.Grant{
 		Subject:   "i:abcd",
 		Privilege: "view",
 		Resource:  "deferred.ns1",
@@ -841,7 +861,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 
 	resp := isNotBlocked(t, respCh)
 	assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
-	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10002", (*responseDebug)(resp))
+	assert.Equal(t, resp.Result().Header.Get("Last-Update-Index"), "10003", (*responseDebug)(resp))
 
 	respBody := &api.ListResponse[api.Grant]{}
 	assert.NilError(t, json.NewDecoder(resp.Body).Decode(respBody))

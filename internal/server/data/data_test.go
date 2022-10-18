@@ -43,11 +43,9 @@ func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 // Set POSTGRESQL_CONNECTION to a postgresql connection string to run tests
 // against postgresql.
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
-	t.Run("postgres", func(t *testing.T) {
-		db := setupDB(t)
-		run(t, db)
-		db.Rollback()
-	})
+	db := setupDB(t)
+	run(t, db)
+	db.Rollback()
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {
