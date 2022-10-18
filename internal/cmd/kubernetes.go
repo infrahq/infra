@@ -176,8 +176,8 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 	}
 
 	// cleanup others
-	for c := range kubeConfig.Contexts {
-		parts := strings.Split(c, ":")
+	for id, ctx := range kubeConfig.Contexts {
+		parts := strings.Split(id, ":")
 
 		if len(parts) < 1 {
 			continue
@@ -187,10 +187,10 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 			continue
 		}
 
-		if _, ok := keep[c]; !ok {
-			delete(kubeConfig.Clusters, c)
-			delete(kubeConfig.Contexts, c)
-			delete(kubeConfig.AuthInfos, c)
+		if _, ok := keep[id]; !ok {
+			delete(kubeConfig.AuthInfos, ctx.AuthInfo)
+			delete(kubeConfig.Clusters, ctx.Cluster)
+			delete(kubeConfig.Contexts, id)
 		}
 	}
 
@@ -245,8 +245,8 @@ func clearKubeconfig() error {
 		return err
 	}
 
-	for c := range kubeConfig.Contexts {
-		parts := strings.Split(c, ":")
+	for id, ctx := range kubeConfig.Contexts {
+		parts := strings.Split(id, ":")
 
 		if len(parts) < 1 {
 			continue
@@ -256,9 +256,9 @@ func clearKubeconfig() error {
 			continue
 		}
 
-		delete(kubeConfig.Clusters, c)
-		delete(kubeConfig.Contexts, c)
-		delete(kubeConfig.AuthInfos, c)
+		delete(kubeConfig.AuthInfos, ctx.AuthInfo)
+		delete(kubeConfig.Clusters, ctx.Cluster)
+		delete(kubeConfig.Contexts, id)
 	}
 
 	if strings.HasPrefix(kubeConfig.CurrentContext, "infra:") {

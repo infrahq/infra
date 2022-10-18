@@ -91,6 +91,22 @@ func TestWriteKubeconfig(t *testing.T) {
 		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"),
 		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "Exec"),
 	)
+
+	t.Run("clearKubeconfig", func(t *testing.T) {
+		err := clearKubeconfig()
+		assert.NilError(t, err)
+
+		expected := clientcmdapi.Config{
+			Clusters:  map[string]*clientcmdapi.Cluster{},
+			Contexts:  map[string]*clientcmdapi.Context{},
+			AuthInfos: map[string]*clientcmdapi.AuthInfo{},
+		}
+
+		actual, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+
+		assert.DeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+	})
 }
 
 func TestWriteKubeconfig_UserNamespaceOverride(t *testing.T) {

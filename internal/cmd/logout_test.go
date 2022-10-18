@@ -80,12 +80,12 @@ func TestLogout(t *testing.T) {
 				"infra:prod":     {Server: "https://infraprod:8080"},
 			},
 			Contexts: map[string]*clientcmdapi.Context{
-				"keep:not-infra": {Cluster: "keep:not-infra"},
-				"infra:prod":     {Cluster: "infra:prod"},
+				"keep:not-infra": {Cluster: "keep:not-infra", AuthInfo: "keep:not-infra"},
+				"infra:prod":     {Cluster: "infra:prod", AuthInfo: "user@example.com"},
 			},
 			AuthInfos: map[string]*clientcmdapi.AuthInfo{
-				"keep:not-infra": {Token: "keep-token"},
-				"infra:prod":     {Token: "infra-token"},
+				"keep:not-infra":   {Token: "keep-token"},
+				"user@example.com": {Token: "infra-token"},
 			},
 		}
 		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
@@ -145,12 +145,12 @@ func TestLogout(t *testing.T) {
 				"infra:prod":     {Server: "https://infraprod:8080"},
 			},
 			Contexts: map[string]*clientcmdapi.Context{
-				"keep:not-infra": {Cluster: "keep:not-infra"},
-				"infra:prod":     {Cluster: "infra:prod"},
+				"keep:not-infra": {Cluster: "keep:not-infra", AuthInfo: "keep:not-infra"},
+				"infra:prod":     {Cluster: "infra:prod", AuthInfo: "user@example.com"},
 			},
 			AuthInfos: map[string]*clientcmdapi.AuthInfo{
-				"keep:not-infra": {Token: "keep-token"},
-				"infra:prod":     {Token: "infra-token"},
+				"keep:not-infra":   {Token: "keep-token"},
+				"user@example.com": {Token: "infra-token"},
 			},
 		}
 		err = clientcmd.WriteToFile(kubeCfg, kubeConfigPath)
@@ -164,13 +164,13 @@ func TestLogout(t *testing.T) {
 
 	expectedKubeCfg := clientcmdapi.Config{
 		Clusters: map[string]*clientcmdapi.Cluster{
-			"keep:not-infra": {Server: "https://keep:8080", LocationOfOrigin: kubeConfigPath},
+			"keep:not-infra": {Server: "https://keep:8080"},
 		},
 		Contexts: map[string]*clientcmdapi.Context{
-			"keep:not-infra": {Cluster: "keep:not-infra", LocationOfOrigin: kubeConfigPath},
+			"keep:not-infra": {Cluster: "keep:not-infra", AuthInfo: "keep:not-infra"},
 		},
 		AuthInfos: map[string]*clientcmdapi.AuthInfo{
-			"keep:not-infra": {Token: "keep-token", LocationOfOrigin: kubeConfigPath},
+			"keep:not-infra": {Token: "keep-token"},
 		},
 	}
 
@@ -193,7 +193,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("current infra", func(t *testing.T) {
@@ -215,7 +219,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("current non-infra", func(t *testing.T) {
@@ -240,7 +248,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, kubeconfig, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, kubeconfig, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("with clear", func(t *testing.T) {
@@ -258,7 +270,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("with all", func(t *testing.T) {
@@ -284,7 +300,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("with clear all", func(t *testing.T) {
@@ -302,7 +322,11 @@ func TestLogout(t *testing.T) {
 
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 
 	t.Run("with one and all", func(t *testing.T) {
@@ -347,6 +371,10 @@ func TestLogout(t *testing.T) {
 		updatedKubeCfg, err := clientConfig().RawConfig()
 		expectedKubeCfg.CurrentContext = "keep:non-infra"
 		assert.NilError(t, err)
-		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg, cmpopts.EquateEmpty())
+		assert.DeepEqual(t, expectedKubeCfg, updatedKubeCfg,
+			cmpopts.EquateEmpty(),
+			cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+			cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"))
 	})
 }
