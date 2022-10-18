@@ -19,22 +19,19 @@ export default function GrantForm({
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
     useSWR('/api/groups?limit=1000')
 
-  const [role, setRole] = useState(sortByRole(roles)?.[0])
+  const [role, setRole] = useState([])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [options, setOptions] = useState([])
 
   const button = useRef()
 
-  useEffect(
-    () =>
-      setRole(
-        selectedResources?.length > 0
-          ? sortByRole(roles)?.filter(r => r != 'cluster-admin')[0]
-          : sortByRole(roles)?.[0]
-      ),
-    [roles, selectedResources]
-  )
+  roles =
+    selectedResources?.length > 0
+      ? sortByRole(roles)?.filter(r => r != 'cluster-admin')
+      : sortByRole(roles)
+
+  useEffect(() => setRole(roles[0]), [roles])
 
   useEffect(() => {
     if (users && groups) {
