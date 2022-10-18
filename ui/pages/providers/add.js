@@ -64,7 +64,6 @@ export default function ProvidersAddDetails() {
 
   async function onSubmit(e) {
     e.preventDefault()
-
     setErrors({})
     setError('')
 
@@ -81,7 +80,7 @@ export default function ProvidersAddDetails() {
           const res = await fetch('/api/providers', {
             method: 'POST',
             body: JSON.stringify({
-              name,
+              name: name.trim(),
               url,
               clientID,
               clientSecret,
@@ -269,6 +268,11 @@ export default function ProvidersAddDetails() {
                     setClientID(e.target.value)
                     setErrors({})
                     setError('')
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape' || e.key === 'Esc') {
+                      e.preventDefault()
+                    }
                   }}
                   className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
                     errors.clientid ? 'border-red-500' : 'border-gray-300'
