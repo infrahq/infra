@@ -499,8 +499,10 @@ func attemptTLSRequest(options loginCmdOptions) error {
 	return err
 }
 
+const spinChars = `\|/-`
+
 func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
-	resp, err := client.StartDeviceFlow(&api.StartDeviceFlowRequest{ClientID: "some-client-id"})
+	resp, err := client.StartDeviceFlow(&api.StartDeviceFlowRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -517,17 +519,23 @@ func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
 	defer timeout.Stop()
 	poll := time.NewTicker(time.Duration(resp.PollIntervalSeconds) * time.Second)
 	defer poll.Stop()
+	spinner := time.NewTicker(1000 * time.Millisecond)
+	defer spinner.Stop()
 
+	var spinnerCount int = 0
 	var pollResp *api.DevicePollResponse
 loop:
 	for {
 		select {
+		case <-spinner.C:
+			spinnerCount++
+			fmt.Printf("  %s\r", string(spinChars[spinnerCount%len(spinChars)]))
 		case <-timeout.C:
 			// too late. return an error
 			return nil, api.ErrDeviceLoginTimeout
 		case <-poll.C:
 			// check to see if user is authed yet
-			pollResp, err = client.PollDeviceFlow(&api.PollDeviceFlowRequest{ClientID: "some-client-id", DeviceCode: resp.DeviceCode})
+			pollResp, err = client.PollDeviceFlow(&api.PollDeviceFlowRequest{DeviceCode: resp.DeviceCode})
 			if err != nil {
 				return nil, err
 			}

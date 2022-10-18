@@ -223,7 +223,6 @@ func (c Client) StartDeviceFlow(req *StartDeviceFlowRequest) (*DeviceFlowRespons
 
 func (c Client) PollDeviceFlow(req *PollDeviceFlowRequest) (*DevicePollResponse, error) {
 	return post[PollDeviceFlowRequest, DevicePollResponse](c, "/api/device/status", &PollDeviceFlowRequest{
-		ClientID:   req.ClientID,
 		DeviceCode: req.DeviceCode,
 	})
 }

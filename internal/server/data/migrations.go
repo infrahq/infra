@@ -820,7 +820,6 @@ func addDeviceFlowAuthRequestTable() *migrator.Migration {
 			_, err := tx.Exec(`
 				CREATE TABLE IF NOT EXISTS device_flow_auth_requests (
 					id 							 bigint NOT NULL,
-					client_id 			 text NOT NULL,
 					user_code 			 text NOT NULL,
 					device_code 		 text NOT NULL,
 					approved 				 bool DEFAULT NULL,

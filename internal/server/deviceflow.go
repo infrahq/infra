@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,19 +12,21 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
-	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-const DeviceCodeExpirySeconds = 1800
+const DeviceCodeExpirySeconds = 600
 
 func (a *API) StartDeviceFlow(c *gin.Context, req *api.StartDeviceFlowRequest) (*api.DeviceFlowResponse, error) {
 	rctx := getRequestContext(c)
-	userCode, err := generate.CryptoRandom(8, generate.CharsetDeviceCode)
+	tries := 0
+retry:
+	tries++
+	userCode, err := generate.CryptoRandom(8, generate.CharsetDeviceFlowUserCode)
 	if err != nil {
 		return nil, err
 	}
-	userCode = userCode[0:4] + "-" + userCode[4:]
 
 	deviceCode, err := generate.CryptoRandom(38, generate.CharsetAlphaNumeric)
 	if err != nil {
@@ -30,14 +34,18 @@ func (a *API) StartDeviceFlow(c *gin.Context, req *api.StartDeviceFlowRequest) (
 	}
 
 	err = access.CreateDeviceFlowAuthRequest(rctx, &models.DeviceFlowAuthRequest{
-		ClientID:   req.ClientID,
 		UserCode:   userCode,
 		DeviceCode: deviceCode,
 		ExpiresAt:  time.Now().Add(DeviceCodeExpirySeconds * time.Second),
 	})
 	if err != nil {
+		// TODO: on duplicate record jump back to line 21.
+		if tries < 10 && errors.Is(err, &data.UniqueConstraintError{}) {
+			goto retry
+		}
 		return nil, err
 	}
+
 	host := a.server.options.BaseDomain
 	if rctx.Authenticated.Organization != nil {
 		host = rctx.Authenticated.Organization.Domain
@@ -46,7 +54,7 @@ func (a *API) StartDeviceFlow(c *gin.Context, req *api.StartDeviceFlowRequest) (
 	return &api.DeviceFlowResponse{
 		DeviceCode:          deviceCode,
 		VerificationURI:     fmt.Sprintf("https://%s/device", host),
-		UserCode:            userCode,
+		UserCode:            userCode[0:4] + "-" + userCode[4:],
 		ExpiresInSeconds:    DeviceCodeExpirySeconds,
 		PollIntervalSeconds: 5,
 	}, nil
@@ -55,14 +63,12 @@ func (a *API) StartDeviceFlow(c *gin.Context, req *api.StartDeviceFlowRequest) (
 // can error with one of authorization_pending, access_denied, expired_token, slow_down
 func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest) (*api.DevicePollResponse, error) {
 	rctx := getRequestContext(c)
-	dfar, err := access.FindDeviceFlowAuthRequest(rctx, req.ClientID, req.DeviceCode)
+	dfar, err := access.FindDeviceFlowAuthRequest(rctx, req.DeviceCode)
 	if err != nil {
 		return nil, err
 	}
-	logging.Debugf("Found record")
 
 	if dfar.ExpiresAt.Before(time.Now()) {
-		logging.Debugf("it's expired")
 		return &api.DevicePollResponse{
 			Status:     "expired",
 			DeviceCode: dfar.DeviceCode,
@@ -70,7 +76,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 	}
 
 	if dfar.Approved != nil && !*dfar.Approved {
-		logging.Debugf("it was rejected")
 		return &api.DevicePollResponse{
 			Status:     "rejected",
 			DeviceCode: dfar.DeviceCode,
@@ -78,7 +83,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 	}
 
 	if dfar.Approved != nil && *dfar.Approved {
-		logging.Debugf("it's approved")
 		return &api.DevicePollResponse{
 			Status:     "confirmed",
 			DeviceCode: dfar.DeviceCode,
@@ -90,8 +94,6 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 			},
 		}, nil
 	}
-
-	logging.Debugf("it's pending")
 
 	return &api.DevicePollResponse{
 		Status:     "pending",
@@ -106,7 +108,7 @@ const (
 
 func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 	rctx := getRequestContext(c)
-	dfar, err := access.FindDeviceFlowAuthRequestForApproval(rctx, req.UserCode)
+	dfar, err := access.FindDeviceFlowAuthRequestForApproval(rctx, strings.Replace(req.UserCode, "-", "", 1))
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +128,8 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 		OrganizationMember: models.OrganizationMember{OrganizationID: rctx.Authenticated.Organization.ID},
 		IssuedFor:          user.ID,
 		IssuedForName:      user.Name,
-		Name:               "Device " + dfar.ClientID + ":" + dfar.DeviceCode,
-		ExpiresAt:          time.Now().UTC().Add(time.Duration(10 * year)),
+		Name:               "Device " + dfar.DeviceCode,
+		ExpiresAt:          rctx.Authenticated.AccessKey.ExpiresAt,
 		Extension:          time.Duration(30 * day),
 		ExtensionDeadline:  time.Now().UTC().Add(30 * day),
 	}
@@ -138,7 +140,7 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 	}
 
 	// update device flow auth request with the access key id
-	err = access.SetDeficeFlowAuthRequestAccessKey(rctx, dfar.ID, accessKey)
+	err = access.SetDeviceFlowAuthRequestAccessKey(rctx, dfar.ID, accessKey)
 	if err != nil {
 		return nil, err
 	}

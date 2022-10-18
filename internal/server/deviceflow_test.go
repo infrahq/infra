@@ -66,14 +66,11 @@ func TestDeviceFlow(t *testing.T) {
 
 	// start flow
 	dfResp := &api.DeviceFlowResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device", api.StartDeviceFlowRequest{
-		ClientID: "foo",
-	}, dfResp)
+	doPost(t, "", "http://"+org.Domain+"/api/device", api.StartDeviceFlowRequest{}, dfResp)
 
 	// get flow status pending
 	pollResp := &api.DevicePollResponse{}
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
-		ClientID:   "foo",
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 
@@ -86,7 +83,6 @@ func TestDeviceFlow(t *testing.T) {
 
 	// get flow status with key
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
-		ClientID:   "foo",
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 

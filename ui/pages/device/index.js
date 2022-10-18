@@ -44,7 +44,7 @@ export default function DeviceShow() {
           ) : (
             <>
               <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-                This code authorizes adding a new device that has access to your account. Never accept a device code from someone else.
+                This code gives a new device access to your account. Never accept a device code from someone else.
               </h2>
               <form
                 onSubmit={onSubmit}

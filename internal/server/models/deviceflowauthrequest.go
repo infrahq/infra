@@ -8,7 +8,6 @@ import (
 
 type DeviceFlowAuthRequest struct {
 	Model
-	ClientID       string
 	UserCode       string
 	DeviceCode     string
 	Approved       *bool

@@ -514,18 +514,18 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	config := Config{
 		Users: []User{
 			{
-				Name: "bob",
+				Name: "bob@example.com",
 			},
 			{
-				Name:     "alice",
+				Name:     "alice@example.com",
 				Password: "password",
 			},
 			{
-				Name:      "sue",
+				Name:      "sue@example.com",
 				AccessKey: "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb",
 			},
 			{
-				Name:      "jim",
+				Name:      "jim@example.com",
 				Password:  "password",
 				AccessKey: "bbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbb",
 			},
@@ -535,22 +535,22 @@ func TestLoadConfigWithUsers(t *testing.T) {
 	err := s.loadConfig(config)
 	assert.NilError(t, err)
 
-	user, _, _ := getTestDefaultOrgUserDetails(t, s, "bob")
-	assert.Equal(t, "bob", user.Name)
+	user, _, _ := getTestDefaultOrgUserDetails(t, s, "bob@example.com")
+	assert.Equal(t, "bob@example.com", user.Name)
 
-	user, creds, _ := getTestDefaultOrgUserDetails(t, s, "alice")
-	assert.Equal(t, "alice", user.Name)
+	user, creds, _ := getTestDefaultOrgUserDetails(t, s, "alice@example.com")
+	assert.Equal(t, "alice@example.com", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
 
-	user, _, key := getTestDefaultOrgUserDetails(t, s, "sue")
-	assert.Equal(t, "sue", user.Name)
+	user, _, key := getTestDefaultOrgUserDetails(t, s, "sue@example.com")
+	assert.Equal(t, "sue@example.com", user.Name)
 	assert.Equal(t, key.KeyID, "aaaaaaaaaa")
 	chksm := sha256.Sum256([]byte("bbbbbbbbbbbbbbbbbbbbbbbb"))
 	assert.Equal(t, bytes.Compare(key.SecretChecksum, chksm[:]), 0) // 0 means the byte slices are equal
 
-	user, creds, key = getTestDefaultOrgUserDetails(t, s, "jim")
-	assert.Equal(t, "jim", user.Name)
+	user, creds, key = getTestDefaultOrgUserDetails(t, s, "jim@example.com")
+	assert.Equal(t, "jim@example.com", user.Name)
 	err = bcrypt.CompareHashAndPassword(creds.PasswordHash, []byte("password"))
 	assert.NilError(t, err)
 	assert.Equal(t, key.KeyID, "bbbbbbbbbb")
@@ -754,10 +754,10 @@ func TestLoadConfigUpdate(t *testing.T) {
 		},
 		Users: []User{
 			{
-				Name: "r2d2",
+				Name: "r2d2@example.com",
 			},
 			{
-				Name:      "c3po",
+				Name:      "c3po@example.com",
 				AccessKey: "TllVlekkUz.NFnxSlaPQLosgkNsyzaMttfC",
 			},
 			{
@@ -930,7 +930,7 @@ func TestLoadAccessKey(t *testing.T) {
 	testAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 
 	// create a user and assign them an access key
-	bob := &models.Identity{Name: "bob"}
+	bob := &models.Identity{Name: "bob@example.com"}
 	err := data.CreateIdentity(s.DB(), bob)
 	assert.NilError(t, err)
 
@@ -943,7 +943,7 @@ func TestLoadAccessKey(t *testing.T) {
 	})
 
 	t.Run("duplicate access key ID is rejected", func(t *testing.T) {
-		alice := &models.Identity{Name: "alice"}
+		alice := &models.Identity{Name: "alice@example.com"}
 		err = data.CreateIdentity(s.DB(), alice)
 		assert.NilError(t, err)
 

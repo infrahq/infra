@@ -201,7 +201,7 @@
       "DeviceFlowResponse": {
         "properties": {
           "deviceCode": {
-            "description": "a long string the device will use to exchange for an access token",
+            "description": "a code that a device will use to exchange for an access key after device login is approved",
             "example": "NGU4QWFiNjQ5YmQwNG3YTdmZMEyNzQ3YzQ1YSA",
             "type": "string"
           },
@@ -218,7 +218,7 @@
             "type": "integer"
           },
           "userCode": {
-            "description": "This is the text the user will enter at the URL above",
+            "description": "This is the text the user will enter at the Verification URI",
             "example": "BDSD-HQMK",
             "type": "string"
           },
@@ -2203,24 +2203,8 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
-          },
-          {
-            "in": "query",
-            "name": "client_id",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          }
-        },
         "responses": {
           "400": {
             "content": {
@@ -2411,9 +2395,6 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "clientID": {
-                    "type": "string"
-                  },
                   "deviceCode": {
                     "type": "string"
                   }

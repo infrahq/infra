@@ -135,7 +135,6 @@ CREATE TABLE destinations (
 
 CREATE TABLE device_flow_auth_requests (
     id bigint NOT NULL,
-    client_id text NOT NULL,
     user_code text NOT NULL,
     device_code text NOT NULL,
     approved boolean,
