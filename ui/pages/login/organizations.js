@@ -25,22 +25,31 @@ export default function Organizations() {
       </h2>
       <div className='my-6 w-full max-w-[240px] flex-1'>
         {organizations?.map(o => (
-          <a
-            href={`//${o.url}`}
-            key={o.url}
-            title={`${o.name} — ${o.url}`}
-            className='group my-2 flex w-full items-center justify-between
+          <Tippy
+            content={`${o.name} — ${o.url}`}
+            className='whitespace-no-wrap z-8 relative w-auto rounded-md bg-black p-2 text-xs text-white shadow-lg'
+            interactive={true}
+            interactiveBorder={20}
+            offset={[0, 5]}
+            delay={[250, 0]}
+            placement='top'
+          >
+            <a
+              href={`//${o.url}`}
+              key={o.url}
+              className='group my-2 flex w-full items-center justify-between
              rounded-md border border-gray-300 bg-white py-2.5 px-4
               hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-          >
-            <div className='truncate text-left'>
-              <div className='truncate text-sm leading-snug'>{o.name}</div>
-              <div className='truncate text-xs text-gray-500'>{o.url}</div>
-            </div>
-            <div>
-              <ChevronRightIcon className='ml-2 mt-0.5 h-3 w-3 flex-none stroke-2 group-hover:text-gray-400' />
-            </div>
-          </a>
+            >
+              <div className='truncate text-left'>
+                <div className='truncate text-sm leading-snug'>{o.name}</div>
+                <div className='truncate text-xs text-gray-500'>{o.url}</div>
+              </div>
+              <div>
+                <ChevronRightIcon className='ml-2 mt-0.5 h-3 w-3 flex-none stroke-2 group-hover:text-gray-400' />
+              </div>
+            </a>
+          </Tippy>
         ))}
       </div>
       <p className='text-center text-xs text-gray-500'>

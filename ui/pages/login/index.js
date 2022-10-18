@@ -3,6 +3,7 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import Cookies from 'universal-cookie'
 import Link from 'next/link'
+import Tippy from '@tippyjs/react'
 
 import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
@@ -64,27 +65,36 @@ export function Providers({ providers }) {
         {providers.map(
           p =>
             p.kind && (
-              <button
-                onClick={() => oidcLogin({ ...p }, next)}
-                key={p.id}
-                title={`${p.name} — ${p.url}`}
-                className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              <Tippy
+                content={`${p.name} — ${p.url}`}
+                className='whitespace-no-wrap z-8 relative w-auto rounded-md bg-black p-2 text-xs text-white shadow-lg'
+                interactive={true}
+                interactiveBorder={20}
+                offset={[0, 5]}
+                delay={[250, 0]}
+                placement='top'
               >
-                <img
-                  alt='identity provider icon'
-                  className='h-4'
-                  src={`/providers/${p.kind}.svg`}
-                />
-                <span className='items-center truncate pl-4 text-gray-800'>
-                  {providersList.filter(i => i.kind === p.kind) ? (
-                    <div className='truncate'>
-                      <span>Log in with {p.name}</span>
-                    </div>
-                  ) : (
-                    'Single Sign-On'
-                  )}
-                </span>
-              </button>
+                <button
+                  onClick={() => oidcLogin({ ...p }, next)}
+                  key={p.id}
+                  className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                >
+                  <img
+                    alt='identity provider icon'
+                    className='h-4'
+                    src={`/providers/${p.kind}.svg`}
+                  />
+                  <span className='items-center truncate pl-4 text-gray-800'>
+                    {providersList.filter(i => i.kind === p.kind) ? (
+                      <div className='truncate'>
+                        <span>Log in with {p.name}</span>
+                      </div>
+                    ) : (
+                      'Single Sign-On'
+                    )}
+                  </span>
+                </button>
+              </Tippy>
             )
         )}
       </div>
