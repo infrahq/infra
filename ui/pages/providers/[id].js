@@ -176,7 +176,7 @@ export default function ProvidersEditDetails() {
                 type='search'
                 value={name}
                 onKeyDown={e => {
-                  if (e.key === 'Escape') {
+                  if (e.key === 'Escape' || e.key === 'Esc') {
                     e.preventDefault()
                   }
                 }}

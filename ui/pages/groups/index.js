@@ -58,7 +58,7 @@ function AddGroupsDialog({ setOpen }) {
                 spellCheck='false'
                 type='search'
                 onKeyDown={e => {
-                  if (e.key === 'Escape') {
+                  if (e.key === 'Escape' || e.key === 'Esc') {
                     e.preventDefault()
                   }
                 }}
