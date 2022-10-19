@@ -78,6 +78,7 @@ type Options struct {
 	Addr ListenerOptions
 	UI   UIOptions
 	TLS  TLSOptions
+	API  APIOptions
 
 	DB data.NewDBOptions
 }
@@ -105,6 +106,11 @@ type TLSOptions struct {
 	// certificate will be requested from Let's Encrypt, which will be cached
 	// in the TLSCache.
 	ACME bool
+}
+
+type APIOptions struct {
+	RequestTimeout         time.Duration
+	BlockingRequestTimeout time.Duration
 }
 
 type Server struct {

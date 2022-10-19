@@ -728,7 +728,7 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 
 func addUpdateIndexAndGrantNotify() *migrator.Migration {
 	return &migrator.Migration{
-		ID: "2022-09-21T13:50",
+		ID: "2022-10-17T18:00",
 		Migrate: func(tx migrator.DB) error {
 			if _, err := tx.Exec(`
 				CREATE SEQUENCE IF NOT EXISTS seq_update_index
@@ -751,10 +751,8 @@ func addUpdateIndexAndGrantNotify() *migrator.Migration {
 CREATE OR REPLACE FUNCTION grants_notify() RETURNS trigger
 	LANGUAGE PLPGSQL
 	AS $$
-DECLARE
-	destination text := split_part(NEW.resource, '.', 1);
 BEGIN
-PERFORM pg_notify('grants_by_destination_' || NEW.organization_id || '_' || destination, '');
+PERFORM pg_notify(current_schema() || '.grants_' || NEW.organization_id, row_to_json(NEW)::text);
 RETURN NULL;
 END; $$;
 
@@ -775,7 +773,7 @@ CREATE OR REPLACE FUNCTION listen_on_chan(chan text) RETURNS void
 LANGUAGE PLPGSQL
 AS $$
 BEGIN
-    EXECUTE format('LISTEN %I', chan);
+    EXECUTE format('LISTEN %I', current_schema() || '.' || chan);
 END; $$;
 `
 			if _, err := tx.Exec(fn); err != nil {

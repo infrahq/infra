@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -320,4 +321,48 @@ func TestRequestTimeout(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, resp.Body.String())
 
 	assert.Assert(t, elapsed < 1500*time.Millisecond, "expected request to time out due to the timeout context, but it did not")
+}
+
+func TestGenerateRoutes_OneRequestDoesNotBlockOthers(t *testing.T) {
+	withShortRequestTimeout := func(t *testing.T, options *Options) {
+		options.API.RequestTimeout = 250 * time.Millisecond
+		options.API.BlockingRequestTimeout = 1500 * time.Millisecond
+	}
+	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
+	routes := srv.GenerateRoutes()
+
+	g := errgroup.Group{}
+	// start a blocking request in the background
+	g.Go(func() error {
+		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		return nil
+	})
+
+	// perform many short-lived requests with the same user
+	start := time.Now()
+	var count int
+	for time.Since(start) < srv.options.API.BlockingRequestTimeout && count < 3 {
+		urlPath := "/api/grants?destination=infra"
+		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+		count++
+	}
+
+	assert.NilError(t, g.Wait())
+	// The count is likely close to 40, but use a low threshold to prevent flakes.
+	// Anything more than 2 should indicate the requests did not block each other.
+	assert.Assert(t, count >= 3, "count=%d", count)
 }

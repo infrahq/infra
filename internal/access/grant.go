@@ -91,7 +91,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return result, nil
 	}
 
-	_, err = listener.WaitForNotification(rCtx.Request.Context())
+	err = listener.WaitForNotification(rCtx.Request.Context())
 	if err != nil {
 		return result, fmt.Errorf("waiting for notify: %w", err)
 	}

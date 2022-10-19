@@ -782,7 +782,7 @@ DELETE FROM settings WHERE id=24567;
 			},
 		},
 		{
-			label: testCaseLine("2022-09-21T13:50"),
+			label: testCaseLine("2022-10-17T18:00"),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},

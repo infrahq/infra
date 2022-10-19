@@ -31,6 +31,10 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	options := Options{
 		SessionDuration:          10 * time.Minute,
 		SessionExtensionDeadline: 30 * time.Minute,
+		API: APIOptions{
+			RequestTimeout:         time.Minute,
+			BlockingRequestTimeout: 5 * time.Minute,
+		},
 	}
 	for _, op := range ops {
 		op(t, &options)
@@ -113,6 +117,7 @@ func TestServer_Run(t *testing.T) {
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
 			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
 		},
+		API: APIOptions{RequestTimeout: time.Minute},
 	}
 
 	driver := database.PostgresDriver(t, "_server_run")
@@ -211,6 +216,7 @@ func TestServer_Run_UIProxy(t *testing.T) {
 			CA:           types.StringOrFile(golden.Get(t, "pki/ca.crt")),
 			CAPrivateKey: string(golden.Get(t, "pki/ca.key")),
 		},
+		API: APIOptions{RequestTimeout: time.Minute},
 	}
 	assert.NilError(t, opts.UI.ProxyURL.Set(uiSrv.URL))
 

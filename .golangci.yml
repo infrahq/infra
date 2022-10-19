@@ -27,6 +27,8 @@ issues:
       text: "\"io/ioutil\" has been deprecated"
     - linters: [errcheck]
       text: "tx\\.Rollback"
+    - linters: [noctx]
+      path: "_test\\.go"
 
 linters:
   enable:

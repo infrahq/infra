@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -48,7 +49,7 @@ func (s *Server) GenerateRoutes() Routes {
 	// This group of middleware will apply to everything, including the UI
 	router.Use(
 		loggingMiddleware(s.options.EnableLogSampling),
-		TimeoutMiddleware(1*time.Minute),
+		TimeoutMiddleware(s.options.API.RequestTimeout),
 	)
 
 	// This group of middleware only applies to non-ui routes
@@ -212,22 +213,29 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			return err
 		}
 
+		if r, ok := any(req).(isBlockingRequest); ok && r.IsBlockingRequest() {
+			ctx, cancel := newExtendedDeadlineContext(
+				c.Request.Context(),
+				a.server.options.API.BlockingRequestTimeout)
+			defer cancel()
+			c.Request = c.Request.WithContext(ctx)
+		}
+
 		tx, err := a.server.db.Begin(c.Request.Context(), route.txnOptions)
 		if err != nil {
 			return err
 		}
 		defer logError(tx.Rollback, "failed to rollback request handler transaction")
 
+		if org := authned.Organization; org != nil {
+			tx = tx.WithOrgID(org.ID)
+		}
 		rCtx := access.RequestContext{
 			Request:       c.Request,
 			DBTxn:         tx,
 			Authenticated: authned,
 			DataDB:        a.server.db,
 		}
-		if org := rCtx.Authenticated.Organization; org != nil {
-			tx = tx.WithOrgID(org.ID)
-		}
-		rCtx.DBTxn = tx
 		c.Set(access.RequestContextKey, rCtx)
 
 		resp, err := route.handler(c, req)
@@ -252,7 +260,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		if respHeaders, ok := any(resp).(hasResponseHeaders); ok {
 			respHeaders.SetHeaders(c.Writer.Header())
 		}
-		if r, ok := responseIsRedirect(resp); ok {
+		if r, ok := any(resp).(isRedirect); ok {
 			c.Redirect(http.StatusPermanentRedirect, r.RedirectURL())
 		} else {
 			c.JSON(responseStatusCode(routeID.method, resp), resp)
@@ -269,13 +277,30 @@ type isRedirect interface {
 	RedirectURL() string
 }
 
-func responseIsRedirect(resp interface{}) (isRedirect, bool) {
-	r, ok := resp.(isRedirect)
-	return r, ok
-}
-
 type statusCoder interface {
 	StatusCode() int
+}
+
+type isBlockingRequest interface {
+	IsBlockingRequest() bool
+}
+
+func newExtendedDeadlineContext(base context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	return extendedContext{Context: ctx, valuesCtx: base}, cancel
+}
+
+// extendedContext can be used to create a new context where only the values
+// come from the base context. The context deadline is redefined to a new
+// (must likely longer) value. This  allows us to extend the deadline by ignoring
+// the one that was set in the base context.
+type extendedContext struct {
+	context.Context
+	valuesCtx context.Context
+}
+
+func (e extendedContext) Value(key any) any {
+	return e.valuesCtx.Value(key)
 }
 
 var reflectTypeString = reflect.TypeOf("")

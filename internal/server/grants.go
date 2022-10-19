@@ -33,17 +33,20 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsR
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
-	p := PaginationFromRequest(r.PaginationRequest)
+	var p data.Pagination
 	opts := data.ListGrantsOptions{
 		ByResource:                 r.Resource,
 		BySubject:                  subject,
 		ByDestination:              r.Destination,
 		ExcludeConnectorGrant:      !r.ShowSystem,
 		IncludeInheritedFromGroups: r.ShowInherited,
-		Pagination:                 &p,
 	}
 	if r.Privilege != "" {
 		opts.ByPrivileges = []string{r.Privilege}
+	}
+	if !r.IsBlockingRequest() {
+		p = PaginationFromRequest(r.PaginationRequest)
+		opts.Pagination = &p
 	}
 
 	grants, err := access.ListGrants(c, opts, r.LastUpdateIndex)

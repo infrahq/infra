@@ -29,7 +29,9 @@ import (
 func setupDB(t *testing.T) *data.DB {
 	t.Helper()
 	tpatch.ModelsSymmetricKey(t)
-	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, "_server").DSN})
+
+	schema := "_server_" + generate.MathRandom(4, "0123456789")
+	db, err := data.NewDB(data.NewDBOptions{DSN: database.PostgresDriver(t, schema).DSN})
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, db.Close())
