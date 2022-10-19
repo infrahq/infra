@@ -60,7 +60,7 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		// if a user has no other providers, we need to remove the user.
 		userIDsToDelete := []uid.ID{}
 		for _, providerUser := range providerUsers {
-			user, err := GetIdentity(db, GetIdentityOptions{ByID: providerUser.IdentityID, PreloadProviders: true})
+			user, err := GetIdentity(db, GetIdentityOptions{ByID: providerUser.IdentityID, LoadProviders: true})
 			if err != nil {
 				if errors.Is(err, internal.ErrNotFound) {
 					continue

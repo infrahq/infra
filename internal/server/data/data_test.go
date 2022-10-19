@@ -94,7 +94,7 @@ func TestPaginationSelector(t *testing.T) {
 			assert.Equal(t, alphabeticalIdentities[i+(p.Page-1)*p.Limit], actual[i].Name)
 		}
 
-		p.Page = 2 // TODO: does this work
+		p.Page = 2
 		actual, err = ListIdentities(db, opts)
 		assert.NilError(t, err)
 		assert.Equal(t, len(actual), 10)

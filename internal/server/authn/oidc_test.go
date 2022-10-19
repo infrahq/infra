@@ -210,7 +210,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 				assert.NilError(t, err)
 				assert.Assert(t, g != nil)
 
-				user, err = data.GetIdentity(db, data.GetIdentityOptions{ByID: user.ID, PreloadGroups: true})
+				user, err = data.GetIdentity(db, data.GetIdentityOptions{ByID: user.ID, LoadGroups: true})
 				assert.NilError(t, err)
 				assert.Assert(t, user != nil)
 				assert.Equal(t, len(user.Groups), 2)
@@ -265,7 +265,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 
 			if err == nil {
 				// make sure the associations are still set when you reload the object.
-				u, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: a.Identity.ID, PreloadGroups: true})
+				u, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: a.Identity.ID, LoadGroups: true})
 				assert.NilError(t, err)
 				a.Identity = u
 				tc.expected(t, a)

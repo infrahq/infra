@@ -31,7 +31,7 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 		}
 	}
 
-	return data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByID: id, PreloadProviders: true})
+	return data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByID: id, LoadProviders: true})
 }
 
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
@@ -73,11 +73,11 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 	}
 
 	opts := data.ListIdentityOptions{
-		Pagination:       p,
-		ByName:           name,
-		ByIDs:            ids,
-		ByGroupID:        groupID,
-		PreloadProviders: true,
+		Pagination:    p,
+		ByName:        name,
+		ByIDs:         ids,
+		ByGroupID:     groupID,
+		LoadProviders: true,
 	}
 
 	if !showSystem {
