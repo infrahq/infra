@@ -55,3 +55,10 @@ type LoginResponse struct {
 	Expires                Time   `json:"expires"`
 	OrganizationName       string `json:"organizationName,omitempty"`
 }
+
+type LoginDeviceFlow struct {
+	AccessToken      string `json:"accessToken"`
+	RefreshToken     string `json:"refreshToken"`
+	ExpiresInSeconds int    `json:"expiresInSeconds"`
+	Scope            string `json:"scope"`
+}

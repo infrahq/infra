@@ -25,11 +25,7 @@ function AddGroupsDialog({ setOpen }) {
         body: JSON.stringify({ name }),
       })
 
-      const group = await res.json()
-
-      if (!res.ok) {
-        throw group
-      }
+      const group = await jsonBody(res)
 
       setOpen(false)
 

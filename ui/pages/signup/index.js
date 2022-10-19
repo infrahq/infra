@@ -35,12 +35,8 @@ export default function Signup() {
         }),
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
       // redirect to the new org subdomain
-      let created = await res.json()
+      let created = await jsonBody(res)
 
       window.location = `${window.location.protocol}//${created?.organization?.domain}`
       saveToVisitedOrgs(`${created?.organization?.domain}`, baseDomain, orgName)

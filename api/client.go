@@ -21,7 +21,10 @@ import (
 
 var apiVersion = "0.13.0"
 
-var ErrTimeout = errors.New("client timed out waiting for response from server")
+var (
+	ErrTimeout            = errors.New("client timed out waiting for response from server")
+	ErrDeviceLoginTimeout = errors.New("timed out waiting for user to complete device login")
+)
 
 const (
 	InfraAdminRole     = "admin"
@@ -212,6 +215,16 @@ func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
 
 func (c Client) DeleteUser(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/users/%s", id), Query{})
+}
+
+func (c Client) StartDeviceFlow() (*DeviceFlowResponse, error) {
+	return post[EmptyRequest, DeviceFlowResponse](c, "/api/device", nil)
+}
+
+func (c Client) PollDeviceFlow(req *PollDeviceFlowRequest) (*DevicePollResponse, error) {
+	return post[PollDeviceFlowRequest, DevicePollResponse](c, "/api/device/status", &PollDeviceFlowRequest{
+		DeviceCode: req.DeviceCode,
+	})
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {

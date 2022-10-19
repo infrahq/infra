@@ -12,6 +12,7 @@ const (
 	CharsetAlphaNumeric         = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	CharsetAlphaNumericNoVowels = "0123456789BCDFGHJKLMNPQRSTVWXYZbcdfghjklmnpqrstvwxyz" // For user-facing areas, to avoid profanity
 	CharsetPassword             = CharsetAlphaNumeric + `!@#$%^&*()_+-=[]|;:,./<>?`
+	CharsetDeviceFlowUserCode   = "BCDFGHJKLMNPQRSTVWXZ" // no vowels to avoid spelling words
 )
 
 func init() {

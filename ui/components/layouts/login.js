@@ -1,5 +1,4 @@
 import { useRouter } from 'next/router'
-
 import { useUser } from '../../lib/hooks'
 
 export default function Login({ children }) {

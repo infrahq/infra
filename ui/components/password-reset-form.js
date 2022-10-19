@@ -25,11 +25,7 @@ export default function PasswordResetForm() {
         }),
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
-
-      await res.json()
+      await jsonBody(res)
 
       await mutate('/api/users/self')
       router.replace('/')

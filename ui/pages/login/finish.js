@@ -30,9 +30,7 @@ export default function Finish() {
         body: JSON.stringify({ password }),
       })
 
-      if (!res.ok) {
-        throw await res.json()
-      }
+      await jsonBody(res)
 
       router.replace(next ? decodeURIComponent(next) : '/')
     } catch (e) {

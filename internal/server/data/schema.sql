@@ -133,6 +133,19 @@ CREATE TABLE destinations (
     organization_id bigint
 );
 
+CREATE TABLE device_flow_auth_requests (
+    id bigint NOT NULL,
+    user_code text NOT NULL,
+    device_code text NOT NULL,
+    approved boolean,
+    access_key_id bigint,
+    access_key_token text,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone
+);
+
 CREATE TABLE encryption_keys (
     id bigint NOT NULL,
     created_at timestamp with time zone,
@@ -309,6 +322,8 @@ CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (orga
 CREATE UNIQUE INDEX idx_destinations_name ON destinations USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations USING btree (organization_id, unique_id) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_dfar_user_code ON device_flow_auth_requests USING btree (user_code) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_emails_providers ON provider_users USING btree (email, provider_id);
 

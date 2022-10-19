@@ -67,11 +67,7 @@ export default function ProvidersEditDetails() {
           }),
         })
 
-        const data = await res.json()
-
-        if (!res.ok) {
-          throw data
-        }
+        await jsonBody(res)
 
         setShowNotification(true)
         timerRef.current = setTimeout(() => {
