@@ -254,39 +254,105 @@ func TestCertCache_Certificate(t *testing.T) {
 }
 
 func TestSyncGrantsToKubeBindings(t *testing.T) {
-	t.Skip()
-	ctx := context.Background()
-	waiter := &fakeWaiter{}
-	fakeK8s := &fakeKubeClient{}
-	fakeAPI := &fakeAPIClient{}
-	con := connector{
-		k8s:         fakeK8s,
-		client:      fakeAPI,
-		destination: &api.Destination{Name: "the-dest"},
+	type testCase struct {
+		name                     string
+		fakeAPI                  *fakeAPIClient
+		fakeKube                 *fakeKubeClient
+		expectedListGrantIndexes []int64
+		successCount             int
 	}
 
-	err := syncGrantsToKubeBindings(ctx, con, waiter)
-	assert.ErrorIs(t, err, errDone)
+	run := func(t *testing.T, tc testCase) {
+		ctx := context.Background()
+		waiter := &fakeWaiter{endAtIndex: 1}
+		if tc.fakeKube == nil {
+			tc.fakeKube = &fakeKubeClient{}
+		}
+		con := connector{
+			k8s:         tc.fakeKube,
+			client:      tc.fakeAPI,
+			destination: &api.Destination{Name: "the-dest"},
+		}
+
+		err := syncGrantsToKubeBindings(ctx, con, waiter)
+		assert.ErrorIs(t, err, errDone)
+
+		assert.Equal(t, len(waiter.resets), tc.successCount)
+		assert.DeepEqual(t, tc.fakeAPI.listGrantsIndexes, tc.expectedListGrantIndexes)
+	}
+
+	testCases := []testCase{
+		{
+			name: "successful update",
+			fakeAPI: &fakeAPIClient{
+				listGrantsResult: &api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
+						{User: uid.ID(124), Resource: "the-test.ns1", Privilege: "logs"},
+					},
+					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
+				},
+			},
+			expectedListGrantIndexes: []int64{1, 42},
+			successCount:             2,
+		},
+		{
+			name: "api blocking request timeout",
+			fakeAPI: &fakeAPIClient{
+				listGrantsError: api.Error{Code: http.StatusGatewayTimeout},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+			successCount:             2,
+		},
+		{
+			name: "error from api",
+			fakeAPI: &fakeAPIClient{
+				listGrantsError: api.Error{Code: http.StatusInternalServerError},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+		},
+		{
+			name: "failed to update kube",
+			fakeAPI: &fakeAPIClient{
+				listGrantsResult: &api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
+					},
+					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
+				},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+			fakeKube: &fakeKubeClient{
+				updateBindingsError: fmt.Errorf("failed to update"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 type fakeWaiter struct {
-	count  int
-	resets []int
+	index      int
+	resets     []int
+	endAtIndex int
 }
 
 func (f *fakeWaiter) Reset() {
-	f.resets = append(f.resets, f.count)
-	f.count = 0
+	f.resets = append(f.resets, f.index)
 }
 
 func (f *fakeWaiter) Wait(ctx context.Context) error {
-	if f.count > 10 {
+	if f.index >= f.endAtIndex {
 		return errDone
 	}
 	if ctx.Err() != nil {
 		return errDone
 	}
-	f.count++
+	f.index++
 	return nil
 }
 
@@ -295,12 +361,14 @@ var errDone = fmt.Errorf("done")
 type fakeAPIClient struct {
 	api.Client
 
-	listGrantsResult []api.Grant
-	listGrantsError  error
+	listGrantsResult  *api.ListResponse[api.Grant]
+	listGrantsError   error
+	listGrantsIndexes []int64
 }
 
 func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
-	return &api.ListResponse[api.Grant]{Items: f.listGrantsResult}, f.listGrantsError
+	f.listGrantsIndexes = append(f.listGrantsIndexes, req.LastUpdateIndex)
+	return f.listGrantsResult, f.listGrantsError
 }
 
 func (f *fakeAPIClient) GetGroup(id uid.ID) (*api.Group, error) {
