@@ -263,18 +263,24 @@ func ValidateRequestAccessKey(tx WriteTxn, authnKey string) (*models.AccessKey, 
 		return nil, fmt.Errorf("access key invalid secret")
 	}
 
-	if time.Now().UTC().After(t.ExpiresAt) {
+	now := time.Now().UTC()
+	if now.After(t.ExpiresAt) {
 		return nil, ErrAccessKeyExpired
 	}
 
 	if !t.ExtensionDeadline.IsZero() {
-		if time.Now().UTC().After(t.ExtensionDeadline) {
+		if now.After(t.ExtensionDeadline) {
 			return nil, ErrAccessKeyDeadlineExceeded
 		}
 
-		t.ExtensionDeadline = time.Now().UTC().Add(t.Extension)
-		if err := UpdateAccessKey(tx, t); err != nil {
-			return nil, err
+		origDeadline := t.ExtensionDeadline
+		t.ExtensionDeadline = now.Add(t.Extension)
+		// Throttle updates when the key is used frequently. Uses the
+		// same value as server.lastSeenUpdateThreshold.
+		if t.ExtensionDeadline.Sub(origDeadline) > 2*time.Second {
+			if err := UpdateAccessKey(tx, t); err != nil {
+				return nil, err
+			}
 		}
 	}
 
