@@ -18,7 +18,7 @@ import (
 
 const DeviceCodeExpirySeconds = 600
 
-func (a *API) StartDeviceFlow(c *gin.Context, req *api.StartDeviceFlowRequest) (*api.DeviceFlowResponse, error) {
+func (a *API) StartDeviceFlow(c *gin.Context, req *api.EmptyRequest) (*api.DeviceFlowResponse, error) {
 	rctx := getRequestContext(c)
 	tries := 0
 retry:

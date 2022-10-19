@@ -66,7 +66,7 @@ func TestDeviceFlow(t *testing.T) {
 
 	// start flow
 	dfResp := &api.DeviceFlowResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device", api.StartDeviceFlowRequest{}, dfResp)
+	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
 
 	// get flow status pending
 	pollResp := &api.DevicePollResponse{}

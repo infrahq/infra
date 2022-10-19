@@ -1,10 +1,12 @@
 package data
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
@@ -44,7 +46,7 @@ func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
 	}
 
 	if len(err) > 0 {
-		return err
+		return fmt.Errorf("%w: %s", internal.ErrInternalServerError, err)
 	}
 
 	return nil

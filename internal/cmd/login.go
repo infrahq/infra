@@ -502,7 +502,7 @@ func attemptTLSRequest(options loginCmdOptions) error {
 const spinChars = `\|/-`
 
 func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
-	resp, err := client.StartDeviceFlow(&api.StartDeviceFlowRequest{})
+	resp, err := client.StartDeviceFlow()
 	if err != nil {
 		return nil, err
 	}

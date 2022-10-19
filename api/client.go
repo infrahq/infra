@@ -217,8 +217,8 @@ func (c Client) DeleteUser(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
-func (c Client) StartDeviceFlow(req *StartDeviceFlowRequest) (*DeviceFlowResponse, error) {
-	return post[StartDeviceFlowRequest, DeviceFlowResponse](c, "/api/device", req)
+func (c Client) StartDeviceFlow() (*DeviceFlowResponse, error) {
+	return post[EmptyRequest, DeviceFlowResponse](c, "/api/device", nil)
 }
 
 func (c Client) PollDeviceFlow(req *PollDeviceFlowRequest) (*DevicePollResponse, error) {
