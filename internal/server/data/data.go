@@ -134,7 +134,7 @@ func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, erro
 	if err := tx.Error; err != nil {
 		return nil, err
 	}
-	return &Transaction{DB: tx, committed: new(atomic.Bool)}, nil
+	return &Transaction{DB: tx, completed: new(atomic.Bool)}, nil
 }
 
 // GormTxn is used as a shim in preparation for removing gorm.
@@ -150,7 +150,7 @@ type GormTxn interface {
 type Transaction struct {
 	*gorm.DB
 	orgID     uid.ID
-	committed *atomic.Bool
+	completed *atomic.Bool
 }
 
 func (t *Transaction) DriverName() string {
@@ -181,16 +181,20 @@ func (t *Transaction) GormDB() *gorm.DB {
 // Rollback the transaction. If the transaction was already committed then do
 // nothing.
 func (t *Transaction) Rollback() error {
-	if t.committed.Load() {
+	if t.completed.Load() {
 		return nil
 	}
-	return t.DB.Rollback().Error
+	err := t.DB.Rollback().Error
+	if err == nil {
+		t.completed.Store(true)
+	}
+	return err
 }
 
 func (t *Transaction) Commit() error {
 	err := t.DB.Commit().Error
 	if err == nil {
-		t.committed.Store(true)
+		t.completed.Store(true)
 	}
 	return err
 }

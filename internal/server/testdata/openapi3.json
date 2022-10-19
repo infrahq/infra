@@ -305,6 +305,83 @@
           }
         }
       },
+      "ListGrantsResponse": {
+        "properties": {
+          "count": {
+            "format": "int",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "created_by": {
+                  "description": "id of the user that created the grant",
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "group": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "privilege": {
+                  "description": "a role or permission",
+                  "type": "string"
+                },
+                "resource": {
+                  "description": "a resource name in Infra's Universal Resource Notation",
+                  "type": "string"
+                },
+                "updated": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "user": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "limit": {
+            "format": "int",
+            "type": "integer"
+          },
+          "page": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalCount": {
+            "format": "int",
+            "type": "integer"
+          },
+          "totalPages": {
+            "format": "int",
+            "type": "integer"
+          }
+        }
+      },
       "ListResponse_AccessKey": {
         "properties": {
           "count": {
@@ -451,83 +528,6 @@
                   "type": "string"
                 },
                 "version": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "limit": {
-            "format": "int",
-            "type": "integer"
-          },
-          "page": {
-            "format": "int",
-            "type": "integer"
-          },
-          "totalCount": {
-            "format": "int",
-            "type": "integer"
-          },
-          "totalPages": {
-            "format": "int",
-            "type": "integer"
-          }
-        }
-      },
-      "ListResponse_Grant": {
-        "properties": {
-          "count": {
-            "format": "int",
-            "type": "integer"
-          },
-          "items": {
-            "items": {
-              "properties": {
-                "created": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "created_by": {
-                  "description": "id of the user that created the grant",
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "group": {
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "id": {
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                  "type": "string"
-                },
-                "privilege": {
-                  "description": "a role or permission",
-                  "type": "string"
-                },
-                "resource": {
-                  "description": "a resource name in Infra's Universal Resource Notation",
-                  "type": "string"
-                },
-                "updated": {
-                  "description": "formatted as an RFC3339 date-time",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "user": {
-                  "example": "4yJ3n3D8E2",
-                  "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 }
               },
@@ -2270,6 +2270,9 @@
             "name": "destination",
             "schema": {
               "example": "production",
+              "format": "[a-zA-Z0-9\\-_]",
+              "maxLength": 256,
+              "minLength": 2,
               "type": "string"
             }
           },
@@ -2298,6 +2301,16 @@
             "schema": {
               "description": "if true, this shows the connector and other internal grants",
               "type": "boolean"
+            }
+          },
+          {
+            "description": "set this to the value of the Last-Update-Index response header to block until the list results have changed",
+            "in": "query",
+            "name": "lastUpdateIndex",
+            "schema": {
+              "description": "set this to the value of the Last-Update-Index response header to block until the list results have changed",
+              "format": "int64",
+              "type": "integer"
             }
           },
           {
@@ -2375,7 +2388,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ListResponse_Grant"
+                  "$ref": "#/components/schemas/ListGrantsResponse"
                 }
               }
             },

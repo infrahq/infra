@@ -108,7 +108,7 @@ func (s StringRule) Validate() *Failure {
 	}
 
 	if len(problems) > 0 {
-		return fail(s.Name, problems...)
+		return Fail(s.Name, problems...)
 	}
 	return nil
 }
@@ -144,7 +144,7 @@ func (e enum) Validate() *Failure {
 		}
 	}
 	msg := fmt.Sprintf("must be one of (%v)", strings.Join(e.Allowed, ", "))
-	return fail(e.Name, msg)
+	return Fail(e.Name, msg)
 }
 
 func (e enum) DescribeSchema(parent *openapi3.Schema) {
@@ -173,7 +173,7 @@ func (r reserved) Validate() *Failure {
 	for _, notAllowed := range r.Reserved {
 		if r.Value == notAllowed {
 			msg := fmt.Sprintf("%v is reserved and can not be used", r.Value)
-			return fail(r.Name, msg)
+			return Fail(r.Name, msg)
 		}
 	}
 	return nil

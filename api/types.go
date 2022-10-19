@@ -2,6 +2,8 @@ package api
 
 import (
 	"bytes"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -132,6 +134,10 @@ type ListResponse[T any] struct {
 	PaginationResponse `json:",inline"`
 	Count              int `json:"count"`
 	Items              []T `json:"items"`
+
+	// LastUpdateIndex is set to the latest update index for any request made
+	// with the updateIndex query parameter.
+	LastUpdateIndex `json:"-"`
 }
 
 func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M) T) *ListResponse[T] {
@@ -146,6 +152,19 @@ func NewListResponse[T, M any](items []M, pr PaginationResponse, fn func(item M)
 	}
 
 	return result
+}
+
+type LastUpdateIndex struct {
+	Index int64 `json:"-"`
+}
+
+func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
+	if idx := header.Get("Last-Update-Index"); idx != "" {
+		var err error
+		l.Index, err = strconv.ParseInt(idx, 10, 64)
+		return err
+	}
+	return nil
 }
 
 // PEM is a base64 encoded string, commonly used to store certificates and

@@ -24,14 +24,14 @@ func (e email) Validate() *Failure {
 	}
 	addr, err := mail.ParseAddress(e.value)
 	if err != nil {
-		return fail(e.name, "invalid email address")
+		return Fail(e.name, "invalid email address")
 	}
 	if addr.Name != "" {
-		return fail(e.name, fmt.Sprintf("email address must not contain display name %q", addr.Name))
+		return Fail(e.name, fmt.Sprintf("email address must not contain display name %q", addr.Name))
 	}
 	// domain must contain at least one dot. ParseAddress already checks that it's not leading or trailing
 	if !strings.Contains(strings.Split(addr.Address, "@")[1], ".") {
-		return fail(e.name, "email address must contain at least one '.' character")
+		return Fail(e.name, "email address must contain at least one '.' character")
 	}
 	return nil
 }

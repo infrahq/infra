@@ -36,7 +36,7 @@ func (i IntRule) Validate() *Failure {
 	}
 
 	if len(problems) > 0 {
-		return fail(i.Name, problems...)
+		return Fail(i.Name, problems...)
 	}
 	return nil
 }

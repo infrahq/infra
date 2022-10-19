@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -14,7 +16,15 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+type ListGrantsResponse api.ListResponse[api.Grant]
+
+func (r ListGrantsResponse) SetHeaders(h http.Header) {
+	if r.LastUpdateIndex.Index > 0 {
+		h.Set("Last-Update-Index", strconv.FormatInt(r.LastUpdateIndex.Index, 10))
+	}
+}
+
+func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsResponse, error) {
 	var subject uid.PolymorphicID
 	switch {
 	case r.User != 0:
@@ -36,16 +46,17 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*api.ListRes
 		opts.ByPrivileges = []string{r.Privilege}
 	}
 
-	grants, err := access.ListGrants(c, opts)
+	grants, err := access.ListGrants(c, opts, r.LastUpdateIndex)
 	if err != nil {
 		return nil, err
 	}
 
-	result := api.NewListResponse(grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
+	result := api.NewListResponse(grants.Grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()
 	})
+	result.LastUpdateIndex.Index = grants.MaxUpdateIndex
 
-	return result, nil
+	return (*ListGrantsResponse)(result), nil
 }
 
 func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
@@ -82,17 +93,17 @@ func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.Creat
 			BySubject:    grant.Subject,
 			ByPrivileges: []string{grant.Privilege},
 		}
-		grants, err := access.ListGrants(c, opts)
+		grants, err := access.ListGrants(c, opts, 0)
 
 		if err != nil {
 			return nil, err
 		}
 
-		if len(grants) == 0 {
+		if len(grants.Grants) == 0 {
 			return nil, fmt.Errorf("duplicate grant exists, but cannot be found")
 		}
 
-		return &api.CreateGrantResponse{Grant: grants[0].ToAPI()}, nil
+		return &api.CreateGrantResponse{Grant: grants.Grants[0].ToAPI()}, nil
 	}
 
 	if err != nil {
@@ -114,12 +125,12 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 			ByResource:   access.ResourceInfraAPI,
 			ByPrivileges: []string{models.InfraAdminRole},
 		}
-		infraAdminGrants, err := access.ListGrants(c, opts)
+		infraAdminGrants, err := access.ListGrants(c, opts, 0)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(infraAdminGrants) == 1 {
+		if len(infraAdminGrants.Grants) == 1 {
 			return nil, fmt.Errorf("%w: cannot remove the last infra admin", internal.ErrBadRequest)
 		}
 	}

@@ -159,3 +159,36 @@ func TestDelete(t *testing.T) {
 		assert.Equal(t, r.URL.Path, "/good")
 	})
 }
+
+func TestListGrants(t *testing.T) {
+	handler := func(resp http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			resp.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		switch r.URL.Path {
+		case "/api/grants":
+			resp.Header().Set("Last-Update-Index", "10010")
+			resp.WriteHeader(http.StatusOK)
+			_, _ = resp.Write([]byte(`{}`))
+		default:
+			resp.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+	srv := httptest.NewServer(http.HandlerFunc(handler))
+
+	c := Client{
+		Name:      "testing",
+		Version:   "version",
+		URL:       srv.URL,
+		AccessKey: "the-access-key",
+	}
+
+	t.Run("sets value from Last-Update-Index header", func(t *testing.T) {
+		resp, err := c.ListGrants(ListGrantsRequest{Resource: "anything"})
+		assert.NilError(t, err)
+
+		assert.Equal(t, resp.LastUpdateIndex.Index, int64(10010))
+	})
+}
