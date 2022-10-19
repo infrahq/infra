@@ -80,6 +80,7 @@ func (s *Server) GenerateRoutes() Routes {
 	get(a, authn, "/api/grants/:id", a.GetGrant)
 	post(a, authn, "/api/grants", a.CreateGrant)
 	del(a, authn, "/api/grants/:id", a.DeleteGrant)
+	patch(a, authn, "/api/grants", a.UpdateGrants)
 
 	post(a, authn, "/api/providers", a.CreateProvider)
 	patch(a, authn, "/api/providers/:id", a.PatchProvider)

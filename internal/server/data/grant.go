@@ -388,3 +388,57 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
+
+func CreateGrants(tx WriteTxn, grants []*models.Grant) error {
+	if len(grants) == 0 {
+		return nil
+	}
+
+	for _, g := range grants {
+		switch {
+		case g.Subject == "":
+			return fmt.Errorf("subject is required")
+		case g.Privilege == "":
+			return fmt.Errorf("privilege is required")
+		case g.Resource == "":
+			return fmt.Errorf("resource is required")
+		}
+
+		if err := g.OnInsert(); err != nil {
+			return err
+		}
+		setOrg(tx, g)
+	}
+
+	table := (*grantsTable)(grants[0])
+	query := querybuilder.New("INSERT INTO grants")
+	query.B("(")
+	query.B(columnsForInsert(table))
+	query.B(", update_index")
+	query.B(") VALUES ")
+
+	columnTemplate := "(" + placeholderForColumns(table) + ", nextval('seq_update_index') )"
+	for i, g := range grants {
+		gt := (*grantsTable)(g)
+		query.B(columnTemplate, gt.Values()...)
+		if i+1 != len(grants) {
+			query.B(",")
+		}
+	}
+
+	// Use a savepoint so that we can query for the duplicate grant on conflict
+	if _, err := tx.Exec("SAVEPOINT beforeCreate"); err != nil {
+		// ignore "not in a transaction" error, because outside of a transaction
+		// the db conn can continue to be used after the conflict error.
+		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
+			return err
+		}
+	}
+	_, err := tx.Exec(query.String(), query.Args...)
+	if err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeCreate")
+		return handleError(err)
+	}
+	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
+	return err
+}

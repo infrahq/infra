@@ -11,6 +11,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -139,4 +140,37 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	return nil, access.DeleteGrant(c, r.ID)
+}
+
+func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
+	logging.Debugf("Updating grants")
+
+	iden := access.GetRequestContext(c).Authenticated.User
+	var addGrants []*models.Grant
+	for _, g := range r.GrantsToAdd {
+		grant := getGrantFromGrantRequest(g)
+		grant.CreatedBy = iden.ID
+		addGrants = append(addGrants, grant)
+	}
+
+	logging.Debugf("calling access.UpdateGrants")
+
+	return nil, access.UpdateGrants(c, addGrants)
+}
+
+func getGrantFromGrantRequest(r api.CreateGrantRequest) *models.Grant {
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.User != 0:
+		subject = uid.NewIdentityPolymorphicID(r.User)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
+	return &models.Grant{
+		Subject:   subject,
+		Resource:  r.Resource,
+		Privilege: r.Privilege,
+	}
 }

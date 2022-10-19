@@ -159,3 +159,8 @@ func (r CreateGrantRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("resource", r.Resource),
 	}
 }
+
+type UpdateGrantsRequest struct {
+	GrantsToAdd    []CreateGrantRequest `json:"grantsToAdd"`
+	GrantsToRemove []CreateGrantRequest `json:"grantsToRemove"`
+}

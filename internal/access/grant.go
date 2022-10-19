@@ -177,3 +177,17 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 
 	return data.DeleteGrants(db, data.DeleteGrantsOptions{ByID: id})
 }
+
+func UpdateGrants(c *gin.Context, grants []*models.Grant) error {
+	db, err := RequireInfraRole(c, models.InfraAdminRole)
+	if err != nil {
+		return HandleAuthErr(err, "grant", "create", "")
+	}
+
+	err = data.CreateGrants(db, grants)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
