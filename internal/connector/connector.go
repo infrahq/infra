@@ -80,7 +80,7 @@ type KubernetesOptions struct {
 
 // connector stores all the dependencies for the connector operations.
 type connector struct {
-	k8s         *kubernetes.Kubernetes
+	k8s         kubeClient
 	client      apiClient
 	destination *api.Destination
 	certCache   *CertCache
@@ -98,6 +98,16 @@ type apiClient interface {
 	// the name of the group or user in the ListGrants response.
 	GetGroup(id uid.ID) (*api.Group, error)
 	GetUser(id uid.ID) (*api.User, error)
+}
+
+type kubeClient interface {
+	Namespaces() ([]string, error)
+	ClusterRoles() ([]string, error)
+	IsServiceTypeClusterIP() (bool, error)
+	Endpoint() (string, int, error)
+
+	UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error
+	UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error
 }
 
 func Run(ctx context.Context, options Options) error {
@@ -211,7 +221,7 @@ func Run(ctx context.Context, options Options) error {
 			Multiplier:          1.5,
 		}
 		waiter := repeat.NewWaiter(backOff)
-		return syncWithServer(ctx, con, waiter)
+		return syncGrantsToKubeBindings(ctx, con, waiter)
 	})
 	group.Go(func() error {
 		// TODO: how long should this wait? Use exponential backoff on error?
@@ -409,7 +419,7 @@ func syncDestination(ctx context.Context, con connector) error {
 	return nil
 }
 
-func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPort, error) {
+func getEndpointHostPort(k8s kubeClient, opts Options) (types.HostPort, error) {
 	if opts.EndpointAddr.Host != "" {
 		return opts.EndpointAddr, nil
 	}
@@ -422,7 +432,12 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	return types.HostPort{Host: host, Port: port}, nil
 }
 
-func syncWithServer(ctx context.Context, con connector, waiter *repeat.Waiter) error {
+type waiter interface {
+	Reset()
+	Wait(ctx context.Context) error
+}
+
+func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter) error {
 	var latestIndex int64 = 1
 
 	sync := func() error {
@@ -473,7 +488,7 @@ func syncWithServer(ctx context.Context, con connector, waiter *repeat.Waiter) e
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(c apiClient, k *kubernetes.Kubernetes, grants []api.Grant) error {
+func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject

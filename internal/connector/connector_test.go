@@ -2,6 +2,7 @@ package connector
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -19,9 +20,13 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gotest.tools/v3/assert"
+	rbacv1 "k8s.io/api/rbac/v1"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestAuthenticator_Authenticate(t *testing.T) {
@@ -246,4 +251,79 @@ func TestCertCache_Certificate(t *testing.T) {
 		assert.Equal(t, len(parsedCert.DNSNames), 1)
 		assert.Equal(t, parsedCert.DNSNames[0], "test-host")
 	})
+}
+
+func TestSyncGrantsToKubeBindings(t *testing.T) {
+	t.Skip()
+	ctx := context.Background()
+	waiter := &fakeWaiter{}
+	fakeK8s := &fakeKubeClient{}
+	fakeAPI := &fakeAPIClient{}
+	con := connector{
+		k8s:         fakeK8s,
+		client:      fakeAPI,
+		destination: &api.Destination{Name: "the-dest"},
+	}
+
+	err := syncGrantsToKubeBindings(ctx, con, waiter)
+	assert.ErrorIs(t, err, errDone)
+}
+
+type fakeWaiter struct {
+	count  int
+	resets []int
+}
+
+func (f *fakeWaiter) Reset() {
+	f.resets = append(f.resets, f.count)
+	f.count = 0
+}
+
+func (f *fakeWaiter) Wait(ctx context.Context) error {
+	if f.count > 10 {
+		return errDone
+	}
+	if ctx.Err() != nil {
+		return errDone
+	}
+	f.count++
+	return nil
+}
+
+var errDone = fmt.Errorf("done")
+
+type fakeAPIClient struct {
+	api.Client
+
+	listGrantsResult []api.Grant
+	listGrantsError  error
+}
+
+func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+	return &api.ListResponse[api.Grant]{Items: f.listGrantsResult}, f.listGrantsError
+}
+
+func (f *fakeAPIClient) GetGroup(id uid.ID) (*api.Group, error) {
+	return &api.Group{Name: "the-group"}, nil
+}
+
+func (f *fakeAPIClient) GetUser(id uid.ID) (*api.User, error) {
+	return &api.User{Name: "theuser@example.com"}, nil
+}
+
+type fakeKubeClient struct {
+	kubernetes.Kubernetes
+	updateBindingsError           error
+	updateClusterRoleBindingsArgs []map[string][]rbacv1.Subject
+	updateRoleBindingsArgs        []map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject
+}
+
+func (f *fakeKubeClient) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error {
+	f.updateClusterRoleBindingsArgs = append(f.updateClusterRoleBindingsArgs, subjects)
+	return f.updateBindingsError
+}
+
+func (f *fakeKubeClient) UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error {
+	f.updateRoleBindingsArgs = append(f.updateRoleBindingsArgs, subjects)
+	return f.updateBindingsError
 }
