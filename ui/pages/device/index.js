@@ -39,7 +39,7 @@ export default function DeviceShow() {
           <h1 className='text-base font-bold leading-snug'>Device Code</h1>
           {codeEntered ? (
             <p className='my-3 flex max-w-[260px] flex-1 flex-col items-center justify-center text-center text-s text-gray-600'>
-              You've authorized the new device. You can close this window.
+              You&apos;ve authorized the new device. You can close this window.
             </p>
           ) : (
             <>
@@ -63,10 +63,9 @@ export default function DeviceShow() {
                     placeholder='AAAA-BBBB'
                     type='text'
                     name='code'
-                    style={{"textTransform": 'uppercase'}}
                     value={code}
                     onChange={e => setCode(e.target.value)}
-                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 lg:text-lg ${
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 lg:text-lg uppercase ${
                       error ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -77,8 +76,9 @@ export default function DeviceShow() {
                   )}
                 </div>
                 <button
+                  type='submit'
                   disabled={codeEntered}
-                  className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'
+                  className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm  disabled:cursor-not-allowed disabled:opacity-30'
                 >
                   Confirm and Authorize New Device
                 </button>
