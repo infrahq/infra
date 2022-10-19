@@ -94,7 +94,7 @@ function NamespacesDropdownMenu({
               ref={setPopperElement}
               style={styles.popper}
               {...attributes.popper}
-              className='absolute z-[8] w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
+              className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
             >
               <div className='max-h-64 overflow-auto'>
                 {resources?.map(r => (

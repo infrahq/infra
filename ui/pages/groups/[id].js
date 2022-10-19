@@ -47,7 +47,7 @@ function ComboBox({ options = [], selected, setSelected }) {
         <HeadlessUIComboBox.Button className='hidden' ref={button} />
 
         {filtered?.length > 0 && (
-          <HeadlessUIComboBox.Options className='absolute z-10 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
+          <HeadlessUIComboBox.Options className='absolute z-30 mt-2 max-h-64 min-w-[16rem] max-w-full overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'>
             {filtered.map(o => (
               <HeadlessUIComboBox.Option
                 key={o}

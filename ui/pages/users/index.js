@@ -217,7 +217,7 @@ export default function Users() {
             >
               <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
             </Transition.Child>
-            <div className='fixed inset-0 z-10 overflow-y-auto'>
+            <div className='fixed inset-0 z-30 overflow-y-auto'>
               <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
                 <Transition.Child
                   as={Fragment}
@@ -363,7 +363,7 @@ export default function Users() {
                           leaveFrom='transform opacity-100 scale-100'
                           leaveTo='transform opacity-0 scale-95'
                         >
-                          <Menu.Items className='absolute right-0 z-10 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                          <Menu.Items className='absolute right-0 z-30 mt-2 w-40 origin-top-right divide-y divide-gray-100 rounded-md bg-white shadow-lg shadow-gray-300/20 ring-1 ring-black ring-opacity-5 focus:outline-none'>
                             <div className='px-1 py-1'>
                               <Menu.Item>
                                 {({ active }) => (
