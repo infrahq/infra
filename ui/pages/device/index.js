@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import DashboardLayout from '../../components/layouts/dashboard'
 
-export default function DeviceShow() {
+export default function Device() {
   const router = useRouter()
   const [code, setCode] = useState(router.query.code)
   const [codeEntered, setCodeEntered] = useState(false)
@@ -36,28 +36,21 @@ export default function DeviceShow() {
   return (
     <div className='flex min-h-[280px] w-full flex-col items-center px-10 py-8'>
       <>
-        <h1 className='text-base font-bold leading-snug'>Device Code</h1>
+        <h1 className='text-base font-bold leading-snug'>Confirm Log In</h1>
         {codeEntered ? (
           <p className='text-s my-3 flex max-w-[260px] flex-1 flex-col items-center justify-center text-center text-gray-600'>
-            You&apos;ve authorized the new device. You can close this window.
+            You are logged in. You may now close this window.
           </p>
         ) : (
           <>
             <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-              This code gives a new device access to your account. Never accept
-              a device code from someone else.
+              Please confirm this is the code displayed in your terminal.
             </h2>
             <form
               onSubmit={onSubmit}
               className='relative flex w-full max-w-sm flex-1 flex-col justify-center'
             >
               <div className='my-2 w-full'>
-                <label
-                  htmlFor='code'
-                  className='text-2xs font-medium text-gray-700'
-                >
-                  Device Code
-                </label>
                 <input
                   required
                   autoFocus
@@ -91,4 +84,4 @@ export default function DeviceShow() {
   )
 }
 
-DeviceShow.layout = page => <DashboardLayout>{page}</DashboardLayout>
+Device.layout = page => <DashboardLayout>{page}</DashboardLayout>

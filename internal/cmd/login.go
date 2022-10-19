@@ -606,7 +606,7 @@ func promptLoginOptions(cli *CLI, client *api.Client) (loginMethod loginMethod, 
 	}
 
 	options = append(options, "Login with username and password")
-	options = append(options, "Login with device code")
+	options = append(options, "Login with your browser")
 
 	var i int
 	selectPrompt := &survey.Select{
