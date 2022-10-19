@@ -59,30 +59,6 @@ func issueToken(t *testing.T, db data.GormTxn, identityName string, sessionDurat
 	return body
 }
 
-func TestRequestTimeoutError(t *testing.T) {
-	router := gin.New()
-	router.Use(TimeoutMiddleware(100 * time.Millisecond))
-	router.GET("/", func(c *gin.Context) {
-		time.Sleep(110 * time.Millisecond)
-
-		assert.ErrorIs(t, c.Request.Context().Err(), context.DeadlineExceeded)
-
-		c.Status(200)
-	})
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
-}
-
-func TestRequestTimeoutSuccess(t *testing.T) {
-	router := gin.New()
-	router.Use(TimeoutMiddleware(60 * time.Second))
-	router.GET("/", func(c *gin.Context) {
-		assert.NilError(t, c.Request.Context().Err())
-
-		c.Status(200)
-	})
-	router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/", nil))
-}
-
 func TestRequireAccessKey(t *testing.T) {
 	type testCase struct {
 		setup    func(t *testing.T, db data.GormTxn) *http.Request

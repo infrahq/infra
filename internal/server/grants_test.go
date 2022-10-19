@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -726,6 +727,39 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 
 	elapsed := time.Since(start)
 	assert.Assert(t, elapsed >= srv.options.API.BlockingRequestTimeout,
+		"elapsed=%v %v", elapsed, (*responseDebug)(resp))
+
+	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, (*responseDebug)(resp))
+}
+
+func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too long for short run")
+	}
+
+	withShortRequestTimeout := func(t *testing.T, options *Options) {
+		options.API.RequestTimeout = 250 * time.Millisecond
+		options.API.BlockingRequestTimeout = 2500 * time.Millisecond
+	}
+	srv := setupServer(t, withAdminUser, withShortRequestTimeout)
+	routes := srv.GenerateRoutes()
+
+	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
+	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
+	assert.NilError(t, err)
+	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+	req.Header.Add("Infra-Version", apiVersionLatest)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	t.Cleanup(cancel)
+	req = req.WithContext(ctx)
+
+	start := time.Now()
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	elapsed := time.Since(start)
+	assert.Assert(t, elapsed < time.Second,
 		"elapsed=%v %v", elapsed, (*responseDebug)(resp))
 
 	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, (*responseDebug)(resp))
