@@ -20,7 +20,7 @@ type PollDeviceFlowRequest struct {
 
 func (pdfr *PollDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.String("device_code", pdfr.DeviceCode, 38, 38, validate.AlphaNumeric),
+		validate.String("deviceCode", pdfr.DeviceCode, 38, 38, validate.AlphaNumeric),
 	}
 }
 
@@ -32,6 +32,6 @@ type DevicePollResponse struct {
 
 func (adfr *ApproveDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.String("user_code", adfr.UserCode, 8, 9, append(validate.DeviceFlowUserCode, validate.CharRange{Low: '-', High: '-'})),
+		validate.String("userCode", adfr.UserCode, 8, 9, append(validate.DeviceFlowUserCode, validate.CharRange{Low: '-', High: '-'})),
 	}
 }

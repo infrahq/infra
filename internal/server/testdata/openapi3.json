@@ -2297,6 +2297,9 @@
                 "properties": {
                   "userCode": {
                     "example": "BDSD-HQMK",
+                    "format": "[B-DF-HJ-NP-TV-XZ\\-]",
+                    "maxLength": 9,
+                    "minLength": 8,
                     "type": "string"
                   }
                 },
@@ -2396,6 +2399,9 @@
               "schema": {
                 "properties": {
                   "deviceCode": {
+                    "format": "[a-zA-Z0-9]",
+                    "maxLength": 38,
+                    "minLength": 38,
                     "type": "string"
                   }
                 },
