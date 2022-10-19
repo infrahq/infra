@@ -29,10 +29,11 @@ export function useUser({ redirectTo, redirectIfFound } = {}) {
     !isValidating &&
     ((redirectTo && !redirectIfFound && !user) || (redirectIfFound && user))
   ) {
-    if (router.asPath === "/device")
-      router.replace(`/login/organizations?next=${encodeURIComponent(router.asPath)}`)
-    else 
-      router.replace(redirectTo)
+    if (router.asPath === '/device')
+      router.replace(
+        `/login/organizations?next=${encodeURIComponent(router.asPath)}`
+      )
+    else router.replace(redirectTo)
     return { loading: true }
   }
 

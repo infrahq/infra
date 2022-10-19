@@ -17,14 +17,12 @@ global.fetch = (resource, info) =>
   })
 
 // jsonBody returns a js object or throws an error matching the {code: x, message: y} format, where x is a number and y is a string.
-global.jsonBody = async (res) => {
+global.jsonBody = async res => {
   if (!res.ok) {
     // check if response is json before trying to parse it
     const text = await res.text()
-    if (text.length > 1 && text[0] == '{')
-      throw await JSON.parse(text)
-    else 
-      throw {code: res.status, message: res.statusText}
+    if (text.length > 1 && text[0] == '{') throw await JSON.parse(text)
+    else throw { code: res.status, message: res.statusText }
   }
 
   return res.json()

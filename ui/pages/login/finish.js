@@ -31,7 +31,7 @@ export default function Finish() {
       })
 
       await jsonBody(res)
-      
+
       router.replace(next ? decodeURIComponent(next) : '/')
     } catch (e) {
       if (e.fieldErrors) {
