@@ -19,19 +19,20 @@ export default function GrantForm({
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
     useSWR('/api/groups?limit=1000')
 
-  const [role, setRole] = useState([])
+  const [role, setRole] = useState('')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [options, setOptions] = useState([])
 
   const button = useRef()
 
-  roles =
-    selectedResources?.length > 0
-      ? sortByRole(roles)?.filter(r => r != 'cluster-admin')
-      : sortByRole(roles)
-
-  useEffect(() => setRole(roles[0]), [roles])
+  useEffect(() => {
+    if (selectedResources?.length > 0) {
+      setRole(sortByRole(roles)?.filter(r => r != 'cluster-admin')[0])
+    } else {
+      setRole(sortByRole(roles)?.[0])
+    }
+  }, [roles, selectedResources])
 
   useEffect(() => {
     if (users && groups) {
@@ -137,12 +138,15 @@ export default function GrantForm({
       {roles?.length > 1 && (
         <div className='relative'>
           <RoleSelect
-            onChange={setRole}
+            onChange={v => {
+              console.log(v)
+              setRole(v)
+            }}
             role={role}
             roles={
               selectedResources.length > 0
-                ? roles.filter(r => r != 'cluster-admin')
-                : roles
+                ? sortByRole(roles)?.filter(r => r != 'cluster-admin')
+                : sortByRole(roles)
             }
           />
         </div>

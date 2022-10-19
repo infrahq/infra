@@ -29,6 +29,7 @@ export default function RoleSelect({ role, roles, onChange }) {
     <Listbox
       value={role}
       onChange={v => {
+        console.log(v)
         if (v === role) {
           return
         }

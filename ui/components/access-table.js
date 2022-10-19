@@ -50,12 +50,6 @@ function EditRoleMenu({
         if (selectedRoles.length === 1 && v.length === 0) {
           return
         }
-        // console.log(v)
-        // if (v.length < selectedRoles.length) {
-        //   if (selectedRoles.every(val => v.includes(val))) {
-        //     return
-        //   }
-        // }
 
         onChange(v)
       }}
