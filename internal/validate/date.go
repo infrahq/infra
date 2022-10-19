@@ -48,7 +48,7 @@ func (s DateRule) Validate() *Failure {
 	}
 
 	if len(problems) > 0 {
-		return fail(s.Name, problems...)
+		return Fail(s.Name, problems...)
 	}
 	return nil
 }
