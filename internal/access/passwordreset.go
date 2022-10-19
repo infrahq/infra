@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -16,31 +15,26 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 	rCtx := GetRequestContext(c)
 	db := rCtx.DBTxn
 
-	opts := data.ListIdentityOptions{
-		Pagination: &data.Pagination{Limit: 1},
-		ByName:     email,
+	opts := data.GetIdentityOptions{
+		ByName: email,
 	}
-	users, err := data.ListIdentities(db, opts)
+	user, err = data.GetIdentity(db, opts)
 	if err != nil {
 		return "", nil, err
 	}
 
-	if len(users) != 1 {
-		return "", nil, internal.ErrNotFound
-	}
-
-	_, err = data.GetCredential(db, data.ByIdentityID(users[0].ID))
+	_, err = data.GetCredential(db, data.ByIdentityID(user.ID))
 	if err != nil {
 		// if credential is not found, the user cannot reset their password.
 		return "", nil, err
 	}
 
-	prt, err := data.CreatePasswordResetToken(db, &users[0], ttl)
+	prt, err := data.CreatePasswordResetToken(db, user, ttl)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return prt.Token, &users[0], nil
+	return prt.Token, user, nil
 }
 
 func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.Identity, error) {

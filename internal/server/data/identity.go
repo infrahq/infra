@@ -139,10 +139,10 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 }
 
 type GetIdentityOptions struct {
-	ByID             uid.ID
-	ByName           string
-	PreloadGroups    bool
-	PreloadProviders bool
+	ByID          uid.ID
+	ByName        string
+	LoadGroups    bool
+	LoadProviders bool
 }
 
 func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) {
@@ -155,11 +155,13 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 	query.B("FROM")
 	query.B(identity.Table())
 	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
-	if opts.ByID > 0 {
+	switch {
+	case opts.ByID != 0:
 		query.B("AND id = ?", opts.ByID)
-	}
-	if opts.ByName != "" {
+	case opts.ByName != "":
 		query.B("AND name = ?", opts.ByName)
+	default:
+		return nil, fmt.Errorf("GetIdentity must specify id or name")
 	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(identity.ScanFields()...)
@@ -167,14 +169,14 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 		return nil, handleReadError(err)
 	}
 
-	if opts.PreloadGroups {
+	if opts.LoadGroups {
 		groups, err := ListGroups(tx, nil, ByGroupMember(identity.ID))
 		if err != nil {
 			return nil, fmt.Errorf("load identity groups: %w", err)
 		}
 		identity.Groups = groups
 	}
-	if opts.PreloadProviders {
+	if opts.LoadProviders {
 		// find the providers that this identity is active in
 		opts := ListProviderUsersOptions{
 			ByIdentityID: identity.ID,
@@ -209,19 +211,22 @@ func SetIdentityVerified(tx WriteTxn, token string) error {
 }
 
 type ListIdentityOptions struct {
-	ByID             uid.ID
-	ByIDs            []uid.ID
-	ByNotIDs         []uid.ID
-	ByName           string
-	ByNotName        string
-	ByGroupID        uid.ID
-	CreatedBy        uid.ID
-	Pagination       *Pagination
-	PreloadGroups    bool
-	PreloadProviders bool
+	ByID          uid.ID
+	ByIDs         []uid.ID
+	ByNotIDs      []uid.ID
+	ByName        string
+	ByNotName     string
+	ByGroupID     uid.ID
+	CreatedBy     uid.ID
+	Pagination    *Pagination
+	LoadGroups    bool
+	LoadProviders bool
 }
 
 func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, error) {
+	if len(opts.ByNotIDs) > 0 && opts.CreatedBy == 0 {
+		return nil, fmt.Errorf("ListIdentities by 'not IDs' requires 'created by'")
+	}
 	identities := &identitiesTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(identities))
@@ -240,9 +245,6 @@ func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, er
 	if len(opts.ByIDs) > 0 {
 		query.B("AND id IN (?)", opts.ByIDs)
 	}
-	if len(opts.ByNotIDs) > 0 {
-		query.B("AND id NOT IN (?)", opts.ByNotIDs)
-	}
 	if opts.ByName != "" {
 		query.B("AND name = ?", opts.ByName)
 	}
@@ -254,6 +256,9 @@ func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, er
 	}
 	if opts.CreatedBy != 0 {
 		query.B("AND created_by = ?", opts.CreatedBy)
+		if len(opts.ByNotIDs) > 0 {
+			query.B("AND id NOT IN (?)", opts.ByNotIDs)
+		}
 	}
 	query.B("ORDER BY name ASC")
 	if opts.Pagination != nil {
@@ -280,13 +285,13 @@ func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, er
 		return []models.Identity{}, nil
 	}
 
-	if opts.PreloadGroups {
+	if opts.LoadGroups {
 		if err := loadIdentitiesGroups(tx, result); err != nil {
 			return nil, err
 		}
 	}
 
-	if opts.PreloadProviders {
+	if opts.LoadProviders {
 		if err := loadIdentitiesProviders(tx, result); err != nil {
 			return nil, err
 		}
@@ -421,7 +426,6 @@ type DeleteIdentitiesOptions struct {
 	ByIDs        []uid.ID
 	ByNotIDs     []uid.ID
 	CreatedBy    uid.ID
-	ByName       string
 	ByProviderID uid.ID
 }
 
@@ -434,7 +438,6 @@ func DeleteIdentities(tx GormTxn, opts DeleteIdentitiesOptions) error {
 		ByIDs:     opts.ByIDs,
 		ByNotIDs:  opts.ByNotIDs,
 		CreatedBy: opts.CreatedBy,
-		ByName:    opts.ByName,
 	}
 	toDelete, err := ListIdentities(tx, listOpts)
 	if err != nil {
@@ -482,7 +485,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 		}
 
 		// if this identity no longer exists in any identity providers then remove all their references
-		user, err := GetIdentity(tx, GetIdentityOptions{ByID: i.ID, PreloadProviders: true})
+		user, err := GetIdentity(tx, GetIdentityOptions{ByID: i.ID, LoadProviders: true})
 		if err != nil {
 			return []uid.ID{}, fmt.Errorf("check user providers: %w", err)
 		}
