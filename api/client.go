@@ -310,8 +310,8 @@ func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) 
 	})
 }
 
-func (c Client) CreateGrant(req *CreateGrantRequest) (*CreateGrantResponse, error) {
-	return post[CreateGrantRequest, CreateGrantResponse](c, "/api/grants", req)
+func (c Client) CreateGrant(req *GrantRequest) (*CreateGrantResponse, error) {
+	return post[GrantRequest, CreateGrantResponse](c, "/api/grants", req)
 }
 
 func (c Client) DeleteGrant(id uid.ID) error {

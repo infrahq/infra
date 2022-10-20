@@ -442,3 +442,54 @@ func CreateGrants(tx WriteTxn, grants []*models.Grant) error {
 	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
 	return err
 }
+
+func DeleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
+	if len(grants) == 0 {
+		return nil
+	}
+
+	for _, g := range grants {
+		switch {
+		case g.Subject == "":
+			return fmt.Errorf("subject is required")
+		case g.Privilege == "":
+			return fmt.Errorf("privilege is required")
+		case g.Resource == "":
+			return fmt.Errorf("resource is required")
+		}
+
+		if err := g.OnInsert(); err != nil {
+			return err
+		}
+		setOrg(tx, g)
+	}
+
+	query := querybuilder.New("DELETE FROM grants WHERE id IN (")
+	for i, g := range grants {
+		query.B("SELECT id FROM grants WHERE ")
+		query.B("subject = ? AND ", g.Subject)
+		query.B("resource = ? AND ", g.Resource)
+		query.B("privilege = ? AND ", g.Privilege)
+		query.B("organization_id = ? ", g.OrganizationID)
+		if i+1 != len(grants) {
+			query.B("UNION ")
+		}
+	}
+	query.B(")")
+
+	// Use a savepoint so that we can query for the duplicate grant on conflict
+	if _, err := tx.Exec("SAVEPOINT beforeDelete"); err != nil {
+		// ignore "not in a transaction" error, because outside of a transaction
+		// the db conn can continue to be used after the conflict error.
+		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
+			return err
+		}
+	}
+	_, err := tx.Exec(query.String(), query.Args...)
+	if err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeDelete")
+		return handleError(err)
+	}
+	_, _ = tx.Exec("RELEASE SAVEPOINT beforeDelete")
+	return nil
+}

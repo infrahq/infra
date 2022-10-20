@@ -50,7 +50,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	createGrant := func(t *testing.T, user uid.ID, privilege, resource string) {
 		t.Helper()
 		var buf bytes.Buffer
-		body := api.CreateGrantRequest{
+		body := api.GrantRequest{
 			User:      user,
 			Privilege: privilege,
 			Resource:  resource,
@@ -942,7 +942,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
-		body     api.CreateGrantRequest
+		body     api.GrantRequest
 	}
 
 	run := func(t *testing.T, tc testCase) {
@@ -966,7 +966,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
-			body: api.CreateGrantRequest{},
+			body: api.GrantRequest{},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 
@@ -987,7 +987,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				req.Host = "example.com"
 				req.Header.Set("Authorization", "Bearer "+otherOrg.AdminAccessKey)
 			},
-			body: api.CreateGrantRequest{
+			body: api.GrantRequest{
 				User:      someUser.ID,
 				Privilege: models.InfraAdminRole,
 				Resource:  "some-cluster",
@@ -1000,7 +1000,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
-			body: api.CreateGrantRequest{
+			body: api.GrantRequest{
 				User:      someUser.ID,
 				Privilege: models.InfraAdminRole,
 				Resource:  "some-cluster",
@@ -1032,7 +1032,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 			},
-			body: api.CreateGrantRequest{
+			body: api.GrantRequest{
 				User:      someUser.ID,
 				Privilege: models.InfraSupportAdminRole,
 				Resource:  "infra",
@@ -1045,7 +1045,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+supportAccessKeyStr)
 			},
-			body: api.CreateGrantRequest{
+			body: api.GrantRequest{
 				User:      someUser.ID,
 				Privilege: models.InfraSupportAdminRole,
 				Resource:  "infra",

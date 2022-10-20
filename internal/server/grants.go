@@ -72,7 +72,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	return grant.ToAPI(), nil
 }
 
-func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.CreateGrantResponse, error) {
+func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
 	var subject uid.PolymorphicID
 
 	switch {
@@ -153,12 +153,18 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 		addGrants = append(addGrants, grant)
 	}
 
+	var rmGrants []*models.Grant
+	for _, g := range r.GrantsToRemove {
+		grant := getGrantFromGrantRequest(g)
+		rmGrants = append(rmGrants, grant)
+	}
+
 	logging.Debugf("calling access.UpdateGrants")
 
-	return nil, access.UpdateGrants(c, addGrants)
+	return nil, access.UpdateGrants(c, addGrants, rmGrants)
 }
 
-func getGrantFromGrantRequest(r api.CreateGrantRequest) *models.Grant {
+func getGrantFromGrantRequest(r api.GrantRequest) *models.Grant {
 	var subject uid.PolymorphicID
 
 	switch {
