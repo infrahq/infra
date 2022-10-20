@@ -92,14 +92,14 @@ func loginAs(tx *data.Transaction, user *models.Identity) *gin.Context {
 	return ctx
 }
 
-func txnForTestCase(t *testing.T, db *data.DB) *data.Transaction {
+func txnForTestCase(t *testing.T, db *data.DB, orgID uid.ID) *data.Transaction {
 	t.Helper()
 	tx, err := db.Begin(context.Background(), nil)
 	assert.NilError(t, err)
 	t.Cleanup(func() {
 		assert.NilError(t, tx.Rollback())
 	})
-	return tx.WithOrgID(db.DefaultOrg.ID)
+	return tx.WithOrgID(orgID)
 }
 
 func jsonBody(t *testing.T, body interface{}) *bytes.Buffer {
@@ -200,7 +200,7 @@ func createOtherOrg(t *testing.T, db *data.DB) organizationData {
 	otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
 	assert.NilError(t, data.CreateOrganization(db, otherOrg))
 
-	tx := txnForTestCase(t, db).WithOrgID(otherOrg.ID)
+	tx := txnForTestCase(t, db, otherOrg.ID)
 	admin := createAdmin(t, tx)
 
 	token := &models.AccessKey{
@@ -235,7 +235,7 @@ func TestWellKnownJWKs(t *testing.T) {
 	err = defaultKey.UnmarshalJSON(settings.PublicJWK)
 	assert.NilError(t, err)
 
-	otherOrgTx := txnForTestCase(t, srv.db).WithOrgID(otherOrg.ID)
+	otherOrgTx := txnForTestCase(t, srv.db, otherOrg.ID)
 	settings, err = data.GetSettings(otherOrgTx)
 	assert.NilError(t, err)
 

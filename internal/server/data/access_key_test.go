@@ -166,15 +166,16 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, extensi
 
 func TestValidateRequestAccessKey(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		body, _ := createTestAccessKey(t, db, time.Hour*5)
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+		body, _ := createTestAccessKey(t, tx, time.Hour*5)
 
-		_, err := ValidateRequestAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(tx, body)
 		assert.NilError(t, err)
 
 		random := generate.MathRandom(models.AccessKeySecretLength, generate.CharsetAlphaNumeric)
 		authorization := fmt.Sprintf("%s.%s", strings.Split(body, ".")[0], random)
 
-		_, err = ValidateRequestAccessKey(db, authorization)
+		_, err = ValidateRequestAccessKey(tx, authorization)
 		assert.Error(t, err, "access key invalid secret")
 	})
 }
@@ -268,18 +269,20 @@ var cmpModelByID = cmp.Comparer(func(x, y primaryKeyable) bool {
 
 func TestCheckAccessKeyExpired(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		body, _ := createTestAccessKey(t, db, -1*time.Hour)
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+		body, _ := createTestAccessKey(t, tx, -1*time.Hour)
 
-		_, err := ValidateRequestAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(tx, body)
 		assert.ErrorIs(t, err, ErrAccessKeyExpired)
 	})
 }
 
 func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		body, _ := createAccessKeyWithExtensionDeadline(t, db, 1*time.Hour, -1*time.Hour)
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+		body, _ := createAccessKeyWithExtensionDeadline(t, tx, 1*time.Hour, -1*time.Hour)
 
-		_, err := ValidateRequestAccessKey(db, body)
+		_, err := ValidateRequestAccessKey(tx, body)
 		assert.ErrorIs(t, err, ErrAccessKeyDeadlineExceeded)
 	})
 }

@@ -284,7 +284,7 @@ func TestRequireAccessKey(t *testing.T) {
 			c, _ := gin.CreateTestContext(httptest.NewRecorder())
 			c.Request = req
 
-			tx := txnForTestCase(t, db)
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 			authned, err := requireAccessKey(c, tx, srv)
 			tc.expected(t, authned, err)
 		})
@@ -321,16 +321,27 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		err := data.CreateDestination(db, destination)
 		assert.NilError(t, err)
 
-		r := httptest.NewRequest("GET", "/api/grants", nil)
-		r.Header.Set("Infra-Version", apiVersionLatest)
-		r.Header.Set("Infra-Destination", destination.UniqueID)
-		r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
-		w := httptest.NewRecorder()
-		routes.ServeHTTP(w, r)
+		doRequest := func() {
+			r := httptest.NewRequest("GET", "/api/grants", nil)
+			r.Header.Set("Infra-Version", apiVersionLatest)
+			r.Header.Set("Infra-Destination", destination.UniqueID)
+			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
+			w := httptest.NewRecorder()
+			routes.ServeHTTP(w, r)
+		}
 
+		doRequest()
 		destination, err = data.GetDestination(db, data.GetDestinationOptions{ByUniqueID: destination.UniqueID})
 		assert.NilError(t, err)
 		assert.DeepEqual(t, destination.LastSeenAt, time.Now(), opt.TimeWithThreshold(time.Second))
+
+		// check LastSeenAt updates are throttled
+		time.Sleep(20 * time.Millisecond)
+		doRequest()
+		updated, err := data.GetDestination(db, data.GetDestinationOptions{ByUniqueID: destination.UniqueID})
+		assert.NilError(t, err)
+		assert.Equal(t, destination.LastSeenAt, updated.LastSeenAt,
+			"expected no updated to LastSeenAt")
 	})
 
 	t.Run("good no destination header", func(t *testing.T) {
@@ -388,6 +399,7 @@ func TestAuthenticateRequest(t *testing.T) {
 		IssuedFor:          user.ID,
 		ProviderID:         data.InfraProvider(tx).ID,
 		ExpiresAt:          time.Now().Add(10 * time.Second),
+		Extension:          time.Hour,
 		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 	}
 
@@ -404,6 +416,8 @@ func TestAuthenticateRequest(t *testing.T) {
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *http.Response)
 	}
+
+	var now time.Time
 
 	run := func(t *testing.T, tc testCase) {
 		// Any authenticated route will do
@@ -476,6 +490,69 @@ func TestAuthenticateRequest(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *http.Response) {
 				assert.Equal(t, resp.StatusCode, http.StatusBadRequest)
+			},
+		},
+		{
+			name: "LastSeenAt and ExtensionDeadline are updated",
+			setup: func(t *testing.T, req *http.Request) {
+				tx := txnForTestCase(t, srv.db, org.ID)
+				user := *user // shallow copy user
+				user.LastSeenAt = time.Date(2022, 1, 2, 3, 4, 5, 0, time.UTC)
+				assert.NilError(t, data.UpdateIdentity(tx, &user))
+
+				ak := *token // shallow copy access key
+				ak.ExtensionDeadline = time.Now().Add(2 * time.Minute)
+				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
+
+				assert.NilError(t, tx.Commit())
+
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK, resp)
+
+				tx := txnForTestCase(t, srv.db, org.ID)
+				user, err := data.GetIdentity(tx, data.GetIdentityOptions{ByID: user.ID})
+				assert.NilError(t, err)
+				assert.DeepEqual(t, user.LastSeenAt, time.Now(), opt.TimeWithThreshold(time.Second))
+
+				ak, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{ByID: token.ID})
+				assert.NilError(t, err)
+				assert.DeepEqual(t, ak.ExtensionDeadline, time.Now().Add(token.Extension),
+					opt.TimeWithThreshold(time.Second))
+			},
+		},
+		{
+			name: "LastSeenAt and ExtensionDeadline updates are throttled",
+			setup: func(t *testing.T, req *http.Request) {
+				now = time.Now().Truncate(time.Microsecond) // truncate to DB precision
+
+				tx := txnForTestCase(t, srv.db, org.ID)
+				user := *user // shallow copy user
+				user.LastSeenAt = now
+				assert.NilError(t, data.UpdateIdentity(tx, &user))
+
+				ak := *token // shallow copy access key
+				ak.ExtensionDeadline = now.Add(ak.Extension)
+				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
+
+				assert.NilError(t, tx.Commit())
+
+				time.Sleep(20 * time.Millisecond)
+				req.Header.Set("Authorization", "Bearer "+key)
+			},
+			expected: func(t *testing.T, resp *http.Response) {
+				assert.Equal(t, resp.StatusCode, http.StatusOK, resp)
+
+				tx := txnForTestCase(t, srv.db, org.ID)
+				user, err := data.GetIdentity(tx, data.GetIdentityOptions{ByID: user.ID})
+				assert.NilError(t, err)
+				assert.Equal(t, user.LastSeenAt, now, "expected no update")
+
+				ak, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{ByID: token.ID})
+				assert.NilError(t, err)
+				assert.Equal(t, ak.ExtensionDeadline, now.Add(token.Extension),
+					"expected no update")
 			},
 		},
 	}

@@ -16,14 +16,14 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 	db := setupDB(t)
 
 	type testCase struct {
-		setup       func(t *testing.T, db data.GormTxn) LoginMethod
+		setup       func(t *testing.T, db *data.Transaction) LoginMethod
 		expectedErr string
 		expected    func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
 
 	cases := map[string]testCase{
 		"UsernameAndOneTimePasswordFirstUse": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "goku@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -51,7 +51,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			},
 		},
 		"UsernameAndPassword": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "bulma@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -79,7 +79,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			},
 		},
 		"UsernameAndPasswordReuse": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "cell@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -112,7 +112,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			},
 		},
 		"ValidUsernameAndNoPasswordFails": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "krillin@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -123,7 +123,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			expectedErr: "record not found",
 		},
 		"UsernameAndInvalidPasswordFails": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "po@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -147,7 +147,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			expectedErr: "hashedPassword is not the hash of the given password",
 		},
 		"UsernameAndEmptyPasswordFails": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				username := "gohan@example.com"
 				user := &models.Identity{Name: username}
 				err := data.CreateIdentity(db, user)
@@ -171,7 +171,7 @@ func TestPasswordCredentialAuthentication(t *testing.T) {
 			expectedErr: "hashedPassword is not the hash of the given password",
 		},
 		"EmptyUsernameAndPasswordFails": {
-			setup: func(t *testing.T, db data.GormTxn) LoginMethod {
+			setup: func(t *testing.T, db *data.Transaction) LoginMethod {
 				return NewPasswordCredentialAuthentication("", "whatever")
 			},
 			expectedErr: "username required for password authentication",

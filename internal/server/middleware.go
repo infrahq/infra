@@ -32,7 +32,7 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 	}
 
 	// only save if there's significant difference between LastSeenAt and Now
-	if time.Since(destination.LastSeenAt) > time.Second {
+	if time.Since(destination.LastSeenAt) > lastSeenUpdateThreshold {
 		destination.LastSeenAt = time.Now()
 		if err := access.SaveDestination(rCtx, destination); err != nil {
 			return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
@@ -107,6 +107,15 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 	return authned, err
 }
 
+// lastSeenUpdateThreshold is the duration of time that must pass before a
+// LastSeenAt value for a user or destination is updated again. This prevents
+// excessive writes when a single user performs many requests in a short
+// period of time.
+//
+// If you change this value, you may also want to change the threshold in
+// data.ValidateRequestAccessKey.
+const lastSeenUpdateThreshold = 2 * time.Second
+
 const headerInfraDestination = "Infra-Destination"
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
@@ -173,9 +182,11 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		return u, fmt.Errorf("identity for access key: %w", err)
 	}
 
-	identity.LastSeenAt = time.Now().UTC()
-	if err = data.UpdateIdentity(db, identity); err != nil {
-		return u, fmt.Errorf("identity update fail: %w", err)
+	if time.Since(identity.LastSeenAt) > lastSeenUpdateThreshold {
+		identity.LastSeenAt = time.Now().UTC()
+		if err = data.UpdateIdentity(db, identity); err != nil {
+			return u, fmt.Errorf("identity update fail: %w", err)
+		}
 	}
 
 	u.AccessKey = accessKey

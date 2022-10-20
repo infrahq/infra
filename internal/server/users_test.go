@@ -574,7 +574,7 @@ func TestAPI_CreateUser(t *testing.T) {
 // Note this test is the result of a long conversation, don't change lightly.
 func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 	srv := &Server{db: setupDB(t)}
-	db := txnForTestCase(t, srv.db)
+	db := txnForTestCase(t, srv.db, srv.db.DefaultOrg.ID)
 
 	a := &API{server: srv}
 	admin := createAdmin(t, db)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -907,7 +908,8 @@ func TestAPI_CreateGrant(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
-	accessKey, err := data.ValidateRequestAccessKey(srv.DB(), adminAccessKey(srv))
+	keyID, _, _ := strings.Cut(adminAccessKey(srv), ".")
+	accessKey, err := data.GetAccessKeyByKeyID(srv.DB(), keyID)
 	assert.NilError(t, err)
 
 	someUser := models.Identity{Name: "someone@example.com"}
