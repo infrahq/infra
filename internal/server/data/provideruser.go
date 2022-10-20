@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/scim2/filter-parser/v2"
+
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
-	"github.com/scim2/filter-parser/v2"
 )
 
 type providerUserTable models.ProviderUser
