@@ -23,9 +23,9 @@ import {
   sortByRole,
   sortBySubject,
   descriptions,
+  sortByName,
 } from '../../../lib/grants'
 
-// import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
@@ -319,11 +319,17 @@ function AccessTable({
       }
     })
 
+    const name =
+      users?.find(u => u.id === subject)?.name ||
+      groups?.find(g => g.id === subject)?.name
+
     if (grantArray.length === 1) {
       grantArray[0].resourcePrivilegeMap = resourcePrivilegeMap
+      grantArray[0].name = name
       grantsList = [...grantsList, ...grantArray]
     } else {
       grantsList.push({
+        name,
         [type]: subject,
         id: grantArray.map(g => g.id),
         resourcePrivilegeMap,
@@ -345,33 +351,35 @@ function AccessTable({
           </tr>
         </thead>
         <tbody className='divide-y divide-gray-200 bg-white'>
-          {grantsList?.sort(sortBySubject).map(grant => (
-            <tr key={grant.user || grant.group}>
-              <td className='w-[60%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
-                <div className='flex w-[60%] flex-col truncate'>
-                  <div className='text-sm font-medium text-gray-700'>
-                    {users?.find(u => u.id === grant.user)?.name}
-                    {groups?.find(g => g.id === grant.group)?.name}
+          {grantsList
+            ?.sort(sortByName)
+            ?.sort(sortBySubject)
+            .map(grant => (
+              <tr key={grant.user || grant.group}>
+                <td className='w-[60%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                  <div className='flex w-[60%] flex-col truncate'>
+                    <div className='text-sm font-medium text-gray-700'>
+                      {grant.name}
+                    </div>
+                    <div className='text-2xs text-gray-500'>
+                      {users?.find(u => u.id === grant.user) && 'User'}
+                      {groups?.find(g => g.id === grant.group)?.name && 'Group'}
+                    </div>
                   </div>
-                  <div className='text-2xs text-gray-500'>
-                    {users?.find(u => u.id === grant.user) && 'User'}
-                    {groups?.find(g => g.id === grant.group)?.name && 'Group'}
-                  </div>
-                </div>{' '}
-              </td>
-              <td className='w-[35%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
-                <GrantCell
-                  grantsList={grants}
-                  grant={grant}
-                  destination={destination}
-                  onRemove={grantsIdList => onRemove(grantsIdList)}
-                  onUpdate={(newPrivilege, resource) =>
-                    onUpdate(newPrivilege, grant.user, grant.group, resource)
-                  }
-                />
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className='w-[35%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+                  <GrantCell
+                    grantsList={grants}
+                    grant={grant}
+                    destination={destination}
+                    onRemove={grantsIdList => onRemove(grantsIdList)}
+                    onUpdate={(newPrivilege, resource) =>
+                      onUpdate(newPrivilege, grant.user, grant.group, resource)
+                    }
+                  />
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
       {grantsList && grantsList.length === 0 && (
