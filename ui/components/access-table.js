@@ -67,8 +67,8 @@ function EditRoleMenu({
                 aria-hidden='true'
               />
             </span>
-            <span className='text-gray-700'>{privileges[0]}</span>
-            {privileges.length - 1 > 0 && (
+            <span className='text-gray-700'>{privileges?.[0]}</span>
+            {privileges.length > 1 && (
               <span className='font-medium'> + {privileges.length - 1}</span>
             )}
           </div>
@@ -237,7 +237,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {namespacesPrivilegeMap.size > 0 && (
         <div className='py-2'>
           <DisclosureForm
-            title={`${namespacesPrivilegeMap.size} Namespaces access`}
+            title={`Namespace access (${namespacesPrivilegeMap.size})`}
             defaultOpen={destinationPrivileges === undefined}
           >
             <div className='space-y-2 pt-2'>

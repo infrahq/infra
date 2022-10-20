@@ -25,6 +25,7 @@ import Dashboard from '../../../components/layouts/dashboard'
 import DisclosureForm from '../../../components/disclosure-form'
 
 const OPTION_SELECT_ALL = 'select all'
+const METADATA_STATUS_LABEL = 'Status'
 
 function NamespacesDropdownMenu({
   selectedResources,
@@ -82,7 +83,7 @@ function NamespacesDropdownMenu({
               <span className='text-gray-700'>
                 {selectedResources.length > 0
                   ? selectedResources[0]
-                  : 'select namespaces'}
+                  : 'Select namespaces'}
               </span>
               {selectedResources.length - 1 > 0 && (
                 <span> + {selectedResources.length - 1}</span>
@@ -351,7 +352,7 @@ export default function DestinationDetail() {
                 className='py-5 text-left sm:px-6 sm:first:pr-6 sm:first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
-                {g.label !== 'Status' && (
+                {g.label !== METADATA_STATUS_LABEL && (
                   <span
                     className={`text-sm ${
                       g.font ? g.font : 'font-medium'
@@ -360,7 +361,7 @@ export default function DestinationDetail() {
                     {g.value}
                   </span>
                 )}
-                {g.label === 'Status' && (
+                {g.label === METADATA_STATUS_LABEL && (
                   <span
                     className={`inline-flex items-center rounded-full bg-${g.color}-100 px-2.5 py-px text-2xs font-medium text-${g.color}-800`}
                   >
@@ -376,7 +377,7 @@ export default function DestinationDetail() {
         <>
           <div className='my-5 flex flex-col space-y-4'>
             <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-              <div className='flex flex-col space-y-4'>
+              <div className='flex flex-col space-y-2'>
                 <div>
                   <h3 className='mb-3 text-sm font-medium'>
                     Grant access to{' '}
@@ -404,7 +405,7 @@ export default function DestinationDetail() {
                               g.user === user &&
                               g.group === group &&
                               g.privilege === privilege &&
-                              g.resource === `${destination?.name}`
+                              g.resource === destination?.namn
                           )
                         ) {
                           return false
@@ -458,7 +459,7 @@ export default function DestinationDetail() {
                 </div>
                 {destination?.resources.length > 0 && (
                   <div>
-                    <DisclosureForm title='Scope access'>
+                    <DisclosureForm title='Limit access'>
                       <div className='flex items-center space-x-4 px-4 pt-2 '>
                         <p className='text-xs font-medium text-gray-900'>
                           Namespaces
