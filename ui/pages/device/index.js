@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 import DashboardNoSidebarLayout from '../../components/layouts/dashboard-no-sidebar'
 
@@ -50,13 +50,20 @@ export default function Device() {
     const nextField = document.querySelector(`input[name=code${pos + 1}]`)
     switch (e.key) {
       case 'Backspace':
+      case 'ArrowLeft':
         if (lastField !== null) {
           lastField.focus()
           lastField.selectionStart = 0
           lastField.selectionEnd = 1
         }
         break
-      case ('Meta', 'Control', 'Tab', 'Shift'):
+      case 'Meta':
+      case 'Control':
+      case 'Alt':
+        e.preventDefault()
+        break
+      case 'Tab':
+      case 'Shift':
         break
       default:
         if (nextField !== null) {
@@ -86,7 +93,7 @@ export default function Device() {
             >
               <div className='my-2 flex w-full'>
                 {'01234567'.split('').map((k, i) => (
-                  <>
+                  <React.Fragment key={i}>
                     <input
                       required
                       autoFocus={i === 0}
@@ -100,7 +107,7 @@ export default function Device() {
                       }`}
                     />
                     {i == 3 ? <div className='mt-3 ml-3 mr-4'>-</div> : ''}
-                  </>
+                  </React.Fragment>
                 ))}
                 {error && (
                   <p className='absolute top-full mt-1 text-xs text-red-500'>
