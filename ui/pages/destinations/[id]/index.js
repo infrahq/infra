@@ -9,8 +9,9 @@ import {
   DuplicateIcon,
   DownloadIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/outline'
-import { Popover, Transition, Listbox } from '@headlessui/react'
+import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
 import dayjs from 'dayjs'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
@@ -22,7 +23,6 @@ import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
-import DisclosureForm from '../../../components/disclosure-form'
 
 const OPTION_SELECT_ALL = 'select all'
 const METADATA_STATUS_LABEL = 'Status'
@@ -459,18 +459,36 @@ export default function DestinationDetail() {
                 </div>
                 {destination?.resources.length > 0 && (
                   <div>
-                    <DisclosureForm title='Limit access'>
-                      <div className='flex items-center space-x-4 px-4 pt-2 '>
-                        <p className='text-xs font-medium text-gray-900'>
-                          Namespaces
-                        </p>
-                        <NamespacesDropdownMenu
-                          selectedResources={selectedResources}
-                          setSelectedResources={setSelectedResources}
-                          resources={destination?.resources}
-                        />
-                      </div>
-                    </DisclosureForm>
+                    <Disclosure>
+                      {({ open }) => (
+                        <>
+                          <Disclosure.Button className='w-full'>
+                            <span className='flex items-center text-xs font-medium text-gray-500'>
+                              <ChevronRightIcon
+                                className={`${
+                                  open ? 'rotate-90 transform' : ''
+                                } mr-1 h-3 w-3 text-gray-500`}
+                              />
+                              Limit access
+                            </span>
+                          </Disclosure.Button>
+                          <Transition show={open}>
+                            <Disclosure.Panel static>
+                              <div className='flex items-center space-x-4 px-4 pt-2 '>
+                                <p className='text-xs font-medium text-gray-900'>
+                                  Namespaces
+                                </p>
+                                <NamespacesDropdownMenu
+                                  selectedResources={selectedResources}
+                                  setSelectedResources={setSelectedResources}
+                                  resources={destination?.resources}
+                                />
+                              </div>
+                            </Disclosure.Panel>
+                          </Transition>
+                        </>
+                      )}
+                    </Disclosure>
                   </div>
                 )}
               </div>

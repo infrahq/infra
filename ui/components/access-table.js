@@ -1,12 +1,15 @@
-import { ChevronDownIcon, XIcon, CheckIcon } from '@heroicons/react/solid'
-import { Listbox } from '@headlessui/react'
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  XIcon,
+  CheckIcon,
+} from '@heroicons/react/solid'
+import { Listbox, Transition, Disclosure } from '@headlessui/react'
 import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
 import { sortByRole, sortBySubject, descriptions } from '../lib/grants'
-
-import DisclosureForm from './disclosure-form'
 
 const OPTION_REMOVE = 'remove'
 
@@ -156,24 +159,6 @@ function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
   )
 }
 
-function NamespacesRoleList({ reousrcesMap, roles, onUpdate, onRemove }) {
-  const namespacesRoleListComponent = []
-
-  reousrcesMap.forEach((privileges, resource) =>
-    namespacesRoleListComponent.push(
-      <RoleList
-        key={resource}
-        resource={resource}
-        privileges={sortByRole(privileges)}
-        roles={roles}
-        onUpdate={v => onUpdate(v, resource, privileges)}
-        onRemove={() => onRemove(resource)}
-      />
-    )
-  )
-  return namespacesRoleListComponent
-}
-
 function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
@@ -236,21 +221,46 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {/* Namespaces List */}
       {namespacesPrivilegeMap.size > 0 && (
         <div className='py-2'>
-          <DisclosureForm
-            title={`Namespace access (${namespacesPrivilegeMap.size})`}
-            defaultOpen={destinationPrivileges === undefined}
-          >
-            <div className='space-y-2 pt-2'>
-              <NamespacesRoleList
-                reousrcesMap={namespacesPrivilegeMap}
-                roles={destination.roles.filter(r => r != 'cluster-admin')}
-                onUpdate={(v, resource, namespacesPrivileges) =>
-                  handleUpdate(v, namespacesPrivileges, resource)
-                }
-                onRemove={resource => handleRemove(resource)}
-              />
-            </div>
-          </DisclosureForm>
+          <Disclosure defaultOpen={destinationPrivileges === undefined}>
+            {({ open }) => (
+              <>
+                <Disclosure.Button className='w-full'>
+                  <span className='flex items-center text-xs font-medium text-gray-500'>
+                    <ChevronRightIcon
+                      className={`${
+                        open ? 'rotate-90 transform' : ''
+                      } mr-1 h-3 w-3 text-gray-500`}
+                    />
+                    {`Namespace access (${namespacesPrivilegeMap.size})`}
+                  </span>
+                </Disclosure.Button>
+                <Transition show={open}>
+                  <Disclosure.Panel static>
+                    <div className='space-y-2 pt-2'>
+                      {[...namespacesPrivilegeMap.keys()].map(resource => {
+                        const privileges = namespacesPrivilegeMap.get(resource)
+
+                        return (
+                          <RoleList
+                            key={resource}
+                            resource={resource}
+                            privileges={sortByRole(privileges)}
+                            roles={destination?.roles.filter(
+                              r => r != 'cluster-admin'
+                            )}
+                            onUpdate={v =>
+                              handleUpdate(v, privileges, resource)
+                            }
+                            onRemove={() => onRemove(resource)}
+                          />
+                        )
+                      })}
+                    </div>
+                  </Disclosure.Panel>
+                </Transition>
+              </>
+            )}
+          </Disclosure>
         </div>
       )}
     </div>
