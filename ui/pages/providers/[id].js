@@ -1,13 +1,133 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
+import copy from 'copy-to-clipboard'
 import Head from 'next/head'
 import Link from 'next/link'
 import useSWR, { useSWRConfig } from 'swr'
+import { DuplicateIcon, CheckIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 import Notification from '../../components/notification'
+
+function SCIMKeyDialog(props) {
+  const [scimAccessKey, setSCIMAccessKey] = useState('')
+  const [error, setError] = useState('')
+  const [keyCopied, setKeyCopied] = useState(false)
+
+  async function onSubmit(e) {
+    e.preventDefault()
+
+    try {
+      let keyName = props.provider.name + '-scim'
+
+      // delete any existing access key for this provider
+      await fetch(`/api/access-keys?name=${keyName}`, {
+        method: 'DELETE',
+      })
+
+      // generate the new key
+      const res = await fetch('/api/access-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          userID: props.provider.id,
+          name: keyName,
+          ttl: '87600h',
+          extensionDeadline: '720h',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw data
+      }
+
+      setSCIMAccessKey(data.accessKey)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  return (
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='py-1 font-display text-lg font-medium'>SCIM Access Key</h1>
+      <div className='space-y-4'>
+        {scimAccessKey === '' && error === '' ? (
+          <section>
+            <form onSubmit={onSubmit} className='flex flex-col space-y-4'>
+              <div className='mb-4 flex flex-col'>
+                <div className='relative mt-4'>
+                  <h2 className='mt-5 text-sm'>
+                    Generating a new SCIM access key will revoke any existing
+                    SCIM access key for this identity provider.
+                  </h2>
+                  <h2 className='mt-5 text-sm'>Do you wish to continue?</h2>
+                </div>
+              </div>
+              <div className='flex flex-row items-center justify-end space-x-3'>
+                <button
+                  type='button'
+                  onClick={() => props.setOpen(false)}
+                  className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                >
+                  Continue
+                </button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          <>
+            <section>
+              <div className='mb-2'>
+                <p className='mt-1 text-sm text-gray-500'>
+                  Use this access key to configure your identity provider for
+                  inbound SCIM provisioning
+                </p>
+              </div>
+              <div className='group relative my-4 flex'>
+                <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
+                  {scimAccessKey}
+                </pre>
+                <button
+                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
+                  onClick={() => {
+                    copy(key)
+                    setKeyCopied(true)
+                    setTimeout(() => setKeyCopied(false), 2000)
+                  }}
+                >
+                  {keyCopied ? (
+                    <CheckIcon className='h-4 w-4 text-green-500' />
+                  ) : (
+                    <DuplicateIcon className='h-4 w-4' />
+                  )}
+                </button>
+              </div>
+            </section>
+
+            {/* Finish */}
+            <section className={`my-10 flex justify-between`}>
+              <Link href='/providers'>
+                <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+                  Finish
+                </a>
+              </Link>
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function ProvidersEditDetails() {
   const router = useRouter()
@@ -25,6 +145,7 @@ export default function ProvidersEditDetails() {
   const [clientSecret, setClientSecret] = useState('')
   const [errors, setErrors] = useState({})
   const [showNotification, setShowNotification] = useState(false)
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false)
 
   const metadata = [
     { label: 'ID', value: provider?.id, font: 'font-mono' },
@@ -120,9 +241,55 @@ export default function ProvidersEditDetails() {
               </div>
               <span className='truncate'>{provider?.name}</span>
             </div>
+            {/* SCIM key dialog */}
+            <Transition.Root show={keyDialogOpen} as={Fragment}>
+              <Dialog
+                as='div'
+                className='relative z-50'
+                onClose={() => router.replace('/providers')}
+              >
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0'
+                  enterTo='opacity-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100'
+                  leaveTo='opacity-0'
+                >
+                  <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+                </Transition.Child>
+                <div className='fixed inset-0 z-10 overflow-y-auto'>
+                  <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                    <Transition.Child
+                      as={Fragment}
+                      enter='ease-out duration-150'
+                      enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                      enterTo='opacity-100 translate-y-0 sm:scale-100'
+                      leave='ease-in duration-100'
+                      leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                      leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                    >
+                      <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-lg'>
+                        <SCIMKeyDialog
+                          provider={provider}
+                          setOpen={setKeyDialogOpen}
+                        />
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
+                </div>
+              </Dialog>
+            </Transition.Root>
           </h1>
 
           <div className='my-3 flex space-x-2 md:my-0'>
+            <button
+              onClick={() => setKeyDialogOpen(true)}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+            >
+              Generate SCIM Access Key
+            </button>
             <RemoveButton
               onRemove={async () => {
                 await fetch(`/api/providers/${id}`, {

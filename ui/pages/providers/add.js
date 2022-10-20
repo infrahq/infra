@@ -1,14 +1,81 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
+import copy from 'copy-to-clipboard'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
 import Tippy from '@tippyjs/react'
+import {
+  DuplicateIcon,
+  CheckIcon,
+  InformationCircleIcon,
+  XIcon,
+} from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
 import Dashboard from '../../components/layouts/dashboard'
+
+function SCIMKeyDialog(props) {
+  const [keyCopied, setKeyCopied] = useState(false)
+
+  return (
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='py-1 font-display text-lg font-medium'>SCIM Access Key</h1>
+      <div className='space-y-4'>
+        <section>
+          {props.errorMsg === '' ? (
+            <>
+              <div className='mb-2'>
+                <p className='mt-1 text-sm text-gray-500'>
+                  Use this access key to configure your identity provider for
+                  inbound SCIM provisioning
+                </p>
+              </div>
+              <div className='group relative my-4 flex'>
+                <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
+                  {props.accessKey}
+                </pre>
+                <button
+                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
+                  onClick={() => {
+                    copy(key)
+                    setKeyCopied(true)
+                    setTimeout(() => setKeyCopied(false), 2000)
+                  }}
+                >
+                  {keyCopied ? (
+                    <CheckIcon className='h-4 w-4 text-green-500' />
+                  ) : (
+                    <DuplicateIcon className='h-4 w-4' />
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div
+              class='mb-4 rounded-lg bg-red-100 p-4 text-sm text-red-700 dark:bg-red-200 dark:text-red-800'
+              role='alert'
+            >
+              <span class='font-medium'>Error:</span> {props.errorMsg}
+            </div>
+          )}
+        </section>
+
+        {/* Finish */}
+        <section className={`my-10 flex justify-between`}>
+          <Link href='/providers'>
+            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              Finish
+            </a>
+          </Link>
+        </section>
+      </div>
+    </div>
+  )
+}
 
 function Provider({ kind, name, currentKind }) {
   return (
@@ -43,12 +110,15 @@ export default function ProvidersAddDetails() {
   const [url, setURL] = useState('')
   const [clientID, setClientID] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const [enableSCIM, setEnableSCIM] = useState(false)
   const [privateKey, setPrivateKey] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState('')
+  const [scimAccessKey, setSCIMAccessKey] = useState('')
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false)
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
@@ -91,6 +161,8 @@ export default function ProvidersAddDetails() {
 
           const data = await jsonBody(res)
 
+          createSCIMAccessKey(data.id, data.name)
+
           return { items: [...providers, data] }
         }
       )
@@ -109,9 +181,36 @@ export default function ProvidersAddDetails() {
       return false
     }
 
-    router.replace('/providers')
+    if (!enableSCIM) {
+      router.replace('/providers')
+    }
 
     return false
+  }
+
+  async function createSCIMAccessKey(id, name) {
+    try {
+      const res = await fetch('/api/access-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          userID: id,
+          name: name + '-scim',
+          ttl: '87600h',
+          extensionDeadline: '720h',
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw data
+      }
+
+      setSCIMAccessKey(data.accessKey)
+    } catch (e) {
+      setError(e.message)
+    }
+    setKeyDialogOpen(true)
   }
 
   const parseGoogleCredentialFile = e => {
@@ -155,6 +254,45 @@ export default function ProvidersAddDetails() {
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
+      <header className='my-6 flex items-center justify-between'>
+        {/* SCIM key dialog */}
+        <Transition.Root show={keyDialogOpen} as={Fragment}>
+          <Dialog
+            as='div'
+            className='relative z-50'
+            onClose={() => router.replace('/providers')}
+          >
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0'
+              enterTo='opacity-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100'
+              leaveTo='opacity-0'
+            >
+              <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+            </Transition.Child>
+            <div className='fixed inset-0 z-10 overflow-y-auto'>
+              <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                  enterTo='opacity-100 translate-y-0 sm:scale-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                  leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                >
+                  <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-lg'>
+                    <SCIMKeyDialog accessKey={scimAccessKey} errorMsg={error} />
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition.Root>
+      </header>
       <div className='flex items-center justify-between'>
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
           Connect Provider
@@ -301,6 +439,20 @@ export default function ProvidersAddDetails() {
                     {errors.clientsecret}
                   </p>
                 )}
+              </div>
+              <div>
+                <input
+                  id='scim-checkbox'
+                  type='checkbox'
+                  value=''
+                  class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-blue-600'
+                  onChange={() => {
+                    setEnableSCIM(!enableSCIM)
+                  }}
+                />
+                <label for='scim-checkbox' class='ml-2 text-sm font-medium'>
+                  Enable SCIM
+                </label>
               </div>
             </div>
           </div>
