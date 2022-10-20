@@ -33,7 +33,7 @@ func (i *identitiesTable) ScanFields() []any {
 	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
-func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
+func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
 	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err

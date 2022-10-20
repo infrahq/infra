@@ -33,7 +33,11 @@ func ListProviderUsers(c *gin.Context, p *data.SCIMParameters) ([]models.Provide
 	if err := checkKeyIdentityProvider(ctx); err != nil {
 		return []models.ProviderUser{}, err
 	}
-	users, err := data.ListProviderUsers(ctx.DBTxn, ctx.Authenticated.AccessKey.IssuedFor, p)
+	opts := data.ListProviderUsersOptions{
+		ByProviderID:   ctx.Authenticated.AccessKey.IssuedFor,
+		SCIMParameters: p,
+	}
+	users, err := data.ListProviderUsers(ctx.DBTxn, opts)
 	if err != nil {
 		return nil, fmt.Errorf("list provider users: %w", err)
 	}
@@ -93,7 +97,11 @@ func DeleteProviderUser(c *gin.Context, userID uid.ID) error {
 	}
 	providerID := ctx.Authenticated.AccessKey.IssuedFor
 	// delete the provider user, and if its the last reference to the user, remove their identity also
-	if err := data.DeleteIdentities(ctx.DBTxn, providerID, data.ByIDs([]uid.ID{userID})); err != nil {
+	opts := data.DeleteIdentitiesOptions{
+		ByProviderID: providerID,
+		ByIDs:        []uid.ID{userID},
+	}
+	if err := data.DeleteIdentities(ctx.DBTxn, opts); err != nil {
 		return fmt.Errorf("delete provider user identity: %w", err)
 	}
 	return nil

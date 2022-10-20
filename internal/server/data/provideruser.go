@@ -99,7 +99,11 @@ func UpdateProviderUser(tx GormTxn, providerUser *models.ProviderUser) error {
 	providerUser.LastUpdate = time.Now().UTC()
 
 	// check if the user's email has changed
-	identity, err := GetIdentity(tx, ByID(providerUser.IdentityID), Preload("Providers"))
+	opts := GetIdentityOptions{
+		ByID:          providerUser.IdentityID,
+		LoadProviders: true,
+	}
+	identity, err := GetIdentity(tx, opts)
 	if err != nil {
 		return fmt.Errorf("check identity before provider update: %w", err)
 	}
@@ -112,7 +116,7 @@ func UpdateProviderUser(tx GormTxn, providerUser *models.ProviderUser) error {
 		}
 		// this is the only provider for this identity so we can safely update the parent identity email
 		identity.Name = providerUser.Email
-		if err := SaveIdentity(tx, identity); err != nil {
+		if err := UpdateIdentity(tx, identity); err != nil {
 			return fmt.Errorf("update provider user identity: %w", err)
 		}
 	}
@@ -259,7 +263,10 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 
 func ProvisionProviderUser(tx GormTxn, user *models.ProviderUser) error {
 	// create an identity if this is the first time we are seeing the user with this email
-	identity, err := GetIdentity(tx, ByName(user.Email))
+	opts := GetIdentityOptions{
+		ByName: user.Email,
+	}
+	identity, err := GetIdentity(tx, opts)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return fmt.Errorf("get existing user on provision: %w", err)
@@ -281,7 +288,7 @@ func ProvisionProviderUser(tx GormTxn, user *models.ProviderUser) error {
 	return insert(tx, (*providerUserTable)(user))
 }
 
-func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
 	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err

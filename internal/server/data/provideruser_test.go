@@ -274,7 +274,10 @@ func TestProvisionProviderUser(t *testing.T) {
 			err := ProvisionProviderUser(db, user)
 			assert.NilError(t, err)
 
-			identity, err := GetIdentity(db, ByName(user.Email))
+			opts := GetIdentityOptions{
+				ByName: user.Email,
+			}
+			identity, err := GetIdentity(db, opts)
 			assert.NilError(t, err)
 			created, err := GetProviderUser(db, InfraProvider(db).ID, identity.ID)
 			assert.NilError(t, err)
@@ -375,7 +378,10 @@ func TestUpdateProviderUser(t *testing.T) {
 			updatedUser, err := GetProviderUser(db, user.ProviderID, user.IdentityID)
 			assert.NilError(t, err)
 			assert.DeepEqual(t, updatedUser, user, cmpTimeWithDBPrecision)
-			identity, err := GetIdentity(db, ByID(user.IdentityID))
+			opts := GetIdentityOptions{
+				ByID: user.IdentityID,
+			}
+			identity, err := GetIdentity(db, opts)
 			assert.NilError(t, err)
 			assert.Equal(t, identity.Name, user.Email)
 		})
@@ -432,8 +438,10 @@ func TestGetProviderUser(t *testing.T) {
 
 			err := ProvisionProviderUser(db, user)
 			assert.NilError(t, err)
-
-			identity, err := GetIdentity(db, ByName(user.Email))
+			opts := GetIdentityOptions{
+				ByName: user.Email,
+			}
+			identity, err := GetIdentity(db, opts)
 			assert.NilError(t, err)
 			created, err := GetProviderUser(db, InfraProvider(db).ID, identity.ID)
 			assert.NilError(t, err)
