@@ -30,7 +30,7 @@ func txnForTestCase(t *testing.T, db *data.DB, orgID uid.ID) *data.Transaction {
 	t.Cleanup(func() {
 		_ = tx.Rollback()
 	})
-	return tx.WithMetadata(orgID)
+	return tx.WithOrgID(orgID)
 }
 
 func TestLogin(t *testing.T) {
