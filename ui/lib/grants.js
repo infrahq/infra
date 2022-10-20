@@ -47,11 +47,23 @@ export function sortByRole(list = []) {
 
 export function sortBySubject(a, b) {
   if (a?.user && b?.group) {
-    return -1
+    return 1
   }
 
   if (a?.group && b?.user) {
+    return -1
+  }
+
+  return 0
+}
+
+export function sortByName(a, b) {
+  if (a?.name > b?.name) {
     return 1
+  }
+
+  if (a?.name < b?.name) {
+    return -1
   }
 
   return 0

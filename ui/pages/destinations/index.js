@@ -104,9 +104,9 @@ export default function Destinations() {
                   className={`h-2 w-2 flex-none rounded-full border ${
                     info.getValue()
                       ? info.row.original.connection.url === ''
-                        ? 'animate-pulse border-yellow-600 bg-yellow-500'
-                        : 'border-teal-500/50 bg-teal-400'
-                      : 'border-gray-300 bg-gray-200'
+                        ? 'animate-pulse border-yellow-500 bg-yellow-500'
+                        : 'border-teal-400 bg-teal-400'
+                      : 'border-gray-200 bg-gray-200'
                   }`}
                 />
                 <span className='flex-none px-2'>

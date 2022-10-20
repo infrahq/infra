@@ -113,7 +113,7 @@ export default function Groups() {
           Add group
         </button>
         <Transition.Root show={open} as={Fragment}>
-          <Dialog as='div' className='relative z-10' onClose={setOpen}>
+          <Dialog as='div' className='relative z-30' onClose={setOpen}>
             <Transition.Child
               as={Fragment}
               enter='ease-out duration-150'
@@ -125,7 +125,7 @@ export default function Groups() {
             >
               <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
             </Transition.Child>
-            <div className='fixed inset-0 z-10 overflow-y-auto'>
+            <div className='fixed inset-0 z-30 overflow-y-auto'>
               <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
                 <Transition.Child
                   as={Fragment}

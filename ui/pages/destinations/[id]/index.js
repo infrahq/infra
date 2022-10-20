@@ -5,22 +5,534 @@ import Head from 'next/head'
 import Link from 'next/link'
 import copy from 'copy-to-clipboard'
 import {
+  XIcon,
   CheckIcon,
   DuplicateIcon,
   DownloadIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/outline'
-import { Popover, Transition } from '@headlessui/react'
+import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
 import dayjs from 'dayjs'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
 
 import { useUser } from '../../../lib/hooks'
-import { sortByPrivilege } from '../../../lib/grants'
+import {
+  sortByPrivilege,
+  sortByRole,
+  sortBySubject,
+  descriptions,
+  sortByName,
+} from '../../../lib/grants'
 
-import Table from '../../../components/table'
-import AccessTable from '../../../components/access-table'
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
+
+const OPTION_SELECT_ALL = 'select all'
+const METADATA_STATUS_LABEL = 'Status'
+const OPTION_REMOVE = 'remove'
+
+function EditRoleMenu({
+  roles,
+  selectedRoles,
+  onChange,
+  onRemove,
+  privileges,
+}) {
+  roles = roles || []
+  roles = sortByRole(roles)
+
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
+  let { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: 'bottom-end',
+    modifiers: [
+      {
+        name: 'flip',
+        enabled: false,
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
+    ],
+  })
+
+  return (
+    <Listbox
+      value={selectedRoles}
+      onChange={v => {
+        if (v.includes(OPTION_REMOVE)) {
+          onRemove()
+          return
+        }
+
+        if (selectedRoles.length === 1 && v.length === 0) {
+          return
+        }
+
+        onChange(v)
+      }}
+      multiple
+    >
+      <div className='relative'>
+        <Listbox.Button
+          ref={setReferenceElement}
+          className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
+        >
+          <div className='flex space-x-1 truncate'>
+            <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+              <ChevronDownIcon
+                className='h-4 w-4 stroke-1 text-gray-700'
+                aria-hidden='true'
+              />
+            </span>
+            <span className='text-gray-700'>{privileges?.[0]}</span>
+            {privileges.length > 1 && (
+              <span className='font-medium'> + {privileges.length - 1}</span>
+            )}
+          </div>
+        </Listbox.Button>
+        {ReactDOM.createPortal(
+          <Listbox.Options
+            ref={setPopperElement}
+            style={styles.popper}
+            {...attributes.popper}
+            className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
+          >
+            <div className='max-h-64 overflow-auto'>
+              {roles?.map(r => (
+                <Listbox.Option
+                  key={r}
+                  className={({ active }) =>
+                    `${
+                      active ? 'bg-gray-100' : ''
+                    } select-none py-2 px-3 hover:cursor-pointer`
+                  }
+                  value={r}
+                >
+                  {({ selected }) => (
+                    <div className='flex flex-row'>
+                      <div className='flex flex-1 flex-col'>
+                        <div className='flex justify-between py-0.5 font-medium'>
+                          {r}
+                          {selected && (
+                            <CheckIcon
+                              className='h-3 w-3 stroke-1 text-gray-600'
+                              aria-hidden='true'
+                            />
+                          )}
+                        </div>
+                        <div className='text-3xs text-gray-600'>
+                          {descriptions[r]}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Listbox.Option>
+              ))}
+            </div>
+            <Listbox.Option
+              className={({ active }) =>
+                `${
+                  active ? 'bg-gray-50' : 'bg-white'
+                } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-red-500 hover:cursor-pointer`
+              }
+              value={OPTION_REMOVE}
+            >
+              <div className='flex flex-row items-center py-0.5'>
+                <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove access
+              </div>
+            </Listbox.Option>
+          </Listbox.Options>,
+          document.querySelector('body')
+        )}
+      </div>
+    </Listbox>
+  )
+}
+
+function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
+  return (
+    <div className='item-center flex justify-between'>
+      {resource && (
+        <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
+          {resource.split('.').pop()}
+        </div>
+      )}
+      <EditRoleMenu
+        roles={roles}
+        selectedRoles={privileges}
+        onChange={v => {
+          onUpdate(v)
+        }}
+        onRemove={() => {
+          onRemove()
+        }}
+        resource={resource}
+        privileges={privileges}
+      />
+    </div>
+  )
+}
+
+function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
+  const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
+
+  const namespacesPrivilegeMap = new Map(
+    Array.from(grant.resourcePrivilegeMap).filter(([key]) => {
+      if (key.includes('.')) {
+        return true
+      }
+
+      return false
+    })
+  )
+
+  function handleRemove(resource) {
+    const deleteGrantIdList = grantsList
+      .filter(g => g.resource === resource)
+      .filter(g => g.user === grant.user)
+      .filter(g => g.group === grant.group)
+      .map(g => g.id)
+
+    onRemove(deleteGrantIdList)
+  }
+
+  function handleUpdate(newPrivilege, selectedPrivilege, resource) {
+    // update to add roles
+    if (newPrivilege.length > selectedPrivilege.length) {
+      const newRole = newPrivilege.filter(x => !selectedPrivilege.includes(x))
+      onUpdate(newRole, resource)
+    } else {
+      // update to delete roles
+      const removeRoles = selectedPrivilege.filter(
+        x => !newPrivilege.includes(x)
+      )
+
+      const deleteGrantIdList = grantsList
+        .filter(g => g.resource === resource)
+        .filter(g => g.user === grant.user)
+        .filter(g => g.group === grant.group)
+        .filter(g => removeRoles.includes(g.privilege))
+        .map(g => g.id)
+      onRemove(deleteGrantIdList)
+    }
+  }
+
+  return (
+    <div className='py-1'>
+      {/* Destination Resource */}
+      {destinationPrivileges?.length > 0 && (
+        <div className='flex justify-end space-x-2 py-2'>
+          <RoleList
+            privileges={sortByRole(destinationPrivileges)}
+            roles={destination.roles}
+            onUpdate={v =>
+              handleUpdate(v, destinationPrivileges, destination.name)
+            }
+            onRemove={() => handleRemove(destination.name)}
+          />
+        </div>
+      )}
+      {/* Namespaces List */}
+      {namespacesPrivilegeMap.size > 0 && (
+        <div className='py-2'>
+          <Disclosure defaultOpen={destinationPrivileges === undefined}>
+            {({ open }) => (
+              <>
+                <Disclosure.Button className='w-full'>
+                  <span className='flex items-center text-xs font-medium text-gray-500'>
+                    <ChevronRightIcon
+                      className={`${
+                        open ? 'rotate-90 transform' : ''
+                      } mr-1 h-3 w-3 text-gray-500`}
+                    />
+                    {`Namespace access (${namespacesPrivilegeMap.size})`}
+                  </span>
+                </Disclosure.Button>
+                <Transition show={open}>
+                  <Disclosure.Panel static>
+                    <div className='space-y-2 pt-2'>
+                      {[...namespacesPrivilegeMap.keys()].map(resource => {
+                        const privileges = namespacesPrivilegeMap.get(resource)
+
+                        return (
+                          <RoleList
+                            key={resource}
+                            resource={resource}
+                            privileges={sortByRole(privileges)}
+                            roles={destination?.roles.filter(
+                              r => r != 'cluster-admin'
+                            )}
+                            onUpdate={v =>
+                              handleUpdate(v, privileges, resource)
+                            }
+                            onRemove={() => onRemove(resource)}
+                          />
+                        )
+                      })}
+                    </div>
+                  </Disclosure.Panel>
+                </Transition>
+              </>
+            )}
+          </Disclosure>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AccessTable({
+  grants,
+  users,
+  groups,
+  destination,
+  onUpdate,
+  onRemove,
+}) {
+  const grantsSubject = [...new Set(grants?.map(g => g.user || g.group))]
+  let grantsList = []
+  grantsSubject.forEach(subject => {
+    let type = 'user'
+    const grantArray = grants.filter(g => {
+      if (g.group === subject) {
+        type = 'group'
+      }
+      return g.user === subject || g.group === subject
+    })
+
+    const resourcePrivilegeMap = new Map()
+    grantArray.forEach(g => {
+      if (resourcePrivilegeMap.has(g.resource)) {
+        resourcePrivilegeMap.set(g.resource, [
+          ...resourcePrivilegeMap.get(g.resource),
+          g.privilege,
+        ])
+      } else {
+        resourcePrivilegeMap.set(g.resource, [g.privilege])
+      }
+    })
+
+    const name =
+      users?.find(u => u.id === subject)?.name ||
+      groups?.find(g => g.id === subject)?.name
+
+    if (grantArray.length === 1) {
+      grantArray[0].resourcePrivilegeMap = resourcePrivilegeMap
+      grantArray[0].name = name
+      grantsList = [...grantsList, ...grantArray]
+    } else {
+      grantsList.push({
+        name,
+        [type]: subject,
+        id: grantArray.map(g => g.id),
+        resourcePrivilegeMap,
+      })
+    }
+  })
+
+  return (
+    <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
+      <table className='w-full text-sm text-gray-600'>
+        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
+          <tr>
+            <th
+              scope='col'
+              className='py-2 px-5 text-left font-medium  sm:pl-6'
+            >
+              Group or user
+            </th>
+          </tr>
+        </thead>
+        <tbody className='divide-y divide-gray-200 bg-white'>
+          {grantsList
+            ?.sort(sortByName)
+            ?.sort(sortBySubject)
+            .map(grant => (
+              <tr key={grant.user || grant.group}>
+                <td className='w-[60%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                  <div className='flex w-[60%] flex-col truncate'>
+                    <div className='text-sm font-medium text-gray-700'>
+                      {grant.name}
+                    </div>
+                    <div className='text-2xs text-gray-500'>
+                      {users?.find(u => u.id === grant.user) && 'User'}
+                      {groups?.find(g => g.id === grant.group)?.name && 'Group'}
+                    </div>
+                  </div>
+                </td>
+                <td className='w-[35%] whitespace-nowrap px-3 py-4 text-sm text-gray-500'>
+                  <GrantCell
+                    grantsList={grants}
+                    grant={grant}
+                    destination={destination}
+                    onRemove={grantsIdList => onRemove(grantsIdList)}
+                    onUpdate={(newPrivilege, resource) =>
+                      onUpdate(newPrivilege, grant.user, grant.group, resource)
+                    }
+                  />
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+      {grantsList && grantsList.length === 0 && (
+        <div className='flex justify-center py-5 text-sm text-gray-500'>
+          No data
+        </div>
+      )}
+      {!grantsList && (
+        <div className='flex min-h-[100px] items-center justify-center py-4 text-xs text-gray-400'>
+          <svg
+            xmlns='http://www.w3.org/2000/svg'
+            viewBox='0 0 100 100'
+            preserveAspectRatio='xMidYMid'
+            className='h-10 w-10 animate-spin-fast stroke-current text-gray-400'
+          >
+            <circle
+              cx='50'
+              cy='50'
+              fill='none'
+              strokeWidth='1.5'
+              r='24'
+              strokeDasharray='113.09733552923255 39.69911184307752'
+            ></circle>
+          </svg>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NamespacesDropdownMenu({
+  selectedResources,
+  setSelectedResources,
+  resources,
+}) {
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
+  let { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: 'bottom-end',
+    modifiers: [
+      {
+        name: 'flip',
+        enabled: false,
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
+    ],
+  })
+
+  return (
+    <div className='relative'>
+      <Listbox
+        value={selectedResources}
+        onChange={v => {
+          if (v.includes(OPTION_SELECT_ALL)) {
+            if (selectedResources.length !== resources.length) {
+              setSelectedResources([...resources])
+            } else {
+              setSelectedResources([])
+            }
+            return
+          }
+
+          setSelectedResources(v)
+        }}
+        multiple
+      >
+        <div className='relative'>
+          <Listbox.Button
+            ref={setReferenceElement}
+            className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-left text-xs shadow-sm hover:cursor-pointer hover:bg-gray-100 focus:outline-none'
+          >
+            <div className='flex space-x-1 truncate'>
+              <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+                <ChevronDownIcon
+                  className='h-4 w-4 stroke-1 text-gray-700'
+                  aria-hidden='true'
+                />
+              </span>
+              <span className='text-gray-700'>
+                {selectedResources.length > 0
+                  ? selectedResources[0]
+                  : 'Select namespaces'}
+              </span>
+              {selectedResources.length - 1 > 0 && (
+                <span> + {selectedResources.length - 1}</span>
+              )}
+            </div>
+          </Listbox.Button>
+          {ReactDOM.createPortal(
+            <Listbox.Options
+              ref={setPopperElement}
+              style={styles.popper}
+              {...attributes.popper}
+              className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
+            >
+              <div className='max-h-64 overflow-auto'>
+                {resources?.map(r => (
+                  <Listbox.Option
+                    key={r}
+                    className={({ active }) =>
+                      `${
+                        active ? 'bg-gray-100' : ''
+                      } select-none py-2 px-3 hover:cursor-pointer`
+                    }
+                    value={r}
+                  >
+                    {({ selected }) => (
+                      <div className='flex flex-row'>
+                        <div className='flex flex-1 flex-col'>
+                          <div className='flex justify-between py-0.5 font-medium'>
+                            {r}
+                            {selected && (
+                              <CheckIcon
+                                className='h-3 w-3 stroke-1 text-gray-600'
+                                aria-hidden='true'
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </div>
+              {resources.length > 1 && (
+                <Listbox.Option
+                  className={({ active }) =>
+                    `${
+                      active ? 'bg-gray-50' : 'bg-white'
+                    } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-blue-500 hover:cursor-pointer`
+                  }
+                  value={OPTION_SELECT_ALL}
+                >
+                  <div className='flex flex-row items-center py-0.5'>
+                    {selectedResources.length !== resources.length
+                      ? 'Select all'
+                      : 'Reset'}
+                  </div>
+                </Listbox.Option>
+              )}
+            </Listbox.Options>,
+            document.querySelector('body')
+          )}
+        </div>
+      </Listbox>
+    </div>
+  )
+}
 
 function AccessCluster({ roles, resource }) {
   const [commandCopied, setCommandCopied] = useState(false)
@@ -81,7 +593,7 @@ export default function DestinationDetail() {
   const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
   const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    `/api/grants?resource=${destination?.name}&limit=1000`
+    `/api/grants?destination=${destination?.name}`
   )
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
@@ -90,6 +602,7 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
+  const [selectedResources, setSelectedResources] = useState([])
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -107,6 +620,19 @@ export default function DestinationDetail() {
   const metadata = [
     { label: 'ID', value: destination?.id, font: 'font-mono' },
     { label: '# of namespaces', value: destination?.resources.length },
+    {
+      label: 'Status',
+      value: destination?.connected
+        ? destination?.connection.url === ''
+          ? 'Pending'
+          : 'Connected'
+        : 'Disconnected',
+      color: destination?.connected
+        ? destination?.connection.url === ''
+          ? 'yellow'
+          : 'green'
+        : 'gray',
+    },
     {
       label: 'Created',
       value: destination?.created ? dayjs(destination?.created).fromNow() : '-',
@@ -135,7 +661,18 @@ export default function DestinationDetail() {
                   src={`/kubernetes.svg`}
                 />
               </div>
-              <span className='truncate'>{destination?.name}</span>
+              <div className='flex items-center space-x-2'>
+                <span className='truncate'>{destination?.name}</span>
+                <div
+                  className={`h-2 w-2 flex-none rounded-full border ${
+                    destination?.connected
+                      ? destination?.connection.url === ''
+                        ? 'animate-pulse border-yellow-500 bg-yellow-500'
+                        : 'border-teal-400 bg-teal-400'
+                      : 'border-gray-200 bg-gray-200'
+                  }`}
+                />
+              </div>
             </div>
           </h1>
           <div className='my-3 flex space-x-2 md:my-0'>
@@ -191,20 +728,29 @@ export default function DestinationDetail() {
           </div>
         </div>
         {destination && (
-          <div className='flex flex-row border-t border-gray-100'>
+          <div className='flex flex-col border-t border-gray-100 sm:flex-row'>
             {metadata.map(g => (
               <div
                 key={g.label}
-                className='px-6 py-5 text-left first:pr-6 first:pl-0'
+                className='py-5 text-left sm:px-6 sm:first:pr-6 sm:first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
-                <span
-                  className={`text-sm ${
-                    g.font ? g.font : 'font-medium'
-                  } text-gray-800`}
-                >
-                  {g.value}
-                </span>
+                {g.label !== METADATA_STATUS_LABEL && (
+                  <span
+                    className={`text-sm ${
+                      g.font ? g.font : 'font-medium'
+                    } text-gray-800`}
+                  >
+                    {g.value}
+                  </span>
+                )}
+                {g.label === METADATA_STATUS_LABEL && (
+                  <span
+                    className={`inline-flex items-center rounded-full bg-${g.color}-100 px-2.5 py-px text-2xs font-medium text-${g.color}-800`}
+                  >
+                    {g.value}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -214,91 +760,155 @@ export default function DestinationDetail() {
         <>
           <div className='my-5 flex flex-col space-y-4'>
             <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-              <h3 className='mb-3 text-sm font-medium'>Grant access</h3>
-              <GrantForm
-                roles={destination?.roles}
-                grants={grants}
-                onSubmit={async ({ user, group, privilege }) => {
-                  // don't add grants that already exist
-                  if (
-                    grants?.find(
-                      g =>
-                        g.user === user &&
-                        g.group === group &&
-                        g.privilege === privilege
-                    )
-                  ) {
-                    return false
-                  }
-
-                  await fetch('/api/grants', {
-                    method: 'POST',
-                    body: JSON.stringify({
+              <div className='flex flex-col space-y-2'>
+                <div>
+                  <h3 className='mb-3 text-sm font-medium'>
+                    Grant access to{' '}
+                    <span className='font-bold'>
+                      {selectedResources.length > 0
+                        ? selectedResources.join(', ')
+                        : 'cluster'}
+                    </span>
+                  </h3>{' '}
+                  <GrantForm
+                    roles={destination?.roles}
+                    selectedResources={selectedResources}
+                    grants={grants}
+                    onSubmit={async ({
                       user,
                       group,
                       privilege,
-                      resource: destination?.name,
-                    }),
-                  })
+                      selectedResources,
+                    }) => {
+                      // don't add grants that already exist
+                      if (selectedResources.length === 0) {
+                        if (
+                          grants?.find(
+                            g =>
+                              g.user === user &&
+                              g.group === group &&
+                              g.privilege === privilege &&
+                              g.resource === destination?.namn
+                          )
+                        ) {
+                          return false
+                        }
 
-                  mutate()
-                }}
-              />
+                        await fetch('/api/grants', {
+                          method: 'POST',
+                          body: JSON.stringify({
+                            user,
+                            group,
+                            privilege,
+                            resource: destination?.name,
+                          }),
+                        })
+                        mutate()
+                      } else {
+                        const promises = selectedResources.map(
+                          async resource => {
+                            // // don't add grants that already exist
+                            if (
+                              grants?.find(
+                                g =>
+                                  g.user === user &&
+                                  g.group === group &&
+                                  g.privilege === privilege &&
+                                  g.resource ===
+                                    `${destination?.name}.${resource}`
+                              )
+                            ) {
+                              return false
+                            }
+
+                            await fetch('/api/grants', {
+                              method: 'POST',
+                              body: JSON.stringify({
+                                user,
+                                group,
+                                privilege,
+                                resource: `${destination?.name}.${resource}`,
+                              }),
+                            })
+                          }
+                        )
+
+                        await Promise.all(promises)
+                        mutate()
+                        setSelectedResources([])
+                      }
+                    }}
+                  />
+                </div>
+                {destination?.resources.length > 0 && (
+                  <div>
+                    <Disclosure>
+                      {({ open }) => (
+                        <>
+                          <Disclosure.Button className='w-full'>
+                            <span className='flex items-center text-xs font-medium text-gray-500'>
+                              <ChevronRightIcon
+                                className={`${
+                                  open ? 'rotate-90 transform' : ''
+                                } mr-1 h-3 w-3 text-gray-500`}
+                              />
+                              Limit access
+                            </span>
+                          </Disclosure.Button>
+                          <Transition show={open}>
+                            <Disclosure.Panel static>
+                              <div className='flex items-center space-x-4 px-4 pt-2 '>
+                                <p className='text-xs font-medium text-gray-900'>
+                                  Namespaces
+                                </p>
+                                <NamespacesDropdownMenu
+                                  selectedResources={selectedResources}
+                                  setSelectedResources={setSelectedResources}
+                                  resources={destination?.resources}
+                                />
+                              </div>
+                            </Disclosure.Panel>
+                          </Transition>
+                        </>
+                      )}
+                    </Disclosure>
+                  </div>
+                )}
+              </div>
             </div>
             <AccessTable
               grants={grants}
               users={users}
               groups={groups}
               destination={destination}
-              onRemove={async groupId => {
-                await fetch(`/api/grants/${groupId}`, {
-                  method: 'DELETE',
-                })
+              onUpdate={async (privileges, user, group, resource) => {
+                const promises = privileges.map(
+                  async privilege =>
+                    await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        user,
+                        group,
+                        privilege,
+                        resource,
+                      }),
+                    })
+                )
+
+                await Promise.all(promises)
                 mutate()
               }}
-              onChange={async (privilege, group) => {
-                if (privilege === group.privilege) {
-                  return
-                }
+              onRemove={async grantsIdList => {
+                const promises = grantsIdList.map(
+                  async id =>
+                    await fetch(`/api/grants/${id}`, {
+                      method: 'DELETE',
+                    })
+                )
 
-                await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    ...group,
-                    privilege,
-                  }),
-                })
-
-                // delete old grant
-                await fetch(`/api/grants/${group.id}`, {
-                  method: 'DELETE',
-                })
-
+                await Promise.all(promises)
                 mutate()
               }}
-            />
-          </div>
-          <div>
-            <header className='mt-6 mb-3 flex'>
-              <h1 className='font-display text-base font-medium'>Namespaces</h1>
-            </header>
-            <Table
-              data={destination?.resources}
-              empty='No namespaces'
-              href={row => `/destinations/${destination?.id}/${row.original}`}
-              columns={[
-                {
-                  id: 'name',
-                  cell: info => {
-                    return (
-                      <span className='font-medium text-gray-700'>
-                        {info.row.original}
-                      </span>
-                    )
-                  },
-                  header: () => <span>Name</span>,
-                },
-              ]}
             />
           </div>
         </>

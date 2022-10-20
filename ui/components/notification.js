@@ -29,7 +29,7 @@ export default function Notification({
     <div
       aria-live='assertive'
       ref={wrapperRef}
-      className='pointer-events-none fixed inset-0 z-10 flex items-end px-4 py-6 sm:items-end sm:p-6'
+      className='pointer-events-none fixed inset-0 z-20 flex items-end px-4 py-6 sm:items-end sm:p-6'
     >
       <div className='flex w-full flex-col items-center space-y-4 sm:items-end'>
         <Transition

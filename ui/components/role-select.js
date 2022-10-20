@@ -1,32 +1,12 @@
-import useSWR from 'swr'
 import { Listbox } from '@headlessui/react'
 import { CheckIcon, ChevronDownIcon } from '@heroicons/react/solid'
-import { XIcon } from '@heroicons/react/outline'
 import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 
-import { descriptions, sortByRole } from '../lib/grants'
+import { descriptions } from '../lib/grants'
 
-const OPTION_REMOVE = 'remove'
-
-export default function RoleSelect({
-  resource,
-  role,
-  roles,
-  onChange,
-  onRemove,
-  remove,
-  direction = 'right',
-}) {
-  const parts = resource?.split('.') || []
-  const hasParent = parts?.length > 1
-
-  const { data: { items } = {} } = useSWR(
-    () =>
-      resource && `/api/destinations?name=${hasParent ? parts[0] : resource}`
-  )
-
+export default function RoleSelect({ role, roles, onChange }) {
   const [referenceElement, setReferenceElement] = useState(null)
   const [popperElement, setPopperElement] = useState(null)
   let { styles, attributes } = usePopper(referenceElement, popperElement, {
@@ -36,11 +16,14 @@ export default function RoleSelect({
         name: 'flip',
         enabled: false,
       },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
     ],
   })
-
-  roles = roles || items?.[0]?.roles || []
-  roles = sortByRole(roles).filter(r => !hasParent || r !== 'cluster-admin')
 
   return (
     <Listbox
@@ -49,12 +32,6 @@ export default function RoleSelect({
         if (v === role) {
           return
         }
-
-        if (v === OPTION_REMOVE) {
-          onRemove()
-          return
-        }
-
         onChange(v)
       }}
     >
@@ -76,11 +53,9 @@ export default function RoleSelect({
             ref={setPopperElement}
             style={styles.popper}
             {...attributes.popper}
-            className={`absolute z-10 w-48 ${
-              direction === 'right' ? '' : 'right-0'
-            } mt-2 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none`}
+            className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
           >
-            <div className={`max-h-64 overflow-auto`}>
+            <div className='max-h-64 overflow-auto'>
               {roles?.map(r => (
                 <Listbox.Option
                   key={r}
@@ -112,20 +87,6 @@ export default function RoleSelect({
                 </Listbox.Option>
               ))}
             </div>
-            {remove && (
-              <Listbox.Option
-                className={({ active }) =>
-                  `${
-                    active ? 'bg-gray-50' : 'bg-white'
-                  } group flex w-full items-center border-t border-gray-100 px-2 py-1.5 text-xs font-medium text-red-500`
-                }
-                value={OPTION_REMOVE}
-              >
-                <div className='flex flex-row items-center py-0.5'>
-                  <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove
-                </div>
-              </Listbox.Option>
-            )}
           </Listbox.Options>,
           document.querySelector('body')
         )}

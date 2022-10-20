@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import useSWR from 'swr'
 import { Combobox } from '@headlessui/react'
-import { PlusIcon } from '@heroicons/react/outline'
-import { CheckIcon } from '@heroicons/react/solid'
+import { PlusIcon, CheckIcon } from '@heroicons/react/outline'
 
 import { sortByRole } from '../lib/grants'
 
@@ -11,6 +10,7 @@ import RoleSelect from './role-select'
 export default function GrantForm({
   grants,
   roles,
+  selectedResources,
   multiselect = true,
   onSubmit = () => {},
 }) {
@@ -19,20 +19,26 @@ export default function GrantForm({
   const { data: { items: groups } = { items: [] }, mutate: mutateGroups } =
     useSWR('/api/groups?limit=1000')
 
-  const [role, setRole] = useState(sortByRole(roles)?.[0])
+  const [role, setRole] = useState('')
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
   const [options, setOptions] = useState([])
 
   const button = useRef()
 
-  useEffect(() => setRole(sortByRole(roles)?.[0]), [roles])
+  useEffect(() => {
+    if (selectedResources?.length > 0) {
+      setRole(sortByRole(roles)?.filter(r => r != 'cluster-admin')[0])
+    } else {
+      setRole(sortByRole(roles)?.[0])
+    }
+  }, [roles, selectedResources])
 
   useEffect(() => {
     if (users && groups) {
       const optionsList = [
-        ...(users?.map(u => ({ ...u, user: true })) || []),
         ...(groups?.map(g => ({ ...g, group: true })) || []),
+        ...(users?.map(u => ({ ...u, user: true })) || []),
       ]
       const filteredOptions = multiselect
         ? optionsList
@@ -58,7 +64,9 @@ export default function GrantForm({
           user: selected.user ? selected.id : undefined,
           group: selected.group ? selected.id : undefined,
           privilege: role,
+          selectedResources,
         })
+
         setRole(sortByRole(roles)?.[0])
         setSelected(null)
       }}
@@ -76,7 +84,7 @@ export default function GrantForm({
         >
           <Combobox.Input
             className={`block w-full rounded-md border-gray-300 text-xs shadow-sm focus:border-blue-500 focus:ring-blue-500`}
-            placeholder='Enter user or group'
+            placeholder='Enter group or user'
             onChange={e => {
               setQuery(e.target.value)
               if (e.target.value.length === 0) {
@@ -129,7 +137,15 @@ export default function GrantForm({
       </div>
       {roles?.length > 1 && (
         <div className='relative'>
-          <RoleSelect onChange={setRole} role={role} roles={roles} />
+          <RoleSelect
+            onChange={setRole}
+            role={role}
+            roles={
+              selectedResources.length > 0
+                ? sortByRole(roles)?.filter(r => r != 'cluster-admin')
+                : sortByRole(roles)
+            }
+          />
         </div>
       )}
       <div className='relative'>
