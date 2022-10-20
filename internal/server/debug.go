@@ -12,7 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
+var pprofRoute = route[pprofRequest, *api.EmptyResponse]{
 	handler: pprofHandler,
 	routeSettings: routeSettings{
 		omitFromTelemetry:          true,
@@ -22,9 +22,20 @@ var pprofRoute = route[api.EmptyRequest, *api.EmptyResponse]{
 	},
 }
 
-func pprofHandler(c *gin.Context, _ *api.EmptyRequest) (*api.EmptyResponse, error) {
+type pprofRequest struct{}
+
+func (pprofRequest) IsBlockingRequest() bool {
+	return true
+}
+
+func pprofHandler(c *gin.Context, _ *pprofRequest) (*api.EmptyResponse, error) {
+	rCtx := getRequestContext(c)
 	if _, err := access.RequireInfraRole(c, models.InfraSupportAdminRole); err != nil {
 		return nil, access.HandleAuthErr(err, "debug", "run", models.InfraSupportAdminRole)
+	}
+	// end the transaction before blocking
+	if err := rCtx.DBTxn.Rollback(); err != nil {
+		return nil, err
 	}
 
 	switch c.Param("profile") {
