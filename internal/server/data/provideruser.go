@@ -12,6 +12,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
+	"github.com/scim2/filter-parser/v2"
 )
 
 type providerUserTable models.ProviderUser
@@ -128,6 +129,14 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 	if opts.HideInactive {
 		query.B("AND active = ?", opts.HideInactive)
 	}
+	if opts.SCIMParameters != nil && opts.SCIMParameters.Filter != nil {
+		query.B("AND (")
+		err := filterSQL(*opts.SCIMParameters.Filter, query)
+		if err != nil {
+			return nil, fmt.Errorf("apply filter: %w", err)
+		}
+		query.B(")")
+	}
 
 	query.B("ORDER BY email ASC")
 
@@ -236,8 +245,8 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, p
 }
 
 type SCIMParameters struct {
-	Count      int // the number of items to return
-	StartIndex int // the offset to start counting from
-	TotalCount int // the total number of items that match the query
-	// TODO: filter query param
+	Count      int                // the number of items to return
+	StartIndex int                // the offset to start counting from
+	TotalCount int                // the total number of items that match the query
+	Filter     *filter.Expression // a filter to apply to the results
 }
