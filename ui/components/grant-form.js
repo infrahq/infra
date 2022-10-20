@@ -138,10 +138,7 @@ export default function GrantForm({
       {roles?.length > 1 && (
         <div className='relative'>
           <RoleSelect
-            onChange={v => {
-              console.log(v)
-              setRole(v)
-            }}
+            onChange={setRole}
             role={role}
             roles={
               selectedResources.length > 0

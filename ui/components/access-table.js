@@ -236,7 +236,10 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {/* Namespaces List */}
       {namespacesPrivilegeMap.size > 0 && (
         <div className='py-2'>
-          <DisclosureForm title='Namespaces'>
+          <DisclosureForm
+            title={`${namespacesPrivilegeMap.size} Namespaces access`}
+            defaultOpen={destinationPrivileges === undefined}
+          >
             <div className='space-y-2 pt-2'>
               <NamespacesRoleList
                 reousrcesMap={namespacesPrivilegeMap}

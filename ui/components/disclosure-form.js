@@ -1,9 +1,13 @@
 import { Transition, Disclosure } from '@headlessui/react'
 import { ChevronRightIcon } from '@heroicons/react/outline'
 
-export default function DisclosureForm({ children, title }) {
+export default function DisclosureForm({
+  children,
+  title,
+  defaultOpen = false,
+}) {
   return (
-    <Disclosure>
+    <Disclosure defaultOpen={defaultOpen}>
       {({ open }) => (
         <>
           <Disclosure.Button className='w-full'>
@@ -11,20 +15,12 @@ export default function DisclosureForm({ children, title }) {
               <ChevronRightIcon
                 className={`${
                   open ? 'rotate-90 transform' : ''
-                } mr-1 h-3 w-3 text-gray-500 duration-300 ease-in`}
+                } mr-1 h-3 w-3 text-gray-500`}
               />
               {title}
             </span>
           </Disclosure.Button>
-          <Transition
-            show={open}
-            enter='ease-out duration-1000'
-            enterFrom='opacity-0'
-            enterTo='opacity-100'
-            leave='ease-in duration-300'
-            leaveFrom='opacity-100'
-            leaveTo='opacity-0'
-          >
+          <Transition show={open}>
             <Disclosure.Panel static>{children}</Disclosure.Panel>
           </Transition>
         </>
