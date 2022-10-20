@@ -187,9 +187,7 @@ func TestTrimWhitespace(t *testing.T) {
 }
 
 func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
-	srv := newServer(Options{})
-	srv.db = setupDB(t)
-
+	srv := setupServer(t)
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
@@ -229,9 +227,7 @@ func TestWrapRoute_TxnRollbackOnError(t *testing.T) {
 }
 
 func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
-	srv := newServer(Options{})
-	srv.db = setupDB(t)
-
+	srv := setupServer(t)
 	router := gin.New()
 
 	r := route[api.EmptyRequest, *api.EmptyResponse]{
@@ -288,12 +284,13 @@ func TestRequestTimeout(t *testing.T) {
 		t.Skip("too slow for short run")
 	}
 	srv := setupServer(t)
+	srv.options.API.RequestTimeout = time.Second
 	routes := srv.GenerateRoutes()
 	router, ok := routes.Handler.(*gin.Engine)
 	assert.Assert(t, ok)
 	a := &API{server: srv}
 
-	group := &routeGroup{RouterGroup: router.Group("/", TimeoutMiddleware(1*time.Second)), noAuthentication: true, noOrgRequired: true}
+	group := &routeGroup{RouterGroup: router.Group("/"), noAuthentication: true, noOrgRequired: true}
 	add(a, group, http.MethodGet, "/sleep", route[api.EmptyRequest, *api.EmptyResponse]{
 		handler: func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 			ctx := getRequestContext(c)

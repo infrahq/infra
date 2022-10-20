@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -19,23 +18,6 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/redis"
 )
-
-// TimeoutMiddleware adds a timeout to the request context within the Gin context.
-// To correctly abort long-running requests, this depends on the users of the context to
-// stop working when the context cancels.
-// Note: The goroutine for the request is never halted; if the context is not
-// passed down to lower packages and long-running tasks, then the app will not
-// magically stop working on the request. No effort should be made to write
-// an early http response here; it's up to the users of the context to watch for
-// c.Request.Context().Err() or <-c.Request.Context().Done()
-func TimeoutMiddleware(timeout time.Duration) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), timeout)
-		defer cancel()
-		c.Request = c.Request.WithContext(ctx)
-		c.Next()
-	}
-}
 
 func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) error {
 	if uniqueID == "" {

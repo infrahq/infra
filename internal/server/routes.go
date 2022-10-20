@@ -8,7 +8,6 @@ import (
 	"path"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/gin-gonic/gin"
@@ -47,10 +46,7 @@ func (s *Server) GenerateRoutes() Routes {
 	router.GET("/healthz", healthHandler)
 
 	// This group of middleware will apply to everything, including the UI
-	router.Use(
-		loggingMiddleware(s.options.EnableLogSampling),
-		TimeoutMiddleware(s.options.API.RequestTimeout),
-	)
+	router.Use(loggingMiddleware(s.options.EnableLogSampling))
 
 	// This group of middleware only applies to non-ui routes
 	apiGroup := router.Group("/", metrics.Middleware(s.metricsRegistry))
@@ -202,6 +198,11 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 // status code and response body built from the response type.
 func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, Res]) func(*gin.Context) error {
 	return func(c *gin.Context) error {
+		origRequestContext := c.Request.Context()
+		ctx, cancel := context.WithTimeout(origRequestContext, a.server.options.API.RequestTimeout)
+		defer cancel()
+		c.Request = c.Request.WithContext(ctx)
+
 		if !route.infraVersionHeaderOptional {
 			if _, err := requestVersion(c.Request); err != nil {
 				return err
@@ -219,9 +220,8 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 
 		if r, ok := any(req).(isBlockingRequest); ok && r.IsBlockingRequest() {
-			ctx, cancel := newExtendedDeadlineContext(
-				c.Request.Context(),
-				a.server.options.API.BlockingRequestTimeout)
+			ctx, cancel := context.WithTimeout(
+				origRequestContext, a.server.options.API.BlockingRequestTimeout)
 			defer cancel()
 			c.Request = c.Request.WithContext(ctx)
 		}
@@ -288,24 +288,6 @@ type statusCoder interface {
 
 type isBlockingRequest interface {
 	IsBlockingRequest() bool
-}
-
-func newExtendedDeadlineContext(base context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	return extendedContext{Context: ctx, valuesCtx: base}, cancel
-}
-
-// extendedContext can be used to create a new context where only the values
-// come from the base context. The context deadline is redefined to a new
-// (must likely longer) value. This  allows us to extend the deadline by ignoring
-// the one that was set in the base context.
-type extendedContext struct {
-	context.Context
-	valuesCtx context.Context
-}
-
-func (e extendedContext) Value(key any) any {
-	return e.valuesCtx.Value(key)
 }
 
 var reflectTypeString = reflect.TypeOf("")
