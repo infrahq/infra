@@ -181,18 +181,8 @@ func DeleteGrant(c *gin.Context, id uid.ID) error {
 func UpdateGrants(c *gin.Context, addGrants, rmGrants []*models.Grant) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
-		return HandleAuthErr(err, "grant", "create", "")
+		return HandleAuthErr(err, "grant", "update", "")
 	}
 
-	err = data.CreateGrants(db, addGrants)
-	if err != nil {
-		return err
-	}
-
-	err = data.DeleteGrantsBulk(db, rmGrants)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return data.UpdateGrants(db, addGrants, rmGrants)
 }

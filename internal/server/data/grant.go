@@ -389,21 +389,50 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	return err
 }
 
-func CreateGrants(tx WriteTxn, grants []*models.Grant) error {
+func UpdateGrants(tx WriteTxn, addGrants, rmGrants []*models.Grant) error {
+	// Use a savepoint so that we can query for the duplicate grant on conflict
+	if _, err := tx.Exec("SAVEPOINT beforeUpdate"); err != nil {
+		// ignore "not in a transaction" error, because outside of a transaction
+		// the db conn can continue to be used after the conflict error.
+		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
+			return err
+		}
+	}
+	if err := createGrantsBulk(tx, addGrants); err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeUpdate")
+		return handleError(err)
+	}
+
+	if err := deleteGrantsBulk(tx, rmGrants); err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeUpdate")
+		return handleError(err)
+	}
+
+	_, _ = tx.Exec("RELEASE SAVEPOINT beforeUpdate")
+	return nil
+}
+
+func validateGrant(grant *models.Grant) error {
+	switch {
+	case grant.Subject == "":
+		return fmt.Errorf("subject is required")
+	case grant.Privilege == "":
+		return fmt.Errorf("privilege is required")
+	case grant.Resource == "":
+		return fmt.Errorf("resource is required")
+	}
+	return nil
+}
+
+func createGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	if len(grants) == 0 {
 		return nil
 	}
 
 	for _, g := range grants {
-		switch {
-		case g.Subject == "":
-			return fmt.Errorf("subject is required")
-		case g.Privilege == "":
-			return fmt.Errorf("privilege is required")
-		case g.Resource == "":
-			return fmt.Errorf("resource is required")
+		if err := validateGrant(g); err != nil {
+			return err
 		}
-
 		if err := g.OnInsert(); err != nil {
 			return err
 		}
@@ -415,7 +444,7 @@ func CreateGrants(tx WriteTxn, grants []*models.Grant) error {
 	query.B("(")
 	query.B(columnsForInsert(table))
 	query.B(", update_index")
-	query.B(") VALUES ")
+	query.B(") VALUES")
 
 	columnTemplate := "(" + placeholderForColumns(table) + ", nextval('seq_update_index') )"
 	for i, g := range grants {
@@ -425,71 +454,44 @@ func CreateGrants(tx WriteTxn, grants []*models.Grant) error {
 			query.B(",")
 		}
 	}
+	query.B("ON CONFLICT DO NOTHING")
 
-	// Use a savepoint so that we can query for the duplicate grant on conflict
-	if _, err := tx.Exec("SAVEPOINT beforeCreate"); err != nil {
-		// ignore "not in a transaction" error, because outside of a transaction
-		// the db conn can continue to be used after the conflict error.
-		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
-			return err
-		}
-	}
 	_, err := tx.Exec(query.String(), query.Args...)
-	if err != nil {
-		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeCreate")
-		return handleError(err)
-	}
-	_, _ = tx.Exec("RELEASE SAVEPOINT beforeCreate")
 	return err
 }
 
-func DeleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
+func deleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	if len(grants) == 0 {
 		return nil
 	}
 
 	for _, g := range grants {
-		switch {
-		case g.Subject == "":
-			return fmt.Errorf("subject is required")
-		case g.Privilege == "":
-			return fmt.Errorf("privilege is required")
-		case g.Resource == "":
-			return fmt.Errorf("resource is required")
-		}
-
-		if err := g.OnInsert(); err != nil {
+		if err := validateGrant(g); err != nil {
 			return err
 		}
-		setOrg(tx, g)
+		if err := g.OnUpdate(); err != nil {
+			return err
+		}
 	}
 
-	query := querybuilder.New("DELETE FROM grants WHERE id IN (")
+	query := querybuilder.New("UPDATE grants ")
+	query.B("SET deleted_at = ?,", time.Now())
+	query.B("update_index = nextval('seq_update_index')")
+	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
+	query.B("deleted_at is null AND")
+	query.B("id in (")
+
 	for i, g := range grants {
 		query.B("SELECT id FROM grants WHERE ")
-		query.B("subject = ? AND ", g.Subject)
-		query.B("resource = ? AND ", g.Resource)
-		query.B("privilege = ? AND ", g.Privilege)
-		query.B("organization_id = ? ", g.OrganizationID)
+		query.B("subject = ? AND", g.Subject)
+		query.B("resource = ? AND", g.Resource)
+		query.B("privilege = ?", g.Privilege)
 		if i+1 != len(grants) {
-			query.B("UNION ")
+			query.B("UNION")
 		}
 	}
 	query.B(")")
 
-	// Use a savepoint so that we can query for the duplicate grant on conflict
-	if _, err := tx.Exec("SAVEPOINT beforeDelete"); err != nil {
-		// ignore "not in a transaction" error, because outside of a transaction
-		// the db conn can continue to be used after the conflict error.
-		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
-			return err
-		}
-	}
 	_, err := tx.Exec(query.String(), query.Args...)
-	if err != nil {
-		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeDelete")
-		return handleError(err)
-	}
-	_, _ = tx.Exec("RELEASE SAVEPOINT beforeDelete")
-	return nil
+	return err
 }
