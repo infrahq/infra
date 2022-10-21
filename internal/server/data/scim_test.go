@@ -2,6 +2,7 @@ package data
 
 import (
 	"testing"
+	"time"
 
 	"github.com/scim2/filter-parser/v2"
 	"gotest.tools/v3/assert"
@@ -157,13 +158,26 @@ func FuzzFilter_Terminates(f *testing.F) {
 		f.Add(tc)
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		query := querybuilder.New("")
-		exp, _ := filter.ParseFilter([]byte(input))
-		if exp != nil {
-			// if an expression can be parsed attempt to build a query on it
-			if err := filterSQL(exp, query); err == nil {
-				assert.Assert(t, query.String() != "")
+		done := make(chan int)
+		deadline := 5 * time.Second
+
+		go func() {
+			defer close(done)
+			query := querybuilder.New("")
+			exp, _ := filter.ParseFilter([]byte(input))
+			if exp != nil {
+				// if an expression can be parsed attempt to build a query on it
+				if err := filterSQL(exp, query); err == nil {
+					assert.Assert(t, query.String() != "")
+				}
 			}
+		}()
+
+		select {
+		case <-done:
+			// test ran successfully before the deadline
+		case <-time.After(deadline):
+			t.FailNow()
 		}
 	})
 }
