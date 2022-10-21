@@ -22,7 +22,10 @@ type AccessKey struct {
 	Model
 	OrganizationMember
 	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
-	// IssuedFor is the ID of the user that this access key was created for
+	/* IssuedFor is either:
+	1. The ID of the user that this access key was created for.
+	2. The ID of a provider that is doing SCIM provisioning using this access key.
+	*/
 	IssuedFor     uid.ID
 	IssuedForName string `db:"-"`
 	ProviderID    uid.ID

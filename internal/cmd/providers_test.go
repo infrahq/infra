@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/golden"
@@ -20,40 +21,51 @@ func TestProvidersAddCmd(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 
-	setup := func(t *testing.T) chan api.CreateProviderRequest {
-		requestCh := make(chan api.CreateProviderRequest, 1)
+	setup := func(t *testing.T) (chan api.CreateProviderRequest, chan api.CreateAccessKeyRequest) {
+		provRequestCh := make(chan api.CreateProviderRequest, 1)
+		keyRequestCh := make(chan api.CreateAccessKeyRequest, 1)
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.Contains(req.URL.Path, "/api/providers") {
-				resp.WriteHeader(http.StatusInternalServerError)
-				return
+			if strings.Contains(req.URL.Path, "/api/providers") {
+				switch req.Method {
+				case http.MethodPost:
+					var createRequest api.CreateProviderRequest
+					err := json.NewDecoder(req.Body).Decode(&createRequest)
+					assert.Check(t, err)
+
+					provRequestCh <- createRequest
+
+					_, _ = resp.Write([]byte(`{}`))
+					return
+				case http.MethodGet:
+					var apiProviders []api.Provider
+					apiProviders = append(apiProviders, api.Provider{
+						Name:     "okta",
+						URL:      "https://okta.com/path",
+						ClientID: "okta-client-id",
+					})
+					b, err := json.Marshal(api.ListResponse[api.Provider]{
+						Items: apiProviders,
+						Count: len(apiProviders),
+					})
+					assert.NilError(t, err)
+					_, _ = resp.Write(b)
+					return
+				}
 			}
+			if strings.Contains(req.URL.Path, "/api/access-keys") {
+				if req.Method == http.MethodPost {
+					var createRequest api.CreateAccessKeyRequest
+					err := json.NewDecoder(req.Body).Decode(&createRequest)
+					assert.Check(t, err)
 
-			switch req.Method {
-			case http.MethodPost:
-				var createRequest api.CreateProviderRequest
-				err := json.NewDecoder(req.Body).Decode(&createRequest)
-				assert.Check(t, err)
+					keyRequestCh <- createRequest
 
-				requestCh <- createRequest
-
-				_, _ = resp.Write([]byte(`{}`))
-				return
-			case http.MethodGet:
-				var apiProviders []api.Provider
-				apiProviders = append(apiProviders, api.Provider{
-					Name:     "okta",
-					URL:      "https://okta.com/path",
-					ClientID: "okta-client-id",
-				})
-				b, err := json.Marshal(api.ListResponse[api.Provider]{
-					Items: apiProviders,
-					Count: len(apiProviders),
-				})
-				assert.NilError(t, err)
-				_, _ = resp.Write(b)
-				return
+					_, _ = resp.Write([]byte(`{}`))
+					return
+				}
 			}
+			resp.WriteHeader(http.StatusInternalServerError)
 		}
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
@@ -61,11 +73,11 @@ func TestProvidersAddCmd(t *testing.T) {
 		cfg := newTestClientConfig(srv, api.User{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
-		return requestCh
+		return provRequestCh, keyRequestCh
 	}
 
 	t.Run("okta provider with flags", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "add", "okta",
@@ -89,8 +101,44 @@ func TestProvidersAddCmd(t *testing.T) {
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
 
+	t.Run("okta provider with SCIM flag", func(t *testing.T) {
+		provCh, keyCh := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "add", "okta",
+			"--url", "https://okta.com/path",
+			"--client-id", "okta-client-id",
+			"--client-secret", "okta-client-secret",
+			"--kind", "oidc",
+			"--scim",
+		)
+		assert.NilError(t, err)
+
+		createProviderRequest := <-provCh
+
+		expectedProvider := api.CreateProviderRequest{
+			Name:         "okta",
+			URL:          "https://okta.com/path",
+			ClientID:     "okta-client-id",
+			ClientSecret: "okta-client-secret",
+			Kind:         "oidc",
+			API:          &api.ProviderAPICredentials{},
+		}
+		assert.DeepEqual(t, createProviderRequest, expectedProvider)
+
+		createKeyRequest := <-keyCh
+
+		expectedKey := api.CreateAccessKeyRequest{
+			UserID:            0,
+			Name:              "okta-SCIM",
+			TTL:               api.Duration(time.Hour * 87600),
+			ExtensionDeadline: api.Duration(time.Hour * 87600),
+		}
+		assert.DeepEqual(t, createKeyRequest, expectedKey)
+	})
+
 	t.Run("okta provider with env vars", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
 		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
@@ -113,7 +161,7 @@ func TestProvidersAddCmd(t *testing.T) {
 	})
 
 	t.Run("google provider with no api flags", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "add", "google",
@@ -138,7 +186,7 @@ func TestProvidersAddCmd(t *testing.T) {
 	})
 
 	t.Run("google provider with api flags", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "add", "google",
@@ -245,42 +293,57 @@ func TestProvidersEditCmd(t *testing.T) {
 		Kind:     "google",
 	})
 
-	setup := func(t *testing.T) chan api.UpdateProviderRequest {
-		requestCh := make(chan api.UpdateProviderRequest, 1)
+	setup := func(t *testing.T) (chan api.UpdateProviderRequest, chan api.CreateAccessKeyRequest) {
+		provRequestCh := make(chan api.UpdateProviderRequest, 1)
+		keyRequestCh := make(chan api.CreateAccessKeyRequest, 1)
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
-			if !strings.Contains(req.URL.Path, "/api/providers") {
-				resp.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+			if strings.Contains(req.URL.Path, "/api/providers") {
+				switch req.Method {
+				case http.MethodPut:
+					var updateRequest api.UpdateProviderRequest
+					err := json.NewDecoder(req.Body).Decode(&updateRequest)
+					assert.Check(t, err)
 
-			switch req.Method {
-			case http.MethodPut:
-				var updateRequest api.UpdateProviderRequest
-				err := json.NewDecoder(req.Body).Decode(&updateRequest)
-				assert.Check(t, err)
+					provRequestCh <- updateRequest
 
-				requestCh <- updateRequest
-
-				_, _ = resp.Write([]byte(`{}`))
-				return
-			case http.MethodGet:
-				name := req.URL.Query().Get("name")
-				items := []api.Provider{}
-				for _, p := range apiProviders {
-					if p.Name == name {
-						items = append(items, p)
+					_, _ = resp.Write([]byte(`{}`))
+					return
+				case http.MethodGet:
+					name := req.URL.Query().Get("name")
+					items := []api.Provider{}
+					for _, p := range apiProviders {
+						if p.Name == name {
+							items = append(items, p)
+						}
 					}
-				}
 
-				b, err := json.Marshal(api.ListResponse[api.Provider]{
-					Items: items,
-					Count: len(items),
-				})
-				assert.NilError(t, err)
-				_, _ = resp.Write(b)
-				return
+					b, err := json.Marshal(api.ListResponse[api.Provider]{
+						Items: items,
+						Count: len(items),
+					})
+					assert.NilError(t, err)
+					_, _ = resp.Write(b)
+					return
+				}
 			}
+			if strings.Contains(req.URL.Path, "/api/access-keys") {
+				switch req.Method {
+				case http.MethodPost:
+					var createRequest api.CreateAccessKeyRequest
+					err := json.NewDecoder(req.Body).Decode(&createRequest)
+					assert.Check(t, err)
+
+					keyRequestCh <- createRequest
+
+					_, _ = resp.Write([]byte(`{}`))
+					return
+				case http.MethodDelete:
+					resp.WriteHeader(http.StatusNoContent)
+					return
+				}
+			}
+			resp.WriteHeader(http.StatusInternalServerError)
 		}
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
 		t.Cleanup(srv.Close)
@@ -288,11 +351,31 @@ func TestProvidersEditCmd(t *testing.T) {
 		cfg := newTestClientConfig(srv, api.User{})
 		err := writeConfig(&cfg)
 		assert.NilError(t, err)
-		return requestCh
+		return provRequestCh, keyRequestCh
 	}
 
+	t.Run("edit scim", func(t *testing.T) {
+		_, ch := setup(t)
+
+		err := Run(context.Background(),
+			"providers", "edit", "okta",
+			"--scim",
+		)
+		assert.NilError(t, err)
+
+		req := <-ch
+
+		expected := api.CreateAccessKeyRequest{
+			UserID:            0,
+			Name:              "okta-SCIM",
+			TTL:               api.Duration(time.Hour * 87600),
+			ExtensionDeadline: api.Duration(time.Hour * 87600),
+		}
+		assert.DeepEqual(t, req, expected)
+	})
+
 	t.Run("edit secret", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "edit", "okta",
@@ -314,7 +397,7 @@ func TestProvidersEditCmd(t *testing.T) {
 	})
 
 	t.Run("edit google api parameters", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "edit", "google",
@@ -343,7 +426,7 @@ func TestProvidersEditCmd(t *testing.T) {
 	})
 
 	t.Run("edit google without api parameters", func(t *testing.T) {
-		ch := setup(t)
+		ch, _ := setup(t)
 
 		err := Run(context.Background(),
 			"providers", "edit", "google",
@@ -365,7 +448,7 @@ func TestProvidersEditCmd(t *testing.T) {
 	})
 
 	t.Run("edit secret non-existing", func(t *testing.T) {
-		_ = setup(t)
+		_, _ = setup(t)
 
 		t.Setenv("INFRA_PROVIDER_URL", "https://okta.com/path")
 		t.Setenv("INFRA_PROVIDER_CLIENT_ID", "okta-client-id")
@@ -376,7 +459,7 @@ func TestProvidersEditCmd(t *testing.T) {
 	})
 
 	t.Run("edit non-supported flag", func(t *testing.T) {
-		_ = setup(t)
+		_, _ = setup(t)
 		err := Run(context.Background(), "providers", "edit", "okta", "--client-id", "okta-client-id")
 		assert.ErrorContains(t, err, "unknown flag")
 	})

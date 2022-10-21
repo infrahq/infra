@@ -90,6 +90,11 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByProviderID: p.ID}); err != nil {
 			return fmt.Errorf("delete access keys: %w", err)
 		}
+
+		// delete any access keys used for SCIM
+		if err := DeleteAccessKeys(db, DeleteAccessKeysOptions{ByIssuedForID: p.ID}); err != nil {
+			return fmt.Errorf("delete provider access keys: %w", err)
+		}
 	}
 
 	return deleteAll[models.Provider](db, ByIDs(ids))

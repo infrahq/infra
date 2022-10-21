@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -65,16 +66,27 @@ func (o providerAPIOptions) Validate(providerKind string) error {
 
 type providerEditOptions struct {
 	ClientSecret       string
+	SCIM               bool
 	ProviderAPIOptions providerAPIOptions
 }
 
-func (o providerEditOptions) Validate(providerKind string) error {
-	if o.ClientSecret == "" && o.ProviderAPIOptions.PrivateKey == "" && o.ProviderAPIOptions.ClientEmail == "" && o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
-		return fmt.Errorf("Please specify a field to update.'\n\n%s", newProvidersEditCmd(nil).UsageString())
+func (o providerEditOptions) IsUpdatingGoogleAPIOptions(providerKind string) bool {
+	if providerKind == "google" {
+		return o.ProviderAPIOptions.PrivateKey != "" || o.ProviderAPIOptions.ClientEmail != "" || o.ProviderAPIOptions.WorkspaceDomainAdminEmail != ""
 	}
 
-	if providerKind != "google" && o.ClientSecret == "" {
-		return fmt.Errorf("Client secret flag must be specified when updating an identity provider that isn't of kind Google")
+	return false
+}
+
+func (o providerEditOptions) Validate(providerKind string) error {
+	if !o.SCIM && o.ClientSecret == "" {
+		return fmt.Errorf("scim or client-secret flag are required for updates")
+	}
+
+	if o.IsUpdatingGoogleAPIOptions(providerKind) {
+		if o.ProviderAPIOptions.PrivateKey == "" || o.ProviderAPIOptions.ClientEmail == "" || o.ProviderAPIOptions.WorkspaceDomainAdminEmail == "" {
+			return fmt.Errorf("client secret or private key, client email, and workspace domain admin email are required to update google provider.\n\n%s", newProvidersEditCmd(nil).UsageString())
+		}
 	}
 
 	return o.ProviderAPIOptions.Validate(providerKind)
@@ -99,6 +111,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 	}
 
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "Set a new client secret")
+	cmd.Flags().BoolVar(&opts.SCIM, "scim", false, "Create a new access key for SCIM provisioning")
 	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.WorkspaceDomainAdminEmail, "workspace-domain-admin", "", "The email of your Google workspace domain admin")
@@ -168,6 +181,7 @@ type providerAddOptions struct {
 	ClientID           string
 	ClientSecret       string
 	Kind               string
+	SCIM               bool
 	ProviderAPIOptions providerAPIOptions
 }
 
@@ -222,7 +236,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 			}
 
 			logging.Debugf("call server: create provider named %q", args[0])
-			_, err = client.CreateProvider(&api.CreateProviderRequest{
+			provider, err := client.CreateProvider(&api.CreateProviderRequest{
 				Name:         args[0],
 				URL:          opts.URL,
 				ClientID:     opts.ClientID,
@@ -245,6 +259,20 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 			}
 
 			cli.Output("Connected provider %q (%s) to infra", args[0], opts.URL)
+
+			if opts.SCIM {
+				key, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+					UserID:            provider.ID,
+					Name:              fmt.Sprintf("%s-SCIM", args[0]),
+					TTL:               api.Duration(time.Hour * 87600), // 10 years
+					ExtensionDeadline: api.Duration(time.Hour * 87600), // 10 years
+				})
+				if err != nil {
+					return err
+				}
+				cli.Output("Access key for SCIM provisioning: %s", key.AccessKey)
+			}
+
 			return nil
 		},
 	}
@@ -253,6 +281,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 	cmd.Flags().StringVar(&opts.ClientID, "client-id", "", "OIDC client ID")
 	cmd.Flags().StringVar(&opts.ClientSecret, "client-secret", "", "OIDC client secret")
 	cmd.Flags().StringVar(&opts.Kind, "kind", "oidc", "The identity provider kind. One of 'oidc, okta, azure, or google'")
+	cmd.Flags().BoolVar(&opts.SCIM, "scim", false, "Create an access key for SCIM provisioning")
 	cmd.Flags().Var((*types.StringOrFile)(&opts.ProviderAPIOptions.PrivateKey), "service-account-key", "The private key used to make authenticated requests to Google's API, can be a file or the key string directly")
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.ClientEmail, "service-account-email", "", "The email assigned to the Infra service client in Google") // this is only needed with the private key is not a file
 	cmd.Flags().StringVar(&opts.ProviderAPIOptions.WorkspaceDomainAdminEmail, "workspace-domain-admin", "", "The email of your Google Workspace domain admin")
@@ -277,38 +306,72 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 	}
 	provider := res.Items[0]
 
-	if err := opts.ProviderAPIOptions.Validate(provider.Kind); err != nil {
+	if err := opts.Validate(provider.Kind); err != nil {
 		return err
 	}
 
-	err = parsePrivateKey(&opts.ProviderAPIOptions)
-	if err != nil {
-		return err
-	}
-
-	logging.Debugf("call server: update provider named %q", name)
-	_, err = client.UpdateProvider(api.UpdateProviderRequest{
-		ID:           provider.ID,
-		Name:         name,
-		URL:          provider.URL,
-		ClientID:     provider.ClientID,
-		ClientSecret: opts.ClientSecret,
-		Kind:         provider.Kind,
-		API: &api.ProviderAPICredentials{
-			PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
-			ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
-			DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
-		},
-	})
-
-	if err != nil {
-		if api.ErrorStatusCode(err) == 403 {
-			logging.Debugf("%v", err)
-			return Error{
-				Message: "Cannot update provider: missing privileges for UpdateProvider",
+	if opts.SCIM {
+		// revoke the previous SCIM access key for this provider, if it exists
+		keyName := fmt.Sprintf("%s-SCIM", provider.Name)
+		err = client.DeleteAccessKeyByName(keyName)
+		if err != nil {
+			logging.Debugf("%s", err.Error())
+			if api.ErrorStatusCode(err) == 403 {
+				return Error{
+					Message: "Cannot delete key: missing privileges for DeleteKey",
+				}
 			}
+			// ignore error and proceed, key may not exist
+			err = nil
 		}
-		return err
+		key, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+			UserID:            provider.ID,
+			Name:              keyName,
+			TTL:               api.Duration(time.Hour * 87600), // 10 years
+			ExtensionDeadline: api.Duration(time.Hour * 87600), // 10 years
+		})
+		if err != nil {
+			if api.ErrorStatusCode(err) == 403 {
+				logging.Debugf("%s", err.Error())
+				return Error{
+					Message: "Cannot create SCIM key: missing privileges for CreateKey",
+				}
+			}
+			return err
+		}
+		cli.Output("New access key for SCIM provisioning: %s", key.AccessKey)
+	}
+
+	if opts.ClientSecret != "" {
+		err = parsePrivateKey(&opts.ProviderAPIOptions)
+		if err != nil {
+			return err
+		}
+
+		logging.Debugf("call server: update provider named %q", name)
+		_, err = client.UpdateProvider(api.UpdateProviderRequest{
+			ID:           provider.ID,
+			Name:         name,
+			URL:          provider.URL,
+			ClientID:     provider.ClientID,
+			ClientSecret: opts.ClientSecret,
+			Kind:         provider.Kind,
+			API: &api.ProviderAPICredentials{
+				PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
+				ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
+				DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
+			},
+		})
+
+		if err != nil {
+			if api.ErrorStatusCode(err) == 403 {
+				logging.Debugf("%v", err)
+				return Error{
+					Message: "Cannot update provider: missing privileges for UpdateProvider",
+				}
+			}
+			return err
+		}
 	}
 
 	return nil

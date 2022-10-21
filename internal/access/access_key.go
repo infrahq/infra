@@ -49,10 +49,6 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 		}
 	}
 
-	if accessKey.ProviderID == 0 {
-		accessKey.ProviderID = data.InfraProvider(rCtx.DBTxn).ID
-	}
-
 	body, err = data.CreateAccessKey(rCtx.DBTxn, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)

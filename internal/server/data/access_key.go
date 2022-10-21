@@ -3,10 +3,12 @@ package data
 import (
 	"crypto/sha256"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
@@ -54,6 +56,21 @@ func validateAccessKey(accessKey *models.AccessKey) error {
 }
 
 func CreateAccessKey(db GormTxn, accessKey *models.AccessKey) (body string, err error) {
+	// check if this is an access key being issued for identity provider scim
+	provider, err := GetProvider(db, ByID(accessKey.IssuedFor))
+	if err != nil && !errors.Is(err, internal.ErrNotFound) {
+		return "", fmt.Errorf("check create scim key: %w", err)
+	}
+	if provider != nil {
+		// set the access key provider to match the provider it was issued for
+		// this is used in key validation to detect keys issued for scim
+		accessKey.ProviderID = provider.ID
+	}
+
+	if accessKey.ProviderID == 0 {
+		accessKey.ProviderID = InfraProvider(db).ID
+	}
+
 	if accessKey.KeyID == "" {
 		accessKey.KeyID = generate.MathRandom(models.AccessKeyKeyLength, generate.CharsetAlphaNumeric)
 	}

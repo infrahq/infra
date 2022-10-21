@@ -113,6 +113,24 @@ func TestCreateAccessKey(t *testing.T) {
 			_, err := CreateAccessKey(tx, key)
 			assert.Error(t, err, "invalid secret length")
 		})
+
+		t.Run("access key for provider IssuedFor matches ProviderID", func(t *testing.T) {
+			provider := &models.Provider{
+				Name: "okta",
+				Kind: models.ProviderKindOkta,
+			}
+			err := CreateProvider(tx, provider)
+			assert.NilError(t, err)
+
+			key := &models.AccessKey{
+				Name:      "okta-scim",
+				Secret:    "012345678901234567890123",
+				IssuedFor: provider.ID,
+			}
+			_, err = CreateAccessKey(tx, key)
+			assert.NilError(t, err)
+			assert.Equal(t, key.ProviderID, key.IssuedFor)
+		})
 	})
 }
 
@@ -182,7 +200,6 @@ func TestValidateRequestAccessKey(t *testing.T) {
 
 func TestDeleteAccessKeys(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-
 		provider := &models.Provider{Name: "azure", Kind: models.ProviderKindAzure}
 		otherProvider := &models.Provider{Name: "other", Kind: models.ProviderKindGoogle}
 		createProviders(t, db, provider, otherProvider)
@@ -621,9 +638,9 @@ func TestGetAccessKey(t *testing.T) {
 			_, err = GetAccessKey(db, GetAccessKeysOptions{ByID: ak.ID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
-
 	})
 }
+
 func TestGetAccessKeyByID(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		ak := &models.AccessKey{
