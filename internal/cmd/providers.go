@@ -104,7 +104,7 @@ $ infra providers edit okta --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq
 # Connect Google to Infra with group sync
 $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --service-account-email hello@example.com --workspace-domain-admin admin@example.com
 `,
-		Args: MaxArgs(1),
+		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return updateProvider(cli, args[0], opts)
 		},
