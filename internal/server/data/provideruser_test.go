@@ -342,10 +342,10 @@ func TestListProviderUsers(t *testing.T) {
 
 				_ = createTestProviderUser(t, tx, provider, "david@example.com")
 				pu := createTestProviderUser(t, tx, provider, "lucy@example.com")
-				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("id eq \"%d\"", pu.IdentityID)))
+				filter, err := filter.ParseFilter([]byte(fmt.Sprintf(`id eq "%d"`, pu.IdentityID)))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu}, 1
 			},
 		},
 		{
@@ -364,7 +364,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte("email pr"))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu1, pu2}, 2
 			},
 		},
 		{
@@ -383,7 +383,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("id ne \"%d\"", pu1.IdentityID)))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu2}, 1
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu2}, 1
 			},
 		},
 		{
@@ -402,7 +402,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email sw \"%s\"", "lucy")))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu}, 1
 			},
 		},
 		{
@@ -421,7 +421,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email co \"%s\"", "lucy")))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu}, 1
 			},
 		},
 		{
@@ -440,7 +440,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email ew \"%s\"", "example.com")))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu1, pu2}, 2
 			},
 		},
 		{
@@ -459,7 +459,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email ew \"%s\" and id eq \"%d\"", "example.com", pu.IdentityID)))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu}, 1
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu}, 1
 			},
 		},
 		{
@@ -478,7 +478,7 @@ func TestListProviderUsers(t *testing.T) {
 				filter, err := filter.ParseFilter([]byte(fmt.Sprintf("email co \"%s\" or email co \"%s\"", "david", "lucy")))
 				assert.NilError(t, err)
 
-				return provider.ID, &SCIMParameters{Filter: &filter}, []models.ProviderUser{pu1, pu2}, 2
+				return provider.ID, &SCIMParameters{Filter: filter}, []models.ProviderUser{pu1, pu2}, 2
 			},
 		},
 	}

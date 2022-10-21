@@ -145,3 +145,25 @@ func TestFilterSQLError(t *testing.T) {
 		})
 	}
 }
+
+func FuzzFilter_Terminates(f *testing.F) {
+	testCases := []string{
+		`id lt 123`,
+		`id eq abc`,
+		`userName ew "S"`,
+		`(email eq "M") or (email eq "W")`,
+	}
+	for _, tc := range testCases {
+		f.Add(tc)
+	}
+	f.Fuzz(func(t *testing.T, input string) {
+		query := querybuilder.New("")
+		exp, _ := filter.ParseFilter([]byte(input))
+		if exp != nil {
+			// if an expression can be parsed attempt to build a query on it
+			if err := filterSQL(exp, query); err == nil {
+				assert.Assert(t, query.String() != "")
+			}
+		}
+	})
+}

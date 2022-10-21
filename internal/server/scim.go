@@ -30,7 +30,7 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 		if err != nil {
 			return nil, fmt.Errorf("parse SCIM filter expression: %w", err)
 		}
-		p.Filter = &exp
+		p.Filter = exp
 	}
 	users, err := access.ListProviderUsers(c, &p)
 	if err != nil {

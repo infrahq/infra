@@ -132,7 +132,7 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 	}
 	if opts.SCIMParameters != nil && opts.SCIMParameters.Filter != nil {
 		query.B("AND (")
-		err := filterSQL(*opts.SCIMParameters.Filter, query)
+		err := filterSQL(opts.SCIMParameters.Filter, query)
 		if err != nil {
 			return nil, fmt.Errorf("apply filter: %w", err)
 		}
@@ -246,8 +246,8 @@ func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, p
 }
 
 type SCIMParameters struct {
-	Count      int                // the number of items to return
-	StartIndex int                // the offset to start counting from
-	TotalCount int                // the total number of items that match the query
-	Filter     *filter.Expression // a filter to apply to the results
+	Count      int               // the number of items to return
+	StartIndex int               // the offset to start counting from
+	TotalCount int               // the total number of items that match the query
+	Filter     filter.Expression // a filter to apply to the results
 }
