@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -96,8 +97,10 @@ func TestGet(t *testing.T) {
 		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
 	}
 
+	ctx := context.Background()
+
 	t.Run("success request", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/good", Query{})
+		_, err := get[stubResponse](ctx, c, "/good", Query{})
 		assert.NilError(t, err)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
@@ -106,7 +109,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("bad request", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/bad", Query{})
+		_, err := get[stubResponse](ctx, c, "/bad", Query{})
 		assert.Error(t, err, `bad request: it failed because`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)
@@ -115,7 +118,7 @@ func TestGet(t *testing.T) {
 	})
 
 	t.Run("server error", func(t *testing.T) {
-		_, err := get[stubResponse](c, "/invalid", Query{})
+		_, err := get[stubResponse](ctx, c, "/invalid", Query{})
 		assert.Error(t, err, `500 internal server error`)
 		req := <-requestCh
 		assert.Equal(t, req.Method, http.MethodGet)

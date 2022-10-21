@@ -79,8 +79,14 @@ func ErrorStatusCode(err error) int32 {
 	return 0
 }
 
-func (c *Client) buildRequest(method string, path string, query Query, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", c.URL, path), body)
+func (c *Client) buildRequest(
+	ctx context.Context,
+	method string,
+	path string,
+	query Query,
+	body io.Reader,
+) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("%s%s", c.URL, path), body)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +165,8 @@ type readsResponseHeader interface {
 	setValuesFromHeader(header http.Header) error
 }
 
-func get[Res any](client Client, path string, query Query) (*Res, error) {
-	req, err := client.buildRequest(http.MethodGet, path, query, nil)
+func get[Res any](ctx context.Context, client Client, path string, query Query) (*Res, error) {
+	req, err := client.buildRequest(ctx, http.MethodGet, path, query, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +178,8 @@ func post[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpReq, err := client.buildRequest(http.MethodPost, path, nil, body)
+	ctx := context.TODO()
+	httpReq, err := client.buildRequest(ctx, http.MethodPost, path, nil, body)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +202,8 @@ func put[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpReq, err := client.buildRequest(http.MethodPut, path, nil, body)
+	ctx := context.TODO()
+	httpReq, err := client.buildRequest(ctx, http.MethodPut, path, nil, body)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +215,8 @@ func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpReq, err := client.buildRequest(http.MethodPatch, path, nil, body)
+	ctx := context.TODO()
+	httpReq, err := client.buildRequest(ctx, http.MethodPatch, path, nil, body)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +224,8 @@ func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 }
 
 func delete(client Client, path string, query Query) error {
-	httpReq, err := client.buildRequest(http.MethodDelete, path, query, nil)
+	ctx := context.TODO()
+	httpReq, err := client.buildRequest(ctx, http.MethodDelete, path, query, nil)
 	if err != nil {
 		return err
 	}
@@ -227,16 +237,17 @@ func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	return get[ListResponse[User]](c, "/api/users",
-		Query{
-			"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
-			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
-			"showSystem": {strconv.FormatBool(req.ShowSystem)},
-		})
+	ctx := context.TODO()
+	return get[ListResponse[User]](ctx, c, "/api/users", Query{
+		"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
+		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
+		"showSystem": {strconv.FormatBool(req.ShowSystem)},
+	})
 }
 
 func (c Client) GetUser(id uid.ID) (*User, error) {
-	return get[User](c, fmt.Sprintf("/api/users/%s", id), Query{})
+	ctx := context.TODO()
+	return get[User](ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
 func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
@@ -262,14 +273,16 @@ func (c Client) PollDeviceFlow(req *PollDeviceFlowRequest) (*DevicePollResponse,
 }
 
 func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
-	return get[ListResponse[Group]](c, "/api/groups", Query{
+	ctx := context.TODO()
+	return get[ListResponse[Group]](ctx, c, "/api/groups", Query{
 		"name": {req.Name}, "userID": {req.UserID.String()},
 		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
 func (c Client) GetGroup(id uid.ID) (*Group, error) {
-	return get[Group](c, fmt.Sprintf("/api/groups/%s", id), Query{})
+	ctx := context.TODO()
+	return get[Group](ctx, c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
 func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
@@ -286,21 +299,23 @@ func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
 }
 
 func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider], error) {
-	return get[ListResponse[Provider]](c, "/api/providers",
-		Query{
-			"name": {req.Name},
-			"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
-		})
+	ctx := context.TODO()
+	return get[ListResponse[Provider]](ctx, c, "/api/providers", Query{
+		"name": {req.Name},
+		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
+	})
 }
 
 func (c Client) ListOrganizations(req ListOrganizationsRequest) (*ListResponse[Organization], error) {
-	return get[ListResponse[Organization]](c, "/api/organizations", Query{
+	ctx := context.TODO()
+	return get[ListResponse[Organization]](ctx, c, "/api/organizations", Query{
 		"name": {req.Name},
 	})
 }
 
 func (c Client) GetOrganization(id uid.ID) (*Organization, error) {
-	return get[Organization](c, fmt.Sprintf("/api/organizations/%s", id), Query{})
+	ctx := context.TODO()
+	return get[Organization](ctx, c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
 func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organization, error) {
@@ -312,7 +327,8 @@ func (c Client) DeleteOrganization(id uid.ID) error {
 }
 
 func (c Client) GetProvider(id uid.ID) (*Provider, error) {
-	return get[Provider](c, fmt.Sprintf("/api/providers/%s", id), Query{})
+	ctx := context.TODO()
+	return get[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
 func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
@@ -332,7 +348,8 @@ func (c Client) DeleteProvider(id uid.ID) error {
 }
 
 func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
-	return get[ListResponse[Grant]](c, "/api/grants", Query{
+	ctx := context.TODO()
+	return get[ListResponse[Grant]](ctx, c, "/api/grants", Query{
 		"user":          {req.User.String()},
 		"group":         {req.Group.String()},
 		"resource":      {req.Resource},
@@ -353,7 +370,8 @@ func (c Client) DeleteGrant(id uid.ID) error {
 }
 
 func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
-	return get[ListResponse[Destination]](c, "/api/destinations", Query{
+	ctx := context.TODO()
+	return get[ListResponse[Destination]](ctx, c, "/api/destinations", Query{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
 		"page":      {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
@@ -373,7 +391,8 @@ func (c Client) DeleteDestination(id uid.ID) error {
 }
 
 func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
-	return get[ListResponse[AccessKey]](c, "/api/access-keys", Query{
+	ctx := context.TODO()
+	return get[ListResponse[AccessKey]](ctx, c, "/api/access-keys", Query{
 		"user_id":      {req.UserID.String()},
 		"name":         {req.Name},
 		"show_expired": {fmt.Sprint(req.ShowExpired)},
@@ -411,11 +430,13 @@ func (c Client) Signup(req *SignupRequest) (*SignupResponse, error) {
 }
 
 func (c Client) GetServerVersion() (*Version, error) {
-	return get[Version](c, "/api/version", Query{})
+	ctx := context.TODO()
+	return get[Version](ctx, c, "/api/version", Query{})
 }
 
 func (c Client) GetSettings() (*Settings, error) {
-	return get[Settings](c, "/api/settings", Query{})
+	ctx := context.TODO()
+	return get[Settings](ctx, c, "/api/settings", Query{})
 }
 
 func (c Client) UpdateSettings(req *Settings) (*Settings, error) {
