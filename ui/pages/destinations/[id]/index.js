@@ -420,21 +420,25 @@ function NamespacesDropdownMenu({
 }) {
   const [referenceElement, setReferenceElement] = useState(null)
   const [popperElement, setPopperElement] = useState(null)
-  let { styles, attributes } = usePopper(referenceElement, popperElement, {
-    placement: 'bottom-end',
-    modifiers: [
-      {
-        name: 'flip',
-        enabled: false,
-      },
-      {
-        name: 'offset',
-        options: {
-          offset: [0, 5],
+  let { styles, attributes, update } = usePopper(
+    referenceElement,
+    popperElement,
+    {
+      placement: 'bottom-end',
+      modifiers: [
+        {
+          name: 'flip',
+          enabled: false,
         },
-      },
-    ],
-  })
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 5],
+          },
+        },
+      ],
+    }
+  )
 
   return (
     <div className='relative'>
@@ -451,6 +455,8 @@ function NamespacesDropdownMenu({
           }
 
           setSelectedResources(v)
+
+          update()
         }}
         multiple
       >
@@ -624,17 +630,17 @@ export default function DestinationDetail() {
     { label: 'ID', value: destination?.id, font: 'font-mono' },
     { label: '# of namespaces', value: destination?.resources.length },
     {
-      label: 'Status',
+      label: METADATA_STATUS_LABEL,
       value: destination?.connected
         ? destination?.connection.url === ''
           ? 'Pending'
           : 'Connected'
         : 'Disconnected',
-      color: destination?.connected
-        ? destination?.connection.url === ''
-          ? 'yellow'
-          : 'green'
-        : 'gray',
+      style: destination?.connected
+        ? destination?.connection.url !== ''
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-green-100 text-green-800'
+        : 'bg-gray-100 text-gray-800',
     },
     {
       label: 'Created',
@@ -749,7 +755,7 @@ export default function DestinationDetail() {
                 )}
                 {g.label === METADATA_STATUS_LABEL && (
                   <span
-                    className={`inline-flex items-center rounded-full bg-${g.color}-100 px-2.5 py-px text-2xs font-medium text-${g.color}-800`}
+                    className={`${g.style} inline-flex items-center rounded-full px-2.5 py-px text-2xs font-medium`}
                   >
                     {g.value}
                   </span>
