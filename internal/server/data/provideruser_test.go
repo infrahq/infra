@@ -11,6 +11,7 @@ import (
 	"gotest.tools/v3/assert"
 	"gotest.tools/v3/assert/opt"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
@@ -257,6 +258,218 @@ func TestDeleteProviderUser(t *testing.T) {
 		// but they can be re-created
 		_, err = CreateProviderUser(db, provider, user)
 		assert.NilError(t, err)
+	})
+}
+
+func TestProvisionProviderUser(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("user is created and new identity is linked", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "david@example.com",
+				GivenName:  "david",
+				FamilyName: "martinez",
+				ProviderID: InfraProvider(db).ID,
+				Groups:     models.CommaSeparatedStrings{},
+				Active:     true,
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			opts := GetIdentityOptions{
+				ByName: user.Email,
+			}
+			identity, err := GetIdentity(db, opts)
+			assert.NilError(t, err)
+			created, err := GetProviderUser(db, InfraProvider(db).ID, identity.ID)
+			assert.NilError(t, err)
+
+			assert.DeepEqual(t, user, created, cmpTimeWithDBPrecision)
+		})
+		t.Run("user is created and existing identity is linked", func(t *testing.T) {
+			identity := &models.Identity{
+				Name: "lucy@example.com",
+			}
+			err := CreateIdentity(db, identity)
+			assert.NilError(t, err)
+
+			user := &models.ProviderUser{
+				Email:      "lucy@example.com",
+				GivenName:  "lucy",
+				FamilyName: "",
+				ProviderID: InfraProvider(db).ID,
+				Groups:     models.CommaSeparatedStrings{},
+				Active:     true,
+			}
+
+			err = ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			created, err := GetProviderUser(db, InfraProvider(db).ID, identity.ID)
+			assert.NilError(t, err)
+
+			assert.DeepEqual(t, user, created, cmpTimeWithDBPrecision)
+		})
+	})
+}
+
+func TestPatchProviderUser(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("user active status can be patched", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "david@example.com",
+				GivenName:  "david",
+				FamilyName: "martinez",
+				ProviderID: InfraProvider(db).ID,
+				Active:     true,
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			user.Active = false
+
+			updated, err := PatchProviderUserActiveStatus(db, user)
+			assert.NilError(t, err)
+			assert.Equal(t, updated.Active, false)
+		})
+		t.Run("fields other than active status are ignored in patch", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "lucy@example.com",
+				GivenName:  "lucy",
+				ProviderID: InfraProvider(db).ID,
+				Active:     true,
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			user.Active = false
+			user.GivenName = "something else"
+
+			updated, err := PatchProviderUserActiveStatus(db, user)
+			assert.NilError(t, err)
+			user.GivenName = "Lucy"
+			assert.DeepEqual(t, updated, user, cmpTimeWithDBPrecision)
+		})
+	})
+}
+
+func TestUpdateProviderUser(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("existing user can be updated", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "david@example.com",
+				GivenName:  "david",
+				FamilyName: "martinez",
+				ProviderID: InfraProvider(db).ID,
+				Active:     true,
+				Groups:     models.CommaSeparatedStrings{},
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			user.Email = "david1@example.com"
+			user.GivenName = "Dave"
+			user.FamilyName = "Martinez"
+			user.Active = false
+
+			err = UpdateProviderUser(db, user)
+			assert.NilError(t, err)
+			updatedUser, err := GetProviderUser(db, user.ProviderID, user.IdentityID)
+			assert.NilError(t, err)
+			assert.DeepEqual(t, updatedUser, user, cmpTimeWithDBPrecision)
+			opts := GetIdentityOptions{
+				ByID: user.IdentityID,
+			}
+			identity, err := GetIdentity(db, opts)
+			assert.NilError(t, err)
+			assert.Equal(t, identity.Name, user.Email)
+		})
+		t.Run("cannot update email of user that exists in multiple providers", func(t *testing.T) {
+			provider := &models.Provider{
+				Name: "mockta",
+				Kind: models.ProviderKindOkta,
+			}
+			err := CreateProvider(db, provider)
+			assert.NilError(t, err)
+
+			existing := &models.ProviderUser{
+				Email:      "lucy@example.com",
+				GivenName:  "Lucy",
+				ProviderID: provider.ID,
+				Active:     true,
+				Groups:     models.CommaSeparatedStrings{},
+			}
+
+			err = ProvisionProviderUser(db, existing)
+			assert.NilError(t, err)
+
+			user := &models.ProviderUser{
+				Email:      "lucy@example.com",
+				GivenName:  "Lucy",
+				FamilyName: "",
+				ProviderID: InfraProvider(db).ID,
+				Active:     true,
+				Groups:     models.CommaSeparatedStrings{},
+			}
+
+			err = ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			user.Email = "lucy1@example.com"
+
+			err = UpdateProviderUser(db, user)
+			assert.ErrorContains(t, err, "cannot update user's email")
+		})
+	})
+}
+
+func TestGetProviderUser(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("existing user is retrieved", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "david@example.com",
+				GivenName:  "david",
+				FamilyName: "martinez",
+				ProviderID: InfraProvider(db).ID,
+				Groups:     models.CommaSeparatedStrings{},
+				Active:     true,
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+			opts := GetIdentityOptions{
+				ByName: user.Email,
+			}
+			identity, err := GetIdentity(db, opts)
+			assert.NilError(t, err)
+			created, err := GetProviderUser(db, InfraProvider(db).ID, identity.ID)
+			assert.NilError(t, err)
+
+			assert.DeepEqual(t, user, created, cmpTimeWithDBPrecision)
+		})
+		t.Run("non-existent identity ID returns error", func(t *testing.T) {
+			_, err := GetProviderUser(db, InfraProvider(db).ID, 1234)
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("non-existent provider ID returns error", func(t *testing.T) {
+			user := &models.ProviderUser{
+				Email:      "lucy@example.com",
+				GivenName:  "lucy",
+				FamilyName: "",
+				ProviderID: InfraProvider(db).ID,
+				Groups:     models.CommaSeparatedStrings{},
+				Active:     true,
+			}
+
+			err := ProvisionProviderUser(db, user)
+			assert.NilError(t, err)
+
+			_, err = GetProviderUser(db, 1234, user.IdentityID)
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 

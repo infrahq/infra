@@ -122,7 +122,7 @@ func GetGrant(tx ReadTxn, opts GetGrantOptions) (*models.Grant, error) {
 	fields := append(table.ScanFields(), &table.UpdateIndex)
 	err := tx.QueryRow(query.String(), query.Args...).Scan(fields...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.Grant)(table), nil
 }

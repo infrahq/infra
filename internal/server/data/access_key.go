@@ -202,7 +202,7 @@ func GetAccessKeyByKeyID(tx ReadTxn, keyID string) (*models.AccessKey, error) {
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.AccessKey)(accessKey), nil
 }
@@ -228,7 +228,7 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.AccessKey)(accessKey), nil
 }

@@ -99,7 +99,7 @@ func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(destination.ScanFields()...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.Destination)(&destination), nil
 }
@@ -174,7 +174,6 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error
 	rows, err := tx.Query(stmt, timeout)
 	if err != nil {
 		return nil, err
-
 	}
 	return scanRows(rows, func(item *DestinationsCount) []any {
 		return []any{&item.Version, &item.Connected, &item.Count}

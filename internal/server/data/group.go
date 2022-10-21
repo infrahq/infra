@@ -49,7 +49,6 @@ func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
 
 func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
 	groups, err := list[models.Group](db, p, selectors...)
-
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +62,6 @@ func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.
 	}
 
 	return groups, nil
-
 }
 
 func ByGroupMember(id uid.ID) SelectorFunc {
@@ -101,7 +99,7 @@ func DeleteGroup(tx WriteTxn, id uid.ID) error {
 
 	_, err = tx.Exec(`DELETE from identities_groups WHERE group_id = ?`, id)
 	if err != nil {
-		return fmt.Errorf("remove useres from group: %w", err)
+		return fmt.Errorf("remove users from group: %w", err)
 	}
 
 	stmt := `

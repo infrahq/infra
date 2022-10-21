@@ -73,7 +73,7 @@ func GetEncryptionKeyByName(tx StdlibTxn, name string) (*models.EncryptionKey, e
 
 	row := tx.QueryRow(query.String(), query.Args...)
 	if err := row.Scan(table.ScanFields()...); err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.EncryptionKey)(table), nil
 }
