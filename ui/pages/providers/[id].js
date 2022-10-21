@@ -1,27 +1,26 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
-import copy from 'copy-to-clipboard'
 import Head from 'next/head'
 import Link from 'next/link'
 import useSWR, { useSWRConfig } from 'swr'
-import { DuplicateIcon, CheckIcon } from '@heroicons/react/outline'
 import dayjs from 'dayjs'
 
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 import Notification from '../../components/notification'
+import SCIMKey from '../../components/scim-key'
 
 function SCIMKeyDialog(props) {
   const [scimAccessKey, setSCIMAccessKey] = useState('')
   const [error, setError] = useState('')
-  const [keyCopied, setKeyCopied] = useState(false)
 
   async function onSubmit(e) {
     e.preventDefault()
+    setError('')
 
     try {
-      let keyName = props.provider.name + '-scim'
+      const keyName = props.provider.name + '-scim'
 
       // delete any existing access key for this provider
       await fetch(`/api/access-keys?name=${keyName}`, {
@@ -49,9 +48,11 @@ function SCIMKeyDialog(props) {
 
   return (
     <div className='w-full 2xl:m-auto'>
-      <h1 className='py-1 font-display text-lg font-medium'>SCIM Access Key</h1>
-      <div className='space-y-4'>
-        {scimAccessKey === '' && error === '' ? (
+      {scimAccessKey === '' && error === '' ? (
+        <>
+          <h1 className='py-1 font-display text-lg font-medium'>
+            SCIM Access Key
+          </h1>
           <section>
             <form onSubmit={onSubmit} className='flex flex-col space-y-4'>
               <div className='mb-4 flex flex-col'>
@@ -80,47 +81,10 @@ function SCIMKeyDialog(props) {
               </div>
             </form>
           </section>
-        ) : (
-          <>
-            <section>
-              <div className='mb-2'>
-                <p className='mt-1 text-sm text-gray-500'>
-                  Use this access key to configure your identity provider for
-                  inbound SCIM provisioning
-                </p>
-              </div>
-              <div className='group relative my-4 flex'>
-                <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
-                  {scimAccessKey}
-                </pre>
-                <button
-                  className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
-                  onClick={() => {
-                    copy(scimAccessKey)
-                    setKeyCopied(true)
-                    setTimeout(() => setKeyCopied(false), 2000)
-                  }}
-                >
-                  {keyCopied ? (
-                    <CheckIcon className='h-4 w-4 text-green-500' />
-                  ) : (
-                    <DuplicateIcon className='h-4 w-4' />
-                  )}
-                </button>
-              </div>
-            </section>
-
-            {/* Finish */}
-            <section className={`my-10 flex justify-between`}>
-              <Link href='/providers'>
-                <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
-                  Finish
-                </a>
-              </Link>
-            </section>
-          </>
-        )}
-      </div>
+        </>
+      ) : (
+        <SCIMKey accessKey={scimAccessKey} errorMsg={error} />
+      )}
     </div>
   )
 }
@@ -283,6 +247,7 @@ export default function ProvidersEditDetails() {
             <button
               onClick={() => setKeyDialogOpen(true)}
               className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+              type='button'
             >
               Generate SCIM Access Key
             </button>
@@ -314,11 +279,7 @@ export default function ProvidersEditDetails() {
                 className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
-                <span
-                  className={`text-sm ${
-                    g.font ? g.font : 'font-medium'
-                  } text-gray-800`}
-                >
+                <span className='text-sm font-medium text-gray-800'>
                   {g.value}
                 </span>
               </div>
@@ -361,7 +322,7 @@ export default function ProvidersEditDetails() {
                 type='text'
                 value={provider?.url}
                 readOnly
-                className={`mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm`}
+                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
               />
             </div>
 
@@ -373,7 +334,7 @@ export default function ProvidersEditDetails() {
                 readOnly
                 type='text'
                 value={provider?.clientID}
-                className={`mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm`}
+                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
               />
             </div>
 
