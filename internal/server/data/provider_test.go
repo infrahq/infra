@@ -244,7 +244,9 @@ func TestDeleteProviders(t *testing.T) {
 			i                  = 0
 		)
 
-		setup := func() {
+		// TODO: test delete for wrong org
+
+		setup := func(t *testing.T) {
 			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "example.com", Kind: models.ProviderKindOkta}
 			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com", Kind: models.ProviderKindOkta}
 			i += 2
@@ -269,7 +271,7 @@ func TestDeleteProviders(t *testing.T) {
 		}
 
 		t.Run("Deletes work", func(t *testing.T) {
-			setup()
+			setup(t)
 			err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
@@ -288,7 +290,7 @@ func TestDeleteProviders(t *testing.T) {
 		})
 
 		t.Run("access keys issued using deleted provider are revoked", func(t *testing.T) {
-			setup()
+			setup(t)
 
 			key := &models.AccessKey{
 				Name:       "test key",
@@ -308,7 +310,7 @@ func TestDeleteProviders(t *testing.T) {
 		})
 
 		t.Run("access keys issued using different provider from deleted are NOT revoked", func(t *testing.T) {
-			setup()
+			setup(t)
 
 			_, err := CreateProviderUser(db, &providerProduction, user)
 			assert.NilError(t, err)
@@ -335,7 +337,7 @@ func TestDeleteProviders(t *testing.T) {
 		})
 
 		t.Run("user is not removed if there are other providerUsers", func(t *testing.T) {
-			setup()
+			setup(t)
 
 			pu, err := CreateProviderUser(db, &providerProduction, user)
 			assert.NilError(t, err)
