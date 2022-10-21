@@ -141,12 +141,12 @@ func TestDelete(t *testing.T) {
 	}
 
 	expected := http.Header{
-		"Accept-Encoding": []string{"gzip"},
-		"Authorization":   []string{"Bearer access-key"},
-		"Content-Type":    []string{"application/json"},
-		"Accept":          []string{"application/json"},
-		"Infra-Version":   []string{apiVersion},
-		"User-Agent":      []string{fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
+		"Accept-Encoding": {"gzip"},
+		"Authorization":   {"Bearer access-key"},
+		"Content-Type":    {"application/json"},
+		"Accept":          {"application/json"},
+		"Infra-Version":   {apiVersion},
+		"User-Agent":      {fmt.Sprintf("Infra/%v (testing version; %v/%v)", apiVersion, runtime.GOOS, runtime.GOARCH)},
 	}
 
 	t.Run("headers", func(t *testing.T) {

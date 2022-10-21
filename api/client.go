@@ -79,44 +79,35 @@ func ErrorStatusCode(err error) int32 {
 	return 0
 }
 
-func request[Req, Res any](client Client, method string, path string, query Query, reqBody *Req) (*Res, error) {
-	var body []byte
-
-	if reqBody != nil {
-		b, err := json.Marshal(reqBody)
-		if err != nil {
-			return nil, fmt.Errorf("marshal json: %w", err)
-		}
-
-		body = b
-	}
-
-	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", client.URL, path), bytes.NewReader(body))
+func (c *Client) buildRequest(method string, path string, query Query, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", c.URL, path), body)
 	if err != nil {
 		return nil, err
 	}
 
 	req.URL.RawQuery = url.Values(query).Encode()
-
 	clientName, clientVersion := "client", "unknown"
-	if client.Name != "" {
-		clientName = client.Name
+	if c.Name != "" {
+		clientName = c.Name
 	}
 
-	if client.Version != "" {
-		clientVersion = client.Version
+	if c.Version != "" {
+		clientVersion = c.Version
 	}
 
-	req.Header.Add("Authorization", "Bearer "+client.AccessKey)
+	req.Header.Add("Authorization", "Bearer "+c.AccessKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Infra-Version", apiVersion)
 	req.Header.Set("User-Agent", fmt.Sprintf("Infra/%v (%s %v; %v/%v)", apiVersion, clientName, clientVersion, runtime.GOOS, runtime.GOARCH))
 
-	for k, v := range client.Headers {
+	for k, v := range c.Headers {
 		req.Header[k] = v
 	}
+	return req, nil
+}
 
+func request[Res any](client Client, req *http.Request) (*Res, error) {
 	start := time.Now()
 	resp, err := client.HTTP.Do(req)
 
@@ -132,11 +123,11 @@ func request[Req, Res any](client Client, method string, path string, query Quer
 		if connError := HandleConnError(err); connError != nil {
 			return nil, connError
 		}
-		return nil, fmt.Errorf("%s %q: %w", method, path, err)
+		return nil, fmt.Errorf("%s %q: %w", req.Method, req.URL.Path, err)
 	}
 	defer resp.Body.Close()
 
-	body, err = io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return nil, fmt.Errorf("%w: %s", ErrTimeout, err)
@@ -169,23 +160,66 @@ type readsResponseHeader interface {
 }
 
 func get[Res any](client Client, path string, query Query) (*Res, error) {
-	return request[EmptyRequest, Res](client, http.MethodGet, path, query, nil)
+	req, err := client.buildRequest(http.MethodGet, path, query, nil)
+	if err != nil {
+		return nil, err
+	}
+	return request[Res](client, req)
 }
 
 func post[Req, Res any](client Client, path string, req *Req) (*Res, error) {
-	return request[Req, Res](client, http.MethodPost, path, Query{}, req)
+	body, err := encodeRequestBody(req)
+	if err != nil {
+		return nil, err
+	}
+	httpReq, err := client.buildRequest(http.MethodPost, path, nil, body)
+	if err != nil {
+		return nil, err
+	}
+	return request[Res](client, httpReq)
+}
+
+func encodeRequestBody(req any) (io.Reader, error) {
+	if req == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+	return bytes.NewReader(b), nil
 }
 
 func put[Req, Res any](client Client, path string, req *Req) (*Res, error) {
-	return request[Req, Res](client, http.MethodPut, path, Query{}, req)
+	body, err := encodeRequestBody(req)
+	if err != nil {
+		return nil, err
+	}
+	httpReq, err := client.buildRequest(http.MethodPut, path, nil, body)
+	if err != nil {
+		return nil, err
+	}
+	return request[Res](client, httpReq)
 }
 
 func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
-	return request[Req, Res](client, http.MethodPatch, path, Query{}, req)
+	body, err := encodeRequestBody(req)
+	if err != nil {
+		return nil, err
+	}
+	httpReq, err := client.buildRequest(http.MethodPatch, path, nil, body)
+	if err != nil {
+		return nil, err
+	}
+	return request[Res](client, httpReq)
 }
 
 func delete(client Client, path string, query Query) error {
-	_, err := request[EmptyRequest, EmptyResponse](client, http.MethodDelete, path, query, nil)
+	httpReq, err := client.buildRequest(http.MethodDelete, path, query, nil)
+	if err != nil {
+		return err
+	}
+	_, err = request[EmptyResponse](client, httpReq)
 	return err
 }
 
