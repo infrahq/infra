@@ -4,11 +4,11 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
 import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
+import Tippy from '@tippyjs/react'
 
 import { providers } from '../../lib/providers'
 
 import Dashboard from '../../components/layouts/dashboard'
-import Tooltip from '../../components/tooltip'
 
 function Provider({ kind, name, currentKind }) {
   return (
@@ -324,12 +324,18 @@ export default function ProvidersAddDetails() {
                 <div>
                   <label className='flex items-center text-2xs font-medium text-gray-700'>
                     Private Key
-                    <Tooltip
-                      message='upload the private key json file that was created for
-                        your service account'
+                    <Tippy
+                      content='upload the private key json file that was created for
+                      your service account'
+                      className='whitespace-no-wrap z-8 relative w-60 rounded-md bg-black p-2 text-xs text-white shadow-lg'
+                      interactive={true}
+                      interactiveBorder={20}
+                      delay={100}
+                      offset={[0, 5]}
+                      placement='top-start'
                     >
                       <InformationCircleIcon className='mx-1 h-4 w-4' />
-                    </Tooltip>
+                    </Tippy>
                   </label>
 
                   <input

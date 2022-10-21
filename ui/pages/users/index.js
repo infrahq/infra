@@ -13,9 +13,12 @@ import {
 } from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+import Tippy from '@tippyjs/react'
 
 import { useUser } from '../../lib/hooks'
 import { useServerConfig } from '../../lib/serverconfig'
+import { sortByName } from '../../lib/grants'
+
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
@@ -170,6 +173,22 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
   )
 }
 
+function ProviderImg({ content, src }) {
+  return (
+    <Tippy
+      content={content}
+      className='whitespace-no-wrap z-8 relative w-auto rounded-md bg-black p-2 text-xs text-white shadow-lg'
+      interactive={true}
+      interactiveBorder={20}
+      offset={[0, 5]}
+      delay={[100, 0]}
+      placement='right'
+    >
+      <img alt='provider icon' className='translate-[-50%] h-3.5' src={src} />
+    </Tippy>
+  )
+}
+
 export default function Users() {
   const router = useRouter()
   const page = Math.max(parseInt(router.query.p) || 1, 1)
@@ -181,7 +200,7 @@ export default function Users() {
   const { data: { items: providers } = {} } = useSWR(`/api/providers?limit=999`)
   const { user } = useUser()
 
-  const sortedUsers = users?.sort((a, b) => {
+  const sortedUsers = users?.sort(sortByName)?.sort((a, b) => {
     if (a?.id === user?.id) return -1
     if (b?.id === user?.id) return 1
     return 0
@@ -281,13 +300,7 @@ export default function Users() {
                 {info?.getValue()?.map(pn => {
                   if (pn === 'infra') {
                     return (
-                      <img
-                        alt='provider icon'
-                        title={pn}
-                        key={pn}
-                        className='translate-[-50%] h-3.5'
-                        src={`/icon.svg`}
-                      />
+                      <ProviderImg key={pn} content={pn} src={'/icon.svg'} />
                     )
                   } else {
                     const provider = providers?.find(p => p.name === pn)
@@ -296,11 +309,9 @@ export default function Users() {
                     }
 
                     return (
-                      <img
-                        alt='provider icon'
-                        title={pn}
+                      <ProviderImg
                         key={pn}
-                        className='translate-[-50%] h-3.5'
+                        content={pn}
                         src={`/providers/${provider.kind}.svg`}
                       />
                     )
