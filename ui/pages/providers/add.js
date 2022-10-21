@@ -5,7 +5,6 @@ import copy from 'copy-to-clipboard'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
-import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
 import Tippy from '@tippyjs/react'
 import {
   DuplicateIcon,
@@ -41,7 +40,7 @@ function SCIMKeyDialog(props) {
                 <button
                   className={`absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70`}
                   onClick={() => {
-                    copy(key)
+                    copy(props.accessKey)
                     setKeyCopied(true)
                     setTimeout(() => setKeyCopied(false), 2000)
                   }}
