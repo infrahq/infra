@@ -258,24 +258,27 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                 <Transition show={open}>
                   <Disclosure.Panel static>
                     <div className='space-y-2 pt-2'>
-                      {[...namespacesPrivilegeMap.keys()].map(resource => {
-                        const privileges = namespacesPrivilegeMap.get(resource)
+                      {[...namespacesPrivilegeMap.keys()]
+                        .sort((a, b) => a.localeCompare(b))
+                        .map(resource => {
+                          const privileges =
+                            namespacesPrivilegeMap.get(resource)
 
-                        return (
-                          <RoleList
-                            key={resource}
-                            resource={resource}
-                            privileges={sortByRole(privileges)}
-                            roles={destination?.roles.filter(
-                              r => r != 'cluster-admin'
-                            )}
-                            onUpdate={v =>
-                              handleUpdate(v, privileges, resource)
-                            }
-                            onRemove={() => onRemove(resource)}
-                          />
-                        )
-                      })}
+                          return (
+                            <RoleList
+                              key={resource}
+                              resource={resource}
+                              privileges={sortByRole(privileges)}
+                              roles={destination?.roles.filter(
+                                r => r != 'cluster-admin'
+                              )}
+                              onUpdate={v =>
+                                handleUpdate(v, privileges, resource)
+                              }
+                              onRemove={() => handleRemove(resource)}
+                            />
+                          )
+                        })}
                     </div>
                   </Disclosure.Panel>
                 </Transition>
