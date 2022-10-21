@@ -48,6 +48,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/pdevine/go-asciisprite v0.1.6
 	github.com/rs/zerolog v1.27.0
+	github.com/scim2/filter-parser/v2 v2.2.0
 	github.com/spf13/pflag v1.0.5
 	github.com/ssoroka/slice v0.0.0-20220402005549-78f0cea3df8b
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
@@ -65,6 +66,7 @@ require (
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
+	github.com/di-wu/parser v0.2.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
