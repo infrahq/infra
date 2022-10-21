@@ -150,7 +150,7 @@ func TestTrimWhitespace(t *testing.T) {
 
 	userID := uid.New()
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.CreateGrantRequest{
+	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.GrantRequest{
 		User:      userID,
 		Privilege: "admin   ",
 		Resource:  " kubernetes.production.*",

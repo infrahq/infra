@@ -2883,6 +2883,192 @@
           "Grants"
         ]
       },
+      "patch": {
+        "description": "UpdateGrants",
+        "operationId": "UpdateGrants",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "grantsToAdd": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "required": [
+                            "user"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "group"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "group": {
+                          "example": "4yJ3n3D8E2",
+                          "format": "uid",
+                          "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "privilege": {
+                          "description": "a role or permission",
+                          "example": "view",
+                          "type": "string"
+                        },
+                        "resource": {
+                          "description": "a resource name in Infra's Universal Resource Notation",
+                          "example": "production",
+                          "type": "string"
+                        },
+                        "user": {
+                          "example": "4yJ3n3D8E2",
+                          "format": "uid",
+                          "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "privilege",
+                        "resource"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "grantsToRemove": {
+                    "items": {
+                      "oneOf": [
+                        {
+                          "required": [
+                            "user"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "group"
+                          ]
+                        }
+                      ],
+                      "properties": {
+                        "group": {
+                          "example": "4yJ3n3D8E2",
+                          "format": "uid",
+                          "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "privilege": {
+                          "description": "a role or permission",
+                          "example": "view",
+                          "type": "string"
+                        },
+                        "resource": {
+                          "description": "a resource name in Infra's Universal Resource Notation",
+                          "example": "production",
+                          "type": "string"
+                        },
+                        "user": {
+                          "example": "4yJ3n3D8E2",
+                          "format": "uid",
+                          "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "privilege",
+                        "resource"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "UpdateGrants",
+        "tags": [
+          "Grants"
+        ]
+      },
       "post": {
         "description": "CreateGrant",
         "operationId": "CreateGrant",
