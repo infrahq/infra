@@ -30,8 +30,8 @@ var listProviderUsersRoute = route[api.SCIMParametersRequest, *api.ListProviderU
 	},
 }
 
-var provisionProviderUserRoute = route[api.SCIMUserProvisionRequest, *api.SCIMUser]{
-	handler: ProvisionProviderUser,
+var createProviderUserRoute = route[api.SCIMUserCreateRequest, *api.SCIMUser]{
+	handler: CreateProviderUser,
 	routeSettings: routeSettings{
 		omitFromTelemetry:          true,
 		omitFromDocs:               true,
@@ -95,7 +95,7 @@ func ListProviderUsers(c *gin.Context, r *api.SCIMParametersRequest) (*api.ListP
 	return result, nil
 }
 
-func ProvisionProviderUser(c *gin.Context, r *api.SCIMUserProvisionRequest) (*api.SCIMUser, error) {
+func CreateProviderUser(c *gin.Context, r *api.SCIMUserCreateRequest) (*api.SCIMUser, error) {
 	user := &models.ProviderUser{
 		GivenName:  r.Name.GivenName,
 		FamilyName: r.Name.FamilyName,
@@ -109,7 +109,7 @@ func ProvisionProviderUser(c *gin.Context, r *api.SCIMUserProvisionRequest) (*ap
 	if user.Email == "" {
 		return nil, fmt.Errorf("%w: primary email is required", internal.ErrBadRequest)
 	}
-	err := access.ProvisionProviderUser(c, user)
+	err := access.CreateProviderUser(c, user)
 	if err != nil {
 		return nil, err
 	}

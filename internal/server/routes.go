@@ -102,7 +102,7 @@ func (s *Server) GenerateRoutes() Routes {
 	// SCIM inbound provisioning
 	add(a, authn, http.MethodGet, "/api/scim/v2/Users/:id", getProviderUsersRoute)
 	add(a, authn, http.MethodGet, "/api/scim/v2/Users", listProviderUsersRoute)
-	add(a, authn, http.MethodPost, "/api/scim/v2/Users", provisionProviderUserRoute)
+	add(a, authn, http.MethodPost, "/api/scim/v2/Users", createProviderUserRoute)
 	add(a, authn, http.MethodPut, "/api/scim/v2/Users/:id", updateProviderUserRoute)
 	add(a, authn, http.MethodPatch, "/api/scim/v2/Users/:id", patchProviderUserRoute)
 	add(a, authn, http.MethodDelete, "/api/scim/v2/Users/:id", deleteProviderUserRoute)

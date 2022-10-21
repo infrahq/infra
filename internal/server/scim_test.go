@@ -253,21 +253,21 @@ var cmpSCIMUserResponse = cmp.Options{
 	cmp.FilterPath(opt.PathField(api.SCIMUser{}, "ID"), cmpAnyString),
 }
 
-func TestAPI_ProvisionProviderUser(t *testing.T) {
+func TestAPI_CreateProviderUser(t *testing.T) {
 	type testCase struct {
 		name   string
-		setup  func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest)
+		setup  func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest)
 		verify func(t *testing.T, resp *httptest.ResponseRecorder)
 	}
 
 	testCases := []testCase{
 		{
 			name: "valid new user",
-			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest) {
+			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest) {
 				s := setupServer(t, withAdminUser)
 				bearer, _, routes = createTestSCIMProvider(t, s)
 
-				reqBody = api.SCIMUserProvisionRequest{
+				reqBody = api.SCIMUserCreateRequest{
 					Schemas:  []string{api.UserSchema},
 					UserName: "david@example.com",
 					Name: api.SCIMUserName{
@@ -315,12 +315,12 @@ func TestAPI_ProvisionProviderUser(t *testing.T) {
 		},
 		{
 			name: "valid user that exists in another identity provider already",
-			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest) {
+			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest) {
 				s := setupServer(t, withAdminUser)
 				bearer, _, routes = createTestSCIMProvider(t, s)
 				createTestSCIMUserIdentity(t, s.DB(), data.InfraProvider(s.DB()), 123, "david@example.com")
 
-				reqBody = api.SCIMUserProvisionRequest{
+				reqBody = api.SCIMUserCreateRequest{
 					Schemas:  []string{api.UserSchema},
 					UserName: "david@example.com",
 					Name: api.SCIMUserName{
@@ -368,11 +368,11 @@ func TestAPI_ProvisionProviderUser(t *testing.T) {
 		},
 		{
 			name: "user already provisioned",
-			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest) {
+			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest) {
 				s := setupServer(t, withAdminUser)
 				bearer, _, routes = createTestSCIMProvider(t, s, "david@example.com")
 
-				reqBody = api.SCIMUserProvisionRequest{
+				reqBody = api.SCIMUserCreateRequest{
 					Schemas:  []string{api.UserSchema},
 					UserName: "david@example.com",
 					Name: api.SCIMUserName{
@@ -395,11 +395,11 @@ func TestAPI_ProvisionProviderUser(t *testing.T) {
 		},
 		{
 			name: "invalid user, schema required",
-			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest) {
+			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest) {
 				s := setupServer(t, withAdminUser)
 				bearer, _, routes = createTestSCIMProvider(t, s)
 
-				reqBody = api.SCIMUserProvisionRequest{
+				reqBody = api.SCIMUserCreateRequest{
 					UserName: "david@example.com",
 					Name: api.SCIMUserName{
 						GivenName:  "David",
@@ -429,7 +429,7 @@ func TestAPI_ProvisionProviderUser(t *testing.T) {
 		},
 		{
 			name: "access key not issued for provider fails",
-			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserProvisionRequest) {
+			setup: func(t *testing.T) (bearer string, routes Routes, reqBody api.SCIMUserCreateRequest) {
 				s := setupServer(t, withAdminUser)
 				_, users, routes := createTestSCIMProvider(t, s, "some-user-name")
 				user := *(users[1]).ToAPI()
@@ -443,7 +443,7 @@ func TestAPI_ProvisionProviderUser(t *testing.T) {
 				bearer, err := data.CreateAccessKey(s.DB(), key)
 				assert.NilError(t, err)
 
-				reqBody = api.SCIMUserProvisionRequest{
+				reqBody = api.SCIMUserCreateRequest{
 					Schemas:  []string{api.UserSchema},
 					UserName: "david@example.com",
 					Name: api.SCIMUserName{

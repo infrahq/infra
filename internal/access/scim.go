@@ -44,7 +44,7 @@ func ListProviderUsers(c *gin.Context, p *data.SCIMParameters) ([]models.Provide
 	return users, nil
 }
 
-func ProvisionProviderUser(c *gin.Context, u *models.ProviderUser) error {
+func CreateProviderUser(c *gin.Context, u *models.ProviderUser) error {
 	ctx := GetRequestContext(c)
 	// restricted to only SCIM access keys
 	if err := checkKeyIdentityProvider(ctx); err != nil {
