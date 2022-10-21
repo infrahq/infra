@@ -35,6 +35,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/alicebob/miniredis/v2 v2.23.0
+	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/creack/pty v1.1.18
 	github.com/getkin/kin-openapi v0.106.0
@@ -171,7 +172,7 @@ require (
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/exp v0.0.0-20221012211006-4de253d81b95
-	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/net v0.1.0
 	golang.org/x/sys v0.1.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
