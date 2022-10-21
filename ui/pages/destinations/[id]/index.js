@@ -228,7 +228,10 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
     <div className='py-1'>
       {/* Destination Resource */}
       {destinationPrivileges?.length > 0 && (
-        <div className='flex justify-end space-x-2 py-2'>
+        <div className='flex items-center justify-between space-x-2 py-2'>
+          <div className='pl-4 text-xs font-medium text-black'>
+            Cluster-wide access
+          </div>
           <RoleList
             privileges={sortByRole(destinationPrivileges)}
             roles={destination.roles}
@@ -252,7 +255,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                         open ? 'rotate-90 transform' : ''
                       } mr-1 h-3 w-3 text-gray-500`}
                     />
-                    {`Namespace access (${namespacesPrivilegeMap.size})`}
+                    {`Namespaces (${namespacesPrivilegeMap.size})`}
                   </span>
                 </Disclosure.Button>
                 <Transition show={open}>
@@ -861,14 +864,14 @@ export default function DestinationDetail() {
                                   open ? 'rotate-90 transform' : ''
                                 } mr-1 h-3 w-3 text-gray-500`}
                               />
-                              Limit access
+                              Advanced
                             </span>
                           </Disclosure.Button>
                           <Transition show={open}>
                             <Disclosure.Panel static>
-                              <div className='flex items-center space-x-4 px-4 pt-2 '>
-                                <p className='text-xs font-medium text-gray-900'>
-                                  Namespaces
+                              <div className='flex items-center space-x-4 px-4'>
+                                <p className='text-xs text-gray-900'>
+                                  Limit access to namespaces:
                                 </p>
                                 <NamespacesDropdownMenu
                                   selectedResources={selectedResources}
