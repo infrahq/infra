@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -188,6 +189,8 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			var keys []api.AccessKey
 			var userID uid.ID
 			if options.UserName != "" {
@@ -214,7 +217,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 			}
 
 			logging.Debugf("call server: list access keys")
-			keys, err = listAll(client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
+			keys, err = listAll(ctx, client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
 			if err != nil {
 				return err
 			}

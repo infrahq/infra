@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -114,6 +115,8 @@ func isResourceForDestination(resource string, destination string) bool {
 }
 
 func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination, []api.Grant, error) {
+	ctx := context.TODO()
+
 	config, err := currentHostConfig()
 	if err != nil {
 		return nil, nil, nil, err
@@ -128,12 +131,12 @@ func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination,
 		return nil, nil, nil, err
 	}
 
-	grants, err := listAll(client.ListGrants, api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
+	grants, err := listAll(ctx, client.ListGrants, api.ListGrantsRequest{User: config.UserID, ShowInherited: true})
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
+	destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{})
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -233,11 +233,10 @@ func delete(client Client, path string, query Query) error {
 	return err
 }
 
-func (c Client) ListUsers(req ListUsersRequest) (*ListResponse[User], error) {
+func (c Client) ListUsers(ctx context.Context, req ListUsersRequest) (*ListResponse[User], error) {
 	ids := slice.Map[uid.ID, string](req.IDs, func(id uid.ID) string {
 		return id.String()
 	})
-	ctx := context.TODO()
 	return get[ListResponse[User]](ctx, c, "/api/users", Query{
 		"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
 		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
@@ -272,8 +271,7 @@ func (c Client) PollDeviceFlow(req *PollDeviceFlowRequest) (*DevicePollResponse,
 	})
 }
 
-func (c Client) ListGroups(req ListGroupsRequest) (*ListResponse[Group], error) {
-	ctx := context.TODO()
+func (c Client) ListGroups(ctx context.Context, req ListGroupsRequest) (*ListResponse[Group], error) {
 	return get[ListResponse[Group]](ctx, c, "/api/groups", Query{
 		"name": {req.Name}, "userID": {req.UserID.String()},
 		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
@@ -298,16 +296,14 @@ func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
 	return err
 }
 
-func (c Client) ListProviders(req ListProvidersRequest) (*ListResponse[Provider], error) {
-	ctx := context.TODO()
+func (c Client) ListProviders(ctx context.Context, req ListProvidersRequest) (*ListResponse[Provider], error) {
 	return get[ListResponse[Provider]](ctx, c, "/api/providers", Query{
 		"name": {req.Name},
 		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
 
-func (c Client) ListOrganizations(req ListOrganizationsRequest) (*ListResponse[Organization], error) {
-	ctx := context.TODO()
+func (c Client) ListOrganizations(ctx context.Context, req ListOrganizationsRequest) (*ListResponse[Organization], error) {
 	return get[ListResponse[Organization]](ctx, c, "/api/organizations", Query{
 		"name": {req.Name},
 	})
@@ -347,8 +343,7 @@ func (c Client) DeleteProvider(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
-func (c Client) ListGrants(req ListGrantsRequest) (*ListResponse[Grant], error) {
-	ctx := context.TODO()
+func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](ctx, c, "/api/grants", Query{
 		"user":          {req.User.String()},
 		"group":         {req.Group.String()},
@@ -369,8 +364,7 @@ func (c Client) DeleteGrant(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/grants/%s", id), Query{})
 }
 
-func (c Client) ListDestinations(req ListDestinationsRequest) (*ListResponse[Destination], error) {
-	ctx := context.TODO()
+func (c Client) ListDestinations(ctx context.Context, req ListDestinationsRequest) (*ListResponse[Destination], error) {
 	return get[ListResponse[Destination]](ctx, c, "/api/destinations", Query{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
@@ -390,8 +384,7 @@ func (c Client) DeleteDestination(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/destinations/%s", id), Query{})
 }
 
-func (c Client) ListAccessKeys(req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
-	ctx := context.TODO()
+func (c Client) ListAccessKeys(ctx context.Context, req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
 	return get[ListResponse[AccessKey]](ctx, c, "/api/access-keys", Query{
 		"user_id":      {req.UserID.String()},
 		"name":         {req.Name},

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 func getGroupByNameOrID(client *api.Client, name string) (*api.Group, error) {
 	req := api.ListGroupsRequest{Name: name}
-	groups, err := client.ListGroups(req)
+	groups, err := client.ListGroups(context.TODO(), req)
 	if err != nil {
 		return nil, err
 	}
@@ -89,22 +90,23 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 				UserCount int    `header:"Count"`
 			}
 
-			var rows []row
+			ctx := context.Background()
 
-			groups, err := listAll(client.ListGroups, api.ListGroupsRequest{})
+			groups, err := listAll(ctx, client.ListGroups, api.ListGroupsRequest{})
 			if err != nil {
 				return err
 			}
 
+			var rows []row
 			for _, group := range groups {
 				var users []api.User
 				if noTruncate {
-					users, err = listAll(client.ListUsers, api.ListUsersRequest{Group: group.ID})
+					users, err = listAll(ctx, client.ListUsers, api.ListUsersRequest{Group: group.ID})
 					if err != nil {
 						return err
 					}
 				} else if numUsers != 0 {
-					userRes, err := client.ListUsers(api.ListUsersRequest{
+					userRes, err := client.ListUsers(ctx, api.ListUsersRequest{
 						PaginationRequest: api.PaginationRequest{Limit: numUsers},
 						Group:             group.ID,
 					})
@@ -186,7 +188,9 @@ $ infra groups remove Engineering`,
 				return err
 			}
 
-			groups, err := client.ListGroups(api.ListGroupsRequest{Name: name})
+			ctx := context.Background()
+
+			groups, err := client.ListGroups(ctx, api.ListGroupsRequest{Name: name})
 			if err != nil {
 				return err
 			}

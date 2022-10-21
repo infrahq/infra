@@ -189,7 +189,7 @@ func Run(ctx context.Context, options Options) error {
 	}
 	group.Go(func() error {
 		for {
-			if err := syncWithServer(con); err != nil {
+			if err := syncWithServer(ctx, con); err != nil {
 				return err
 			}
 			if err := wait(ctx, 30*time.Second); err != nil {
@@ -199,7 +199,7 @@ func Run(ctx context.Context, options Options) error {
 	})
 	group.Go(func() error {
 		for {
-			if err := syncDestination(con); err != nil {
+			if err := syncDestination(ctx, con); err != nil {
 				logging.Errorf("failed to update destination in infra: %v", err)
 			}
 			// TODO: how long should this wait?
@@ -320,7 +320,7 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 	return transport
 }
 
-func syncDestination(con connector) error {
+func syncDestination(ctx context.Context, con connector) error {
 	endpoint, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
 		logging.L.Warn().Err(err).Msg("could not get host")
@@ -383,7 +383,7 @@ func syncDestination(con connector) error {
 	case con.destination.Connection.URL != endpoint.String():
 		con.destination.Connection.URL = endpoint.String()
 
-		if err := createOrUpdateDestination(con.client, con.destination); err != nil {
+		if err := createOrUpdateDestination(ctx, con.client, con.destination); err != nil {
 			return fmt.Errorf("create or update destination: %w", err)
 		}
 	}
@@ -403,8 +403,8 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	return types.HostPort{Host: host, Port: port}, nil
 }
 
-func syncWithServer(con connector) error {
-	grants, err := con.client.ListGrants(api.ListGrantsRequest{Destination: con.destination.Name})
+func syncWithServer(ctx context.Context, con connector) error {
+	grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{Destination: con.destination.Name})
 	if err != nil {
 		logging.Errorf("error listing grants: %v", err)
 		return nil
@@ -491,12 +491,12 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
-func createOrUpdateDestination(client *api.Client, local *api.Destination) error {
+func createOrUpdateDestination(ctx context.Context, client *api.Client, local *api.Destination) error {
 	if local.ID != 0 {
 		return updateDestination(client, local)
 	}
 
-	destinations, err := client.ListDestinations(api.ListDestinationsRequest{UniqueID: local.UniqueID})
+	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{UniqueID: local.UniqueID})
 	if err != nil {
 		return fmt.Errorf("error listing destinations: %w", err)
 	}

@@ -188,8 +188,10 @@ func TestListGrants(t *testing.T) {
 		AccessKey: "the-access-key",
 	}
 
+	ctx := context.Background()
+
 	t.Run("sets value from Last-Update-Index header", func(t *testing.T) {
-		resp, err := c.ListGrants(ListGrantsRequest{Resource: "anything"})
+		resp, err := c.ListGrants(ctx, ListGrantsRequest{Resource: "anything"})
 		assert.NilError(t, err)
 
 		assert.Equal(t, resp.LastUpdateIndex.Index, int64(10010))

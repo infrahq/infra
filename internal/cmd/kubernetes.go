@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -57,7 +58,8 @@ func kubernetesSetContext(cluster, namespace string) error {
 }
 
 func updateKubeConfig(client *api.Client, id uid.ID) error {
-	destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
+	ctx := context.TODO()
+	destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{})
 	if err != nil {
 		return err
 	}
@@ -67,7 +69,7 @@ func updateKubeConfig(client *api.Client, id uid.ID) error {
 		return err
 	}
 
-	grants, err := listAll(client.ListGrants, api.ListGrantsRequest{User: id, ShowInherited: true})
+	grants, err := listAll(ctx, client.ListGrants, api.ListGrantsRequest{User: id, ShowInherited: true})
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -131,8 +132,10 @@ func newProvidersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			logging.Debugf("call server: list providers")
-			providers, err := listAll(client.ListProviders, api.ListProvidersRequest{})
+			providers, err := listAll(ctx, client.ListProviders, api.ListProvidersRequest{})
 			if err != nil {
 				return err
 			}
@@ -294,7 +297,9 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		return err
 	}
 
-	res, err := client.ListProviders(api.ListProvidersRequest{Name: name})
+	ctx := context.Background()
+
+	res, err := client.ListProviders(ctx, api.ListProvidersRequest{Name: name})
 	if err != nil {
 		return err
 	}
@@ -392,8 +397,10 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			logging.Debugf("call server: list providers named %q", args[0])
-			providers, err := client.ListProviders(api.ListProvidersRequest{Name: args[0]})
+			providers, err := client.ListProviders(ctx, api.ListProvidersRequest{Name: args[0]})
 			if err != nil {
 				return err
 			}
@@ -427,9 +434,9 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func GetProviderByName(client *api.Client, name string) (*api.Provider, error) {
+func GetProviderByName(ctx context.Context, client *api.Client, name string) (*api.Provider, error) {
 	logging.Debugf("call server: list providers named %q", name)
-	providers, err := client.ListProviders(api.ListProvidersRequest{Name: name})
+	providers, err := client.ListProviders(ctx, api.ListProvidersRequest{Name: name})
 	if err != nil {
 		return nil, err
 	}
