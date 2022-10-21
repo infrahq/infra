@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import React, { useState } from 'react'
 
-import DashboardLayout from '../../components/layouts/dashboard'
+import DashboardNoSidebarLayout from '../../components/layouts/dashboard-no-sidebar'
 
 export default function Device() {
   const router = useRouter()
@@ -12,8 +12,7 @@ export default function Device() {
   async function onSubmit(e) {
     e.preventDefault()
 
-    if (code.length == 8)
-      setCode(code.substring(0, 4) + '-' + code.substring(4, 8))
+    if (code.length == 9) setCode(code.substring(0, 4) + code.substring(5, 9))
 
     try {
       const res = await fetch('/api/device/approve', {
@@ -33,6 +32,48 @@ export default function Device() {
     return false
   }
 
+  async function setCodeSegment(segment, pos) {
+    var codeCopy = code || ''
+    for (; codeCopy.length < 8; ) {
+      codeCopy += ' '
+    }
+    codeCopy =
+      codeCopy.substring(0, pos) +
+      segment +
+      codeCopy.substring(pos + 1, codeCopy.length)
+    codeCopy = codeCopy.trimEnd()
+    setCode(codeCopy.toUpperCase())
+  }
+
+  async function processKey(e, pos) {
+    const lastField = document.querySelector(`input[name=code${pos - 1}]`)
+    const nextField = document.querySelector(`input[name=code${pos + 1}]`)
+    switch (e.key) {
+      case 'Backspace':
+      case 'ArrowLeft':
+        if (lastField !== null) {
+          lastField.focus()
+          lastField.selectionStart = 0
+          lastField.selectionEnd = 1
+        }
+        break
+      case 'Meta':
+      case 'Control':
+      case 'Alt':
+        e.preventDefault()
+        break
+      case 'Tab':
+      case 'Shift':
+        break
+      default:
+        if (nextField !== null) {
+          nextField.focus()
+          nextField.selectionStart = 0
+          nextField.selectionEnd = 1
+        }
+    }
+  }
+
   return (
     <div className='flex min-h-[280px] w-full flex-col items-center px-10 py-8'>
       <>
@@ -50,19 +91,24 @@ export default function Device() {
               onSubmit={onSubmit}
               className='relative flex w-full max-w-sm flex-1 flex-col justify-center'
             >
-              <div className='my-2 w-full'>
-                <input
-                  required
-                  autoFocus
-                  placeholder='AAAA-BBBB'
-                  type='text'
-                  name='code'
-                  value={code}
-                  onChange={e => setCode(e.target.value)}
-                  className={`mt-1 block w-full rounded-md uppercase shadow-sm focus:border-blue-500 focus:ring-blue-500 lg:text-lg ${
-                    error ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
+              <div className='my-2 flex w-full'>
+                {'01234567'.split('').map((k, i) => (
+                  <React.Fragment key={i}>
+                    <input
+                      required
+                      autoFocus={i === 0}
+                      type='text'
+                      name={'code' + i}
+                      value={(code || '').replace('-', '').substring(i, i + 1)}
+                      onChange={e => setCodeSegment(e.target.value, i)}
+                      onKeyUp={e => processKey(e, i)}
+                      className={`mr-1 w-10 rounded-md pl-0 pr-0 text-center uppercase shadow-sm focus:border-blue-50 focus:ring-blue-50 lg:text-lg ${
+                        error ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {i == 3 ? <div className='mt-3 ml-3 mr-4'>-</div> : ''}
+                  </React.Fragment>
+                ))}
                 {error && (
                   <p className='absolute top-full mt-1 text-xs text-red-500'>
                     {error}
@@ -84,4 +130,6 @@ export default function Device() {
   )
 }
 
-Device.layout = page => <DashboardLayout>{page}</DashboardLayout>
+Device.layout = page => (
+  <DashboardNoSidebarLayout>{page}</DashboardNoSidebarLayout>
+)

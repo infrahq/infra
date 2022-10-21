@@ -19,16 +19,15 @@ func (d deviceFlowAuthRequestTable) Table() string {
 }
 
 func (d deviceFlowAuthRequestTable) Columns() []string {
-	return []string{"id", "user_code", "device_code", "approved", "access_key_id", "expires_at", "created_at",
-		"updated_at"}
+	return []string{"access_key_id", "access_key_token", "approved", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
 }
 
 func (d deviceFlowAuthRequestTable) Values() []any {
-	return []any{d.ID, d.UserCode, d.DeviceCode, d.Approved, d.AccessKeyID, d.ExpiresAt, d.CreatedAt, d.UpdatedAt}
+	return []any{d.AccessKeyID, d.AccessKeyToken, d.Approved, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
 }
 
 func (d *deviceFlowAuthRequestTable) ScanFields() []any {
-	return []any{d.ID, d.UserCode, d.DeviceCode, d.Approved, d.AccessKeyID, d.ExpiresAt, d.CreatedAt, d.UpdatedAt}
+	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.Approved, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
 }
 
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
