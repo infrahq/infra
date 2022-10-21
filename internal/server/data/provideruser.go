@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/infrahq/infra/internal"
@@ -218,9 +217,6 @@ func PatchProviderUserActiveStatus(tx WriteTxn, providerUser *models.ProviderUse
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(pu.ScanFields()...)
 	if err != nil {
-		if strings.Contains(err.Error(), "no rows in result set") {
-			return nil, internal.ErrNotFound
-		}
 		return nil, handleError(err)
 	}
 	return (*models.ProviderUser)(pu), nil
@@ -256,7 +252,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 	query.B("WHERE provider_id = ? and identity_id = ?", providerID, identityID)
 	err := tx.QueryRow(query.String(), query.Args...).Scan(pu.ScanFields()...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 	return (*models.ProviderUser)(pu), nil
 }

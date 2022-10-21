@@ -418,6 +418,13 @@ func handleError(err error) error {
 		return nil
 	}
 
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return internal.ErrNotFound
+	case errors.Is(err, sql.ErrNoRows):
+		return internal.ErrNotFound
+	}
+
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
@@ -470,20 +477,6 @@ func handleError(err error) error {
 		}
 	}
 
-	return err
-}
-
-func handleReadError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	switch {
-	case errors.Is(err, gorm.ErrRecordNotFound):
-		return internal.ErrNotFound
-	case errors.Is(err, sql.ErrNoRows):
-		return internal.ErrNotFound
-	}
 	return err
 }
 

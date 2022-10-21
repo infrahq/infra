@@ -166,7 +166,7 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(identity.ScanFields()...)
 	if err != nil {
-		return nil, handleReadError(err)
+		return nil, handleError(err)
 	}
 
 	if opts.LoadGroups {
