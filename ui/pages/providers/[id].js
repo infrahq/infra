@@ -11,7 +11,7 @@ import RemoveButton from '../../components/remove-button'
 import Notification from '../../components/notification'
 import SCIMKey from '../../components/scim-key'
 
-function SCIMKeyDialog(props) {
+function SCIMKeyDialog({ provider, setOpen }) {
   const [scimAccessKey, setSCIMAccessKey] = useState('')
   const [error, setError] = useState('')
 
@@ -20,7 +20,7 @@ function SCIMKeyDialog(props) {
     setError('')
 
     try {
-      const keyName = props.provider.name + '-scim'
+      const keyName = provider.name + '-scim'
 
       // delete any existing access key for this provider
       await fetch(`/api/access-keys?name=${keyName}`, {
@@ -31,7 +31,7 @@ function SCIMKeyDialog(props) {
       const res = await fetch('/api/access-keys', {
         method: 'POST',
         body: JSON.stringify({
-          userID: props.provider.id,
+          userID: provider.id,
           name: keyName,
           ttl: '87600h',
           extensionDeadline: '720h',
@@ -59,7 +59,7 @@ function SCIMKeyDialog(props) {
                 <div className='relative mt-4'>
                   <h2 className='mt-5 text-sm'>
                     Generating a new SCIM access key will revoke any existing
-                    SCIM access key for this identity provider.
+                    SCIM access keys for this identity provider.
                   </h2>
                   <h2 className='mt-5 text-sm'>Do you wish to continue?</h2>
                 </div>
@@ -67,7 +67,7 @@ function SCIMKeyDialog(props) {
               <div className='flex flex-row items-center justify-end space-x-3'>
                 <button
                   type='button'
-                  onClick={() => props.setOpen(false)}
+                  onClick={() => setOpen(false)}
                   className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
                 >
                   Cancel
@@ -206,7 +206,7 @@ export default function ProvidersEditDetails() {
               <Dialog
                 as='div'
                 className='relative z-50'
-                onClose={() => router.replace('/providers')}
+                onClose={() => setKeyDialogOpen(false)}
               >
                 <Transition.Child
                   as={Fragment}
@@ -279,7 +279,11 @@ export default function ProvidersEditDetails() {
                 className='px-6 py-5 text-left first:pr-6 first:pl-0'
               >
                 <div className='text-2xs text-gray-400'>{g.label}</div>
-                <span className='text-sm font-medium text-gray-800'>
+                <span
+                  className={`text-sm ${
+                    g.font ? g.font : 'font-medium'
+                  } text-gray-800`}
+                >
                   {g.value}
                 </span>
               </div>
