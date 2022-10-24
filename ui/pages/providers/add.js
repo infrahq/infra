@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useSWRConfig } from 'swr'
-import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
 import Tippy from '@tippyjs/react'
+import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
 
 import { providers } from '../../lib/providers'
 
 import Dashboard from '../../components/layouts/dashboard'
+import SCIMKey from '../../components/scim-key'
 
 function Provider({ kind, name, currentKind }) {
   return (
@@ -43,12 +45,15 @@ export default function ProvidersAddDetails() {
   const [url, setURL] = useState('')
   const [clientID, setClientID] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const [enableSCIM, setEnableSCIM] = useState(false)
   const [privateKey, setPrivateKey] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [domainAdminEmail, setDomainAdminEmail] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState('')
+  const [scimAccessKey, setSCIMAccessKey] = useState()
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false)
 
   useEffect(() => {
     setURL(type === 'google' ? 'accounts.google.com' : '')
@@ -91,6 +96,10 @@ export default function ProvidersAddDetails() {
 
           const data = await jsonBody(res)
 
+          if (enableSCIM) {
+            createSCIMAccessKey(data.id, data.name)
+          }
+
           return { items: [...providers, data] }
         }
       )
@@ -109,9 +118,32 @@ export default function ProvidersAddDetails() {
       return false
     }
 
-    router.replace('/providers')
+    if (!enableSCIM) {
+      router.replace('/providers')
+    }
 
     return false
+  }
+
+  async function createSCIMAccessKey(id, name) {
+    try {
+      const res = await fetch('/api/access-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          userID: id,
+          name: name + '-scim',
+          ttl: '87600h',
+          extensionDeadline: '720h',
+        }),
+      })
+
+      const data = await jsonBody(res)
+
+      setSCIMAccessKey(data.accessKey)
+    } catch (e) {
+      setError(e.message)
+    }
+    setKeyDialogOpen(true)
   }
 
   const parseGoogleCredentialFile = e => {
@@ -155,6 +187,45 @@ export default function ProvidersAddDetails() {
       <Head>
         <title>Add Identity Provider - {kind}</title>
       </Head>
+      <header className='my-6 flex items-center justify-between'>
+        {/* SCIM key dialog */}
+        <Transition.Root show={keyDialogOpen} as={Fragment}>
+          <Dialog
+            as='div'
+            className='relative z-50'
+            onClose={() => router.replace('/providers')}
+          >
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0'
+              enterTo='opacity-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100'
+              leaveTo='opacity-0'
+            >
+              <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+            </Transition.Child>
+            <div className='fixed inset-0 z-10 overflow-y-auto'>
+              <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                  enterTo='opacity-100 translate-y-0 sm:scale-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                  leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                >
+                  <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-lg'>
+                    <SCIMKey accessKey={scimAccessKey} errorMsg={error} />
+                  </Dialog.Panel>
+                </Transition.Child>
+              </div>
+            </div>
+          </Dialog>
+        </Transition.Root>
+      </header>
       <div className='flex items-center justify-between'>
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
           Connect Provider
@@ -301,6 +372,20 @@ export default function ProvidersAddDetails() {
                     {errors.clientsecret}
                   </p>
                 )}
+              </div>
+              <div>
+                <input
+                  id='scim-checkbox'
+                  type='checkbox'
+                  value=''
+                  class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500'
+                  onChange={() => {
+                    setEnableSCIM(!enableSCIM)
+                  }}
+                />
+                <label for='scim-checkbox' class='ml-2 text-sm font-medium'>
+                  Enable SCIM
+                </label>
               </div>
             </div>
           </div>

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -8,6 +9,85 @@ import dayjs from 'dayjs'
 import Dashboard from '../../components/layouts/dashboard'
 import RemoveButton from '../../components/remove-button'
 import Notification from '../../components/notification'
+import SCIMKey from '../../components/scim-key'
+
+function SCIMKeyDialog({ provider, setOpen }) {
+  const [scimAccessKey, setSCIMAccessKey] = useState('')
+  const [error, setError] = useState('')
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    setError('')
+
+    try {
+      const keyName = provider.name + '-scim'
+
+      // delete any existing access key for this provider
+      await fetch(`/api/access-keys?name=${keyName}`, {
+        method: 'DELETE',
+      })
+
+      // generate the new key
+      const res = await fetch('/api/access-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          userID: provider.id,
+          name: keyName,
+          ttl: '87600h',
+          extensionDeadline: '720h',
+        }),
+      })
+
+      const data = await jsonBody(res)
+
+      setSCIMAccessKey(data.accessKey)
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  return (
+    <div className='w-full 2xl:m-auto'>
+      {scimAccessKey === '' && error === '' ? (
+        <>
+          <h1 className='py-1 font-display text-lg font-medium'>
+            SCIM Access Key
+          </h1>
+          <section>
+            <form onSubmit={onSubmit} className='flex flex-col space-y-4'>
+              <div className='mb-4 flex flex-col'>
+                <div className='relative mt-4'>
+                  <h2 className='mt-5 text-sm'>
+                    Generating a new SCIM access key will revoke any existing
+                    SCIM access keys for this identity provider.
+                  </h2>
+                  <h2 className='mt-5 text-sm'>Do you wish to continue?</h2>
+                </div>
+              </div>
+              <div className='flex flex-row items-center justify-end space-x-3'>
+                <button
+                  type='button'
+                  onClick={() => setOpen(false)}
+                  className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-100'
+                >
+                  Cancel
+                </button>
+                <button
+                  type='submit'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800'
+                >
+                  Continue
+                </button>
+              </div>
+            </form>
+          </section>
+        </>
+      ) : (
+        <SCIMKey accessKey={scimAccessKey} errorMsg={error} />
+      )}
+    </div>
+  )
+}
 
 export default function ProvidersEditDetails() {
   const router = useRouter()
@@ -25,6 +105,7 @@ export default function ProvidersEditDetails() {
   const [clientSecret, setClientSecret] = useState('')
   const [errors, setErrors] = useState({})
   const [showNotification, setShowNotification] = useState(false)
+  const [keyDialogOpen, setKeyDialogOpen] = useState(false)
 
   const metadata = [
     { label: 'ID', value: provider?.id, font: 'font-mono' },
@@ -120,9 +201,56 @@ export default function ProvidersEditDetails() {
               </div>
               <span className='truncate'>{provider?.name}</span>
             </div>
+            {/* SCIM key dialog */}
+            <Transition.Root show={keyDialogOpen} as={Fragment}>
+              <Dialog
+                as='div'
+                className='relative z-50'
+                onClose={() => setKeyDialogOpen(false)}
+              >
+                <Transition.Child
+                  as={Fragment}
+                  enter='ease-out duration-150'
+                  enterFrom='opacity-0'
+                  enterTo='opacity-100'
+                  leave='ease-in duration-100'
+                  leaveFrom='opacity-100'
+                  leaveTo='opacity-0'
+                >
+                  <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+                </Transition.Child>
+                <div className='fixed inset-0 z-10 overflow-y-auto'>
+                  <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+                    <Transition.Child
+                      as={Fragment}
+                      enter='ease-out duration-150'
+                      enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                      enterTo='opacity-100 translate-y-0 sm:scale-100'
+                      leave='ease-in duration-100'
+                      leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+                      leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+                    >
+                      <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-lg'>
+                        <SCIMKeyDialog
+                          provider={provider}
+                          setOpen={setKeyDialogOpen}
+                        />
+                      </Dialog.Panel>
+                    </Transition.Child>
+                  </div>
+                </div>
+              </Dialog>
+            </Transition.Root>
           </h1>
 
           <div className='my-3 flex space-x-2 md:my-0'>
+            <button
+              onClick={() => setKeyDialogOpen(true)}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+              type='button'
+            >
+              Generate SCIM Access Key
+            </button>
             <RemoveButton
               onRemove={async () => {
                 await fetch(`/api/providers/${id}`, {
@@ -198,7 +326,7 @@ export default function ProvidersEditDetails() {
                 type='text'
                 value={provider?.url}
                 readOnly
-                className={`mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm`}
+                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
               />
             </div>
 
@@ -210,7 +338,7 @@ export default function ProvidersEditDetails() {
                 readOnly
                 type='text'
                 value={provider?.clientID}
-                className={`mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm`}
+                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
               />
             </div>
 
