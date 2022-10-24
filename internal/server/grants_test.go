@@ -1189,3 +1189,103 @@ func TestAPI_DeleteGrant(t *testing.T) {
 		assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
 	})
 }
+
+func TestAPI_UpdateGrants(t *testing.T) {
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
+	routes := srv.GenerateRoutes()
+
+	user := &models.Identity{Name: "non-admin"}
+
+	err := data.CreateIdentity(srv.DB(), user)
+	assert.NilError(t, err)
+
+	//otherOrg := createOtherOrg(t, srv.db)
+
+	type testCase struct {
+		setup    func(t *testing.T, req *http.Request)
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		body     api.UpdateGrantsRequest
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := jsonBody(t, tc.body)
+		req, err := http.NewRequest(http.MethodPatch, "/api/grants", body)
+		assert.NilError(t, err)
+		req.Header.Add("Infra-Version", "0.15.2")
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	testCases := map[string]testCase{
+		"success add": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					api.GrantRequest{
+						User:      user.ID,
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 1)
+			},
+		},
+		"success delete": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+				// leftover grant from success add
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 1)
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToRemove: []api.GrantRequest{
+					api.GrantRequest{
+						User:      user.ID,
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 0)
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+
+}
