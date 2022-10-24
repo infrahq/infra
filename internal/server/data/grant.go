@@ -446,10 +446,12 @@ func createGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	query.B(", update_index")
 	query.B(") VALUES")
 
-	columnTemplate := "(" + placeholderForColumns(table) + ", nextval('seq_update_index') )"
 	for i, g := range grants {
 		gt := (*grantsTable)(g)
-		query.B(columnTemplate, gt.Values()...)
+		query.B("(")
+		query.B(placeholderForColumns(table), gt.Values()...)
+		query.B(", nextval('seq_update_index')")
+		query.B(")")
 		if i+1 != len(grants) {
 			query.B(",")
 		}

@@ -1199,8 +1199,6 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	err := data.CreateIdentity(srv.DB(), user)
 	assert.NilError(t, err)
 
-	//otherOrg := createOtherOrg(t, srv.db)
-
 	type testCase struct {
 		setup    func(t *testing.T, req *http.Request)
 		expected func(t *testing.T, resp *httptest.ResponseRecorder)
@@ -1230,7 +1228,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			},
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
-					api.GrantRequest{
+					{
 						User:      user.ID,
 						Privilege: models.InfraAdminRole,
 						Resource:  "some-cluster",
@@ -1262,7 +1260,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			},
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
-					api.GrantRequest{
+					{
 						User:      user.ID,
 						Privilege: models.InfraAdminRole,
 						Resource:  "some-cluster",

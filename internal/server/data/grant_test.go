@@ -246,8 +246,8 @@ func TestUpdateGrants(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
-				&models.Grant{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				&models.Grant{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
 			}
 			rmGrants := []*models.Grant{}
 
@@ -256,7 +256,7 @@ func TestUpdateGrants(t *testing.T) {
 			assert.Assert(t, addGrants[0].ID != 0)
 
 			expected := []models.Grant{
-				models.Grant{
+				{
 					Model: models.Model{
 						ID:        uid.ID(999),
 						CreatedAt: time.Now(),
@@ -269,7 +269,7 @@ func TestUpdateGrants(t *testing.T) {
 					CreatedBy:          uid.ID(1091),
 					UpdateIndex:        startUpdateIndex + 1,
 				},
-				models.Grant{
+				{
 					Model: models.Model{
 						ID:        uid.ID(999),
 						CreatedAt: time.Now(),
@@ -337,13 +337,13 @@ func TestUpdateGrants(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			addGrants := []*models.Grant{
-				&models.Grant{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				&models.Grant{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
 			}
 			rmGrants := []*models.Grant{
-				&models.Grant{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
-				&models.Grant{Subject: "i:any1", Privilege: "view", Resource: "foo"},
-				&models.Grant{Subject: "i:any1", Privilege: "edit", Resource: "foo"},
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:any1", Privilege: "view", Resource: "foo"},
+				{Subject: "i:any1", Privilege: "edit", Resource: "foo"},
 			}
 
 			err := UpdateGrants(tx, addGrants, rmGrants)
@@ -352,7 +352,7 @@ func TestUpdateGrants(t *testing.T) {
 			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
 			assert.NilError(t, err)
 			expected := []models.Grant{
-				models.Grant{
+				{
 					Model: models.Model{
 						ID:        uid.ID(999),
 						CreatedAt: time.Now(),
