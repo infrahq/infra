@@ -20,7 +20,7 @@
     "@segment/snippet": "^4.15.3",
     "analytics-node": "^6.2.0",
     "copy-to-clipboard": "^3.3.2",
-    "dayjs": "^1.11.5",
+    "dayjs": "^1.11.6",
     "image-size": "^1.0.2",
     "js-yaml": "^4.1.0",
     "next": "^12.3.1",
