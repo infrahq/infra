@@ -1250,20 +1250,21 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
-				// leftover grant from success add
-				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
-					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster",
-				})
+				grantToAdd := models.Grant{
+					Subject:   uid.NewIdentityPolymorphicID(user.ID),
+					Privilege: models.InfraAdminRole,
+					Resource:  "another-cluster",
+				}
+
+				err := data.CreateGrant(srv.DB(), &grantToAdd)
 				assert.NilError(t, err)
-				assert.Assert(t, len(infraAdminGrants) == 1)
 			},
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
 						User:      user.ID,
 						Privilege: models.InfraAdminRole,
-						Resource:  "some-cluster",
+						Resource:  "another-cluster",
 					},
 				},
 			},
@@ -1272,7 +1273,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
 					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "some-cluster",
+					ByResource:   "another-cluster",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
