@@ -122,7 +122,7 @@ function EditRoleMenu({
                           {r}
                           {selected && (
                             <CheckIcon
-                              className='h-3 w-3 stroke-1 text-gray-600'
+                              className='h-3 w-3 text-gray-900'
                               aria-hidden='true'
                             />
                           )}
@@ -272,9 +272,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                               key={resource}
                               resource={resource}
                               privileges={sortByRole(privileges)}
-                              roles={destination?.roles.filter(
-                                r => r != 'cluster-admin'
-                              )}
+                              roles={destination?.roles}
                               onUpdate={v =>
                                 handleUpdate(v, privileges, resource)
                               }
@@ -510,7 +508,7 @@ function NamespacesDropdownMenu({
                             {r}
                             {selected && (
                               <CheckIcon
-                                className='h-3 w-3 stroke-1 text-gray-600'
+                                className='h-3 w-3 text-gray-900'
                                 aria-hidden='true'
                               />
                             )}
