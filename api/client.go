@@ -234,9 +234,13 @@ func (c Client) ListUsers(ctx context.Context, req ListUsersRequest) (*ListRespo
 		return id.String()
 	})
 	return get[ListResponse[User]](ctx, c, "/api/users", Query{
-		"name": {req.Name}, "group": {req.Group.String()}, "ids": ids,
-		"page": {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
-		"showSystem": {strconv.FormatBool(req.ShowSystem)},
+		"name":                 {req.Name},
+		"group":                {req.Group.String()},
+		"ids":                  ids,
+		"page":                 {strconv.Itoa(req.Page)},
+		"limit":                {strconv.Itoa(req.Limit)},
+		"showSystem":           {strconv.FormatBool(req.ShowSystem)},
+		"publicKeyFingerprint": {req.PublicKeyFingerprint},
 	})
 }
 
@@ -254,6 +258,10 @@ func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*User, 
 
 func (c Client) DeleteUser(ctx context.Context, id uid.ID) error {
 	return delete(ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
+}
+
+func (c Client) AddUserPublicKey(ctx context.Context, req *AddUserPublicKeyRequest) (*UserPublicKey, error) {
+	return put[UserPublicKey](ctx, c, "/api/users/public-key", req)
 }
 
 func (c Client) StartDeviceFlow(ctx context.Context) (*DeviceFlowResponse, error) {

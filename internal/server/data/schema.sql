@@ -275,6 +275,19 @@ CREATE TABLE settings (
     organization_id bigint
 );
 
+CREATE TABLE user_public_keys (
+    id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    fingerprint text NOT NULL,
+    key_type text NOT NULL,
+    public_key text NOT NULL,
+    name text,
+    expires_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone
+);
+
 ALTER TABLE ONLY access_keys
     ADD CONSTRAINT access_keys_pkey PRIMARY KEY (id);
 
@@ -314,6 +327,9 @@ ALTER TABLE ONLY providers
 ALTER TABLE ONLY settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
+ALTER TABLE ONLY user_public_keys
+    ADD CONSTRAINT user_public_keys_pkey PRIMARY KEY (id);
+
 CREATE INDEX idx_access_keys_expires_at ON access_keys USING btree (expires_at);
 
 CREATE UNIQUE INDEX idx_access_keys_issued_for_name ON access_keys USING btree (organization_id, issued_for, name) WHERE (deleted_at IS NULL);
@@ -351,6 +367,8 @@ CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens USING
 CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
 
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_user_public_keys_user_fingerprint ON user_public_keys USING btree (fingerprint) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
 

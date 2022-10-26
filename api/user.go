@@ -16,19 +16,21 @@ func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type User struct {
-	ID            uid.ID   `json:"id" note:"User ID"`
-	Created       Time     `json:"created"`
-	Updated       Time     `json:"updated"`
-	LastSeenAt    Time     `json:"lastSeenAt"`
-	Name          string   `json:"name" note:"Name of the user" example:"bob@example.com"`
-	ProviderNames []string `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
+	ID            uid.ID          `json:"id" note:"User ID"`
+	Created       Time            `json:"created"`
+	Updated       Time            `json:"updated"`
+	LastSeenAt    Time            `json:"lastSeenAt"`
+	Name          string          `json:"name" note:"Name of the user" example:"bob@example.com"`
+	ProviderNames []string        `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
+	PublicKeys    []UserPublicKey `json:"publicKeys,omitempty" note:"List of the users public keys"`
 }
 
 type ListUsersRequest struct {
-	Name       string   `form:"name" note:"Name of the user" example:"bob@example.com"`
-	Group      uid.ID   `form:"group" note:"Group the user belongs to" example:"admins"`
-	IDs        []uid.ID `form:"ids" note:"List of User IDs"`
-	ShowSystem bool     `form:"showSystem" note:"if true, this shows the connector and other internal users" example:"false"`
+	Name                 string   `form:"name" note:"Name of the user" example:"bob@example.com"`
+	Group                uid.ID   `form:"group" note:"Group the user belongs to" example:"admins"`
+	IDs                  []uid.ID `form:"ids" note:"List of User IDs"`
+	ShowSystem           bool     `form:"showSystem" note:"if true, this shows the connector and other internal users" example:"false"`
+	PublicKeyFingerprint string   `form:"publicKeyFingerprint" note:"Find the user with a public key that matches this SHA256 fingerprint."`
 	PaginationRequest
 }
 
@@ -73,4 +75,33 @@ func (req ListUsersRequest) SetPage(page int) Paginatable {
 	req.PaginationRequest.Page = page
 
 	return req
+}
+
+type AddUserPublicKeyRequest struct {
+	Name string `json:"name"`
+	// PublicKey is the key type and base64 encoded public key as it would appear
+	// in an authorized keys file.
+	PublicKey string `json:"publicKey"`
+}
+
+func (r AddUserPublicKeyRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("publicKey", r.PublicKey),
+		ValidateName(r.Name),
+	}
+}
+
+type UserPublicKey struct {
+	ID uid.ID `json:"id"`
+	// Name identifies the key, generally set to the hostname of the host
+	// that created the key pair.
+	Name    string `json:"name"`
+	Created Time   `json:"created"`
+	// PublicKey is the base64 encoded public key of the key pair.
+	PublicKey string `json:"publicKey"`
+	// KeyType is the string that identifies the type of the key, in a format
+	// appropriate for an SSH authorized keys file.
+	KeyType string `json:"keyType"`
+	// Fingerprint is the SHA256 fingerprint of the public key.
+	Fingerprint string `json:"fingerprint" note:"SHA256 fingerprint of the key"`
 }

@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -13,11 +16,26 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/validate"
 )
 
 func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListResponse[api.User], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
-	users, err := access.ListIdentities(c, r.Name, r.Group, r.IDs, r.ShowSystem, &p)
+
+	opts := data.ListIdentityOptions{
+		Pagination:             &p,
+		ByName:                 r.Name,
+		ByIDs:                  r.IDs,
+		ByGroupID:              r.Group,
+		ByPublicKeyFingerprint: r.PublicKeyFingerprint,
+		LoadProviders:          true,
+		LoadPublicKeys:         true,
+	}
+	if !r.ShowSystem {
+		opts.ByNotName = models.InternalInfraConnectorIdentityName
+	}
+
+	users, err := access.ListIdentities(c, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +68,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	user := &models.Identity{Name: r.Name}
 
 	// infra identity creation should be attempted even if an identity is already known
-	identities, err := access.ListIdentities(c, user.Name, 0, nil, false, &data.Pagination{Limit: 2})
+	identities, err := access.ListIdentities(c, data.ListIdentityOptions{ByName: r.Name})
 	if err != nil {
 		return nil, fmt.Errorf("list identities: %w", err)
 	}
@@ -63,7 +81,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 	case 1:
 		user.ID = identities[0].ID
 	default:
-		logging.Errorf("Multiple identites match name %q. DB is missing unique index on user names", r.Name)
+		logging.Errorf("Multiple identities match name %q. DB is missing unique index on user names", r.Name)
 		return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 	}
 
@@ -121,4 +139,36 @@ func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, e
 
 func (a *API) DeleteUser(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
 	return nil, access.DeleteIdentity(c, r.ID)
+}
+
+func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.UserPublicKey, error) {
+	rCtx := getRequestContext(c)
+
+	// no authz required, because the userID comes from authenticated User.ID
+	if rCtx.Authenticated.User == nil {
+		return nil, fmt.Errorf("missing authentication")
+	}
+
+	key, _, _, rest, err := ssh.ParseAuthorizedKey([]byte(r.PublicKey))
+	switch {
+	case err != nil:
+		// the error text is always the same "ssh: no key found", so we return
+		// a better error message.
+		return nil, validate.Error{"publicKey": {"must be in authorized keys format"}}
+	case len(bytes.TrimSpace(rest)) > 0:
+		return nil, validate.Error{"publicKey": {"must be only a single key"}}
+	}
+
+	userPublicKey := &models.UserPublicKey{
+		UserID:      rCtx.Authenticated.User.ID,
+		PublicKey:   base64.StdEncoding.EncodeToString(key.Marshal()),
+		KeyType:     key.Type(),
+		Fingerprint: ssh.FingerprintSHA256(key),
+	}
+
+	if err := data.AddUserPublicKey(rCtx.DBTxn, userPublicKey); err != nil {
+		return nil, err
+	}
+	resp := userPublicKey.ToAPI()
+	return &resp, nil
 }
