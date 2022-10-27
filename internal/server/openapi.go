@@ -397,7 +397,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			},
 		},
 	})
-	
+
 	op.AddParameter(&openapi3.Parameter{
 		Name:     "Authorization",
 		In:       "header",
@@ -424,7 +424,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 
 			buildRequest(f.Type, tmpOp, method)
 			for _, param := range tmpOp.Parameters {
-				if param.Value.Name != "Infra-Version" {
+				if param.Value.Name != "Infra-Version" && param.Value.Name != "Authorization" {
 					op.AddParameter(param.Value)
 				}
 			}
