@@ -397,6 +397,20 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			},
 		},
 	})
+	
+	op.AddParameter(&openapi3.Parameter{
+		Name:     "Authorization",
+		In:       "header",
+		Required: true,
+		Schema: &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Example:     "Bearer ACCESSKEY",
+				Format:      `Bearer\s[\d|a-z]{10}-[\d|a-z]{24}-`,
+				Type:        "string",
+				Description: "Bearer followed by your access key",
+			},
+		},
+	})
 
 	schema := &openapi3.Schema{
 		Type:       "object",
