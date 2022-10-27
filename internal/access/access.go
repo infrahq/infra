@@ -17,10 +17,13 @@ const ResourceInfraAPI = "infra"
 // RequireInfraRole checks that the identity in the context can perform an action on a resource based on their granted roles
 func RequireInfraRole(c *gin.Context, oneOfRoles ...string) (data.GormTxn, error) {
 	rCtx := GetRequestContext(c)
-	if _, err := IsAuthorized(rCtx, oneOfRoles...); err != nil {
+	perms, err := IsAuthorized(rCtx, oneOfRoles...)
+	if err != nil {
 		return nil, err
 	}
-	return rCtx.DBTxn, nil
+	dbTxn := rCtx.DBTxn
+	dbTxn.PermissionSet = perms
+	return dbTxn, nil
 }
 
 var ErrNotAuthorized = errors.New("not authorized")
@@ -91,6 +94,10 @@ func IsAuthorized(rCtx RequestContext, requiredRole ...string) (access.Permissio
 	if len(grants) == 0 {
 		return nil, ErrNotAuthorized
 	}
-	// TODO: must merge when there are multiple roles assigned
-	return access.RolePermissions[grants[0].Privilege], nil
+
+	var roles []string
+	for _, g := range grants {
+		roles = append(roles, g.Privilege)
+	}
+	return access.PermissionsForRoles(roles...), nil
 }

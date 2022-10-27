@@ -251,11 +251,14 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		c.Set(access.RequestContextKey, rCtx)
 
-		perms, err := route.authorization(rCtx, req)
-		if err != nil {
-			return err
+		// TODO: make this required
+		if route.authorization != nil {
+			perms, err := route.authorization(rCtx, req)
+			if err != nil {
+				return err
+			}
+			rCtx.Permissions = perms
 		}
-		rCtx.Permissions = perms
 
 		resp, err := route.handler(c, req)
 		if err != nil {

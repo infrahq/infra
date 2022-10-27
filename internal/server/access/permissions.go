@@ -98,7 +98,7 @@ func (p PermissionSet) Allows(access Access) error {
 	return nil
 }
 
-var RolePermissions = map[string]PermissionSet{
+var rolePermissions = map[string]PermissionSet{
 	RoleView: toSet(
 		perm(ResourceAccessKeys, OperationRead),
 		perm(ResourceGrants, OperationRead),
@@ -136,4 +136,14 @@ var RolePermissions = map[string]PermissionSet{
 		perm(ResourceOrganizations, OperationWrite),
 		perm(ResourceSystem, OperationRead),
 	),
+}
+
+func PermissionsForRoles(roles ...string) PermissionSet {
+	result := make(PermissionSet, len(roles)*3) // every role has at least 3 permissions
+	for _, role := range roles {
+		for key, v := range rolePermissions[role] {
+			result[key] = v
+		}
+	}
+	return result
 }
