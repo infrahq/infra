@@ -27,12 +27,8 @@ export default function GrantForm({
   const button = useRef()
 
   useEffect(() => {
-    if (selectedResources?.length > 0) {
-      setRole(sortByRole(roles)?.filter(r => r != 'cluster-admin')[0])
-    } else {
-      setRole(sortByRole(roles)?.[0])
-    }
-  }, [roles, selectedResources])
+    setRole(sortByRole(roles)?.[0])
+  }, [roles])
 
   useEffect(() => {
     if (users && groups) {
@@ -140,11 +136,7 @@ export default function GrantForm({
           <RoleSelect
             onChange={setRole}
             role={role}
-            roles={
-              selectedResources.length > 0
-                ? sortByRole(roles)?.filter(r => r != 'cluster-admin')
-                : sortByRole(roles)
-            }
+            roles={sortByRole(roles)}
           />
         </div>
       )}
