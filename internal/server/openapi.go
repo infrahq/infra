@@ -398,7 +398,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			},
 		},
 	})
-	var noLoginOperations = []string{"Login", "Signup", "RequestPasswordReset", "VerifiedPasswordReset", "GetPassword", "ListProviders", "GetSettings", "Version", "GetServerConfiguration", "RequestForgotDomains"}
+	var noLoginOperations = []string{"Login", "Signup", "RequestPasswordReset", "VerifiedPasswordReset", "GetPassword", "ListProviders", "GetSettings", "Version", "GetServerConfiguration", "RequestForgotDomains", "StartDeviceFlow", "GetDeviceFlowStatus"}
 
 	if !slices.Contains(noLoginOperations, op.OperationID) {
 		op.AddParameter(&openapi3.Parameter{
