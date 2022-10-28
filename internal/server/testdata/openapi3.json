@@ -1173,6 +1173,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "name",
             "schema": {
@@ -1259,6 +1270,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -1385,6 +1407,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           }
@@ -1514,6 +1547,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -1606,6 +1650,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -1722,6 +1777,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           }
@@ -1866,6 +1932,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -1960,6 +2037,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -2050,6 +2138,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -2203,6 +2302,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2286,6 +2396,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           }
@@ -2389,6 +2510,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           }
@@ -2598,6 +2730,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "user",
             "schema": {
@@ -2776,6 +2919,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2912,6 +3066,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -3002,6 +3167,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -3098,6 +3274,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -3219,6 +3406,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3323,6 +3521,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -3413,6 +3622,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -3509,6 +3729,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -3790,6 +4021,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3873,6 +4115,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -3982,6 +4235,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           }
@@ -4095,6 +4359,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -4185,6 +4460,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -4607,6 +4893,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -4756,6 +5053,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -4850,6 +5158,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -4940,6 +5259,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -5053,6 +5383,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -5382,6 +5723,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5630,6 +5982,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -5713,6 +6076,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -5856,6 +6230,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5961,6 +6346,17 @@
             }
           },
           {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
+              "type": "string"
+            }
+          },
+          {
             "in": "path",
             "name": "id",
             "required": true,
@@ -6051,6 +6447,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
@@ -6146,6 +6553,17 @@
               "description": "Version of the API being requested",
               "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer\\s[\\d|a-z]{10}.[\\d|a-z]{24}",
               "type": "string"
             }
           },
