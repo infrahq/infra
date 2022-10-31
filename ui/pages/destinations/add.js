@@ -256,11 +256,11 @@ export default function DestinationsAdd() {
             </div>
           )}
           <button
-              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
-              onClick={finish}
-            >
-              Finish
-            </button>
+            className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+            onClick={finish}
+          >
+            Finish
+          </button>
         </section>
       </div>
       <Confetti
