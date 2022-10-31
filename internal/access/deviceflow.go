@@ -20,6 +20,7 @@ func FindDeviceFlowAuthRequest(ctx RequestContext, deviceCode string) (*models.D
 		return nil, err
 	}
 
+	// TODO: do this in the data function
 	if dfar.AccessKeyID > 0 {
 		dfar.AccessKey, err = data.GetAccessKey(ctx.DBTxn, data.GetAccessKeysOptions{ByID: dfar.AccessKeyID})
 		if err != nil {
@@ -32,12 +33,7 @@ func FindDeviceFlowAuthRequest(ctx RequestContext, deviceCode string) (*models.D
 
 // FindDeviceFlowAuthRequestForApproval belongs to an authenticated endpoint; it requires a logged-in user.
 func FindDeviceFlowAuthRequestForApproval(ctx RequestContext, userCode string) (*models.DeviceFlowAuthRequest, error) {
-	dfar, err := data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.ByUserCode(userCode))
-	if err != nil {
-		return nil, err
-	}
-
-	return dfar, nil
+	return data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.ByUserCode(userCode))
 }
 
 func SetDeviceFlowAuthRequestAccessKey(ctx RequestContext, dfarID uid.ID, accessKey *models.AccessKey) error {
