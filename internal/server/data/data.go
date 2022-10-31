@@ -152,9 +152,13 @@ type GormTxn interface {
 
 type Transaction struct {
 	*gorm.DB
-	access.PermissionSet
+	PermissionSet
 	orgID     uid.ID
 	completed *atomic.Bool
+}
+
+type PermissionSet interface {
+	Allows(access.Access, any) error
 }
 
 func (t *Transaction) DriverName() string {

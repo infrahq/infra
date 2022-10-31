@@ -17,7 +17,7 @@ type ReadTxn interface {
 
 	OrganizationID() uid.ID
 
-	Allows(access.Access) error
+	Allows(access.Access, any) error
 }
 
 // WriteTxn extends ReadTxn by adding write queries.

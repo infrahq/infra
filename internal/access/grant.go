@@ -11,6 +11,7 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/access"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -35,7 +36,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 	subject := opts.BySubject
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
-	_, err := RequireInfraRole(c, roles...)
+	perms, err := IsAuthorized(rCtx, roles...)
 	err = HandleAuthErr(err, "grants", "list", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
 		// Allow an authenticated identity to view their own grants
@@ -45,6 +46,13 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 			return ListGrantsResponse{}, err
 		case subject.IsIdentity() && rCtx.Authenticated.User.ID == subjectID:
 			// authorized because the request is for their own grants
+			rCtx.DBTxn.PermissionSet = access.NewConditionalPermission(perms, func(request any) bool {
+				opts, ok := request.(data.ListGrantsOptions)
+				if !ok {
+					return fmt.Errorf("wrong request type")
+				}
+				return opts.BySubject == subject
+			})
 		case subject.IsGroup() && userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, subjectID):
 			// authorized because the request is for grants of a group they belong to
 		default:

@@ -90,7 +90,7 @@ func toSet(access ...Access) PermissionSet {
 	return result
 }
 
-func (p PermissionSet) Allows(access Access) error {
+func (p PermissionSet) Allows(access Access, request any) error {
 	if _, ok := p[access]; !ok {
 		return fmt.Errorf("missing permission to %v the %v resource",
 			access.Operation, access.Resource)
@@ -146,4 +146,25 @@ func PermissionsForRoles(roles ...string) PermissionSet {
 		}
 	}
 	return result
+}
+
+// ConditionalPermission allows access if the operation is allowed by  either the
+// PermissionSet or conditional function.
+type ConditionalPermission struct {
+	pSet      PermissionSet
+	condition func(request any) bool
+}
+
+func (c ConditionalPermission) Allows(access Access, request any) error {
+	if c.condition(request) {
+		return nil
+	}
+	return c.pSet.Allows(access, request)
+}
+
+func NewConditionalPermission(
+	pSet PermissionSet,
+	condition func(request any) bool,
+) ConditionalPermission {
+	return ConditionalPermission{pSet: pSet, condition: condition}
 }
