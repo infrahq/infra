@@ -96,7 +96,10 @@ export default function Device() {
                   <React.Fragment key={i}>
                     <input
                       required
-                      autoFocus={i === 0}
+                      autoFocus={
+                        i ==
+                        Math.max((code || '').replace('-', '').length - 1, 0)
+                      }
                       type='text'
                       name={'code' + i}
                       value={(code || '').replace('-', '').substring(i, i + 1)}
