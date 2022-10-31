@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -25,6 +26,12 @@ func (r ListGrantsResponse) SetHeaders(h http.Header) {
 }
 
 func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsResponse, error) {
+	rCtx := getRequestContext(c)
+
+	rCtx.Response.AddLogFields(func(event *zerolog.Event) {
+		event.Int64("lastUpdateIndex", r.LastUpdateIndex)
+	})
+
 	var subject uid.PolymorphicID
 	switch {
 	case r.User != 0:
@@ -53,6 +60,10 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsR
 	if err != nil {
 		return nil, err
 	}
+
+	rCtx.Response.AddLogFields(func(event *zerolog.Event) {
+		event.Int("numGrants", len(grants.Grants))
+	})
 
 	result := api.NewListResponse(grants.Grants, PaginationToResponse(p), func(grant models.Grant) api.Grant {
 		return *grant.ToAPI()

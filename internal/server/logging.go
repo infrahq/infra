@@ -72,6 +72,7 @@ func loggingMiddleware(enableSampling bool) gin.HandlerFunc {
 		if org := rCtx.Authenticated.Organization; org != nil {
 			event = event.Str("orgID", org.ID.String())
 		}
+		rCtx.Response.ApplyLogFields(event)
 
 		event.Dur("elapsed", time.Since(begin)).
 			Int("statusCode", status).
