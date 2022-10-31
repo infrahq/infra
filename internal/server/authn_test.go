@@ -51,32 +51,6 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp2.Code)
 }
 
-func createUser(t *testing.T, srv *Server, routes Routes, email string) *api.CreateUserResponse {
-	r := &api.CreateUserRequest{
-		Name: email,
-	}
-	body, err := json.Marshal(r)
-	assert.NilError(t, err)
-
-	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
-	assert.NilError(t, err)
-
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-	req.Header.Add("Infra-Version", "0.14")
-
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
-
-	assert.Equal(t, 201, resp.Code)
-
-	result := &api.CreateUserResponse{}
-	err = json.Unmarshal(resp.Body.Bytes(), result)
-	assert.NilError(t, err)
-
-	return result
-}
-
 func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, oldPassword, password string) *api.User {
 	r := &api.UpdateUserRequest{
 		OldPassword: oldPassword,

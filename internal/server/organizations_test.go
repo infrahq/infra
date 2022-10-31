@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -165,6 +166,10 @@ func TestAPI_GetOrganization(t *testing.T) {
 					srv.db.DefaultOrg.Domain,
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
+
+				var cmpAPIOrganizationJSON = gocmp.Options{
+					gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+				}
 				assert.DeepEqual(t, actual, expected, cmpAPIOrganizationJSON)
 			},
 		},

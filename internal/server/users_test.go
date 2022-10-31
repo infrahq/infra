@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	gocmp "github.com/google/go-cmp/cmp"
 	"golang.org/x/crypto/bcrypt"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -166,6 +168,11 @@ func TestAPI_GetUser(t *testing.T) {
 					time.Now().UTC().Format(time.RFC3339),
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
+
+				var cmpAPIUserJSON = gocmp.Options{
+					gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeenAt`), cmpApproximateTime),
+					gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+				}
 				assert.DeepEqual(t, actual, expected, cmpAPIUserJSON)
 			},
 		},
@@ -578,6 +585,15 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 
 	a := &API{server: srv}
 	admin := createAdmin(t, db)
+
+	loginAs := func(tx *data.Transaction, user *models.Identity) *gin.Context {
+		ctx, _ := gin.CreateTestContext(nil)
+		ctx.Set(access.RequestContextKey, access.RequestContext{
+			DBTxn:         tx,
+			Authenticated: access.Authenticated{User: user},
+		})
+		return ctx
+	}
 
 	t.Run("with an IDP user existing", func(t *testing.T) {
 		idp := &models.Provider{Name: "Super Provider", Kind: models.ProviderKindOIDC}
