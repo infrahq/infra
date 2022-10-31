@@ -20,9 +20,17 @@ func FindDeviceFlowAuthRequest(ctx RequestContext, deviceCode string) (*models.D
 		return nil, err
 	}
 
-	// TODO: do this in the data function
+	// TODO: do these lookups in the data function when data.GetDeviceFlowAuthRequest
+	// is converted to SQL
 	if dfar.AccessKeyID > 0 {
 		dfar.AccessKey, err = data.GetAccessKey(ctx.DBTxn, data.GetAccessKeysOptions{ByID: dfar.AccessKeyID})
+		if err != nil {
+			return nil, err
+		}
+
+		dfar.Organization, err = data.GetOrganization(ctx.DBTxn, data.GetOrganizationOptions{
+			ByID: dfar.AccessKey.OrganizationID,
+		})
 		if err != nil {
 			return nil, err
 		}

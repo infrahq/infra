@@ -19,7 +19,7 @@ import (
 )
 
 func TestDeviceFlow(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
@@ -71,12 +71,12 @@ func TestDeviceFlow(t *testing.T) {
 	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
 
 	// get flow status pending
-	pollResp := &api.DeviceFlowStatusResponse{}
+	statusResp := &api.DeviceFlowStatusResponse{}
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
-	}, pollResp)
+	}, statusResp)
 
-	assert.Equal(t, pollResp.Status, "pending")
+	assert.Equal(t, statusResp.Status, "pending")
 
 	// approve
 	doPost(t, key, "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
@@ -86,15 +86,29 @@ func TestDeviceFlow(t *testing.T) {
 	// get flow status with key
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
-	}, pollResp)
+	}, statusResp)
 
-	assert.Equal(t, pollResp.DeviceCode, dfResp.DeviceCode)
-	assert.Equal(t, pollResp.Status, "confirmed")
-	newKey := pollResp.LoginResponse.AccessKey
+	expected := &api.DeviceFlowStatusResponse{
+		Status:     "confirmed",
+		DeviceCode: dfResp.DeviceCode,
+		LoginResponse: &api.LoginResponse{
+			UserID:           user.ID,
+			Name:             user.Name,
+			AccessKey:        "<any-string>",
+			Expires:          api.Time(accessKey.ExpiresAt),
+			OrganizationName: org.Name,
+		},
+	}
+	var cmpDeviceFlowStatusResponse = gocmp.Options{
+		gocmp.FilterPath(
+			opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
+		cmpApiTimeWithThreshold(2 * time.Second),
+	}
+	assert.DeepEqual(t, expected, statusResp, cmpDeviceFlowStatusResponse)
+
+	newKey := statusResp.LoginResponse.AccessKey
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
-
-	assert.Equal(t, pollResp.LoginResponse.UserID, user.ID)
 }
 
 func TestAPI_StartDeviceFlow(t *testing.T) {

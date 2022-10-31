@@ -217,20 +217,23 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	accessKey := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(accessKey))
-	query.B("FROM")
-	query.B(accessKey.Table())
-	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	query.B(", identities.name")
+	query.B("FROM access_keys INNER JOIN identities")
+	query.B("ON access_keys.issued_for = identities.id")
+	query.B("WHERE access_keys.deleted_at is null")
+	query.B("AND access_keys.organization_id = ?", tx.OrganizationID())
 	if opts.ByID != 0 {
-		query.B("AND id = ?", opts.ByID)
+		query.B("AND access_keys.id = ?", opts.ByID)
 	}
 	if opts.ByName != "" {
-		query.B("AND name = ?", opts.ByName)
+		query.B("AND access_keys.name = ?", opts.ByName)
 	}
 	if opts.IssuedFor != 0 {
 		query.B("AND issued_for = ?", opts.IssuedFor)
 	}
 
-	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
+	fields := append(accessKey.ScanFields(), &accessKey.IssuedForName)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(fields...)
 	if err != nil {
 		return nil, handleError(err)
 	}
