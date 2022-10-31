@@ -229,7 +229,7 @@
           }
         }
       },
-      "DevicePollResponse": {
+      "DeviceFlowStatusResponse": {
         "properties": {
           "deviceCode": {
             "example": "",
@@ -2465,7 +2465,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DevicePollResponse"
+                  "$ref": "#/components/schemas/DeviceFlowStatusResponse"
                 }
               }
             },

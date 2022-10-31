@@ -534,7 +534,7 @@ func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
 			return nil, api.ErrDeviceLoginTimeout
 		case <-poll.C:
 			// check to see if user is authed yet
-			pollResp, err := client.GetDeviceFlowStatus(&api.PollDeviceFlowRequest{DeviceCode: resp.DeviceCode})
+			pollResp, err := client.GetDeviceFlowStatus(&api.DeviceFlowStatusRequest{DeviceCode: resp.DeviceCode})
 			if err != nil {
 				return nil, err
 			}

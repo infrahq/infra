@@ -71,8 +71,8 @@ func TestDeviceFlow(t *testing.T) {
 	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
 
 	// get flow status pending
-	pollResp := &api.DevicePollResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
+	pollResp := &api.DeviceFlowStatusResponse{}
+	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 
@@ -84,7 +84,7 @@ func TestDeviceFlow(t *testing.T) {
 	}, nil)
 
 	// get flow status with key
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
+	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 

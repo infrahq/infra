@@ -20,17 +20,17 @@ type DeviceFlowResponse struct {
 	PollIntervalSeconds int8   `json:"interval" example:"5" note:"the number of seconds the device should wait between polling to see if the user has finished logging in"`
 }
 
-type PollDeviceFlowRequest struct {
+type DeviceFlowStatusRequest struct {
 	DeviceCode string `json:"deviceCode"`
 }
 
-func (pdfr *PollDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
+func (pdfr *DeviceFlowStatusRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.String("deviceCode", pdfr.DeviceCode, 38, 38, validate.AlphaNumeric),
 	}
 }
 
-type DevicePollResponse struct {
+type DeviceFlowStatusResponse struct {
 	Status        string         `json:"status,omitempty" note:"can be one of pending, rejected, expired, confirmed"`
 	DeviceCode    string         `json:"deviceCode,omitempty" example:""`
 	LoginResponse *LoginResponse `json:"login,omitempty"`

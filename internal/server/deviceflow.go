@@ -65,7 +65,7 @@ retry:
 
 // GetDeviceFlowStatus is an API handler for checking the status of a device
 // flow login. The response status can be pending, rejected, expired, or confirmed.
-func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest) (*api.DevicePollResponse, error) {
+func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
 	rctx := getRequestContext(c)
 	dfar, err := access.FindDeviceFlowAuthRequest(rctx, req.DeviceCode)
 	if err != nil {
@@ -73,21 +73,21 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 	}
 
 	if dfar.ExpiresAt.Before(time.Now()) {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "expired",
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
 
 	if dfar.Approved != nil && !*dfar.Approved {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "rejected",
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
 
 	if dfar.Approved != nil && *dfar.Approved {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "confirmed",
 			DeviceCode: dfar.DeviceCode,
 			LoginResponse: &api.LoginResponse{
@@ -100,7 +100,7 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 		}, nil
 	}
 
-	return &api.DevicePollResponse{
+	return &api.DeviceFlowStatusResponse{
 		Status:     "pending",
 		DeviceCode: dfar.DeviceCode,
 	}, nil
