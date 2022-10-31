@@ -118,7 +118,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [updatePasswordForUser, setUpdatePasswordForUser] = useState("")
+  const [updatePasswordForUser, setUpdatePasswordForUser] = useState('')
   const { isEmailConfigured } = useServerConfig()
   const { login } = useUser()
 
@@ -168,85 +168,90 @@ export default function Login() {
         Log in
       </h1>
       {updatePasswordForUser !== '' ? (
-        <UpdatePassword oldPassword={password} user={updatePasswordForUser}/>
-      ): (
+        <UpdatePassword oldPassword={password} user={updatePasswordForUser} />
+      ) : (
         <>
-        <h2 className='my-2 text-center text-sm text-gray-500'>
-        Welcome back to Infra
-      </h2>
-      {providers?.length > 0 && (
-        <>
-          <Providers providers={providers || []} />
-          <div className='relative mt-6 mb-2 w-full'>
-            <div
-              className='absolute inset-0 flex items-center'
-              aria-hidden='true'
-            >
-              <div className='w-full border-t border-gray-200' />
-            </div>
-            <div className='relative flex justify-center text-sm'>
-              <span className='bg-white px-2 text-2xs text-gray-400'>OR</span>
-            </div>
-          </div>
-        </>
-      )}
-      <form onSubmit={onSubmit} className='relative flex w-full flex-col'>
-        <div className='my-2 w-full'>
-          <label htmlFor='name' className='text-2xs font-medium text-gray-700'>
-            Email
-          </label>
-          <input
-            required
-            autoFocus
-            id='name'
-            type='email'
-            onChange={e => {
-              setName(e.target.value)
-              setErrors({})
-              setError('')
-            }}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-              errors.name ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.name && (
-            <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+          <h2 className='my-2 text-center text-sm text-gray-500'>
+            Welcome back to Infra
+          </h2>
+          {providers?.length > 0 && (
+            <>
+              <Providers providers={providers || []} />
+              <div className='relative mt-6 mb-2 w-full'>
+                <div
+                  className='absolute inset-0 flex items-center'
+                  aria-hidden='true'
+                >
+                  <div className='w-full border-t border-gray-200' />
+                </div>
+                <div className='relative flex justify-center text-sm'>
+                  <span className='bg-white px-2 text-2xs text-gray-400'>
+                    OR
+                  </span>
+                </div>
+              </div>
+            </>
           )}
-        </div>
-        <div className='my-2 w-full'>
-          <label
-            htmlFor='password'
-            className='text-2xs font-medium text-gray-700'
-          >
-            Password
-          </label>
-          <input
-            required
-            id='password'
-            type='password'
-            data-testid='form-field-password'
-            onChange={e => {
-              setPassword(e.target.value)
-              setErrors({})
-              setError('')
-            }}
-            className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-          />
-        </div>
-        {isEmailConfigured && (
-          <div className='mt-4 flex items-center justify-end text-sm'>
-            <Link href='/password-reset'>
-              <a className='font-medium text-blue-600 hover:text-blue-500'>
-                Forgot your password?
-              </a>
-            </Link>
-          </div>
-        )}
-        <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
-          Log in
-        </button>
-        {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
-      </form>
+          <form onSubmit={onSubmit} className='relative flex w-full flex-col'>
+            <div className='my-2 w-full'>
+              <label
+                htmlFor='name'
+                className='text-2xs font-medium text-gray-700'
+              >
+                Email
+              </label>
+              <input
+                required
+                autoFocus
+                id='name'
+                type='email'
+                onChange={e => {
+                  setName(e.target.value)
+                  setErrors({})
+                  setError('')
+                }}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+              {errors.name && (
+                <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+              )}
+            </div>
+            <div className='my-2 w-full'>
+              <label
+                htmlFor='password'
+                className='text-2xs font-medium text-gray-700'
+              >
+                Password
+              </label>
+              <input
+                required
+                id='password'
+                type='password'
+                data-testid='form-field-password'
+                onChange={e => {
+                  setPassword(e.target.value)
+                  setErrors({})
+                  setError('')
+                }}
+                className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
+              />
+            </div>
+            {isEmailConfigured && (
+              <div className='mt-4 flex items-center justify-end text-sm'>
+                <Link href='/password-reset'>
+                  <a className='font-medium text-blue-600 hover:text-blue-500'>
+                    Forgot your password?
+                  </a>
+                </Link>
+              </div>
+            )}
+            <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
+              Log in
+            </button>
+            {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+          </form>
         </>
       )}
     </div>
