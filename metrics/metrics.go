@@ -47,11 +47,19 @@ func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
 		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
 	}, []string{"host", "method", "path", "status"})
 
-	registry.MustRegister(requestDuration)
+	requestCount := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "http",
+		Name:      "requests_active",
+		Help:      "A gauge of the number of requests currently being handled.",
+	})
+
+	registry.MustRegister(requestDuration, requestCount)
 
 	return func(c *gin.Context) {
-		t := time.Now()
+		requestCount.Inc()
+		defer requestCount.Dec()
 
+		t := time.Now()
 		c.Next()
 
 		requestDuration.With(prometheus.Labels{
