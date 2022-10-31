@@ -14,6 +14,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -397,6 +398,23 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			},
 		},
 	})
+	var noLoginOperations = []string{"Login", "Signup", "RequestPasswordReset", "VerifiedPasswordReset", "GetPassword", "ListProviders", "GetSettings", "Version", "GetServerConfiguration", "RequestForgotDomains", "StartDeviceFlow", "GetDeviceFlowStatus"}
+
+	if !slices.Contains(noLoginOperations, op.OperationID) {
+		op.AddParameter(&openapi3.Parameter{
+			Name:     "Authorization",
+			In:       "header",
+			Required: true,
+			Schema: &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					Example:     "Bearer ACCESSKEY",
+					Format:      `Bearer\s[\d|a-z]{10}.[\d|a-z]{24}`,
+					Type:        "string",
+					Description: "Bearer followed by your access key",
+				},
+			},
+		})
+	}
 
 	schema := &openapi3.Schema{
 		Type:       "object",
@@ -410,7 +428,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 
 			buildRequest(f.Type, tmpOp, method)
 			for _, param := range tmpOp.Parameters {
-				if param.Value.Name != "Infra-Version" {
+				if param.Value.Name != "Infra-Version" && param.Value.Name != "Authorization" {
 					op.AddParameter(param.Value)
 				}
 			}
