@@ -118,6 +118,9 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
+	options.Server = strings.TrimPrefix(options.Server, "https://")
+	options.Server = strings.TrimPrefix(options.Server, "http://")
+
 	if len(options.TrustedCertificate) == 0 {
 		// Attempt to find a previously trusted certificate
 		for _, hc := range config.Hosts {
