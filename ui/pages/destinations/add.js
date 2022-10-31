@@ -27,7 +27,7 @@ export default function DestinationsAdd() {
   const [accessKey, setAccessKey] = useState('')
   const [focused, setFocused] = useState(true)
 
-  const { isAdmin } = useUser()
+  const { user, isAdmin } = useUser()
 
   const { data: { items: destinations } = {}, mutate } = useSWR(
     '/api/destinations?limit=999'
@@ -102,6 +102,23 @@ export default function DestinationsAdd() {
 
     setAccessKey(key.accessKey)
     setSubmitted(true)
+  }
+
+  async function finish() {
+    // grant the person that added this cluster 'cluster-admin' access automatically
+    await fetch('/api/grants', {
+      method: 'POST',
+      body: JSON.stringify({
+        user: user.id,
+        privilege: 'cluster-admin',
+        resource: name,
+      }),
+    })
+    mutate()
+    // redirect to the root destinations page
+    router.replace({
+      pathname: '/destinations',
+    })
   }
 
   const command = `helm repo add infrahq https://helm.infrahq.com \nhelm repo update \nhelm upgrade --install infra-connector infrahq/infra --set connector.config.server=${window.location.host} --set connector.config.name=${name} --set connector.config.accessKey=${accessKey}`
@@ -238,11 +255,12 @@ export default function DestinationsAdd() {
               </h3>
             </div>
           )}
-          <Link href='/destinations'>
-            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+          <button
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              onClick={finish}
+            >
               Finish
-            </a>
-          </Link>
+            </button>
         </section>
       </div>
       <Confetti
