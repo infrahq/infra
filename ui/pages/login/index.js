@@ -10,6 +10,7 @@ import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
 
 import LoginLayout from '../../components/layouts/login'
+import UpdatePassword from '../../components/update-password'
 
 function oidcLogin({ id, clientID, authURL, scopes }, next) {
   window.localStorage.setItem('providerID', id)
@@ -117,6 +118,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
+  const [updatePasswordForUser, setUpdatePasswordForUser] = useState("")
   const { isEmailConfigured } = useServerConfig()
   const { login } = useUser()
 
@@ -132,11 +134,7 @@ export default function Login() {
       })
 
       if (data.passwordUpdateRequired) {
-        router.replace({
-          pathname: '/login/finish',
-          query: next ? { user: data.userID, next } : { user: data.userID },
-        })
-
+        setUpdatePasswordForUser(data.userID)
         return false
       }
 
@@ -169,7 +167,11 @@ export default function Login() {
       <h1 className='mt-4 font-display text-2xl font-semibold leading-snug'>
         Log in
       </h1>
-      <h2 className='my-2 text-center text-sm text-gray-500'>
+      {updatePasswordForUser !== '' ? (
+        <UpdatePassword oldPassword={password} user={updatePasswordForUser}/>
+      ): (
+        <>
+        <h2 className='my-2 text-center text-sm text-gray-500'>
         Welcome back to Infra
       </h2>
       {providers?.length > 0 && (
@@ -245,6 +247,8 @@ export default function Login() {
         </button>
         {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
       </form>
+        </>
+      )}
     </div>
   )
 }

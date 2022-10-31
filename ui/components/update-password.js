@@ -1,18 +1,14 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 
-import Login from '../../components/layouts/login'
-
-export default function Finish() {
+export default function UpdatePassword({ oldPassword, user }) {
   const router = useRouter()
+  const { next } = router.query
 
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState('')
-
-  const { query } = router
-  const { next, user } = query
 
   async function finish(e) {
     e.preventDefault()
@@ -27,7 +23,7 @@ export default function Finish() {
     try {
       const res = await fetch(`/api/users/${user}`, {
         method: 'PUT',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ oldPassword, password }),
       })
 
       await jsonBody(res)
@@ -50,9 +46,6 @@ export default function Finish() {
 
   return (
     <>
-      <h1 className='mt-4 font-display text-xl font-semibold leading-snug'>
-        Login to Infra
-      </h1>
       <h2 className='my-2 text-center text-sm text-gray-500'>
         You&apos;ve used a one time password.
         <br />
@@ -116,12 +109,10 @@ export default function Finish() {
           )}
         </div>
         <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
-          Log in
+          Update
         </button>
         {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
       </form>
     </>
   )
 }
-
-Finish.layout = page => <Login>{page}</Login>
