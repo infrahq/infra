@@ -50,6 +50,10 @@ retry:
 	if rctx.Authenticated.Organization != nil {
 		host = rctx.Authenticated.Organization.Domain
 	}
+	if host == "" {
+		// Default to the request hostname when in single tenant mode
+		host = rctx.Request.URL.Host
+	}
 
 	return &api.DeviceFlowResponse{
 		DeviceCode:          deviceCode,
