@@ -55,6 +55,7 @@ export default function Device() {
       case 'Backspace':
         e.preventDefault()
         setCodeSegment('', pos)
+        break
       case 'ArrowLeft':
         if (lastField !== null) {
           lastField.focus()
