@@ -96,8 +96,8 @@ type apiClient interface {
 	// GetGroup and GetUser are used to retrieve the name of the group or user.
 	// TODO: we can remove these calls to GetGroup and GetUser by including
 	// the name of the group or user in the ListGrants response.
-	GetGroup(id uid.ID) (*api.Group, error)
-	GetUser(id uid.ID) (*api.User, error)
+	GetGroup(ctx context.Context, id uid.ID) (*api.Group, error)
+	GetUser(ctx context.Context, id uid.ID) (*api.User, error)
 }
 
 type kubeClient interface {
@@ -461,7 +461,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
-		err = updateRoles(con.client, con.k8s, grants.Items)
+		err = updateRoles(ctx, con.client, con.k8s, grants.Items)
 		if err != nil {
 			return fmt.Errorf("update roles: %w", err)
 		}
@@ -488,7 +488,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
+func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Grant) error {
 	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -503,7 +503,7 @@ func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 
 		switch {
 		case g.Group != 0:
-			group, err := c.GetGroup(g.Group)
+			group, err := c.GetGroup(ctx, g.Group)
 			if err != nil {
 				return err
 			}
@@ -511,7 +511,7 @@ func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 			name = group.Name
 			kind = rbacv1.GroupKind
 		case g.User != 0:
-			user, err := c.GetUser(g.User)
+			user, err := c.GetUser(ctx, g.User)
 			if err != nil {
 				return err
 			}

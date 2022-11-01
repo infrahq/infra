@@ -369,7 +369,7 @@ func getUserByNameOrID(client *api.Client, name string) (*api.User, error) {
 
 	if users.Count == 0 {
 		if id, err := uid.Parse([]byte(name)); err == nil {
-			if u, err := client.GetUser(id); err == nil {
+			if u, err := client.GetUser(ctx, id); err == nil {
 				return u, nil
 			}
 		}

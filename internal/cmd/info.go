@@ -39,7 +39,7 @@ func info(cli *CLI) error {
 
 	ctx := context.Background()
 
-	user, err := client.GetUser(config.UserID)
+	user, err := client.GetUser(ctx, config.UserID)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 401 {
 			return Error{Message: "Session is not valid for this server; run 'infra login' to start a new session"}
@@ -60,7 +60,7 @@ func info(cli *CLI) error {
 	fmt.Fprintf(w, "User:\t %s (%s)\n", user.Name, user.ID)
 
 	if config.ProviderID != 0 {
-		provider, err := client.GetProvider(config.ProviderID)
+		provider, err := client.GetProvider(ctx, config.ProviderID)
 		if err != nil {
 			return err
 		}

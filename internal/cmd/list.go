@@ -126,7 +126,7 @@ func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination,
 		return nil, nil, nil, fmt.Errorf("no active identity")
 	}
 
-	user, err := client.GetUser(config.UserID)
+	user, err := client.GetUser(ctx, config.UserID)
 	if err != nil {
 		return nil, nil, nil, err
 	}

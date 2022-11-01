@@ -13,15 +13,17 @@ import (
 )
 
 func getGroupByNameOrID(client *api.Client, name string) (*api.Group, error) {
+	ctx := context.TODO()
+
 	req := api.ListGroupsRequest{Name: name}
-	groups, err := client.ListGroups(context.TODO(), req)
+	groups, err := client.ListGroups(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
 	if groups.Count == 0 {
 		if id, err := uid.Parse([]byte(name)); err == nil {
-			g, err := client.GetGroup(id)
+			g, err := client.GetGroup(ctx, id)
 			if err == nil {
 				return g, nil
 			}

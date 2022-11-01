@@ -244,8 +244,7 @@ func (c Client) ListUsers(ctx context.Context, req ListUsersRequest) (*ListRespo
 	})
 }
 
-func (c Client) GetUser(id uid.ID) (*User, error) {
-	ctx := context.TODO()
+func (c Client) GetUser(ctx context.Context, id uid.ID) (*User, error) {
 	return get[User](ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
@@ -278,8 +277,7 @@ func (c Client) ListGroups(ctx context.Context, req ListGroupsRequest) (*ListRes
 	})
 }
 
-func (c Client) GetGroup(id uid.ID) (*Group, error) {
-	ctx := context.TODO()
+func (c Client) GetGroup(ctx context.Context, id uid.ID) (*Group, error) {
 	return get[Group](ctx, c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
@@ -309,8 +307,7 @@ func (c Client) ListOrganizations(ctx context.Context, req ListOrganizationsRequ
 	})
 }
 
-func (c Client) GetOrganization(id uid.ID) (*Organization, error) {
-	ctx := context.TODO()
+func (c Client) GetOrganization(ctx context.Context, id uid.ID) (*Organization, error) {
 	return get[Organization](ctx, c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
@@ -322,8 +319,7 @@ func (c Client) DeleteOrganization(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
-func (c Client) GetProvider(id uid.ID) (*Provider, error) {
-	ctx := context.TODO()
+func (c Client) GetProvider(ctx context.Context, id uid.ID) (*Provider, error) {
 	return get[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
@@ -424,13 +420,11 @@ func (c Client) Signup(req *SignupRequest) (*SignupResponse, error) {
 	return post[SignupRequest, SignupResponse](c, "/api/signup", req)
 }
 
-func (c Client) GetServerVersion() (*Version, error) {
-	ctx := context.TODO()
+func (c Client) GetServerVersion(ctx context.Context) (*Version, error) {
 	return get[Version](ctx, c, "/api/version", Query{})
 }
 
-func (c Client) GetSettings() (*Settings, error) {
-	ctx := context.TODO()
+func (c Client) GetSettings(ctx context.Context) (*Settings, error) {
 	return get[Settings](ctx, c, "/api/settings", Query{})
 }
 
