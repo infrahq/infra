@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -143,6 +144,8 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			type row struct {
 				Name       string `header:"Name"`
 				LastSeenAt string `header:"Last Seen"`
@@ -152,7 +155,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 			var rows []row
 
 			logging.Debugf("call server: list users")
-			users, err := listAll(client.ListUsers, api.ListUsersRequest{})
+			users, err := listAll(ctx, client.ListUsers, api.ListUsersRequest{})
 			if err != nil {
 				return err
 			}
@@ -212,8 +215,10 @@ $ infra users remove janedoe@example.com`,
 				return err
 			}
 
+			ctx := context.Background()
+
 			logging.Debugf("call server: list users named %q", name)
-			users, err := client.ListUsers(api.ListUsersRequest{Name: name})
+			users, err := client.ListUsers(ctx, api.ListUsersRequest{Name: name})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
@@ -355,7 +360,9 @@ func getUserByNameOrID(client *api.Client, name string) (*api.User, error) {
 		showSystem = true
 	}
 
-	users, err := client.ListUsers(api.ListUsersRequest{Name: name, ShowSystem: showSystem})
+	ctx := context.TODO()
+
+	users, err := client.ListUsers(ctx, api.ListUsersRequest{Name: name, ShowSystem: showSystem})
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +460,8 @@ func createUser(client *api.Client, name string) (*api.CreateUserResponse, error
 // check if the user has permissions to reset passwords for another user.
 // This might be handy for customizing error messages
 func hasAccessToChangePasswordsForOtherUsers(client *api.Client, config *ClientHostConfig) (bool, error) {
-	grants, err := client.ListGrants(api.ListGrantsRequest{
+	ctx := context.TODO()
+	grants, err := client.ListGrants(ctx, api.ListGrantsRequest{
 		User:          config.UserID,
 		Privilege:     api.InfraAdminRole,
 		Resource:      "infra",

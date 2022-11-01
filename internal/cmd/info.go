@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -36,6 +37,8 @@ func info(cli *CLI) error {
 		return err
 	}
 
+	ctx := context.Background()
+
 	user, err := client.GetUser(config.UserID)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 401 {
@@ -65,7 +68,7 @@ func info(cli *CLI) error {
 		fmt.Fprintf(w, "Identity Provider:\t %s (%s)\n", provider.Name, provider.URL)
 	}
 
-	userGroups, err := listAll(client.ListGroups, api.ListGroupsRequest{UserID: config.UserID})
+	userGroups, err := listAll(ctx, client.ListGroups, api.ListGroupsRequest{UserID: config.UserID})
 	if err != nil {
 		return err
 	}

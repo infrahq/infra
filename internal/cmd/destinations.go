@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -51,8 +52,10 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			logging.Debugf("call server: list destinations")
-			destinations, err := listAll(client.ListDestinations, api.ListDestinationsRequest{})
+			destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{})
 			if err != nil {
 				return err
 			}
@@ -127,8 +130,10 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
+			ctx := context.Background()
+
 			logging.Debugf("call server: list destinations named %q", name)
-			destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: name})
+			destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{Name: name})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())

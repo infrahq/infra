@@ -344,7 +344,7 @@ func oidcflow(provider *api.Provider) (string, error) {
 
 // Given the provider name, directs user to its OIDC login page, then saves the auth code (to later login to infra)
 func loginToProviderN(client *api.Client, providerName string) (*api.LoginRequestOIDC, error) {
-	provider, err := GetProviderByName(client, providerName)
+	provider, err := GetProviderByName(context.TODO(), client, providerName)
 	if err != nil {
 		return nil, err
 	}
@@ -586,7 +586,8 @@ func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
 }
 
 func listProviders(client *api.Client) ([]api.Provider, error) {
-	providers, err := client.ListProviders(api.ListProvidersRequest{})
+	ctx := context.TODO()
+	providers, err := client.ListProviders(ctx, api.ListProvidersRequest{})
 	if err != nil {
 		return nil, err
 	}

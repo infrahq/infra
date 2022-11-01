@@ -82,14 +82,14 @@ func TestListCmd(t *testing.T) {
 			"Infra-Destination": {uniqueID},
 		}
 
-		_, err := c.ListGrants(api.ListGrantsRequest{})
+		_, err := c.ListGrants(ctx, api.ListGrantsRequest{})
 		assert.NilError(t, err)
 	}
 
 	// reset client.Headers
 	c.Headers = http.Header{}
 
-	users, err := c.ListUsers(api.ListUsersRequest{})
+	users, err := c.ListUsers(ctx, api.ListUsersRequest{})
 	assert.NilError(t, err)
 
 	userMap := usersToMap(users.Items)

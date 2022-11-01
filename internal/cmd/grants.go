@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -58,6 +59,9 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			ctx := context.Background()
+
 			listReq := api.ListGrantsRequest{
 				Privilege:     options.Role,
 				Resource:      options.Resource,
@@ -90,12 +94,12 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				listReq.Group = group.ID
 			}
 
-			grants, err := listAll(client.ListGrants, listReq)
+			grants, err := listAll(ctx, client.ListGrants, listReq)
 			if err != nil {
 				return err
 			}
 
-			numUserGrants, err := userGrants(cli, client, &grants)
+			numUserGrants, err := userGrants(ctx, cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -104,7 +108,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 				cli.Output("")
 			}
 
-			numGroupGrants, err := groupGrants(cli, client, &grants)
+			numGroupGrants, err := groupGrants(ctx, cli, client, &grants)
 			if err != nil {
 				return err
 			}
@@ -125,8 +129,8 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	users, err := listAll(client.ListUsers, api.ListUsersRequest{})
+func userGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
+	users, err := listAll(ctx, client.ListUsers, api.ListUsersRequest{})
 	if err != nil {
 		return 0, err
 	}
@@ -165,8 +169,8 @@ func userGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) 
 	return len(rows), nil
 }
 
-func groupGrants(cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
-	groups, err := listAll(client.ListGroups, api.ListGroupsRequest{})
+func groupGrants(ctx context.Context, cli *CLI, client *api.Client, grants *[]api.Grant) (int, error) {
+	groups, err := listAll(ctx, client.ListGroups, api.ListGroupsRequest{})
 	if err != nil {
 		return 0, err
 	}
@@ -250,6 +254,8 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
+	ctx := context.Background()
+
 	user, group, err := checkUserGroup(client, cmdOptions.UserName, cmdOptions.GroupName)
 	if err != nil {
 		var cliError Error
@@ -269,7 +275,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	logging.Debugf("call server: list grants %#v", listGrantsReq)
-	grants, err := client.ListGrants(listGrantsReq)
+	grants, err := client.ListGrants(ctx, listGrantsReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			logging.Debugf("%s", err.Error())
@@ -356,6 +362,8 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		return err
 	}
 
+	ctx := context.Background()
+
 	userID, groupID, err := checkUserGroup(client, cmdOptions.UserName, cmdOptions.GroupName)
 	if err != nil {
 		var cliError Error
@@ -401,7 +409,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		groupID = group.ID
 	}
 
-	if err := checkResourcesPrivileges(client, cmdOptions.Resource, cmdOptions.Role); err != nil {
+	if err := checkResourcesPrivileges(ctx, client, cmdOptions.Resource, cmdOptions.Role); err != nil {
 		if !cmdOptions.Force {
 			return err
 		}
@@ -468,7 +476,7 @@ func checkUserGroup(client *api.Client, user, group string) (userID uid.ID, grou
 // checkResourcesPrivileges checks if the requested destination (e.g. cluster), optional
 // resource (e.g. namespace), and role exist. destination "infra" and role "connect" are
 // reserved values and will always pass checks
-func checkResourcesPrivileges(client *api.Client, resource, privilege string) error {
+func checkResourcesPrivileges(ctx context.Context, client *api.Client, resource, privilege string) error {
 	parts := strings.SplitN(resource, ".", 2)
 	destination := parts[0]
 	subresource := ""
@@ -482,7 +490,7 @@ func checkResourcesPrivileges(client *api.Client, resource, privilege string) er
 
 	if destination != "infra" {
 		logging.Debugf("call server: list destinations named %q", destination)
-		destinations, err := client.ListDestinations(api.ListDestinationsRequest{Name: destination})
+		destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{Name: destination})
 		if err != nil {
 			return err
 		}

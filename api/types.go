@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-type Query map[string][]string
+type Query url.Values
 
 type Resource struct {
 	ID uid.ID `uri:"id"`

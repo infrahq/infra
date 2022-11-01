@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -10,16 +11,17 @@ import (
 )
 
 func TestListAll(t *testing.T) {
+	ctx := context.Background()
 
 	t.Run("empty", func(t *testing.T) {
-		users, err := listAll(mockListUsers, api.ListUsersRequest{Name: "empty"})
+		users, err := listAll(ctx, mockListUsers, api.ListUsersRequest{Name: "empty"})
 		assert.NilError(t, err)
 
 		assert.DeepEqual(t, users, []api.User{})
 	})
 
 	t.Run("one", func(t *testing.T) {
-		users, err := listAll(mockListUsers, api.ListUsersRequest{Name: "one"})
+		users, err := listAll(ctx, mockListUsers, api.ListUsersRequest{Name: "one"})
 		assert.NilError(t, err)
 
 		assert.DeepEqual(t, users, []api.User{
@@ -28,7 +30,7 @@ func TestListAll(t *testing.T) {
 	})
 
 	t.Run("two", func(t *testing.T) {
-		users, err := listAll(mockListUsers, api.ListUsersRequest{Name: "two"})
+		users, err := listAll(ctx, mockListUsers, api.ListUsersRequest{Name: "two"})
 		assert.NilError(t, err)
 
 		assert.DeepEqual(t, users, []api.User{{Name: "1@test.com"}, {Name: "2@test.com"}})
@@ -36,7 +38,7 @@ func TestListAll(t *testing.T) {
 	})
 
 	t.Run("five", func(t *testing.T) {
-		users, err := listAll(mockListUsers, api.ListUsersRequest{Name: "five"})
+		users, err := listAll(ctx, mockListUsers, api.ListUsersRequest{Name: "five"})
 		assert.NilError(t, err)
 
 		assert.DeepEqual(t, users, []api.User{
@@ -46,13 +48,13 @@ func TestListAll(t *testing.T) {
 	})
 
 	t.Run("error", func(t *testing.T) {
-		_, err := listAll(mockListUsers, api.ListUsersRequest{Name: "error"})
+		_, err := listAll(ctx, mockListUsers, api.ListUsersRequest{Name: "error"})
 		assert.Error(t, err, "default error")
 	})
 
 }
 
-func mockListUsers(req api.ListUsersRequest) (*api.ListResponse[api.User], error) {
+func mockListUsers(_ context.Context, req api.ListUsersRequest) (*api.ListResponse[api.User], error) {
 	switch req.Name {
 	case "empty":
 		return &api.ListResponse[api.User]{
