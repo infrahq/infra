@@ -11,7 +11,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -143,8 +142,6 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 }
 
 func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
-	logging.Debugf("Updating grants")
-
 	iden := access.GetRequestContext(c).Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
@@ -158,8 +155,6 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 		grant := getGrantFromGrantRequest(g)
 		rmGrants = append(rmGrants, grant)
 	}
-
-	logging.Debugf("calling access.UpdateGrants")
 
 	return nil, access.UpdateGrants(c, addGrants, rmGrants)
 }

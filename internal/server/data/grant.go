@@ -439,7 +439,7 @@ func createGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 		setOrg(tx, g)
 	}
 
-	table := (*grantsTable)(grants[0])
+	table := &grantsTable{}
 	query := querybuilder.New("INSERT INTO grants")
 	query.B("(")
 	query.B(columnsForInsert(table))
