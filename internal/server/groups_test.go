@@ -17,27 +17,6 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Identity) {
-	t.Helper()
-	for i := range identities {
-		err := data.CreateIdentity(db, identities[i])
-		assert.NilError(t, err, identities[i].Name)
-		for _, g := range identities[i].Groups {
-			err := data.AddUsersToGroup(db, g.ID, []uid.ID{identities[i].ID})
-			assert.NilError(t, err)
-		}
-		assert.NilError(t, err, identities[i].Name)
-	}
-}
-
-func createGroups(t *testing.T, db data.GormTxn, groups ...*models.Group) {
-	t.Helper()
-	for i := range groups {
-		err := data.CreateGroup(db, groups[i])
-		assert.NilError(t, err, groups[i].Name)
-	}
-}
-
 func TestAPI_ListGroups(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
