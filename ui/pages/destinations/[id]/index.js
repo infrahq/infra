@@ -243,7 +243,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                 <div className='mb-2 flex items-center space-x-2'>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500 sm:left-6'
+                    className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500'
                     ref={checkbox}
                     checked={checked}
                     onChange={() => {
