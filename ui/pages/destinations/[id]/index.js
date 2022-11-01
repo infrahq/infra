@@ -156,33 +156,10 @@ function EditRoleMenu({
   )
 }
 
-function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
-  return (
-    <div className='item-center flex justify-between'>
-      {resource && (
-        <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
-          {resource.split('.').pop()}
-        </div>
-      )}
-      <EditRoleMenu
-        roles={roles}
-        selectedRoles={privileges}
-        onChange={v => {
-          onUpdate(v)
-        }}
-        onRemove={() => {
-          onRemove()
-        }}
-        resource={resource}
-        privileges={privileges}
-      />
-    </div>
-  )
-}
-
 function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
   const checkbox = useRef()
   const [checked, setChecked] = useState(false)
+  const [selectedNamespaces, setSelectedNamespaces] = useState([])
 
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
@@ -195,6 +172,13 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       return false
     })
   )
+
+  useEffect(() => {
+    setChecked(
+      selectedNamespaces.length === namespacesPrivilegeMap.size &&
+        selectedNamespaces.length !== 0
+    )
+  }, [selectedNamespaces])
 
   function handleRemove(resource) {
     const deleteGrantIdList = grantsList
@@ -232,17 +216,22 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {/* Destination Resource */}
       {destinationPrivileges?.length > 0 && (
         <div className='flex items-center justify-between space-x-2 py-2'>
-          <div className='pl-4 text-xs font-medium text-black'>
+          <div className='text-xs font-medium text-black'>
             Cluster-wide access
           </div>
-          <RoleList
-            privileges={sortByRole(destinationPrivileges)}
-            roles={destination.roles}
-            onUpdate={v =>
-              handleUpdate(v, destinationPrivileges, destination.name)
-            }
-            onRemove={() => handleRemove(destination.name)}
-          />
+          <div className='item-center flex justify-between'>
+            <EditRoleMenu
+              roles={destination?.roles}
+              selectedRoles={sortByRole(destinationPrivileges)}
+              onChange={v => {
+                handleUpdate(v, destinationPrivileges, destination.name)
+              }}
+              onRemove={() => {
+                handleRemove(destination.name)
+              }}
+              privileges={sortByRole(destinationPrivileges)}
+            />
+          </div>
         </div>
       )}
       {/* Namespaces List */}
@@ -251,13 +240,18 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
           <Disclosure defaultOpen={destinationPrivileges === undefined}>
             {({ open }) => (
               <>
-                <div className='flex items-center space-x-2'>
+                <div className='mb-2 flex items-center space-x-2'>
                   <input
                     type='checkbox'
-                    className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
+                    className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500 sm:left-6'
                     ref={checkbox}
-                    checked={true}
-                    onChange={() => {}}
+                    checked={checked}
+                    onChange={() => {
+                      setSelectedNamespaces(
+                        checked ? [] : [...namespacesPrivilegeMap.keys()]
+                      )
+                      setChecked(!checked)
+                    }}
                   />
                   <Disclosure.Button className='w-full'>
                     <span className='flex items-center text-xs font-medium text-gray-500'>
@@ -272,6 +266,24 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                 </div>
 
                 <Transition show={open}>
+                  <div className='flex items-center justify-end'>
+                    <button
+                      className='rounded-md px-4 py-2 text-2xs font-medium text-red-500 hover:bg-red-100 disabled:cursor-not-allowed disabled:bg-white disabled:opacity-30'
+                      type='button'
+                      onClick={() => {
+                        selectedNamespaces.map(namespace =>
+                          handleRemove(namespace)
+                        )
+                        setSelectedNamespaces([])
+                      }}
+                      disabled={selectedNamespaces.length === 0}
+                    >
+                      <div className='flex flex-row items-center py-0.5'>
+                        <XIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        Bulk remove access
+                      </div>
+                    </button>
+                  </div>
                   <Disclosure.Panel static>
                     <div className='space-y-2 pt-2'>
                       {[...namespacesPrivilegeMap.keys()]
@@ -281,30 +293,41 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                             namespacesPrivilegeMap.get(resource)
 
                           return (
-                            <div className='flex items-center space-y-2'>
+                            <div
+                              className='flex items-center justify-between'
+                              key={resource}
+                            >
                               <input
                                 type='checkbox'
-                                className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                                className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500 sm:left-6'
                                 value={resource}
-                                checked={false}
-                                onChange={
-                                  e => {}
-                                  // setSelectedPeople(
-                                  //   e.target.checked
-                                  //     ? [...selectedPeople, person]
-                                  //     : selectedPeople.filter(p => p !== person)
-                                  // )
-                                }
+                                checked={selectedNamespaces.includes(resource)}
+                                onChange={e => {
+                                  setSelectedNamespaces(
+                                    e.target.checked
+                                      ? [...selectedNamespaces, resource]
+                                      : selectedNamespaces.filter(
+                                          r => r !== resource
+                                        )
+                                  )
+                                }}
                               />
-                              <RoleList
-                                key={resource}
+                              {resource && (
+                                <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
+                                  {resource.split('.').pop()}
+                                </div>
+                              )}
+                              <EditRoleMenu
+                                roles={destination?.roles}
+                                selectedRoles={sortByRole(privileges)}
+                                onChange={v => {
+                                  handleUpdate(v, privileges, resource)
+                                }}
+                                onRemove={() => {
+                                  handleRemove(resource)
+                                }}
                                 resource={resource}
                                 privileges={sortByRole(privileges)}
-                                roles={destination?.roles}
-                                onUpdate={v =>
-                                  handleUpdate(v, privileges, resource)
-                                }
-                                onRemove={() => handleRemove(resource)}
                               />
                             </div>
                           )
@@ -641,23 +664,7 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
-  const [selectedResources, setSelectedResources] = useState([
-    'default',
-    'ingress-nginx',
-    'kube-node-lease',
-    'kube-public',
-    'kube-system',
-    'default',
-    'ingress-nginx',
-    'kube-node-lease',
-    'kube-public',
-    'kube-system',
-    'default',
-    'ingress-nginx',
-    'kube-node-lease',
-    'kube-public',
-    'kube-system',
-  ])
+  const [selectedResources, setSelectedResources] = useState([])
 
   useEffect(() => {
     mutateCurrentUserGrants(
