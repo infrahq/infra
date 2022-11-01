@@ -354,7 +354,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		}
 
 		logging.Debugf("call server: update provider named %q", name)
-		_, err = client.UpdateProvider(api.UpdateProviderRequest{
+		_, err = client.UpdateProvider(ctx, api.UpdateProviderRequest{
 			ID:           provider.ID,
 			Name:         name,
 			URL:          provider.URL,

@@ -207,6 +207,7 @@ func equalHosts(x, y string) bool {
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
+	ctx := context.TODO()
 	loginRes, err := lc.APIClient.Login(loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
@@ -235,7 +236,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		}
 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			if passwordError(cli, err) {
 				goto PROMPTLOGIN
 			}

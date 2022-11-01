@@ -197,12 +197,11 @@ func encodeRequestBody(req any) (io.Reader, error) {
 	return bytes.NewReader(b), nil
 }
 
-func put[Req, Res any](client Client, path string, req *Req) (*Res, error) {
+func put[Res any](ctx context.Context, client Client, path string, req any) (*Res, error) {
 	body, err := encodeRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.TODO()
 	httpReq, err := client.buildRequest(ctx, http.MethodPut, path, nil, body)
 	if err != nil {
 		return nil, err
@@ -210,12 +209,11 @@ func put[Req, Res any](client Client, path string, req *Req) (*Res, error) {
 	return request[Res](client, httpReq)
 }
 
-func patch[Req, Res any](client Client, path string, req *Req) (*Res, error) {
+func patch[Res any](ctx context.Context, client Client, path string, req any) (*Res, error) {
 	body, err := encodeRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.TODO()
 	httpReq, err := client.buildRequest(ctx, http.MethodPatch, path, nil, body)
 	if err != nil {
 		return nil, err
@@ -252,8 +250,8 @@ func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) 
 	return post[CreateUserRequest, CreateUserResponse](c, "/api/users", req)
 }
 
-func (c Client) UpdateUser(req *UpdateUserRequest) (*User, error) {
-	return put[UpdateUserRequest, User](c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
+func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*User, error) {
+	return put[User](ctx, c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
 }
 
 func (c Client) DeleteUser(id uid.ID) error {
@@ -289,8 +287,8 @@ func (c Client) DeleteGroup(id uid.ID) error {
 	return delete(c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
-func (c Client) UpdateUsersInGroup(req *UpdateUsersInGroupRequest) error {
-	_, err := patch[UpdateUsersInGroupRequest, EmptyResponse](c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
+func (c Client) UpdateUsersInGroup(ctx context.Context, req *UpdateUsersInGroupRequest) error {
+	_, err := patch[EmptyResponse](ctx, c, fmt.Sprintf("/api/groups/%s/users", req.GroupID), req)
 	return err
 }
 
@@ -327,12 +325,12 @@ func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
 	return post[CreateProviderRequest, Provider](c, "/api/providers", req)
 }
 
-func (c Client) PatchProvider(req PatchProviderRequest) (*Provider, error) {
-	return patch[PatchProviderRequest, Provider](c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
+func (c Client) PatchProvider(ctx context.Context, req PatchProviderRequest) (*Provider, error) {
+	return patch[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
 }
 
-func (c Client) UpdateProvider(req UpdateProviderRequest) (*Provider, error) {
-	return put[UpdateProviderRequest, Provider](c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
+func (c Client) UpdateProvider(ctx context.Context, req UpdateProviderRequest) (*Provider, error) {
+	return put[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
 }
 
 func (c Client) DeleteProvider(id uid.ID) error {
@@ -374,8 +372,8 @@ func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, 
 	return post[CreateDestinationRequest, Destination](c, "/api/destinations", req)
 }
 
-func (c Client) UpdateDestination(req UpdateDestinationRequest) (*Destination, error) {
-	return put[UpdateDestinationRequest, Destination](c, fmt.Sprintf("/api/destinations/%s", req.ID.String()), &req)
+func (c Client) UpdateDestination(ctx context.Context, req UpdateDestinationRequest) (*Destination, error) {
+	return put[Destination](ctx, c, fmt.Sprintf("/api/destinations/%s", req.ID.String()), &req)
 }
 
 func (c Client) DeleteDestination(id uid.ID) error {
@@ -428,8 +426,8 @@ func (c Client) GetSettings(ctx context.Context) (*Settings, error) {
 	return get[Settings](ctx, c, "/api/settings", Query{})
 }
 
-func (c Client) UpdateSettings(req *Settings) (*Settings, error) {
-	return put[Settings, Settings](c, "/api/settings", req)
+func (c Client) UpdateSettings(ctx context.Context, req *Settings) (*Settings, error) {
+	return put[Settings](ctx, c, "/api/settings", req)
 }
 
 func partialText(body []byte, limit int) string {

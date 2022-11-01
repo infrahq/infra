@@ -91,7 +91,7 @@ type apiClient interface {
 	ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error)
 	ListDestinations(ctx context.Context, req api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error)
 	CreateDestination(req *api.CreateDestinationRequest) (*api.Destination, error)
-	UpdateDestination(req api.UpdateDestinationRequest) (*api.Destination, error)
+	UpdateDestination(ctx context.Context, req api.UpdateDestinationRequest) (*api.Destination, error)
 
 	// GetGroup and GetUser are used to retrieve the name of the group or user.
 	// TODO: we can remove these calls to GetGroup and GetUser by including
@@ -562,7 +562,7 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
 func createOrUpdateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
 	if local.ID != 0 {
-		return updateDestination(client, local)
+		return updateDestination(ctx, client, local)
 	}
 
 	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{UniqueID: local.UniqueID})
@@ -572,7 +572,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 
 	if destinations.Count > 0 {
 		local.ID = destinations.Items[0].ID
-		return updateDestination(client, local)
+		return updateDestination(ctx, client, local)
 	}
 
 	request := &api.CreateDestinationRequest{
@@ -594,7 +594,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 }
 
 // updateDestination updates a destination in the infra server
-func updateDestination(client apiClient, local *api.Destination) error {
+func updateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
 	logging.Debugf("updating information at server")
 
 	request := api.UpdateDestinationRequest{
@@ -607,7 +607,7 @@ func updateDestination(client apiClient, local *api.Destination) error {
 		Roles:      local.Roles,
 	}
 
-	if _, err := client.UpdateDestination(request); err != nil {
+	if _, err := client.UpdateDestination(ctx, request); err != nil {
 		return fmt.Errorf("error updating existing destination: %w", err)
 	}
 	return nil

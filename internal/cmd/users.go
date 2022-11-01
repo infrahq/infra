@@ -275,6 +275,8 @@ func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
 }
 
 func updateUser(cli *CLI, name string) error {
+	ctx := context.Background()
+
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
@@ -302,7 +304,7 @@ func updateUser(cli *CLI, name string) error {
 		}
 
 		logging.Debugf("call server: update user %s", req.ID)
-		if _, err := client.UpdateUser(req); err != nil {
+		if _, err := client.UpdateUser(ctx, req); err != nil {
 			if passwordError(cli, err) {
 				goto PROMPT
 			}
@@ -341,7 +343,7 @@ func updateUser(cli *CLI, name string) error {
 		return err
 	}
 
-	if _, err := client.UpdateUser(&api.UpdateUserRequest{
+	if _, err := client.UpdateUser(ctx, &api.UpdateUserRequest{
 		ID:       user.ID,
 		Password: tmpPassword,
 	}); err != nil {

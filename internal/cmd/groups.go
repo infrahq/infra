@@ -229,6 +229,8 @@ $ infra groups adduser johndoe@example.com Engineering
 			userName := args[0]
 			groupName := args[1]
 
+			ctx := context.Background()
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
@@ -254,7 +256,7 @@ $ infra groups adduser johndoe@example.com Engineering
 				GroupID:      group.ID,
 				UserIDsToAdd: []uid.ID{user.ID},
 			}
-			err = client.UpdateUsersInGroup(req)
+			err = client.UpdateUsersInGroup(ctx, req)
 			if err != nil {
 				return err
 			}
@@ -279,6 +281,8 @@ $ infra groups removeuser johndoe@example.com Engineering
 		RunE: func(cmd *cobra.Command, args []string) error {
 			userName := args[0]
 			groupName := args[1]
+
+			ctx := context.Background()
 
 			client, err := defaultAPIClient()
 			if err != nil {
@@ -311,7 +315,7 @@ $ infra groups removeuser johndoe@example.com Engineering
 				GroupID:         group.ID,
 				UserIDsToRemove: []uid.ID{user.ID},
 			}
-			err = client.UpdateUsersInGroup(req)
+			err = client.UpdateUsersInGroup(ctx, req)
 			if err != nil {
 				return err
 			}
