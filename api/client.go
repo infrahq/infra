@@ -173,12 +173,11 @@ func get[Res any](ctx context.Context, client Client, path string, query Query) 
 	return request[Res](client, req)
 }
 
-func post[Req, Res any](client Client, path string, req *Req) (*Res, error) {
+func post[Res any](ctx context.Context, client Client, path string, req any) (*Res, error) {
 	body, err := encodeRequestBody(req)
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.TODO()
 	httpReq, err := client.buildRequest(ctx, http.MethodPost, path, nil, body)
 	if err != nil {
 		return nil, err
@@ -245,8 +244,8 @@ func (c Client) GetUser(ctx context.Context, id uid.ID) (*User, error) {
 	return get[User](ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
-func (c Client) CreateUser(req *CreateUserRequest) (*CreateUserResponse, error) {
-	return post[CreateUserRequest, CreateUserResponse](c, "/api/users", req)
+func (c Client) CreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
+	return post[CreateUserResponse](ctx, c, "/api/users", req)
 }
 
 func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*User, error) {
@@ -257,14 +256,12 @@ func (c Client) DeleteUser(ctx context.Context, id uid.ID) error {
 	return delete(ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
-func (c Client) StartDeviceFlow() (*DeviceFlowResponse, error) {
-	return post[EmptyRequest, DeviceFlowResponse](c, "/api/device", nil)
+func (c Client) StartDeviceFlow(ctx context.Context) (*DeviceFlowResponse, error) {
+	return post[DeviceFlowResponse](ctx, c, "/api/device", nil)
 }
 
-func (c Client) GetDeviceFlowStatus(req *DeviceFlowStatusRequest) (*DeviceFlowStatusResponse, error) {
-	return post[DeviceFlowStatusRequest, DeviceFlowStatusResponse](c, "/api/device/status", &DeviceFlowStatusRequest{
-		DeviceCode: req.DeviceCode,
-	})
+func (c Client) GetDeviceFlowStatus(ctx context.Context, req *DeviceFlowStatusRequest) (*DeviceFlowStatusResponse, error) {
+	return post[DeviceFlowStatusResponse](ctx, c, "/api/device/status", req)
 }
 
 func (c Client) ListGroups(ctx context.Context, req ListGroupsRequest) (*ListResponse[Group], error) {
@@ -278,8 +275,8 @@ func (c Client) GetGroup(ctx context.Context, id uid.ID) (*Group, error) {
 	return get[Group](ctx, c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
-func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
-	return post[CreateGroupRequest, Group](c, "/api/groups", req)
+func (c Client) CreateGroup(ctx context.Context, req *CreateGroupRequest) (*Group, error) {
+	return post[Group](ctx, c, "/api/groups", req)
 }
 
 func (c Client) DeleteGroup(ctx context.Context, id uid.ID) error {
@@ -308,8 +305,8 @@ func (c Client) GetOrganization(ctx context.Context, id uid.ID) (*Organization, 
 	return get[Organization](ctx, c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
-func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organization, error) {
-	return post[CreateOrganizationRequest, Organization](c, "/api/organizations", req)
+func (c Client) CreateOrganization(ctx context.Context, req *CreateOrganizationRequest) (*Organization, error) {
+	return post[Organization](ctx, c, "/api/organizations", req)
 }
 
 func (c Client) DeleteOrganization(ctx context.Context, id uid.ID) error {
@@ -320,8 +317,8 @@ func (c Client) GetProvider(ctx context.Context, id uid.ID) (*Provider, error) {
 	return get[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
-func (c Client) CreateProvider(req *CreateProviderRequest) (*Provider, error) {
-	return post[CreateProviderRequest, Provider](c, "/api/providers", req)
+func (c Client) CreateProvider(ctx context.Context, req *CreateProviderRequest) (*Provider, error) {
+	return post[Provider](ctx, c, "/api/providers", req)
 }
 
 func (c Client) PatchProvider(ctx context.Context, req PatchProviderRequest) (*Provider, error) {
@@ -351,8 +348,8 @@ func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListRes
 	})
 }
 
-func (c Client) CreateGrant(req *GrantRequest) (*CreateGrantResponse, error) {
-	return post[GrantRequest, CreateGrantResponse](c, "/api/grants", req)
+func (c Client) CreateGrant(ctx context.Context, req *GrantRequest) (*CreateGrantResponse, error) {
+	return post[CreateGrantResponse](ctx, c, "/api/grants", req)
 }
 
 func (c Client) DeleteGrant(ctx context.Context, id uid.ID) error {
@@ -367,8 +364,8 @@ func (c Client) ListDestinations(ctx context.Context, req ListDestinationsReques
 	})
 }
 
-func (c Client) CreateDestination(req *CreateDestinationRequest) (*Destination, error) {
-	return post[CreateDestinationRequest, Destination](c, "/api/destinations", req)
+func (c Client) CreateDestination(ctx context.Context, req *CreateDestinationRequest) (*Destination, error) {
+	return post[Destination](ctx, c, "/api/destinations", req)
 }
 
 func (c Client) UpdateDestination(ctx context.Context, req UpdateDestinationRequest) (*Destination, error) {
@@ -388,8 +385,8 @@ func (c Client) ListAccessKeys(ctx context.Context, req ListAccessKeysRequest) (
 	})
 }
 
-func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyResponse, error) {
-	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/api/access-keys", req)
+func (c Client) CreateAccessKey(ctx context.Context, req *CreateAccessKeyRequest) (*CreateAccessKeyResponse, error) {
+	return post[CreateAccessKeyResponse](ctx, c, "/api/access-keys", req)
 }
 
 func (c Client) DeleteAccessKey(ctx context.Context, id uid.ID) error {
@@ -400,21 +397,21 @@ func (c Client) DeleteAccessKeyByName(ctx context.Context, name string) error {
 	return delete(ctx, c, "/api/access-keys", Query{"name": []string{name}})
 }
 
-func (c Client) CreateToken() (*CreateTokenResponse, error) {
-	return post[EmptyRequest, CreateTokenResponse](c, "/api/tokens", &EmptyRequest{})
+func (c Client) CreateToken(ctx context.Context) (*CreateTokenResponse, error) {
+	return post[CreateTokenResponse](ctx, c, "/api/tokens", &EmptyRequest{})
 }
 
-func (c Client) Login(req *LoginRequest) (*LoginResponse, error) {
-	return post[LoginRequest, LoginResponse](c, "/api/login", req)
+func (c Client) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
+	return post[LoginResponse](ctx, c, "/api/login", req)
 }
 
-func (c Client) Logout() error {
-	_, err := post[EmptyRequest, EmptyResponse](c, "/api/logout", &EmptyRequest{})
+func (c Client) Logout(ctx context.Context) error {
+	_, err := post[EmptyResponse](ctx, c, "/api/logout", &EmptyRequest{})
 	return err
 }
 
-func (c Client) Signup(req *SignupRequest) (*SignupResponse, error) {
-	return post[SignupRequest, SignupResponse](c, "/api/signup", req)
+func (c Client) Signup(ctx context.Context, req *SignupRequest) (*SignupResponse, error) {
+	return post[SignupResponse](ctx, c, "/api/signup", req)
 }
 
 func (c Client) GetServerVersion(ctx context.Context) (*Version, error) {

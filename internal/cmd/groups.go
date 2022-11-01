@@ -39,16 +39,6 @@ func getGroupByNameOrID(client *api.Client, name string) (*api.Group, error) {
 	return &groups.Items[0], nil
 }
 
-// createGroup creates a group with the requested name
-func createGroup(client *api.Client, name string) (*api.Group, error) {
-	group, err := client.CreateGroup(&api.CreateGroupRequest{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	return group, nil
-}
-
 func newGroupsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "groups",
@@ -156,12 +146,13 @@ func newGroupsAddCmd(cli *CLI) *cobra.Command {
 		Example: `# Create a group
 $ infra groups add Engineering`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
 			}
 
-			_, err = client.CreateGroup(&api.CreateGroupRequest{Name: args[0]})
+			_, err = client.CreateGroup(ctx, &api.CreateGroupRequest{Name: args[0]})
 			if err != nil {
 				return err
 			}

@@ -378,7 +378,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 	}
 
 	if userID == 0 && cmdOptions.UserName != "" {
-		user, err := createUser(client, cmdOptions.UserName)
+		user, err := createUser(ctx, client, cmdOptions.UserName)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())
@@ -393,9 +393,8 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		userID = user.ID
 
 	} else if groupID == 0 && cmdOptions.GroupName != "" {
-		group, err := createGroup(client, cmdOptions.GroupName)
+		group, err := client.CreateGroup(ctx, &api.CreateGroupRequest{Name: cmdOptions.GroupName})
 		if err != nil {
-
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())
 				return Error{
@@ -422,7 +421,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		Resource:  cmdOptions.Resource,
 	}
 	logging.Debugf("call server: create grant %#v", createGrantReq)
-	response, err := client.CreateGrant(createGrantReq)
+	response, err := client.CreateGrant(ctx, createGrantReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == 403 {
 			logging.Debugf("%s", err.Error())

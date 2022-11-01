@@ -59,12 +59,14 @@ $ infra users add johndoe@example.com`,
 				return fmt.Errorf("username must be a valid email")
 			}
 
+			ctx := context.Background()
+
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
 			}
 
-			createResp, err := createUser(client, args[0])
+			createResp, err := createUser(ctx, client, args[0])
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
@@ -258,22 +260,6 @@ $ infra users remove janedoe@example.com`,
 	return cmd
 }
 
-// CreateUser creates an user within Infra
-func CreateUser(req *api.CreateUserRequest) (*api.CreateUserResponse, error) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return nil, err
-	}
-
-	logging.Debugf("call server: create users named %q", req.Name)
-	resp, err := client.CreateUser(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
 func updateUser(cli *CLI, name string) error {
 	ctx := context.Background()
 
@@ -449,14 +435,9 @@ func isUserSelf(name string) (bool, error) {
 }
 
 // createUser creates a user with the requested name
-func createUser(client *api.Client, name string) (*api.CreateUserResponse, error) {
+func createUser(ctx context.Context, client *api.Client, name string) (*api.CreateUserResponse, error) {
 	logging.Debugf("call server: create user named %q", name)
-	user, err := client.CreateUser(&api.CreateUserRequest{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return client.CreateUser(ctx, &api.CreateUserRequest{Name: name})
 }
 
 // check if the user has permissions to reset passwords for another user.

@@ -58,6 +58,7 @@ $ infra keys add connector
 `,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
 			userName := args[0]
 
 			if options.Name != "" {
@@ -94,7 +95,7 @@ $ infra keys add connector
 			}
 
 			logging.Debugf("call server: create access key named %q", options.Name)
-			resp, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+			resp, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 				UserID:            userID,
 				Name:              options.Name,
 				TTL:               api.Duration(options.TTL),

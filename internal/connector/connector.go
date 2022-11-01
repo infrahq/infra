@@ -90,7 +90,7 @@ type connector struct {
 type apiClient interface {
 	ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error)
 	ListDestinations(ctx context.Context, req api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error)
-	CreateDestination(req *api.CreateDestinationRequest) (*api.Destination, error)
+	CreateDestination(ctx context.Context, req *api.CreateDestinationRequest) (*api.Destination, error)
 	UpdateDestination(ctx context.Context, req api.UpdateDestinationRequest) (*api.Destination, error)
 
 	// GetGroup and GetUser are used to retrieve the name of the group or user.
@@ -584,7 +584,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 		Roles:      local.Roles,
 	}
 
-	destination, err := client.CreateDestination(request)
+	destination, err := client.CreateDestination(ctx, request)
 	if err != nil {
 		return fmt.Errorf("error creating destination: %w", err)
 	}
