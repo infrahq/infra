@@ -2897,6 +2897,17 @@
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer [\\da-zA-Z]{10}\\.[\\da-zA-Z]{24}",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
