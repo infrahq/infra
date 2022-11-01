@@ -143,12 +143,13 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 		Short:   "Delete an access key",
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
 			client, err := defaultAPIClient()
 			if err != nil {
 				return err
 			}
 
-			err = client.DeleteAccessKeyByName(args[0])
+			err = client.DeleteAccessKeyByName(ctx, args[0])
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())

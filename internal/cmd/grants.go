@@ -292,7 +292,7 @@ func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 
 	for _, g := range grants.Items {
 		logging.Debugf("call server: delete grant %s", g.ID)
-		err := client.DeleteGrant(g.ID)
+		err := client.DeleteGrant(ctx, g.ID)
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {
 				logging.Debugf("%s", err.Error())

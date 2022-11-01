@@ -202,7 +202,7 @@ $ infra groups remove Engineering`,
 			}
 
 			for _, group := range groups.Items {
-				if err := client.DeleteGroup(group.ID); err != nil {
+				if err := client.DeleteGroup(ctx, group.ID); err != nil {
 					return err
 				}
 

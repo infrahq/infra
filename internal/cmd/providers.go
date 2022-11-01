@@ -318,7 +318,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 	if opts.SCIM {
 		// revoke the previous SCIM access key for this provider, if it exists
 		keyName := fmt.Sprintf("%s-SCIM", provider.Name)
-		err = client.DeleteAccessKeyByName(keyName)
+		err = client.DeleteAccessKeyByName(ctx, keyName)
 		if err != nil {
 			logging.Debugf("%s", err.Error())
 			if api.ErrorStatusCode(err) == 403 {
@@ -412,7 +412,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("deleting %d providers named %q...", providers.Count, args[0])
 			for _, provider := range providers.Items {
 				logging.Debugf("...call server: delete provider %s", provider.ID)
-				if err := client.DeleteProvider(provider.ID); err != nil {
+				if err := client.DeleteProvider(ctx, provider.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
 						return Error{

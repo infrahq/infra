@@ -236,7 +236,7 @@ $ infra users remove janedoe@example.com`,
 			logging.Debugf("deleting %d users named %q...", users.Count, name)
 			for _, user := range users.Items {
 				logging.Debugf("...call server: delete user %s", user.ID)
-				if err := client.DeleteUser(user.ID); err != nil {
+				if err := client.DeleteUser(ctx, user.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
 						return Error{

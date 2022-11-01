@@ -221,8 +221,7 @@ func patch[Res any](ctx context.Context, client Client, path string, req any) (*
 	return request[Res](client, httpReq)
 }
 
-func delete(client Client, path string, query Query) error {
-	ctx := context.TODO()
+func delete(ctx context.Context, client Client, path string, query Query) error {
 	httpReq, err := client.buildRequest(ctx, http.MethodDelete, path, query, nil)
 	if err != nil {
 		return err
@@ -254,8 +253,8 @@ func (c Client) UpdateUser(ctx context.Context, req *UpdateUserRequest) (*User, 
 	return put[User](ctx, c, fmt.Sprintf("/api/users/%s", req.ID.String()), req)
 }
 
-func (c Client) DeleteUser(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/users/%s", id), Query{})
+func (c Client) DeleteUser(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
 func (c Client) StartDeviceFlow() (*DeviceFlowResponse, error) {
@@ -283,8 +282,8 @@ func (c Client) CreateGroup(req *CreateGroupRequest) (*Group, error) {
 	return post[CreateGroupRequest, Group](c, "/api/groups", req)
 }
 
-func (c Client) DeleteGroup(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/groups/%s", id), Query{})
+func (c Client) DeleteGroup(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/groups/%s", id), Query{})
 }
 
 func (c Client) UpdateUsersInGroup(ctx context.Context, req *UpdateUsersInGroupRequest) error {
@@ -313,8 +312,8 @@ func (c Client) CreateOrganization(req *CreateOrganizationRequest) (*Organizatio
 	return post[CreateOrganizationRequest, Organization](c, "/api/organizations", req)
 }
 
-func (c Client) DeleteOrganization(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/organizations/%s", id), Query{})
+func (c Client) DeleteOrganization(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/organizations/%s", id), Query{})
 }
 
 func (c Client) GetProvider(ctx context.Context, id uid.ID) (*Provider, error) {
@@ -333,8 +332,8 @@ func (c Client) UpdateProvider(ctx context.Context, req UpdateProviderRequest) (
 	return put[Provider](ctx, c, fmt.Sprintf("/api/providers/%s", req.ID.String()), &req)
 }
 
-func (c Client) DeleteProvider(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/providers/%s", id), Query{})
+func (c Client) DeleteProvider(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/providers/%s", id), Query{})
 }
 
 func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListResponse[Grant], error) {
@@ -356,8 +355,8 @@ func (c Client) CreateGrant(req *GrantRequest) (*CreateGrantResponse, error) {
 	return post[GrantRequest, CreateGrantResponse](c, "/api/grants", req)
 }
 
-func (c Client) DeleteGrant(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/grants/%s", id), Query{})
+func (c Client) DeleteGrant(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/grants/%s", id), Query{})
 }
 
 func (c Client) ListDestinations(ctx context.Context, req ListDestinationsRequest) (*ListResponse[Destination], error) {
@@ -376,8 +375,8 @@ func (c Client) UpdateDestination(ctx context.Context, req UpdateDestinationRequ
 	return put[Destination](ctx, c, fmt.Sprintf("/api/destinations/%s", req.ID.String()), &req)
 }
 
-func (c Client) DeleteDestination(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/destinations/%s", id), Query{})
+func (c Client) DeleteDestination(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/destinations/%s", id), Query{})
 }
 
 func (c Client) ListAccessKeys(ctx context.Context, req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
@@ -393,12 +392,12 @@ func (c Client) CreateAccessKey(req *CreateAccessKeyRequest) (*CreateAccessKeyRe
 	return post[CreateAccessKeyRequest, CreateAccessKeyResponse](c, "/api/access-keys", req)
 }
 
-func (c Client) DeleteAccessKey(id uid.ID) error {
-	return delete(c, fmt.Sprintf("/api/access-keys/%s", id), Query{})
+func (c Client) DeleteAccessKey(ctx context.Context, id uid.ID) error {
+	return delete(ctx, c, fmt.Sprintf("/api/access-keys/%s", id), Query{})
 }
 
-func (c Client) DeleteAccessKeyByName(name string) error {
-	return delete(c, "/api/access-keys", Query{"name": []string{name}})
+func (c Client) DeleteAccessKeyByName(ctx context.Context, name string) error {
+	return delete(ctx, c, "/api/access-keys", Query{"name": []string{name}})
 }
 
 func (c Client) CreateToken() (*CreateTokenResponse, error) {

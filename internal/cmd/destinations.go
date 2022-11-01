@@ -151,7 +151,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("deleting %d destinations named %q...", destinations.Count, name)
 			for _, d := range destinations.Items {
 				logging.Debugf("...call server: delete destination %s", d.ID)
-				err := client.DeleteDestination(d.ID)
+				err := client.DeleteDestination(ctx, d.ID)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
