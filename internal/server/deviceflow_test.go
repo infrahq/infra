@@ -9,7 +9,9 @@ import (
 	"testing"
 	"time"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/assert/opt"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/server/data"
@@ -69,8 +71,8 @@ func TestDeviceFlow(t *testing.T) {
 	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
 
 	// get flow status pending
-	pollResp := &api.DevicePollResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
+	pollResp := &api.DeviceFlowStatusResponse{}
+	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 
@@ -82,7 +84,7 @@ func TestDeviceFlow(t *testing.T) {
 	}, nil)
 
 	// get flow status with key
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.PollDeviceFlowRequest{
+	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, pollResp)
 
@@ -93,4 +95,39 @@ func TestDeviceFlow(t *testing.T) {
 	assert.Assert(t, strings.Contains(newKey, "."))
 
 	assert.Equal(t, pollResp.LoginResponse.UserID, user.ID)
+}
+
+func TestAPI_StartDeviceFlow(t *testing.T) {
+	t.Run("single-tenant mode", func(t *testing.T) {
+		srv := setupServer(t, withAdminUser)
+		routes := srv.GenerateRoutes()
+
+		u := "https://api.example.com:2020/api/device"
+		req, err := http.NewRequest(http.MethodPost, u, nil)
+		assert.NilError(t, err)
+		req.Header.Set("Infra-Version", apiVersionLatest)
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		flowResp := &api.DeviceFlowResponse{}
+		err = json.NewDecoder(resp.Body).Decode(flowResp)
+		assert.NilError(t, err)
+
+		assert.Equal(t, resp.Code, http.StatusCreated, (*responseDebug)(resp))
+		expected := &api.DeviceFlowResponse{
+			DeviceCode:          "<any-string>",
+			UserCode:            "<any-string>",
+			VerificationURI:     "https://api.example.com:2020/device",
+			ExpiresInSeconds:    600,
+			PollIntervalSeconds: 5,
+		}
+		var cmpDeviceFlowResponse = gocmp.Options{
+			gocmp.FilterPath(
+				opt.PathField(api.DeviceFlowResponse{}, "DeviceCode"), cmpAnyString),
+			gocmp.FilterPath(
+				opt.PathField(api.DeviceFlowResponse{}, "UserCode"), cmpAnyString),
+		}
+		assert.DeepEqual(t, flowResp, expected, cmpDeviceFlowResponse)
+	})
+
 }

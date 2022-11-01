@@ -6,6 +6,12 @@ type ApproveDeviceFlowRequest struct {
 	UserCode string `json:"userCode" example:"BDSD-HQMK"`
 }
 
+func (adfr *ApproveDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.String("userCode", adfr.UserCode, 8, 9, append(validate.DeviceFlowUserCode, validate.CharRange{Low: '-', High: '-'})),
+	}
+}
+
 type DeviceFlowResponse struct {
 	DeviceCode          string `json:"deviceCode" example:"NGU4QWFiNjQ5YmQwNG3YTdmZMEyNzQ3YzQ1YSA" note:"a code that a device will use to exchange for an access key after device login is approved"`
 	VerificationURI     string `json:"verificationURI" example:"https://infrahq.com/device" note:"This is the URL the user needs to enter into their browser to start logging in"`
@@ -14,24 +20,18 @@ type DeviceFlowResponse struct {
 	PollIntervalSeconds int8   `json:"interval" example:"5" note:"the number of seconds the device should wait between polling to see if the user has finished logging in"`
 }
 
-type PollDeviceFlowRequest struct {
+type DeviceFlowStatusRequest struct {
 	DeviceCode string `json:"deviceCode"`
 }
 
-func (pdfr *PollDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
+func (pdfr *DeviceFlowStatusRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.String("deviceCode", pdfr.DeviceCode, 38, 38, validate.AlphaNumeric),
 	}
 }
 
-type DevicePollResponse struct {
+type DeviceFlowStatusResponse struct {
 	Status        string         `json:"status,omitempty" note:"can be one of pending, rejected, expired, confirmed"`
 	DeviceCode    string         `json:"deviceCode,omitempty" example:""`
 	LoginResponse *LoginResponse `json:"login,omitempty"`
-}
-
-func (adfr *ApproveDeviceFlowRequest) ValidationRules() []validate.ValidationRule {
-	return []validate.ValidationRule{
-		validate.String("userCode", adfr.UserCode, 8, 9, append(validate.DeviceFlowUserCode, validate.CharRange{Low: '-', High: '-'})),
-	}
 }

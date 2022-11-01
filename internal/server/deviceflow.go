@@ -39,7 +39,6 @@ retry:
 		ExpiresAt:  time.Now().Add(DeviceCodeExpirySeconds * time.Second),
 	})
 	if err != nil {
-		// TODO: on duplicate record jump back to line 21.
 		if tries < 10 && errors.Is(err, &data.UniqueConstraintError{}) {
 			goto retry
 		}
@@ -49,6 +48,10 @@ retry:
 	host := a.server.options.BaseDomain
 	if rctx.Authenticated.Organization != nil {
 		host = rctx.Authenticated.Organization.Domain
+	}
+	if host == "" {
+		// Default to the request hostname when in single tenant mode
+		host = rctx.Request.URL.Host
 	}
 
 	return &api.DeviceFlowResponse{
@@ -60,8 +63,9 @@ retry:
 	}, nil
 }
 
-// can error with one of authorization_pending, access_denied, expired_token, slow_down
-func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest) (*api.DevicePollResponse, error) {
+// GetDeviceFlowStatus is an API handler for checking the status of a device
+// flow login. The response status can be pending, rejected, expired, or confirmed.
+func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusRequest) (*api.DeviceFlowStatusResponse, error) {
 	rctx := getRequestContext(c)
 	dfar, err := access.FindDeviceFlowAuthRequest(rctx, req.DeviceCode)
 	if err != nil {
@@ -69,21 +73,21 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 	}
 
 	if dfar.ExpiresAt.Before(time.Now()) {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "expired",
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
 
 	if dfar.Approved != nil && !*dfar.Approved {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "rejected",
 			DeviceCode: dfar.DeviceCode,
 		}, nil
 	}
 
 	if dfar.Approved != nil && *dfar.Approved {
-		return &api.DevicePollResponse{
+		return &api.DeviceFlowStatusResponse{
 			Status:     "confirmed",
 			DeviceCode: dfar.DeviceCode,
 			LoginResponse: &api.LoginResponse{
@@ -91,20 +95,18 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.PollDeviceFlowRequest
 				Name:      dfar.AccessKey.IssuedForName,
 				AccessKey: dfar.AccessKeyToken,
 				Expires:   api.Time(dfar.AccessKey.ExpiresAt),
+				// TODO: set OrganizationName for consistency with other login methods
 			},
 		}, nil
 	}
 
-	return &api.DevicePollResponse{
+	return &api.DeviceFlowStatusResponse{
 		Status:     "pending",
 		DeviceCode: dfar.DeviceCode,
 	}, nil
 }
 
-const (
-	day  = 24 * time.Hour
-	year = 365 * day
-)
+const days = 24 * time.Hour
 
 func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest) (*api.EmptyResponse, error) {
 	rctx := getRequestContext(c)
@@ -130,8 +132,8 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 		IssuedForName:      user.Name,
 		Name:               "Device " + dfar.DeviceCode,
 		ExpiresAt:          rctx.Authenticated.AccessKey.ExpiresAt,
-		Extension:          time.Duration(30 * day),
-		ExtensionDeadline:  time.Now().UTC().Add(30 * day),
+		Extension:          30 * days,
+		ExtensionDeadline:  time.Now().UTC().Add(30 * days),
 	}
 
 	_, err = access.CreateAccessKey(c, accessKey)
@@ -141,10 +143,5 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 
 	// update device flow auth request with the access key id
 	err = access.SetDeviceFlowAuthRequestAccessKey(rctx, dfar.ID, accessKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// success
-	return nil, nil
+	return nil, err
 }

@@ -526,8 +526,7 @@ func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
 	defer spinner.Stop()
 
 	var spinnerCount int = 0
-	var pollResp *api.DevicePollResponse
-loop:
+
 	for {
 		select {
 		case <-spinner.C:
@@ -538,7 +537,7 @@ loop:
 			return nil, api.ErrDeviceLoginTimeout
 		case <-poll.C:
 			// check to see if user is authed yet
-			pollResp, err = client.PollDeviceFlow(&api.PollDeviceFlowRequest{DeviceCode: resp.DeviceCode})
+			pollResp, err := client.GetDeviceFlowStatus(&api.DeviceFlowStatusRequest{DeviceCode: resp.DeviceCode})
 			if err != nil {
 				return nil, err
 			}
@@ -548,15 +547,13 @@ loop:
 			case "expired":
 				return nil, Error{Message: "device approval request expired"}
 			case "confirmed":
-				break loop // success!
+				return pollResp.LoginResponse, nil // success!
 			case "pending": // wait more
 			default:
 				logging.Warnf("unexpected response status: " + pollResp.Status)
 			}
 		}
 	}
-
-	return pollResp.LoginResponse, nil
 }
 
 func promptLocalLogin(cli *CLI) (*api.LoginRequestPasswordCredentials, error) {
