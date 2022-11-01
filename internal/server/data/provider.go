@@ -169,7 +169,9 @@ type DeleteProvidersOptions struct {
 func DeleteProviders(db GormTxn, opts DeleteProvidersOptions) error {
 	var toDelete []models.Provider
 	if opts.ByID != 0 {
-		toDelete = []models.Provider{{Model: models.Model{ID: opts.ByID}}}
+		if provider, _ := GetProvider(db, GetProviderOptions{ByID: opts.ByID}); provider != nil {
+			toDelete = []models.Provider{*provider}
+		}
 	} else {
 		var err error
 		toDelete, err = ListProviders(db, ListProvidersOptions{
