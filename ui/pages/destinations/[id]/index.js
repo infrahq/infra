@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, Fragment, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import copy from 'copy-to-clipboard'
@@ -181,6 +181,9 @@ function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
 }
 
 function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
+  const checkbox = useRef()
+  const [checked, setChecked] = useState(false)
+
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
   const namespacesPrivilegeMap = new Map(
@@ -248,16 +251,26 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
           <Disclosure defaultOpen={destinationPrivileges === undefined}>
             {({ open }) => (
               <>
-                <Disclosure.Button className='w-full'>
-                  <span className='flex items-center text-xs font-medium text-gray-500'>
-                    <ChevronRightIcon
-                      className={`${
-                        open ? 'rotate-90 transform' : ''
-                      } mr-1 h-3 w-3 text-gray-500`}
-                    />
-                    {`Namespaces (${namespacesPrivilegeMap.size})`}
-                  </span>
-                </Disclosure.Button>
+                <div className='flex items-center space-x-2'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 sm:left-6'
+                    ref={checkbox}
+                    checked={true}
+                    onChange={() => {}}
+                  />
+                  <Disclosure.Button className='w-full'>
+                    <span className='flex items-center text-xs font-medium text-gray-500'>
+                      {`Namespaces (${namespacesPrivilegeMap.size})`}
+                      <ChevronRightIcon
+                        className={`${
+                          open ? 'rotate-90 transform' : ''
+                        } ml-1 h-3 w-3 text-gray-500`}
+                      />
+                    </span>
+                  </Disclosure.Button>
+                </div>
+
                 <Transition show={open}>
                   <Disclosure.Panel static>
                     <div className='space-y-2 pt-2'>
@@ -268,16 +281,32 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                             namespacesPrivilegeMap.get(resource)
 
                           return (
-                            <RoleList
-                              key={resource}
-                              resource={resource}
-                              privileges={sortByRole(privileges)}
-                              roles={destination?.roles}
-                              onUpdate={v =>
-                                handleUpdate(v, privileges, resource)
-                              }
-                              onRemove={() => handleRemove(resource)}
-                            />
+                            <div className='flex items-center space-y-2'>
+                              <input
+                                type='checkbox'
+                                className='h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+                                value={resource}
+                                checked={false}
+                                onChange={
+                                  e => {}
+                                  // setSelectedPeople(
+                                  //   e.target.checked
+                                  //     ? [...selectedPeople, person]
+                                  //     : selectedPeople.filter(p => p !== person)
+                                  // )
+                                }
+                              />
+                              <RoleList
+                                key={resource}
+                                resource={resource}
+                                privileges={sortByRole(privileges)}
+                                roles={destination?.roles}
+                                onUpdate={v =>
+                                  handleUpdate(v, privileges, resource)
+                                }
+                                onRemove={() => handleRemove(resource)}
+                              />
+                            </div>
                           )
                         })}
                     </div>
@@ -612,7 +641,23 @@ export default function DestinationDetail() {
   const { mutate: mutateCurrentUserGrants } = useSWRConfig()
 
   const [currentUserRoles, setCurrentUserRoles] = useState([])
-  const [selectedResources, setSelectedResources] = useState([])
+  const [selectedResources, setSelectedResources] = useState([
+    'default',
+    'ingress-nginx',
+    'kube-node-lease',
+    'kube-public',
+    'kube-system',
+    'default',
+    'ingress-nginx',
+    'kube-node-lease',
+    'kube-public',
+    'kube-system',
+    'default',
+    'ingress-nginx',
+    'kube-node-lease',
+    'kube-public',
+    'kube-system',
+  ])
 
   useEffect(() => {
     mutateCurrentUserGrants(
@@ -775,9 +820,18 @@ export default function DestinationDetail() {
                   <h3 className='mb-3 text-sm font-medium'>
                     Grant access to{' '}
                     <span className='font-bold'>
-                      {selectedResources.length > 0
-                        ? selectedResources.join(', ')
-                        : 'cluster'}
+                      {selectedResources.length > 0 ? (
+                        selectedResources.length > 5 ? (
+                          <span>
+                            {selectedResources.slice(0, 5).join(', ')} ... +{' '}
+                            {selectedResources.length - 5}
+                          </span>
+                        ) : (
+                          selectedResources.join(', ')
+                        )
+                      ) : (
+                        'cluster'
+                      )}
                     </span>
                   </h3>{' '}
                   <GrantForm
