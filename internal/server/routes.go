@@ -179,12 +179,12 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 		path:   path.Join(group.BasePath(), urlPath),
 	}
 
+	route.authenticationOptional = group.noAuthentication
+	route.organizationOptional = group.noOrgRequired
+
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(routeID, route))
 	}
-
-	route.authenticationOptional = group.noAuthentication
-	route.organizationOptional = group.noOrgRequired
 
 	handler := func(c *gin.Context) {
 		if err := wrapRoute(a, routeID, route)(c); err != nil {

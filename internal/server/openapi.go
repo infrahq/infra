@@ -14,7 +14,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/utils/strings/slices"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -55,14 +54,15 @@ func openAPIRouteDefinition[Req, Res any](routeID routeIdentifier, route route[R
 	funcName string,
 	requestType reflect.Type,
 	resultType reflect.Type,
+	requiresAuthentication bool,
 ) {
 	//nolint:gocritic
 	reqT, resultT := reflect.TypeOf(*new(Req)), reflect.TypeOf(*new(Res))
-	return routeID.method, routeID.path, getFuncName(route.handler), reqT, resultT
+	return routeID.method, routeID.path, getFuncName(route.handler), reqT, resultT, !route.authenticationOptional
 }
 
 // register adds the route to the API.OpenAPIDocument.
-func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
+func (a *API) register(method, path, funcName string, rqt, rst reflect.Type, requiresAuthentication bool) {
 	path = pathIDReplacer.ReplaceAllStringFunc(path, func(s string) string {
 		return "{" + strings.TrimLeft(s, ":") + "}"
 	})
@@ -84,7 +84,7 @@ func (a *API) register(method, path, funcName string, rqt, rst reflect.Type) {
 	op.OperationID = funcName
 	op.Description = funcName
 	op.Summary = funcName
-	buildRequest(rqt, op, method)
+	buildRequest(rqt, op, method, requiresAuthentication)
 	op.Responses = buildResponse(a.openAPIDoc.Components.Schemas, rst)
 
 	for _, item := range funcPartialNameToTagNames {
@@ -374,7 +374,7 @@ func buildResponse(schemas openapi3.Schemas, rst reflect.Type) openapi3.Response
 // so that tests expect a consistent value that does not change with every release.
 var productVersion = internal.FullVersion
 
-func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
+func buildRequest(r reflect.Type, op *openapi3.Operation, method string, requiresAuthentication bool) {
 	if r.Kind() == reflect.Pointer {
 		r = r.Elem()
 	}
@@ -398,9 +398,8 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			},
 		},
 	})
-	var noLoginOperations = []string{"Login", "Signup", "RequestPasswordReset", "VerifiedPasswordReset", "GetPassword", "ListProviders", "GetSettings", "Version", "GetServerConfiguration", "RequestForgotDomains", "StartDeviceFlow", "GetDeviceFlowStatus"}
 
-	if !slices.Contains(noLoginOperations, op.OperationID) {
+	if requiresAuthentication {
 		op.AddParameter(&openapi3.Parameter{
 			Name:     "Authorization",
 			In:       "header",
@@ -408,7 +407,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 			Schema: &openapi3.SchemaRef{
 				Value: &openapi3.Schema{
 					Example:     "Bearer ACCESSKEY",
-					Format:      `Bearer\s[\d|a-z]{10}.[\d|a-z]{24}`,
+					Format:      `Bearer [\da-zA-Z]{10}\.[\da-zA-Z]{24}`,
 					Type:        "string",
 					Description: "Bearer followed by your access key",
 				},
@@ -426,7 +425,7 @@ func buildRequest(r reflect.Type, op *openapi3.Operation, method string) {
 		if f.Type.Kind() == reflect.Struct && f.Anonymous {
 			tmpOp := openapi3.NewOperation()
 
-			buildRequest(f.Type, tmpOp, method)
+			buildRequest(f.Type, tmpOp, method, false)
 			for _, param := range tmpOp.Parameters {
 				if param.Value.Name != "Infra-Version" && param.Value.Name != "Authorization" {
 					op.AddParameter(param.Value)
