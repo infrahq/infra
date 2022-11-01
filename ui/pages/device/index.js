@@ -42,19 +42,32 @@ export default function Device() {
       segment +
       codeCopy.substring(pos + 1, codeCopy.length)
     codeCopy = codeCopy.trimEnd()
+    codeCopy = codeCopy.substring(0, 8)
     setCode(codeCopy.toUpperCase())
   }
 
-  async function processKey(e, pos) {
+  async function processKeyDown(e, pos) {
     const lastField = document.querySelector(`input[name=code${pos - 1}]`)
     const nextField = document.querySelector(`input[name=code${pos + 1}]`)
     switch (e.key) {
+      case 'Escape':
+        break
       case 'Backspace':
+        e.preventDefault()
+        setCodeSegment('', pos)
+        break
       case 'ArrowLeft':
         if (lastField !== null) {
           lastField.focus()
           lastField.selectionStart = 0
           lastField.selectionEnd = 1
+        }
+        break
+      case 'ArrowRight':
+        if (nextField !== null) {
+          nextField.focus()
+          nextField.selectionStart = 0
+          nextField.selectionEnd = 1
         }
         break
       case 'Meta':
@@ -65,11 +78,17 @@ export default function Device() {
       case 'Tab':
       case 'Shift':
         break
+      case 'Enter':
+        return
       default:
-        if (nextField !== null) {
-          nextField.focus()
-          nextField.selectionStart = 0
-          nextField.selectionEnd = 1
+        e.preventDefault()
+        if (e.code >= 'KeyA' && e.code <= 'KeyZ') {
+          setCodeSegment(e.key, pos)
+          if (nextField !== null) {
+            nextField.focus()
+            nextField.selectionStart = 0
+            nextField.selectionEnd = 1
+          }
         }
     }
   }
@@ -91,18 +110,22 @@ export default function Device() {
               onSubmit={onSubmit}
               className='relative flex w-full max-w-sm flex-1 flex-col justify-center'
             >
-              <div className='my-2 flex w-full'>
+              <div className='my-2 flex w-full place-content-center'>
                 {'01234567'.split('').map((k, i) => (
                   <React.Fragment key={i}>
                     <input
                       required
-                      autoFocus={i === 0}
+                      autoFocus={
+                        i ==
+                        Math.max((code || '').replace('-', '').length - 1, 0)
+                      }
                       type='text'
                       name={'code' + i}
-                      value={(code || '').replace('-', '').substring(i, i + 1)}
-                      onChange={e => setCodeSegment(e.target.value, i)}
-                      onKeyUp={e => processKey(e, i)}
-                      className={`mr-1 w-10 rounded-md pl-0 pr-0 text-center uppercase shadow-sm focus:border-blue-50 focus:ring-blue-50 lg:text-lg ${
+                      defaultValue={(code || '')
+                        .replace('-', '')
+                        .substring(i, i + 1)}
+                      onKeyDown={e => processKeyDown(e, i)}
+                      className={`focus:border-blue-80 focus:ring-blue-80 xs:w-8  mr-1 w-8 rounded-md pl-0 pr-0 text-center uppercase shadow-sm sm:w-10 lg:text-lg ${
                         error ? 'border-red-500' : 'border-gray-300'
                       }`}
                     />
@@ -111,7 +134,7 @@ export default function Device() {
                 ))}
                 {error && (
                   <p className='absolute top-full mt-1 text-xs text-red-500'>
-                    {error}
+                    Error: {error}. Code may be expired.
                   </p>
                 )}
               </div>
