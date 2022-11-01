@@ -66,7 +66,7 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	return data.GetGroup(rCtx.DBTxn, data.ByID(id))
+	return data.GetGroup(rCtx.DBTxn, data.GetGroupOptions{ByID: id})
 }
 
 func DeleteGroup(c *gin.Context, id uid.ID) error {
@@ -114,7 +114,7 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	_, err = data.GetGroup(db, data.ByID(groupID))
+	_, err = data.GetGroup(db, data.GetGroupOptions{ByID: groupID})
 	if err != nil {
 		return err
 	}

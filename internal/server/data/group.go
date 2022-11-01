@@ -33,18 +33,50 @@ func CreateGroup(tx WriteTxn, group *models.Group) error {
 	return insert(tx, (*groupsTable)(group))
 }
 
-func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
-	group, err := get[models.Group](db, selectors...)
-	if err != nil {
-		return nil, err
+type GetGroupOptions struct {
+	ByID   uid.ID
+	ByName string
+}
+
+func GetGroup(tx ReadTxn, opts GetGroupOptions) (*models.Group, error) {
+	group := &groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(group))
+	query.B("FROM")
+	query.B(group.Table())
+	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	default:
+		return nil, fmt.Errorf("GetGroup must specify id or name")
 	}
 
-	count, err := CountUsersInGroup(db, group.ID)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(group.ScanFields()...)
 	if err != nil {
-		return nil, err
+		return nil, handleError(err)
 	}
-	group.TotalUsers = int(count)
-	return group, nil
+
+	result := (*models.Group)(group)
+
+	stmt := `
+		SELECT COUNT (DISTINCT identity_id)
+		FROM identities_groups
+		WHERE group_id = ?
+	`
+	var totalUsers int
+
+	row := tx.QueryRow(stmt, result.ID)
+	err = row.Scan(&totalUsers)
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	result.TotalUsers = totalUsers
+
+	return result, nil
 }
 
 func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {

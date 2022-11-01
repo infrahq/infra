@@ -797,7 +797,7 @@ func (Server) loadGrant(db data.GormTxn, input Grant) (*models.Grant, error) {
 		id = uid.NewIdentityPolymorphicID(user.ID)
 
 	case input.Group != "":
-		group, err := data.GetGroup(db, data.ByName(input.Group))
+		group, err := data.GetGroup(db, data.GetGroupOptions{ByName: input.Group})
 		if err != nil {
 			if !errors.Is(err, internal.ErrNotFound) {
 				return nil, err

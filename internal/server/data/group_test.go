@@ -71,7 +71,7 @@ func TestGetGroup(t *testing.T) {
 
 		createGroups(t, db, &everyone, &engineers, &product)
 
-		group, err := GetGroup(db, ByName(everyone.Name))
+		group, err := GetGroup(db, GetGroupOptions{ByName: everyone.Name})
 		assert.NilError(t, err)
 		assert.Assert(t, 0 != group.ID)
 	})
@@ -164,19 +164,19 @@ func TestDeleteGroup(t *testing.T) {
 		createGroups(t, tx.WithOrgID(otherOrg.ID), otherOrgGroup)
 
 		t.Run("success", func(t *testing.T) {
-			_, err := GetGroup(tx, ByID(everyone.ID))
+			_, err := GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
 			assert.NilError(t, err)
 
 			err = DeleteGroup(tx, everyone.ID)
 			assert.NilError(t, err)
 
-			_, err = GetGroup(tx, ByID(everyone.ID))
+			_, err = GetGroup(tx, GetGroupOptions{ByID: everyone.ID})
 			assert.Error(t, err, "record not found")
 
 			// deleting a group should not delete unrelated groups
-			_, err = GetGroup(tx, ByID(engineers.ID))
+			_, err = GetGroup(tx, GetGroupOptions{ByID: engineers.ID})
 			assert.NilError(t, err)
-			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), ByID(otherOrgGroup.ID))
+			_, err = GetGroup(tx.WithOrgID(otherOrg.ID), GetGroupOptions{ByID: otherOrgGroup.ID})
 			assert.NilError(t, err)
 
 			// grants and group membership should also be removed.

@@ -146,9 +146,6 @@ type GetIdentityOptions struct {
 }
 
 func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) {
-	if opts.ByID == 0 && opts.ByName == "" {
-		return nil, fmt.Errorf("GetIdentity must specify id or name")
-	}
 	identity := &identitiesTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(identity))
