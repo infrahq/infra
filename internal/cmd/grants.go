@@ -415,7 +415,7 @@ func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
 		}
 	}
 
-	createGrantReq := &api.CreateGrantRequest{
+	createGrantReq := &api.GrantRequest{
 		User:      userID,
 		Group:     groupID,
 		Privilege: cmdOptions.Role,

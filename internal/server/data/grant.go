@@ -388,3 +388,112 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
+
+func UpdateGrants(tx WriteTxn, addGrants, rmGrants []*models.Grant) error {
+	// Use a savepoint so that we can query for the duplicate grant on conflict
+	if _, err := tx.Exec("SAVEPOINT beforeUpdate"); err != nil {
+		// ignore "not in a transaction" error, because outside of a transaction
+		// the db conn can continue to be used after the conflict error.
+		if !isPgErrorCode(err, pgerrcode.NoActiveSQLTransaction) {
+			return err
+		}
+	}
+	if err := createGrantsBulk(tx, addGrants); err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeUpdate")
+		return handleError(err)
+	}
+
+	if err := deleteGrantsBulk(tx, rmGrants); err != nil {
+		_, _ = tx.Exec("ROLLBACK TO SAVEPOINT beforeUpdate")
+		return handleError(err)
+	}
+
+	_, _ = tx.Exec("RELEASE SAVEPOINT beforeUpdate")
+	return nil
+}
+
+func validateGrant(grant *models.Grant) error {
+	switch {
+	case grant.Subject == "":
+		return fmt.Errorf("subject is required")
+	case grant.Privilege == "":
+		return fmt.Errorf("privilege is required")
+	case grant.Resource == "":
+		return fmt.Errorf("resource is required")
+	}
+	return nil
+}
+
+func createGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
+	if len(grants) == 0 {
+		return nil
+	}
+
+	for _, g := range grants {
+		if err := validateGrant(g); err != nil {
+			return err
+		}
+		if err := g.OnInsert(); err != nil {
+			return err
+		}
+		setOrg(tx, g)
+	}
+
+	table := &grantsTable{}
+	query := querybuilder.New("INSERT INTO grants")
+	query.B("(")
+	query.B(columnsForInsert(table))
+	query.B(", update_index")
+	query.B(") VALUES")
+
+	for i, g := range grants {
+		gt := (*grantsTable)(g)
+		query.B("(")
+		query.B(placeholderForColumns(table), gt.Values()...)
+		query.B(", nextval('seq_update_index')")
+		query.B(")")
+		if i+1 != len(grants) {
+			query.B(",")
+		}
+	}
+	query.B("ON CONFLICT DO NOTHING")
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
+
+func deleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
+	if len(grants) == 0 {
+		return nil
+	}
+
+	for _, g := range grants {
+		if err := validateGrant(g); err != nil {
+			return err
+		}
+		if err := g.OnUpdate(); err != nil {
+			return err
+		}
+	}
+
+	query := querybuilder.New("UPDATE grants ")
+	query.B("SET deleted_at = ?,", time.Now())
+	query.B("update_index = nextval('seq_update_index')")
+	query.B("WHERE organization_id = ? AND", tx.OrganizationID())
+	query.B("deleted_at is null AND")
+	query.B("id in (")
+
+	for i, g := range grants {
+		query.B("SELECT id FROM grants WHERE ")
+		query.B("subject = ? AND", g.Subject)
+		query.B("resource = ? AND", g.Resource)
+		query.B("privilege = ?", g.Privilege)
+		if i+1 != len(grants) {
+			query.B("UNION")
+		}
+	}
+	query.B(")")
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}

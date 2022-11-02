@@ -235,6 +235,142 @@ func TestDeleteGrants(t *testing.T) {
 	})
 }
 
+func TestUpdateGrants(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		otherOrg := &models.Organization{Name: "other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
+
+		var startUpdateIndex int64 = 10001
+
+		t.Run("success add", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			addGrants := []*models.Grant{
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+			}
+			rmGrants := []*models.Grant{}
+
+			err := UpdateGrants(tx, addGrants, rmGrants)
+			assert.NilError(t, err)
+			assert.Assert(t, addGrants[0].ID != 0)
+
+			expected := []models.Grant{
+				{
+					Model: models.Model{
+						ID:        uid.ID(999),
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+					Subject:            "i:7654321",
+					Privilege:          "view",
+					Resource:           "foo",
+					CreatedBy:          uid.ID(1091),
+					UpdateIndex:        startUpdateIndex + 1,
+				},
+				{
+					Model: models.Model{
+						ID:        uid.ID(999),
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+					Subject:            "i:1234567",
+					Privilege:          "admin",
+					Resource:           "foo",
+					CreatedBy:          uid.ID(1091),
+					UpdateIndex:        startUpdateIndex + 2,
+				},
+			}
+
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, expected, cmpModel)
+
+			// check for idempotency
+			err = UpdateGrants(tx, addGrants, rmGrants)
+			assert.NilError(t, err)
+			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, expected, cmpModel)
+
+		})
+		t.Run("success delete", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			grant1 := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "foo"}
+			grant2 := &models.Grant{Subject: "i:any1", Privilege: "edit", Resource: "foo"}
+			toKeep := &models.Grant{Subject: "i:any2", Privilege: "view", Resource: "foo"}
+			createGrants(t, tx, grant1, grant2, toKeep)
+
+			otherOrgGrant := &models.Grant{Subject: "i:any1", Privilege: "view", Resource: "foo"}
+			createGrants(t, tx.WithOrgID(otherOrg.ID), otherOrgGrant)
+
+			addGrants := []*models.Grant{}
+			rmGrants := []*models.Grant{grant1, grant2}
+
+			err := UpdateGrants(tx, addGrants, rmGrants)
+			assert.NilError(t, err)
+
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			expected := []models.Grant{
+				{Model: models.Model{ID: toKeep.ID}},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			// check for idempotency
+			err = UpdateGrants(tx, addGrants, rmGrants)
+			assert.NilError(t, err)
+
+			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+
+			// other org still has the grant
+			actual, err = ListGrants(tx.WithOrgID(otherOrg.ID), ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			assert.Equal(t, len(actual), 1)
+		})
+		t.Run("success create and delete", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			addGrants := []*models.Grant{
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:1234567", Privilege: "admin", Resource: "foo", CreatedBy: uid.ID(1091)},
+			}
+			rmGrants := []*models.Grant{
+				{Subject: "i:7654321", Privilege: "view", Resource: "foo", CreatedBy: uid.ID(1091)},
+				{Subject: "i:any1", Privilege: "view", Resource: "foo"},
+				{Subject: "i:any1", Privilege: "edit", Resource: "foo"},
+			}
+
+			err := UpdateGrants(tx, addGrants, rmGrants)
+			assert.NilError(t, err)
+
+			actual, err := ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
+			assert.NilError(t, err)
+			expected := []models.Grant{
+				{
+					Model: models.Model{
+						ID:        uid.ID(999),
+						CreatedAt: time.Now(),
+						UpdatedAt: time.Now(),
+					},
+					OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+					Subject:            "i:1234567",
+					Privilege:          "admin",
+					Resource:           "foo",
+					CreatedBy:          uid.ID(1091),
+					UpdateIndex:        startUpdateIndex + 12,
+				},
+			}
+			assert.DeepEqual(t, actual, expected, cmpModel)
+		})
+	})
+}
+
 func createGrants(t *testing.T, tx WriteTxn, grants ...*models.Grant) {
 	t.Helper()
 	for _, grant := range grants {

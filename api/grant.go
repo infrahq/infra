@@ -142,14 +142,15 @@ func (r ListGrantsRequest) SetPage(page int) Paginatable {
 	return r
 }
 
-type CreateGrantRequest struct {
+// GrantRequest defines a grant request which can be used for creating or deleting grants
+type GrantRequest struct {
 	User      uid.ID `json:"user"`
 	Group     uid.ID `json:"group"`
 	Privilege string `json:"privilege" example:"view" note:"a role or permission"`
 	Resource  string `json:"resource" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
 }
 
-func (r CreateGrantRequest) ValidationRules() []validate.ValidationRule {
+func (r GrantRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.RequireOneOf(
 			validate.Field{Name: "user", Value: r.User},
@@ -158,4 +159,9 @@ func (r CreateGrantRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("privilege", r.Privilege),
 		validate.Required("resource", r.Resource),
 	}
+}
+
+type UpdateGrantsRequest struct {
+	GrantsToAdd    []GrantRequest `json:"grantsToAdd"`
+	GrantsToRemove []GrantRequest `json:"grantsToRemove"`
 }

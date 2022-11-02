@@ -356,8 +356,8 @@ func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListRes
 	})
 }
 
-func (c Client) CreateGrant(req *CreateGrantRequest) (*CreateGrantResponse, error) {
-	return post[CreateGrantRequest, CreateGrantResponse](c, "/api/grants", req)
+func (c Client) CreateGrant(req *GrantRequest) (*CreateGrantResponse, error) {
+	return post[GrantRequest, CreateGrantResponse](c, "/api/grants", req)
 }
 
 func (c Client) DeleteGrant(id uid.ID) error {

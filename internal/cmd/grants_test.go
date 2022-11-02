@@ -20,8 +20,8 @@ func TestGrantsAddCmd(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home) // for windows
 
-	setup := func(t *testing.T) chan api.CreateGrantRequest {
-		requestCh := make(chan api.CreateGrantRequest, 1)
+	setup := func(t *testing.T) chan api.GrantRequest {
+		requestCh := make(chan api.GrantRequest, 1)
 
 		handler := func(resp http.ResponseWriter, req *http.Request) {
 			query := req.URL.Query()
@@ -73,7 +73,7 @@ func TestGrantsAddCmd(t *testing.T) {
 			}
 
 			defer close(requestCh)
-			var createReq api.CreateGrantRequest
+			var createReq api.GrantRequest
 			err := json.NewDecoder(req.Body).Decode(&createReq)
 			assert.Check(t, err)
 
@@ -96,7 +96,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		createReq := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "connect",
 			Resource:  "the-destination",
@@ -110,7 +110,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		createReq := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "connect",
 			Resource:  "the-destination.default",
@@ -124,7 +124,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		createReq := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "role",
 			Resource:  "the-destination",
@@ -140,7 +140,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		createReq := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			Group:     4000,
 			Privilege: "role",
 			Resource:  "the-destination",
@@ -166,7 +166,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		actual := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3002,
 			Privilege: "connect",
 			Resource:  "destination",
@@ -181,7 +181,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		actual := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			Group:     4001,
 			Privilege: "connect",
 			Resource:  "destination",
@@ -217,7 +217,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		actual := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "connect",
 			Resource:  "nonexistent",
@@ -232,7 +232,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		actual := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "connect",
 			Resource:  "the-destination.nonexistent",
@@ -247,7 +247,7 @@ func TestGrantsAddCmd(t *testing.T) {
 		assert.NilError(t, err)
 
 		actual := <-ch
-		expected := api.CreateGrantRequest{
+		expected := api.GrantRequest{
 			User:      3000,
 			Privilege: "nonexistent",
 			Resource:  "the-destination",

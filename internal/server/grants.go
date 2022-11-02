@@ -71,7 +71,7 @@ func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
 	return grant.ToAPI(), nil
 }
 
-func (a *API) CreateGrant(c *gin.Context, r *api.CreateGrantRequest) (*api.CreateGrantResponse, error) {
+func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
 	var subject uid.PolymorphicID
 
 	switch {
@@ -139,4 +139,39 @@ func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, 
 	}
 
 	return nil, access.DeleteGrant(c, r.ID)
+}
+
+func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.EmptyResponse, error) {
+	iden := access.GetRequestContext(c).Authenticated.User
+	var addGrants []*models.Grant
+	for _, g := range r.GrantsToAdd {
+		grant := getGrantFromGrantRequest(g)
+		grant.CreatedBy = iden.ID
+		addGrants = append(addGrants, grant)
+	}
+
+	var rmGrants []*models.Grant
+	for _, g := range r.GrantsToRemove {
+		grant := getGrantFromGrantRequest(g)
+		rmGrants = append(rmGrants, grant)
+	}
+
+	return nil, access.UpdateGrants(c, addGrants, rmGrants)
+}
+
+func getGrantFromGrantRequest(r api.GrantRequest) *models.Grant {
+	var subject uid.PolymorphicID
+
+	switch {
+	case r.User != 0:
+		subject = uid.NewIdentityPolymorphicID(r.User)
+	case r.Group != 0:
+		subject = uid.NewGroupPolymorphicID(r.Group)
+	}
+
+	return &models.Grant{
+		Subject:   subject,
+		Resource:  r.Resource,
+		Privilege: r.Privilege,
+	}
 }
