@@ -172,6 +172,9 @@ func (l *LastUpdateIndex) setValuesFromHeader(header http.Header) error {
 // visible to the client. The API endpoint will block until there is a
 // new updated index for the query.
 // BlockingRequests use a longer request timeout than a standard request.
+//
+// Important: metrics.Middleware relies on the name lastUpdateIndex. If that
+// changes the middleware will need to be updated as well.
 type BlockingRequest struct {
 	LastUpdateIndex int64 `form:"lastUpdateIndex" note:"set this to the value of the Last-Update-Index response header to block until the list results have changed"`
 }

@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
@@ -45,29 +46,42 @@ func Middleware(registry prometheus.Registerer) gin.HandlerFunc {
 		Name:      "request_duration_seconds",
 		Help:      "A histogram of duration, in seconds, handling HTTP requests.",
 		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 15),
-	}, []string{"host", "method", "path", "status"})
+	}, []string{"host", "method", "path", "status", "blocking"})
 
-	requestCount := prometheus.NewGauge(prometheus.GaugeOpts{
+	requestCount := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "http",
 		Name:      "requests_active",
 		Help:      "A gauge of the number of requests currently being handled.",
-	})
+	}, []string{"blocking"})
 
 	registry.MustRegister(requestDuration, requestCount)
 
 	return func(c *gin.Context) {
-		requestCount.Inc()
-		defer requestCount.Dec()
+		blocking := blockingRequestLabel(c.Request)
+
+		count := requestCount.With(prometheus.Labels{"blocking": blocking})
+		count.Inc()
+		defer count.Dec()
 
 		t := time.Now()
 		c.Next()
 
 		requestDuration.With(prometheus.Labels{
-			"host":   c.Request.Host,
-			"method": c.Request.Method,
-			"path":   c.FullPath(),
-			"status": strconv.Itoa(c.Writer.Status()),
+			"host":     c.Request.Host,
+			"method":   c.Request.Method,
+			"path":     c.FullPath(),
+			"status":   strconv.Itoa(c.Writer.Status()),
+			"blocking": blocking,
 		}).Observe(time.Since(t).Seconds())
+	}
+}
+
+func blockingRequestLabel(req *http.Request) string {
+	switch req.URL.Query().Get("lastUpdateIndex") {
+	case "", "0":
+		return "false"
+	default:
+		return "true"
 	}
 }
 
