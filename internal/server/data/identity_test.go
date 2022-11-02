@@ -38,7 +38,7 @@ func TestCreateIdentity(t *testing.T) {
 	})
 }
 
-func createIdentities(t *testing.T, db GormTxn, identities ...*models.Identity) {
+func createIdentities(t *testing.T, db WriteTxn, identities ...*models.Identity) {
 	t.Helper()
 	for _, user := range identities {
 		err := CreateIdentity(db, user)

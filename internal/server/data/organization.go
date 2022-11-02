@@ -29,7 +29,7 @@ func (o *organizationsTable) ScanFields() []any {
 
 // CreateOrganization creates a new organization, and initializes it with
 // settings, an infra provider, a connector user, and a grant for the connector.
-func CreateOrganization(tx GormTxn, org *models.Organization) error {
+func CreateOrganization(tx WriteTxn, org *models.Organization) error {
 	if org.Name == "" {
 		return fmt.Errorf("Organization.Name is required")
 	}

@@ -63,7 +63,7 @@ func validateProviderUserPatch(u *models.ProviderUser) error {
 	}
 }
 
-func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
+func CreateProviderUser(db WriteTxn, provider *models.Provider, ident *models.Identity) (*models.ProviderUser, error) {
 	// check if we already track this provider user
 	pu, err := GetProviderUser(db, provider.ID, ident.ID)
 	if err != nil && !errors.Is(err, internal.ErrNotFound) {
@@ -93,7 +93,7 @@ func CreateProviderUser(db GormTxn, provider *models.Provider, ident *models.Ide
 
 var ErrSourceOfTruthConflict = fmt.Errorf("cannot update user's email, this user exists in multiple identity providers")
 
-func UpdateProviderUser(tx GormTxn, providerUser *models.ProviderUser) error {
+func UpdateProviderUser(tx WriteTxn, providerUser *models.ProviderUser) error {
 	if err := validateProviderUser(providerUser); err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func GetProviderUser(tx ReadTxn, providerID, identityID uid.ID) (*models.Provide
 
 // ProvisionProviderUser directly creates a provider user and an identity (if the identity does not exist already)
 // This is used exclusively for SCIM provisioning
-func ProvisionProviderUser(tx GormTxn, user *models.ProviderUser) error {
+func ProvisionProviderUser(tx WriteTxn, user *models.ProviderUser) error {
 	// create an identity if this is the first time we are seeing the user with this email
 	opts := GetIdentityOptions{
 		ByName: user.Email,
@@ -296,7 +296,7 @@ func ProvisionProviderUser(tx GormTxn, user *models.ProviderUser) error {
 	return insert(tx, (*providerUserTable)(user))
 }
 
-func SyncProviderUser(ctx context.Context, tx GormTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
+func SyncProviderUser(ctx context.Context, tx WriteTxn, user *models.Identity, provider *models.Provider, oidcClient providers.OIDCClient) error {
 	providerUser, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err

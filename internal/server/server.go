@@ -208,7 +208,7 @@ func New(options Options) (*Server, error) {
 
 // DB returns an instance of a database connection pool that is used by the server.
 // It is primarily used by tests to create fixture data.
-func (s *Server) DB() data.GormTxn {
+func (s *Server) DB() *data.DB {
 	return s.db
 }
 

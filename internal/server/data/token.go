@@ -17,7 +17,7 @@ var signatureAlgorithmFromKeyAlgorithm = map[string]string{
 	"ED25519": "EdDSA", // elliptic curve 25519
 }
 
-func createJWT(db GormTxn, identity *models.Identity, groups []string, expires time.Time) (string, error) {
+func createJWT(db ReadTxn, identity *models.Identity, groups []string, expires time.Time) (string, error) {
 	settings, err := GetSettings(db)
 	if err != nil {
 		return "", err
@@ -62,7 +62,7 @@ func createJWT(db GormTxn, identity *models.Identity, groups []string, expires t
 	return raw, nil
 }
 
-func CreateIdentityToken(db GormTxn, identityID uid.ID) (token *models.Token, err error) {
+func CreateIdentityToken(db ReadTxn, identityID uid.ID) (token *models.Token, err error) {
 	identity, err := GetIdentity(db, GetIdentityOptions{ByID: identityID})
 	if err != nil {
 		return nil, err

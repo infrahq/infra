@@ -108,7 +108,7 @@ func createAdmin(t *testing.T, db data.WriteTxn) *models.Identity {
 	return user
 }
 
-func createAccessKey(t *testing.T, db data.GormTxn, email string) (string, *models.Identity) {
+func createAccessKey(t *testing.T, db data.WriteTxn, email string) (string, *models.Identity) {
 	t.Helper()
 	user := &models.Identity{Name: email}
 	err := data.CreateIdentity(db, user)
@@ -128,7 +128,7 @@ func createAccessKey(t *testing.T, db data.GormTxn, email string) (string, *mode
 	return body, user
 }
 
-func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Identity) {
+func createIdentities(t *testing.T, db data.WriteTxn, identities ...*models.Identity) {
 	t.Helper()
 	for i := range identities {
 		err := data.CreateIdentity(db, identities[i])
@@ -141,7 +141,7 @@ func createIdentities(t *testing.T, db data.GormTxn, identities ...*models.Ident
 	}
 }
 
-func createGroups(t *testing.T, db data.GormTxn, groups ...*models.Group) {
+func createGroups(t *testing.T, db data.WriteTxn, groups ...*models.Group) {
 	t.Helper()
 	for i := range groups {
 		err := data.CreateGroup(db, groups[i])

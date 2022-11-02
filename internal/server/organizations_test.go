@@ -19,7 +19,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func createOrgs(t *testing.T, db data.GormTxn, orgs ...*models.Organization) {
+func createOrgs(t *testing.T, db data.WriteTxn, orgs ...*models.Organization) {
 	t.Helper()
 	for i := range orgs {
 		err := data.CreateOrganization(db, orgs[i])

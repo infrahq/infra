@@ -883,7 +883,7 @@ func createTestSCIMProvider(t *testing.T, s *Server, extraUserNames ...string) (
 	return bearer, users, s.GenerateRoutes()
 }
 
-func createTestSCIMUserIdentity(t *testing.T, db data.GormTxn, provider *models.Provider, id uid.ID, name string) *models.ProviderUser {
+func createTestSCIMUserIdentity(t *testing.T, db data.WriteTxn, provider *models.Provider, id uid.ID, name string) *models.ProviderUser {
 	testIdentity := &models.Identity{
 		Model: models.Model{
 			ID: id,
