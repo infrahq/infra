@@ -128,6 +128,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
+	ctx := context.Background()
 	ch := make(chan *http.Request, 1)
 	handler := func(rw http.ResponseWriter, r *http.Request) {
 		ch <- r
@@ -153,7 +154,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	t.Run("headers", func(t *testing.T) {
-		err := delete(c, "/good", Query{})
+		err := delete(ctx, c, "/good", Query{})
 		assert.NilError(t, err)
 
 		r := <-ch

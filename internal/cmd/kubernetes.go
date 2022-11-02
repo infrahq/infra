@@ -64,7 +64,7 @@ func updateKubeConfig(client *api.Client, id uid.ID) error {
 		return err
 	}
 
-	user, err := client.GetUser(id)
+	user, err := client.GetUser(ctx, id)
 	if err != nil {
 		return err
 	}

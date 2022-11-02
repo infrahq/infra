@@ -46,7 +46,7 @@ func TestListCmd(t *testing.T) {
 	httpTransport := httpTransportForHostConfig(&ClientHostConfig{SkipTLSVerify: true})
 	c := apiClient(srv.Addrs.HTTPS.String(), "0000000001.adminadminadminadmin1234", httpTransport)
 
-	_, err = c.CreateDestination(&api.CreateDestinationRequest{
+	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "space",
 		Name:     "space",
 		Connection: api.DestinationConnection{
@@ -56,7 +56,7 @@ func TestListCmd(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	_, err = c.CreateDestination(&api.CreateDestinationRequest{
+	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "moon",
 		Name:     "moon",
 		Connection: api.DestinationConnection{
@@ -66,7 +66,7 @@ func TestListCmd(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	_, err = c.CreateDestination(&api.CreateDestinationRequest{
+	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "maintain",
 		Name:     "infra-this-is-not",
 		Connection: api.DestinationConnection{

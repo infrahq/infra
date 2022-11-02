@@ -371,11 +371,11 @@ func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsReques
 	return f.listGrantsResult, f.listGrantsError
 }
 
-func (f *fakeAPIClient) GetGroup(id uid.ID) (*api.Group, error) {
+func (f *fakeAPIClient) GetGroup(ctx context.Context, id uid.ID) (*api.Group, error) {
 	return &api.Group{Name: "the-group"}, nil
 }
 
-func (f *fakeAPIClient) GetUser(id uid.ID) (*api.User, error) {
+func (f *fakeAPIClient) GetUser(ctx context.Context, id uid.ID) (*api.User, error) {
 	return &api.User{Name: "theuser@example.com"}, nil
 }
 

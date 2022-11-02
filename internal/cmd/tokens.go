@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -39,12 +40,13 @@ func newTokensAddCmd(cli *CLI) *cobra.Command {
 }
 
 func tokensCreate(cli *CLI) error {
+	ctx := context.Background()
 	client, err := defaultAPIClient()
 	if err != nil {
 		return err
 	}
 
-	token, err := client.CreateToken()
+	token, err := client.CreateToken(ctx)
 	if err != nil {
 		return err
 	}

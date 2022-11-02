@@ -220,6 +220,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --workspace-domain-admin admin@example.com --kind google`,
 		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
 			if err := cliopts.DefaultsFromEnv("INFRA_PROVIDER", cmd.Flags()); err != nil {
 				return err
 			}
@@ -239,7 +240,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 			}
 
 			logging.Debugf("call server: create provider named %q", args[0])
-			provider, err := client.CreateProvider(&api.CreateProviderRequest{
+			provider, err := client.CreateProvider(ctx, &api.CreateProviderRequest{
 				Name:         args[0],
 				URL:          opts.URL,
 				ClientID:     opts.ClientID,
@@ -264,7 +265,7 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 			cli.Output("Connected provider %q (%s) to infra", args[0], opts.URL)
 
 			if opts.SCIM {
-				key, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+				key, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 					UserID:            provider.ID,
 					Name:              fmt.Sprintf("%s-SCIM", args[0]),
 					TTL:               api.Duration(time.Hour * 87600), // 10 years
@@ -318,7 +319,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 	if opts.SCIM {
 		// revoke the previous SCIM access key for this provider, if it exists
 		keyName := fmt.Sprintf("%s-SCIM", provider.Name)
-		err = client.DeleteAccessKeyByName(keyName)
+		err = client.DeleteAccessKeyByName(ctx, keyName)
 		if err != nil {
 			logging.Debugf("%s", err.Error())
 			if api.ErrorStatusCode(err) == 403 {
@@ -329,7 +330,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 			// ignore error and proceed, key may not exist
 			err = nil
 		}
-		key, err := client.CreateAccessKey(&api.CreateAccessKeyRequest{
+		key, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 			UserID:            provider.ID,
 			Name:              keyName,
 			TTL:               api.Duration(time.Hour * 87600), // 10 years
@@ -354,7 +355,7 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		}
 
 		logging.Debugf("call server: update provider named %q", name)
-		_, err = client.UpdateProvider(api.UpdateProviderRequest{
+		_, err = client.UpdateProvider(ctx, api.UpdateProviderRequest{
 			ID:           provider.ID,
 			Name:         name,
 			URL:          provider.URL,
@@ -412,7 +413,7 @@ func newProvidersRemoveCmd(cli *CLI) *cobra.Command {
 			logging.Debugf("deleting %d providers named %q...", providers.Count, args[0])
 			for _, provider := range providers.Items {
 				logging.Debugf("...call server: delete provider %s", provider.ID)
-				if err := client.DeleteProvider(provider.ID); err != nil {
+				if err := client.DeleteProvider(ctx, provider.ID); err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
 						return Error{

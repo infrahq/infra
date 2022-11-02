@@ -99,6 +99,7 @@ $ infra login`,
 }
 
 func login(cli *CLI, options loginCmdOptions) error {
+	ctx := context.Background()
 	config, err := readConfig()
 	if err != nil {
 		return err
@@ -181,7 +182,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 				return err
 			}
 		case deviceLogin:
-			resp, err := deviceFlowLogin(lc.APIClient, cli)
+			resp, err := deviceFlowLogin(ctx, lc.APIClient, cli)
 			if err != nil {
 				return err
 			}
@@ -207,7 +208,8 @@ func equalHosts(x, y string) bool {
 }
 
 func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	loginRes, err := lc.APIClient.Login(loginReq)
+	ctx := context.TODO()
+	loginRes, err := lc.APIClient.Login(ctx, loginReq)
 	if err != nil {
 		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
 			switch {
@@ -235,7 +237,7 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		}
 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(&api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
 			if passwordError(cli, err) {
 				goto PROMPTLOGIN
 			}
@@ -504,8 +506,8 @@ func attemptTLSRequest(options loginCmdOptions) error {
 
 const spinChars = `\|/-`
 
-func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
-	resp, err := client.StartDeviceFlow()
+func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.LoginResponse, error) {
+	resp, err := client.StartDeviceFlow(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -537,7 +539,7 @@ func deviceFlowLogin(client *api.Client, cli *CLI) (*api.LoginResponse, error) {
 			return nil, api.ErrDeviceLoginTimeout
 		case <-poll.C:
 			// check to see if user is authed yet
-			pollResp, err := client.GetDeviceFlowStatus(&api.DeviceFlowStatusRequest{DeviceCode: resp.DeviceCode})
+			pollResp, err := client.GetDeviceFlowStatus(ctx, &api.DeviceFlowStatusRequest{DeviceCode: resp.DeviceCode})
 			if err != nil {
 				return nil, err
 			}

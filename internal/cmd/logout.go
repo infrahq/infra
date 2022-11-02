@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -63,6 +64,7 @@ $ infra logout --all --clear`,
 }
 
 func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
+	ctx := context.TODO()
 	client := apiClient(hostConfig.Host, hostConfig.AccessKey, httpTransportForHostConfig(hostConfig))
 
 	defer func() {
@@ -73,7 +75,7 @@ func logoutOfServer(hostConfig *ClientHostConfig) (success bool) {
 	}()
 
 	if hostConfig.isLoggedIn() {
-		err := client.Logout()
+		err := client.Logout(ctx)
 		switch {
 		case api.ErrorStatusCode(err) == http.StatusUnauthorized:
 			logging.Debugf("err: %s", err)

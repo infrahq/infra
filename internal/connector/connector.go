@@ -90,14 +90,14 @@ type connector struct {
 type apiClient interface {
 	ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error)
 	ListDestinations(ctx context.Context, req api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error)
-	CreateDestination(req *api.CreateDestinationRequest) (*api.Destination, error)
-	UpdateDestination(req api.UpdateDestinationRequest) (*api.Destination, error)
+	CreateDestination(ctx context.Context, req *api.CreateDestinationRequest) (*api.Destination, error)
+	UpdateDestination(ctx context.Context, req api.UpdateDestinationRequest) (*api.Destination, error)
 
 	// GetGroup and GetUser are used to retrieve the name of the group or user.
 	// TODO: we can remove these calls to GetGroup and GetUser by including
 	// the name of the group or user in the ListGrants response.
-	GetGroup(id uid.ID) (*api.Group, error)
-	GetUser(id uid.ID) (*api.User, error)
+	GetGroup(ctx context.Context, id uid.ID) (*api.Group, error)
+	GetUser(ctx context.Context, id uid.ID) (*api.User, error)
 }
 
 type kubeClient interface {
@@ -461,7 +461,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
-		err = updateRoles(con.client, con.k8s, grants.Items)
+		err = updateRoles(ctx, con.client, con.k8s, grants.Items)
 		if err != nil {
 			return fmt.Errorf("update roles: %w", err)
 		}
@@ -488,7 +488,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
+func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Grant) error {
 	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -503,7 +503,7 @@ func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 
 		switch {
 		case g.Group != 0:
-			group, err := c.GetGroup(g.Group)
+			group, err := c.GetGroup(ctx, g.Group)
 			if err != nil {
 				return err
 			}
@@ -511,7 +511,7 @@ func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 			name = group.Name
 			kind = rbacv1.GroupKind
 		case g.User != 0:
-			user, err := c.GetUser(g.User)
+			user, err := c.GetUser(ctx, g.User)
 			if err != nil {
 				return err
 			}
@@ -562,7 +562,7 @@ func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
 func createOrUpdateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
 	if local.ID != 0 {
-		return updateDestination(client, local)
+		return updateDestination(ctx, client, local)
 	}
 
 	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{UniqueID: local.UniqueID})
@@ -572,7 +572,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 
 	if destinations.Count > 0 {
 		local.ID = destinations.Items[0].ID
-		return updateDestination(client, local)
+		return updateDestination(ctx, client, local)
 	}
 
 	request := &api.CreateDestinationRequest{
@@ -584,7 +584,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 		Roles:      local.Roles,
 	}
 
-	destination, err := client.CreateDestination(request)
+	destination, err := client.CreateDestination(ctx, request)
 	if err != nil {
 		return fmt.Errorf("error creating destination: %w", err)
 	}
@@ -594,7 +594,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 }
 
 // updateDestination updates a destination in the infra server
-func updateDestination(client apiClient, local *api.Destination) error {
+func updateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
 	logging.Debugf("updating information at server")
 
 	request := api.UpdateDestinationRequest{
@@ -607,7 +607,7 @@ func updateDestination(client apiClient, local *api.Destination) error {
 		Roles:      local.Roles,
 	}
 
-	if _, err := client.UpdateDestination(request); err != nil {
+	if _, err := client.UpdateDestination(ctx, request); err != nil {
 		return fmt.Errorf("error updating existing destination: %w", err)
 	}
 	return nil

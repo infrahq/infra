@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"text/tabwriter"
@@ -24,6 +25,8 @@ func newVersionCmd(cli *CLI) *cobra.Command {
 }
 
 func version(cli *CLI) error {
+	ctx := context.Background()
+
 	w := tabwriter.NewWriter(cli.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	defer w.Flush()
 
@@ -51,7 +54,7 @@ func version(cli *CLI) error {
 		return nil
 	}
 
-	version, err := client.GetServerVersion()
+	version, err := client.GetServerVersion(ctx)
 	if err != nil {
 		fmt.Fprintln(w, "Server:\t", "disconnected")
 		logging.Debugf("%s", err.Error())
