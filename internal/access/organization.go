@@ -58,7 +58,7 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "organizations", "delete", models.InfraSupportAdminRole)
 	}
 
-	return data.DeleteOrganizations(db, data.ByID(id))
+	return data.DeleteOrganization(db, id)
 }
 
 func SanitizedDomain(subDomain, serverBaseDomain string) string {

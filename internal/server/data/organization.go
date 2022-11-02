@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -85,15 +86,16 @@ func ListOrganizations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]
 	return list[models.Organization](db, p, selectors...)
 }
 
-func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := GetOrganization(db, selectors...)
-	if err != nil {
-		return err
-	}
-
+func DeleteOrganization(tx WriteTxn, id uid.ID) error {
 	// TODO: delete everything in the organization
 
-	return delete[models.Organization](db, toDelete.ID)
+	stmt := `
+		UPDATE organizations
+		SET deleted_at = ?
+		WHERE id = ? AND deleted_at is NULL`
+
+	_, err := tx.Exec(stmt, time.Now(), id)
+	return err
 }
 
 func UpdateOrganization(tx WriteTxn, org *models.Organization) error {

@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -135,5 +136,30 @@ func TestUpdateOrganization(t *testing.T) {
 			CreatedBy: 7123,
 		}
 		assert.DeepEqual(t, expected, actual, cmpModel)
+	})
+}
+
+func TestDeleteOrganization(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		org := &models.Organization{
+			Name:   "first",
+			Domain: "first.example.com",
+		}
+
+		err := CreateOrganization(db, org)
+		assert.NilError(t, err)
+
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, 0)
+			err := DeleteOrganization(tx, org.ID)
+			assert.NilError(t, err)
+
+			_, err = GetOrganization(tx, ByID(org.ID))
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+
+			// delete again to check idempotence
+			err = DeleteOrganization(tx, org.ID)
+			assert.NilError(t, err)
+		})
 	})
 }
