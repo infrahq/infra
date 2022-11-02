@@ -139,6 +139,58 @@ func TestUpdateOrganization(t *testing.T) {
 	})
 }
 
+func TestListOrganizations(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		first := &models.Organization{
+			Name:   "first",
+			Domain: "first.example.com",
+		}
+		second := &models.Organization{
+			Name:   "second",
+			Domain: "second.example.com",
+		}
+		deleted := &models.Organization{
+			Name:   "deleted",
+			Domain: "none.example.com",
+		}
+		deleted.DeletedAt.Valid = true
+		deleted.DeletedAt.Time = time.Now()
+		assert.NilError(t, CreateOrganization(tx, first))
+		assert.NilError(t, CreateOrganization(tx, second))
+		assert.NilError(t, CreateOrganization(tx, deleted))
+
+		t.Run("defaults", func(t *testing.T) {
+			actual, err := ListOrganizations(tx, ListOrganizationsOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.Organization{*db.DefaultOrg, *first, *second}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("by name", func(t *testing.T) {
+			actual, err := ListOrganizations(tx, ListOrganizationsOptions{
+				ByName: "second",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Organization{*second}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+		})
+		t.Run("with pagination", func(t *testing.T) {
+			page := Pagination{Limit: 2, Page: 2}
+			actual, err := ListOrganizations(tx, ListOrganizationsOptions{
+				Pagination: &page,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Organization{*second}
+			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			assert.Equal(t, page.TotalCount, 3)
+		})
+	})
+}
+
 func TestDeleteOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		org := &models.Organization{

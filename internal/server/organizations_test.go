@@ -13,6 +13,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -383,9 +384,8 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListOrganizations(srv.DB(), &data.Pagination{}, data.ByID(first.ID))
-				assert.NilError(t, err)
-				assert.Equal(t, len(actual), 0)
+				_, err := data.GetOrganization(srv.DB(), data.ByID(first.ID))
+				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},
 	}

@@ -11,14 +11,12 @@ import (
 )
 
 func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
-	selectors := []data.SelectorFunc{}
-	if name != "" {
-		selectors = append(selectors, data.ByName(name))
-	}
-
 	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err == nil {
-		return data.ListOrganizations(db, pg, selectors...)
+		return data.ListOrganizations(db, data.ListOrganizationsOptions{
+			ByName:     name,
+			Pagination: pg,
+		})
 	}
 	err = HandleAuthErr(err, "organizations", "list", models.InfraSupportAdminRole)
 

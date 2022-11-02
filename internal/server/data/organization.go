@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -82,8 +83,41 @@ func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organizatio
 	return get[models.Organization](db, selectors...)
 }
 
-func ListOrganizations(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Organization, error) {
-	return list[models.Organization](db, p, selectors...)
+type ListOrganizationsOptions struct {
+	ByName string
+
+	Pagination *Pagination
+}
+
+func ListOrganizations(tx ReadTxn, opts ListOrganizationsOptions) ([]models.Organization, error) {
+	table := organizationsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM organizations")
+	query.B("WHERE deleted_at is NULL")
+
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	query.B("ORDER BY id ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	return scanRows(rows, func(org *models.Organization) []any {
+		fields := (*organizationsTable)(org).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
 }
 
 func DeleteOrganization(tx WriteTxn, id uid.ID) error {
