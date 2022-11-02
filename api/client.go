@@ -345,14 +345,16 @@ func (c Client) DeleteProvider(id uid.ID) error {
 
 func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListResponse[Grant], error) {
 	return get[ListResponse[Grant]](ctx, c, "/api/grants", Query{
-		"user":          {req.User.String()},
-		"group":         {req.Group.String()},
-		"resource":      {req.Resource},
-		"destination":   {req.Destination},
-		"privilege":     {req.Privilege},
-		"showInherited": {strconv.FormatBool(req.ShowInherited)},
-		"showSystem":    {strconv.FormatBool(req.ShowSystem)},
-		"page":          {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
+		"user":            {req.User.String()},
+		"group":           {req.Group.String()},
+		"resource":        {req.Resource},
+		"destination":     {req.Destination},
+		"privilege":       {req.Privilege},
+		"showInherited":   {strconv.FormatBool(req.ShowInherited)},
+		"showSystem":      {strconv.FormatBool(req.ShowSystem)},
+		"page":            {strconv.Itoa(req.Page)},
+		"limit":           {strconv.Itoa(req.Limit)},
+		"lastUpdateIndex": {strconv.FormatInt(req.LastUpdateIndex, 10)},
 	})
 }
 

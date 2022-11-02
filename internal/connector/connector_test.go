@@ -2,6 +2,7 @@ package connector
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
@@ -19,9 +20,13 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"gotest.tools/v3/assert"
+	rbacv1 "k8s.io/api/rbac/v1"
 
+	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/claims"
+	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/server"
+	"github.com/infrahq/infra/uid"
 )
 
 func TestAuthenticator_Authenticate(t *testing.T) {
@@ -246,4 +251,147 @@ func TestCertCache_Certificate(t *testing.T) {
 		assert.Equal(t, len(parsedCert.DNSNames), 1)
 		assert.Equal(t, parsedCert.DNSNames[0], "test-host")
 	})
+}
+
+func TestSyncGrantsToKubeBindings(t *testing.T) {
+	type testCase struct {
+		name                     string
+		fakeAPI                  *fakeAPIClient
+		fakeKube                 *fakeKubeClient
+		expectedListGrantIndexes []int64
+		successCount             int
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		ctx := context.Background()
+		waiter := &fakeWaiter{endAtIndex: 1}
+		if tc.fakeKube == nil {
+			tc.fakeKube = &fakeKubeClient{}
+		}
+		con := connector{
+			k8s:         tc.fakeKube,
+			client:      tc.fakeAPI,
+			destination: &api.Destination{Name: "the-dest"},
+		}
+
+		err := syncGrantsToKubeBindings(ctx, con, waiter)
+		assert.ErrorIs(t, err, errDone)
+
+		assert.Equal(t, len(waiter.resets), tc.successCount)
+		assert.DeepEqual(t, tc.fakeAPI.listGrantsIndexes, tc.expectedListGrantIndexes)
+	}
+
+	testCases := []testCase{
+		{
+			name: "successful update",
+			fakeAPI: &fakeAPIClient{
+				listGrantsResult: &api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
+						{User: uid.ID(124), Resource: "the-test.ns1", Privilege: "logs"},
+					},
+					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
+				},
+			},
+			expectedListGrantIndexes: []int64{1, 42},
+			successCount:             2,
+		},
+		{
+			name: "api blocking request timeout",
+			fakeAPI: &fakeAPIClient{
+				listGrantsError: api.Error{Code: http.StatusGatewayTimeout},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+			successCount:             2,
+		},
+		{
+			name: "error from api",
+			fakeAPI: &fakeAPIClient{
+				listGrantsError: api.Error{Code: http.StatusInternalServerError},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+		},
+		{
+			name: "failed to update kube",
+			fakeAPI: &fakeAPIClient{
+				listGrantsResult: &api.ListResponse[api.Grant]{
+					Items: []api.Grant{
+						{User: uid.ID(123), Resource: "the-test", Privilege: "view"},
+					},
+					LastUpdateIndex: api.LastUpdateIndex{Index: 42},
+				},
+			},
+			expectedListGrantIndexes: []int64{1, 1},
+			fakeKube: &fakeKubeClient{
+				updateBindingsError: fmt.Errorf("failed to update"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+type fakeWaiter struct {
+	index      int
+	resets     []int
+	endAtIndex int
+}
+
+func (f *fakeWaiter) Reset() {
+	f.resets = append(f.resets, f.index)
+}
+
+func (f *fakeWaiter) Wait(ctx context.Context) error {
+	if f.index >= f.endAtIndex {
+		return errDone
+	}
+	if ctx.Err() != nil {
+		return errDone
+	}
+	f.index++
+	return nil
+}
+
+var errDone = fmt.Errorf("done")
+
+type fakeAPIClient struct {
+	api.Client
+
+	listGrantsResult  *api.ListResponse[api.Grant]
+	listGrantsError   error
+	listGrantsIndexes []int64
+}
+
+func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
+	f.listGrantsIndexes = append(f.listGrantsIndexes, req.LastUpdateIndex)
+	return f.listGrantsResult, f.listGrantsError
+}
+
+func (f *fakeAPIClient) GetGroup(id uid.ID) (*api.Group, error) {
+	return &api.Group{Name: "the-group"}, nil
+}
+
+func (f *fakeAPIClient) GetUser(id uid.ID) (*api.User, error) {
+	return &api.User{Name: "theuser@example.com"}, nil
+}
+
+type fakeKubeClient struct {
+	kubernetes.Kubernetes
+	updateBindingsError           error
+	updateClusterRoleBindingsArgs []map[string][]rbacv1.Subject
+	updateRoleBindingsArgs        []map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject
+}
+
+func (f *fakeKubeClient) UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error {
+	f.updateClusterRoleBindingsArgs = append(f.updateClusterRoleBindingsArgs, subjects)
+	return f.updateBindingsError
+}
+
+func (f *fakeKubeClient) UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error {
+	f.updateRoleBindingsArgs = append(f.updateRoleBindingsArgs, subjects)
+	return f.updateBindingsError
 }

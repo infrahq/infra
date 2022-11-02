@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/gin-gonic/gin"
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,7 +27,9 @@ import (
 	"github.com/infrahq/infra/internal/ginutil"
 	"github.com/infrahq/infra/internal/kubernetes"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/metrics"
+	"github.com/infrahq/infra/uid"
 )
 
 type Options struct {
@@ -77,11 +80,34 @@ type KubernetesOptions struct {
 
 // connector stores all the dependencies for the connector operations.
 type connector struct {
-	k8s         *kubernetes.Kubernetes
-	client      *api.Client
+	k8s         kubeClient
+	client      apiClient
 	destination *api.Destination
 	certCache   *CertCache
 	options     Options
+}
+
+type apiClient interface {
+	ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error)
+	ListDestinations(ctx context.Context, req api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error)
+	CreateDestination(req *api.CreateDestinationRequest) (*api.Destination, error)
+	UpdateDestination(req api.UpdateDestinationRequest) (*api.Destination, error)
+
+	// GetGroup and GetUser are used to retrieve the name of the group or user.
+	// TODO: we can remove these calls to GetGroup and GetUser by including
+	// the name of the group or user in the ListGrants response.
+	GetGroup(id uid.ID) (*api.Group, error)
+	GetUser(id uid.ID) (*api.User, error)
+}
+
+type kubeClient interface {
+	Namespaces() ([]string, error)
+	ClusterRoles() ([]string, error)
+	IsServiceTypeClusterIP() (bool, error)
+	Endpoint() (string, int, error)
+
+	UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error
+	UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error
 }
 
 func Run(ctx context.Context, options Options) error {
@@ -188,22 +214,25 @@ func Run(ctx context.Context, options Options) error {
 		options:     options,
 	}
 	group.Go(func() error {
-		for {
-			if err := syncWithServer(ctx, con); err != nil {
-				return err
-			}
-			if err := wait(ctx, 30*time.Second); err != nil {
-				return err
-			}
+		backOff := &backoff.ExponentialBackOff{
+			InitialInterval:     2 * time.Second,
+			MaxInterval:         time.Minute,
+			RandomizationFactor: 0.2,
+			Multiplier:          1.5,
 		}
+		waiter := repeat.NewWaiter(backOff)
+		return syncGrantsToKubeBindings(ctx, con, waiter)
 	})
 	group.Go(func() error {
+		// TODO: how long should this wait? Use exponential backoff on error?
+		waiter := repeat.NewWaiter(backoff.NewConstantBackOff(30 * time.Second))
 		for {
 			if err := syncDestination(ctx, con); err != nil {
 				logging.Errorf("failed to update destination in infra: %v", err)
+			} else {
+				waiter.Reset()
 			}
-			// TODO: how long should this wait?
-			if err := wait(ctx, 30*time.Second); err != nil {
+			if err := waiter.Wait(ctx); err != nil {
 				return err
 			}
 		}
@@ -390,7 +419,7 @@ func syncDestination(ctx context.Context, con connector) error {
 	return nil
 }
 
-func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPort, error) {
+func getEndpointHostPort(k8s kubeClient, opts Options) (types.HostPort, error) {
 	if opts.EndpointAddr.Host != "" {
 		return opts.EndpointAddr, nil
 	}
@@ -403,23 +432,63 @@ func getEndpointHostPort(k8s *kubernetes.Kubernetes, opts Options) (types.HostPo
 	return types.HostPort{Host: host, Port: port}, nil
 }
 
-func syncWithServer(ctx context.Context, con connector) error {
-	grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{Destination: con.destination.Name})
-	if err != nil {
-		logging.Errorf("error listing grants: %v", err)
+type waiter interface {
+	Reset()
+	Wait(ctx context.Context) error
+}
+
+func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter) error {
+	var latestIndex int64 = 1
+
+	sync := func() error {
+		grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{
+			Destination:     con.destination.Name,
+			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
+		})
+		var apiError api.Error
+		switch {
+		case errors.As(err, &apiError) && apiError.Code == http.StatusGatewayTimeout:
+			// a timeout is expected when there are no changes
+			logging.L.Info().
+				Int64("updateIndex", latestIndex).
+				Msg("no updated grants from server")
+			return nil
+		case err != nil:
+			return fmt.Errorf("list grants: %w", err)
+		}
+		logging.L.Info().
+			Int64("updateIndex", latestIndex).
+			Int("grants", len(grants.Items)).
+			Msg("received grants from server")
+
+		err = updateRoles(con.client, con.k8s, grants.Items)
+		if err != nil {
+			return fmt.Errorf("update roles: %w", err)
+		}
+
+		// Only update latestIndex once the entire operation was a success
+		latestIndex = grants.LastUpdateIndex.Index
 		return nil
 	}
 
-	err = updateRoles(con.client, con.k8s, grants.Items)
-	if err != nil {
-		logging.Errorf("error updating grants: %v", err)
-		return nil
+	for {
+		if err := sync(); err != nil {
+			logging.L.Error().Err(err).Msg("sync grants with kubernetes")
+		} else {
+			waiter.Reset()
+		}
+
+		// sleep for a short duration between updates to allow batches of
+		// updates to apply before querying again, and to prevent unnecessary
+		// load when part of the operation is failing.
+		if err := waiter.Wait(ctx); err != nil {
+			return err
+		}
 	}
-	return nil
 }
 
 // UpdateRoles converts infra grants to role-bindings in the current cluster
-func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) error {
+func updateRoles(c apiClient, k kubeClient, grants []api.Grant) error {
 	logging.Debugf("syncing local grants from infra configuration")
 
 	crSubjects := make(map[string][]rbacv1.Subject)                           // cluster-role: subject
@@ -491,7 +560,7 @@ func updateRoles(c *api.Client, k *kubernetes.Kubernetes, grants []api.Grant) er
 }
 
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
-func createOrUpdateDestination(ctx context.Context, client *api.Client, local *api.Destination) error {
+func createOrUpdateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
 	if local.ID != 0 {
 		return updateDestination(client, local)
 	}
@@ -525,7 +594,7 @@ func createOrUpdateDestination(ctx context.Context, client *api.Client, local *a
 }
 
 // updateDestination updates a destination in the infra server
-func updateDestination(client *api.Client, local *api.Destination) error {
+func updateDestination(client apiClient, local *api.Destination) error {
 	logging.Debugf("updating information at server")
 
 	request := api.UpdateDestinationRequest{
@@ -557,18 +626,4 @@ func slicesEqual(s1, s2 []string) bool {
 	}
 
 	return true
-}
-
-// wait blocks for the duration of delay, or until the context is done.
-// Returns the context error when the context is done, and returns nil if
-// the timer waited the full duration.
-func wait(ctx context.Context, delay time.Duration) error {
-	timer := time.NewTimer(delay)
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		timer.Stop()
-		return ctx.Err()
-	}
 }
