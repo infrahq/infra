@@ -2,6 +2,7 @@ package data
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/infrahq/infra/internal"
@@ -11,32 +12,66 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-func CreatePasswordResetToken(db GormTxn, user *models.Identity, ttl time.Duration) (*models.PasswordResetToken, error) {
+type passwordResetToken struct {
+	ID uid.ID
+	models.OrganizationMember
+
+	Token      string
+	IdentityID uid.ID
+	ExpiresAt  time.Time
+}
+
+func (passwordResetToken) Table() string {
+	return "password_reset_tokens"
+}
+
+func (p passwordResetToken) Columns() []string {
+	return []string{"expires_at", "id", "identity_id", "organization_id", "token"}
+}
+
+func (p passwordResetToken) Values() []any {
+	return []any{p.ExpiresAt, p.ID, p.IdentityID, p.OrganizationID, p.Token}
+}
+
+func (p *passwordResetToken) ScanFields() []any {
+	return []any{&p.ExpiresAt, &p.ID, &p.IdentityID, &p.OrganizationID, &p.Token}
+}
+
+func (p *passwordResetToken) OnInsert() error {
+	return nil
+}
+
+func CreatePasswordResetToken(tx WriteTxn, userID uid.ID, ttl time.Duration) (string, error) {
+	if userID == 0 || ttl == 0 {
+		return "", fmt.Errorf("a userID and ttl are required")
+	}
+
 	tries := 0
+	var ucErr UniqueConstraintError
+
 retry:
 	token, err := generate.CryptoRandom(10, generate.CharsetAlphaNumeric)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	prt := &models.PasswordResetToken{
+	prt := &passwordResetToken{
 		ID:         uid.New(),
 		Token:      token,
-		IdentityID: user.ID,
+		IdentityID: userID,
 		ExpiresAt:  time.Now().Add(ttl).UTC(),
 	}
 
 	tries++
-	if err = save(db, prt); err != nil {
-		// TODO: must use errors.As for error types
-		if tries <= 3 && errors.Is(err, UniqueConstraintError{}) {
+	if err = insert(tx, prt); err != nil {
+		if tries <= 3 && errors.As(err, &ucErr) {
 			logging.Warnf("generated random token %q already exists in the database", token)
 			goto retry // on the off chance the token exists.
 		}
-		return nil, err
+		return "", err
 	}
 
-	return prt, nil
+	return prt.Token, nil
 }
 
 func GetUserIDForPasswordResetToken(tx WriteTxn, token string) (uid.ID, error) {

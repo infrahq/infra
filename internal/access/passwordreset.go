@@ -28,12 +28,12 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 		return "", nil, err
 	}
 
-	prt, err := data.CreatePasswordResetToken(db, user, ttl)
+	token, err = data.CreatePasswordResetToken(db, user.ID, ttl)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return prt.Token, user, nil
+	return token, user, nil
 }
 
 func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.Identity, error) {
