@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -115,31 +114,6 @@ func TestPaginationSelector(t *testing.T) {
 		for i, user := range actual {
 			assert.Equal(t, user.Name, alphabeticalIdentities[i])
 		}
-	})
-}
-
-func TestCreateTransactionError(t *testing.T) {
-	// on creation error (such as conflict) the database transaction should still be usable
-	runDBTests(t, func(t *testing.T, db *DB) {
-		err := db.Transaction(func(txDB *gorm.DB) error {
-			tx := &Transaction{DB: txDB, orgID: 12345}
-
-			g := &models.Grant{}
-			err := add(tx, g)
-			if err != nil {
-				return err
-			}
-
-			// attempt to re-create, which results in a conflict
-			err = add(tx, g)
-			assert.ErrorContains(t, err, "already exists")
-
-			// the same transaction should still be usable
-			_, err = get[models.Grant](tx, ByID(g.ID))
-			return err
-		})
-
-		assert.NilError(t, err)
 	})
 }
 
