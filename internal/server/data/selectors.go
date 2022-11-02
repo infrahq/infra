@@ -14,12 +14,6 @@ func ByID(id uid.ID) SelectorFunc {
 	}
 }
 
-func ByIDs(ids []uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("id in (?)", ids)
-	}
-}
-
 func ByOrgID(orgID uid.ID) SelectorFunc {
 	if orgID == 0 {
 		panic("OrganizationID was not set")
@@ -32,12 +26,6 @@ func ByOrgID(orgID uid.ID) SelectorFunc {
 func ByName(name string) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name)
-	}
-}
-
-func ByIdentityID(identityID uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("identity_id = ?", identityID)
 	}
 }
 

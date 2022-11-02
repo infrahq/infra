@@ -134,7 +134,7 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 	userCredential.PasswordHash = hash
 	userCredential.OneTimePassword = !isSelf
 
-	if err := data.SaveCredential(db, userCredential); err != nil {
+	if err := data.UpdateCredential(db, userCredential); err != nil {
 		return fmt.Errorf("saving credentials: %w", err)
 	}
 

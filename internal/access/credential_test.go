@@ -100,7 +100,7 @@ func TestUpdateCredentials(t *testing.T) {
 	})
 
 	t.Run("Update own credentials is NOT single use password", func(t *testing.T) {
-		err := data.SaveCredential(db, userCreds)
+		err := data.UpdateCredential(db, userCreds)
 		assert.NilError(t, err)
 
 		rCtx := GetRequestContext(c)
@@ -116,7 +116,7 @@ func TestUpdateCredentials(t *testing.T) {
 	})
 
 	t.Run("Update own credentials removes password reset scope, but keeps other scopes", func(t *testing.T) {
-		err := data.SaveCredential(db, userCreds)
+		err := data.UpdateCredential(db, userCreds)
 		assert.NilError(t, err)
 
 		rCtx := GetRequestContext(c)

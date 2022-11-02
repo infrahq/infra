@@ -37,18 +37,18 @@ func validateCredential(c *models.Credential) error {
 	return nil
 }
 
-func CreateCredential(db GormTxn, credential *models.Credential) error {
+func CreateCredential(tx WriteTxn, credential *models.Credential) error {
 	if err := validateCredential(credential); err != nil {
 		return err
 	}
-	return add(db, credential)
+	return insert(tx, (*credentialsTable)(credential))
 }
 
-func SaveCredential(db GormTxn, credential *models.Credential) error {
+func UpdateCredential(tx WriteTxn, credential *models.Credential) error {
 	if err := validateCredential(credential); err != nil {
 		return err
 	}
-	return save(db, credential)
+	return update(tx, (*credentialsTable)(credential))
 }
 
 func GetCredentialByUserID(tx ReadTxn, userID uid.ID) (*models.Credential, error) {

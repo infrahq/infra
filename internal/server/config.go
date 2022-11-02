@@ -968,7 +968,7 @@ func (s Server) loadCredential(db data.GormTxn, identity *models.Identity, passw
 
 	credential.PasswordHash = hash
 
-	if err := data.SaveCredential(db, credential); err != nil {
+	if err := data.UpdateCredential(db, credential); err != nil {
 		return err
 	}
 
