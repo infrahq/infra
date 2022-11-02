@@ -24,7 +24,7 @@ jobs:
           list="$(go test -list '^Fuzz' ./... | \
                   grep '^Fuzz' | \
                   xargs jq -n '$ARGS.positional' --compact-output --args)"
-          echo "::set-output name=list::${list}"
+          echo "list=${list}" >>$GITHUB_OUTPUT
 
   fuzz:
     needs: fuzz-matrix
