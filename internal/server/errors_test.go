@@ -20,8 +20,9 @@ import (
 
 func TestSendAPIError(t *testing.T) {
 	tests := []struct {
-		err    error
-		result api.Error
+		err               error
+		result            api.Error
+		emptyResponseBody bool
 	}{
 		{
 			err:    internal.ErrBadRequest,
@@ -106,6 +107,11 @@ func TestSendAPIError(t *testing.T) {
 				},
 			},
 		},
+		{
+			err:               internal.ErrNotModified,
+			result:            api.Error{Code: http.StatusNotModified},
+			emptyResponseBody: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -121,6 +127,12 @@ func TestSendAPIError(t *testing.T) {
 			sendAPIError(c, test.err)
 
 			assert.Equal(t, test.result.Code, int32(resp.Result().StatusCode))
+
+			if test.emptyResponseBody {
+				assert.Equal(t, resp.Body.Len(), 0)
+				return
+			}
+
 			actual := &api.Error{}
 			err := json.NewDecoder(resp.Body).Decode(actual)
 			assert.NilError(t, err)

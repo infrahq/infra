@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -175,6 +176,13 @@ func TestListGrants(t *testing.T) {
 		switch r.URL.Path {
 		case "/api/grants":
 			reqCh <- r
+
+			lastUpdateIndex := r.URL.Query().Get("lastUpdateIndex")
+			if lastUpdateIndex == "70000" {
+				resp.WriteHeader(http.StatusNotModified)
+				return
+			}
+
 			resp.Header().Set("Last-Update-Index", "10010")
 			resp.WriteHeader(http.StatusOK)
 			_, _ = resp.Write([]byte(`{}`))
@@ -204,5 +212,15 @@ func TestListGrants(t *testing.T) {
 
 		req := <-reqCh
 		assert.Equal(t, req.URL.Query().Get("lastUpdateIndex"), "1234")
+	})
+	t.Run("not modified", func(t *testing.T) {
+		_, err := c.ListGrants(ctx, ListGrantsRequest{
+			Resource:        "anything",
+			BlockingRequest: BlockingRequest{LastUpdateIndex: 70000},
+		})
+		var apiError Error
+		assert.Assert(t, errors.As(err, &apiError), err)
+		expected := Error{Code: http.StatusNotModified}
+		assert.DeepEqual(t, apiError, expected)
 	})
 }

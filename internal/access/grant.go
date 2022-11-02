@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -92,7 +93,10 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 	}
 
 	err = listener.WaitForNotification(rCtx.Request.Context())
-	if err != nil {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return result, internal.ErrNotModified
+	case err != nil:
 		return result, fmt.Errorf("waiting for notify: %w", err)
 	}
 

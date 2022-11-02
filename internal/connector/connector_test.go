@@ -299,7 +299,7 @@ func TestSyncGrantsToKubeBindings(t *testing.T) {
 		{
 			name: "api blocking request timeout",
 			fakeAPI: &fakeAPIClient{
-				listGrantsError: api.Error{Code: http.StatusGatewayTimeout},
+				listGrantsError: api.Error{Code: http.StatusNotModified},
 			},
 			expectedListGrantIndexes: []int64{1, 1},
 			successCount:             2,
