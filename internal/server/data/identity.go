@@ -167,7 +167,7 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 	}
 
 	if opts.LoadGroups {
-		groups, err := ListGroups(tx, nil, ByGroupMember(identity.ID))
+		groups, err := ListGroups(tx, ListGroupOptions{ByMemberID: identity.ID})
 		if err != nil {
 			return nil, fmt.Errorf("load identity groups: %w", err)
 		}
@@ -338,7 +338,7 @@ func loadIdentitiesGroups(tx GormTxn, identities []models.Identity) error {
 	}
 
 	// look-up the group entities
-	groups, err := ListGroups(tx, nil, ByIDs(maps.Keys(groupIDs)))
+	groups, err := ListGroups(tx, ListGroupOptions{ByIDs: maps.Keys(groupIDs)})
 	if err != nil {
 		return err
 	}
@@ -488,7 +488,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 		}
 
 		if len(user.Providers) == 0 {
-			groups, err := ListGroups(tx, nil, ByGroupMember(i.ID))
+			groups, err := ListGroups(tx, ListGroupOptions{ByMemberID: i.ID})
 			if err != nil {
 				return []uid.ID{}, fmt.Errorf("list groups for identity: %w", err)
 			}

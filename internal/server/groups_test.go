@@ -319,7 +319,7 @@ func TestAPI_DeleteGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListGroups(srv.DB(), nil, data.ByID(humans.ID))
+				actual, err := data.ListGroups(srv.DB(), data.ListGroupOptions{ByIDs: []uid.ID{humans.ID}})
 				assert.NilError(t, err)
 				assert.Equal(t, len(actual), 0)
 			},

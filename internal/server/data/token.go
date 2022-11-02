@@ -68,7 +68,7 @@ func CreateIdentityToken(db GormTxn, identityID uid.ID) (token *models.Token, er
 		return nil, err
 	}
 
-	identityGroups, err := ListGroups(db, nil, ByGroupMember(identityID))
+	identityGroups, err := ListGroups(db, ListGroupOptions{ByMemberID: identityID})
 	if err != nil {
 		return nil, err
 	}

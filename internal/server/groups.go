@@ -5,12 +5,18 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListResponse[api.Group], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
-	groups, err := access.ListGroups(c, r.Name, r.UserID, &p)
+	opts := data.ListGroupOptions{
+		Pagination: &p,
+		ByMemberID: r.UserID,
+		ByName:     r.Name,
+	}
+	groups, err := access.ListGroups(c, opts)
 	if err != nil {
 		return nil, err
 	}

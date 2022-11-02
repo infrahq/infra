@@ -714,7 +714,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				assert.NilError(t, err)
 
 				// check the result
-				actual, err := ListGroups(db, nil, ByGroupMember(identity.ID))
+				actual, err := ListGroups(db, ListGroupOptions{ByMemberID: identity.ID})
 				assert.NilError(t, err)
 
 				assert.DeepEqual(t, actual, test.ExpectedGroups, cmpModelsGroupShallow)

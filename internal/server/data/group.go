@@ -65,21 +65,69 @@ func GetGroup(tx ReadTxn, opts GetGroupOptions) (*models.Group, error) {
 	return (*models.Group)(group), nil
 }
 
-func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
-	groups, err := list[models.Group](db, p, selectors...)
+type ListGroupOptions struct {
+	ByIDs      []uid.ID
+	ByName     string
+	ByMemberID uid.ID
+	Pagination *Pagination
+}
+
+func ListGroups(tx ReadTxn, opts ListGroupOptions) ([]models.Group, error) {
+	group := &groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(group))
+	query.B(", COUNT(DISTINCT identity_id)")
+	if opts.Pagination != nil {
+		query.B(", COUNT(*) OVER()")
+	}
+	query.B("FROM")
+	query.B(group.Table())
+	query.B("LEFT JOIN identities_groups ON group_id = id")
+	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	if len(opts.ByIDs) != 0 {
+		query.B("AND id IN (?)", opts.ByIDs)
+	}
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.ByMemberID != 0 {
+		// get the group IDs that contain this member
+		stmt := `
+			SELECT group_id
+			FROM identities_groups
+			WHERE identity_id = ?
+		`
+		rows, err := tx.Query(stmt, opts.ByMemberID)
+		if err != nil {
+			return nil, handleError(err)
+		}
+		memberGroupIDs, err := scanRows(rows, func(id *int) []any {
+			return []any{id}
+		})
+		if err != nil {
+			return nil, fmt.Errorf("list groups for member: %w", err)
+		}
+
+		query.B("AND id IN (?)", memberGroupIDs)
+	}
+	query.B("GROUP BY id")
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range groups {
-		count, err := CountUsersInGroup(db, groups[i].ID)
-		if err != nil {
-			return nil, err
+	return scanRows(rows, func(group *models.Group) []any {
+		fields := (*groupsTable)(group).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
 		}
-		groups[i].TotalUsers = int(count)
-	}
-
-	return groups, nil
+		return fields
+	})
 }
 
 func ByGroupMember(id uid.ID) SelectorFunc {
@@ -152,22 +200,4 @@ func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) err
 	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id IN (?)`
 	_, err := tx.Exec(stmt, groupID, idsToRemove)
 	return handleError(err)
-}
-
-// TODO: do this with a join in ListGroups and GetGroup
-func CountUsersInGroup(tx ReadTxn, groupID uid.ID) (int, error) {
-	stmt := `
-		SELECT COUNT (DISTINCT identity_id)
-		FROM identities_groups
-		WHERE group_id = ?
-	`
-	var totalUsers int
-
-	row := tx.QueryRow(stmt, groupID)
-	err := row.Scan(&totalUsers)
-	if err != nil {
-		return -1, err
-	}
-
-	return totalUsers, nil
 }
