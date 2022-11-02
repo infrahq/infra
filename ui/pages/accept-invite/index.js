@@ -17,12 +17,11 @@ export default function AcceptInvite() {
   }
 
   return (
-    <div className='flex min-h-[320px] w-full flex-col items-center px-10 py-8'>
-      <h1 className='text-base font-bold leading-snug'>Welcome to Infra</h1>
-      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-        Please set your password to continue
-      </h2>
-      <PasswordResetForm />
+    <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
+      <PasswordResetForm
+        header='Welcome to Infra'
+        subheader='Please set your password to continue'
+      />
     </div>
   )
 }

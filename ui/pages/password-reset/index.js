@@ -40,11 +40,10 @@ export default function PasswordReset() {
     <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
       {token ? (
         <>
-          <h1 className='text-base font-bold leading-snug'>Reset password</h1>
-          <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
-            Set your new password
-          </h2>
-          <PasswordResetForm />
+          <PasswordResetForm
+            header='Reset password'
+            subheader='Set your new password'
+          />
         </>
       ) : (
         <>
@@ -92,11 +91,7 @@ export default function PasswordReset() {
                 >
                   Reset Password
                 </button>
-                {error && (
-                  <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
-                    {error}
-                  </p>
-                )}
+                {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
               </form>
             </>
           )}

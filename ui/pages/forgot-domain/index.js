@@ -80,11 +80,7 @@ export default function ForgotDomain() {
           >
             Find your organization
           </button>
-          {error && (
-            <p className='absolute -bottom-3.5 mx-auto w-full text-center text-2xs text-red-500'>
-              {error}
-            </p>
-          )}
+          {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
         </form>
       )}
     </div>
