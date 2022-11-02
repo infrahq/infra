@@ -2,6 +2,7 @@ package data
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
@@ -11,17 +12,31 @@ import (
 
 func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		org := &models.Organization{Name: "syndicate", Domain: "syndicate-123"}
+		org := &models.Organization{
+			Name:      "syndicate",
+			Domain:    "syndicate-123",
+			CreatedBy: 777,
+		}
 
 		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
 
-		tx := &Transaction{DB: db.DB, orgID: org.ID}
+		tx := txnForTestCase(t, db, org.ID)
 
 		// org is created
-		readOrg, err := GetOrganization(db, ByID(org.ID))
+		actual, err := GetOrganization(db, ByID(org.ID))
 		assert.NilError(t, err)
-		assert.DeepEqual(t, org, readOrg, cmpTimeWithDBPrecision)
+		expected := &models.Organization{
+			Model: models.Model{
+				ID:        12345,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Name:      "syndicate",
+			Domain:    "syndicate-123",
+			CreatedBy: 777,
+		}
+		assert.DeepEqual(t, expected, actual, cmpModel)
 
 		// infra provider is created
 		orgInfraIDP := InfraProvider(tx)
@@ -81,3 +96,44 @@ var anyValidToken = cmp.Comparer(func(a, b string) bool {
 	}
 	return false
 })
+
+func TestUpdateOrganization(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, 0)
+
+		past := time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC)
+		org := &models.Organization{
+			Model: models.Model{
+				CreatedAt: past,
+				UpdatedAt: past,
+			},
+			Name:   "second",
+			Domain: "second.example.com",
+		}
+		err := CreateOrganization(db, org)
+		assert.NilError(t, err)
+
+		updated := *org // shallow copy
+		updated.Domain = "third.example.com"
+		updated.Name = "next"
+		updated.CreatedBy = 7123
+
+		err = UpdateOrganization(tx, &updated)
+		assert.NilError(t, err)
+
+		actual, err := GetOrganization(tx, ByID(org.ID))
+		assert.NilError(t, err)
+
+		expected := &models.Organization{
+			Model: models.Model{
+				ID:        org.ID,
+				CreatedAt: past,
+				UpdatedAt: time.Now(),
+			},
+			Name:      "next",
+			Domain:    "third.example.com",
+			CreatedBy: 7123,
+		}
+		assert.DeepEqual(t, expected, actual, cmpModel)
+	})
+}

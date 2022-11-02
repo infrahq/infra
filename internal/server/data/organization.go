@@ -7,12 +7,33 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-// CreateOrganization creates a new organization and sets the current db context to execute on this org
+type organizationsTable models.Organization
+
+func (organizationsTable) Table() string {
+	return "organizations"
+}
+
+func (o organizationsTable) Columns() []string {
+	return []string{"created_at", "created_by", "deleted_at", "domain", "id", "name", "updated_at"}
+}
+
+func (o organizationsTable) Values() []any {
+	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID,
+
+		o.Name, o.UpdatedAt}
+}
+
+func (o *organizationsTable) ScanFields() []any {
+	return []any{&o.CreatedAt, &o.CreatedBy, &o.DeletedAt, &o.Domain, &o.ID, &o.Name, &o.UpdatedAt}
+}
+
+// CreateOrganization creates a new organization, and initializes it with
+// settings, an infra provider, a connector user, and a grant for the connector.
 func CreateOrganization(tx GormTxn, org *models.Organization) error {
 	if org.Name == "" {
 		return fmt.Errorf("Organization.Name is required")
 	}
-	err := add(tx, org)
+	err := insert(tx, (*organizationsTable)(org))
 	if err != nil {
 		return fmt.Errorf("creating org: %w", err)
 	}
@@ -70,14 +91,11 @@ func DeleteOrganizations(db GormTxn, selectors ...SelectorFunc) error {
 		return err
 	}
 
-	// TODO:
-	//   * Delete grants
-	//   * Delete groups
-	//   * Delete users
+	// TODO: delete everything in the organization
 
 	return delete[models.Organization](db, toDelete.ID)
 }
 
-func UpdateOrganization(tx GormTxn, org *models.Organization) error {
-	return save(tx, org)
+func UpdateOrganization(tx WriteTxn, org *models.Organization) error {
+	return update(tx, (*organizationsTable)(org))
 }
