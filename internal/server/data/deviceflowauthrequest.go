@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
@@ -58,8 +57,34 @@ func CreateDeviceFlowAuthRequest(tx WriteTxn, dfar *models.DeviceFlowAuthRequest
 	return insert(tx, (*deviceFlowAuthRequestTable)(dfar))
 }
 
-func GetDeviceFlowAuthRequest(db GormTxn, selectors ...SelectorFunc) (*models.DeviceFlowAuthRequest, error) {
-	return get[models.DeviceFlowAuthRequest](db, selectors...)
+type SelectDeviceFlowAuthRequestOptions struct {
+	ByID         uid.ID
+	ByDeviceCode string
+	ByUserCode   string
+}
+
+func GetDeviceFlowAuthRequest(tx GormTxn, opts SelectDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
+	rec := &deviceFlowAuthRequestTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(rec))
+	query.B("FROM")
+	query.B(rec.Table())
+	query.B("WHERE deleted_at is null")
+	if opts.ByID != 0 {
+		query.B("AND id = ?", opts.ByID)
+	}
+	if opts.ByDeviceCode != "" {
+		query.B("and device_code = ?", opts.ByDeviceCode)
+	}
+	if opts.ByUserCode != "" {
+		query.B("and user_code = ?", opts.ByUserCode)
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(rec.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.DeviceFlowAuthRequest)(rec), nil
 }
 
 func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *models.AccessKey) error {
@@ -69,20 +94,8 @@ func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *mo
 			access_key_id = ?,
 			access_key_token = ?
 		WHERE id = ?
-	`, accessKey.ID, accessKey.Token(), dfarID)
+	`, accessKey.ID, models.EncryptedAtRest(accessKey.Token()), dfarID)
 	return handleError(err)
-}
-
-func ByDeviceCode(deviceCode string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("device_code = ?", deviceCode)
-	}
-}
-
-func ByUserCode(userCode string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("user_code = ?", userCode)
-	}
 }
 
 func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
