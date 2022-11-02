@@ -79,21 +79,14 @@ func (a *API) GetDeviceFlowStatus(c *gin.Context, req *api.DeviceFlowStatusReque
 		}, nil
 	}
 
-	if dfar.Approved != nil && !*dfar.Approved {
-		return &api.DeviceFlowStatusResponse{
-			Status:     "rejected",
-			DeviceCode: dfar.DeviceCode,
-		}, nil
-	}
-
-	if dfar.Approved != nil && *dfar.Approved {
+	if dfar.AccessKey != nil {
 		return &api.DeviceFlowStatusResponse{
 			Status:     "confirmed",
 			DeviceCode: dfar.DeviceCode,
 			LoginResponse: &api.LoginResponse{
 				UserID:    dfar.AccessKey.IssuedFor,
 				Name:      dfar.AccessKey.IssuedForName,
-				AccessKey: dfar.AccessKeyToken,
+				AccessKey: string(dfar.AccessKeyToken),
 				Expires:   api.Time(dfar.AccessKey.ExpiresAt),
 				// TODO: set OrganizationName for consistency with other login methods
 			},
@@ -119,7 +112,7 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 		return nil, internal.ErrExpired
 	}
 
-	if dfar.Approved != nil && *dfar.Approved {
+	if dfar.AccessKey != nil {
 		// already approved, do nothing
 		return nil, nil
 	}

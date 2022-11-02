@@ -19,15 +19,15 @@ func (d deviceFlowAuthRequestTable) Table() string {
 }
 
 func (d deviceFlowAuthRequestTable) Columns() []string {
-	return []string{"access_key_id", "access_key_token", "approved", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
+	return []string{"access_key_id", "access_key_token", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
 }
 
 func (d deviceFlowAuthRequestTable) Values() []any {
-	return []any{d.AccessKeyID, d.AccessKeyToken, d.Approved, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
+	return []any{d.AccessKeyID, d.AccessKeyToken, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
 }
 
 func (d *deviceFlowAuthRequestTable) ScanFields() []any {
-	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.Approved, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
+	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
 }
 
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
@@ -67,8 +67,7 @@ func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *mo
 		UPDATE device_flow_auth_requests
 		SET 
 			access_key_id = ?,
-			access_key_token = ?,
-			approved = true
+			access_key_token = ?
 		WHERE id = ?
 	`, accessKey.ID, accessKey.Token(), dfarID)
 	return handleError(err)
@@ -86,7 +85,7 @@ func ByUserCode(userCode string) SelectorFunc {
 	}
 }
 
-func DeleteExpiredDeviceFlowAuthRequest(tx WriteTxn) error {
+func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
 	stmt := `
 		DELETE from device_flow_auth_requests
 		WHERE

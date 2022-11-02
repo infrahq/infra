@@ -808,7 +808,19 @@ DELETE FROM settings WHERE id=24567;
 			},
 		},
 		{
-			label: testCaseLine("2022-10-06T14:58"),
+			label: testCaseLine(addDeviceFlowAuthRequestTable().ID),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine(modifyDeviceFlowAuthRequestDropApproved().ID),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
+		{
+			label: testCaseLine(addExpiresAtIndices().ID),
 			expected: func(t *testing.T, db WriteTxn) {
 				// schema changes are tested with schema comparison
 			},

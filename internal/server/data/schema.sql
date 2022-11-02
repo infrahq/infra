@@ -137,7 +137,6 @@ CREATE TABLE device_flow_auth_requests (
     id bigint NOT NULL,
     user_code text NOT NULL,
     device_code text NOT NULL,
-    approved boolean,
     access_key_id bigint,
     access_key_token text,
     expires_at timestamp with time zone,
@@ -313,6 +312,8 @@ ALTER TABLE ONLY providers
 ALTER TABLE ONLY settings
     ADD CONSTRAINT settings_pkey PRIMARY KEY (id);
 
+CREATE INDEX idx_access_keys_expires_at ON access_keys USING btree (expires_at);
+
 CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organization_id, name) WHERE (deleted_at IS NULL);
@@ -322,6 +323,8 @@ CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (orga
 CREATE UNIQUE INDEX idx_destinations_name ON destinations USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_destinations_unique_id ON destinations USING btree (organization_id, unique_id) WHERE (deleted_at IS NULL);
+
+CREATE INDEX idx_device_flow_auth_requests_expires_at ON device_flow_auth_requests USING btree (expires_at);
 
 CREATE UNIQUE INDEX idx_dfar_user_code ON device_flow_auth_requests USING btree (user_code) WHERE (deleted_at IS NULL);
 
@@ -340,6 +343,8 @@ CREATE UNIQUE INDEX idx_identities_name ON identities USING btree (organization_
 CREATE UNIQUE INDEX idx_identities_verified ON identities USING btree (organization_id, verification_token) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_organizations_domain ON organizations USING btree (domain) WHERE (deleted_at IS NULL);
+
+CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens USING btree (expires_at);
 
 CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USING btree (token);
 

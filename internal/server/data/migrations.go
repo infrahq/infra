@@ -69,6 +69,8 @@ func migrations() []*migrator.Migration {
 		addUpdateIndexAndGrantNotify(),
 		addUpdateIndexToExistingGrants(),
 		addDeviceFlowAuthRequestTable(),
+		modifyDeviceFlowAuthRequestDropApproved(),
+		addExpiresAtIndices(),
 		// next one here
 	}
 }
@@ -833,6 +835,33 @@ func addDeviceFlowAuthRequestTable() *migrator.Migration {
 
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_dfar_user_code on device_flow_auth_requests (user_code) WHERE (deleted_at IS NULL);
 
+			`)
+			return err
+		},
+	}
+}
+
+func modifyDeviceFlowAuthRequestDropApproved() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-01T16:39",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				ALTER TABLE device_flow_auth_requests
+					DROP COLUMN IF EXISTS approved;
+			`)
+			return err
+		},
+	}
+}
+
+func addExpiresAtIndices() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-02T15:30",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				CREATE INDEX IF NOT EXISTS idx_access_keys_expires_at on access_keys (expires_at);
+				CREATE INDEX IF NOT EXISTS idx_device_flow_auth_requests_expires_at on device_flow_auth_requests (expires_at);
+				CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at on password_reset_tokens (expires_at);
 			`)
 			return err
 		},

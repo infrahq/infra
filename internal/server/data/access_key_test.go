@@ -679,3 +679,21 @@ func TestGetAccessKeyByID(t *testing.T) {
 		})
 	})
 }
+
+func TestRemoveExpiredAccessKeys(t *testing.T) {
+	tx := setupDB(t)
+	ak := &models.AccessKey{
+		Name:      "foo expiry",
+		IssuedFor: uid.New(),
+		ExpiresAt: time.Now().Add(-1),
+	}
+	_, err := CreateAccessKey(tx, ak)
+	assert.NilError(t, err)
+
+	err = RemoveExpiredAccessKeys(tx)
+	assert.NilError(t, err)
+
+	_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak.ID})
+	assert.ErrorContains(t, err, "not found")
+
+}

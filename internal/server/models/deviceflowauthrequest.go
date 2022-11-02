@@ -11,14 +11,10 @@ type DeviceFlowAuthRequest struct {
 	UserCode   string
 	DeviceCode string
 
-	// TODO: remove Approved field? There's no way to reject a request right now
-	// and AccessKeyID != nil indicates approved.
-	Approved    *bool
 	AccessKeyID uid.ID
 
 	// AccessKeyToken is set once the request is approved.
-	// TODO: use EncryptedAtRest
-	AccessKeyToken string
+	AccessKeyToken EncryptedAtRest
 
 	ExpiresAt time.Time
 

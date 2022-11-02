@@ -203,6 +203,8 @@ func New(options Options) (*Server, error) {
 
 	configureEmail(options)
 
+	server.SetupBackgroundJobs()
+
 	return server, nil
 }
 

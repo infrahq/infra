@@ -8,6 +8,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -94,4 +95,12 @@ func ClaimPasswordResetToken(tx WriteTxn, token string) (uid.ID, error) {
 		return 0, internal.ErrExpired
 	}
 	return userID, nil
+}
+
+func RemoveExpiredPasswordResetTokens(tx WriteTxn) error {
+	query := querybuilder.New("DELETE FROM password_reset_tokens")
+	query.B("WHERE expires_at <= ?", time.Now().UTC())
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
 }

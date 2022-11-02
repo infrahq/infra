@@ -304,3 +304,12 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 
 	return t, nil
 }
+
+func RemoveExpiredAccessKeys(tx WriteTxn) error {
+	query := querybuilder.New("UPDATE access_keys")
+	query.B("SET deleted_at = ?", time.Now().UTC())
+	query.B("WHERE expires_at <= ?", time.Now().UTC())
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
