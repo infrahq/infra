@@ -89,7 +89,9 @@ func ListIdentities(c *gin.Context, name string, groupID uid.ID, ids []uid.ID, s
 
 func GetContextProviderIdentity(c RequestContext) (*models.Provider, string, error) {
 	// does not need authorization check, this action is limited to the calling user
-	provider, err := data.GetProvider(c.DBTxn, data.ByID(c.Authenticated.AccessKey.ProviderID))
+	provider, err := data.GetProvider(c.DBTxn, data.GetProviderOptions{
+		ByID: c.Authenticated.AccessKey.ProviderID,
+	})
 	if err != nil {
 		return nil, "", fmt.Errorf("user info provider: %w", err)
 	}
@@ -125,7 +127,9 @@ func UpdateIdentityInfoFromProvider(c RequestContext, oidc providers.OIDCClient)
 	}
 
 	db := c.DBTxn
-	provider, err := data.GetProvider(db, data.ByID(c.Authenticated.AccessKey.ProviderID))
+	provider, err := data.GetProvider(db, data.GetProviderOptions{
+		ByID: c.Authenticated.AccessKey.ProviderID,
+	})
 	if err != nil {
 		return fmt.Errorf("user info provider: %w", err)
 	}

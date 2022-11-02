@@ -675,7 +675,10 @@ func (s Server) loadProviders(db data.GormTxn, providers []Provider) error {
 	}
 
 	// remove any provider previously defined by config
-	if err := data.DeleteProviders(db, data.NotIDs(keep), data.CreatedBy(models.CreatedBySystem)); err != nil {
+	if err := data.DeleteProviders(db, data.DeleteProvidersOptions{
+		CreatedBy: models.CreatedBySystem,
+		NotIDs:    keep,
+	}); err != nil {
 		return err
 	}
 
@@ -694,7 +697,7 @@ func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider,
 		return nil, fmt.Errorf("could not load provider client secret: %w", err)
 	}
 
-	provider, err := data.GetProvider(db, data.ByName(input.Name))
+	provider, err := data.GetProvider(db, data.GetProviderOptions{ByName: input.Name})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return nil, err
@@ -754,7 +757,7 @@ func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider,
 	provider.ClientSecret = models.EncryptedAtRest(clientSecret)
 	provider.Kind = kind
 
-	if err := data.SaveProvider(db, provider); err != nil {
+	if err := data.UpdateProvider(db, provider); err != nil {
 		return nil, err
 	}
 

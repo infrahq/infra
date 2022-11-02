@@ -2,17 +2,17 @@ package data
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/uid"
 )
 
-func TestProvider(t *testing.T) {
+func TestCreateProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		providerDevelop := models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 
@@ -33,7 +33,7 @@ func createProviders(t *testing.T, db GormTxn, providers ...*models.Provider) {
 	}
 }
 
-func TestCreateProviderDuplicate(t *testing.T) {
+func TestCreateProvider_DuplicateName(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
@@ -52,7 +52,7 @@ func TestCreateProviderDuplicate(t *testing.T) {
 	})
 }
 
-func TestGetProvider(t *testing.T) {
+func TestCreateProvider_RecreateWithDuplicateDomain(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		var (
 			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
@@ -61,29 +61,246 @@ func TestGetProvider(t *testing.T) {
 
 		createProviders(t, db, &providerDevelop, &providerProduction)
 
-		provider, err := GetProvider(db, ByName("okta-development"))
+		err := DeleteProviders(db, DeleteProvidersOptions{ByID: providerDevelop.ID})
 		assert.NilError(t, err)
-		assert.Assert(t, provider.ID != 0)
-		assert.Equal(t, providerDevelop.URL, provider.URL)
+
+		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
+		assert.NilError(t, err)
+	})
+}
+
+// TODO: combine CreateProvider tests into single func
+
+func TestGetProvider(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		providerDevelop := models.Provider{
+			Name:             "okta-development",
+			URL:              "example.com",
+			ClientID:         "the-client-id",
+			ClientSecret:     "the-client-secret",
+			Kind:             models.ProviderKindOkta,
+			AuthURL:          "https://example.com/auth",
+			Scopes:           models.CommaSeparatedStrings{"scope1"},
+			PrivateKey:       "private-key",
+			ClientEmail:      "client@example.com",
+			DomainAdminEmail: "admin@domain.example.com",
+		}
+		providerProduction := models.Provider{
+			Name: "okta-production",
+			URL:  "prod.okta.com",
+			Kind: models.ProviderKindOkta,
+		}
+		providerDeleted := models.Provider{
+			Name: "deleted",
+			URL:  "somewhere.example.com",
+			Kind: models.ProviderKindAzure,
+		}
+		providerDeleted.DeletedAt.Time = time.Now()
+		providerDeleted.DeletedAt.Valid = true
+		createProviders(t, db, &providerDevelop, &providerProduction, &providerDeleted)
+
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{})
+			assert.ErrorContains(t, err, "an ID is required")
+		})
+		t.Run("by name", func(t *testing.T) {
+			provider, err := GetProvider(db, GetProviderOptions{ByName: "okta-development"})
+			assert.NilError(t, err)
+			assert.Assert(t, provider.ID != 0)
+
+			expected := models.Provider{
+				Model: models.Model{
+					ID:        provider.ID,
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
+				Name:               "okta-development",
+				URL:                "example.com",
+				ClientID:           "the-client-id",
+				ClientSecret:       "the-client-secret",
+				Kind:               models.ProviderKindOkta,
+				AuthURL:            "https://example.com/auth",
+				Scopes:             models.CommaSeparatedStrings{"scope1"},
+				PrivateKey:         "private-key",
+				ClientEmail:        "client@example.com",
+				DomainAdminEmail:   "admin@domain.example.com",
+			}
+			assert.DeepEqual(t, providerDevelop, expected, cmpModel)
+		})
+		t.Run("by id", func(t *testing.T) {
+			provider, err := GetProvider(db, GetProviderOptions{ByName: "okta-development"})
+			assert.NilError(t, err)
+			assert.Assert(t, provider.ID != 0)
+			assert.Equal(t, providerDevelop.URL, provider.URL)
+		})
+		t.Run("get deleted", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{ByID: providerDeleted.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("not found", func(t *testing.T) {
+			_, err := GetProvider(db, GetProviderOptions{ByName: "does-not-exist"})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
 	})
 }
 
 func TestListProviders(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
-		)
+		providerDev := &models.Provider{
+			Name:      "okta-development",
+			URL:       "example.com",
+			Kind:      models.ProviderKindOkta,
+			CreatedBy: 777,
+		}
+		providerProd := &models.Provider{
+			Name:      "okta-production",
+			URL:       "prod.okta.com",
+			Kind:      models.ProviderKindOkta,
+			CreatedBy: 777,
+		}
+		deleted := &models.Provider{
+			Name:      "deleted",
+			URL:       "somewhere.example.com",
+			Kind:      models.ProviderKindOIDC,
+			CreatedBy: 777,
+		}
+		deleted.DeletedAt.Valid = true
+		deleted.DeletedAt.Time = time.Now()
 
-		createProviders(t, db, &providerDevelop, &providerProduction)
+		createProviders(t, db, providerDev, providerProd, deleted)
 
-		providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
-		assert.NilError(t, err)
-		assert.Equal(t, 2, len(providers))
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
 
-		providers, err = ListProviders(db, nil, ByOptionalName("okta-development"))
-		assert.NilError(t, err)
-		assert.Equal(t, 1, len(providers))
+		otherOrgProvider := &models.Provider{
+			Name:               "okta-production",
+			URL:                "prod.okta.com",
+			Kind:               models.ProviderKindOkta,
+			OrganizationMember: models.OrganizationMember{OrganizationID: otherOrg.ID},
+		}
+		createProviders(t, db, otherOrgProvider)
+
+		providerInfra := InfraProvider(db)
+
+		t.Run("default", func(t *testing.T) {
+			actual, err := ListProviders(db, ListProvidersOptions{})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerInfra, *providerDev, *providerProd}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+		})
+		t.Run("exclude infra provider", func(t *testing.T) {
+			actual, err := ListProviders(db, ListProvidersOptions{
+				ExcludeInfraProvider: true,
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerDev, *providerProd}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+		})
+		t.Run("by name", func(t *testing.T) {
+			actual, err := ListProviders(db, ListProvidersOptions{
+				ByName: "okta-development",
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerDev}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+		})
+		t.Run("by IDs", func(t *testing.T) {
+			actual, err := ListProviders(db, ListProvidersOptions{
+				ByIDs: []uid.ID{providerDev.ID, providerInfra.ID},
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerInfra, *providerDev}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+		})
+		t.Run("created by and notIDs", func(t *testing.T) {
+			actual, err := ListProviders(db, ListProvidersOptions{
+				CreatedBy: 777,
+				NotIDs:    []uid.ID{providerDev.ID},
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerProd}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+		})
+		t.Run("pagination", func(t *testing.T) {
+			page := Pagination{Page: 2, Limit: 2}
+			actual, err := ListProviders(db, ListProvidersOptions{Pagination: &page})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerProd}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+			assert.Equal(t, page.TotalCount, 3)
+		})
+		t.Run("pagination with filter", func(t *testing.T) {
+			page := Pagination{Page: 1, Limit: 2}
+			actual, err := ListProviders(db, ListProvidersOptions{
+				Pagination: &page,
+				ByIDs:      []uid.ID{providerInfra.ID, providerProd.ID, providerDev.ID},
+			})
+			assert.NilError(t, err)
+
+			expected := []models.Provider{*providerInfra, *providerDev}
+			assert.DeepEqual(t, expected, actual, cmpModelByID)
+			assert.Equal(t, page.TotalCount, 3)
+		})
+	})
+}
+
+func TestUpdateProvider(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			orig := models.Provider{
+				Name: "idp",
+				Kind: models.ProviderKindGoogle,
+			}
+			createProviders(t, tx, &orig)
+
+			updated := models.Provider{
+				Model:            models.Model{ID: orig.ID},
+				Name:             "new-name",
+				URL:              "https://example.com/idp",
+				ClientID:         "client-id",
+				ClientSecret:     "client-secret",
+				CreatedBy:        777,
+				Kind:             models.ProviderKindAzure,
+				AuthURL:          "https://example.com/auth",
+				Scopes:           []string{"one", "two"},
+				PrivateKey:       "private-key",
+				ClientEmail:      "client-email@example.com",
+				DomainAdminEmail: "domain-admin-email@example.com",
+			}
+			err := UpdateProvider(tx, &updated)
+			assert.NilError(t, err)
+
+			actual, err := GetProvider(tx, GetProviderOptions{ByID: orig.ID})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, &updated, cmpTimeWithDBPrecision)
+		})
+		t.Run("name conflict", func(t *testing.T) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			orig := models.Provider{Name: "idp", Kind: models.ProviderKindGoogle}
+			other := models.Provider{Name: "taken", Kind: models.ProviderKindOIDC}
+			createProviders(t, tx, &orig, &other)
+
+			err := UpdateProvider(tx, &models.Provider{
+				Model: models.Model{ID: orig.ID},
+				Name:  other.Name,
+				Kind:  orig.Kind,
+			})
+
+			var ucErr UniqueConstraintError
+			assert.Assert(t, errors.As(err, &ucErr))
+			expected := UniqueConstraintError{Column: "name", Table: "providers"}
+			assert.DeepEqual(t, ucErr, expected)
+		})
 	})
 }
 
@@ -94,52 +311,55 @@ func TestDeleteProviders(t *testing.T) {
 			providerProduction = models.Provider{}
 			pu                 = &models.ProviderUser{}
 			user               = &models.Identity{}
-			i                  = 0
 		)
 
-		setup := func() {
-			providerDevelop = models.Provider{Name: fmt.Sprintf("okta-development-%d", i), URL: "example.com", Kind: models.ProviderKindOkta}
-			providerProduction = models.Provider{Name: fmt.Sprintf("okta-production-%d", i+1), URL: "prod.okta.com", Kind: models.ProviderKindOkta}
-			i += 2
+		otherOrg := &models.Organization{Name: "Other", Domain: "other.example.org"}
+		assert.NilError(t, CreateOrganization(db, otherOrg))
 
-			err := CreateProvider(db, &providerDevelop)
-			assert.NilError(t, err)
-			err = CreateProvider(db, &providerProduction)
-			assert.NilError(t, err)
-
-			providers, err := ListProviders(db, nil, NotName(models.InternalInfraProviderName))
-			assert.NilError(t, err)
-			assert.Assert(t, len(providers) >= 2)
+		setup := func(t *testing.T) *Transaction {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+			providerDevelop = models.Provider{
+				Name: "okta-development",
+				URL:  "example.com",
+				Kind: models.ProviderKindOkta,
+			}
+			providerProduction = models.Provider{
+				Name: "okta-production",
+				URL:  "prod.okta.com",
+				Kind: models.ProviderKindOkta,
+			}
+			createProviders(t, tx, &providerDevelop, &providerProduction)
 
 			user = &models.Identity{Name: "joe@example.com"}
-			err = CreateIdentity(db, user)
+			err := CreateIdentity(tx, user)
 			assert.NilError(t, err)
 
-			pu, err = CreateProviderUser(db, &providerDevelop, user)
+			pu, err = CreateProviderUser(tx, &providerDevelop, user)
 			assert.NilError(t, err)
+			return tx
 		}
 
 		t.Run("Deletes work", func(t *testing.T) {
-			setup()
-			err := DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			tx := setup(t)
+			err := DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
-			_, err = GetProvider(db, ByOptionalName(providerDevelop.Name))
+			_, err = GetProvider(tx, GetProviderOptions{ByName: providerDevelop.Name})
 			assert.Error(t, err, "record not found")
 
 			t.Run("provider users are removed", func(t *testing.T) {
-				_, err = GetProviderUser(db, pu.ProviderID, pu.IdentityID)
+				_, err = GetProviderUser(tx, pu.ProviderID, pu.IdentityID)
 				assert.Error(t, err, "record not found")
 			})
 
 			t.Run("user is removed when last providerUser is removed", func(t *testing.T) {
-				_, err = GetIdentity(db, GetIdentityOptions{ByID: pu.IdentityID})
+				_, err = GetIdentity(tx, GetIdentityOptions{ByID: pu.IdentityID})
 				assert.Error(t, err, "record not found")
 			})
 		})
 
 		t.Run("access keys issued using deleted provider are revoked", func(t *testing.T) {
-			setup()
+			tx := setup(t)
 
 			key := &models.AccessKey{
 				Name:       "test key",
@@ -148,20 +368,20 @@ func TestDeleteProviders(t *testing.T) {
 				ExpiresAt:  time.Now().Add(5 * time.Minute),
 			}
 
-			_, err := CreateAccessKey(db, key)
+			_, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
-			_, err = GetAccessKeyByKeyID(db, key.KeyID)
+			_, err = GetAccessKeyByKeyID(tx, key.KeyID)
 			assert.ErrorContains(t, err, "record not found")
 		})
 
 		t.Run("access keys issued using different provider from deleted are NOT revoked", func(t *testing.T) {
-			setup()
+			tx := setup(t)
 
-			_, err := CreateProviderUser(db, &providerProduction, user)
+			_, err := CreateProviderUser(tx, &providerProduction, user)
 			assert.NilError(t, err)
 
 			key := &models.AccessKey{
@@ -171,51 +391,46 @@ func TestDeleteProviders(t *testing.T) {
 				ExpiresAt:  time.Now().Add(5 * time.Minute),
 			}
 
-			_, err = CreateAccessKey(db, key)
+			_, err = CreateAccessKey(tx, key)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
-			_, err = GetAccessKeyByKeyID(db, key.KeyID)
+			_, err = GetAccessKeyByKeyID(tx, key.KeyID)
 			assert.NilError(t, err)
 
 			// clean up
-			err = DeleteProviders(db, ByOptionalName(providerProduction.Name))
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerProduction.ID})
 			assert.NilError(t, err)
 		})
 
 		t.Run("user is not removed if there are other providerUsers", func(t *testing.T) {
-			setup()
+			tx := setup(t)
 
-			pu, err := CreateProviderUser(db, &providerProduction, user)
+			pu, err := CreateProviderUser(tx, &providerProduction, user)
 			assert.NilError(t, err)
 
-			err = DeleteProviders(db, ByOptionalName(providerDevelop.Name))
+			err = DeleteProviders(tx, DeleteProvidersOptions{ByID: providerDevelop.ID})
 			assert.NilError(t, err)
 
-			_, err = GetIdentity(db, GetIdentityOptions{ByID: pu.IdentityID})
+			_, err = GetIdentity(tx, GetIdentityOptions{ByID: pu.IdentityID})
 			assert.NilError(t, err)
 		})
-	})
-}
 
-func TestRecreateProviderSameDomain(t *testing.T) {
-	runDBTests(t, func(t *testing.T, db *DB) {
-		var (
-			providerDevelop    = models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
-			providerProduction = models.Provider{Name: "okta-production", URL: "prod.okta.com", Kind: models.ProviderKindOkta}
-		)
+		t.Run("delete in wrong org", func(t *testing.T) {
+			tx := setup(t)
 
-		createProviders(t, db, &providerDevelop, &providerProduction)
+			otherOrgTx := tx.WithOrgID(otherOrg.ID)
+			err := DeleteProviders(otherOrgTx, DeleteProvidersOptions{ByID: providerDevelop.ID})
+			assert.NilError(t, err)
 
-		err := DeleteProviders(db, func(db *gorm.DB) *gorm.DB {
-			return db.Where(&models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
+			_, err = GetIdentity(tx, GetIdentityOptions{ByID: user.ID})
+			assert.NilError(t, err)
+
+			_, err = GetProviderUser(tx, providerDevelop.ID, user.ID)
+			assert.NilError(t, err)
 		})
-		assert.NilError(t, err)
-
-		err = CreateProvider(db, &models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta})
-		assert.NilError(t, err)
 	})
 }
 

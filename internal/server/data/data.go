@@ -488,18 +488,6 @@ func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
 	return db.Delete(new(T), id).Error
 }
 
-func deleteAll[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) error {
-	db := tx.GormDB()
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-	if isOrgMember(new(T)) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-
-	return db.Delete(new(T)).Error
-}
-
 // GlobalCount gives the count of all records, not scoped by org.
 func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int64, error) {
 	db := tx.GormDB()
@@ -515,13 +503,11 @@ func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int
 	return count, nil
 }
 
-// InfraProvider returns the infra provider for the organization set in the db
-// context.
-func InfraProvider(db GormTxn) *models.Provider {
-	infra, err := get[models.Provider](db, ByProviderKind(models.ProviderKindInfra), ByOrgID(db.OrganizationID()))
+// InfraProvider returns the infra provider for the organization set in the tx.
+func InfraProvider(tx ReadTxn) *models.Provider {
+	infra, err := GetProvider(tx, GetProviderOptions{KindInfra: true})
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve infra provider")
-		return nil // unreachable, the line above panics
 	}
 	return infra
 }

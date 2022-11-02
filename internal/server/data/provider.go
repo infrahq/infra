@@ -3,11 +3,31 @@ package data
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
+
+type providersTable models.Provider
+
+func (p providersTable) Table() string {
+	return "providers"
+}
+
+func (p providersTable) Columns() []string {
+	return []string{"auth_url", "client_email", "client_id", "client_secret", "created_at", "created_by", "deleted_at", "domain_admin_email", "id", "kind", "name", "organization_id", "private_key", "scopes", "updated_at", "url"}
+}
+
+func (p providersTable) Values() []any {
+	return []any{p.AuthURL, p.ClientEmail, p.ClientID, p.ClientSecret, p.CreatedAt, p.CreatedBy, p.DeletedAt, p.DomainAdminEmail, p.ID, p.Kind, p.Name, p.OrganizationID, p.PrivateKey, p.Scopes, p.UpdatedAt, p.URL}
+}
+
+func (p *providersTable) ScanFields() []any {
+	return []any{&p.AuthURL, &p.ClientEmail, &p.ClientID, &p.ClientSecret, &p.CreatedAt, &p.CreatedBy, &p.DeletedAt, &p.DomainAdminEmail, &p.ID, &p.Kind, &p.Name, &p.OrganizationID, &p.PrivateKey, &p.Scopes, &p.UpdatedAt, &p.URL}
+}
 
 func validateProvider(p *models.Provider) error {
 	switch {
@@ -20,32 +40,147 @@ func validateProvider(p *models.Provider) error {
 	}
 }
 
-func CreateProvider(db GormTxn, provider *models.Provider) error {
+func CreateProvider(tx WriteTxn, provider *models.Provider) error {
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
-	return add(db, provider)
+	return insert(tx, (*providersTable)(provider))
 }
 
-func GetProvider(db GormTxn, selectors ...SelectorFunc) (*models.Provider, error) {
-	return get[models.Provider](db, selectors...)
+type GetProviderOptions struct {
+	ByID   uid.ID
+	ByName string
+
+	// KindInfra instructs GetProvider to return the infra provider. There should
+	// only ever be a single provider with this kind for each org.
+	KindInfra bool
 }
 
-func ListProviders(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Provider, error) {
-	return list[models.Provider](db, p, selectors...)
-}
+func GetProvider(tx ReadTxn, opts GetProviderOptions) (*models.Provider, error) {
+	provider := &providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(provider))
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
 
-func SaveProvider(db GormTxn, provider *models.Provider) error {
-	if err := validateProvider(provider); err != nil {
-		return err
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	case opts.KindInfra:
+		query.B("AND kind = ?", models.ProviderKindInfra)
+	default:
+		return nil, fmt.Errorf("an ID is required to get provider")
 	}
-	return save(db, provider)
-}
 
-func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
-	toDelete, err := ListProviders(db, nil, selectors...)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(provider.ScanFields()...)
 	if err != nil {
-		return fmt.Errorf("listing providers: %w", err)
+		return nil, handleError(err)
+	}
+	return (*models.Provider)(provider), nil
+}
+
+type ListProvidersOptions struct {
+	ByName               string
+	ExcludeInfraProvider bool
+	ByIDs                []uid.ID
+
+	// CreatedBy instructs DeleteProviders to delete all the providers that were
+	// created by this user. Can be used with NotIDs.
+	CreatedBy uid.ID
+	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
+	// be excluded. In other words, these IDs will not be deleted, even if they
+	// match CreatedBy.
+	// Can only be used with CreatedBy.
+	NotIDs []uid.ID
+
+	Pagination *Pagination
+}
+
+func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, error) {
+	table := providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.ExcludeInfraProvider {
+		query.B("AND kind <> ?", models.ProviderKindInfra)
+	}
+	if len(opts.ByIDs) > 0 {
+		query.B("AND id IN (?)", opts.ByIDs)
+	}
+	if opts.CreatedBy != 0 {
+		query.B("AND created_by = ?", opts.CreatedBy)
+		if len(opts.NotIDs) > 0 {
+			query.B("AND id NOT IN (?)", opts.NotIDs)
+		}
+	}
+
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	return scanRows(rows, func(grant *models.Provider) []any {
+		fields := (*providersTable)(grant).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
+}
+
+func UpdateProvider(tx WriteTxn, provider *models.Provider) error {
+	if err := validateProvider(provider); err != nil {
+		return err
+	}
+	return update(tx, (*providersTable)(provider))
+}
+
+type DeleteProvidersOptions struct {
+	// ByID instructs DeleteProviders to delete the provider matching this ID.
+	// When non-zero all other fields on this struct will be ignored
+	ByID uid.ID
+
+	// CreatedBy instructs DeleteProviders to delete all the providers that were
+	// created by this user. Can be used with NotIDs.
+	CreatedBy uid.ID
+	// NotIDs instructs DeleteProviders to exclude any providers with these IDs to
+	// be excluded. In other words, these IDs will not be deleted, even if they
+	// match CreatedBy.
+	// Can only be used with CreatedBy.
+	NotIDs []uid.ID
+}
+
+func DeleteProviders(db GormTxn, opts DeleteProvidersOptions) error {
+	var toDelete []models.Provider
+	if opts.ByID != 0 {
+		if provider, _ := GetProvider(db, GetProviderOptions{ByID: opts.ByID}); provider != nil {
+			toDelete = []models.Provider{*provider}
+		}
+	} else {
+		var err error
+		toDelete, err = ListProviders(db, ListProvidersOptions{
+			CreatedBy: opts.CreatedBy,
+			NotIDs:    opts.NotIDs,
+		})
+		if err != nil {
+			return fmt.Errorf("listing providers: %w", err)
+		}
 	}
 
 	ids := make([]uid.ID, 0)
@@ -97,7 +232,12 @@ func DeleteProviders(db GormTxn, selectors ...SelectorFunc) error {
 		}
 	}
 
-	return deleteAll[models.Provider](db, ByIDs(ids))
+	stmt := `
+		UPDATE providers
+		SET deleted_at = ?
+		WHERE deleted_at is null AND id IN (?) AND organization_id = ?`
+	_, err := db.Exec(stmt, time.Now(), ids, db.OrganizationID())
+	return err
 }
 
 type providersCount struct {
@@ -106,20 +246,16 @@ type providersCount struct {
 }
 
 func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
-	rows, err := tx.Query("SELECT kind, COUNT(*) AS count FROM providers WHERE kind <> 'infra' AND deleted_at IS NULL GROUP BY kind")
+	rows, err := tx.Query(`
+		SELECT kind, COUNT(*) AS count
+		FROM providers
+		WHERE kind <> 'infra'
+		AND deleted_at IS NULL
+		GROUP BY kind`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var results []providersCount
-	for rows.Next() {
-		var item providersCount
-		if err := rows.Scan(&item.Kind, &item.Count); err != nil {
-			return nil, err
-		}
-		results = append(results, item)
-	}
-
-	return results, rows.Err()
+	return scanRows(rows, func(item *providersCount) []any {
+		return []any{&item.Kind, &item.Count}
+	})
 }

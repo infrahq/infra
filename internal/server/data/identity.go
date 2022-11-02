@@ -187,16 +187,18 @@ func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) 
 			return nil, err
 		}
 
-		var providerIDs []uid.ID
-		for _, relation := range existsInProviders {
-			providerIDs = append(providerIDs, relation.ProviderID)
-		}
+		if len(existsInProviders) > 0 {
+			var providerIDs []uid.ID
+			for _, relation := range existsInProviders {
+				providerIDs = append(providerIDs, relation.ProviderID)
+			}
 
-		providers, err := ListProviders(tx, nil, ByIDs(providerIDs))
-		if err != nil {
-			return nil, fmt.Errorf("list providers for identity: %w", err)
+			providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: providerIDs})
+			if err != nil {
+				return nil, fmt.Errorf("list providers for identity: %w", err)
+			}
+			identity.Providers = providers
 		}
-		identity.Providers = providers
 	}
 
 	return (*models.Identity)(identity), nil
@@ -365,7 +367,7 @@ func loadIdentitiesGroups(tx GormTxn, identities []models.Identity) error {
 	return nil
 }
 
-func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
+func loadIdentitiesProviders(tx ReadTxn, identities []models.Identity) error {
 	// get the ids of all the identities
 	identityIDs := []uid.ID{}
 	for _, i := range identities {
@@ -378,8 +380,11 @@ func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
 		HideInactive:  true,
 	}
 	existsInProviders, err := ListProviderUsers(tx, opts)
-	if err != nil {
+	switch {
+	case err != nil:
 		return err
+	case len(existsInProviders) == 0:
+		return nil
 	}
 
 	// get the ids of the providers these users exist in to look-up the actual provider entities
@@ -393,7 +398,7 @@ func loadIdentitiesProviders(tx GormTxn, identities []models.Identity) error {
 		providerIDs[pID] = true
 	}
 
-	providers, err := ListProviders(tx, nil, ByIDs(maps.Keys(providerIDs)))
+	providers, err := ListProviders(tx, ListProvidersOptions{ByIDs: maps.Keys(providerIDs)})
 	if err != nil {
 		return err
 	}
@@ -465,45 +470,45 @@ func DeleteIdentities(tx GormTxn, opts DeleteIdentitiesOptions) error {
 func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
 	for _, i := range toDelete {
 		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
-			return []uid.ID{}, fmt.Errorf("delete identity access keys: %w", err)
+			return nil, fmt.Errorf("delete identity access keys: %w", err)
 		}
 		if providerID == InfraProvider(tx).ID {
 			// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
 			credential, err := GetCredential(tx, ByIdentityID(i.ID))
 			if err != nil && !errors.Is(err, internal.ErrNotFound) {
-				return []uid.ID{}, fmt.Errorf("get delete identity creds: %w", err)
+				return nil, fmt.Errorf("get delete identity creds: %w", err)
 			}
 			if credential != nil {
 				err := DeleteCredential(tx, credential.ID)
 				if err != nil {
-					return []uid.ID{}, fmt.Errorf("delete identity creds: %w", err)
+					return nil, fmt.Errorf("delete identity creds: %w", err)
 				}
 			}
 		}
 		if err := DeleteProviderUsers(tx, DeleteProviderUsersOptions{ByIdentityID: i.ID, ByProviderID: providerID}); err != nil {
-			return []uid.ID{}, fmt.Errorf("remove provider user: %w", err)
+			return nil, fmt.Errorf("remove provider user: %w", err)
 		}
 
 		// if this identity no longer exists in any identity providers then remove all their references
 		user, err := GetIdentity(tx, GetIdentityOptions{ByID: i.ID, LoadProviders: true})
 		if err != nil {
-			return []uid.ID{}, fmt.Errorf("check user providers: %w", err)
+			return nil, fmt.Errorf("check user providers: %w", err)
 		}
 
 		if len(user.Providers) == 0 {
 			groups, err := ListGroups(tx, ListGroupsOptions{ByGroupMember: i.ID})
 			if err != nil {
-				return []uid.ID{}, fmt.Errorf("list groups for identity: %w", err)
+				return nil, fmt.Errorf("list groups for identity: %w", err)
 			}
 			for _, group := range groups {
 				err = RemoveUsersFromGroup(tx, group.ID, []uid.ID{i.ID})
 				if err != nil {
-					return []uid.ID{}, fmt.Errorf("delete group membership for identity: %w", err)
+					return nil, fmt.Errorf("delete group membership for identity: %w", err)
 				}
 			}
 			err = DeleteGrants(tx, DeleteGrantsOptions{BySubject: uid.NewIdentityPolymorphicID(i.ID)})
 			if err != nil {
-				return []uid.ID{}, fmt.Errorf("delete identity creds: %w", err)
+				return nil, fmt.Errorf("delete identity creds: %w", err)
 			}
 			unreferencedIdentityIDs = append(unreferencedIdentityIDs, user.ID)
 		}

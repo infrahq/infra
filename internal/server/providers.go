@@ -19,9 +19,13 @@ import (
 
 // caution: this endpoint is unauthenticated, do not return sensitive info
 func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.ListResponse[api.Provider], error) {
-	exclude := []models.ProviderKind{models.ProviderKindInfra}
 	p := PaginationFromRequest(r.PaginationRequest)
-	providers, err := access.ListProviders(c, r.Name, exclude, &p)
+	opts := data.ListProvidersOptions{
+		ByName:               r.Name,
+		ExcludeInfraProvider: true,
+		Pagination:           &p,
+	}
+	providers, err := access.ListProviders(c, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +86,9 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		provider.Name = provider.Kind.String()
 
 		// If provider name is taken, generate a random tag
-		providers, err := access.ListProviders(c, provider.Kind.String(), nil, &data.Pagination{})
+		providers, err := access.ListProviders(c, data.ListProvidersOptions{
+			ByName: provider.Kind.String(),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("Error while generating name for provider: %w", err)
 		}

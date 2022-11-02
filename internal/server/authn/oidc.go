@@ -30,7 +30,7 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 }
 
 func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
-	provider, err := data.GetProvider(db, data.ByID(a.ProviderID))
+	provider, err := data.GetProvider(db, data.GetProviderOptions{ByID: a.ProviderID})
 	if err != nil {
 		return AuthenticatedIdentity{}, err
 	}

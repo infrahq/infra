@@ -108,7 +108,8 @@ func DeleteProviderUser(c *gin.Context, userID uid.ID) error {
 }
 
 func checkKeyIdentityProvider(ctx RequestContext) error {
-	_, err := data.GetProvider(ctx.DBTxn, data.ByID(ctx.Authenticated.AccessKey.IssuedFor))
+	_, err := data.GetProvider(ctx.DBTxn,
+		data.GetProviderOptions{ByID: ctx.Authenticated.AccessKey.IssuedFor})
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			return internal.ErrUnauthorized

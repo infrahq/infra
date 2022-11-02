@@ -20,6 +20,7 @@ var tables = []tabler{
 	grantsTable{},
 	groupsTable{},
 	identitiesTable{},
+	providersTable{},
 	providerUserTable{},
 }
 
