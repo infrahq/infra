@@ -26,7 +26,7 @@ jobs:
       - id: release-name
         run: |
           RELEASE_NAME=${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '$(git describe --tags)' }}
-          echo "::set-output name=release-name::${RELEASE_NAME#v}"
+          echo "release-name=${RELEASE_NAME#v}" >>$GITHUB_OUTPUT
 
   build:
     runs-on: ubuntu-latest
