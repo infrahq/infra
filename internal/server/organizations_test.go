@@ -384,7 +384,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				_, err := data.GetOrganization(srv.DB(), data.ByID(first.ID))
+				_, err := data.GetOrganization(srv.DB(), data.GetOrganizationOptions{ByID: first.ID})
 				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},

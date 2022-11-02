@@ -164,7 +164,7 @@ func TestNewDB(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		assert.Equal(t, db.DefaultOrg.ID, uid.ID(defaultOrganizationID))
 
-		org, err := GetOrganization(db, ByID(defaultOrganizationID))
+		org, err := GetOrganization(db, GetOrganizationOptions{ByID: defaultOrganizationID})
 		assert.NilError(t, err)
 		assert.DeepEqual(t, org, db.DefaultOrg, cmpTimeWithDBPrecision)
 	})

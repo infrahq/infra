@@ -38,7 +38,7 @@ func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
 		}
 	}
 
-	return data.GetOrganization(rCtx.DBTxn, data.ByID(id))
+	return data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByID: id})
 }
 
 func CreateOrganization(c *gin.Context, org *models.Organization) error {

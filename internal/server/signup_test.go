@@ -99,7 +99,9 @@ func TestAPI_Signup(t *testing.T) {
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 
 				// the org should have been rolled back
-				_, err = data.GetOrganization(srv.DB(), data.ByDomain("hello.exampledomain.com"))
+				_, err = data.GetOrganization(srv.DB(), data.GetOrganizationOptions{
+					ByDomain: "hello.exampledomain.com",
+				})
 				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},
@@ -202,7 +204,9 @@ func TestAPI_Signup(t *testing.T) {
 				orgID := respBody.Organization.ID
 
 				// the organization exists
-				org, err := data.GetOrganization(srv.DB(), data.ByDomain("acme-co.exampledomain.com"))
+				org, err := data.GetOrganization(srv.DB(), data.GetOrganizationOptions{
+					ByDomain: "acme-co.exampledomain.com",
+				})
 				assert.NilError(t, err)
 				assert.Equal(t, org.ID, respBody.Organization.ID)
 

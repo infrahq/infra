@@ -25,7 +25,7 @@ func TestCreateOrganization(t *testing.T) {
 		tx := txnForTestCase(t, db, org.ID)
 
 		// org is created
-		actual, err := GetOrganization(db, ByID(org.ID))
+		actual, err := GetOrganization(db, GetOrganizationOptions{ByID: org.ID})
 		assert.NilError(t, err)
 		expected := &models.Organization{
 			Model: models.Model{
@@ -98,6 +98,50 @@ var anyValidToken = cmp.Comparer(func(a, b string) bool {
 	return false
 })
 
+func TestGetOrganization(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+		first := &models.Organization{
+			Name:   "first",
+			Domain: "first.example.com",
+		}
+		deleted := &models.Organization{
+			Name:   "deleted",
+			Domain: "none.example.com",
+		}
+		deleted.DeletedAt.Valid = true
+		deleted.DeletedAt.Time = time.Now()
+		assert.NilError(t, CreateOrganization(tx, first))
+		assert.NilError(t, CreateOrganization(tx, deleted))
+
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetOrganization(tx, GetOrganizationOptions{})
+			assert.ErrorContains(t, err, "an ID is required")
+		})
+		t.Run("by id", func(t *testing.T) {
+			actual, err := GetOrganization(tx, GetOrganizationOptions{ByID: first.ID})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, first, cmpTimeWithDBPrecision)
+		})
+		t.Run("by domain", func(t *testing.T) {
+			actual, err := GetOrganization(tx, GetOrganizationOptions{
+				ByDomain: "first.example.com",
+			})
+			assert.NilError(t, err)
+			assert.DeepEqual(t, actual, first, cmpTimeWithDBPrecision)
+		})
+		t.Run("deleted org", func(t *testing.T) {
+			_, err := GetOrganization(tx, GetOrganizationOptions{ByID: deleted.ID})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+		t.Run("does not exist", func(t *testing.T) {
+			_, err := GetOrganization(tx, GetOrganizationOptions{ByID: 171717})
+			assert.ErrorIs(t, err, internal.ErrNotFound)
+		})
+	})
+}
+
 func TestUpdateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		tx := txnForTestCase(t, db, 0)
@@ -122,7 +166,7 @@ func TestUpdateOrganization(t *testing.T) {
 		err = UpdateOrganization(tx, &updated)
 		assert.NilError(t, err)
 
-		actual, err := GetOrganization(tx, ByID(org.ID))
+		actual, err := GetOrganization(tx, GetOrganizationOptions{ByID: org.ID})
 		assert.NilError(t, err)
 
 		expected := &models.Organization{
@@ -206,7 +250,7 @@ func TestDeleteOrganization(t *testing.T) {
 			err := DeleteOrganization(tx, org.ID)
 			assert.NilError(t, err)
 
-			_, err = GetOrganization(tx, ByID(org.ID))
+			_, err = GetOrganization(tx, GetOrganizationOptions{ByID: org.ID})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 
 			// delete again to check idempotence

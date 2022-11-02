@@ -79,8 +79,32 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 	return nil
 }
 
-func GetOrganization(db GormTxn, selectors ...SelectorFunc) (*models.Organization, error) {
-	return get[models.Organization](db, selectors...)
+type GetOrganizationOptions struct {
+	ByID     uid.ID
+	ByDomain string
+}
+
+func GetOrganization(tx ReadTxn, opts GetOrganizationOptions) (*models.Organization, error) {
+	org := organizationsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(org))
+	query.B("FROM organizations")
+	query.B("WHERE deleted_at is NULL")
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByDomain != "":
+		query.B("AND domain = ?", opts.ByDomain)
+	default:
+		return nil, fmt.Errorf("an ID is required to get organization")
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(org.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.Organization)(&org), nil
 }
 
 type ListOrganizationsOptions struct {
