@@ -29,6 +29,7 @@ import {
 import GrantForm from '../../../components/grant-form'
 import RemoveButton from '../../../components/remove-button'
 import Dashboard from '../../../components/layouts/dashboard'
+import Loader from '../../../components/loader'
 
 const OPTION_SELECT_ALL = 'select all'
 const METADATA_STATUS_LABEL = 'Status'
@@ -443,25 +444,7 @@ function AccessTable({
           No data
         </div>
       )}
-      {!grantsList && (
-        <div className='flex min-h-[100px] items-center justify-center py-4 text-xs text-gray-400'>
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 100 100'
-            preserveAspectRatio='xMidYMid'
-            className='h-10 w-10 animate-spin-fast stroke-current text-gray-400'
-          >
-            <circle
-              cx='50'
-              cy='50'
-              fill='none'
-              strokeWidth='1.5'
-              r='24'
-              strokeDasharray='113.09733552923255 39.69911184307752'
-            ></circle>
-          </svg>
-        </div>
-      )}
+      {!grantsList && <Loader />}
     </div>
   )
 }

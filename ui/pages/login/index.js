@@ -8,6 +8,7 @@ import Tippy from '@tippyjs/react'
 import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
+import { saveToVisitedOrgs } from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
@@ -31,33 +32,7 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
-export function saveToVisitedOrgs(domain, orgName) {
-  const cookies = new Cookies()
-
-  let visitedOrgs = cookies.get('orgs') || []
-
-  if (!visitedOrgs.find(x => x.url === domain)) {
-    visitedOrgs.push({
-      url: domain,
-      name: orgName,
-    })
-
-    // set the cookie domain to a general base domain
-    let cookieDomain = window.location.host
-    let parts = cookieDomain.split('.')
-    if (parts.length > 2) {
-      parts.shift() // remove the org
-      cookieDomain = parts.join('.') // join the last two parts of the domain
-    }
-
-    cookies.set('orgs', visitedOrgs, {
-      path: '/',
-      domain: `.${cookieDomain}`,
-    })
-  }
-}
-
-export function Providers({ providers }) {
+function Providers({ providers }) {
   const router = useRouter()
   const { next } = router.query
   return (
@@ -193,50 +168,52 @@ export default function Login() {
             </>
           )}
           <form onSubmit={onSubmit} className='relative flex w-full flex-col'>
-            <div className='my-2 w-full'>
-              <label
-                htmlFor='name'
-                className='text-2xs font-medium text-gray-700'
-              >
-                Email
-              </label>
-              <input
-                required
-                autoFocus
-                id='name'
-                type='email'
-                onChange={e => {
-                  setName(e.target.value)
-                  setErrors({})
-                  setError('')
-                }}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.name && (
-                <p className='my-1 text-xs text-red-500'>{errors.name}</p>
-              )}
-            </div>
-            <div className='my-2 w-full'>
-              <label
-                htmlFor='password'
-                className='text-2xs font-medium text-gray-700'
-              >
-                Password
-              </label>
-              <input
-                required
-                id='password'
-                type='password'
-                data-testid='form-field-password'
-                onChange={e => {
-                  setPassword(e.target.value)
-                  setErrors({})
-                  setError('')
-                }}
-                className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
-              />
+            <div className='space-y-2'>
+              <>
+                <label
+                  htmlFor='name'
+                  className='text-2xs font-medium text-gray-700'
+                >
+                  Email
+                </label>
+                <input
+                  required
+                  autoFocus
+                  id='name'
+                  type='email'
+                  onChange={e => {
+                    setName(e.target.value)
+                    setErrors({})
+                    setError('')
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {errors.name && (
+                  <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+                )}
+              </>
+              <>
+                <label
+                  htmlFor='password'
+                  className='text-2xs font-medium text-gray-700'
+                >
+                  Password
+                </label>
+                <input
+                  required
+                  id='password'
+                  type='password'
+                  data-testid='form-field-password'
+                  onChange={e => {
+                    setPassword(e.target.value)
+                    setErrors({})
+                    setError('')
+                  }}
+                  className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm'
+                />
+              </>
             </div>
             {isEmailConfigured && (
               <div className='mt-4 flex items-center justify-end text-sm'>
@@ -247,7 +224,10 @@ export default function Login() {
                 </Link>
               </div>
             )}
-            <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'>
+            <button
+              type='submit'
+              className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+            >
               Log in
             </button>
             {error && <p className='my-1 text-xs text-red-500'>{error}</p>}

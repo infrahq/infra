@@ -17,11 +17,9 @@ export default function Organizations() {
   }
 
   return (
-    <div className='flex min-h-[280px] w-full flex-col items-center px-10 py-10'>
-      <h1 className='font-display text-xl font-semibold leading-snug'>
-        Log in to Infra
-      </h1>
-      <h2 className='my-1.5 mb-4 max-w-md text-center text-xs text-gray-500'>
+    <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
+      <h1 className='text-base font-bold leading-snug'> Log in</h1>
+      <h2 className='my-1.5 max-w-md text-center text-xs text-gray-500'>
         Choose an organization to log in to.
       </h2>
       <div className='my-6 w-full max-w-[240px] flex-1'>
@@ -53,15 +51,15 @@ export default function Organizations() {
           </Tippy>
         ))}
       </div>
-      <p className='text-center text-xs text-gray-500'>
-        Not seeing your organization? <br />
-        <Link href='/forgot-domain'>
-          <a className='my-1 inline-flex items-center font-semibold text-blue-500'>
-            Find my organization{' '}
-            <ChevronRightIcon className='mt-0.5 h-3 w-3 stroke-2' />
-          </a>
-        </Link>
-      </p>
+      <div className='text-center text-xs text-gray-500'>
+        Not seeing your organization?
+      </div>
+      <Link href='/forgot-domain'>
+        <a className='my-1 inline-flex items-center text-xs font-semibold text-blue-500'>
+          Find my organization{' '}
+          <ChevronRightIcon className='mt-0.5 h-3 w-3 stroke-2' />
+        </a>
+      </Link>
     </div>
   )
 }

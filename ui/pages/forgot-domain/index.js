@@ -10,7 +10,9 @@ export default function ForgotDomain() {
 
   async function onSubmit(e) {
     e.preventDefault()
+
     setSubmitted(true)
+    setError('')
 
     try {
       const res = await fetch('/api/forgot-domain-request', {
@@ -22,21 +24,23 @@ export default function ForgotDomain() {
 
       await jsonBody(res)
     } catch (e) {
-      console.error(e)
+      setSubmitted(false)
+      setError(e.message)
     }
 
     return false
   }
 
   return (
-    <div className='flex min-h-[320px] w-full flex-col items-center px-10 py-8'>
-      <h1 className='font-display text-xl font-semibold leading-snug'>
+    <div className='flex w-full flex-col items-center px-10 pt-4 pb-6'>
+      <h1 className='text-base font-bold leading-snug'>
         Find your organization
       </h1>
-      <h2 className='my-2 text-center text-sm text-gray-500'>
+      <h2 className='my-1.5 max-w-md text-center text-xs text-gray-500'>
         Enter your email, and we&apos;ll send you a list of organizations you
         are a member of.
       </h2>
+
       {submitted ? (
         <p className='my-3 flex max-w-[260px] flex-1 flex-col items-center justify-center text-center text-xs text-gray-600'>
           <MailIcon className='mb-2 h-10 w-10 stroke-1 text-gray-400' />
@@ -48,9 +52,9 @@ export default function ForgotDomain() {
           onSubmit={onSubmit}
           className='relative flex w-full max-w-sm flex-1 flex-col justify-center'
         >
-          <div className='my-2 w-full'>
+          <div className='my-2'>
             <label
-              htmlFor='password'
+              htmlFor='name'
               className='text-2xs font-medium text-gray-700'
             >
               Email
@@ -58,7 +62,7 @@ export default function ForgotDomain() {
             <input
               required
               autoFocus
-              id='name'
+              name='name'
               type='email'
               onChange={e => {
                 setEmail(e.target.value)
@@ -69,7 +73,11 @@ export default function ForgotDomain() {
               }`}
             />
           </div>
-          <button className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:text-sm'>
+          <button
+            disabled={!email}
+            type='submit'
+            className='mt-4 mb-2 flex w-full cursor-pointer justify-center rounded-md border border-transparent bg-blue-500 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30'
+          >
             Find your organization
           </button>
           {error && (
