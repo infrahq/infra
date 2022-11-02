@@ -964,7 +964,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{Errors: []string{"one of (user, group) is required"}},
+					{Errors: []string{"one of (user, name, group) is required"}},
 					{FieldName: "privilege", Errors: []string{"is required"}},
 					{FieldName: "resource", Errors: []string{"is required"}},
 				}
@@ -1234,6 +1234,54 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				assert.Assert(t, len(infraAdminGrants) == 1)
 			},
 		},
+		"success add w/ own username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Name:      "admin@example.com",
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster2",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster2",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 1)
+			},
+		},
+		"success add w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Name:      user.Name,
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster3",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster3",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 1)
+			},
+		},
 		"success delete": {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
@@ -1265,6 +1313,104 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
+			},
+		},
+		"success delete w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+				grantToAdd := models.Grant{
+					Subject:   uid.NewIdentityPolymorphicID(user.ID),
+					Privilege: models.InfraAdminRole,
+					Resource:  "another-cluster2",
+				}
+
+				err := data.CreateGrant(srv.DB(), &grantToAdd)
+				assert.NilError(t, err)
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToRemove: []api.GrantRequest{
+					{
+						Name:      user.Name,
+						Privilege: models.InfraAdminRole,
+						Resource:  "another-cluster2",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "another-cluster",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 0)
+			},
+		},
+		"failure missing subject": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"failure missing resource": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Name:      user.Name,
+						Privilege: models.InfraAdminRole,
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"failure missing privilege": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Name:     user.Name,
+						Resource: "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"failure add w/ username": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						Name:      "unknown@example.com",
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
 			},
 		},
 	}

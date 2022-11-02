@@ -156,33 +156,55 @@ func (a *API) UpdateGrants(c *gin.Context, r *api.UpdateGrantsRequest) (*api.Emp
 	iden := access.GetRequestContext(c).Authenticated.User
 	var addGrants []*models.Grant
 	for _, g := range r.GrantsToAdd {
-		grant := getGrantFromGrantRequest(g)
+		grant, err := getGrantFromGrantRequest(c, g)
+		if err != nil {
+			return nil, err
+		}
 		grant.CreatedBy = iden.ID
 		addGrants = append(addGrants, grant)
 	}
 
 	var rmGrants []*models.Grant
 	for _, g := range r.GrantsToRemove {
-		grant := getGrantFromGrantRequest(g)
+		grant, err := getGrantFromGrantRequest(c, g)
+		if err != nil {
+			return nil, err
+		}
 		rmGrants = append(rmGrants, grant)
 	}
 
 	return nil, access.UpdateGrants(c, addGrants, rmGrants)
 }
 
-func getGrantFromGrantRequest(r api.GrantRequest) *models.Grant {
+func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant, error) {
 	var subject uid.PolymorphicID
 
 	switch {
+	case r.Name != "":
+		// lookup user name
+		identity, err := access.GetIdentityByName(c, r.Name)
+		if err != nil {
+			return nil, fmt.Errorf("%w: couldn't find user %s", internal.ErrBadRequest, r.Name)
+		}
+		subject = uid.NewIdentityPolymorphicID(identity.ID)
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
 	case r.Group != 0:
 		subject = uid.NewGroupPolymorphicID(r.Group)
 	}
 
+	switch {
+	case subject == "":
+		return nil, fmt.Errorf("%w: must specify name, user, or group", internal.ErrBadRequest)
+	case r.Resource == "":
+		return nil, fmt.Errorf("%w: must specify resource", internal.ErrBadRequest)
+	case r.Privilege == "":
+		return nil, fmt.Errorf("%w: must specify privilege", internal.ErrBadRequest)
+	}
+
 	return &models.Grant{
 		Subject:   subject,
 		Resource:  r.Resource,
 		Privilege: r.Privilege,
-	}
+	}, nil
 }

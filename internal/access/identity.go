@@ -34,6 +34,23 @@ func GetIdentity(c *gin.Context, id uid.ID) (*models.Identity, error) {
 	return data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByID: id, LoadProviders: true})
 }
 
+func GetIdentityByName(c *gin.Context, name string) (*models.Identity, error) {
+	rCtx := GetRequestContext(c)
+
+	// anyone can get their own user data
+	if rCtx.Authenticated.User != nil && name == rCtx.Authenticated.User.Name {
+		return rCtx.Authenticated.User, nil
+	}
+
+	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
+	err := IsAuthorized(rCtx, roles...)
+	if err != nil {
+		return nil, HandleAuthErr(err, "user", "get", roles...)
+	}
+
+	return data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{ByName: name, LoadProviders: true})
+}
+
 func CreateIdentity(c *gin.Context, identity *models.Identity) error {
 	db, err := RequireInfraRole(c, models.InfraAdminRole)
 	if err != nil {
