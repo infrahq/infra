@@ -15,5 +15,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: Azure/setup-helm@v1
+      - uses: Azure/setup-helm@v3
       - run: helm lint helm/charts/*

@@ -21,7 +21,7 @@ jobs:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v3
-      - uses: azure/setup-helm@v1
+      - uses: azure/setup-helm@v3
       - run: |
           helm package -d helm helm/charts/*
       - uses: actions/upload-artifact@v3
