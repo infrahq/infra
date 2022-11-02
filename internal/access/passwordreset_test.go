@@ -35,7 +35,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	// check it worked
-	cred, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+	cred, err := data.GetCredentialByUserID(db, user.ID)
 	assert.NilError(t, err)
 
 	err = bcrypt.CompareHashAndPassword(cred.PasswordHash, []byte("my New PassWord@$1"))

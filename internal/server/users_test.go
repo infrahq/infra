@@ -619,7 +619,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 				assert.NilError(t, err)
 				_, err = data.GetProviderUser(db, data.InfraProvider(db).ID, user.ID)
 				assert.NilError(t, err)
-				cred, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+				cred, err := data.GetCredentialByUserID(db, user.ID)
 				assert.NilError(t, err)
 				assert.Equal(t, true, cred.OneTimePassword)
 			})
@@ -631,7 +631,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 				assert.NilError(t, err)
 
 				t.Run("I cannot set a password", func(t *testing.T) {
-					cred, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+					cred, err := data.GetCredentialByUserID(db, user.ID)
 					assert.NilError(t, err)
 					if cred != nil {
 						_ = data.DeleteCredential(db, cred.ID)
@@ -648,7 +648,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			t.Run("with an existing infra user", func(t *testing.T) {
 				_, _ = data.CreateProviderUser(db, data.InfraProvider(db), user)
 
-				cred, _ := data.GetCredential(db, data.ByIdentityID(user.ID))
+				cred, _ := data.GetCredentialByUserID(db, user.ID)
 				if cred != nil {
 					_ = data.DeleteCredential(db, cred.ID)
 				}

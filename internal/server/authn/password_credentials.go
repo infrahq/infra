@@ -33,7 +33,7 @@ func (a *passwordCredentialAuthn) Authenticate(ctx context.Context, db *data.Tra
 	}
 
 	// Infra users can have only one username/password combo, look it up
-	userCredential, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
+	userCredential, err := data.GetCredentialByUserID(db, identity.ID)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("validate creds get user: %w", err)
 	}

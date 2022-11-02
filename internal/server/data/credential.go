@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -50,8 +51,24 @@ func SaveCredential(db GormTxn, credential *models.Credential) error {
 	return save(db, credential)
 }
 
-func GetCredential(db GormTxn, selectors ...SelectorFunc) (*models.Credential, error) {
-	return get[models.Credential](db, selectors...)
+func GetCredentialByUserID(tx ReadTxn, userID uid.ID) (*models.Credential, error) {
+	if userID == 0 {
+		return nil, fmt.Errorf("a userID is required to get credential")
+	}
+
+	credential := credentialsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(credential))
+	query.B("FROM credentials")
+	query.B("WHERE deleted_at is NULL")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+	query.B("AND identity_id = ?", userID)
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(credential.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.Credential)(&credential), nil
 }
 
 func DeleteCredential(tx WriteTxn, id uid.ID) error {

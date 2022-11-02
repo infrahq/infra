@@ -71,7 +71,7 @@ func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPas
 			return errs
 		}
 
-		userCredential, err := data.GetCredential(rCtx.DBTxn, data.ByIdentityID(user.ID))
+		userCredential, err := data.GetCredentialByUserID(rCtx.DBTxn, user.ID)
 		if err != nil {
 			return fmt.Errorf("existing credential: %w", err)
 		}
@@ -116,7 +116,7 @@ func updateCredential(c *gin.Context, user *models.Identity, newPassword string,
 		return fmt.Errorf("hash: %w", err)
 	}
 
-	userCredential, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+	userCredential, err := data.GetCredentialByUserID(db, user.ID)
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) && !isSelf {
 			if err := data.CreateCredential(db, &models.Credential{

@@ -944,7 +944,7 @@ func (s Server) loadCredential(db data.GormTxn, identity *models.Identity, passw
 		return err
 	}
 
-	credential, err := data.GetCredential(db, data.ByIdentityID(identity.ID))
+	credential, err := data.GetCredentialByUserID(db, identity.ID)
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return err

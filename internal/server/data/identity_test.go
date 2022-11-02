@@ -359,7 +359,7 @@ func TestDeleteIdentities(t *testing.T) {
 				assert.Error(t, err, "record not found")
 
 				// when an identity has no more references its resources are cleaned up
-				_, err = GetCredential(tx, ByIdentityID(identity.ID))
+				_, err = GetCredentialByUserID(tx, identity.ID)
 				assert.Error(t, err, "record not found")
 				groupIDs, err := ListGroupIDsForUser(tx, identity.ID)
 				assert.NilError(t, err)
@@ -415,7 +415,7 @@ func TestDeleteIdentities(t *testing.T) {
 				id, err := GetIdentity(tx, GetIdentityOptions{ByName: identity.Name})
 				assert.NilError(t, err) // still exists in infra provider
 
-				_, err = GetCredential(tx, ByIdentityID(id.ID))
+				_, err = GetCredentialByUserID(tx, id.ID)
 				assert.NilError(t, err) // still exists in infra provider
 			},
 		},
