@@ -169,7 +169,7 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 			}
 			// FIXME: store userID and groupID as a field on the grants table so
 			// that we can replace this with a sub-select or join.
-			groupIDs, err := groupIDsForUser(tx, userID)
+			groupIDs, err := ListGroupIDsForUser(tx, userID)
 			if err != nil {
 				return nil, err
 			}

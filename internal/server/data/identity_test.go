@@ -361,7 +361,7 @@ func TestDeleteIdentities(t *testing.T) {
 				// when an identity has no more references its resources are cleaned up
 				_, err = GetCredential(tx, ByIdentityID(identity.ID))
 				assert.Error(t, err, "record not found")
-				groupIDs, err := groupIDsForUser(tx, identity.ID)
+				groupIDs, err := ListGroupIDsForUser(tx, identity.ID)
 				assert.NilError(t, err)
 				assert.Equal(t, len(groupIDs), 0)
 				grants, err := ListGrants(tx, ListGrantsOptions{BySubject: identity.PolyID()})
@@ -605,7 +605,7 @@ func TestDeleteIdentityWithGroups(t *testing.T) {
 		err = DeleteIdentities(db, opts)
 		assert.NilError(t, err)
 
-		group, err = GetGroup(db, ByID(group.ID))
+		group, err = GetGroup(db, GetGroupOptions{ByID: group.ID})
 		assert.NilError(t, err)
 		assert.Equal(t, group.TotalUsers, 2)
 	})
@@ -692,7 +692,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 
 				// setup identity's groups
 				for _, gn := range test.StartingGroups {
-					g, err := GetGroup(db, ByName(gn))
+					g, err := GetGroup(db, GetGroupOptions{ByName: gn})
 					if errors.Is(err, internal.ErrNotFound) {
 						g = &models.Group{Name: gn}
 						err = CreateGroup(db, g)
@@ -714,7 +714,7 @@ func TestAssignIdentityToGroups(t *testing.T) {
 				assert.NilError(t, err)
 
 				// check the result
-				actual, err := ListGroups(db, nil, ByGroupMember(identity.ID))
+				actual, err := ListGroups(db, ListGroupsOptions{ByGroupMember: identity.ID})
 				assert.NilError(t, err)
 
 				assert.DeepEqual(t, actual, test.ExpectedGroups, cmpModelsGroupShallow)

@@ -15,18 +15,17 @@ import (
 
 func ListGroups(c *gin.Context, name string, userID uid.ID, p *data.Pagination) ([]models.Group, error) {
 	rCtx := GetRequestContext(c)
-	var selectors []data.SelectorFunc = []data.SelectorFunc{}
-	if name != "" {
-		selectors = append(selectors, data.ByName(name))
-	}
-	if userID != 0 {
-		selectors = append(selectors, data.ByGroupMember(userID))
+
+	opts := data.ListGroupsOptions{
+		ByName:        name,
+		ByGroupMember: userID,
+		Pagination:    p,
 	}
 
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	_, err := RequireInfraRole(c, roles...)
 	if err == nil {
-		return data.ListGroups(rCtx.DBTxn, p, selectors...)
+		return data.ListGroups(rCtx.DBTxn, opts)
 	}
 	err = HandleAuthErr(err, "groups", "list", roles...)
 
@@ -37,7 +36,7 @@ func ListGroups(c *gin.Context, name string, userID uid.ID, p *data.Pagination) 
 		case identity == nil:
 			return nil, err
 		case userID == identity.ID:
-			return data.ListGroups(rCtx.DBTxn, p, selectors...)
+			return data.ListGroups(rCtx.DBTxn, opts)
 		}
 	}
 
@@ -66,7 +65,7 @@ func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
 	} else if err != nil {
 		return nil, err
 	}
-	return data.GetGroup(rCtx.DBTxn, data.ByID(id))
+	return data.GetGroup(rCtx.DBTxn, data.GetGroupOptions{ByID: id})
 }
 
 func DeleteGroup(c *gin.Context, id uid.ID) error {
@@ -114,7 +113,7 @@ func UpdateUsersInGroup(c *gin.Context, groupID uid.ID, uidsToAdd []uid.ID, uids
 		return err
 	}
 
-	_, err = data.GetGroup(db, data.ByID(groupID))
+	_, err = data.GetGroup(db, data.GetGroupOptions{ByID: groupID})
 	if err != nil {
 		return err
 	}

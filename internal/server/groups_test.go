@@ -12,6 +12,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -319,9 +320,8 @@ func TestAPI_DeleteGroup(t *testing.T) {
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusNoContent, resp.Body.String())
-				actual, err := data.ListGroups(srv.DB(), nil, data.ByID(humans.ID))
-				assert.NilError(t, err)
-				assert.Equal(t, len(actual), 0)
+				_, err := data.GetGroup(srv.DB(), data.GetGroupOptions{ByID: humans.ID})
+				assert.ErrorIs(t, err, internal.ErrNotFound)
 			},
 		},
 	}

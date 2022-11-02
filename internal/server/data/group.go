@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
@@ -33,46 +31,108 @@ func CreateGroup(tx WriteTxn, group *models.Group) error {
 	return insert(tx, (*groupsTable)(group))
 }
 
-func GetGroup(db GormTxn, selectors ...SelectorFunc) (*models.Group, error) {
-	group, err := get[models.Group](db, selectors...)
-	if err != nil {
-		return nil, err
+type GetGroupOptions struct {
+	// ByID instructs GetGroup to return the group matching this ID.
+	ByID uid.ID
+	// ByName instructs GetGroup to return the group matching this name.
+	ByName string
+}
+
+func GetGroup(tx ReadTxn, opts GetGroupOptions) (*models.Group, error) {
+	group := &groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(group))
+	query.B("FROM groups")
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	switch {
+	case opts.ByID != 0:
+		query.B("AND id = ?", opts.ByID)
+	case opts.ByName != "":
+		query.B("AND name = ?", opts.ByName)
+	default:
+		return nil, fmt.Errorf("GetGroup requires an ID")
 	}
 
-	count, err := CountUsersInGroup(db, group.ID)
+	err := tx.QueryRow(query.String(), query.Args...).Scan(group.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+
+	count, err := countUsersInGroup(tx, group.ID)
 	if err != nil {
 		return nil, err
 	}
 	group.TotalUsers = int(count)
-	return group, nil
+	return (*models.Group)(group), nil
 }
 
-func ListGroups(db GormTxn, p *Pagination, selectors ...SelectorFunc) ([]models.Group, error) {
-	groups, err := list[models.Group](db, p, selectors...)
+type ListGroupsOptions struct {
+	ByName string
+	ByIDs  []uid.ID
+
+	// ByGroupMember instructs ListGroups to return groups where this user ID
+	// is a member of the group.
+	ByGroupMember uid.ID
+
+	Pagination *Pagination
+}
+
+func ListGroups(tx ReadTxn, opts ListGroupsOptions) ([]models.Group, error) {
+	table := groupsTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(table))
+	if opts.Pagination != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM groups")
+	if opts.ByGroupMember != 0 {
+		query.B("JOIN identities_groups ON groups.id = identities_groups.group_id")
+		query.B("AND identities_groups.identity_id = ?", opts.ByGroupMember)
+	}
+	query.B("WHERE deleted_at is null")
+	query.B("AND organization_id = ?", tx.OrganizationID())
+
+	if opts.ByName != "" {
+		query.B("AND name = ?", opts.ByName)
+	}
+	if len(opts.ByIDs) > 0 {
+		query.B("AND groups.id IN (?)", opts.ByIDs)
+	}
+
+	query.B("ORDER BY name ASC")
+	if opts.Pagination != nil {
+		opts.Pagination.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	result, err := scanRows(rows, func(group *models.Group) []any {
+		fields := (*groupsTable)(group).ScanFields()
+		if opts.Pagination != nil {
+			fields = append(fields, &opts.Pagination.TotalCount)
+		}
+		return fields
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range groups {
-		count, err := CountUsersInGroup(db, groups[i].ID)
+	// TODO: do this in a single query
+	for i := range result {
+		count, err := countUsersInGroup(tx, result[i].ID)
 		if err != nil {
 			return nil, err
 		}
-		groups[i].TotalUsers = int(count)
+		result[i].TotalUsers = int(count)
 	}
-
-	return groups, nil
+	return result, nil
 }
 
-func ByGroupMember(id uid.ID) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.
-			Joins("JOIN identities_groups ON groups.id = identities_groups.group_id").
-			Where("identities_groups.identity_id = ?", id)
-	}
-}
-
-func groupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
+func ListGroupIDsForUser(tx ReadTxn, userID uid.ID) ([]uid.ID, error) {
 	stmt := `SELECT DISTINCT group_id FROM identities_groups WHERE identity_id = ?`
 	rows, err := tx.Query(stmt, userID)
 	if err != nil {
@@ -136,14 +196,9 @@ func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) err
 	return handleError(err)
 }
 
-// TODO: do this with a join in ListGroups and GetGroup
-func CountUsersInGroup(tx GormTxn, groupID uid.ID) (int64, error) {
-	db := tx.GormDB()
+func countUsersInGroup(tx ReadTxn, groupID uid.ID) (int64, error) {
+	stmt := `SELECT count(*) FROM identities_groups WHERE group_id = ?`
 	var count int64
-	err := db.Table("identities_groups").Where("group_id = ?", groupID).Count(&count).Error
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
+	err := tx.QueryRow(stmt, groupID).Scan(&count)
+	return count, handleError(err)
 }
