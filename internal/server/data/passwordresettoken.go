@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/logging"
@@ -41,26 +39,21 @@ retry:
 	return prt, nil
 }
 
-func GetPasswordResetTokenByToken(db GormTxn, token string) (*models.PasswordResetToken, error) {
-	prts, err := list[models.PasswordResetToken](db, &Pagination{Limit: 1}, func(db *gorm.DB) *gorm.DB {
-		return db.Where("token = ?", token)
-	})
+func GetUserIDForPasswordResetToken(tx WriteTxn, token string) (uid.ID, error) {
+	stmt := `
+		DELETE from password_reset_tokens
+		WHERE token = ? AND organization_id = ?
+		RETURNING identity_id, expires_at`
+
+	var userID uid.ID
+	var expiresAt time.Time
+	err := tx.QueryRow(stmt, token, tx.OrganizationID()).Scan(&userID, &expiresAt)
 	if err != nil {
-		return nil, err
+		return 0, handleError(err)
 	}
 
-	if len(prts) != 1 {
-		return nil, internal.ErrNotFound
+	if expiresAt.Before(time.Now()) {
+		return 0, internal.ErrExpired
 	}
-
-	if prts[0].ExpiresAt.Before(time.Now()) {
-		_ = DeletePasswordResetToken(db, &prts[0])
-		return nil, internal.ErrExpired
-	}
-
-	return &prts[0], nil
-}
-
-func DeletePasswordResetToken(db GormTxn, prt *models.PasswordResetToken) error {
-	return delete[models.PasswordResetToken](db, prt.ID)
+	return userID, nil
 }
