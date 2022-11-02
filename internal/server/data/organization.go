@@ -20,9 +20,7 @@ func (o organizationsTable) Columns() []string {
 }
 
 func (o organizationsTable) Values() []any {
-	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID,
-
-		o.Name, o.UpdatedAt}
+	return []any{o.CreatedAt, o.CreatedBy, o.DeletedAt, o.Domain, o.ID, o.Name, o.UpdatedAt}
 }
 
 func (o *organizationsTable) ScanFields() []any {
@@ -35,13 +33,10 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 	if org.Name == "" {
 		return fmt.Errorf("Organization.Name is required")
 	}
-	err := insert(tx, (*organizationsTable)(org))
-	if err != nil {
+	if err := insert(tx, (*organizationsTable)(org)); err != nil {
 		return fmt.Errorf("creating org: %w", err)
 	}
-
-	_, err = initializeSettings(tx, org.ID)
-	if err != nil {
+	if err := createSettings(tx, org.ID); err != nil {
 		return fmt.Errorf("initializing org settings: %w", err)
 	}
 
@@ -65,7 +60,7 @@ func CreateOrganization(tx GormTxn, org *models.Organization) error {
 		return fmt.Errorf("failed to create connector identity while creating org: %w", err)
 	}
 
-	err = CreateGrant(tx, &models.Grant{
+	err := CreateGrant(tx, &models.Grant{
 		Subject:            uid.NewIdentityPolymorphicID(connector.ID),
 		Privilege:          models.InfraConnectorRole,
 		Resource:           "infra",

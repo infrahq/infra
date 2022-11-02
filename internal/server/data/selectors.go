@@ -68,9 +68,3 @@ func NotPrivilege(privilege string) SelectorFunc {
 		return db.Not("privilege = ?", privilege)
 	}
 }
-
-func ByDomain(host string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("domain = ?", host)
-	}
-}

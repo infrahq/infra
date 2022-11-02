@@ -16,7 +16,6 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 	org := &models.Organization{Name: "joe's jackets", Domain: "joes-jackets"}
 	err := data.CreateOrganization(db, org)
 	assert.NilError(t, err)
-	db.OrganizationID()
 
 	user := &models.Identity{Name: "joe@example.com", OrganizationMember: models.OrganizationMember{OrganizationID: org.ID}}
 	err = data.CreateIdentity(db, user)

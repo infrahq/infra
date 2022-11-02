@@ -5,32 +5,64 @@ import (
 
 	"gotest.tools/v3/assert"
 
-	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/uid"
 )
 
-func TestInitializeSettings(t *testing.T) {
+func TestCreateSettings(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
-		var settings *models.Settings
-		runStep(t, "first call creates new settings", func(t *testing.T) {
-			var err error
-			settings, err = initializeSettings(db, db.DefaultOrg.ID)
+		err := createSettings(db, 145)
+		assert.NilError(t, err)
+
+		settings, err := getSettingsForOrg(db, 145)
+		assert.NilError(t, err)
+		assert.Assert(t, settings.ID != 0)
+		assert.Assert(t, len(settings.PrivateJWK) != 0)
+		assert.Assert(t, len(settings.PublicJWK) != 0)
+		assert.Equal(t, settings.LengthMin, 8)
+	})
+}
+func TestGetSettings(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		t.Run("success", func(t *testing.T) {
+			tx := txnForTestCase(t, db, 181)
+
+			err := createSettings(db, 181)
 			assert.NilError(t, err)
 
-			assert.Assert(t, settings.ID != 0)
-			assert.Assert(t, len(settings.PrivateJWK) != 0)
-			assert.Assert(t, len(settings.PublicJWK) != 0)
+			settings, err := GetSettings(tx)
+			assert.NilError(t, err)
+			assert.Equal(t, settings.OrganizationID, uid.ID(181))
 		})
-
-		runStep(t, "next call returns existing settings", func(t *testing.T) {
-			nextSettings, err := initializeSettings(db, db.DefaultOrg.ID)
-			assert.NilError(t, err)
-			assert.DeepEqual(t, settings, nextSettings, cmpModel)
+		t.Run("not found", func(t *testing.T) {
+			tx := txnForTestCase(t, db, 77)
+			_, err := GetSettings(tx)
+			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 	})
 }
 
-func runStep(t *testing.T, name string, fn func(t *testing.T)) {
-	if !t.Run(name, fn) {
-		t.FailNow()
-	}
+func TestUpdateSettings(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, 181)
+
+		err := createSettings(db, 181)
+		assert.NilError(t, err)
+		orig, err := GetSettings(tx)
+		assert.NilError(t, err)
+
+		updated := *orig // shallow copy
+		updated.PrivateJWK = "primary-key"
+		updated.LengthMin = 2
+		updated.SymbolMin = 3
+
+		err = UpdateSettings(tx, &updated)
+		assert.NilError(t, err)
+
+		actual, err := GetSettings(tx)
+		assert.NilError(t, err)
+
+		assert.Assert(t, orig.UpdatedAt != actual.UpdatedAt)
+		assert.DeepEqual(t, actual, &updated, cmpModel)
+	})
 }

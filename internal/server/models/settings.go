@@ -11,11 +11,11 @@ type Settings struct {
 	PrivateJWK EncryptedAtRest
 	PublicJWK  []byte
 
-	LowercaseMin int `gorm:"default:0"`
-	UppercaseMin int `gorm:"default:0"`
-	NumberMin    int `gorm:"default:0"`
-	SymbolMin    int `gorm:"default:0"`
-	LengthMin    int `gorm:"default:8"`
+	LowercaseMin int
+	UppercaseMin int
+	NumberMin    int
+	SymbolMin    int
+	LengthMin    int
 }
 
 func (s *Settings) ToAPI() *api.Settings {

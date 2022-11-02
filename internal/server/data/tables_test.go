@@ -23,6 +23,7 @@ var tables = []tabler{
 	organizationsTable{},
 	providersTable{},
 	providerUserTable{},
+	settingsTable{},
 }
 
 type tabler interface {
