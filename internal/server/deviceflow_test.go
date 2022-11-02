@@ -102,22 +102,20 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 		srv := setupServer(t, withAdminUser)
 		routes := srv.GenerateRoutes()
 
-		u := "https://api.example.com:2020/api/device"
-		req, err := http.NewRequest(http.MethodPost, u, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/device", nil)
 		req.Header.Set("Infra-Version", apiVersionLatest)
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
 		flowResp := &api.DeviceFlowResponse{}
-		err = json.NewDecoder(resp.Body).Decode(flowResp)
+		err := json.NewDecoder(resp.Body).Decode(flowResp)
 		assert.NilError(t, err)
 
 		assert.Equal(t, resp.Code, http.StatusCreated, (*responseDebug)(resp))
 		expected := &api.DeviceFlowResponse{
 			DeviceCode:          "<any-string>",
 			UserCode:            "<any-string>",
-			VerificationURI:     "https://api.example.com:2020/device",
+			VerificationURI:     "https://example.com/device",
 			ExpiresInSeconds:    600,
 			PollIntervalSeconds: 5,
 		}
