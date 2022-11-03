@@ -51,19 +51,14 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		id := uid.New()
 		g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
-		err := db.Create(g).Error
+
+		err := CreateGroup(db, g)
 		assert.NilError(t, err)
 
-		var group models.Group
-		err = db.First(&group, &models.Group{Name: "Foo"}).Error
+		actual, err := GetGroup(db, GetGroupOptions{ByID: g.ID})
 		assert.NilError(t, err)
-		assert.Assert(t, 0 != group.ID)
-
-		var intID int64
-		err = db.Select("id").Table("groups").Scan(&intID).Error
-		assert.NilError(t, err)
-
-		assert.Equal(t, int64(id), intID)
+		assert.Assert(t, actual.ID != 0)
+		assert.Equal(t, actual.ID, g.ID)
 	})
 }
 

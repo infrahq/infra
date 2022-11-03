@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -16,13 +17,12 @@ func TestCreateProvider(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		providerDevelop := models.Provider{Name: "okta-development", URL: "example.com", Kind: models.ProviderKindOkta}
 
-		err := db.Create(&providerDevelop).Error
+		err := CreateProvider(db, &providerDevelop)
 		assert.NilError(t, err)
 
-		var provider models.Provider
-		err = db.Not("name = ?", models.InternalInfraProviderName).First(&provider).Error
+		actual, err := GetProvider(db, GetProviderOptions{ByID: providerDevelop.ID})
 		assert.NilError(t, err)
-		assert.Equal(t, "example.com", provider.URL)
+		assert.DeepEqual(t, &providerDevelop, actual, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 	})
 }
 

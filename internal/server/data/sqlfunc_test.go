@@ -17,7 +17,7 @@ func TestSQLUidStrToIntRoundTrip(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		var i int64
-		err := db.Raw("select uidStrToInt(?);", tc.base58).Scan(&i).Error
+		err := db.QueryRow("select uidStrToInt(?);", tc.base58).Scan(&i)
 		if err != nil {
 			if tc.err != "" {
 				assert.ErrorContains(t, err, tc.err)
@@ -34,7 +34,7 @@ func TestSQLUidStrToIntRoundTrip(t *testing.T) {
 			return
 		}
 		var s string
-		err = db.Raw("select uidIntToStr(?);", tc.intval).Scan(&s).Error
+		err = db.QueryRow("select uidIntToStr(?);", tc.intval).Scan(&s)
 		if err != nil {
 			if tc.err != "" {
 				assert.ErrorContains(t, err, tc.err)
