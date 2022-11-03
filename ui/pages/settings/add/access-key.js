@@ -1,0 +1,261 @@
+import Link from 'next/link'
+import Head from 'next/head'
+import { XIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
+import { Listbox } from '@headlessui/react'
+import { useState } from 'react'
+import { useRouter } from 'next/router'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
+import moment from 'moment'
+
+import { useUser } from '../../../lib/hooks'
+
+import Dashboard from '../../../components/layouts/dashboard'
+
+const CUSTOM_TYPE = 'custom'
+const CUSTOM_TITLE = 'custom ...'
+
+const expirationRate = [
+  { name: '7 days', value: '168h' },
+  { name: '30 days', value: '720h', default: true },
+  { name: '60 days', value: '1440h' },
+  { name: '90 days', value: '2160h' },
+  { name: CUSTOM_TITLE, value: null, type: CUSTOM_TYPE },
+]
+
+function CustomDayPicker() {
+  // const [selected, setSelected] = useState(null)
+  // return <DayPicker mode='single' selected={selected} onSelect={setSelected} />
+}
+
+function ExpirationRateMenu({ selected, setSelected, allowCustom = false }) {
+  const [referenceElement, setReferenceElement] = useState(null)
+  const [popperElement, setPopperElement] = useState(null)
+  let { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: 'bottom-end',
+    modifiers: [
+      {
+        name: 'flip',
+        enabled: false,
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 5],
+        },
+      },
+    ],
+  })
+
+  return (
+    <Listbox value={selected} onChange={setSelected}>
+      <div className='relative'>
+        <Listbox.Button
+          ref={setReferenceElement}
+          className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'
+        >
+          <span className='block truncate'>{selected.name}</span>
+          <span className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2'>
+            <ChevronDownIcon
+              className='-mr-1 ml-2 h-3 w-3'
+              aria-hidden='true'
+            />
+          </span>
+        </Listbox.Button>
+
+        {ReactDOM.createPortal(
+          <Listbox.Options
+            ref={setPopperElement}
+            style={styles.popper}
+            {...attributes.popper}
+            className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
+          >
+            <div className='max-h-64 overflow-auto'>
+              {(allowCustom
+                ? expirationRate
+                : expirationRate.filter(r => r.name !== CUSTOM_TITLE)
+              ).map(rate => (
+                <Listbox.Option
+                  key={rate.value}
+                  className={({ active }) =>
+                    `${
+                      active ? 'bg-gray-100' : ''
+                    } select-none py-2 px-3 hover:cursor-pointer`
+                  }
+                  value={rate}
+                >
+                  {({ selected }) => (
+                    <div className='flex flex-row'>
+                      <div className='flex flex-1 flex-col'>
+                        <div className='flex justify-between py-0.5 font-medium'>
+                          {rate.name}
+                          {selected && (
+                            <CheckIcon
+                              className='h-3 w-3 text-gray-900'
+                              aria-hidden='true'
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Listbox.Option>
+              ))}
+            </div>
+          </Listbox.Options>,
+          document.querySelector('body')
+        )}
+      </div>
+    </Listbox>
+  )
+}
+
+export default function AccessKey() {
+  const router = useRouter()
+
+  const [name, setName] = useState('')
+  const [selectedTTL, setSelectedTTL] = useState(
+    expirationRate.find(e => e.default)
+  )
+  const [selectedDeadline, setSelectedDeadline] = useState(
+    expirationRate.find(e => e.default)
+  )
+  const [error, setError] = useState('')
+
+  const { user } = useUser()
+
+  async function onSubmit(e) {
+    e.preventDefault()
+
+    setError('')
+
+    try {
+      const res = await fetch('/api/access-keys', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          userID: user.id,
+          ttl: selectedTTL.value,
+          extensionDeadline: selectedDeadline.value,
+        }),
+      })
+
+      await jsonBody(res)
+      router.replace('/settings')
+    } catch (e) {
+      setError(e.message)
+    }
+
+    return false
+  }
+
+  return (
+    <div className='mx-auto w-full max-w-2xl'>
+      <Head>
+        <title>Add Access Key - Infra</title>
+      </Head>
+      <div className='flex items-center justify-between'>
+        <h1 className='my-6 py-1 font-display text-xl font-medium'>
+          New Access Key
+        </h1>
+        <Link href='/settings'>
+          <a>
+            <XIcon
+              className='h-5 w-5 text-gray-500 hover:text-gray-800'
+              aria-hidden='true'
+            />
+          </a>
+        </Link>
+      </div>
+      <div className='flex w-full flex-col'>
+        <form onSubmit={onSubmit} className='mb-6 flex flex-col space-y-6'>
+          <div className='flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>Name</label>
+            <input
+              name='name'
+              required
+              autoFocus
+              spellCheck='false'
+              type='search'
+              onKeyDown={e => {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                  e.preventDefault()
+                }
+              }}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                error ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+          </div>
+          <div className='flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>
+              Extension Deadline
+            </label>
+            <div className='flex items-center space-x-4'>
+              <ExpirationRateMenu
+                selected={selectedDeadline}
+                setSelected={setSelectedDeadline}
+              />
+            </div>
+          </div>
+
+          <div className='flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>
+              Expiration
+            </label>
+            <div className='flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-x-4'>
+              <ExpirationRateMenu
+                selected={selectedTTL}
+                setSelected={setSelectedTTL}
+                allowCustom
+              />
+              {selectedTTL.type === CUSTOM_TYPE && (
+                <div>
+                  <CustomDayPicker />
+                </div>
+              )}
+            </div>
+          </div>
+          {selectedTTL.value && selectedDeadline.value && (
+            <div className='space-y-1 pt-6 text-xs text-gray-500'>
+              <div>
+                This access key must be used at least once{' '}
+                <span className='font-semibold text-gray-900'>
+                  every {selectedDeadline.name}
+                </span>
+                ,
+              </div>
+              <div>
+                and will expire on{' '}
+                <span className='font-semibold text-gray-900'>
+                  {moment()
+                    .add(
+                      parseInt(selectedTTL.value),
+                      selectedTTL.value.charAt(selectedTTL.value.length - 1)
+                    )
+                    .format('h:mm:ss a, MMMM Do YYYY')}
+                </span>
+              </div>
+            </div>
+          )}
+          {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+          <div className='flex items-center justify-end space-x-3 pt-5 pb-3'>
+            <button
+              type='submit'
+              disabled={!name}
+              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-black'
+            >
+              Generate Access Key
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+AccessKey.layout = page => {
+  return <Dashboard>{page}</Dashboard>
+}
