@@ -337,6 +337,9 @@ func Run(ctx context.Context, options Options) error {
 	if err := tlsServer.Shutdown(shutdownCtx); err != nil {
 		logging.L.Warn().Err(err).Msgf("shutdown proxy server")
 	}
+	if err := plaintextServer.Close(); err != nil {
+		logging.L.Warn().Err(err).Msgf("shutdown plaintext server")
+	}
 	if err := metricsServer.Close(); err != nil {
 		logging.L.Warn().Err(err).Msgf("shutdown metrics server")
 	}
