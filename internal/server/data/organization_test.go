@@ -117,7 +117,7 @@ func TestGetOrganization(t *testing.T) {
 
 		t.Run("default options", func(t *testing.T) {
 			_, err := GetOrganization(tx, GetOrganizationOptions{})
-			assert.ErrorContains(t, err, "an ID is required")
+			assert.ErrorContains(t, err, "an ID or domain is required")
 		})
 		t.Run("by id", func(t *testing.T) {
 			actual, err := GetOrganization(tx, GetOrganizationOptions{ByID: first.ID})

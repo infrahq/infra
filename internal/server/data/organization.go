@@ -97,7 +97,7 @@ func GetOrganization(tx ReadTxn, opts GetOrganizationOptions) (*models.Organizat
 	case opts.ByDomain != "":
 		query.B("AND domain = ?", opts.ByDomain)
 	default:
-		return nil, fmt.Errorf("an ID is required to get organization")
+		return nil, fmt.Errorf("an ID or domain is required to get organization")
 	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(org.ScanFields()...)
