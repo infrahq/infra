@@ -9,8 +9,8 @@ import (
 
 // ProviderUser is a cache of the provider's user and their groups, plus any authentication-specific information for that provider.
 type ProviderUser struct {
-	IdentityID uid.ID `gorm:"primaryKey"`
-	ProviderID uid.ID `gorm:"primaryKey"`
+	IdentityID uid.ID
+	ProviderID uid.ID
 
 	Email      string
 	GivenName  string
@@ -26,8 +26,6 @@ type ProviderUser struct {
 
 	Active bool
 }
-
-func (ProviderUser) IsAModel() {}
 
 func (pu *ProviderUser) ToAPI() *api.SCIMUser {
 	return &api.SCIMUser{

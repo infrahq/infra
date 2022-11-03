@@ -46,7 +46,7 @@ type Provider struct {
 	Model
 	OrganizationMember
 
-	Name         string `gorm:"uniqueIndex:idx_providers_name,where:deleted_at is NULL"`
+	Name         string
 	URL          string
 	ClientID     string
 	ClientSecret EncryptedAtRest

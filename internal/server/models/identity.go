@@ -17,7 +17,7 @@ type Identity struct {
 	Model
 	OrganizationMember
 
-	Name              string    `gorm:"uniqueIndex:idx_identities_name,where:deleted_at is NULL"`
+	Name              string
 	LastSeenAt        time.Time // updated on when an identity uses a session token
 	CreatedBy         uid.ID
 	Verified          bool
@@ -26,10 +26,10 @@ type Identity struct {
 	// Groups may be populated by some queries to contain the list of groups
 	// the user is a member of.  Some test helpers may also use this to add
 	// users to groups, but data.CreateUser does not read this field.
-	Groups []Group `db:"-" gorm:"many2many:identities_groups"`
+	Groups []Group `db:"-"`
 	// Providers may be populated by some queries to contain the list of
 	// providers that provide this user.
-	Providers []Provider `db:"-" gorm:"many2many:provider_users;"`
+	Providers []Provider `db:"-"`
 }
 
 func (i *Identity) ToAPI() *api.User {

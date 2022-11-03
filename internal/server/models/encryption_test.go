@@ -14,7 +14,7 @@ import (
 )
 
 type StructForTesting struct {
-	ID      uid.ID `gorm:"primaryKey"`
+	ID      uid.ID
 	ASecret models.EncryptedAtRest
 }
 
@@ -46,7 +46,7 @@ func TestEncryptedAtRest(t *testing.T) {
 	assert.NilError(t, err)
 
 	var result string
-	err = db.Raw("select a_secret from struct_for_testings where id = ?", id).Scan(&result).Error
+	err = db.QueryRow("select a_secret from struct_for_testings where id = ?", id).Scan(&result)
 	assert.NilError(t, err)
 
 	assert.Assert(t, "don't tell" != result)

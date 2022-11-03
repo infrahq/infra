@@ -9,7 +9,7 @@ type Organization struct {
 	Model
 
 	Name      string
-	Domain    string `gorm:"uniqueIndex:idx_organizations_domain,where:deleted_at is NULL"`
+	Domain    string
 	CreatedBy uid.ID
 }
 

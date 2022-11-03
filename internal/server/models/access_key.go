@@ -21,7 +21,7 @@ const (
 type AccessKey struct {
 	Model
 	OrganizationMember
-	Name string `gorm:"uniqueIndex:idx_access_keys_name,where:deleted_at is NULL"`
+	Name string
 	/* IssuedFor is either:
 	1. The ID of the user that this access key was created for.
 	2. The ID of a provider that is doing SCIM provisioning using this access key.
@@ -34,8 +34,8 @@ type AccessKey struct {
 	Extension         time.Duration // how long to increase the lifetime extension deadline by
 	ExtensionDeadline time.Time     // time by which the key must be used or it is forced to expire early. using the key sets this to now() + Extension
 
-	KeyID          string `gorm:"<-;uniqueIndex:idx_access_keys_key_id,where:deleted_at is NULL"`
-	Secret         string `gorm:"-" db:"-"`
+	KeyID          string
+	Secret         string `db:"-"`
 	SecretChecksum []byte
 
 	Scopes CommaSeparatedStrings // if set, scopes limit what the key can be used for

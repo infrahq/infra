@@ -6,7 +6,7 @@ type Credential struct {
 	Model
 	OrganizationMember
 
-	IdentityID      uid.ID `gorm:"<-;uniqueIndex:idx_credentials_identity_id,where:deleted_at is NULL"`
+	IdentityID      uid.ID
 	PasswordHash    []byte
 	OneTimePassword bool
 }
