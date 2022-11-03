@@ -51,7 +51,7 @@ lint:
 	golangci-lint run $(LINT_ARGS)
 
 .PHONY: docs
-docs: docs/api/openapi3.json
+docs:
 	go run ./internal/docgen
 
 .PHONY: docs/api/openapi3.json

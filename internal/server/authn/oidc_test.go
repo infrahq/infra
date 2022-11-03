@@ -273,3 +273,70 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		})
 	}
 }
+
+func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
+	sessionExpiry := time.Now().Add(5 * time.Minute)
+
+	type testCase struct {
+		setup    func(t *testing.T, db data.GormTxn) providers.OIDCClient
+		expected func(t *testing.T, authnIdentity AuthenticatedIdentity, err error)
+	}
+
+	testCases := map[string]testCase{
+		"UserWithAllowedEmailDomain": {
+			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+				return &mockOIDCImplementation{
+					UserEmailResp: "user@example.com",
+				}
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.NilError(t, err)
+				assert.Equal(t, "user@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
+			},
+		},
+		"UserWithEmailDomainNotAllowed": {
+			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+				return &mockOIDCImplementation{
+					UserEmailResp: "user@infrahq.com",
+				}
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.ErrorContains(t, err, "infrahq.com is not an allowed email domain")
+			},
+		},
+		"UserIdentifierWithNoAtSign": {
+			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+				return &mockOIDCImplementation{
+					UserEmailResp: "example.com",
+				}
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.ErrorContains(t, err, "example.com is an invalid email address")
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := setupDB(t)
+
+			// setup fake identity provider with allowed domains specified
+			provider := &models.Provider{
+				Name:           "mockoidc",
+				URL:            "mockOIDC.example.com",
+				Kind:           models.ProviderKindOIDC,
+				AllowedDomains: []string{"example.com"},
+			}
+			err := data.CreateProvider(db, provider)
+			assert.NilError(t, err)
+
+			mockOIDC := tc.setup(t, db)
+			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", mockOIDC)
+
+			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
+			tc.expected(t, a, err)
+		})
+	}
+}

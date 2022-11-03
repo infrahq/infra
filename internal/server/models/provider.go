@@ -46,14 +46,15 @@ type Provider struct {
 	Model
 	OrganizationMember
 
-	Name         string
-	URL          string
-	ClientID     string
-	ClientSecret EncryptedAtRest
-	CreatedBy    uid.ID
-	Kind         ProviderKind
-	AuthURL      string
-	Scopes       CommaSeparatedStrings
+	Name           string
+	URL            string
+	ClientID       string
+	ClientSecret   EncryptedAtRest
+	CreatedBy      uid.ID
+	Kind           ProviderKind
+	AuthURL        string
+	Scopes         CommaSeparatedStrings
+	AllowedDomains CommaSeparatedStrings // the email domains that are allowed to login using this provider
 
 	// fields used to directly query an external API
 	PrivateKey       EncryptedAtRest
@@ -68,10 +69,11 @@ func (p *Provider) ToAPI() *api.Provider {
 		Created: api.Time(p.CreatedAt),
 		Updated: api.Time(p.UpdatedAt),
 
-		URL:      p.URL,
-		ClientID: p.ClientID,
-		Kind:     p.Kind.String(),
-		AuthURL:  p.AuthURL,
-		Scopes:   p.Scopes,
+		URL:            p.URL,
+		ClientID:       p.ClientID,
+		Kind:           p.Kind.String(),
+		AuthURL:        p.AuthURL,
+		Scopes:         p.Scopes,
+		AllowedDomains: p.AllowedDomains,
 	}
 }

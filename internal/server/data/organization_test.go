@@ -50,6 +50,7 @@ func TestCreateOrganization(t *testing.T) {
 			Name:               models.InternalInfraProviderName,
 			Kind:               models.ProviderKindInfra,
 			CreatedBy:          models.CreatedBySystem,
+			AllowedDomains:     models.CommaSeparatedStrings{},
 		}
 		assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP, cmpTimeWithDBPrecision)
 
