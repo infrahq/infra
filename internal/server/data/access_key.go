@@ -179,11 +179,6 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	})
 }
 
-type GetAccessKeysOptions struct {
-	ByID   uid.ID
-	ByName string
-}
-
 // GetAccessKeyByKeyID using the keyID. Note that the keyID is globally unique,
 // and this function is meant to be called as part of autentication so
 // this query is not scoped by an organization_id.
@@ -207,10 +202,16 @@ func GetAccessKeyByKeyID(tx ReadTxn, keyID string) (*models.AccessKey, error) {
 	return (*models.AccessKey)(accessKey), nil
 }
 
+type GetAccessKeysOptions struct {
+	ByID      uid.ID
+	ByName    string
+	IssuedFor uid.ID
+}
+
 // GetAccessKey by any unique field. This must be scoped by organizationID as it's callable by users.
 func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
-	if opts.ByID == 0 && len(opts.ByName) == 0 {
-		return nil, fmt.Errorf("GetAccessKey must supply id, key_id, or name")
+	if opts.ByID == 0 && opts.ByName == "" && opts.IssuedFor == 0 {
+		return nil, fmt.Errorf("GetAccessKey must supply id, issuedFor, or name")
 	}
 
 	accessKey := &accessKeyTable{}
@@ -219,11 +220,14 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	query.B("FROM")
 	query.B(accessKey.Table())
 	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
-	if opts.ByID > 0 {
+	if opts.ByID != 0 {
 		query.B("AND id = ?", opts.ByID)
 	}
 	if opts.ByName != "" {
 		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.IssuedFor != 0 {
+		query.B("AND issued_for = ?", opts.IssuedFor)
 	}
 
 	err := tx.QueryRow(query.String(), query.Args...).Scan(accessKey.ScanFields()...)
