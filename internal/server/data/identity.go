@@ -515,3 +515,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 	}
 	return unreferencedIdentityIDs, nil
 }
+
+func CountAllIdentities(tx ReadTxn) (int64, error) {
+	return countRows(tx, identitiesTable{})
+}

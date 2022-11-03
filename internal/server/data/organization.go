@@ -154,3 +154,7 @@ func DeleteOrganization(tx WriteTxn, id uid.ID) error {
 func UpdateOrganization(tx WriteTxn, org *models.Organization) error {
 	return update(tx, (*organizationsTable)(org))
 }
+
+func CountOrganizations(tx ReadTxn) (int64, error) {
+	return countRows(tx, organizationsTable{})
+}

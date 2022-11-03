@@ -259,3 +259,20 @@ func TestDeleteOrganization(t *testing.T) {
 		})
 	})
 }
+
+func TestCountOrganizations(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		assert.NilError(t, CreateOrganization(db, &models.Organization{
+			Name:   "first",
+			Domain: "first.example.com",
+		}))
+		assert.NilError(t, CreateOrganization(db, &models.Organization{
+			Name:   "second",
+			Domain: "second.example.com",
+		}))
+
+		actual, err := CountOrganizations(db)
+		assert.NilError(t, err)
+		assert.Equal(t, actual, int64(3)) // 2 + default org
+	})
+}

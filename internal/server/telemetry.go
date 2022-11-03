@@ -10,7 +10,6 @@ import (
 	"github.com/infrahq/infra/internal/access"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -18,12 +17,12 @@ type Properties = analytics.Properties
 
 type Telemetry struct {
 	client  analytics.Client
-	db      data.GormTxn
+	db      *data.DB
 	infraID uid.ID
 }
 
 // todo: store global settings like email/signup configured
-func NewTelemetry(db data.GormTxn, infraID uid.ID) *Telemetry {
+func NewTelemetry(db *data.DB, infraID uid.ID) *Telemetry {
 	return &Telemetry{
 		client:  analytics.New(internal.TelemetryWriteKey),
 		db:      db,
@@ -65,27 +64,27 @@ func (t *Telemetry) Close() {
 }
 
 func (t *Telemetry) EnqueueHeartbeat() {
-	users, err := data.GlobalCount[models.Identity](t.db)
+	users, err := data.CountAllIdentities(t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	groups, err := data.GlobalCount[models.Group](t.db)
+	groups, err := data.CountAllGroups(t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	grants, err := data.GlobalCount[models.Grant](t.db)
+	grants, err := data.CountAllGrants(t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	providers, err := data.GlobalCount[models.Provider](t.db)
+	providers, err := data.CountAllProviders(t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}
 
-	destinations, err := data.GlobalCount[models.Destination](t.db)
+	destinations, err := data.CountAllDestinations(t.db)
 	if err != nil {
 		logging.Debugf("%s", err.Error())
 	}

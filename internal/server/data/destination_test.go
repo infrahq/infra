@@ -302,3 +302,19 @@ func createDestinations(t *testing.T, tx GormTxn, destinations ...*models.Destin
 		assert.NilError(t, err, destinations[i].Name)
 	}
 }
+
+func TestCountAllDestinations(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		createDestinations(t, db,
+			&models.Destination{Name: "1", UniqueID: "1"},
+			&models.Destination{Name: "2", UniqueID: "2"},
+			&models.Destination{Name: "3", UniqueID: "3"},
+			&models.Destination{Name: "4", UniqueID: "4"},
+			&models.Destination{Name: "5", UniqueID: "5"},
+		)
+		actual, err := CountAllDestinations(db)
+		assert.NilError(t, err)
+
+		assert.Equal(t, actual, int64(5))
+	})
+}

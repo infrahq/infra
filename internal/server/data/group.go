@@ -202,3 +202,7 @@ func countUsersInGroup(tx ReadTxn, groupID uid.ID) (int64, error) {
 	err := tx.QueryRow(stmt, groupID).Scan(&count)
 	return count, handleError(err)
 }
+
+func CountAllGroups(tx ReadTxn) (int64, error) {
+	return countRows(tx, groupsTable{})
+}

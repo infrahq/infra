@@ -849,3 +849,16 @@ func isNotBlocked[T any](t *testing.T, ch chan T) (result T) {
 		return result
 	}
 }
+
+func TestCountAllGrants(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		createGrants(t, db,
+			&models.Grant{Subject: "sub", Privilege: "priv", Resource: "res1"},
+			&models.Grant{Subject: "sub", Privilege: "priv", Resource: "res2"},
+			&models.Grant{Subject: "sub", Privilege: "priv", Resource: "res3"})
+
+		actual, err := CountAllGrants(db)
+		assert.NilError(t, err)
+		assert.Equal(t, actual, int64(4)) // 3 + connector grant
+	})
+}

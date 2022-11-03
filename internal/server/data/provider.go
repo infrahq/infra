@@ -259,3 +259,7 @@ func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
 		return []any{&item.Kind, &item.Count}
 	})
 }
+
+func CountAllProviders(tx ReadTxn) (int64, error) {
+	return countRows(tx, providersTable{})
+}

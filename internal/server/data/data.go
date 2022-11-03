@@ -488,21 +488,6 @@ func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
 	return db.Delete(new(T), id).Error
 }
 
-// GlobalCount gives the count of all records, not scoped by org.
-func GlobalCount[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (int64, error) {
-	db := tx.GormDB()
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-
-	var count int64
-	if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
-		return -1, err
-	}
-
-	return count, nil
-}
-
 // InfraProvider returns the infra provider for the organization set in the tx.
 func InfraProvider(tx ReadTxn) *models.Provider {
 	infra, err := GetProvider(tx, GetProviderOptions{KindInfra: true})

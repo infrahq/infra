@@ -190,3 +190,19 @@ func scanRows[T any](rows *sql.Rows, fields func(*T) []any) ([]T, error) {
 	}
 	return result, rows.Err()
 }
+
+// countRows performs a query that returns the number of rows in the table where
+// deleted_at is null. The count includes all organizations.
+//
+// To get counts for tables that do not have a deleted_at column, or to scope
+// the count, copy the implementation of this function and add the necessary
+// parameters to the query.
+func countRows(tx ReadTxn, table Table) (int64, error) {
+	query := querybuilder.New("SELECT count(*) FROM")
+	query.B(table.Table())
+	query.B("WHERE deleted_at is null")
+
+	var count int64
+	err := tx.QueryRow(query.String(), query.Args...).Scan(&count)
+	return count, handleError(err)
+}

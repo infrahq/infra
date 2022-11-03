@@ -190,7 +190,7 @@ func New(options Options) (*Server, error) {
 	server.redis = redis
 
 	if options.EnableTelemetry {
-		server.tel = NewTelemetry(server.DB(), db.DefaultOrgSettings.ID)
+		server.tel = NewTelemetry(server.db, db.DefaultOrgSettings.ID)
 	}
 
 	if err := server.loadConfig(server.options.Config); err != nil {

@@ -497,3 +497,7 @@ func deleteGrantsBulk(tx WriteTxn, grants []*models.Grant) error {
 	_, err := tx.Exec(query.String(), query.Args...)
 	return err
 }
+
+func CountAllGrants(tx ReadTxn) (int64, error) {
+	return countRows(tx, grantsTable{})
+}
