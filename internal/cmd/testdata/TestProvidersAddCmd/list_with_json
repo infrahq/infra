@@ -1,1 +1,1 @@
-[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id","kind":"","authURL":"","scopes":null}]
+[{"id":"","name":"okta","created":null,"updated":null,"url":"https://okta.com/path","clientID":"okta-client-id","kind":"","authURL":"","scopes":null,"allowedDomains":null}]

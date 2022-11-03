@@ -747,6 +747,14 @@
           "items": {
             "items": {
               "properties": {
+                "allowedDomains": {
+                  "example": "['example.com', 'infrahq.com']",
+                  "items": {
+                    "example": "['example.com', 'infrahq.com']",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
                 "authURL": {
                   "example": "https://example.com/oauth2/v1/authorize",
                   "type": "string"
@@ -939,6 +947,14 @@
       },
       "Provider": {
         "properties": {
+          "allowedDomains": {
+            "example": "['example.com', 'infrahq.com']",
+            "items": {
+              "example": "['example.com', 'infrahq.com']",
+              "type": "string"
+            },
+            "type": "array"
+          },
           "authURL": {
             "example": "https://example.com/oauth2/v1/authorize",
             "type": "string"
@@ -5086,6 +5102,14 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "allowedDomains": {
+                    "example": "['example.com', 'infrahq.com']",
+                    "items": {
+                      "example": "['example.com', 'infrahq.com']",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "api": {
                     "properties": {
                       "clientEmail": {
@@ -5578,6 +5602,14 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "allowedDomains": {
+                    "example": "['example.com', 'infrahq.com']",
+                    "items": {
+                      "example": "['example.com', 'infrahq.com']",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "api": {
                     "properties": {
                       "clientEmail": {

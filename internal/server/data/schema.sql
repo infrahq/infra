@@ -249,7 +249,8 @@ CREATE TABLE providers (
     private_key text,
     client_email text,
     domain_admin_email text,
-    organization_id bigint
+    organization_id bigint,
+    allowed_domains text DEFAULT ''::text
 );
 
 CREATE SEQUENCE seq_update_index

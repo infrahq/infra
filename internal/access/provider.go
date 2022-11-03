@@ -22,12 +22,34 @@ func CreateProvider(c *gin.Context, provider *models.Provider) error {
 
 func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	rCtx := GetRequestContext(c)
-	return data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: id})
+	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: id})
+	if err != nil {
+		return nil, err
+	}
+	// if the caller is not authenticated for this org do not return the allowed domains, it is sensitive info
+	reqKey := rCtx.Authenticated.AccessKey
+	if reqKey == nil || reqKey.OrganizationID != rCtx.DBTxn.OrganizationID() {
+		// sanitize the response, the caller is not authorized to know this
+		provider.AllowedDomains = []string{}
+	}
+	return provider, nil
 }
 
 func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Provider, error) {
 	rCtx := GetRequestContext(c)
-	return data.ListProviders(rCtx.DBTxn, opts)
+	providers, err := data.ListProviders(rCtx.DBTxn, opts)
+	if err != nil {
+		return nil, err
+	}
+	// if the caller is not authenticated for this org do not return the allowed domains, it is sensitive info
+	reqKey := rCtx.Authenticated.AccessKey
+	if reqKey == nil || reqKey.OrganizationID != rCtx.DBTxn.OrganizationID() {
+		// sanitize the response, the caller is not authorized to know this
+		for i := range providers {
+			providers[i].AllowedDomains = []string{}
+		}
+	}
+	return providers, nil
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {

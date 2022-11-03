@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
@@ -43,6 +46,18 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		}
 
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
+	}
+
+	if len(provider.AllowedDomains) > 0 {
+		// get the domain of the email
+		at := strings.LastIndex(email, "@") // get the last @ since the email spec allows for multiple @s
+		if at == -1 {
+			return AuthenticatedIdentity{}, fmt.Errorf("%s is an invalid email address", email)
+		}
+		domain := email[at+1:]
+		if !slices.Contains(provider.AllowedDomains, domain) {
+			return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain", domain)
+		}
 	}
 
 	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: email, LoadGroups: true})

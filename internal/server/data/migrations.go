@@ -69,6 +69,7 @@ func migrations() []*migrator.Migration {
 		addUpdateIndexAndGrantNotify(),
 		addUpdateIndexToExistingGrants(),
 		addDeviceFlowAuthRequestTable(),
+		addAllowedDomainsToProvidersTable(),
 		// next one here
 	}
 }
@@ -834,6 +835,17 @@ func addDeviceFlowAuthRequestTable() *migrator.Migration {
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_dfar_user_code on device_flow_auth_requests (user_code) WHERE (deleted_at IS NULL);
 
 			`)
+			return err
+		},
+	}
+}
+
+func addAllowedDomainsToProvidersTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-03T13:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
+			_, err := tx.Exec(stmt)
 			return err
 		},
 	}
