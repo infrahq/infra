@@ -15,6 +15,7 @@ import (
 
 var tables = []tabler{
 	accessKeyTable{},
+	credentialsTable{},
 	destinationsTable{},
 	encryptionKeysTable{},
 	grantsTable{},

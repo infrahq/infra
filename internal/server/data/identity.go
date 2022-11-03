@@ -474,7 +474,7 @@ func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []mode
 		}
 		if providerID == InfraProvider(tx).ID {
 			// if an identity does not have credentials in the Infra provider this won't be found, but we can proceed
-			credential, err := GetCredential(tx, ByIdentityID(i.ID))
+			credential, err := GetCredentialByUserID(tx, i.ID)
 			if err != nil && !errors.Is(err, internal.ErrNotFound) {
 				return nil, fmt.Errorf("get delete identity creds: %w", err)
 			}

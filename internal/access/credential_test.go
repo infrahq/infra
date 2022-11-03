@@ -71,7 +71,7 @@ func TestCreateCredential(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Assert(t, oneTimePassword != "")
 
-	_, err = data.GetCredential(db, data.ByIdentityID(user.ID))
+	_, err = data.GetCredentialByUserID(db, user.ID)
 	assert.NilError(t, err)
 }
 
@@ -87,20 +87,20 @@ func TestUpdateCredentials(t *testing.T) {
 	tmpPassword, err := CreateCredential(c, *user)
 	assert.NilError(t, err)
 
-	userCreds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+	userCreds, err := data.GetCredentialByUserID(db, user.ID)
 	assert.NilError(t, err)
 
 	t.Run("Update user credentials IS single use password", func(t *testing.T) {
 		err := UpdateCredential(c, user, "", "newPassword")
 		assert.NilError(t, err)
 
-		creds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		creds, err := data.GetCredentialByUserID(db, user.ID)
 		assert.NilError(t, err)
 		assert.Equal(t, creds.OneTimePassword, true)
 	})
 
 	t.Run("Update own credentials is NOT single use password", func(t *testing.T) {
-		err := data.SaveCredential(db, userCreds)
+		err := data.UpdateCredential(db, userCreds)
 		assert.NilError(t, err)
 
 		rCtx := GetRequestContext(c)
@@ -110,13 +110,13 @@ func TestUpdateCredentials(t *testing.T) {
 		err = UpdateCredential(c, user, tmpPassword, "newPassword")
 		assert.NilError(t, err)
 
-		creds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		creds, err := data.GetCredentialByUserID(db, user.ID)
 		assert.NilError(t, err)
 		assert.Equal(t, creds.OneTimePassword, false)
 	})
 
 	t.Run("Update own credentials removes password reset scope, but keeps other scopes", func(t *testing.T) {
-		err := data.SaveCredential(db, userCreds)
+		err := data.UpdateCredential(db, userCreds)
 		assert.NilError(t, err)
 
 		rCtx := GetRequestContext(c)
@@ -141,7 +141,7 @@ func TestUpdateCredentials(t *testing.T) {
 		err = UpdateCredential(c, user, tmpPassword, "newPassword")
 		assert.NilError(t, err)
 
-		creds, err := data.GetCredential(db, data.ByIdentityID(user.ID))
+		creds, err := data.GetCredentialByUserID(db, user.ID)
 		assert.NilError(t, err)
 		assert.Equal(t, creds.OneTimePassword, false)
 
