@@ -33,8 +33,7 @@ func TestAPI_Signup(t *testing.T) {
 		body := tc.setup(t)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/signup", jsonBody(t, body))
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/signup", jsonBody(t, body))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
@@ -217,8 +216,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				key := cookies[0].Value
 				// nolint:noctx
-				req, err := http.NewRequest(http.MethodGet, "/api/users/self", nil)
-				assert.NilError(t, err)
+				req := httptest.NewRequest(http.MethodGet, "/api/users/self", nil)
 				req.Header.Set("Infra-Version", apiVersionLatest)
 				req.Header.Set("Authorization", "Bearer "+key)
 

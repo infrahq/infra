@@ -157,9 +157,7 @@ func createUser(t *testing.T, srv *Server, routes Routes, email string) *api.Cre
 	assert.NilError(t, err)
 
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodPost, "/api/users", bytes.NewReader(body))
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.14")
 

@@ -43,9 +43,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/password-reset-request", bytes.NewBuffer(body))
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodPost, "/api/password-reset-request", bytes.NewBuffer(body))
 	req.Header.Add("Infra-Version", "0.13.6")
 
 	resp := httptest.NewRecorder()
@@ -80,9 +78,7 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.NilError(t, err)
 
 	// nolint:noctx
-	req, err = http.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
-	assert.NilError(t, err)
-
+	req = httptest.NewRequest(http.MethodPost, "/api/password-reset", bytes.NewBuffer(body))
 	req.Header.Add("Infra-Version", "0.13.6")
 
 	resp = httptest.NewRecorder()

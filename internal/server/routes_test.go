@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -150,12 +149,11 @@ func TestTrimWhitespace(t *testing.T) {
 
 	userID := uid.New()
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.GrantRequest{
+	req := httptest.NewRequest(http.MethodPost, "/api/grants", jsonBody(t, api.GrantRequest{
 		User:      userID,
 		Privilege: "admin   ",
 		Resource:  " kubernetes.production.*",
 	}))
-	assert.NilError(t, err)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.13.1")
 
@@ -164,8 +162,7 @@ func TestTrimWhitespace(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
 	// nolint:noctx
-	req, err = http.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
-	assert.NilError(t, err)
+	req = httptest.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.13.1")
 
@@ -174,7 +171,7 @@ func TestTrimWhitespace(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusOK)
 
 	rb := &api.ListResponse[api.Grant]{}
-	err = json.Unmarshal(resp.Body.Bytes(), rb)
+	err := json.Unmarshal(resp.Body.Bytes(), rb)
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(rb.Items), 2, rb.Items)
@@ -261,8 +258,7 @@ func TestInfraVersionHeader(t *testing.T) {
 
 	body := jsonBody(t, api.CreateUserRequest{Name: "usera@example.com"})
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPost, "/api/users", body)
-	assert.NilError(t, err)
+	req := httptest.NewRequest(http.MethodPost, "/api/users", body)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 	resp := httptest.NewRecorder()
@@ -271,7 +267,7 @@ func TestInfraVersionHeader(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 
 	respBody := &api.Error{}
-	err = json.Unmarshal(resp.Body.Bytes(), respBody)
+	err := json.Unmarshal(resp.Body.Bytes(), respBody)
 	assert.NilError(t, err)
 
 	assert.Assert(t, strings.Contains(respBody.Message, "Infra-Version header is required"), respBody.Message)
@@ -305,9 +301,7 @@ func TestRequestTimeout(t *testing.T) {
 		},
 	})
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "/sleep", nil)
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodGet, "/sleep", nil)
 	req.Header.Add("Infra-Version", "0.13.1")
 
 	resp := httptest.NewRecorder()
@@ -332,8 +326,7 @@ func TestGenerateRoutes_OneRequestDoesNotBlockOthers(t *testing.T) {
 	// start a blocking request in the background
 	g.Go(func() error {
 		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
-		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
 
@@ -347,8 +340,7 @@ func TestGenerateRoutes_OneRequestDoesNotBlockOthers(t *testing.T) {
 	var count int
 	for time.Since(start) < srv.options.API.BlockingRequestTimeout && count < 3 {
 		urlPath := "/api/grants?destination=infra"
-		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
 

@@ -35,8 +35,7 @@ func TestAPI_GetUser(t *testing.T) {
 		assert.NilError(t, err)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -67,8 +66,7 @@ func TestAPI_GetUser(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -207,8 +205,7 @@ func TestAPI_ListUsers(t *testing.T) {
 		assert.NilError(t, err)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -233,8 +230,7 @@ func TestAPI_ListUsers(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -464,8 +460,7 @@ func TestAPI_CreateUser(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/users", body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -728,11 +723,13 @@ func TestAPI_DeleteUser(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
+	connector := data.InfraConnectorIdentity(srv.DB())
+
+	selfKey, selfUser := createAccessKey(t, srv.DB(), "user@example.com")
+
 	testUser := &models.Identity{Name: "test"}
 	err := data.CreateIdentity(srv.DB(), testUser)
 	assert.NilError(t, err)
-
-	connector := data.InfraConnectorIdentity(srv.DB())
 
 	type testCase struct {
 		name     string
@@ -743,9 +740,7 @@ func TestAPI_DeleteUser(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
-		assert.NilError(t, err)
-
+		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -769,11 +764,10 @@ func TestAPI_DeleteUser(t *testing.T) {
 			},
 		},
 		{
-			name: "can not delete self",
+			name:    "can not delete self",
+			urlPath: "/api/users/" + selfUser.ID.String(),
 			setup: func(t *testing.T, req *http.Request) {
-				key, user := createAccessKey(t, srv.DB(), "usera@example.com")
-				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", key))
-				req.URL.Path = "/api/users/" + user.ID.String()
+				req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", selfKey))
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, http.StatusBadRequest, resp.Code, resp.Body.String())
@@ -815,8 +809,7 @@ func TestAPI_UpdateUser(t *testing.T) {
 
 		id := user.ID.String()
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPut, "/api/users/"+id, body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPut, "/api/users/"+id, body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
