@@ -904,6 +904,12 @@ func parseTime(t *testing.T, s string) time.Time {
 	return v
 }
 
+func runStep(t *testing.T, name string, fn func(t *testing.T)) {
+	if !t.Run(name, fn) {
+		t.FailNow()
+	}
+}
+
 // testCaseLine is motivated by this Go proposal https://github.com/golang/go/issues/52751.
 // That issue has additional context about the problem this solves.
 func testCaseLine(name string) testCaseLabel {

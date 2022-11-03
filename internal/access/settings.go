@@ -35,7 +35,7 @@ func SaveSettings(c *gin.Context, settings *models.Settings) error {
 		return HandleAuthErr(err, "settings", "update", models.InfraAdminRole)
 	}
 
-	if err = data.SaveSettings(db, settings); err != nil {
+	if err = data.UpdateSettings(db, settings); err != nil {
 		return err
 	}
 	return nil
