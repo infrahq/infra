@@ -15,7 +15,7 @@ func HasTable(tx DB, name string) bool {
 		SELECT count(*)
 		FROM information_schema.tables
 		WHERE table_schema = CURRENT_SCHEMA()
-		AND table_name = ? AND table_type = 'BASE TABLE'
+		AND table_name = $1 AND table_type = 'BASE TABLE'
 	`
 	if err := tx.QueryRow(stmt, name).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if table exists")
@@ -34,7 +34,7 @@ func HasColumn(tx DB, table string, column string) bool {
 		SELECT count(*)
 		FROM information_schema.columns
 		WHERE table_schema = CURRENT_SCHEMA()
-		AND table_name = ? AND column_name = ?
+		AND table_name = $1 AND column_name = $2
 	`
 	if err := tx.QueryRow(stmt, table, column).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if column exists")
@@ -52,7 +52,7 @@ func HasConstraint(tx DB, table string, constraint string) bool {
 		SELECT count(*)
 		FROM information_schema.table_constraints
 		WHERE table_schema = CURRENT_SCHEMA()
-		AND table_name = ? AND constraint_name = ?
+		AND table_name = $1 AND constraint_name = $2
 	`
 	if err := tx.QueryRow(stmt, table, constraint).Scan(&count); err != nil {
 		logging.L.Warn().Err(err).Msg("failed to check if constraint exists")
@@ -69,7 +69,7 @@ func HasFunction(tx DB, funcName string) bool {
 		SELECT count(*)
 		FROM pg_proc
 		INNER JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid
-		WHERE proname = ? AND nspname = CURRENT_SCHEMA()`
+		WHERE proname = $1 AND nspname = CURRENT_SCHEMA()`
 
 	var count int
 	// function names are stored in lowercase, so convert to lowercase
