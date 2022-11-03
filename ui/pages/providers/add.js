@@ -375,7 +375,7 @@ export default function ProvidersAddDetails() {
               </div>
               <div>
                 <input
-                  id='scim-checkbox'
+                  name='scim-checkbox'
                   type='checkbox'
                   value=''
                   class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500'
@@ -383,7 +383,10 @@ export default function ProvidersAddDetails() {
                     setEnableSCIM(!enableSCIM)
                   }}
                 />
-                <label for='scim-checkbox' class='ml-2 text-sm font-medium'>
+                <label
+                  htmlFor='scim-checkbox'
+                  className='ml-2 text-sm font-medium'
+                >
                   Enable SCIM
                 </label>
               </div>

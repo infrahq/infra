@@ -10,7 +10,7 @@ export default function SCIMKey({ accessKey, errorMsg }) {
     <div className='w-full 2xl:m-auto'>
       <h1 className='py-1 font-display text-lg font-medium'>SCIM Access Key</h1>
       <div className='space-y-4'>
-        <section>
+        <>
           {errorMsg === '' ? (
             <>
               <div className='mb-2'>
@@ -48,16 +48,16 @@ export default function SCIMKey({ accessKey, errorMsg }) {
               <span class='font-medium'>Error:</span> {errorMsg}
             </div>
           )}
-        </section>
+        </>
 
         {/* Finish */}
-        <section className='my-10 flex justify-end'>
+        <div className='my-10 flex justify-end'>
           <Link href='/providers'>
             <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
               Finish
             </a>
           </Link>
-        </section>
+        </div>
       </div>
     </div>
   )

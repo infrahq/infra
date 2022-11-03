@@ -12,7 +12,6 @@ function PasswordReset({ user, onReset = () => {} }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [submitting, setSubmitting] = useState(false)
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -24,7 +23,6 @@ function PasswordReset({ user, onReset = () => {} }) {
       return false
     }
 
-    setSubmitting(true)
     setError('')
     setErrors({})
 
@@ -38,8 +36,6 @@ function PasswordReset({ user, onReset = () => {} }) {
         }),
       })
 
-      setSubmitting(false)
-
       const data = await rest.json()
 
       if (!rest.ok) {
@@ -51,7 +47,6 @@ function PasswordReset({ user, onReset = () => {} }) {
       setConfirmPassword('')
       onReset()
     } catch (e) {
-      setSubmitting(false)
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
@@ -76,7 +71,7 @@ function PasswordReset({ user, onReset = () => {} }) {
         </label>
         <input
           required
-          name='oldPassword'
+          name='old-password'
           type='password'
           value={oldPassword}
           onChange={e => {
@@ -145,7 +140,7 @@ function PasswordReset({ user, onReset = () => {} }) {
       <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
         <button
           type='submit'
-          disabled={(!password && !confirmPassword) || submitting}
+          disabled={!oldPassword || !password || !confirmPassword}
           className='inline-flex cursor-pointer items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30'
         >
           Reset Password
