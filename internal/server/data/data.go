@@ -124,26 +124,12 @@ func (d *DB) OrganizationID() uid.ID {
 	return d.DefaultOrg.ID
 }
 
-func (d *DB) GormDB() *gorm.DB {
-	return d.DB
-}
-
 func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
 	tx := d.DB.WithContext(ctx).Begin(opts)
 	if err := tx.Error; err != nil {
 		return nil, err
 	}
 	return &Transaction{DB: tx, completed: new(atomic.Bool)}, nil
-}
-
-// GormTxn is used as a shim in preparation for removing gorm.
-type GormTxn interface {
-	WriteTxn
-
-	// GormDB returns the underlying reference to the gorm.DB struct.
-	// Do not use this in new code! Instead, write SQL using the stdlib\
-	// interface of Query, QueryRow, and Exec.
-	GormDB() *gorm.DB
 }
 
 type Transaction struct {
@@ -171,10 +157,6 @@ func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
 	return t.DB.Raw(query, args...).Row()
-}
-
-func (t *Transaction) GormDB() *gorm.DB {
-	return t.DB
 }
 
 // Rollback the transaction. If the transaction was already committed then do
@@ -262,28 +244,6 @@ func initialize(db *DB) error {
 		return fmt.Errorf("getting settings: %w", err)
 	}
 	return tx.Commit()
-}
-
-func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) {
-	db := tx.GormDB()
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-
-	result := new(T)
-	if isOrgMember(result) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-
-	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-
-		return nil, err
-	}
-
-	return result, nil
 }
 
 // setOrg checks if model is an organization member, and sets the organizationID
