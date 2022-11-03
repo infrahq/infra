@@ -58,6 +58,7 @@ type ServerOptions struct {
 }
 
 type ListenerOptions struct {
+	HTTP    string
 	HTTPS   string
 	Metrics string
 }
@@ -261,11 +262,12 @@ func Run(ctx context.Context, options Options) error {
 		MinVersion: tls.VersionTLS12,
 	}
 
+	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
+
 	proxy := httputil.NewSingleHostReverseProxy(kubeAPIAddr)
 	proxy.Transport = proxyTransport
-	proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
+	proxy.ErrorLog = httpErrorLog
 
-	httpErrorLog := log.New(logging.NewFilteredHTTPLogger(), "", 0)
 	metricsServer := &http.Server{
 		ReadHeaderTimeout: 30 * time.Second,
 		ReadTimeout:       60 * time.Second,
@@ -276,6 +278,27 @@ func Run(ctx context.Context, options Options) error {
 
 	group.Go(func() error {
 		err := metricsServer.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	})
+
+	healthOnlyRouter := gin.New()
+	healthOnlyRouter.GET("/healthz", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	plaintextServer := &http.Server{
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		Addr:              options.Addr.HTTP,
+		Handler:           healthOnlyRouter,
+		ErrorLog:          httpErrorLog,
+	}
+
+	group.Go(func() error {
+		err := plaintextServer.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
@@ -296,7 +319,7 @@ func Run(ctx context.Context, options Options) error {
 		ErrorLog:          httpErrorLog,
 	}
 
-	logging.Infof("starting infra connector (%s) - https:%s metrics:%s", internal.FullVersion(), tlsServer.Addr, metricsServer.Addr)
+	logging.Infof("starting infra connector (%s) - http:%s https:%s metrics:%s", internal.FullVersion(), plaintextServer.Addr, tlsServer.Addr, metricsServer.Addr)
 
 	group.Go(func() error {
 		err = tlsServer.ListenAndServeTLS("", "")
@@ -313,6 +336,9 @@ func Run(ctx context.Context, options Options) error {
 	defer shutdownCancel()
 	if err := tlsServer.Shutdown(shutdownCtx); err != nil {
 		logging.L.Warn().Err(err).Msgf("shutdown proxy server")
+	}
+	if err := plaintextServer.Close(); err != nil {
+		logging.L.Warn().Err(err).Msgf("shutdown plaintext server")
 	}
 	if err := metricsServer.Close(); err != nil {
 		logging.L.Warn().Err(err).Msgf("shutdown metrics server")
