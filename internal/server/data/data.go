@@ -242,7 +242,7 @@ func initialize(db *DB) error {
 	}
 	defer tx.Rollback()
 
-	org, err := GetOrganization(tx, ByID(defaultOrganizationID))
+	org, err := GetOrganization(tx, GetOrganizationOptions{ByID: defaultOrganizationID})
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{

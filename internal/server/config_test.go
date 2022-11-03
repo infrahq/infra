@@ -434,7 +434,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 
 	defaultOrg := s.db.DefaultOrg
 
-	updatedOrg, err := data.GetOrganization(s.db, data.ByID(defaultOrg.ID))
+	updatedOrg, err := data.GetOrganization(s.db, data.GetOrganizationOptions{ByID: defaultOrg.ID})
 	assert.NilError(t, err)
 	assert.Equal(t, updatedOrg.Domain, "super.example.com")
 

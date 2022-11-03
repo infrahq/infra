@@ -11,14 +11,12 @@ import (
 )
 
 func ListOrganizations(c *gin.Context, name string, pg *data.Pagination) ([]models.Organization, error) {
-	selectors := []data.SelectorFunc{}
-	if name != "" {
-		selectors = append(selectors, data.ByName(name))
-	}
-
 	db, err := RequireInfraRole(c, models.InfraSupportAdminRole)
 	if err == nil {
-		return data.ListOrganizations(db, pg, selectors...)
+		return data.ListOrganizations(db, data.ListOrganizationsOptions{
+			ByName:     name,
+			Pagination: pg,
+		})
 	}
 	err = HandleAuthErr(err, "organizations", "list", models.InfraSupportAdminRole)
 
@@ -40,7 +38,7 @@ func GetOrganization(c *gin.Context, id uid.ID) (*models.Organization, error) {
 		}
 	}
 
-	return data.GetOrganization(rCtx.DBTxn, data.ByID(id))
+	return data.GetOrganization(rCtx.DBTxn, data.GetOrganizationOptions{ByID: id})
 }
 
 func CreateOrganization(c *gin.Context, org *models.Organization) error {
@@ -58,7 +56,7 @@ func DeleteOrganization(c *gin.Context, id uid.ID) error {
 		return HandleAuthErr(err, "organizations", "delete", models.InfraSupportAdminRole)
 	}
 
-	return data.DeleteOrganizations(db, data.ByID(id))
+	return data.DeleteOrganization(db, id)
 }
 
 func SanitizedDomain(subDomain, serverBaseDomain string) string {

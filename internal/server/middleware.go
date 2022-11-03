@@ -167,7 +167,7 @@ func requireAccessKey(c *gin.Context, db *data.Transaction, srv *Server) (access
 		}
 	}
 
-	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	org, err := data.GetOrganization(db, data.GetOrganizationOptions{ByID: accessKey.OrganizationID})
 	if err != nil {
 		return u, fmt.Errorf("access key org lookup: %w", err)
 	}
@@ -235,7 +235,7 @@ func getOrgFromRequest(req *http.Request, tx data.GormTxn) (*models.Organization
 	}
 
 hostLookup:
-	org, err := data.GetOrganization(tx, data.ByDomain(host))
+	org, err := data.GetOrganization(tx, data.GetOrganizationOptions{ByDomain: host})
 	if err != nil {
 		if errors.Is(err, internal.ErrNotFound) {
 			logging.Debugf("Host not found: %s", host)

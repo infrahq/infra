@@ -75,7 +75,7 @@ func Login(
 		return LoginResult{}, fmt.Errorf("login failed to update last seen: %w", err)
 	}
 
-	org, err := data.GetOrganization(db, data.ByID(accessKey.OrganizationID))
+	org, err := data.GetOrganization(db, data.GetOrganizationOptions{ByID: accessKey.OrganizationID})
 	if err != nil {
 		return LoginResult{}, err
 	}
