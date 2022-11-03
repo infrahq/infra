@@ -1,6 +1,7 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -64,6 +65,10 @@ type SelectDeviceFlowAuthRequestOptions struct {
 }
 
 func GetDeviceFlowAuthRequest(tx GormTxn, opts SelectDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
+	if opts.ByDeviceCode == "" && opts.ByUserCode == "" && opts.ByID == 0 {
+		return nil, errors.New("must supply one of device_code, user_code, or id to GetDeviceFlowAuthRequest")
+	}
+
 	rec := &deviceFlowAuthRequestTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(rec))

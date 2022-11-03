@@ -21,24 +21,25 @@ import (
 // panics will be caught and logged
 //
 // jobs should gracefully exit if their context quits, eg ctx.Done() or ctx.Err()
-type BackgroundJobFunc func(ctx context.Context, tx data.WriteTxn, lastRunAt, currentTime time.Time) error
+type BackgroundJobFunc func(ctx context.Context, tx *data.DB, lastRunAt, currentTime time.Time) error
 
-func (s *Server) SetupBackgroundJobs() {
-	s.registerJob(jobs.RemoveOldDeviceFlowRequests, 10*time.Minute)
-	s.registerJob(jobs.RemoveExpiredAccessKeys, 1*time.Minute)
-	s.registerJob(jobs.RemoveExpiredPasswordResetTokens, 15*time.Minute)
+func (s *Server) SetupBackgroundJobs(ctx context.Context) {
+	s.registerJob(ctx, jobs.RemoveOldDeviceFlowRequests, 10*time.Minute)
+	s.registerJob(ctx, jobs.RemoveExpiredAccessKeys, 12*time.Hour)
+	s.registerJob(ctx, jobs.RemoveExpiredPasswordResetTokens, 15*time.Minute)
 }
 
-func (s *Server) registerJob(job BackgroundJobFunc, every time.Duration) {
-	ctx, cancel := context.WithCancel(context.Background())
+func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every time.Duration) {
 	s.routines = append(s.routines, routine{
 		run:  jobWrapper(ctx, s.db, job, every),
-		stop: cancel,
+		stop: func() {}, // uses the context to stop
 	})
 }
 
-func jobWrapper(ctx context.Context, tx data.WriteTxn, job BackgroundJobFunc, every time.Duration) func() error {
-	return func() error { // jobs shouldn't really return errors, we just do this to be compatible with the "routine" struct.
+func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
+	tx = &data.DB{DB: tx.WithContext(ctx), DefaultOrgSettings: tx.DefaultOrgSettings, DefaultOrg: tx.DefaultOrg}
+
+	return func() error { // jobs shouldn't return errors, we just do this to be compatible with the "routine" struct.
 		t := time.NewTicker(every)
 		lastRunAt := time.Time{}
 
@@ -55,7 +56,6 @@ func jobWrapper(ctx context.Context, tx data.WriteTxn, job BackgroundJobFunc, ev
 			startAt := time.Now().UTC()
 			logging.Debugf("background job %s starting", getFuncName(job))
 
-			// TODO: consider attaching the context to the tx so long-running executions don't hold up app shutdown
 			err := job(ctx, tx, lastRunAt, startAt)
 			if err != nil {
 				logging.Errorf("background job %s error: %s", getFuncName(job), err.Error())

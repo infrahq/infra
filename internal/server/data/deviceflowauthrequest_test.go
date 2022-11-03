@@ -22,6 +22,6 @@ func TestDeleteExpiredDeviceFlowAuthRequests(t *testing.T) {
 	err = DeleteExpiredDeviceFlowAuthRequests(tx)
 	assert.NilError(t, err)
 
-	_, err = GetDeviceFlowAuthRequest(tx, ByID(dfar.ID))
+	_, err = GetDeviceFlowAuthRequest(tx, SelectDeviceFlowAuthRequestOptions{ByID: dfar.ID})
 	assert.ErrorContains(t, err, "not found")
 }

@@ -203,8 +203,6 @@ func New(options Options) (*Server, error) {
 
 	configureEmail(options)
 
-	server.SetupBackgroundJobs()
-
 	return server, nil
 }
 
@@ -216,6 +214,8 @@ func (s *Server) DB() data.GormTxn {
 
 func (s *Server) Run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
+
+	s.SetupBackgroundJobs(ctx)
 
 	if s.tel != nil {
 		group.Go(func() error {
