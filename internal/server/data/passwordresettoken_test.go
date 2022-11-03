@@ -7,7 +7,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
-
 	"github.com/infrahq/infra/uid"
 )
 
