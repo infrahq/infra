@@ -51,7 +51,7 @@ retry:
 	}
 	if host == "" {
 		// Default to the request hostname when in single tenant mode
-		host = rctx.Request.URL.Host
+		host = rctx.Request.Host
 	}
 
 	return &api.DeviceFlowResponse{
