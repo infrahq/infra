@@ -447,8 +447,8 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 		})
 		var apiError api.Error
 		switch {
-		case errors.As(err, &apiError) && apiError.Code == http.StatusGatewayTimeout:
-			// a timeout is expected when there are no changes
+		case errors.As(err, &apiError) && apiError.Code == http.StatusNotModified:
+			// not modified is expected when there are no changes
 			logging.L.Info().
 				Int64("updateIndex", latestIndex).
 				Msg("no updated grants from server")

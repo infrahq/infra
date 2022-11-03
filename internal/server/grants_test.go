@@ -730,7 +730,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 	assert.Assert(t, elapsed >= srv.options.API.BlockingRequestTimeout,
 		"elapsed=%v %v", elapsed, (*responseDebug)(resp))
 
-	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, (*responseDebug)(resp))
+	assert.Equal(t, resp.Code, http.StatusNotModified, (*responseDebug)(resp))
 }
 
 func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
@@ -763,7 +763,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
 	assert.Assert(t, elapsed < time.Second,
 		"elapsed=%v %v", elapsed, (*responseDebug)(resp))
 
-	assert.Equal(t, resp.Code, http.StatusGatewayTimeout, (*responseDebug)(resp))
+	assert.Equal(t, resp.Code, http.StatusNotModified, (*responseDebug)(resp))
 }
 
 type responseDebug httptest.ResponseRecorder

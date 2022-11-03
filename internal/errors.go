@@ -14,6 +14,7 @@ var (
 
 	ErrInternalServerError = fmt.Errorf("internal server error")
 	ErrNotFound            = fmt.Errorf("record not found")
+	ErrNotModified         = fmt.Errorf("not modified")
 	ErrBadRequest          = fmt.Errorf("bad request")
 	ErrNotImplemented      = fmt.Errorf("not implemented")
 	ErrExpired             = fmt.Errorf("expired")
