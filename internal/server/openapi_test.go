@@ -27,7 +27,7 @@ func TestWriteOpenAPIDocToFile(t *testing.T) {
 
 	actual, err := ioutil.ReadFile(filename)
 	assert.NilError(t, err)
-	golden.Assert(t, string(actual), "openapi3.json")
+	golden.Assert(t, string(actual), "../../../docs/api/openapi3.json")
 }
 
 func patchProductVersion(t *testing.T, version string) {
