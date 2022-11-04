@@ -1,7 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import useSWR from 'swr'
-import Cookies from 'universal-cookie'
 import Link from 'next/link'
 import Tippy from '@tippyjs/react'
 

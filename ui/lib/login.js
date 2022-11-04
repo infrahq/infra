@@ -1,3 +1,5 @@
+import Cookies from 'universal-cookie'
+
 export function saveToVisitedOrgs(domain, orgName) {
   const cookies = new Cookies()
 
