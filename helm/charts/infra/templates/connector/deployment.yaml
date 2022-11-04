@@ -61,9 +61,6 @@ spec:
 {{- toYaml .Values.connector.volumeMounts | nindent 12 }}
 {{- end }}
           ports:
-            - name: http
-              containerPort: {{ .Values.connector.config.addr.http }}
-              protocol: TCP
             - name: https
               containerPort: {{ .Values.connector.config.addr.https }}
               protocol: TCP
@@ -73,7 +70,8 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: https
+              scheme: HTTPS
             successThreshold: {{ .Values.connector.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.connector.livenessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.connector.livenessProbe.initialDelaySeconds }}
@@ -82,7 +80,8 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthz
-              port: http
+              port: https
+              scheme: HTTPS
             successThreshold: {{ .Values.connector.readinessProbe.successThreshold }}
             failureThreshold: {{ .Values.connector.readinessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.connector.readinessProbe.initialDelaySeconds }}

@@ -403,7 +403,6 @@ name: the-name
 caCert: /path/to/cert
 caKey: /path/to/key
 addr:
-  http: localhost:84
   https: localhost:414
   metrics: 127.0.0.1:8000
 `,
@@ -411,7 +410,6 @@ addr:
 				return connector.Options{
 					Name: "the-name",
 					Addr: connector.ListenerOptions{
-						HTTP:    "localhost:84",
 						HTTPS:   "localhost:414",
 						Metrics: "127.0.0.1:8000",
 					},
