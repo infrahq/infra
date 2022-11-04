@@ -103,6 +103,15 @@ func TestAPI_GetUser(t *testing.T) {
 				assert.Equal(t, resp.Code, http.StatusForbidden)
 			},
 		},
+		"authorized by role": {
+			urlPath: "/api/users/" + idHal.String(),
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
+			},
+		},
 		"identity not found": {
 			urlPath: "/api/users/2341",
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -678,7 +687,7 @@ func TestAPI_CreateUserAndUpdatePassword(t *testing.T) {
 			var tmpUserID uid.ID
 
 			t.Run("I can create a user", func(t *testing.T) {
-				resp, err := a.CreateUser(ctx, &api.CreateUserRequest{
+				resp, err := CreateUser(ctx, &api.CreateUserRequest{
 					Name: "joe+" + generate.MathRandom(10, generate.CharsetAlphaNumeric),
 				})
 				tmpUserID = resp.ID

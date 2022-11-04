@@ -37,9 +37,16 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 	return result, nil
 }
 
+var getProviderRoute = route[api.Resource, *api.Provider]{
+	handler:       GetProvider,
+	authorization: noAuthorization{},
+	routeSettings: routeSettingsGetMethodDefaults,
+}
+
 // caution: this endpoint is unauthenticated, do not return sensitive info
-func (a *API) GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
-	provider, err := access.GetProvider(c, r.ID)
+func GetProvider(c *gin.Context, r *api.Resource) (*api.Provider, error) {
+	rCtx := getRequestContext(c)
+	provider, err := data.GetProvider(rCtx.DBTxn, data.GetProviderOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
 	}

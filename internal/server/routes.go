@@ -55,8 +55,8 @@ func (s *Server) GenerateRoutes() Routes {
 	authn := &routeGroup{RouterGroup: apiGroup.Group("/")}
 
 	get(a, authn, "/api/users", a.ListUsers)
-	post(a, authn, "/api/users", a.CreateUser)
-	get(a, authn, "/api/users/:id", a.GetUser)
+	add(a, authn, http.MethodPost, "/api/users", createUserRoute)
+	add(a, authn, http.MethodGet, "/api/users/:id", getUserRoute)
 	put(a, authn, "/api/users/:id", a.UpdateUser)
 	del(a, authn, "/api/users/:id", a.DeleteUser)
 
@@ -127,7 +127,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
 	post(a, noAuthnWithOrg, "/api/password-reset", a.VerifiedPasswordReset)
 
-	get(a, noAuthnWithOrg, "/api/providers/:id", a.GetProvider)
+	add(a, noAuthnWithOrg, http.MethodGet, "/api/providers/:id", getProviderRoute)
 	get(a, noAuthnWithOrg, "/api/providers", a.ListProviders)
 	get(a, noAuthnWithOrg, "/api/settings", a.GetSettings)
 	add(a, noAuthnWithOrg, http.MethodGet, "/link", verifyAndRedirectRoute)
@@ -149,7 +149,12 @@ type HandlerFunc[Req, Res any] func(c *gin.Context, req *Req) (Res, error)
 
 type route[Req, Res any] struct {
 	routeSettings
-	handler HandlerFunc[Req, Res]
+	handler       HandlerFunc[Req, Res]
+	authorization authorizer
+}
+
+type authorizer interface {
+	IsAuthorized(rCtx access.RequestContext, req any) error
 }
 
 type routeSettings struct {
@@ -249,6 +254,13 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 		}
 		c.Set(access.RequestContextKey, rCtx)
 
+		// TODO: make this required
+		if route.authorization != nil {
+			if err := route.authorization.IsAuthorized(rCtx, req); err != nil {
+				return err
+			}
+		}
+
 		resp, err := route.handler(c, req)
 		if err != nil {
 			return err
@@ -330,12 +342,14 @@ func responseStatusCode(method string, resp any) int {
 
 func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodGet, path, route[Req, Res]{
-		handler: handler,
-		routeSettings: routeSettings{
-			omitFromTelemetry: true,
-			txnOptions:        &sql.TxOptions{ReadOnly: true},
-		},
+		handler:       handler,
+		routeSettings: routeSettingsGetMethodDefaults,
 	})
+}
+
+var routeSettingsGetMethodDefaults = routeSettings{
+	omitFromTelemetry: true,
+	txnOptions:        &sql.TxOptions{ReadOnly: true},
 }
 
 func post[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {

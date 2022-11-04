@@ -29,15 +29,39 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 	return result, nil
 }
 
-func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
-	if r.ID.IsSelf {
-		iden := access.GetRequestContext(c).Authenticated.User
-		if iden == nil {
-			return nil, fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
-		}
-		r.ID.ID = iden.ID
-	}
-	identity, err := access.GetIdentity(c, r.ID.ID)
+var getUserRoute = route[api.GetUserRequest, *api.User]{
+	handler: GetUser,
+	authorization: &authorization{
+		OneOfRoles: []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole},
+		Resource:   "user",
+		Operation:  "get",
+		// Anyone can get their own user data
+		AuthorizeByID: func(rCtx access.RequestContext, req any) error {
+			userReq, _ := req.(*api.GetUserRequest)
+			if userReq.ID.IsSelf {
+				user := rCtx.Authenticated.User
+				if user == nil {
+					return fmt.Errorf("%w: no user is logged in", internal.ErrUnauthorized)
+				}
+				userReq.ID.ID = user.ID
+			}
+			if authnedUser := rCtx.Authenticated.User; authnedUser != nil {
+				if userReq.ID.ID == authnedUser.ID {
+					return nil
+				}
+			}
+			return fmt.Errorf("request is for a different user")
+		},
+	},
+	routeSettings: routeSettingsGetMethodDefaults,
+}
+
+func GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) {
+	rCtx := getRequestContext(c)
+	identity, err := data.GetIdentity(rCtx.DBTxn, data.GetIdentityOptions{
+		ByID:          r.ID.ID,
+		LoadProviders: true,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +69,14 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 	return identity.ToAPI(), nil
 }
 
+var createUserRoute = route[api.CreateUserRequest, *api.CreateUserResponse]{
+	handler:       CreateUser,
+	authorization: requireRole("user", "create", models.InfraAdminRole),
+}
+
 // CreateUser creates a user with the Infra provider
-func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
+func CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateUserResponse, error) {
+	rCtx := getRequestContext(c)
 	user := &models.Identity{Name: r.Name}
 
 	// infra identity creation should be attempted even if an identity is already known
@@ -57,13 +87,13 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 
 	switch len(identities) {
 	case 0:
-		if err := access.CreateIdentity(c, user); err != nil {
+		if err := data.CreateIdentity(rCtx.DBTxn, user); err != nil {
 			return nil, fmt.Errorf("create identity: %w", err)
 		}
 	case 1:
 		user.ID = identities[0].ID
 	default:
-		logging.Errorf("Multiple identites match name %q. DB is missing unique index on user names", r.Name)
+		logging.Errorf("Multiple identities match name %q. DB is missing unique index on user names", r.Name)
 		return nil, fmt.Errorf("multiple identities match specified name") // should not happen
 	}
 
