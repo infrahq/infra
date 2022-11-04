@@ -6,7 +6,6 @@ import (
 
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/metrics"
 )
 
@@ -19,7 +18,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "users",
 		Help:      "The total number of users",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Identity](db, data.NotName("connector"))
+		count, err := data.CountAllIdentities(db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("users")
 			return []metrics.Metric{}
@@ -35,7 +34,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "groups",
 		Help:      "The total number of groups",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Group](db)
+		count, err := data.CountAllGroups(db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("groups")
 			return []metrics.Metric{}
@@ -51,7 +50,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "grants",
 		Help:      "The total number of grants",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Grant](db, data.NotPrivilege("connector"))
+		count, err := data.CountAllGrants(db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("grants")
 			return []metrics.Metric{}
@@ -113,7 +112,7 @@ func setupMetrics(db *data.DB) *prometheus.Registry {
 		Name:      "organizations",
 		Help:      "The total number of organizations",
 	}, []string{}, func() []metrics.Metric {
-		count, err := data.GlobalCount[models.Organization](db)
+		count, err := data.CountOrganizations(db)
 		if err != nil {
 			logging.L.Warn().Err(err).Msg("organizations")
 			return []metrics.Metric{}

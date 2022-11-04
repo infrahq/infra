@@ -394,3 +394,16 @@ func TestRemoveUsersFromGroup(t *testing.T) {
 		assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 	})
 }
+
+func TestCountAllGroups(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		createGroups(t, db,
+			&models.Group{Name: "Everyone"},
+			&models.Group{Name: "Engineering"},
+			&models.Group{Name: "Product"})
+
+		actual, err := CountAllGroups(db)
+		assert.NilError(t, err)
+		assert.Equal(t, actual, int64(3))
+	})
+}

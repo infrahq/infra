@@ -457,3 +457,17 @@ func TestCountProvidersByKind(t *testing.T) {
 		assert.DeepEqual(t, actual, expected)
 	})
 }
+
+func TestCountAllProviders(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		createProviders(t, db,
+			&models.Provider{Name: "oidc", Kind: "oidc"},
+			&models.Provider{Name: "azure", Kind: "azure"},
+			&models.Provider{Name: "google", Kind: "google"},
+		)
+
+		actual, err := CountAllProviders(db)
+		assert.NilError(t, err)
+		assert.Equal(t, actual, int64(4)) // 3 + infra provider
+	})
+}

@@ -23,12 +23,6 @@ func ByOrgID(orgID uid.ID) SelectorFunc {
 	}
 }
 
-func ByName(name string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("name = ?", name)
-	}
-}
-
 func ByPagination(p Pagination) SelectorFunc {
 	return func(db *gorm.DB) *gorm.DB {
 		if p.Page == 0 && p.Limit == 0 {
@@ -36,23 +30,5 @@ func ByPagination(p Pagination) SelectorFunc {
 		}
 		resultsForPage := p.Limit * (p.Page - 1)
 		return db.Offset(resultsForPage).Limit(p.Limit)
-	}
-}
-
-func Limit(limit int) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Limit(limit)
-	}
-}
-
-func NotName(name string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Not("name = ?", name)
-	}
-}
-
-func NotPrivilege(privilege string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Not("privilege = ?", privilege)
 	}
 }

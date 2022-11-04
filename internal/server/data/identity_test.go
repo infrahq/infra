@@ -722,3 +722,18 @@ func TestAssignIdentityToGroups(t *testing.T) {
 		}
 	})
 }
+
+func TestCountAllIdentities(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		createIdentities(t, db,
+			&models.Identity{Name: "one"},
+			&models.Identity{Name: "two"},
+			&models.Identity{Name: "three"},
+			&models.Identity{Name: "four"},
+			&models.Identity{Name: "five"})
+
+		actual, err := CountAllIdentities(db)
+		assert.NilError(t, err)
+		assert.Equal(t, actual, int64(6)) // 5 + connector
+	})
+}

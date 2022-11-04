@@ -179,3 +179,7 @@ func CountDestinationsByConnectedVersion(tx ReadTxn) ([]DestinationsCount, error
 		return []any{&item.Version, &item.Connected, &item.Count}
 	})
 }
+
+func CountAllDestinations(tx ReadTxn) (int64, error) {
+	return countRows(tx, destinationsTable{})
+}
