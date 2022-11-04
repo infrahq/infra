@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -111,6 +112,20 @@ func TestSendAPIError(t *testing.T) {
 			err:               internal.ErrNotModified,
 			result:            api.Error{Code: http.StatusNotModified},
 			emptyResponseBody: true,
+		},
+		{
+			err: fmt.Errorf("wrapped: %w", context.DeadlineExceeded),
+			result: api.Error{
+				Code:    http.StatusGatewayTimeout,
+				Message: "request timed out",
+			},
+		},
+		{
+			err: fmt.Errorf("wrapped: %w", context.Canceled),
+			result: api.Error{
+				Code:    499,
+				Message: "client closed the request: wrapped: context canceled",
+			},
 		},
 	}
 
