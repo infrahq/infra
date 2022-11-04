@@ -257,22 +257,27 @@ func runTelemetryHeartbeat(ctx context.Context, tel *Telemetry) error {
 }
 
 func registerUIRoutes(router *gin.Engine, opts UIOptions) {
-	if opts.ProxyURL.Host != "" {
-		remote := opts.ProxyURL.Value()
-		proxy := httputil.NewSingleHostReverseProxy(remote)
-		proxy.Director = func(req *http.Request) {
-			req.Host = remote.Host
-			req.URL.Scheme = remote.Scheme
-			req.URL.Host = remote.Host
-		}
-		proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
-
-		router.Use(func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
-			c.Abort()
-		})
+	if opts.ProxyURL.Host == "" {
 		return
 	}
+	remote := opts.ProxyURL.Value()
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	proxy.Director = func(req *http.Request) {
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+	}
+	proxy.ErrorLog = log.New(logging.NewFilteredHTTPLogger(), "", 0)
+
+	router.Use(func(c *gin.Context) {
+		// Don't proxy /api/* paths
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.Next()
+			return
+		}
+		proxy.ServeHTTP(c.Writer, c.Request)
+		c.Abort()
+	})
 }
 
 func (s *Server) listen() error {
