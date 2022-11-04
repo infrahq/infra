@@ -122,18 +122,16 @@ export default function Settings() {
   const {
     data: { items: accessKeys, totalPages, totalCount } = {},
     mutate: accessKeyMutate,
-  } = useSWR(`/api/access-keys?userID=${user.id}&page=${page}&limit=${limit}`)
+  } = useSWR(`/api/access-keys?page=${page}&limit=${limit}`)
 
-  if (isAdmin) {
-    const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
-    const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
-    const { data: { items: grants } = {}, mutate } = useSWR(
-      '/api/grants?resource=infra&privilege=admin&limit=1000'
-    )
-    const { data: { items: selfGroups } = {} } = useSWR(
-      () => `/api/groups?userID=${user?.id}&limit=1000`
-    )
-  }
+  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
+  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
+  const { data: { items: grants } = {}, mutate } = useSWR(
+    '/api/grants?resource=infra&privilege=admin&limit=1000'
+  )
+  const { data: { items: selfGroups } = {} } = useSWR(
+    () => `/api/groups?userID=${user?.id}&limit=1000`
+  )
 
   const tabs = isAdmin ? [TAB_ACCESS_KEY, TAB_ORG_ADMINS] : []
   const tab = router.query.tab || TAB_ACCESS_KEY.name
