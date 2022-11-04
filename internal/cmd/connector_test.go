@@ -28,6 +28,7 @@ import (
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/connector"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -37,6 +38,11 @@ func TestConnector_Run(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for short run")
 	}
+
+	assert.NilError(t, logging.SetLevel("debug"))
+	t.Cleanup(func() {
+		assert.NilError(t, logging.SetLevel("info"))
+	})
 
 	dir := t.TempDir()
 	serverOpts := defaultServerOptions(dir)
@@ -84,7 +90,7 @@ func TestConnector_Run(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	t.Cleanup(cancel)
 
 	runAndWait(ctx, t, func(ctx context.Context) error {
@@ -103,7 +109,7 @@ func TestConnector_Run(t *testing.T) {
 			return poll.Error(err)
 		}
 		return poll.Success()
-	})
+	}, poll.WithTimeout(30*time.Second))
 
 	// check the destination was updated
 	expected := &models.Destination{
