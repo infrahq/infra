@@ -106,6 +106,7 @@ postgres 'env' values. Merges global and local values.
 {{- else }}
 {{- $env = append $env (dict "name" "POSTGRES_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict "name" (include "postgres.fullname" .) "key" "password"))) }}
 {{- end }}
+{{- $env = append $env (dict "name" "PGDATA" "value" "/var/lib/postgresql/data/pgdata") }}
 {{- $env | uniq | toYaml }}
 {{- end }}
 

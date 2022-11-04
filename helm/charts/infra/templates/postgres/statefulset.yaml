@@ -48,7 +48,7 @@ spec:
               protocol: TCP
           livenessProbe:
             exec:
-              command: [pg_isready]
+              command: [pg_isready, -d, {{ .Values.postgres.dbName }}, -U, {{ .Values.postgres.dbUsername }}]
             successThreshold: {{ .Values.postgres.livenessProbe.successThreshold }}
             failureThreshold: {{ .Values.postgres.livenessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.postgres.livenessProbe.initialDelaySeconds }}
@@ -56,7 +56,7 @@ spec:
             timeoutSeconds: {{ .Values.postgres.livenessProbe.timeoutSeconds }}
           readinessProbe:
             exec:
-              command: [pg_isready]
+              command: [pg_isready, -d, {{ .Values.postgres.dbName }}, -U, {{ .Values.postgres.dbUsername }}]
             successThreshold: {{ .Values.postgres.readinessProbe.successThreshold }}
             failureThreshold: {{ .Values.postgres.readinessProbe.failureThreshold }}
             initialDelaySeconds: {{ .Values.postgres.readinessProbe.initialDelaySeconds }}
@@ -64,8 +64,8 @@ spec:
             timeoutSeconds: {{ .Values.postgres.readinessProbe.timeoutSeconds }}
           resources:
 {{- toYaml .Values.postgres.resources | nindent 12 }}
-{{- if .Values.server.persistence.enabled }}
       initContainers:
+{{- if .Values.server.persistence.enabled }}
         - name: migration
           image: alpine:latest
           command: [sh, -c]
@@ -91,6 +91,22 @@ spec:
               mountPath: /mnt/initdb
             - name: old-data
               mountPath: /var/lib/infrahq/server
+{{- end }}
+{{- if .Values.postgres.persistence.enabled }}
+        - name: pgdata
+          image: busybox:latest
+          command: [sh, -c]
+          args:
+            - |
+              MOUNTPOINT=/var/lib/postgresql/data
+              if [ ! -d "$MOUNTPOINT/pgdata" ]; then
+                mkdir -p $MOUNTPOINT/pgdata
+                # migrate data previously stored in /var/lib/postgresql/data, exclude `pgdata` and `lost+found`
+                find $MOUNTPOINT -not -name 'pgdata' -not -name 'lost+found' -maxdepth 1 -mindepth 1 -exec mv -v {} $MOUNTPOINT/pgdata/ \;
+              fi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
 {{- end }}
       volumes:
         - name: initdb
