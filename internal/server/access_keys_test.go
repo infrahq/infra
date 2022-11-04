@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -35,8 +34,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		body := tc.setup(t)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -188,8 +186,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -214,9 +211,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodDelete, "/api/access-keys?name=delete+me", nil)
-		assert.NilError(t, err)
-
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -234,9 +229,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodDelete, "/api/access-keys?name=delete+me+too", nil)
-		assert.NilError(t, err)
-
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me+too", nil)
 		req.Header.Set("Authorization", "Bearer "+key.Token())
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -246,8 +239,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("show expired", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys?show_expired=1", nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?show_expired=1", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -255,7 +247,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, resp.Code, http.StatusOK)
 
 		keys := api.ListResponse[api.AccessKey]{}
-		err = json.Unmarshal(resp.Body.Bytes(), &keys)
+		err := json.Unmarshal(resp.Body.Bytes(), &keys)
 		assert.NilError(t, err)
 
 		// TODO: replace this with a more strict assertion using DeepEqual
@@ -269,8 +261,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	t.Run("latest", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", "0.12.3")
 
@@ -278,7 +269,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, resp.Code, http.StatusOK)
 
 		resp1 := &api.ListResponse[api.AccessKey]{}
-		err = json.Unmarshal(resp.Body.Bytes(), resp1)
+		err := json.Unmarshal(resp.Body.Bytes(), resp1)
 		assert.NilError(t, err)
 
 		assert.Assert(t, len(resp1.Items) > 0)
@@ -287,15 +278,14 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusBadRequest)
 
 		errMsg := api.Error{}
-		err = json.Unmarshal(resp.Body.Bytes(), &errMsg)
+		err := json.Unmarshal(resp.Body.Bytes(), &errMsg)
 		assert.NilError(t, err)
 
 		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))

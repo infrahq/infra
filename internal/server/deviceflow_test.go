@@ -102,7 +102,7 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 		srv := setupServer(t, withAdminUser)
 		routes := srv.GenerateRoutes()
 
-		req := httptest.NewRequest(http.MethodPost, "/api/device", nil)
+		req := httptest.NewRequest(http.MethodPost, "https://api.example.com:2020/api/device", nil)
 		req.Header.Set("Infra-Version", apiVersionLatest)
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -115,7 +115,7 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 		expected := &api.DeviceFlowResponse{
 			DeviceCode:          "<any-string>",
 			UserCode:            "<any-string>",
-			VerificationURI:     "https://example.com/device",
+			VerificationURI:     "https://api.example.com:2020/device",
 			ExpiresInSeconds:    600,
 			PollIntervalSeconds: 5,
 		}

@@ -28,9 +28,7 @@ func TestServerLimitsAccessWithTemporaryPassword(t *testing.T) {
 	// user can't access other urls.
 	tryOtherURL := func() *httptest.ResponseRecorder {
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, "/api/users/"+loginResp.UserID.String(), nil)
-		assert.NilError(t, err)
-
+		req := httptest.NewRequest(http.MethodGet, "/api/users/"+loginResp.UserID.String(), nil)
 		req.Header.Add("Authorization", "Bearer "+key)
 		req.Header.Add("Infra-Version", "0.14")
 
@@ -60,9 +58,7 @@ func changePassword(t *testing.T, routes Routes, accessKey string, id uid.ID, ol
 	assert.NilError(t, err)
 
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodPut, "/api/users/"+id.String(), bytes.NewReader(body))
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodPut, "/api/users/"+id.String(), bytes.NewReader(body))
 	req.Header.Add("Authorization", "Bearer "+accessKey)
 	req.Header.Add("Infra-Version", "0.14")
 

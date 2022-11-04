@@ -33,8 +33,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -59,8 +58,7 @@ func TestAPI_ListGrants(t *testing.T) {
 		assert.NilError(t, err)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/grants", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/grants", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -113,8 +111,7 @@ func TestAPI_ListGrants(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+accessKey)
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -525,8 +522,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", "0.12.3")
 
@@ -593,9 +589,7 @@ func TestAPI_ListGrants_InheritedGrants(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
-
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
@@ -717,8 +711,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout(t *testing.T) {
 	routes := srv.GenerateRoutes()
 
 	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
-	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-	assert.NilError(t, err)
+	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
 
@@ -746,8 +739,7 @@ func TestAPI_ListGrants_ExtendedRequestTimeout_CancelledByClient(t *testing.T) {
 	routes := srv.GenerateRoutes()
 
 	urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
-	req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-	assert.NilError(t, err)
+	req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 	req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", apiVersionLatest)
 
@@ -791,8 +783,7 @@ func TestAPI_ListGrants_BlockingRequest_BlocksUntilUpdate(t *testing.T) {
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
 		urlPath := "/api/grants?destination=infra&lastUpdateIndex=10001"
-		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
 
@@ -864,8 +855,7 @@ func TestAPI_ListGrants_BlockingRequest_NotFoundBlocksUntilUpdate(t *testing.T) 
 	respCh := make(chan *httptest.ResponseRecorder)
 	g.Go(func() error {
 		urlPath := "/api/grants?destination=deferred&lastUpdateIndex=1"
-		req, err := http.NewRequest(http.MethodGet, urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Add("Infra-Version", apiVersionLatest)
 
@@ -947,8 +937,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
-		req, err := http.NewRequest(http.MethodPost, "/api/grants", body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/grants", body)
 		req.Header.Add("Infra-Version", "0.12.3")
 
 		if tc.setup != nil {
@@ -1207,8 +1196,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
-		req, err := http.NewRequest(http.MethodPatch, "/api/grants", body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPatch, "/api/grants", body)
 		req.Header.Add("Infra-Version", "0.15.2")
 
 		if tc.setup != nil {

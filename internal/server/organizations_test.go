@@ -44,8 +44,7 @@ func TestAPI_GetOrganization(t *testing.T) {
 		assert.NilError(t, err)
 
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/users", &buf)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -75,8 +74,7 @@ func TestAPI_GetOrganization(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Add("Infra-Version", "0.15.2")
 
 		if tc.setup != nil {
@@ -202,8 +200,7 @@ func TestAPI_ListOrganizations(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodGet, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {
@@ -276,8 +273,7 @@ func TestAPI_CreateOrganization(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodPost, "/api/organizations", body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/organizations", body)
 		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {
@@ -353,8 +349,7 @@ func TestAPI_DeleteOrganization(t *testing.T) {
 
 	run := func(t *testing.T, tc testCase) {
 		// nolint:noctx
-		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		req.Header.Add("Infra-Version", "0.14.1")
 
 		if tc.setup != nil {

@@ -38,9 +38,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	assert.Equal(t, len(dbProviders), 2)
 
 	// nolint:noctx
-	req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodGet, "/api/providers", nil)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
 	req.Header.Add("Infra-Version", "0.12.3")
 
@@ -80,8 +78,7 @@ func TestAPI_DeleteProvider(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		req, err := http.NewRequest(http.MethodDelete, tc.urlPath, nil)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodDelete, tc.urlPath, nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -149,8 +146,7 @@ func TestAPI_CreateProvider(t *testing.T) {
 	run := func(t *testing.T, tc testCase) {
 		body := jsonBody(t, tc.body)
 
-		req, err := http.NewRequest(http.MethodPost, "/api/providers", body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPost, "/api/providers", body)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -414,8 +410,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		body := jsonBody(t, tc.body)
 
 		id := provider.ID.String()
-		req, err := http.NewRequest(http.MethodPut, "/api/providers/"+id, body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPut, "/api/providers/"+id, body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -571,8 +566,7 @@ func TestAPI_PatchProvider(t *testing.T) {
 		body := jsonBody(t, tc.body)
 
 		id := provider.ID.String()
-		req, err := http.NewRequest(http.MethodPatch, "/api/providers/"+id, body)
-		assert.NilError(t, err)
+		req := httptest.NewRequest(http.MethodPatch, "/api/providers/"+id, body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 

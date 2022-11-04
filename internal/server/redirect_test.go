@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,9 +26,7 @@ func TestVerifyAndRedirect_Works(t *testing.T) {
 	redirectURL := "https://example.com/hello"
 	url := wrapLinkWithVerification(redirectURL, "example.com", user.VerificationToken)
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
-	assert.NilError(t, err)
-
+	req := httptest.NewRequest(http.MethodGet, url, nil)
 	resp := httptest.NewRecorder()
 	routes.ServeHTTP(resp, req)
 
