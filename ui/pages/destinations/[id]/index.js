@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import useSWR, { useSWRConfig } from 'swr'
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState, Fragment, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import copy from 'copy-to-clipboard'
@@ -156,31 +156,11 @@ function EditRoleMenu({
   )
 }
 
-function RoleList({ resource, privileges, roles, onUpdate, onRemove }) {
-  return (
-    <div className='item-center flex justify-between'>
-      {resource && (
-        <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
-          {resource.split('.').pop()}
-        </div>
-      )}
-      <EditRoleMenu
-        roles={roles}
-        selectedRoles={privileges}
-        onChange={v => {
-          onUpdate(v)
-        }}
-        onRemove={() => {
-          onRemove()
-        }}
-        resource={resource}
-        privileges={privileges}
-      />
-    </div>
-  )
-}
-
 function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
+  const checkbox = useRef()
+  const [checked, setChecked] = useState(false)
+  const [selectedNamespaces, setSelectedNamespaces] = useState([])
+
   const destinationPrivileges = grant.resourcePrivilegeMap.get(destination.name)
 
   const namespacesPrivilegeMap = new Map(
@@ -192,6 +172,13 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       return false
     })
   )
+
+  useEffect(() => {
+    setChecked(
+      selectedNamespaces.length === namespacesPrivilegeMap.size &&
+        selectedNamespaces.length !== 0
+    )
+  }, [selectedNamespaces])
 
   function handleRemove(resource) {
     const deleteGrantIdList = grantsList
@@ -229,17 +216,22 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
       {/* Destination Resource */}
       {destinationPrivileges?.length > 0 && (
         <div className='flex items-center justify-between space-x-2 py-2'>
-          <div className='pl-4 text-xs font-medium text-black'>
+          <div className='text-xs font-medium text-black'>
             Cluster-wide access
           </div>
-          <RoleList
-            privileges={sortByRole(destinationPrivileges)}
-            roles={destination.roles}
-            onUpdate={v =>
-              handleUpdate(v, destinationPrivileges, destination.name)
-            }
-            onRemove={() => handleRemove(destination.name)}
-          />
+          <div className='item-center flex justify-between'>
+            <EditRoleMenu
+              roles={destination?.roles}
+              selectedRoles={sortByRole(destinationPrivileges)}
+              onChange={v => {
+                handleUpdate(v, destinationPrivileges, destination.name)
+              }}
+              onRemove={() => {
+                handleRemove(destination.name)
+              }}
+              privileges={sortByRole(destinationPrivileges)}
+            />
+          </div>
         </div>
       )}
       {/* Namespaces List */}
@@ -248,17 +240,50 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
           <Disclosure defaultOpen={destinationPrivileges === undefined}>
             {({ open }) => (
               <>
-                <Disclosure.Button className='w-full'>
-                  <span className='flex items-center text-xs font-medium text-gray-500'>
-                    <ChevronRightIcon
-                      className={`${
-                        open ? 'rotate-90 transform' : ''
-                      } mr-1 h-3 w-3 text-gray-500`}
-                    />
-                    {`Namespaces (${namespacesPrivilegeMap.size})`}
-                  </span>
-                </Disclosure.Button>
+                <div className='mb-2 flex items-center space-x-2'>
+                  <input
+                    type='checkbox'
+                    className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500'
+                    ref={checkbox}
+                    checked={checked}
+                    onChange={() => {
+                      setSelectedNamespaces(
+                        checked ? [] : [...namespacesPrivilegeMap.keys()]
+                      )
+                      setChecked(!checked)
+                    }}
+                  />
+                  <Disclosure.Button className='w-full'>
+                    <span className='flex items-center text-xs font-medium text-gray-500'>
+                      {`Namespaces (${namespacesPrivilegeMap.size})`}
+                      <ChevronRightIcon
+                        className={`${
+                          open ? 'rotate-90 transform' : ''
+                        } ml-1 h-3 w-3 text-gray-500`}
+                      />
+                    </span>
+                  </Disclosure.Button>
+                </div>
+
                 <Transition show={open}>
+                  <div className='flex items-center justify-end'>
+                    <button
+                      className='rounded-md px-4 py-2 text-2xs font-medium text-red-500 hover:bg-red-100 disabled:cursor-not-allowed disabled:bg-white disabled:opacity-30'
+                      type='button'
+                      onClick={() => {
+                        selectedNamespaces.map(namespace =>
+                          handleRemove(namespace)
+                        )
+                        setSelectedNamespaces([])
+                      }}
+                      disabled={selectedNamespaces.length === 0}
+                    >
+                      <div className='flex flex-row items-center py-0.5'>
+                        <XIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        Bulk remove access
+                      </div>
+                    </button>
+                  </div>
                   <Disclosure.Panel static>
                     <div className='space-y-2 pt-2'>
                       {[...namespacesPrivilegeMap.keys()]
@@ -268,16 +293,43 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                             namespacesPrivilegeMap.get(resource)
 
                           return (
-                            <RoleList
+                            <div
+                              className='flex items-center justify-between'
                               key={resource}
-                              resource={resource}
-                              privileges={sortByRole(privileges)}
-                              roles={destination?.roles}
-                              onUpdate={v =>
-                                handleUpdate(v, privileges, resource)
-                              }
-                              onRemove={() => handleRemove(resource)}
-                            />
+                            >
+                              <input
+                                type='checkbox'
+                                className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500 sm:left-6'
+                                value={resource}
+                                checked={selectedNamespaces.includes(resource)}
+                                onChange={e => {
+                                  setSelectedNamespaces(
+                                    e.target.checked
+                                      ? [...selectedNamespaces, resource]
+                                      : selectedNamespaces.filter(
+                                          r => r !== resource
+                                        )
+                                  )
+                                }}
+                              />
+                              {resource && (
+                                <div className='block w-1/2 truncate py-2 px-4 text-xs font-medium text-gray-900'>
+                                  {resource.split('.').pop()}
+                                </div>
+                              )}
+                              <EditRoleMenu
+                                roles={destination?.roles}
+                                selectedRoles={sortByRole(privileges)}
+                                onChange={v => {
+                                  handleUpdate(v, privileges, resource)
+                                }}
+                                onRemove={() => {
+                                  handleRemove(resource)
+                                }}
+                                resource={resource}
+                                privileges={sortByRole(privileges)}
+                              />
+                            </div>
                           )
                         })}
                     </div>
@@ -775,9 +827,18 @@ export default function DestinationDetail() {
                   <h3 className='mb-3 text-sm font-medium'>
                     Grant access to{' '}
                     <span className='font-bold'>
-                      {selectedResources.length > 0
-                        ? selectedResources.join(', ')
-                        : 'cluster'}
+                      {selectedResources.length > 0 ? (
+                        selectedResources.length > 5 ? (
+                          <span>
+                            {selectedResources.slice(0, 5).join(', ')} ... +{' '}
+                            {selectedResources.length - 5}
+                          </span>
+                        ) : (
+                          selectedResources.join(', ')
+                        )
+                      ) : (
+                        'cluster'
+                      )}
                     </span>
                   </h3>{' '}
                   <GrantForm
