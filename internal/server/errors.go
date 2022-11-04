@@ -106,6 +106,11 @@ func sendAPIError(c *gin.Context, err error) {
 		resp.Code = http.StatusGatewayTimeout // not ideal, but StatusRequestTimeout isn't intended for this.
 		resp.Message = "request timed out"
 
+	case errors.Is(err, context.Canceled):
+		// Nginx uses this non-standard error code for the same purpose
+		resp.Code = 499
+		resp.Message = fmt.Sprintf("client closed the request: %v", err)
+
 	default:
 		log = logging.L.Error()
 	}
