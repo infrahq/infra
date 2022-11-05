@@ -18,15 +18,34 @@ func (p providersTable) Table() string {
 }
 
 func (p providersTable) Columns() []string {
-	return []string{"auth_url", "client_email", "client_id", "client_secret", "created_at", "created_by", "deleted_at", "domain_admin_email", "id", "kind", "name", "organization_id", "private_key", "scopes", "updated_at", "url", "allowed_domains"}
+	return []string{"auth_url", "client_email", "client_id", "client_secret", "created_at", "created_by", "deleted_at", "domain_admin_email", "id", "kind", "name", "organization_id", "private_key", "scopes", "updated_at", "url", "allowed_domains", "social_login", "managed"}
 }
 
 func (p providersTable) Values() []any {
-	return []any{p.AuthURL, p.ClientEmail, p.ClientID, p.ClientSecret, p.CreatedAt, p.CreatedBy, p.DeletedAt, p.DomainAdminEmail, p.ID, p.Kind, p.Name, p.OrganizationID, p.PrivateKey, p.Scopes, p.UpdatedAt, p.URL, p.AllowedDomains}
+	return []any{p.AuthURL, p.ClientEmail, p.ClientID, p.ClientSecret, p.CreatedAt, p.CreatedBy, p.DeletedAt, p.DomainAdminEmail, p.ID, p.Kind, p.Name, p.OrganizationID, p.PrivateKey, p.Scopes, p.UpdatedAt, p.URL, p.AllowedDomains, p.SocialLogin, p.Managed}
 }
 
 func (p *providersTable) ScanFields() []any {
-	return []any{&p.AuthURL, &p.ClientEmail, &p.ClientID, &p.ClientSecret, &p.CreatedAt, &p.CreatedBy, &p.DeletedAt, &p.DomainAdminEmail, &p.ID, &p.Kind, &p.Name, &p.OrganizationID, &p.PrivateKey, &p.Scopes, &p.UpdatedAt, &p.URL, &p.AllowedDomains}
+	return []any{&p.AuthURL, &p.ClientEmail, &p.ClientID, &p.ClientSecret, &p.CreatedAt, &p.CreatedBy, &p.DeletedAt, &p.DomainAdminEmail, &p.ID, &p.Kind, &p.Name, &p.OrganizationID, &p.PrivateKey, &p.Scopes, &p.UpdatedAt, &p.URL, &p.AllowedDomains, &p.SocialLogin, &p.Managed}
+}
+
+func loadProviderFromManagedSocialClient(tx WriteTxn, provider *models.Provider) error {
+	template, err := GetSocialLoginProvider(tx, provider.Kind)
+	if err != nil {
+		if !errors.Is(err, internal.ErrNotFound) {
+			return ErrSocialLoginNotAvailable
+		}
+		return err
+	}
+	provider.AuthURL = template.AuthURL
+	provider.ClientEmail = template.ClientEmail
+	provider.ClientID = template.ClientID
+	provider.ClientSecret = template.ClientSecret
+	provider.DomainAdminEmail = template.DomainAdminEmail
+	provider.PrivateKey = template.PrivateKey
+	provider.Scopes = template.Scopes
+	provider.URL = template.URL
+	return nil
 }
 
 func validateProvider(p *models.Provider) error {
@@ -40,7 +59,15 @@ func validateProvider(p *models.Provider) error {
 	}
 }
 
+var ErrSocialLoginNotAvailable = fmt.Errorf("this provider does not have a managed option, custom client must be specified")
+
 func CreateProvider(tx WriteTxn, provider *models.Provider) error {
+	if provider.Managed {
+		err := loadProviderFromManagedSocialClient(tx, provider)
+		if err != nil {
+			return err
+		}
+	}
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
@@ -145,6 +172,12 @@ func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, er
 }
 
 func UpdateProvider(tx WriteTxn, provider *models.Provider) error {
+	if provider.Managed {
+		err := loadProviderFromManagedSocialClient(tx, provider)
+		if err != nil {
+			return err
+		}
+	}
 	if err := validateProvider(provider); err != nil {
 		return err
 	}
@@ -262,4 +295,88 @@ func CountProvidersByKind(tx ReadTxn) ([]providersCount, error) {
 
 func CountAllProviders(tx ReadTxn) (int64, error) {
 	return countRows(tx, providersTable{})
+}
+
+// GetSocialLoginProvider gets social identity provider clients that exist outside of the org context
+func GetSocialLoginProvider(tx ReadTxn, kind models.ProviderKind) (*models.Provider, error) {
+	provider := &providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(provider))
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null AND social_login = true")
+	query.B("AND kind = ?", kind)
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(provider.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.Provider)(provider), nil
+}
+
+func validateSocialLoginProvider(p *models.Provider) error {
+	if !p.SocialLogin {
+		return fmt.Errorf("cannot create social login provider without the 'social_login' flag set")
+	}
+	if p.Managed {
+		return fmt.Errorf("cannot create managed social provider")
+	}
+	return validateProvider(p)
+}
+
+// CreateSocialLoginProvider creates a shared social login provider that all orgs can configure for log in
+func CreateSocialLoginProvider(tx WriteTxn, provider *models.Provider) error {
+	if err := validateSocialLoginProvider(provider); err != nil {
+		return err
+	}
+
+	if err := provider.OnInsert(); err != nil {
+		return err
+	}
+
+	table := (*providersTable)(provider)
+
+	query := querybuilder.New("INSERT INTO")
+	query.B(table.Table())
+	query.B("(")
+	query.B(columnsForInsert(table))
+	query.B(") VALUES (")
+	query.B(placeholderForColumns(table), table.Values()...)
+	query.B(");")
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
+}
+
+// UpdateSocialLoginProvider updates the shared social login provider that all orgs can configure for log in
+func UpdateSocialLoginProvider(tx WriteTxn, provider *models.Provider) error {
+	if err := validateSocialLoginProvider(provider); err != nil {
+		return err
+	}
+
+	if err := provider.OnUpdate(); err != nil {
+		return err
+	}
+
+	table := (*providersTable)(provider)
+
+	query := querybuilder.New("UPDATE")
+	query.B(table.Table())
+	query.B("SET")
+	query.B(columnsForUpdate(table), table.Values()...)
+	query.B("WHERE deleted_at is null")
+	query.B("AND id = ?", table.Primary())
+	_, err := tx.Exec(query.String(), query.Args...)
+	return handleError(err)
+}
+
+type DeleteSocialLoginProvidersOpts struct {
+	ByNotIDs []uid.ID // the IDs of social login providers to not delete
+}
+
+func DeleteSocialLoginProviders(tx WriteTxn, opts DeleteSocialLoginProvidersOpts) error {
+	stmt := `
+		UPDATE providers
+		SET deleted_at = ?
+		WHERE deleted_at is null AND social_login = true AND id <> (?)`
+	_, err := tx.Exec(stmt, time.Now(), opts.ByNotIDs)
+	return err
 }

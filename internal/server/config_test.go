@@ -404,6 +404,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 				ClientSecret: "client-secret",
 				AuthURL:      "example.com/oauth2/default/v1/token",
 				Scopes:       []string{"openid", "email"},
+				Kind:         models.ProviderKindOkta.String(),
 			},
 			{
 				Name:         "azure",
@@ -449,7 +450,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		URL:                "example.com",
 		ClientID:           "client-id",
 		ClientSecret:       "client-secret",
-		Kind:               models.ProviderKindOIDC, // the kind gets the default value
+		Kind:               models.ProviderKindOkta,
 		AuthURL:            "example.com/oauth2/default/v1/token",
 		Scopes:             []string{"openid", "email"},
 		AllowedDomains:     []string{},
@@ -664,6 +665,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 				ClientSecret: "client-secret",
 				AuthURL:      "example.com/auth",
 				Scopes:       []string{"openid", "email"},
+				Kind:         models.ProviderKindOkta.String(),
 			},
 		},
 		Grants: []Grant{
@@ -717,6 +719,7 @@ func TestLoadConfigPruneConfig(t *testing.T) {
 				ClientSecret: "new-client-secret",
 				AuthURL:      "new.example.com/auth",
 				Scopes:       []string{"openid", "email"},
+				Kind:         models.ProviderKindOkta.String(),
 			},
 		},
 	}
@@ -753,6 +756,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 				ClientSecret: "client-secret",
 				AuthURL:      "example.com/auth",
 				Scopes:       []string{"openid", "email"},
+				Kind:         models.ProviderKindOkta.String(),
 			},
 		},
 		Users: []User{
@@ -837,6 +841,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 				ClientSecret: "client-secret-2",
 				AuthURL:      "new.example.com/v1/auth",
 				Scopes:       []string{"openid", "email", "groups"},
+				Kind:         models.ProviderKindOkta.String(),
 			},
 		},
 		Grants: []Grant{
@@ -871,7 +876,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		URL:                "new.example.com",
 		ClientID:           "client-id-2",
 		ClientSecret:       "client-secret-2",
-		Kind:               models.ProviderKindOIDC, // the kind gets the default value
+		Kind:               models.ProviderKindOkta,
 		AuthURL:            "new.example.com/v1/auth",
 		Scopes:             []string{"openid", "email", "groups"},
 		AllowedDomains:     []string{},
@@ -975,4 +980,41 @@ func getTestDefaultOrgUserDetails(t *testing.T, server *Server, name string) (*m
 	assert.NilError(t, err)
 
 	return &user, &credential, &accessKey
+}
+
+func TestSocialLoginProvider(t *testing.T) {
+	config := Config{
+		SocialProviders: []Provider{
+			{
+				Name:         "moogle",
+				URL:          "new.example.com",
+				ClientID:     "client-id-2",
+				ClientSecret: "client-secret-2",
+				AuthURL:      "new.example.com/v1/auth",
+				Scopes:       []string{"openid", "email", "groups"},
+				Kind:         models.ProviderKindGoogle.String(),
+			},
+		},
+	}
+
+	s := setupServer(t)
+	assert.NilError(t, s.loadConfig(config))
+
+	result, err := data.GetSocialLoginProvider(s.DB(), models.ProviderKindGoogle)
+	assert.NilError(t, err)
+
+	expected := &models.Provider{
+		Model:          result.Model,     // does not matter
+		CreatedBy:      result.CreatedBy, // does not matter
+		Name:           "moogle",
+		URL:            "new.example.com",
+		ClientID:       "client-id-2",
+		ClientSecret:   "client-secret-2",
+		AuthURL:        "new.example.com/v1/auth",
+		Scopes:         []string{"openid", "email", "groups"},
+		AllowedDomains: []string{},
+		SocialLogin:    true,
+		Kind:           models.ProviderKindGoogle,
+	}
+	assert.DeepEqual(t, expected, result)
 }

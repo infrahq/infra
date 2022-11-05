@@ -30,27 +30,38 @@ type Provider struct {
 	AuthURL        string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize"`
 	Scopes         []string `json:"scopes" example:"['openid', 'email']"`
 	AllowedDomains []string `json:"allowedDomains" example:"['example.com', 'infrahq.com']"` // only returned when authenticated
+	Managed        bool     `json:"managed"`                                                 // only returned when authenticated
 }
 
-type CreateProviderRequest struct {
-	Name           string                  `json:"name" example:"okta"`
+type OIDCClient struct {
 	URL            string                  `json:"url" example:"infrahq.okta.com"`
 	ClientID       string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
 	ClientSecret   string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
 	AllowedDomains []string                `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
-	Kind           string                  `json:"kind" example:"oidc"`
 	API            *ProviderAPICredentials `json:"api"`
+}
+
+func (r OIDCClient) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		validate.Required("url", r.URL),
+		validate.Required("clientID", r.ClientID),
+		validate.Required("clientSecret", r.ClientSecret),
+	}
+}
+
+type CreateProviderRequest struct {
+	Name           string      `json:"name" example:"okta"`
+	Kind           string      `json:"kind" example:"okta"`
+	AllowedDomains []string    `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
+	Client         *OIDCClient `json:"client"`
 }
 
 var kinds = []string{"oidc", "okta", "azure", "google"}
 
 func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		ValidateName(r.Name),
-		validate.Required("url", r.URL),
-		validate.Required("clientID", r.ClientID),
-		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
+		ValidateName(r.Name),
 	}
 }
 
@@ -61,25 +72,19 @@ type PatchProviderRequest struct {
 }
 
 type UpdateProviderRequest struct {
-	ID             uid.ID                  `uri:"id" json:"-"`
-	Name           string                  `json:"name" example:"okta"`
-	URL            string                  `json:"url" example:"infrahq.okta.com"`
-	ClientID       string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret   string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	AllowedDomains []string                `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
-	Kind           string                  `json:"kind" example:"oidc"`
-	API            *ProviderAPICredentials `json:"api"`
+	ID             uid.ID      `uri:"id" json:"-"`
+	Name           string      `json:"name" example:"okta"`
+	Kind           string      `json:"kind" example:"okta"`
+	AllowedDomains []string    `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
+	Client         *OIDCClient `json:"client"`
 }
 
 func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		ValidateName(r.Name),
 		validate.Required("id", r.ID),
-		validate.Required("name", r.Name),
-		validate.Required("url", r.URL),
-		validate.Required("clientID", r.ClientID),
-		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
+		validate.Required("name", r.Name),
+		ValidateName(r.Name),
 	}
 }
 

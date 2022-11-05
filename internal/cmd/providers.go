@@ -241,15 +241,17 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 
 			logging.Debugf("call server: create provider named %q", args[0])
 			provider, err := client.CreateProvider(ctx, &api.CreateProviderRequest{
-				Name:         args[0],
-				URL:          opts.URL,
-				ClientID:     opts.ClientID,
-				ClientSecret: opts.ClientSecret,
-				Kind:         opts.Kind,
-				API: &api.ProviderAPICredentials{
-					PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
-					ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
-					DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
+				Name: args[0],
+				Kind: opts.Kind,
+				Client: &api.OIDCClient{
+					URL:          opts.URL,
+					ClientID:     opts.ClientID,
+					ClientSecret: opts.ClientSecret,
+					API: &api.ProviderAPICredentials{
+						PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
+						ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
+						DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
+					},
 				},
 			})
 			if err != nil {
@@ -356,16 +358,18 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 
 		logging.Debugf("call server: update provider named %q", name)
 		_, err = client.UpdateProvider(ctx, api.UpdateProviderRequest{
-			ID:           provider.ID,
-			Name:         name,
-			URL:          provider.URL,
-			ClientID:     provider.ClientID,
-			ClientSecret: opts.ClientSecret,
-			Kind:         provider.Kind,
-			API: &api.ProviderAPICredentials{
-				PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
-				ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
-				DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
+			ID:   provider.ID,
+			Name: name,
+			Kind: provider.Kind,
+			Client: &api.OIDCClient{
+				URL:          provider.URL,
+				ClientID:     provider.ClientID,
+				ClientSecret: opts.ClientSecret,
+				API: &api.ProviderAPICredentials{
+					PrivateKey:       api.PEM(opts.ProviderAPIOptions.PrivateKey),
+					ClientEmail:      opts.ProviderAPIOptions.ClientEmail,
+					DomainAdminEmail: opts.ProviderAPIOptions.WorkspaceDomainAdminEmail,
+				},
 			},
 		})
 

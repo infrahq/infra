@@ -60,6 +60,9 @@ type Provider struct {
 	PrivateKey       EncryptedAtRest
 	ClientEmail      string
 	DomainAdminEmail string
+
+	SocialLogin bool // this is a social login client that is owned by Infra not the orgs themselves
+	Managed     bool // this is a client that the organization admin cannot edit, it is owned by Infra as as social login
 }
 
 func (p *Provider) ToAPI() *api.Provider {
@@ -75,5 +78,6 @@ func (p *Provider) ToAPI() *api.Provider {
 		AuthURL:        p.AuthURL,
 		Scopes:         p.Scopes,
 		AllowedDomains: p.AllowedDomains,
+		Managed:        p.Managed,
 	}
 }

@@ -70,6 +70,7 @@ func migrations() []*migrator.Migration {
 		addUpdateIndexToExistingGrants(),
 		addDeviceFlowAuthRequestTable(),
 		addAllowedDomainsToProvidersTable(),
+		addSocialLoginsToProvidersTable(),
 		// next one here
 	}
 }
@@ -845,6 +846,21 @@ func addAllowedDomainsToProvidersTable() *migrator.Migration {
 		ID: "2022-11-03T13:00",
 		Migrate: func(tx migrator.DB) error {
 			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
+			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addSocialLoginsToProvidersTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-05T13:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				ALTER TABLE providers
+					ADD COLUMN IF NOT EXISTS social_login boolean DEFAULT false,
+					ADD COLUMN IF NOT EXISTS managed boolean DEFAULT false;
+			`
 			_, err := tx.Exec(stmt)
 			return err
 		},

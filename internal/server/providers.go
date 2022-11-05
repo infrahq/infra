@@ -63,17 +63,7 @@ func cleanupURL(url string) string {
 func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
 	provider := &models.Provider{
 		Name:           r.Name,
-		URL:            cleanupURL(r.URL),
-		ClientID:       r.ClientID,
-		ClientSecret:   models.EncryptedAtRest(r.ClientSecret),
 		AllowedDomains: r.AllowedDomains,
-	}
-
-	if r.API != nil {
-		// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
-		provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.API.PrivateKey), "\\n", "\n"))
-		provider.ClientEmail = r.API.ClientEmail
-		provider.DomainAdminEmail = r.API.DomainAdminEmail
 	}
 
 	kind, err := models.ParseProviderKind(r.Kind)
@@ -81,6 +71,26 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		return nil, err
 	}
 	provider.Kind = kind
+
+	if r.Client != nil {
+		provider.URL = cleanupURL(r.Client.URL)
+		provider.ClientID = r.Client.ClientID
+		provider.ClientSecret = models.EncryptedAtRest(r.Client.ClientSecret)
+
+		if r.Client.API != nil {
+			// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
+			provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.Client.API.PrivateKey), "\\n", "\n"))
+			provider.ClientEmail = r.Client.API.ClientEmail
+			provider.DomainAdminEmail = r.Client.API.DomainAdminEmail
+		}
+
+		if err := a.setProviderInfoFromServer(c, provider); err != nil {
+			return nil, err
+		}
+	} else {
+		// this is a social login managed by Infra
+		provider.Managed = true
+	}
 
 	// If name is not provided, generate based on provider kind
 	if provider.Name == "" {
@@ -103,11 +113,10 @@ func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api
 		}
 	}
 
-	if err := a.setProviderInfoFromServer(c, provider); err != nil {
-		return nil, err
-	}
-
 	if err := access.CreateProvider(c, provider); err != nil {
+		if errors.Is(err, data.ErrSocialLoginNotAvailable) {
+			return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+		}
 		return nil, err
 	}
 
@@ -137,17 +146,7 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 			ID: r.ID,
 		},
 		Name:           r.Name,
-		URL:            cleanupURL(r.URL),
-		ClientID:       r.ClientID,
-		ClientSecret:   models.EncryptedAtRest(r.ClientSecret),
 		AllowedDomains: r.AllowedDomains,
-	}
-
-	if r.API != nil {
-		// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
-		provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.API.PrivateKey), "\\n", "\n"))
-		provider.ClientEmail = r.API.ClientEmail
-		provider.DomainAdminEmail = r.API.DomainAdminEmail
 	}
 
 	kind, err := models.ParseProviderKind(r.Kind)
@@ -156,8 +155,22 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 	}
 	provider.Kind = kind
 
-	if err := a.setProviderInfoFromServer(c, provider); err != nil {
-		return nil, err
+	if r.Client != nil {
+		provider.URL = cleanupURL(r.Client.URL)
+		provider.ClientID = r.Client.ClientID
+		provider.ClientSecret = models.EncryptedAtRest(r.Client.ClientSecret)
+
+		if r.Client.API != nil {
+			// the private key PEM needs to have its newline formatted, the API does not allow new-line formatting inputs
+			provider.PrivateKey = models.EncryptedAtRest(strings.ReplaceAll(string(r.Client.API.PrivateKey), "\\n", "\n"))
+			provider.ClientEmail = r.Client.API.ClientEmail
+			provider.DomainAdminEmail = r.Client.API.DomainAdminEmail
+		}
+		if err := a.setProviderInfoFromServer(c, provider); err != nil {
+			return nil, err
+		}
+	} else {
+		provider.Managed = true
 	}
 
 	if err := access.SaveProvider(c, provider); err != nil {
