@@ -74,6 +74,7 @@ func migrations() []*migrator.Migration {
 		addDestinationKind(),
 		addAllowedDomainsToProvidersTable(),
 		fixDefaultOrgCreatedByMigration(),
+		addSocialLoginsToProvidersTable(),
 		// next one here
 	}
 }
@@ -904,6 +905,21 @@ func fixDefaultOrgCreatedByMigration() *migrator.Migration {
 			stmt := `
 				UPDATE organizations SET created_by=1 WHERE created_by is null;
 				UPDATE organizations SET domain='' WHERE domain is null`
+			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addSocialLoginsToProvidersTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-05T13:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				ALTER TABLE providers
+					ADD COLUMN IF NOT EXISTS social_login boolean DEFAULT false,
+					ADD COLUMN IF NOT EXISTS managed boolean DEFAULT false;
+			`
 			_, err := tx.Exec(stmt)
 			return err
 		},

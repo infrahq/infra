@@ -27,6 +27,52 @@ func (a *API) addRequestRewrites() {
 	addRequestRewrite(a, http.MethodGet, "/api/access-keys", "0.16.1", func(o oldListAccessKeysRequest) newListAccessKeysRequest {
 		return newListAccessKeysRequest(o)
 	})
+	type createProviderRequestV0_16_1 struct {
+		Name           string                      `json:"name" example:"okta"`
+		Kind           string                      `json:"kind" example:"okta"`
+		URL            string                      `json:"url" example:"infrahq.okta.com"`
+		ClientID       string                      `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+		ClientSecret   string                      `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+		AllowedDomains []string                    `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
+		API            *api.ProviderAPICredentials `json:"api"`
+	}
+	addRequestRewrite(a, http.MethodPost, "/api/providers", "0.16.1", func(oldRequest createProviderRequestV0_16_1) api.CreateProviderRequest {
+		return api.CreateProviderRequest{
+			Name: oldRequest.Name,
+			Kind: oldRequest.Kind,
+			Client: &api.OIDCClient{
+				URL:            oldRequest.URL,
+				ClientID:       oldRequest.ClientID,
+				ClientSecret:   oldRequest.ClientSecret,
+				AllowedDomains: oldRequest.AllowedDomains,
+				API:            oldRequest.API,
+			},
+		}
+	})
+	type updateProviderRequestV0_16_1 struct {
+		ID             uid.ID                      `uri:"id" json:"-"`
+		Name           string                      `json:"name" example:"okta"`
+		URL            string                      `json:"url" example:"infrahq.okta.com"`
+		ClientID       string                      `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+		ClientSecret   string                      `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+		AllowedDomains []string                    `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
+		Kind           string                      `json:"kind" example:"oidc"`
+		API            *api.ProviderAPICredentials `json:"api"`
+	}
+	addRequestRewrite(a, http.MethodPut, "/api/providers", "0.16.1", func(oldRequest updateProviderRequestV0_16_1) api.UpdateProviderRequest {
+		return api.UpdateProviderRequest{
+			ID:   oldRequest.ID,
+			Name: oldRequest.Name,
+			Kind: oldRequest.Kind,
+			Client: &api.OIDCClient{
+				URL:            oldRequest.URL,
+				ClientID:       oldRequest.ClientID,
+				ClientSecret:   oldRequest.ClientSecret,
+				AllowedDomains: oldRequest.AllowedDomains,
+				API:            oldRequest.API,
+			},
+		}
+	})
 }
 
 func (a *API) addResponseRewrites() {

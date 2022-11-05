@@ -777,6 +777,9 @@
                   "example": "oidc",
                   "type": "string"
                 },
+                "managed": {
+                  "type": "boolean"
+                },
                 "name": {
                   "example": "okta",
                   "type": "string"
@@ -968,6 +971,9 @@
           "kind": {
             "example": "oidc",
             "type": "string"
+          },
+          "managed": {
+            "type": "boolean"
           },
           "name": {
             "example": "okta",
@@ -5164,30 +5170,52 @@
                     "maxItems": 20,
                     "type": "array"
                   },
-                  "api": {
+                  "client": {
                     "properties": {
-                      "clientEmail": {
-                        "format": "email",
+                      "allowedDomains": {
+                        "example": "['example.com', 'infrahq.com']",
+                        "items": {
+                          "example": "['example.com', 'infrahq.com']",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "api": {
+                        "properties": {
+                          "clientEmail": {
+                            "format": "email",
+                            "type": "string"
+                          },
+                          "domainAdminEmail": {
+                            "format": "email",
+                            "type": "string"
+                          },
+                          "privateKey": {
+                            "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "clientID": {
+                        "example": "0oapn0qwiQPiMIyR35d6",
                         "type": "string"
                       },
-                      "domainAdminEmail": {
-                        "format": "email",
+                      "clientSecret": {
+                        "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                         "type": "string"
                       },
-                      "privateKey": {
-                        "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                      "url": {
+                        "example": "infrahq.okta.com",
                         "type": "string"
                       }
                     },
+                    "required": [
+                      "url",
+                      "clientID",
+                      "clientSecret"
+                    ],
                     "type": "object"
-                  },
-                  "clientID": {
-                    "example": "0oapn0qwiQPiMIyR35d6",
-                    "type": "string"
-                  },
-                  "clientSecret": {
-                    "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
-                    "type": "string"
                   },
                   "kind": {
                     "enum": [
@@ -5196,7 +5224,7 @@
                       "azure",
                       "google"
                     ],
-                    "example": "oidc",
+                    "example": "okta",
                     "type": "string"
                   },
                   "name": {
@@ -5205,17 +5233,8 @@
                     "maxLength": 256,
                     "minLength": 2,
                     "type": "string"
-                  },
-                  "url": {
-                    "example": "infrahq.okta.com",
-                    "type": "string"
                   }
                 },
-                "required": [
-                  "url",
-                  "clientID",
-                  "clientSecret"
-                ],
                 "type": "object"
               }
             }
@@ -5665,30 +5684,52 @@
                     "maxItems": 20,
                     "type": "array"
                   },
-                  "api": {
+                  "client": {
                     "properties": {
-                      "clientEmail": {
-                        "format": "email",
+                      "allowedDomains": {
+                        "example": "['example.com', 'infrahq.com']",
+                        "items": {
+                          "example": "['example.com', 'infrahq.com']",
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "api": {
+                        "properties": {
+                          "clientEmail": {
+                            "format": "email",
+                            "type": "string"
+                          },
+                          "domainAdminEmail": {
+                            "format": "email",
+                            "type": "string"
+                          },
+                          "privateKey": {
+                            "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "clientID": {
+                        "example": "0oapn0qwiQPiMIyR35d6",
                         "type": "string"
                       },
-                      "domainAdminEmail": {
-                        "format": "email",
+                      "clientSecret": {
+                        "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
                         "type": "string"
                       },
-                      "privateKey": {
-                        "example": "-----BEGIN PRIVATE KEY-----\nMIIDNTCCAh2gAwIBAgIRALRetnpcTo9O3V2fAK3ix+c\n-----END PRIVATE KEY-----\n",
+                      "url": {
+                        "example": "infrahq.okta.com",
                         "type": "string"
                       }
                     },
+                    "required": [
+                      "url",
+                      "clientID",
+                      "clientSecret"
+                    ],
                     "type": "object"
-                  },
-                  "clientID": {
-                    "example": "0oapn0qwiQPiMIyR35d6",
-                    "type": "string"
-                  },
-                  "clientSecret": {
-                    "example": "jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU",
-                    "type": "string"
                   },
                   "kind": {
                     "enum": [
@@ -5697,7 +5738,7 @@
                       "azure",
                       "google"
                     ],
-                    "example": "oidc",
+                    "example": "okta",
                     "type": "string"
                   },
                   "name": {
@@ -5706,17 +5747,10 @@
                     "maxLength": 256,
                     "minLength": 2,
                     "type": "string"
-                  },
-                  "url": {
-                    "example": "infrahq.okta.com",
-                    "type": "string"
                   }
                 },
                 "required": [
-                  "name",
-                  "url",
-                  "clientID",
-                  "clientSecret"
+                  "name"
                 ],
                 "type": "object"
               }

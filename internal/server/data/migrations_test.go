@@ -850,6 +850,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.NilError(t, err)
 			},
 		},
+		{
+			label: testCaseLine("2022-11-05T13:00"),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

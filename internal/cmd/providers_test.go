@@ -91,12 +91,14 @@ func TestProvidersAddCmd(t *testing.T) {
 		createProviderRequest := <-ch
 
 		expected := api.CreateProviderRequest{
-			Name:         "okta",
-			URL:          "https://okta.com/path",
-			ClientID:     "okta-client-id",
-			ClientSecret: "okta-client-secret",
-			Kind:         "oidc",
-			API:          &api.ProviderAPICredentials{},
+			Name: "okta",
+			Kind: "oidc",
+			Client: &api.OIDCClient{
+				URL:          "https://okta.com/path",
+				ClientID:     "okta-client-id",
+				ClientSecret: "okta-client-secret",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
@@ -117,12 +119,14 @@ func TestProvidersAddCmd(t *testing.T) {
 		createProviderRequest := <-provCh
 
 		expectedProvider := api.CreateProviderRequest{
-			Name:         "okta",
-			URL:          "https://okta.com/path",
-			ClientID:     "okta-client-id",
-			ClientSecret: "okta-client-secret",
-			Kind:         "oidc",
-			API:          &api.ProviderAPICredentials{},
+			Name: "okta",
+			Kind: "oidc",
+			Client: &api.OIDCClient{
+				URL:          "https://okta.com/path",
+				ClientID:     "okta-client-id",
+				ClientSecret: "okta-client-secret",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expectedProvider)
 
@@ -150,12 +154,14 @@ func TestProvidersAddCmd(t *testing.T) {
 		createProviderRequest := <-ch
 
 		expected := api.CreateProviderRequest{
-			Name:         "okta",
-			URL:          "https://okta.com/path",
-			ClientID:     "okta-client-id",
-			ClientSecret: "okta-client-secret",
-			Kind:         "oidc",
-			API:          &api.ProviderAPICredentials{},
+			Name: "okta",
+			Kind: "oidc",
+			Client: &api.OIDCClient{
+				URL:          "https://okta.com/path",
+				ClientID:     "okta-client-id",
+				ClientSecret: "okta-client-secret",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
@@ -175,12 +181,14 @@ func TestProvidersAddCmd(t *testing.T) {
 		createProviderRequest := <-ch
 
 		expected := api.CreateProviderRequest{
-			Name:         "google",
-			URL:          "accounts.google.com",
-			ClientID:     "aaa.apps.googleusercontent.com",
-			ClientSecret: "GOCSPX-bbb",
-			Kind:         "google",
-			API:          &api.ProviderAPICredentials{},
+			Name: "google",
+			Kind: "google",
+			Client: &api.OIDCClient{
+				URL:          "accounts.google.com",
+				ClientID:     "aaa.apps.googleusercontent.com",
+				ClientSecret: "GOCSPX-bbb",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
 	})
@@ -203,15 +211,17 @@ func TestProvidersAddCmd(t *testing.T) {
 		createProviderRequest := <-ch
 
 		expected := api.CreateProviderRequest{
-			Name:         "google",
-			URL:          "accounts.google.com",
-			ClientID:     "aaa.apps.googleusercontent.com",
-			ClientSecret: "GOCSPX-bbb",
-			Kind:         "google",
-			API: &api.ProviderAPICredentials{
-				PrivateKey:       api.PEM("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
-				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-				DomainAdminEmail: "admin@example.com",
+			Name: "google",
+			Kind: "google",
+			Client: &api.OIDCClient{
+				URL:          "accounts.google.com",
+				ClientID:     "aaa.apps.googleusercontent.com",
+				ClientSecret: "GOCSPX-bbb",
+				API: &api.ProviderAPICredentials{
+					PrivateKey:       api.PEM("-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n"),
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
+				},
 			},
 		}
 		assert.DeepEqual(t, createProviderRequest, expected)
@@ -386,12 +396,14 @@ func TestProvidersEditCmd(t *testing.T) {
 		updateProviderRequest := <-ch
 
 		expected := api.UpdateProviderRequest{
-			Name:         "okta",
-			URL:          "https://okta.com/path",
-			ClientID:     "okta-client-id",
-			ClientSecret: "okta-client-secret",
-			Kind:         "oidc",
-			API:          &api.ProviderAPICredentials{},
+			Name: "okta",
+			Kind: "oidc",
+			Client: &api.OIDCClient{
+				URL:          "https://okta.com/path",
+				ClientID:     "okta-client-id",
+				ClientSecret: "okta-client-secret",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, updateProviderRequest, expected)
 	})
@@ -411,15 +423,17 @@ func TestProvidersEditCmd(t *testing.T) {
 		updateProviderRequest := <-ch
 
 		expected := api.UpdateProviderRequest{
-			Name:         "google",
-			URL:          "https://example.com/google",
-			ClientID:     "google-client-id",
-			ClientSecret: "google-client-secret-2",
-			Kind:         "google",
-			API: &api.ProviderAPICredentials{
-				PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-				ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-				DomainAdminEmail: "admin@example.com",
+			Name: "google",
+			Kind: "google",
+			Client: &api.OIDCClient{
+				URL:          "https://example.com/google",
+				ClientID:     "google-client-id",
+				ClientSecret: "google-client-secret-2",
+				API: &api.ProviderAPICredentials{
+					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+					DomainAdminEmail: "admin@example.com",
+				},
 			},
 		}
 		assert.DeepEqual(t, updateProviderRequest, expected)
@@ -437,12 +451,14 @@ func TestProvidersEditCmd(t *testing.T) {
 		updateProviderRequest := <-ch
 
 		expected := api.UpdateProviderRequest{
-			Name:         "google",
-			URL:          "https://example.com/google",
-			ClientID:     "google-client-id",
-			ClientSecret: "google-client-secret-3",
-			Kind:         "google",
-			API:          &api.ProviderAPICredentials{},
+			Name: "google",
+			Kind: "google",
+			Client: &api.OIDCClient{
+				URL:          "https://example.com/google",
+				ClientID:     "google-client-id",
+				ClientSecret: "google-client-secret-3",
+				API:          &api.ProviderAPICredentials{},
+			},
 		}
 		assert.DeepEqual(t, updateProviderRequest, expected)
 	})

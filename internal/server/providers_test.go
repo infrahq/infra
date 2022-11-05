@@ -247,6 +247,19 @@ func TestAPI_CreateProvider(t *testing.T) {
 	srv := setupServer(t, withAdminUser)
 	routes := srv.GenerateRoutes()
 
+	socialLogin := &models.Provider{
+		Name:           "moogle",
+		Kind:           models.ProviderKindGoogle,
+		ClientID:       "123",
+		ClientSecret:   "something",
+		URL:            "https://accounts.example.com",
+		AuthURL:        "https://accounts.example.com",
+		Scopes:         []string{"openid", "email"},
+		AllowedDomains: []string{"example.com"},
+		SocialLogin:    true,
+	}
+	assert.NilError(t, data.CreateSocialLoginProvider(srv.DB(), socialLogin))
+
 	type testCase struct {
 		name     string
 		body     api.CreateProviderRequest
@@ -284,10 +297,12 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "not authorized",
 			body: api.CreateProviderRequest{
-				Name:         "olive",
-				URL:          "https://example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
+				Name: "olive",
+				Client: &api.OIDCClient{
+					URL:          "https://example.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
@@ -302,34 +317,8 @@ func TestAPI_CreateProvider(t *testing.T) {
 		},
 		{
 			name: "missing required fields",
-			body: api.CreateProviderRequest{},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
-
-				respBody := &api.Error{}
-				err := json.Unmarshal(resp.Body.Bytes(), respBody)
-				assert.NilError(t, err)
-
-				expected := []api.FieldError{
-					{FieldName: "clientID", Errors: []string{"is required"}},
-					{FieldName: "clientSecret", Errors: []string{"is required"}},
-					{FieldName: "url", Errors: []string{"is required"}},
-				}
-				assert.DeepEqual(t, respBody.FieldErrors, expected)
-			},
-		},
-		{
-			name: "api credential invalid emails",
 			body: api.CreateProviderRequest{
-				Name:         "google",
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         string(models.ProviderKindGoogle),
-				API: &api.ProviderAPICredentials{
-					ClientEmail:      "notanemail",
-					DomainAdminEmail: "domainadmin",
-				},
+				Client: &api.OIDCClient{},
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
@@ -343,8 +332,9 @@ func TestAPI_CreateProvider(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "api.clientEmail", Errors: []string{"invalid email address"}},
-					{FieldName: "api.domainAdminEmail", Errors: []string{"invalid email address"}},
+					{FieldName: "client.clientID", Errors: []string{"is required"}},
+					{FieldName: "client.clientSecret", Errors: []string{"is required"}},
+					{FieldName: "client.url", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -352,11 +342,13 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "invalid kind",
 			body: api.CreateProviderRequest{
-				Name:         "olive",
-				URL:          "https://example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         "vegetable",
+				Name: "olive",
+				Kind: "vegetable",
+				Client: &api.OIDCClient{
+					URL:          "https://example.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
@@ -374,14 +366,16 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "valid provider (name is generated to default, providerkind)",
 			body: api.CreateProviderRequest{
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         string(models.ProviderKindGoogle),
-				API: &api.ProviderAPICredentials{
-					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-					DomainAdminEmail: "admin@example.com",
+				Kind: string(models.ProviderKindGoogle),
+				Client: &api.OIDCClient{
+					URL:          "accounts.google.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+					API: &api.ProviderAPICredentials{
+						PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+						ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+						DomainAdminEmail: "admin@example.com",
+					},
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
@@ -412,14 +406,16 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "valid provider (name is generated but default is already taken)",
 			body: api.CreateProviderRequest{
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         string(models.ProviderKindGoogle),
-				API: &api.ProviderAPICredentials{
-					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-					DomainAdminEmail: "admin@example.com",
+				Kind: string(models.ProviderKindGoogle),
+				Client: &api.OIDCClient{
+					URL:          "accounts.google.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+					API: &api.ProviderAPICredentials{
+						PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+						ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+						DomainAdminEmail: "admin@example.com",
+					},
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
@@ -451,15 +447,17 @@ func TestAPI_CreateProvider(t *testing.T) {
 		{
 			name: "valid provider (name is provided)",
 			body: api.CreateProviderRequest{
-				Name:         "google-123",
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         string(models.ProviderKindGoogle),
-				API: &api.ProviderAPICredentials{
-					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-					DomainAdminEmail: "admin@example.com",
+				Name: "google-123",
+				Kind: string(models.ProviderKindGoogle),
+				Client: &api.OIDCClient{
+					URL:          "accounts.google.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+					API: &api.ProviderAPICredentials{
+						PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+						ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+						DomainAdminEmail: "admin@example.com",
+					},
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
@@ -483,6 +481,52 @@ func TestAPI_CreateProvider(t *testing.T) {
 					Kind:     string(models.ProviderKindGoogle),
 					AuthURL:  "example.com/v1/auth",
 					Scopes:   []string{"openid", "email"},
+				}
+				assert.DeepEqual(t, respBody, expected)
+			},
+		},
+		{
+			name: "social login provider, no kind found",
+			body: api.CreateProviderRequest{
+				Kind:           string(models.ProviderKindOkta),
+				AllowedDomains: []string{"example.com"},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusNotFound, resp.Body.String())
+			},
+		},
+		{
+			name: "social login provider",
+			body: api.CreateProviderRequest{
+				Kind:           string(models.ProviderKindGoogle),
+				AllowedDomains: []string{"example.com"},
+			},
+			setup: func(t *testing.T, req *http.Request) {
+				ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+				*req = *req.WithContext(ctx)
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				respBody := &api.Provider{}
+				err := json.Unmarshal(resp.Body.Bytes(), respBody)
+				assert.NilError(t, err)
+
+				expected := &api.Provider{
+					ID:       respBody.ID,      // does not matter
+					Name:     respBody.Name,    // does not matter
+					Created:  respBody.Created, // does not matter
+					Updated:  respBody.Updated, // does not matter
+					URL:      "https://accounts.example.com",
+					ClientID: "123",
+					Kind:     string(models.ProviderKindGoogle),
+					AuthURL:  "https://accounts.example.com",
+					Scopes:   []string{"openid", "email"},
+					Managed:  true,
 				}
 				assert.DeepEqual(t, respBody, expected)
 			},
@@ -548,10 +592,12 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		{
 			name: "not authorized",
 			body: api.UpdateProviderRequest{
-				Name:         "olive",
-				URL:          "https://example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
+				Name: "olive",
+				Client: &api.OIDCClient{
+					URL:          "https://example.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				accessKey, _ := createAccessKey(t, srv.DB(), "usera@example.com")
@@ -566,7 +612,7 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		},
 		{
 			name: "missing required fields",
-			body: api.UpdateProviderRequest{},
+			body: api.UpdateProviderRequest{Client: &api.OIDCClient{}},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
 
@@ -575,10 +621,10 @@ func TestAPI_UpdateProvider(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{FieldName: "clientID", Errors: []string{"is required"}},
-					{FieldName: "clientSecret", Errors: []string{"is required"}},
+					{FieldName: "client.clientID", Errors: []string{"is required"}},
+					{FieldName: "client.clientSecret", Errors: []string{"is required"}},
+					{FieldName: "client.url", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
-					{FieldName: "url", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -586,11 +632,13 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		{
 			name: "invalid kind",
 			body: api.UpdateProviderRequest{
-				Name:         "olive",
-				URL:          "https://example.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         "vegetable",
+				Name: "olive",
+				Kind: "vegetable",
+				Client: &api.OIDCClient{
+					URL:          "https://example.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+				},
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
@@ -608,15 +656,17 @@ func TestAPI_UpdateProvider(t *testing.T) {
 		{
 			name: "valid provider (no external checks)",
 			body: api.UpdateProviderRequest{
-				Name:         "google",
-				URL:          "accounts.google.com",
-				ClientID:     "client-id",
-				ClientSecret: "client-secret",
-				Kind:         string(models.ProviderKindGoogle),
-				API: &api.ProviderAPICredentials{
-					PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
-					ClientEmail:      "example@tenant.iam.gserviceaccount.com",
-					DomainAdminEmail: "admin@example.com",
+				Name: "google",
+				Kind: string(models.ProviderKindGoogle),
+				Client: &api.OIDCClient{
+					URL:          "accounts.google.com",
+					ClientID:     "client-id",
+					ClientSecret: "client-secret",
+					API: &api.ProviderAPICredentials{
+						PrivateKey:       "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
+						ClientEmail:      "example@tenant.iam.gserviceaccount.com",
+						DomainAdminEmail: "admin@example.com",
+					},
 				},
 			},
 			setup: func(t *testing.T, req *http.Request) {
