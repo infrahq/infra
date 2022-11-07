@@ -685,7 +685,7 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 	ak := &models.AccessKey{
 		Name:      "foo expiry",
 		IssuedFor: uid.New(),
-		ExpiresAt: time.Now().Add(-1),
+		ExpiresAt: time.Now().Add(-2 * time.Hour),
 	}
 	_, err := CreateAccessKey(tx, ak)
 	assert.NilError(t, err)
