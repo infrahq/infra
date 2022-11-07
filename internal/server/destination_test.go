@@ -59,6 +59,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 {
 	"id": "<any-valid-uid>",
 	"name": "final",
+	"kind": "kubernetes",
 	"uniqueID": "unique-id",
 	"version": "",
 	"connection": {

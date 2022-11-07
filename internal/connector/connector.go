@@ -603,6 +603,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 
 	request := &api.CreateDestinationRequest{
 		Name:       local.Name,
+		Kind:       "kubernetes",
 		UniqueID:   local.UniqueID,
 		Version:    internal.FullVersion(),
 		Connection: local.Connection,

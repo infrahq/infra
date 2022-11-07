@@ -121,6 +121,7 @@ func TestConnector_Run(t *testing.T) {
 		},
 		OrganizationMember: models.OrganizationMember{OrganizationID: srv.DB().OrganizationID()},
 		Name:               "testing",
+		Kind:               "kubernetes",
 		UniqueID:           "4ebfd7dabeec5b37eafd20e3775f70ab86c7422036367d77d9bebfa03864e08b",
 		ConnectionURL:      "127.0.0.1:55555",
 		ConnectionCA:       opts.CACert.String(),

@@ -8,12 +8,20 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
 func (a *API) ListDestinations(c *gin.Context, r *api.ListDestinationsRequest) (*api.ListResponse[api.Destination], error) {
 	p := PaginationFromRequest(r.PaginationRequest)
-	destinations, err := access.ListDestinations(c, r.UniqueID, r.Name, &p)
+
+	opts := data.ListDestinationsOptions{
+		ByUniqueID: r.UniqueID,
+		ByName:     r.Name,
+		ByKind:     r.Kind,
+		Pagination: &p,
+	}
+	destinations, err := access.ListDestinations(c, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -38,11 +46,16 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 	destination := &models.Destination{
 		Name:          r.Name,
 		UniqueID:      r.UniqueID,
+		Kind:          models.DestinationKind(r.Kind),
 		ConnectionURL: r.Connection.URL,
 		ConnectionCA:  string(r.Connection.CA),
 		Resources:     r.Resources,
 		Roles:         r.Roles,
 		Version:       r.Version,
+	}
+
+	if destination.Kind == "" {
+		destination.Kind = "kubernetes"
 	}
 
 	// set LastSeenAt if this request came from a connector. The middleware

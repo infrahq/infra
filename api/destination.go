@@ -9,6 +9,7 @@ type Destination struct {
 	ID         uid.ID                `json:"id"`
 	UniqueID   string                `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"`
 	Name       string                `json:"name" form:"name"`
+	Kind       string                `json:"kind"`
 	Created    Time                  `json:"created"`
 	Updated    Time                  `json:"updated"`
 	Connection DestinationConnection `json:"connection"`
@@ -36,6 +37,7 @@ func (r DestinationConnection) ValidationRules() []validate.ValidationRule {
 
 type ListDestinationsRequest struct {
 	Name     string `form:"name"`
+	Kind     string `form:"kind"`
 	UniqueID string `form:"unique_id"`
 	PaginationRequest
 }
@@ -49,6 +51,7 @@ func (r ListDestinationsRequest) ValidationRules() []validate.ValidationRule {
 type CreateDestinationRequest struct {
 	UniqueID   string                `json:"uniqueID"`
 	Name       string                `json:"name"`
+	Kind       string                `json:"kind"`
 	Version    string                `json:"version"`
 	Connection DestinationConnection `json:"connection"`
 
@@ -61,6 +64,9 @@ func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("uniqueID", r.UniqueID),
 		validateDestinationName(r.Name),
 		validate.Required("name", r.Name),
+		// Allow "" for versions 0.16.1 and prior
+		// TODO: make this required in the future
+		validate.Enum("kind", r.Kind, []string{"kubernetes", "ssh", ""}),
 	}
 }
 

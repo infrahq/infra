@@ -130,7 +130,8 @@ CREATE TABLE destinations (
     version text,
     resources text,
     roles text,
-    organization_id bigint
+    organization_id bigint,
+    kind text DEFAULT 'kubernetes'::text NOT NULL
 );
 
 CREATE TABLE device_flow_auth_requests (

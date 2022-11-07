@@ -162,6 +162,9 @@
             "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
+          "kind": {
+            "type": "string"
+          },
           "lastSeen": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
@@ -566,6 +569,9 @@
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "kind": {
                   "type": "string"
                 },
                 "lastSeen": {
@@ -1673,6 +1679,13 @@
           },
           {
             "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "unique_id",
             "schema": {
               "type": "string"
@@ -1812,6 +1825,14 @@
                       "ca"
                     ],
                     "type": "object"
+                  },
+                  "kind": {
+                    "enum": [
+                      "kubernetes",
+                      "ssh",
+                      ""
+                    ],
+                    "type": "string"
                   },
                   "name": {
                     "format": "[a-zA-Z0-9\\-_]",

@@ -71,6 +71,7 @@ func migrations() []*migrator.Migration {
 		addDeviceFlowAuthRequestTable(),
 		modifyDeviceFlowAuthRequestDropApproved(),
 		addExpiresAtIndices(),
+		addDestinationKind(),
 		// next one here
 	}
 }
@@ -863,6 +864,19 @@ func addExpiresAtIndices() *migrator.Migration {
 				CREATE INDEX IF NOT EXISTS idx_device_flow_auth_requests_expires_at on device_flow_auth_requests (expires_at);
 				CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at on password_reset_tokens (expires_at);
 			`)
+			return err
+		},
+	}
+}
+
+func addDestinationKind() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-07T14:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				ALTER TABLE destinations
+				ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'kubernetes'`
+			_, err := tx.Exec(stmt)
 			return err
 		},
 	}
