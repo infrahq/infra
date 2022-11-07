@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -262,23 +263,36 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 		name     string
 		path     string
 		setup    func(t *testing.T, req *http.Request)
-		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+		expected func(t *testing.T, resp *http.Response)
 	}
 
+	message := `message through the proxy`
+	uiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(message))
+	}))
+	t.Cleanup(uiSrv.Close)
+
 	s := setupServer(t)
+	assert.NilError(t, s.options.UI.ProxyURL.Set(uiSrv.URL))
 	router := s.GenerateRoutes()
 
+	httpSrv := httptest.NewServer(router)
+	t.Cleanup(httpSrv.Close)
+
 	run := func(t *testing.T, tc testCase) {
-		req := httptest.NewRequest(http.MethodGet, tc.path, nil)
+		u := httpSrv.URL + tc.path
+		req, err := http.NewRequest(http.MethodGet, u, nil)
+		assert.NilError(t, err)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
 		}
 
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+		resp, err := httpSrv.Client().Do(req)
+		assert.NilError(t, err)
 
-		assert.Equal(t, resp.Code, http.StatusNotFound)
+		assert.Equal(t, resp.StatusCode, http.StatusNotFound)
 		if tc.expected != nil {
 			tc.expected(t, resp)
 		}
@@ -291,29 +305,35 @@ func TestServer_GenerateRoutes_NoRoute(t *testing.T) {
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Accept", "application/json; charset=utf-8")
 			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
-				contentType := resp.Header().Get("Content-Type")
+			expected: func(t *testing.T, resp *http.Response) {
+				contentType := resp.Header.Get("Content-Type")
 				expected := "application/json; charset=utf-8"
 				assert.Equal(t, contentType, expected)
 			},
 		},
 		{
 			name: "Other type",
-			path: "/not/found",
+			path: "/api/not/found",
 			setup: func(t *testing.T, req *http.Request) {
 				req.Header.Set("Accept", "*/*")
 			},
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+			expected: func(t *testing.T, resp *http.Response) {
+				body, err := io.ReadAll(resp.Body)
+				assert.NilError(t, err)
+
 				// response should be plaintext
-				assert.Equal(t, "404 not found", resp.Body.String())
+				assert.Equal(t, "404 not found", string(body))
 			},
 		},
 		{
 			name: "No header",
-			path: "/not/found/again",
-			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+			path: "/api/not/found/again",
+			expected: func(t *testing.T, resp *http.Response) {
+				body, err := io.ReadAll(resp.Body)
+				assert.NilError(t, err)
+
 				// response should be plaintext
-				assert.Equal(t, "404 not found", resp.Body.String())
+				assert.Equal(t, "404 not found", string(body))
 			},
 		},
 	}
