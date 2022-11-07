@@ -14,7 +14,10 @@ export default function PasswordReset() {
   const [submitted, setSubmitted] = useState(false)
 
   async function onSubmit(e) {
+    const submitButton = e.currentTarget
+
     e.preventDefault()
+    submitButton.disabled = true
 
     setSubmitted(true)
     setError('')
@@ -28,9 +31,11 @@ export default function PasswordReset() {
       })
 
       await jsonBody(res)
-    } catch (e) {
+    } catch (error) {
+      submitButton.disabled = false
+
       setSubmitted(false)
-      setError(e.message)
+      setError(error.message)
     }
 
     return false

@@ -11,7 +11,11 @@ export default function PasswordResetForm({ header, subheader }) {
   const [error, setError] = useState('')
 
   async function onSubmit(e) {
+    const submitButton = e.currentTarget
+
     e.preventDefault()
+    submitButton.disabled = true
+
     setError('')
 
     try {
@@ -27,8 +31,9 @@ export default function PasswordResetForm({ header, subheader }) {
 
       await mutate('/api/users/self')
       router.replace('/')
-    } catch (e) {
-      setError(e.message)
+    } catch (error) {
+      setError(error.message)
+      submitButton.disabled = false
     }
 
     return false
