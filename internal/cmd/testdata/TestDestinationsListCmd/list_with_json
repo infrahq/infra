@@ -1,1 +1,1 @@
-[{"id":"38","uniqueID":"","name":"destinationName","created":null,"updated":null,"connection":{"url":"","ca":""},"resources":null,"roles":null,"lastSeen":null,"connected":false,"version":""}]
+[{"id":"38","uniqueID":"","name":"destinationName","kind":"kubernetes","created":null,"updated":null,"connection":{"url":"10.0.0.1","ca":""},"resources":null,"roles":null,"lastSeen":null,"connected":false,"version":""}]

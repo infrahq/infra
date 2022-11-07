@@ -36,7 +36,7 @@ func list(cli *CLI) error {
 		return err
 	}
 
-	user, destinations, grants, err := getUserDestinationGrants(client)
+	user, destinations, grants, err := getUserDestinationGrants(client, "kubernetes")
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func isResourceForDestination(resource string, destination string) bool {
 	return resource == destination || strings.HasPrefix(resource, destination+".")
 }
 
-func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination, []api.Grant, error) {
+func getUserDestinationGrants(client *api.Client, kind string) (*api.User, []api.Destination, []api.Grant, error) {
 	ctx := context.TODO()
 
 	config, err := currentHostConfig()
@@ -136,7 +136,7 @@ func getUserDestinationGrants(client *api.Client) (*api.User, []api.Destination,
 		return nil, nil, nil, err
 	}
 
-	destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{})
+	destinations, err := listAll(ctx, client.ListDestinations, api.ListDestinationsRequest{Kind: kind})
 	if err != nil {
 		return nil, nil, nil, err
 	}

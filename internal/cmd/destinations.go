@@ -76,6 +76,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 			default:
 				type row struct {
 					Name     string `header:"NAME"`
+					Kind     string `header:"KIND"`
 					URL      string `header:"URL"`
 					Status   string `header:"STATUS"`
 					LastSeen string `header:"LAST SEEN"`
@@ -95,6 +96,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 
 					rows = append(rows, row{
 						Name:     d.Name,
+						Kind:     d.Kind,
 						URL:      d.Connection.URL,
 						Status:   status,
 						LastSeen: humanfmt.HumanTime(d.LastSeen.Time(), "never"),

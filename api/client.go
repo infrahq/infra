@@ -364,6 +364,7 @@ func (c Client) ListDestinations(ctx context.Context, req ListDestinationsReques
 	return get[ListResponse[Destination]](ctx, c, "/api/destinations", Query{
 		"name":      {req.Name},
 		"unique_id": {req.UniqueID},
+		"kind":      {req.Kind},
 		"page":      {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},
 	})
 }
