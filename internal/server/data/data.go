@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -106,16 +107,24 @@ func (d *DB) DriverName() string {
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	start := time.Now()
 	db := d.DB.Exec(query, args...)
+	logQuery(query, db.Error, start, db.RowsAffected)
 	return driver.RowsAffected(db.RowsAffected), db.Error
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
-	return d.DB.Raw(query, args...).Rows()
+	start := time.Now()
+	rows, err := d.DB.Raw(query, args...).Rows()
+	logQuery(query, err, start, -1)
+	return rows, err
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
-	return d.DB.Raw(query, args...).Row()
+	start := time.Now()
+	row := d.DB.Raw(query, args...).Row()
+	logQuery(query, row.Err(), start, -1)
+	return row
 }
 
 func (d *DB) OrganizationID() uid.ID {
@@ -147,16 +156,24 @@ func (t *Transaction) OrganizationID() uid.ID {
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
+	start := time.Now()
 	db := t.DB.Exec(query, args...)
+	logQuery(query, db.Error, start, db.RowsAffected)
 	return driver.RowsAffected(db.RowsAffected), db.Error
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
-	return t.DB.Raw(query, args...).Rows()
+	start := time.Now()
+	rows, err := t.DB.Raw(query, args...).Rows()
+	logQuery(query, err, start, -1)
+	return rows, err
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
-	return t.DB.Raw(query, args...).Row()
+	start := time.Now()
+	row := t.DB.Raw(query, args...).Row()
+	logQuery(query, row.Err(), start, -1)
+	return row
 }
 
 // Rollback the transaction. If the transaction was already committed then do
@@ -195,9 +212,7 @@ func newRawDB(options NewDBOptions) (*gorm.DB, error) {
 		return nil, fmt.Errorf("missing postgres dsn")
 	}
 
-	db, err := gorm.Open(postgres.Open(options.DSN), &gorm.Config{
-		Logger: logging.NewDatabaseLogger(time.Second),
-	})
+	db, err := gorm.Open(postgres.Open(options.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -389,4 +404,36 @@ func InfraConnectorIdentity(db ReadTxn) *models.Identity {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 	}
 	return connector
+}
+
+const slowQueryThreshold = time.Second
+
+func logQuery(query string, err error, startedAt time.Time, rows int64) {
+	level := zerolog.TraceLevel
+
+	elapsed := time.Since(startedAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows), errors.Is(err, gorm.ErrRecordNotFound):
+		level = zerolog.WarnLevel
+	case elapsed > slowQueryThreshold:
+		level = zerolog.WarnLevel
+	}
+
+	query = normalizeQueryString(query)
+	logging.L.WithLevel(level).
+		CallerSkipFrame(2). // logQuery + tx.{Query,Exec}
+		Int64("rows", rows).
+		Str("query", query).
+		Dur("elapsed", elapsed).
+		Msg("DB query")
+}
+
+var replaceQueryWhitespace = strings.NewReplacer("\t", " ", "\n", " ")
+
+// normalizeQueryString prepares a query string for being logged or printed.
+// normalizeQueryString removes leading and trailing whitespace, and converts any
+// tabs or newlines in the query string to spaces.
+func normalizeQueryString(query string) string {
+	query = strings.TrimSpace(query)
+	return replaceQueryWhitespace.Replace(query)
 }
