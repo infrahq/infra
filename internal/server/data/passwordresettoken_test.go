@@ -18,13 +18,13 @@ func TestCreatePasswordResetToken(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Assert(t, token != "")
 
-		userID, err := GetUserIDForPasswordResetToken(tx, token)
+		userID, err := ClaimPasswordResetToken(tx, token)
 		assert.NilError(t, err)
 		assert.Equal(t, userID, uid.ID(8222))
 	})
 }
 
-func TestGetUserIDForPasswordResetToken(t *testing.T) {
+func TestClaimPasswordResetToken(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		t.Run("deletes token", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
@@ -33,12 +33,12 @@ func TestGetUserIDForPasswordResetToken(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Assert(t, token != "")
 
-			userID, err := GetUserIDForPasswordResetToken(tx, token)
+			userID, err := ClaimPasswordResetToken(tx, token)
 			assert.NilError(t, err)
 			assert.Equal(t, userID, uid.ID(8222))
 
 			// Get again should fail because it was deleted
-			_, err = GetUserIDForPasswordResetToken(tx, token)
+			_, err = ClaimPasswordResetToken(tx, token)
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 		t.Run("expired token", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestGetUserIDForPasswordResetToken(t *testing.T) {
 			assert.NilError(t, err)
 			assert.Assert(t, token != "")
 
-			_, err = GetUserIDForPasswordResetToken(tx, token)
+			_, err = ClaimPasswordResetToken(tx, token)
 			assert.ErrorIs(t, err, internal.ErrExpired)
 		})
 	})

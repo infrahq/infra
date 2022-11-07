@@ -74,7 +74,10 @@ retry:
 	return prt.Token, nil
 }
 
-func GetUserIDForPasswordResetToken(tx WriteTxn, token string) (uid.ID, error) {
+// ClaimPasswordResetToken deletes the password reset token, and returns the
+// user ID that was associated with the token. Returns an error if the token
+// does not exist or has expired.
+func ClaimPasswordResetToken(tx WriteTxn, token string) (uid.ID, error) {
 	stmt := `
 		DELETE from password_reset_tokens
 		WHERE token = ? AND organization_id = ?

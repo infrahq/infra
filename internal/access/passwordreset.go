@@ -41,7 +41,7 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 	rCtx := GetRequestContext(c)
 	tx := rCtx.DBTxn
 
-	userID, err := data.GetUserIDForPasswordResetToken(tx, token)
+	userID, err := data.ClaimPasswordResetToken(tx, token)
 	if err != nil {
 		return nil, err
 	}
