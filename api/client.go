@@ -378,7 +378,7 @@ func (c Client) DeleteDestination(ctx context.Context, id uid.ID) error {
 
 func (c Client) ListAccessKeys(ctx context.Context, req ListAccessKeysRequest) (*ListResponse[AccessKey], error) {
 	return get[ListResponse[AccessKey]](ctx, c, "/api/access-keys", Query{
-		"user_id":      {req.UserID.String()},
+		"userID":       {req.UserID.String()},
 		"name":         {req.Name},
 		"show_expired": {fmt.Sprint(req.ShowExpired)},
 		"page":         {strconv.Itoa(req.Page)}, "limit": {strconv.Itoa(req.Limit)},

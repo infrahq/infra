@@ -162,7 +162,7 @@ func TestTrimWhitespace(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
 
 	// nolint:noctx
-	req = httptest.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&user_id="+userID.String(), nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/grants?privilege=%20admin%20&userID="+userID.String(), nil)
 	req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
 	req.Header.Add("Infra-Version", "0.13.1")
 
