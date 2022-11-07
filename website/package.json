@@ -12,7 +12,7 @@
     "postbuild": "next-sitemap"
   },
   "dependencies": {
-    "@headlessui/react": "^1.7.3",
+    "@headlessui/react": "^1.7.4",
     "@heroicons/react": "^2.0.12",
     "@markdoc/markdoc": "^0.1.13",
     "@react-spring/web": "^9.5.5",
