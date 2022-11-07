@@ -19,9 +19,20 @@ func TestDeleteExpiredDeviceFlowAuthRequests(t *testing.T) {
 	err := CreateDeviceFlowAuthRequest(tx, dfar)
 	assert.NilError(t, err)
 
+	dfar2 := &models.DeviceFlowAuthRequest{
+		UserCode:   "LMNPQRST",
+		DeviceCode: "abcdefghijklmnopqrstuvwxyz123456789001",
+		ExpiresAt:  time.Now().Add(10 * time.Minute),
+	}
+	err = CreateDeviceFlowAuthRequest(tx, dfar2)
+	assert.NilError(t, err)
+
 	err = DeleteExpiredDeviceFlowAuthRequests(tx)
 	assert.NilError(t, err)
 
-	_, err = GetDeviceFlowAuthRequest(tx, SelectDeviceFlowAuthRequestOptions{ByID: dfar.ID})
+	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByID: dfar.ID})
 	assert.ErrorContains(t, err, "not found")
+
+	_, err = GetDeviceFlowAuthRequest(tx, GetDeviceFlowAuthRequestOptions{ByID: dfar2.ID})
+	assert.NilError(t, err)
 }

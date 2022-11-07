@@ -15,7 +15,7 @@ func CreateDeviceFlowAuthRequest(ctx RequestContext, d *models.DeviceFlowAuthReq
 
 // FindDeviceFlowAuthRequest is an public(unauthenticated) request, all arguments are required and must match
 func FindDeviceFlowAuthRequest(ctx RequestContext, deviceCode string) (*models.DeviceFlowAuthRequest, error) {
-	dfar, err := data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.SelectDeviceFlowAuthRequestOptions{ByDeviceCode: deviceCode})
+	dfar, err := data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByDeviceCode: deviceCode})
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func FindDeviceFlowAuthRequest(ctx RequestContext, deviceCode string) (*models.D
 
 // FindDeviceFlowAuthRequestForApproval belongs to an authenticated endpoint; it requires a logged-in user.
 func FindDeviceFlowAuthRequestForApproval(ctx RequestContext, userCode string) (*models.DeviceFlowAuthRequest, error) {
-	return data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.SelectDeviceFlowAuthRequestOptions{ByUserCode: userCode})
+	return data.GetDeviceFlowAuthRequest(ctx.DBTxn, data.GetDeviceFlowAuthRequestOptions{ByUserCode: userCode})
 }
 
 func SetDeviceFlowAuthRequestAccessKey(ctx RequestContext, dfarID uid.ID, accessKey *models.AccessKey) error {

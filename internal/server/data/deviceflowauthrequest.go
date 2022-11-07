@@ -58,13 +58,13 @@ func CreateDeviceFlowAuthRequest(tx WriteTxn, dfar *models.DeviceFlowAuthRequest
 	return insert(tx, (*deviceFlowAuthRequestTable)(dfar))
 }
 
-type SelectDeviceFlowAuthRequestOptions struct {
+type GetDeviceFlowAuthRequestOptions struct {
 	ByID         uid.ID
 	ByDeviceCode string
 	ByUserCode   string
 }
 
-func GetDeviceFlowAuthRequest(tx GormTxn, opts SelectDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
+func GetDeviceFlowAuthRequest(tx GormTxn, opts GetDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
 	if opts.ByDeviceCode == "" && opts.ByUserCode == "" && opts.ByID == 0 {
 		return nil, errors.New("must supply one of device_code, user_code, or id to GetDeviceFlowAuthRequest")
 	}

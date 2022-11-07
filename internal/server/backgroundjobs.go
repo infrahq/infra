@@ -36,6 +36,7 @@ func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every t
 
 	return func() error { // jobs shouldn't return errors, we just do this to be compatible with the "routine" struct.
 		t := time.NewTicker(every)
+		funcName := getFuncName(job)
 
 		jobWithRescue := func() {
 			if ctx.Err() != nil {
@@ -43,18 +44,18 @@ func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every t
 			}
 			defer func() {
 				if err := recover(); err != nil {
-					logging.Errorf("background job %s panic: %s", getFuncName(job), err)
+					logging.Errorf("background job %s panic: %s", funcName, err)
 				}
 			}()
 
 			startAt := time.Now().UTC()
-			logging.Debugf("background job %s starting", getFuncName(job))
+			logging.Debugf("background job %s starting", funcName)
 
 			err := job(ctx, tx)
 			if err != nil {
-				logging.Errorf("background job %s error: %s", getFuncName(job), err.Error())
+				logging.Errorf("background job %s error: %s", funcName, err.Error())
 			} else {
-				logging.Debugf("background job %s successful, elapsed: %s", getFuncName(job), time.Since(startAt))
+				logging.Infof("background job %s successful, elapsed: %s", funcName, time.Since(startAt))
 			}
 		}
 
@@ -63,6 +64,7 @@ func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every t
 			case <-t.C:
 				jobWithRescue()
 			case <-ctx.Done():
+				t.Stop()
 				return nil // time to quit.
 			}
 		}
