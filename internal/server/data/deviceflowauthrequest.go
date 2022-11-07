@@ -1,12 +1,12 @@
 package data
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	"gorm.io/gorm"
-
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/validate"
 	"github.com/infrahq/infra/uid"
@@ -19,15 +19,15 @@ func (d deviceFlowAuthRequestTable) Table() string {
 }
 
 func (d deviceFlowAuthRequestTable) Columns() []string {
-	return []string{"access_key_id", "access_key_token", "approved", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
+	return []string{"access_key_id", "access_key_token", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
 }
 
 func (d deviceFlowAuthRequestTable) Values() []any {
-	return []any{d.AccessKeyID, d.AccessKeyToken, d.Approved, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
+	return []any{d.AccessKeyID, d.AccessKeyToken, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
 }
 
 func (d *deviceFlowAuthRequestTable) ScanFields() []any {
-	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.Approved, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
+	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
 }
 
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
@@ -58,8 +58,38 @@ func CreateDeviceFlowAuthRequest(tx WriteTxn, dfar *models.DeviceFlowAuthRequest
 	return insert(tx, (*deviceFlowAuthRequestTable)(dfar))
 }
 
-func GetDeviceFlowAuthRequest(db GormTxn, selectors ...SelectorFunc) (*models.DeviceFlowAuthRequest, error) {
-	return get[models.DeviceFlowAuthRequest](db, selectors...)
+type GetDeviceFlowAuthRequestOptions struct {
+	ByID         uid.ID
+	ByDeviceCode string
+	ByUserCode   string
+}
+
+func GetDeviceFlowAuthRequest(tx GormTxn, opts GetDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
+	if opts.ByDeviceCode == "" && opts.ByUserCode == "" && opts.ByID == 0 {
+		return nil, errors.New("must supply one of device_code, user_code, or id to GetDeviceFlowAuthRequest")
+	}
+
+	rec := &deviceFlowAuthRequestTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(rec))
+	query.B("FROM")
+	query.B(rec.Table())
+	query.B("WHERE deleted_at is null")
+	if opts.ByID != 0 {
+		query.B("AND id = ?", opts.ByID)
+	}
+	if opts.ByDeviceCode != "" {
+		query.B("and device_code = ?", opts.ByDeviceCode)
+	}
+	if opts.ByUserCode != "" {
+		query.B("and user_code = ?", opts.ByUserCode)
+	}
+
+	err := tx.QueryRow(query.String(), query.Args...).Scan(rec.ScanFields()...)
+	if err != nil {
+		return nil, handleError(err)
+	}
+	return (*models.DeviceFlowAuthRequest)(rec), nil
 }
 
 func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *models.AccessKey) error {
@@ -67,26 +97,13 @@ func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *mo
 		UPDATE device_flow_auth_requests
 		SET 
 			access_key_id = ?,
-			access_key_token = ?,
-			approved = true
+			access_key_token = ?
 		WHERE id = ?
-	`, accessKey.ID, accessKey.Token(), dfarID)
+	`, accessKey.ID, models.EncryptedAtRest(accessKey.Token()), dfarID)
 	return handleError(err)
 }
 
-func ByDeviceCode(deviceCode string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("device_code = ?", deviceCode)
-	}
-}
-
-func ByUserCode(userCode string) SelectorFunc {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("user_code = ?", userCode)
-	}
-}
-
-func DeleteExpiredDeviceFlowAuthRequest(tx WriteTxn) error {
+func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
 	stmt := `
 		DELETE from device_flow_auth_requests
 		WHERE

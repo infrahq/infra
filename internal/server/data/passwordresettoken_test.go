@@ -53,3 +53,28 @@ func TestClaimPasswordResetToken(t *testing.T) {
 		})
 	})
 }
+
+func TestRemoveExpiredPasswordResetTokens(t *testing.T) {
+	tx := setupDB(t)
+	token, err := CreatePasswordResetToken(tx, uid.New(), -1)
+	assert.NilError(t, err)
+
+	token2, err := CreatePasswordResetToken(tx, uid.New(), 5*time.Minute)
+	assert.NilError(t, err)
+
+	err = RemoveExpiredPasswordResetTokens(tx)
+	assert.NilError(t, err)
+
+	row := tx.QueryRow("select count(*) from password_reset_tokens where token = ?", token)
+	assert.NilError(t, row.Err())
+	var count int64
+	err = row.Scan(&count)
+	assert.NilError(t, err)
+	assert.Assert(t, count == 0)
+
+	row = tx.QueryRow("select count(*) from password_reset_tokens where token = ?", token2)
+	assert.NilError(t, row.Err())
+	err = row.Scan(&count)
+	assert.NilError(t, err)
+	assert.Assert(t, count == 1)
+}
