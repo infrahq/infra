@@ -1153,7 +1153,7 @@
       "url": "https://www.elastic.co/licensing/elastic-license"
     },
     "title": "Infra API",
-    "version": "99.99.99999"
+    "version": "0.0.0"
   },
   "paths": {
     "/api/access-keys": {
@@ -1167,7 +1167,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1268,7 +1268,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1405,7 +1405,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1541,7 +1541,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1648,7 +1648,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1775,7 +1775,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -1926,7 +1926,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2031,7 +2031,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2136,7 +2136,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2298,7 +2298,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2383,7 +2383,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2497,7 +2497,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2599,7 +2599,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2702,7 +2702,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -2893,7 +2893,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3090,7 +3090,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3235,7 +3235,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3340,7 +3340,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3447,7 +3447,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3577,7 +3577,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3690,7 +3690,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3795,7 +3795,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -3902,7 +3902,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4039,7 +4039,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4192,7 +4192,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4288,7 +4288,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4408,7 +4408,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4528,7 +4528,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4633,7 +4633,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4741,7 +4741,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4850,7 +4850,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -4953,7 +4953,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5064,7 +5064,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5222,7 +5222,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5327,7 +5327,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5421,7 +5421,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5545,7 +5545,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5715,7 +5715,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5800,7 +5800,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -5883,7 +5883,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6015,7 +6015,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6142,7 +6142,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6238,7 +6238,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6390,7 +6390,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6504,7 +6504,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6609,7 +6609,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6715,7 +6715,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
@@ -6842,7 +6842,7 @@
             "required": true,
             "schema": {
               "description": "Version of the API being requested",
-              "example": "99.99.99999",
+              "example": "0.0.0",
               "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
               "type": "string"
             }
