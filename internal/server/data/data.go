@@ -13,6 +13,7 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
+	"github.com/rs/zerolog"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -92,18 +93,32 @@ func (d *DB) SQLdb() *sql.DB {
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	var affected int64
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return d.DB.Exec(query, args...)
+	result, err := d.DB.Exec(query, args...)
+	if err == nil {
+		affected, err = result.RowsAffected()
+	}
+	logQuery(query, err, start, affected)
+	return result, err
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return d.DB.Query(query, args...)
+	rows, err := d.DB.Query(query, args...)
+	logQuery(query, err, start, -1)
+	return rows, err
+
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return d.DB.QueryRow(query, args...)
+	row := d.DB.QueryRow(query, args...)
+	logQuery(query, row.Err(), start, -1)
+	return row
 }
 
 func rewriteQueryPlaceholders(query string, num int) string {
@@ -135,9 +150,8 @@ func (d *DB) OrganizationID() uid.ID {
 	return d.DefaultOrg.ID
 }
 
-// Begin starts a new transaction.
-//
-// TODO: describe how the context is used, and what it cancels.
+// Begin starts a new transaction. The ctx will cancel any queries performed by
+// the returned Transaction.
 func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
 	tx, err := d.DB.BeginTx(ctx, opts)
 	if err != nil {
@@ -150,7 +164,8 @@ func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, erro
 	}, nil
 }
 
-// TODO: document that this type should only be created with DB.Begin
+// Transaction is a database transaction with metadata about the request that
+// was given this transaction. Use DB.Begin to create a transaction.
 type Transaction struct {
 	Tx    *sql.Tx
 	txCtx context.Context
@@ -164,18 +179,31 @@ func (t *Transaction) OrganizationID() uid.ID {
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
+	var affected int64
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.ExecContext(t.txCtx, query, args...)
+	result, err := t.Tx.ExecContext(t.txCtx, query, args...)
+	if err == nil {
+		affected, err = result.RowsAffected()
+	}
+	logQuery(query, err, start, affected)
+	return result, err
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.QueryContext(t.txCtx, query, args...)
+	rows, err := t.Tx.QueryContext(t.txCtx, query, args...)
+	logQuery(query, err, start, -1)
+	return rows, err
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
+	start := time.Now()
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.QueryRowContext(t.txCtx, query, args...)
+	row := t.Tx.QueryRowContext(t.txCtx, query, args...)
+	logQuery(query, row.Err(), start, -1)
+	return row
 }
 
 // Rollback the transaction. If the transaction was already committed then do
@@ -399,4 +427,36 @@ func InfraConnectorIdentity(db ReadTxn) *models.Identity {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 	}
 	return connector
+}
+
+const slowQueryThreshold = time.Second
+
+func logQuery(query string, err error, startedAt time.Time, rows int64) {
+	level := zerolog.TraceLevel
+
+	elapsed := time.Since(startedAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		level = zerolog.WarnLevel
+	case elapsed > slowQueryThreshold:
+		level = zerolog.WarnLevel
+	}
+
+	query = normalizeQueryString(query)
+	logging.L.WithLevel(level).
+		CallerSkipFrame(2). // logQuery + tx.{Query,Exec}
+		Int64("rows", rows).
+		Str("query", query).
+		Dur("elapsed", elapsed).
+		Msg("DB query")
+}
+
+var replaceQueryWhitespace = strings.NewReplacer("\t", " ", "\n", " ")
+
+// normalizeQueryString prepares a query string for being logged or printed.
+// normalizeQueryString removes leading and trailing whitespace, and converts any
+// tabs or newlines in the query string to spaces.
+func normalizeQueryString(query string) string {
+	query = strings.TrimSpace(query)
+	return replaceQueryWhitespace.Replace(query)
 }
