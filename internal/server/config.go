@@ -710,7 +710,10 @@ func (s Server) loadProvider(db data.GormTxn, input Provider) (*models.Provider,
 			return nil, err
 		}
 
-		provider, err = getConfigProviderDetails(input, kind, clientSecret)
+		provider, err := getConfigProviderDetails(input, kind, clientSecret)
+		if err != nil {
+			return nil, err
+		}
 
 		if err := data.CreateProvider(db, provider); err != nil {
 			return nil, err
