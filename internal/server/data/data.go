@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -265,20 +264,6 @@ func initialize(db *DB) error {
 	return tx.Commit()
 }
 
-func getDefaultSortFromType(t interface{}) string {
-	ty := reflect.TypeOf(t).Elem()
-	if _, ok := ty.FieldByName("Name"); ok {
-		return "name ASC"
-	}
-
-	if _, ok := ty.FieldByName("Email"); ok {
-		// foreign key relations, such as provider users in this case, may not have the default ID
-		return "email ASC"
-	}
-
-	return "id ASC"
-}
-
 func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) {
 	db := tx.GormDB()
 	for _, selector := range selectors {
@@ -320,44 +305,6 @@ type orgMember interface {
 func isOrgMember(model any) bool {
 	_, ok := model.(orgMember)
 	return ok
-}
-
-func list[T models.Modelable](tx GormTxn, p *Pagination, selectors ...SelectorFunc) ([]T, error) {
-	db := tx.GormDB()
-	db = db.Order(getDefaultSortFromType((*T)(nil)))
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-	if isOrgMember(new(T)) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-
-	if p != nil {
-		var count int64
-		if err := db.Model((*T)(nil)).Count(&count).Error; err != nil {
-			return nil, err
-		}
-		p.SetTotalCount(int(count))
-
-		db = ByPagination(*p)(db)
-	}
-
-	result := make([]T, 0)
-	if err := db.Model((*T)(nil)).Find(&result).Error; err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func save[T models.Modelable](tx GormTxn, model *T) error {
-	db := tx.GormDB()
-	setOrg(tx, model)
-	if isOrgMember(model) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-	err := db.Save(model).Error
-	return handleError(err)
 }
 
 func add[T models.Modelable](tx GormTxn, model *T) error {
@@ -480,14 +427,6 @@ func handleError(err error) error {
 	return err
 }
 
-func delete[T models.Modelable](tx GormTxn, id uid.ID) error {
-	db := tx.GormDB()
-	if isOrgMember(new(T)) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-	return db.Delete(new(T), id).Error
-}
-
 // InfraProvider returns the infra provider for the organization set in the tx.
 func InfraProvider(tx ReadTxn) *models.Provider {
 	infra, err := GetProvider(tx, GetProviderOptions{KindInfra: true})
@@ -503,7 +442,6 @@ func InfraConnectorIdentity(db GormTxn) *models.Identity {
 	connector, err := GetIdentity(db, GetIdentityOptions{ByName: models.InternalInfraConnectorIdentityName})
 	if err != nil {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
-		return nil // unreachable, the line above panics
 	}
 	return connector
 }

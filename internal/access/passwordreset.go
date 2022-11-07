@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
@@ -29,32 +28,32 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 		return "", nil, err
 	}
 
-	prt, err := data.CreatePasswordResetToken(db, user, ttl)
+	token, err = data.CreatePasswordResetToken(db, user.ID, ttl)
 	if err != nil {
 		return "", nil, err
 	}
 
-	return prt.Token, user, nil
+	return token, user, nil
 }
 
 func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.Identity, error) {
 	// no auth required
 	rCtx := GetRequestContext(c)
-	db := rCtx.DBTxn
+	tx := rCtx.DBTxn
 
-	prt, err := data.GetPasswordResetTokenByToken(db, token)
+	userID, err := data.ClaimPasswordResetToken(tx, token)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := data.GetIdentity(db, data.GetIdentityOptions{ByID: prt.IdentityID})
+	user, err := data.GetIdentity(tx, data.GetIdentityOptions{ByID: userID})
 	if err != nil {
 		return nil, err
 	}
 
 	if !user.Verified {
 		user.Verified = true
-		if err = data.UpdateIdentity(db, user); err != nil {
+		if err = data.UpdateIdentity(tx, user); err != nil {
 			return nil, err
 		}
 	}
@@ -62,10 +61,5 @@ func VerifiedPasswordReset(c *gin.Context, token, newPassword string) (*models.I
 	if err := updateCredential(c, user, newPassword, true); err != nil {
 		return nil, err
 	}
-
-	if err := data.DeletePasswordResetToken(db, prt); err != nil {
-		logging.Errorf("deleting password reset token: %s", err)
-	}
-
 	return user, nil
 }

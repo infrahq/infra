@@ -22,6 +22,7 @@ var tables = []tabler{
 	groupsTable{},
 	identitiesTable{},
 	organizationsTable{},
+	passwordResetToken{},
 	providersTable{},
 	providerUserTable{},
 	settingsTable{},
