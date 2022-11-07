@@ -247,7 +247,7 @@ export default function DestinationsAdd() {
                 method: 'POST',
                 body: JSON.stringify({
                   user: user.id,
-                  privilege: 'cluster-admin',
+                  privilege: 'view',
                   resource: name,
                 }),
               })
