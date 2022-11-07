@@ -31,8 +31,8 @@ export default function PasswordResetForm({ header, subheader }) {
 
       await mutate('/api/users/self')
       router.replace('/')
-    } catch (error) {
-      setError(error.message)
+    } catch (e) {
+      setError(e.message)
       submitButton.disabled = false
     }
 

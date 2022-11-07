@@ -36,7 +36,10 @@ function PasswordReset({ user, onReset = () => {} }) {
   const [errors, setErrors] = useState({})
 
   async function onSubmit(e) {
+    const submitButton = e.currentTarget
+
     e.preventDefault()
+    submitButton.disabled = true
 
     if (password !== confirmPassword) {
       setErrors({
@@ -69,6 +72,8 @@ function PasswordReset({ user, onReset = () => {} }) {
       setConfirmPassword('')
       onReset()
     } catch (e) {
+      submitButton.disabled = false
+
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {

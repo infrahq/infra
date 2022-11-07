@@ -31,11 +31,11 @@ export default function PasswordReset() {
       })
 
       await jsonBody(res)
-    } catch (error) {
+    } catch (e) {
       submitButton.disabled = false
 
       setSubmitted(false)
-      setError(error.message)
+      setError(e.message)
     }
 
     return false
