@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 import { useServerConfig } from '../../lib/serverconfig'
+import { saveToVisitedOrgs } from '../../lib/login'
 
 import Login from '../../components/layouts/login'
-import { saveToVisitedOrgs } from '../login'
 
 export default function Signup() {
   const [name, setName] = useState('')

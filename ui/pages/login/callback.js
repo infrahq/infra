@@ -3,9 +3,10 @@ import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 
 import { useUser } from '../../lib/hooks'
-import { saveToVisitedOrgs } from '.'
+import { saveToVisitedOrgs } from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
+import Loader from '../../components/loader'
 
 export default function Callback() {
   const { mutate } = useSWRConfig()
@@ -63,27 +64,7 @@ export default function Callback() {
     return null
   }
 
-  return (
-    <div className='my-32 flex h-full w-full items-center justify-center'>
-      <svg
-        xmlns='http://www.w3.org/2000/svg'
-        width='200px'
-        height='200px'
-        viewBox='0 0 100 100'
-        preserveAspectRatio='xMidYMid'
-        className='h-24 w-24 animate-spin-fast stroke-current text-gray-500'
-      >
-        <circle
-          cx='50'
-          cy='50'
-          fill='none'
-          strokeWidth='1'
-          r='24'
-          strokeDasharray='113.09733552923255 39.69911184307752'
-        ></circle>
-      </svg>
-    </div>
-  )
+  return <Loader size={24} fullscreen />
 }
 
 Callback.layout = page => <LoginLayout>{page}</LoginLayout>

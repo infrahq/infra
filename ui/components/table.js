@@ -5,6 +5,8 @@ import {
 } from '@tanstack/react-table'
 import Link from 'next/link'
 
+import Loader from './loader'
+
 export default function Table({
   columns,
   data,
@@ -133,25 +135,7 @@ export default function Table({
           {empty}
         </div>
       )}
-      {!data && (
-        <div className='flex min-h-[100px] items-center justify-center py-4 text-xs text-gray-400'>
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            viewBox='0 0 100 100'
-            preserveAspectRatio='xMidYMid'
-            className='h-10 w-10 animate-spin-fast stroke-current text-gray-400'
-          >
-            <circle
-              cx='50'
-              cy='50'
-              fill='none'
-              strokeWidth='1.5'
-              r='24'
-              strokeDasharray='113.09733552923255 39.69911184307752'
-            ></circle>
-          </svg>
-        </div>
-      )}
+      {!data && <Loader />}
     </div>
   )
 }

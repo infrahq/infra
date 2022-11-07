@@ -6,16 +6,40 @@ import { useUser } from '../../lib/hooks'
 import Dashboard from '../../components/layouts/dashboard'
 import Notification from '../../components/notification'
 
+function PasswordInput({ title, name, value, onChange, error }) {
+  return (
+    <div>
+      <label htmlFor={name} className='text-2xs font-medium text-gray-700'>
+        {title}
+      </label>
+      <input
+        required
+        name={name}
+        type='password'
+        autoComplete='off'
+        value={value}
+        onChange={e => onChange(e)}
+        className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+          error ? 'border-red-500' : 'border-gray-300'
+        }`}
+      />
+      {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+    </div>
+  )
+}
+
 function PasswordReset({ user, onReset = () => {} }) {
   const [oldPassword, setOldPassword] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
-  const [submitting, setSubmitting] = useState(false)
 
   async function onSubmit(e) {
+    const submitButton = e.currentTarget
+
     e.preventDefault()
+    submitButton.disabled = true
 
     if (password !== confirmPassword) {
       setErrors({
@@ -24,7 +48,6 @@ function PasswordReset({ user, onReset = () => {} }) {
       return false
     }
 
-    setSubmitting(true)
     setError('')
     setErrors({})
 
@@ -38,8 +61,6 @@ function PasswordReset({ user, onReset = () => {} }) {
         }),
       })
 
-      setSubmitting(false)
-
       const data = await rest.json()
 
       if (!rest.ok) {
@@ -51,7 +72,8 @@ function PasswordReset({ user, onReset = () => {} }) {
       setConfirmPassword('')
       onReset()
     } catch (e) {
-      setSubmitting(false)
+      submitButton.disabled = false
+
       if (e.fieldErrors) {
         const errors = {}
         for (const error of e.fieldErrors) {
@@ -67,85 +89,53 @@ function PasswordReset({ user, onReset = () => {} }) {
 
   return (
     <form onSubmit={onSubmit} className='flex flex-col'>
-      <div className='relative my-2 w-full'>
-        <label
-          htmlFor='old-password'
-          className='text-2xs font-medium text-gray-700'
-        >
-          Old Password
-        </label>
-        <input
-          required
-          name='oldPassword'
-          type='password'
-          value={oldPassword}
+      <div className='relative w-full space-y-2'>
+        <PasswordInput
+          name='old-password'
+          title='Old Password'
           onChange={e => {
             setOldPassword(e.target.value)
             setErrors({})
             setError('')
           }}
-          className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-            errors.oldpassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          value={oldPassword}
+          error={errors.oldpassword}
         />
-        {errors.oldpassword && (
-          <p className='my-1 text-xs text-red-500'>{errors.oldpassword}</p>
-        )}
-      </div>
-      <div className='relative my-2 w-full'>
-        <label
-          htmlFor='password'
-          className='text-2xs font-medium text-gray-700'
-        >
-          New Password
-        </label>
-        <input
-          required
+        <PasswordInput
           name='password'
-          type='password'
-          value={password}
+          title='New Password'
           onChange={e => {
             setPassword(e.target.value)
             setErrors({})
             setError('')
           }}
-          className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          value={password}
+          error={errors.password}
         />
-        {errors.password && (
-          <p className='my-1 text-xs text-red-500'>{errors.password}</p>
-        )}
-      </div>
-      <div className='relative my-2 w-full'>
-        <label
-          htmlFor='confirm-password'
-          className='text-2xs font-medium text-gray-700'
-        >
-          Confirm New Password
-        </label>
-        <input
-          required
+        <PasswordInput
           name='confirm-password'
-          type='password'
-          value={confirmPassword}
+          title='Confirm New Password'
           onChange={e => {
             setConfirmPassword(e.target.value)
             setErrors({})
             setError('')
           }}
-          className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          value={confirmPassword}
+          error={errors.confirmPassword}
         />
-        {errors.confirmPassword && (
-          <p className='my-1 text-xs text-red-500'>{errors.confirmPassword}</p>
-        )}
       </div>
       <div className='mt-6 flex flex-row items-center justify-end space-x-3'>
         <button
           type='submit'
-          disabled={(!password && !confirmPassword) || submitting}
+          disabled={
+            !(
+              oldPassword &&
+              password &&
+              confirmPassword &&
+              Object.keys(errors).length === 0 &&
+              error === ''
+            )
+          }
           className='inline-flex cursor-pointer items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-30'
         >
           Reset Password
