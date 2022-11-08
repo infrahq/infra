@@ -5,6 +5,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/access"
+	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 )
 
@@ -23,7 +24,7 @@ func (a *API) ListGroups(c *gin.Context, r *api.ListGroupsRequest) (*api.ListRes
 }
 
 func (a *API) GetGroup(c *gin.Context, r *api.Resource) (*api.Group, error) {
-	group, err := access.GetGroup(c, r.ID)
+	group, err := access.GetGroup(c, data.GetGroupOptions{ByID: r.ID})
 	if err != nil {
 		return nil, err
 	}

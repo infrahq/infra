@@ -2925,7 +2925,17 @@
                         },
                         {
                           "required": [
+                            "userName"
+                          ]
+                        },
+                        {
+                          "required": [
                             "group"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "groupName"
                           ]
                         }
                       ],
@@ -2934,6 +2944,9 @@
                           "example": "4yJ3n3D8E2",
                           "format": "uid",
                           "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "groupName": {
                           "type": "string"
                         },
                         "privilege": {
@@ -2950,6 +2963,9 @@
                           "example": "4yJ3n3D8E2",
                           "format": "uid",
                           "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "userName": {
                           "type": "string"
                         }
                       },
@@ -2971,7 +2987,17 @@
                         },
                         {
                           "required": [
+                            "userName"
+                          ]
+                        },
+                        {
+                          "required": [
                             "group"
+                          ]
+                        },
+                        {
+                          "required": [
+                            "groupName"
                           ]
                         }
                       ],
@@ -2980,6 +3006,9 @@
                           "example": "4yJ3n3D8E2",
                           "format": "uid",
                           "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "groupName": {
                           "type": "string"
                         },
                         "privilege": {
@@ -2996,6 +3025,9 @@
                           "example": "4yJ3n3D8E2",
                           "format": "uid",
                           "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                          "type": "string"
+                        },
+                        "userName": {
                           "type": "string"
                         }
                       },
@@ -3119,7 +3151,17 @@
                   },
                   {
                     "required": [
+                      "userName"
+                    ]
+                  },
+                  {
+                    "required": [
                       "group"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "groupName"
                     ]
                   }
                 ],
@@ -3128,6 +3170,9 @@
                     "example": "4yJ3n3D8E2",
                     "format": "uid",
                     "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
+                  "groupName": {
                     "type": "string"
                   },
                   "privilege": {
@@ -3144,6 +3189,9 @@
                     "example": "4yJ3n3D8E2",
                     "format": "uid",
                     "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                    "type": "string"
+                  },
+                  "userName": {
                     "type": "string"
                   }
                 },

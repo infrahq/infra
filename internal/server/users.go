@@ -37,7 +37,7 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 		}
 		r.ID.ID = iden.ID
 	}
-	identity, err := access.GetIdentity(c, r.ID.ID)
+	identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID.ID, LoadProviders: true})
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (a *API) CreateUser(c *gin.Context, r *api.CreateUserRequest) (*api.CreateU
 
 func (a *API) UpdateUser(c *gin.Context, r *api.UpdateUserRequest) (*api.User, error) {
 	// right now this endpoint can only update a user's credentials, so get the user identity
-	identity, err := access.GetIdentity(c, r.ID)
+	identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID, LoadProviders: true})
 	if err != nil {
 		return nil, err
 	}

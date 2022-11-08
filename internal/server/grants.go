@@ -180,13 +180,25 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 	var subject uid.PolymorphicID
 
 	switch {
-	case r.Name != "":
+	case r.UserName != "":
 		// lookup user name
-		identity, err := access.GetIdentityByName(c, r.Name)
+		identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByName: r.UserName})
 		if err != nil {
-			return nil, fmt.Errorf("%w: couldn't find user %s", internal.ErrBadRequest, r.Name)
+			if errors.Is(err, internal.ErrNotFound) {
+				return nil, fmt.Errorf("%w: couldn't find userName '%s'", internal.ErrBadRequest, r.UserName)
+			}
+			return nil, err
 		}
 		subject = uid.NewIdentityPolymorphicID(identity.ID)
+	case r.GroupName != "":
+		group, err := access.GetGroup(c, data.GetGroupOptions{ByName: r.GroupName})
+		if err != nil {
+			if errors.Is(err, internal.ErrNotFound) {
+				return nil, fmt.Errorf("%w: couldn't find groupName '%s'", internal.ErrBadRequest, r.GroupName)
+			}
+			return nil, err
+		}
+		subject = uid.NewIdentityPolymorphicID(group.ID)
 	case r.User != 0:
 		subject = uid.NewIdentityPolymorphicID(r.User)
 	case r.Group != 0:
@@ -195,7 +207,7 @@ func getGrantFromGrantRequest(c *gin.Context, r api.GrantRequest) (*models.Grant
 
 	switch {
 	case subject == "":
-		return nil, fmt.Errorf("%w: must specify name, user, or group", internal.ErrBadRequest)
+		return nil, fmt.Errorf("%w: must specify userName, user, or group", internal.ErrBadRequest)
 	case r.Resource == "":
 		return nil, fmt.Errorf("%w: must specify resource", internal.ErrBadRequest)
 	case r.Privilege == "":

@@ -53,7 +53,7 @@ func CreateCredential(c *gin.Context, user models.Identity) (string, error) {
 
 func UpdateCredential(c *gin.Context, user *models.Identity, oldPassword, newPassword string) error {
 	rCtx := GetRequestContext(c)
-	isSelf := isIdentitySelf(rCtx, user.ID)
+	isSelf := isIdentitySelf(rCtx, data.GetIdentityOptions{ByID: user.ID})
 
 	// anyone can update their own credentials, so check authorization when not self
 	if !isSelf {

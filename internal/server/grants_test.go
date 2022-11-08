@@ -1184,8 +1184,15 @@ func TestAPI_UpdateGrants(t *testing.T) {
 	routes := srv.GenerateRoutes()
 
 	user := &models.Identity{Name: "non-admin"}
+	group := &models.Group{Name: "mygroup"}
 
 	err := data.CreateIdentity(srv.DB(), user)
+	assert.NilError(t, err)
+
+	err = data.CreateGroup(srv.DB(), group)
+	assert.NilError(t, err)
+
+	err = data.AddUsersToGroup(srv.DB(), group.ID, []uid.ID{user.ID})
 	assert.NilError(t, err)
 
 	type testCase struct {
@@ -1241,7 +1248,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Name:      "admin@example.com",
+						UserName:  "admin@example.com",
 						Privilege: models.InfraAdminRole,
 						Resource:  "some-cluster2",
 					},
@@ -1265,7 +1272,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Name:      user.Name,
+						UserName:  user.Name,
 						Privilege: models.InfraAdminRole,
 						Resource:  "some-cluster3",
 					},
@@ -1277,6 +1284,30 @@ func TestAPI_UpdateGrants(t *testing.T) {
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
 					ByPrivileges: []string{models.InfraAdminRole},
 					ByResource:   "some-cluster3",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 1)
+			},
+		},
+		"success add w/ groupname": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						GroupName: group.Name,
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster4",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "some-cluster4",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 1)
@@ -1331,7 +1362,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
-						Name:      user.Name,
+						UserName:  user.Name,
 						Privilege: models.InfraAdminRole,
 						Resource:  "another-cluster2",
 					},
@@ -1342,7 +1373,40 @@ func TestAPI_UpdateGrants(t *testing.T) {
 
 				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
 					ByPrivileges: []string{models.InfraAdminRole},
-					ByResource:   "another-cluster",
+					ByResource:   "another-cluster2",
+				})
+				assert.NilError(t, err)
+				assert.Assert(t, len(infraAdminGrants) == 0)
+			},
+		},
+		"success delete w/ groupname": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+				grantToAdd := models.Grant{
+					Subject:   uid.NewIdentityPolymorphicID(group.ID),
+					Privilege: models.InfraAdminRole,
+					Resource:  "another-cluster3",
+				}
+
+				err := data.CreateGrant(srv.DB(), &grantToAdd)
+				assert.NilError(t, err)
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToRemove: []api.GrantRequest{
+					{
+						UserName:  user.Name,
+						Privilege: models.InfraAdminRole,
+						Resource:  "another-cluster3",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK)
+
+				infraAdminGrants, err := data.ListGrants(srv.DB(), data.ListGrantsOptions{
+					ByPrivileges: []string{models.InfraAdminRole},
+					ByResource:   "another-cluster3",
 				})
 				assert.NilError(t, err)
 				assert.Assert(t, len(infraAdminGrants) == 0)
@@ -1371,7 +1435,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Name:      user.Name,
+						UserName:  user.Name,
 						Privilege: models.InfraAdminRole,
 					},
 				},
@@ -1387,7 +1451,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Name:     user.Name,
+						UserName: user.Name,
 						Resource: "some-cluster",
 					},
 				},
@@ -1403,7 +1467,24 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToAdd: []api.GrantRequest{
 					{
-						Name:      "unknown@example.com",
+						UserName:  "unknown@example.com",
+						Privilege: models.InfraAdminRole,
+						Resource:  "some-cluster",
+					},
+				},
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusBadRequest)
+			},
+		},
+		"failure add w/ groupname": {
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+			},
+			body: api.UpdateGrantsRequest{
+				GrantsToAdd: []api.GrantRequest{
+					{
+						GroupName: "unknowngroup",
 						Privilege: models.InfraAdminRole,
 						Resource:  "some-cluster",
 					},
