@@ -112,7 +112,7 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 		return nil, internal.ErrExpired
 	}
 
-	if dfar.AccessKey != nil {
+	if dfar.AccessKeyID != 0 {
 		// already approved, do nothing
 		return nil, nil
 	}

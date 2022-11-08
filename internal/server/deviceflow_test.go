@@ -49,6 +49,7 @@ func TestDeviceFlow(t *testing.T) {
 	key := accessKey.Token()
 
 	doPost := func(t *testing.T, accessKey, path string, reqObj any, respObj any) *httptest.ResponseRecorder {
+		t.Helper()
 		req := httptest.NewRequest(http.MethodPost, path, jsonBody(t, reqObj))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 		if len(accessKey) > 0 {
@@ -109,6 +110,35 @@ func TestDeviceFlow(t *testing.T) {
 	newKey := statusResp.LoginResponse.AccessKey
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
+
+	t.Run("attempting to claim the code again should do nothing", func(t *testing.T) {
+		tx := txnForTestCase(t, srv.db, org.ID)
+		otherUser := &models.Identity{Name: "other@example.com"}
+		err = data.CreateIdentity(tx, otherUser)
+		assert.NilError(t, err)
+
+		otherKey := &models.AccessKey{
+			Name:          "Other key",
+			IssuedFor:     otherUser.ID,
+			IssuedForName: otherUser.Name,
+			ProviderID:    data.InfraProvider(tx).ID,
+			ExpiresAt:     time.Now().Add(10 * time.Minute),
+			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
+		}
+		_, err = data.CreateAccessKey(tx, otherKey)
+		assert.NilError(t, err)
+		assert.NilError(t, tx.Commit())
+
+		doPost(t, otherKey.Token(), "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+			UserCode: dfResp.UserCode,
+		}, nil)
+
+		doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+			DeviceCode: dfResp.DeviceCode,
+		}, statusResp)
+
+		assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
+	})
 }
 
 func TestAPI_StartDeviceFlow(t *testing.T) {
