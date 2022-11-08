@@ -246,6 +246,7 @@ func wrapRoute[Req, Res any](a *API, routeID routeIdentifier, route route[Req, R
 			DBTxn:         tx,
 			Authenticated: authned,
 			DataDB:        a.server.db,
+			Response:      &access.ResponseMetadata{},
 		}
 		c.Set(access.RequestContextKey, rCtx)
 

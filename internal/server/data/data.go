@@ -264,28 +264,6 @@ func initialize(db *DB) error {
 	return tx.Commit()
 }
 
-func get[T models.Modelable](tx GormTxn, selectors ...SelectorFunc) (*T, error) {
-	db := tx.GormDB()
-	for _, selector := range selectors {
-		db = selector(db)
-	}
-
-	result := new(T)
-	if isOrgMember(result) {
-		db = ByOrgID(tx.OrganizationID())(db)
-	}
-
-	if err := db.Model((*T)(nil)).First(result).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, internal.ErrNotFound
-		}
-
-		return nil, err
-	}
-
-	return result, nil
-}
-
 // setOrg checks if model is an organization member, and sets the organizationID
 // from the transaction when it is an organization member.
 func setOrg(tx ReadTxn, model any) {

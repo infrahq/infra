@@ -42,6 +42,7 @@ func TestLoggingMiddleware(t *testing.T) {
 					User:         &models.Identity{Model: models.Model{ID: 12345}},
 					Organization: &models.Organization{Model: models.Model{ID: 2323}},
 				},
+				Response: &access.ResponseMetadata{},
 			})
 		})
 
