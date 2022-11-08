@@ -1,13 +1,9 @@
 package access
 
 import (
-	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"time"
 
-	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
@@ -69,47 +65,30 @@ func ListGrants(rCtx RequestContext, opts data.ListGrantsOptions, lastUpdateInde
 		DestinationID: dest.ID,
 		OrgID:         rCtx.DBTxn.OrganizationID(),
 	}
-	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
-	if err != nil {
-		return ListGrantsResponse{}, fmt.Errorf("listen for notify: %w", err)
+	query := &listGrantsBlockingQuery{
+		do: func() (ListGrantsResponse, error) {
+			return listGrantsWithMaxUpdateIndex(rCtx, opts)
+		},
+		previousUpdateIndex: lastUpdateIndex,
 	}
-	defer func() {
-		// use a context with a separate deadline so that we still release
-		// when the request timeout is reached
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		if err := listener.Release(ctx); err != nil {
-			logging.L.Error().Err(err).Msg("failed to release listener conn")
-		}
-	}()
+	err = RunBlockingRequest(rCtx, query, listenOpts)
+	return query.result, err
+}
 
-	result, err := listGrantsWithMaxUpdateIndex(rCtx, opts)
-	if err != nil {
-		return result, err
-	}
+type listGrantsBlockingQuery struct {
+	previousUpdateIndex int64
+	do                  func() (ListGrantsResponse, error)
+	result              ListGrantsResponse
+}
 
-	// The query returned results that are new to the client
-	if result.MaxUpdateIndex > lastUpdateIndex {
-		return result, nil
-	}
+func (q *listGrantsBlockingQuery) Do() error {
+	var err error
+	q.result, err = q.do()
+	return err
+}
 
-	err = listener.WaitForNotification(rCtx.Request.Context())
-	switch {
-	case errors.Is(err, context.DeadlineExceeded):
-		return result, internal.ErrNotModified
-	case err != nil:
-		return result, fmt.Errorf("waiting for notify: %w", err)
-	}
-
-	result, err = listGrantsWithMaxUpdateIndex(rCtx, opts)
-	if err != nil {
-		return result, err
-	}
-
-	// TODO: check if the maxIndex > lastUpdateIndex, and start waiting for
-	// notification again when it's false. When we include group membership
-	// changes in the query this will be an optimization.
-	return result, nil
+func (q *listGrantsBlockingQuery) IsDone() bool {
+	return q.result.MaxUpdateIndex > q.previousUpdateIndex
 }
 
 func listGrantsWithMaxUpdateIndex(rCtx RequestContext, opts data.ListGrantsOptions) (ListGrantsResponse, error) {

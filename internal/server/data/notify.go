@@ -27,7 +27,6 @@ func (l *Listener) WaitForNotification(ctx context.Context) error {
 
 func (l *Listener) Release(ctx context.Context) error {
 	var errs []error
-	logging.Debugf("unlisten *")
 	if _, err := l.pgxConn.Exec(ctx, `UNLISTEN *`); err != nil {
 		errs = append(errs, err)
 	}
