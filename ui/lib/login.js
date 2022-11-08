@@ -25,3 +25,35 @@ export function saveToVisitedOrgs(domain, orgName) {
     })
   }
 }
+
+export function currentBaseDomain() {
+  let domain = window.location.host
+  let parts = domain.split('.')
+  if (parts.length > 2) {
+    parts.shift() // remove the org
+    domain = parts.join('.') // join the last two parts of the domain
+  }
+  return domain
+}
+
+export function currentOrg() {
+  let domain = window.location.host
+  let parts = domain.split('.')
+  if (parts.length > 2) {
+    return parts.shift() // this is the org
+  }
+  return ''
+}
+
+export function persistLoginRedirectCookie(orgName) {
+  const cookies = new Cookies()
+
+  // set the cookie domain to a general base domain
+  let cookieDomain = currentBaseDomain()
+
+  cookies.set('finishLogin', orgName, {
+    path: '/',
+    domain: `.${cookieDomain}`,
+    sameSite: 'lax',
+  })
+}
