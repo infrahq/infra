@@ -7,10 +7,26 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
 
 func (a *API) addRequestRewrites() {
 	// all request migrations go here
+	type oldListAccessKeysRequest struct {
+		UserID      uid.ID `form:"user_id"`
+		Name        string `form:"name"`
+		ShowExpired bool   `form:"show_expired"`
+		api.PaginationRequest
+	}
+	type newListAccessKeysRequest struct {
+		UserID      uid.ID `form:"userID"`
+		Name        string `form:"name"`
+		ShowExpired bool   `form:"showExpired"`
+		api.PaginationRequest
+	}
+	addRequestRewrite(a, http.MethodGet, "/api/access-keys", "0.16.1", func(o oldListAccessKeysRequest) newListAccessKeysRequest {
+		return newListAccessKeysRequest(o)
+	})
 }
 
 func (a *API) addResponseRewrites() {

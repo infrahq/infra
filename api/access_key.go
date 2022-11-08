@@ -19,7 +19,7 @@ type AccessKey struct {
 type ListAccessKeysRequest struct {
 	UserID      uid.ID `form:"userID"`
 	Name        string `form:"name"`
-	ShowExpired bool   `form:"show_expired"`
+	ShowExpired bool   `form:"showExpired"`
 	PaginationRequest
 }
 
