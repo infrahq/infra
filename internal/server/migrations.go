@@ -44,7 +44,7 @@ func (a *API) addRequestRewrites() {
 		Kind           string                      `json:"kind" example:"oidc"`
 		API            *api.ProviderAPICredentials `json:"api"`
 	}
-	addRequestRewrite(a, http.MethodPost, "/api/providers", "0.16.1", func(oldRequest updateProviderRequestV0_16_1) api.UpdateProviderRequest {
+	addRequestRewrite(a, http.MethodPut, "/api/providers", "0.16.1", func(oldRequest updateProviderRequestV0_16_1) api.UpdateProviderRequest {
 		return api.UpdateProviderRequest{
 			ID:   oldRequest.ID,
 			Name: oldRequest.Name,
