@@ -286,19 +286,19 @@ func (l *Listener) Release(ctx context.Context) error {
 	return nil
 }
 
-type ListenForGrantsOptions struct {
-	OrgID         uid.ID
-	ByDestination string
+type ListenForNotifyOptions struct {
+	OrgID               uid.ID
+	GrantsByDestination string
 }
 
-// ListenForGrantsNotify starts listening for notification on one or more
+// ListenForNotify starts listening for notification on one or more
 // postgres channels for notifications that a grant has changed. The channels to
 // listen on are determined by opts. Use Listener.WaitForNotification to block
 // and receive notifications.
 //
 // If error is nil the caller must call Listener.Release to return the database
 // connection to the pool.
-func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOptions) (*Listener, error) {
+func ListenForNotify(ctx context.Context, db *DB, opts ListenForNotifyOptions) (*Listener, error) {
 	if opts.OrgID == 0 {
 		return nil, fmt.Errorf("OrgID is required")
 	}
@@ -311,10 +311,14 @@ func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOpti
 
 	listener := &Listener{sqlDB: sqlDB, pgxConn: pgxConn}
 
-	channel := fmt.Sprintf("grants_%d", opts.OrgID)
+	var channel string
+	switch {
+	case opts.GrantsByDestination != "":
+		channel = fmt.Sprintf("grants_%d", opts.OrgID)
+	}
+
 	_, err = pgxConn.Exec(ctx, "SELECT listen_on_chan($1)", channel)
 	if err != nil {
-
 		if err := pgxstdlib.ReleaseConn(sqlDB, pgxConn); err != nil {
 			logging.L.Warn().Err(err).Msgf("release pgx conn")
 		}
@@ -322,7 +326,7 @@ func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOpti
 	}
 
 	switch {
-	case opts.ByDestination != "":
+	case opts.GrantsByDestination != "":
 		listener.isMatchingNotify = func(payload string) error {
 			var grant grantJSON
 			err := json.Unmarshal([]byte(payload), &grant)
@@ -330,7 +334,7 @@ func ListenForGrantsNotify(ctx context.Context, db *DB, opts ListenForGrantsOpti
 				return err
 			}
 			destination, _, _ := strings.Cut(grant.Resource, ".")
-			if destination != opts.ByDestination {
+			if destination != opts.GrantsByDestination {
 				return errNotificationNoMatch
 			}
 			return nil

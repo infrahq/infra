@@ -30,6 +30,10 @@ type ListGrantsResponse struct {
 	MaxUpdateIndex int64
 }
 
+func (l ListGrantsResponse) UpdateIndex() int64 {
+	return l.MaxUpdateIndex
+}
+
 func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int64) (ListGrantsResponse, error) {
 	rCtx := GetRequestContext(c)
 	subject := opts.BySubject
@@ -64,13 +68,29 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return ListGrantsResponse{}, err
 	}
 
-	listenOpts := data.ListenForGrantsOptions{
-		ByDestination: opts.ByDestination,
-		OrgID:         rCtx.DBTxn.OrganizationID(),
+	listenOpts := data.ListenForNotifyOptions{
+		GrantsByDestination: opts.ByDestination,
+		OrgID:               rCtx.DBTxn.OrganizationID(),
 	}
-	listener, err := data.ListenForGrantsNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
+	query := func() (ListGrantsResponse, error) {
+		return listGrantsWithMaxUpdateIndex(rCtx, opts)
+	}
+	return blockingRequest[ListGrantsResponse](rCtx, listenOpts, query, lastUpdateIndex)
+}
+
+type updateIndexable interface {
+	UpdateIndex() int64
+}
+
+func blockingRequest[Result updateIndexable](
+	rCtx RequestContext,
+	listenOpts data.ListenForNotifyOptions,
+	query func() (Result, error),
+	lastUpdateIndex int64,
+) (Result, error) {
+	listener, err := data.ListenForNotify(rCtx.Request.Context(), rCtx.DataDB, listenOpts)
 	if err != nil {
-		return ListGrantsResponse{}, fmt.Errorf("listen for notify: %w", err)
+		return *new(Result), fmt.Errorf("listen for notify: %w", err)
 	}
 	defer func() {
 		// use a context with a separate deadline so that we still release
@@ -82,13 +102,13 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		}
 	}()
 
-	result, err := listGrantsWithMaxUpdateIndex(rCtx, opts)
+	result, err := query()
 	if err != nil {
 		return result, err
 	}
 
 	// The query returned results that are new to the client
-	if result.MaxUpdateIndex > lastUpdateIndex {
+	if result.UpdateIndex() > lastUpdateIndex {
 		return result, nil
 	}
 
@@ -100,7 +120,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 		return result, fmt.Errorf("waiting for notify: %w", err)
 	}
 
-	result, err = listGrantsWithMaxUpdateIndex(rCtx, opts)
+	result, err = query()
 	if err != nil {
 		return result, err
 	}
