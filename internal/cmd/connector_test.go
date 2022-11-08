@@ -85,6 +85,7 @@ func TestConnector_Run(t *testing.T) {
 			CA:        types.StringOrFile(certs.PEMEncodeCertificate(kubeSrv.Certificate().Raw)),
 		},
 		Addr: connector.ListenerOptions{
+			HTTP:    "127.0.0.1:0",
 			HTTPS:   "127.0.0.1:0",
 			Metrics: "127.0.0.1:0",
 		},

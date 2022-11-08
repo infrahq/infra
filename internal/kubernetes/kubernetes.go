@@ -657,11 +657,18 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		return "", -1, fmt.Errorf("unsupported service type")
 	}
 
-	if len(service.Spec.Ports) == 0 {
-		return "", -1, fmt.Errorf("service has no ports")
+	var httpsPort int
+	for _, port := range service.Spec.Ports {
+		if port.Name == "https" {
+			httpsPort = int(port.Port)
+		}
 	}
 
-	return host, int(service.Spec.Ports[0].Port), nil
+	if httpsPort == 0 {
+		return "", -1, fmt.Errorf("service does not have an https port")
+	}
+
+	return host, httpsPort, nil
 }
 
 func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {

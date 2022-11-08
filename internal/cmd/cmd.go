@@ -340,6 +340,7 @@ var runConnector = connector.Run
 func defaultConnectorOptions() connector.Options {
 	return connector.Options{
 		Addr: connector.ListenerOptions{
+			HTTP:    ":80",
 			HTTPS:   ":443",
 			Metrics: ":9090",
 		},
