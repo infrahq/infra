@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import { XIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
-import { Listbox } from '@headlessui/react'
+import { Listbox, Popover } from '@headlessui/react'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { usePopper } from 'react-popper'
@@ -11,6 +11,7 @@ import moment from 'moment'
 import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
+import Calendar from '../../../components/calendar'
 
 const CUSTOM_TYPE = 'custom'
 const CUSTOM_TITLE = 'custom ...'
@@ -20,12 +21,39 @@ const expirationRate = [
   { name: '30 days', value: '720h', default: true },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
-  { name: CUSTOM_TITLE, value: null, type: CUSTOM_TYPE },
+  { name: CUSTOM_TITLE, value: '1h', type: CUSTOM_TYPE },
 ]
 
-function CustomDayPicker() {
-  // const [selected, setSelected] = useState(null)
-  // return <DayPicker mode='single' selected={selected} onSelect={setSelected} />
+function CalendarInput({ selectedCustom, setSelectedCustom, setSelectedTTL }) {
+  return (
+    <Popover className='relative'>
+      <Popover.Button className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'>
+        {selectedCustom}
+      </Popover.Button>
+      <Popover.Panel className='absolute z-20'>
+        <Calendar
+          selectedDate={selectedCustom}
+          onChange={e => {
+            setSelectedCustom(e)
+
+            const duration = moment
+              .duration(
+                moment(e, 'DD/MM/YYYY')
+                  .startOf('day')
+                  .diff(moment().startOf('day'))
+              )
+              .asHours()
+
+            setSelectedTTL({
+              name: CUSTOM_TITLE,
+              value: duration + 'h',
+              type: CUSTOM_TYPE,
+            })
+          }}
+        />
+      </Popover.Panel>
+    </Popover>
+  )
 }
 
 function ExpirationRateMenu({ selected, setSelected, allowCustom = false }) {
@@ -121,6 +149,12 @@ export default function AccessKey() {
     expirationRate.find(e => e.default)
   )
   const [error, setError] = useState('')
+  const [selectedCustom, setSelectedCustom] = useState(() => {
+    const custom = expirationRate.find(e => e.type === CUSTOM_TYPE).value
+    return moment()
+      .add(parseInt(custom), custom.charAt(custom.length - 1))
+      .format('DD/MM/YYYY')
+  })
 
   const { user } = useUser()
 
@@ -205,15 +239,19 @@ export default function AccessKey() {
             <label className='text-2xs font-medium text-gray-700'>
               Expiration
             </label>
-            <div className='flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-x-4'>
+            <div className='flex flex-col sm:flex-row sm:items-center'>
               <ExpirationRateMenu
                 selected={selectedTTL}
                 setSelected={setSelectedTTL}
                 allowCustom
               />
               {selectedTTL.type === CUSTOM_TYPE && (
-                <div>
-                  <CustomDayPicker />
+                <div className='mt-4 sm:ml-4 sm:mt-0'>
+                  <CalendarInput
+                    selectedCustom={selectedCustom}
+                    setSelectedCustom={setSelectedCustom}
+                    setSelectedTTL={setSelectedTTL}
+                  />
                 </div>
               )}
             </div>
