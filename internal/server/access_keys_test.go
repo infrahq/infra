@@ -239,7 +239,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("show expired", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?show_expired=1", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?showExpired=1", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
