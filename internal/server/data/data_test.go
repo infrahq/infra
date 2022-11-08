@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -52,19 +51,14 @@ func TestSnowflakeIDSerialization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		id := uid.New()
 		g := &models.Group{Model: models.Model{ID: id}, Name: "Foo"}
-		err := db.Create(g).Error
+
+		err := CreateGroup(db, g)
 		assert.NilError(t, err)
 
-		var group models.Group
-		err = db.First(&group, &models.Group{Name: "Foo"}).Error
+		actual, err := GetGroup(db, GetGroupOptions{ByID: g.ID})
 		assert.NilError(t, err)
-		assert.Assert(t, 0 != group.ID)
-
-		var intID int64
-		err = db.Select("id").Table("groups").Scan(&intID).Error
-		assert.NilError(t, err)
-
-		assert.Equal(t, int64(id), intID)
+		assert.Assert(t, actual.ID != 0)
+		assert.Equal(t, actual.ID, g.ID)
 	})
 }
 
@@ -115,31 +109,6 @@ func TestPaginationSelector(t *testing.T) {
 		for i, user := range actual {
 			assert.Equal(t, user.Name, alphabeticalIdentities[i])
 		}
-	})
-}
-
-func TestCreateTransactionError(t *testing.T) {
-	// on creation error (such as conflict) the database transaction should still be usable
-	runDBTests(t, func(t *testing.T, db *DB) {
-		err := db.Transaction(func(txDB *gorm.DB) error {
-			tx := &Transaction{DB: txDB, orgID: 12345}
-
-			g := &models.Grant{}
-			err := add(tx, g)
-			if err != nil {
-				return err
-			}
-
-			// attempt to re-create, which results in a conflict
-			err = add(tx, g)
-			assert.ErrorContains(t, err, "already exists")
-
-			// the same transaction should still be usable
-			_, err = get[models.Grant](tx, ByID(g.ID))
-			return err
-		})
-
-		assert.NilError(t, err)
 	})
 }
 

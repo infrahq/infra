@@ -307,21 +307,6 @@ func isOrgMember(model any) bool {
 	return ok
 }
 
-func add[T models.Modelable](tx GormTxn, model *T) error {
-	db := tx.GormDB()
-	setOrg(tx, model)
-
-	var err error
-	// failures on postgres need to be rolled back in order to
-	// continue using the same transaction
-	db.SavePoint("beforeCreate")
-	err = db.Create(model).Error
-	if err != nil {
-		db.RollbackTo("beforeCreate")
-	}
-	return handleError(err)
-}
-
 type UniqueConstraintError struct {
 	Table  string
 	Column string

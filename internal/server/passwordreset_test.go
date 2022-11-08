@@ -54,9 +54,15 @@ func TestPasswordResetFlow(t *testing.T) {
 	assert.Assert(t, len(email.TestDataSent) > 0)
 
 	// cheat and grab the token from the db.
-	tokens := []string{}
-	err = s.db.Raw("select token from password_reset_tokens").Pluck("token", &tokens).Error
+	rows, err := s.db.Query("select token from password_reset_tokens")
 	assert.NilError(t, err)
+	tokens := []string{}
+	for rows.Next() {
+		var v string
+		assert.NilError(t, rows.Scan(&v))
+		tokens = append(tokens, v)
+	}
+	assert.NilError(t, rows.Close())
 
 	assert.Assert(t, len(tokens) > 0)
 	token := tokens[len(tokens)-1]
