@@ -1286,7 +1286,7 @@
           },
           {
             "in": "query",
-            "name": "user_id",
+            "name": "userID",
             "schema": {
               "example": "4yJ3n3D8E2",
               "format": "uid",
@@ -1303,7 +1303,7 @@
           },
           {
             "in": "query",
-            "name": "show_expired",
+            "name": "showExpired",
             "schema": {
               "type": "boolean"
             }

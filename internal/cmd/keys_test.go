@@ -159,7 +159,7 @@ func TestKeysListCmd(t *testing.T) {
 			}
 
 			resp.WriteHeader(http.StatusOK)
-			if query.Get("user_id") == uid.ID(12345678).String() {
+			if query.Get("userID") == uid.ID(12345678).String() {
 				err := json.NewEncoder(resp).Encode(api.ListResponse[api.AccessKey]{
 					Count: 1,
 					Items: []api.AccessKey{
