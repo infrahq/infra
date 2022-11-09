@@ -760,7 +760,9 @@ PERFORM pg_notify(current_schema() || '.grants_' || NEW.organization_id, row_to_
 RETURN NULL;
 END; $$;
 
-CREATE OR REPLACE TRIGGER grants_notify_trigger AFTER insert OR update
+DROP TRIGGER IF EXISTS grants_notify_trigger on grants;
+
+CREATE TRIGGER grants_notify_trigger AFTER insert OR update
 ON grants
 FOR EACH ROW EXECUTE FUNCTION grants_notify();
 `
