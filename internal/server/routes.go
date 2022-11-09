@@ -110,6 +110,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	// no auth required, org not required
 	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
+	get(a, noAuthnNoOrg, "/api/signup/providers", a.ListSocialSignupProviders)
 	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)

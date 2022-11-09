@@ -318,53 +318,57 @@ export default function ProvidersEditDetails() {
               )}{' '}
             </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                URL (Domain)
-              </label>
-              <input
-                type='text'
-                value={provider?.url}
-                readOnly
-                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
-              />
-            </div>
+            {!provider.managed && (
+              <>
+                <div>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    URL (Domain)
+                  </label>
+                  <input
+                    type='text'
+                    value={provider?.url}
+                    readOnly
+                    className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
+                  />
+                </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                Client ID
-              </label>
-              <input
-                readOnly
-                type='text'
-                value={provider?.clientID}
-                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
-              />
-            </div>
+                <div>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    Client ID
+                  </label>
+                  <input
+                    readOnly
+                    type='text'
+                    value={provider?.clientID}
+                    className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
+                  />
+                </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                Client Secret
-              </label>
-              <input
-                type='password'
-                placeholder='*********************'
-                value={clientSecret}
-                onChange={e => {
-                  setClientSecret(e.target.value)
-                  setErrors({})
-                  setError('')
-                }}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors.clientsecret ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.clientsecret && (
-                <p className='my-1 text-xs text-red-500'>
-                  {errors.clientsecret}
-                </p>
-              )}
-            </div>
+                <div>
+                  <label className='text-2xs font-medium text-gray-700'>
+                    Client Secret
+                  </label>
+                  <input
+                    type='password'
+                    placeholder='*********************'
+                    value={clientSecret}
+                    onChange={e => {
+                      setClientSecret(e.target.value)
+                      setErrors({})
+                      setError('')
+                    }}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                      errors.clientsecret ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {errors.clientsecret && (
+                    <p className='my-1 text-xs text-red-500'>
+                      {errors.clientsecret}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className='flex items-center justify-end'>
               {error && <p className='my-1 text-xs text-red-500'>{error}</p>}

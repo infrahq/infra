@@ -16,7 +16,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-const oidcProviderRequestTimeout = time.Second * 10
+const oidcProviderRequestTimeout = 30 * time.Second
 
 // UserInfoClaims captures the claims fields from a user-info response that we care about
 type UserInfoClaims struct {
@@ -30,10 +30,17 @@ type AuthServerInfo struct {
 	ScopesSupported []string `json:"scopes_supported"`
 }
 
+type IdentityProviderAuth struct {
+	AccessToken       string
+	RefreshToken      string
+	AccessTokenExpiry time.Time
+	Email             string
+}
+
 type OIDCClient interface {
 	Validate(context.Context) error
 	AuthServerInfo(context.Context) (*AuthServerInfo, error)
-	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
+	ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (*IdentityProviderAuth, error)
 	RefreshAccessToken(ctx context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error)
 	GetUserInfo(ctx context.Context, providerUser *models.ProviderUser) (*UserInfoClaims, error)
 }
@@ -191,26 +198,26 @@ func (o *oidcClientImplementation) tokenSource(ctx context.Context, conf *oauth2
 }
 
 // ExchangeAuthCodeForProviderTokens exchanges the authorization code a user received on login for valid identity provider tokens
-func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (*IdentityProviderAuth, error) {
 	ctx, cancel := context.WithTimeout(ctx, oidcProviderRequestTimeout)
 	defer cancel()
 
 	conf, provider, err := o.clientConfig(ctx)
 	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("client exchange code: %w", err)
+		return nil, fmt.Errorf("client exchange code: %w", err)
 	}
 
 	exchanged, err := conf.Exchange(ctx, code)
 	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("code exchange: %w", err)
+		return nil, fmt.Errorf("code exchange: %w", err)
 	}
 
 	rawAccessToken, ok := exchanged.Extra("access_token").(string)
 	if !ok {
-		return "", "", time.Time{}, "", errors.New("could not extract access token from oauth2")
+		return nil, errors.New("could not extract access token from oauth2")
 	}
 
-	rawRefreshToken, ok = exchanged.Extra("refresh_token").(string)
+	rawRefreshToken, ok := exchanged.Extra("refresh_token").(string)
 	if !ok {
 		// this probably means that the client does not have refresh tokens enabled
 		logging.Warnf("no refresh token returned from oidc client for %q, session lifetime will be reduced", o.Domain)
@@ -218,7 +225,7 @@ func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context
 
 	rawIDToken, ok := exchanged.Extra("id_token").(string)
 	if !ok {
-		return "", "", time.Time{}, "", errors.New("could not extract id_token from oauth2 token")
+		return nil, errors.New("could not extract id_token from oauth2 token")
 	}
 
 	// we get sensitive claims from the ID token, must validate them
@@ -226,7 +233,7 @@ func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context
 
 	idToken, err := verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("validate id token: %w", err)
+		return nil, fmt.Errorf("validate id token: %w", err)
 	}
 
 	var claims struct {
@@ -234,20 +241,25 @@ func (o *oidcClientImplementation) ExchangeAuthCodeForProviderTokens(ctx context
 	}
 
 	if err := idToken.Claims(&claims); err != nil {
-		return "", "", time.Time{}, "", fmt.Errorf("id token claims: %w", err)
+		return nil, fmt.Errorf("id token claims: %w", err)
 	}
 
 	if claims.Email == "" {
 		err := fmt.Errorf("ID token claim is missing an email address")
-		return "", "", time.Time{}, "", err
+		return nil, err
 	}
 
 	if strings.ContainsAny(claims.Email, ` '`) {
 		err := fmt.Errorf("ID token claim has invalid email address")
-		return "", "", time.Time{}, "", err
+		return nil, err
 	}
 
-	return rawAccessToken, rawRefreshToken, exchanged.Expiry, claims.Email, nil
+	return &IdentityProviderAuth{
+		AccessToken:       rawAccessToken,
+		RefreshToken:      rawRefreshToken,
+		AccessTokenExpiry: exchanged.Expiry,
+		Email:             claims.Email,
+	}, nil
 }
 
 // RefreshAccessToken uses the refresh token to get a new access token if it is expired

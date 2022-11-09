@@ -58,6 +58,25 @@ func (a *API) addRequestRewrites() {
 			},
 		}
 	})
+	type signupOrgV0_17_1 struct {
+		Name      string `json:"name"`
+		Subdomain string `json:"subDomain"`
+	}
+	type signupRequestV0_17_1 struct {
+		Name     string           `json:"name"`
+		Password string           `json:"password"`
+		Org      signupOrgV0_17_1 `json:"org"`
+	}
+	addRequestRewrite(a, http.MethodPost, "/api/signup", "0.17.1", func(oldRequest signupRequestV0_17_1) api.SignupRequest {
+		return api.SignupRequest{
+			Org: &api.SignupOrg{
+				UserName:  oldRequest.Name,
+				Password:  oldRequest.Password,
+				OrgName:   oldRequest.Org.Name,
+				Subdomain: oldRequest.Org.Subdomain,
+			},
+		}
+	})
 }
 
 func (a *API) addResponseRewrites() {

@@ -902,9 +902,50 @@ func TestAPI_PatchProvider(t *testing.T) {
 	}
 }
 
+func TestListSignupSocialLogins(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	srv.options.EnableSignup = true
+	srv.options.BaseDomain = "exampledomain.com"
+	routes := srv.GenerateRoutes()
+
+	p := &models.Provider{
+		Name:        "moogle",
+		Kind:        models.ProviderKindGoogle,
+		SocialLogin: true,
+	}
+	data.CreateSocialLoginProvider(srv.DB(), p)
+
+	notSocial := &models.Provider{
+		Name:        "moogle-custom",
+		Kind:        models.ProviderKindGoogle,
+		SocialLogin: false,
+	}
+	data.CreateSocialLoginProvider(srv.DB(), notSocial)
+
+	// nolint:noctx
+	req := httptest.NewRequest(http.MethodGet, "/api/signup/providers", nil)
+	req.Header.Set("Infra-Version", apiVersionLatest)
+
+	resp := httptest.NewRecorder()
+	routes.ServeHTTP(resp, req)
+
+	assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+	var apiProviders api.ListResponse[api.Provider]
+	err := json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+	assert.NilError(t, err)
+
+	providers := apiProviders.Items
+	assert.Equal(t, len(providers), 1)
+	assert.Equal(t, providers[0].Name, p.Name)
+	assert.Equal(t, providers[0].Kind, p.Kind.String())
+}
+
 // mockOIDC is a fake oidc identity provider
 type fakeOIDCImplementation struct {
-	UserInfoRevoked bool // when true returns an error fromt the user info endpoint
+	UserInfoRevoked bool   // when true returns an error fromt the user info endpoint
+	FailExchange    bool   // when true auth code exchange fails
+	UserEmail       string // the email returned from the fake identity provider
 }
 
 func (m *fakeOIDCImplementation) Validate(_ context.Context) error {
@@ -915,8 +956,16 @@ func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.A
 	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
 }
 
-func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
-	return "acc", "ref", exp, "", nil
+func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
+	if m.FailExchange {
+		return nil, fmt.Errorf("invalid auth code")
+	}
+	return &providers.IdentityProviderAuth{
+		AccessToken:       "acc",
+		RefreshToken:      "ref",
+		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
+		Email:             m.UserEmail,
+	}, nil
 }
 
 func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {

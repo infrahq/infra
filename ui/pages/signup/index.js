@@ -1,11 +1,20 @@
 import { useState } from 'react'
+import useSWR from 'swr'
 
 import { useServerConfig } from '../../lib/serverconfig'
 
 import Login from '../../components/layouts/login'
+import Providers from '../../components/providers'
 import { saveToVisitedOrgs } from '../login'
 
 export default function Signup() {
+  const { data: { items: providers } = {} } = useSWR(
+    '/api/signup/providers?limit=1000',
+    {
+      fallbackData: [],
+    }
+  )
+
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [orgName, setOrgName] = useState('')
@@ -70,6 +79,26 @@ export default function Signup() {
   return (
     <div className='flex w-full flex-col items-center px-10 py-4'>
       <h1 className='mt-4 text-2xl font-bold leading-snug'>Sign up</h1>
+      {providers?.length > 0 && (
+        <>
+          <Providers
+            providers={providers || []}
+            buttonPrompt={'Sign up with'}
+            callbackPath={'/signup/callback'}
+          />
+          <div className='relative mt-6 mb-2 w-full'>
+            <div
+              className='absolute inset-0 flex items-center'
+              aria-hidden='true'
+            >
+              <div className='w-full border-t border-gray-200' />
+            </div>
+            <div className='relative flex justify-center text-sm'>
+              <span className='bg-white px-2 text-2xs text-gray-400'>OR</span>
+            </div>
+          </div>
+        </>
+      )}
       <h2 className='my-2 text-center text-sm text-gray-500'>
         Get started by creating your account
       </h2>

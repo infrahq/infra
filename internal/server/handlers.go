@@ -15,10 +15,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/access"
-	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/authn"
-	"github.com/infrahq/infra/internal/server/data"
-	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/internal/server/redis"
@@ -74,75 +71,6 @@ func wellKnownJWKsHandler(c *gin.Context, _ *api.EmptyRequest) (WellKnownJWKResp
 
 type WellKnownJWKResponse struct {
 	Keys []jose.JSONWebKey `json:"keys"`
-}
-
-func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
-	if !a.server.options.EnableSignup {
-		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
-	}
-
-	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
-
-	suDetails := access.SignupDetails{
-		Name:      r.Name,
-		Password:  r.Password,
-		Org:       &models.Organization{Name: r.Org.Name},
-		SubDomain: r.Org.Subdomain,
-	}
-	identity, bearer, err := access.Signup(c, keyExpires, a.server.options.BaseDomain, suDetails)
-	if err != nil {
-		return nil, handleSignupError(err)
-	}
-
-	/*
-		This cookie is set to send on all infra domains, make it expire quickly to prevent an unexpected org being set on requests to other orgs.
-		This signup cookie sets the authentication for the next call made to the org and will be exchanged for a long-term auth cookie.
-		We have to set this short lived sign-up auth cookie to give the user a valid session on sign-up.
-		Since the signup is on the base domain we have to set this cookie there,
-		but we want auth cookies to only be sent to their respective orgs so they must be set on their org specific sub-domain after redirect.
-	*/
-	cookie := cookieConfig{
-		Name:    cookieSignupName,
-		Value:   bearer,
-		Domain:  a.server.options.BaseDomain,
-		Expires: time.Now().Add(1 * time.Minute),
-	}
-	setCookie(c, cookie)
-
-	a.t.User(identity.ID.String(), r.Name)
-	a.t.Org(suDetails.Org.ID.String(), identity.ID.String(), suDetails.Org.Name, suDetails.Org.Domain)
-	a.t.Event("signup", identity.ID.String(), suDetails.Org.ID.String(), Properties{})
-
-	link := fmt.Sprintf("https://%s", suDetails.Org.Domain)
-	err = email.SendSignupEmail("", r.Name, email.SignupData{
-		Link:        link,
-		WrappedLink: wrapLinkWithVerification(link, suDetails.Org.Domain, identity.VerificationToken),
-	})
-	if err != nil {
-		// if email failed, continue on anyway.
-		logging.L.Error().Err(err).Msg("could not send signup email")
-	}
-
-	return &api.SignupResponse{
-		User:         identity.ToAPI(),
-		Organization: suDetails.Org.ToAPI(),
-	}, nil
-}
-
-// handleSignupError updates internal errors to have the right structure for
-// handling by sendAPIError.
-func handleSignupError(err error) error {
-	var ucErr data.UniqueConstraintError
-	if errors.As(err, &ucErr) {
-		switch {
-		case ucErr.Table == "organizations" && ucErr.Column == "domain":
-			// SignupRequest.Org.SubDomain is the field in the request struct.
-			apiError := newAPIErrorForUniqueConstraintError(ucErr, err.Error())
-			apiError.FieldErrors[0].FieldName = "org.subDomain"
-			return apiError
-		}
-	}
-	return err
 }
 
 func wrapLinkWithVerification(link, domain, verificationToken string) string {

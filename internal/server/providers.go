@@ -210,3 +210,18 @@ func (a *API) setProviderInfoFromServer(c *gin.Context, provider *models.Provide
 
 	return nil
 }
+
+// caution: this endpoint is unauthenticated, do not return sensitive info
+func (a *API) ListSocialSignupProviders(c *gin.Context, r *api.PaginationRequest) (*api.ListResponse[api.Provider], error) {
+	p := PaginationFromRequest(*r)
+	providers, err := access.ListSocialLoginProviders(c, &p)
+	if err != nil {
+		return nil, err
+	}
+
+	result := api.NewListResponse(providers, PaginationToResponse(p), func(provider models.Provider) api.Provider {
+		return *provider.ToAPI()
+	})
+
+	return result, nil
+}

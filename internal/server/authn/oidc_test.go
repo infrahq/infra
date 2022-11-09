@@ -30,8 +30,13 @@ func (m *mockOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.A
 	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
 }
 
-func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
-	return "acc", "ref", exp, m.UserEmailResp, nil
+func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
+	return &providers.IdentityProviderAuth{
+		AccessToken:       "acc",
+		RefreshToken:      "ref",
+		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
+		Email:             m.UserEmailResp,
+	}, nil
 }
 
 func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
@@ -51,6 +56,15 @@ func TestOIDCAuthenticate(t *testing.T) {
 	err := data.CreateProvider(db, &mocktaProvider)
 	assert.NilError(t, err)
 
+	// used as a template for the managed provider
+	socialProvider := models.Provider{Name: "moogle", Kind: models.ProviderKindGoogle, SocialLogin: true}
+	err = data.CreateSocialLoginProvider(db, &socialProvider)
+	assert.NilError(t, err)
+
+	managedProvider := models.Provider{Name: "moogle", Kind: models.ProviderKindGoogle, Managed: true, AllowedDomains: []string{"infrahq.com"}}
+	err = data.CreateProvider(db, &managedProvider)
+	assert.NilError(t, err)
+
 	oidc := &mockOIDCImplementation{
 		UserEmailResp:  "bruce@example.com",
 		UserGroupsResp: []string{"Everyone", "developers"},
@@ -63,7 +77,40 @@ func TestOIDCAuthenticate(t *testing.T) {
 		assert.ErrorIs(t, err, internal.ErrNotFound)
 	})
 
-	t.Run("successful authentication", func(t *testing.T) {
+	t.Run("managed client login fails when not in allowed domains", func(t *testing.T) {
+		oidc := &mockOIDCImplementation{
+			UserEmailResp: "bruce@example.com",
+		}
+		oidcAuthn := NewOIDCAuthentication(managedProvider.ID, "localhost:8031", "1234", oidc)
+		_, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
+		assert.ErrorContains(t, err, "example.com is not an allowed email domain or existing user")
+	})
+
+	t.Run("managed client login succeeds when not in allowed domains, but is an existing user", func(t *testing.T) {
+		user := &models.Identity{Name: "existing@example.com"}
+		err := data.CreateIdentity(db, user)
+		assert.NilError(t, err)
+
+		oidc := &mockOIDCImplementation{
+			UserEmailResp: "existing@example.com",
+		}
+		oidcAuthn := NewOIDCAuthentication(managedProvider.ID, "localhost:8031", "1234", oidc)
+		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
+		assert.NilError(t, err)
+		assert.Equal(t, authnIdentity.Identity.Name, "existing@example.com")
+	})
+
+	t.Run("managed client login succeeds when user has allowed domain, even if not an existing user", func(t *testing.T) {
+		oidc := &mockOIDCImplementation{
+			UserEmailResp: "valid_domain@infrahq.com",
+		}
+		oidcAuthn := NewOIDCAuthentication(managedProvider.ID, "localhost:8031", "1234", oidc)
+		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
+		assert.NilError(t, err)
+		assert.Equal(t, authnIdentity.Identity.Name, "valid_domain@infrahq.com")
+	})
+
+	t.Run("successful authentication for custom client", func(t *testing.T) {
 		oidcAuthn := NewOIDCAuthentication(mocktaProvider.ID, "localhost:8031", "1234", oidc)
 		authnIdentity, err := oidcAuthn.Authenticate(context.Background(), db, time.Now().Add(1*time.Minute))
 
@@ -292,7 +339,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
 				assert.NilError(t, err)
 				assert.Equal(t, "user@example.com", a.Identity.Name)
-				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Equal(t, "moogle", a.Provider.Name)
 				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
 			},
 		},
@@ -321,15 +368,19 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			db := setupDB(t)
+			socialProvider := models.Provider{Name: "moogle", Kind: models.ProviderKindGoogle, SocialLogin: true}
+			err := data.CreateSocialLoginProvider(db, &socialProvider)
+			assert.NilError(t, err)
 
 			// setup fake identity provider with allowed domains specified
 			provider := &models.Provider{
-				Name:           "mockoidc",
+				Name:           "moogle",
 				URL:            "mockOIDC.example.com",
-				Kind:           models.ProviderKindOIDC,
+				Kind:           models.ProviderKindGoogle,
 				AllowedDomains: []string{"example.com"},
+				Managed:        true,
 			}
-			err := data.CreateProvider(db, provider)
+			err = data.CreateProvider(db, provider)
 			assert.NilError(t, err)
 
 			mockOIDC := tc.setup(t, db)

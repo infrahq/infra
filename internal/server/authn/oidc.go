@@ -4,19 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"golang.org/x/exp/slices"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
-type oidcAuthn struct {
+type OIDCAuthn struct {
 	ProviderID         uid.ID
 	RedirectURL        string
 	Code               string
@@ -24,7 +24,7 @@ type oidcAuthn struct {
 }
 
 func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDCClient) LoginMethod {
-	return &oidcAuthn{
+	return &OIDCAuthn{
 		ProviderID:         providerID,
 		RedirectURL:        redirectURL,
 		Code:               code,
@@ -32,14 +32,14 @@ func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, o
 	}
 }
 
-func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
+func (a *OIDCAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
 	provider, err := data.GetProvider(db, data.GetProviderOptions{ByID: a.ProviderID})
 	if err != nil {
 		return AuthenticatedIdentity{}, err
 	}
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
-	accessToken, refreshToken, expiry, email, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
+	idpAuth, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return AuthenticatedIdentity{}, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -48,25 +48,32 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	if len(provider.AllowedDomains) > 0 {
-		// get the domain of the email
-		at := strings.LastIndex(email, "@") // get the last @ since the email spec allows for multiple @s
-		if at == -1 {
-			return AuthenticatedIdentity{}, fmt.Errorf("%s is an invalid email address", email)
+	if provider.Managed {
+		// this is a social login
+		domain, err := email.GetDomain(idpAuth.Email)
+		if err != nil {
+			return AuthenticatedIdentity{}, err
 		}
-		domain := email[at+1:]
 		if !slices.Contains(provider.AllowedDomains, domain) {
-			return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain", domain)
+			// check if the user has been added manually
+			_, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email})
+			if errors.Is(err, internal.ErrNotFound) {
+				return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain or existing user", domain)
+			}
+			if err != nil {
+				// someting else went wrong getting the user
+				return AuthenticatedIdentity{}, fmt.Errorf("check user identity on social oidc login: %w", err)
+			}
 		}
 	}
 
-	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: email, LoadGroups: true})
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email, LoadGroups: true})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return AuthenticatedIdentity{}, fmt.Errorf("get user: %w", err)
 		}
 
-		identity = &models.Identity{Name: email}
+		identity = &models.Identity{Name: idpAuth.Email}
 
 		if err := data.CreateIdentity(db, identity); err != nil {
 			return AuthenticatedIdentity{}, fmt.Errorf("create user: %w", err)
@@ -79,9 +86,9 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	providerUser.RedirectURL = a.RedirectURL
-	providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-	providerUser.RefreshToken = models.EncryptedAtRest(refreshToken)
-	providerUser.ExpiresAt = expiry
+	providerUser.AccessToken = models.EncryptedAtRest(idpAuth.AccessToken)
+	providerUser.RefreshToken = models.EncryptedAtRest(idpAuth.RefreshToken)
+	providerUser.ExpiresAt = idpAuth.AccessTokenExpiry
 	err = data.UpdateProviderUser(db, providerUser)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("UpdateProviderUser: %w", err)
@@ -100,6 +107,6 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}, nil
 }
 
-func (a *oidcAuthn) Name() string {
+func (a *OIDCAuthn) Name() string {
 	return "oidc"
 }

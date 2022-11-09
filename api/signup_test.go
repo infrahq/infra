@@ -10,10 +10,10 @@ import (
 
 func TestSignupWithReservedDomain(t *testing.T) {
 	req := SignupRequest{
-		Name:     "foo@example.com",
-		Password: "abcdef1235464$!",
-		Org: SignupOrg{
-			Name:      "Foo",
+		Org: &SignupOrg{
+			UserName:  "foo@example.com",
+			Password:  "abcdef1235464$!",
+			OrgName:   "Foo",
 			Subdomain: "infrahq",
 		},
 	}

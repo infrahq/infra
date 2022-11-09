@@ -65,7 +65,7 @@ func CreateProvider(tx WriteTxn, provider *models.Provider) error {
 	if provider.Managed {
 		err := loadProviderFromManagedSocialClient(tx, provider)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: no social login available for provider", err)
 		}
 	}
 	if err := validateProvider(provider); err != nil {
@@ -162,8 +162,8 @@ func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, er
 	if err != nil {
 		return nil, err
 	}
-	return scanRows(rows, func(grant *models.Provider) []any {
-		fields := (*providersTable)(grant).ScanFields()
+	return scanRows(rows, func(provider *models.Provider) []any {
+		fields := (*providersTable)(provider).ScanFields()
 		if opts.Pagination != nil {
 			fields = append(fields, &opts.Pagination.TotalCount)
 		}
@@ -313,6 +313,34 @@ func GetSocialLoginProvider(tx ReadTxn, kind models.ProviderKind) (*models.Provi
 	return (*models.Provider)(provider), nil
 }
 
+func ListSocialLoginProviders(tx ReadTxn, p *Pagination) ([]models.Provider, error) {
+	provider := &providersTable{}
+	query := querybuilder.New("SELECT")
+	query.B(columnsForSelect(provider))
+	if p != nil {
+		query.B(", count(*) OVER()")
+	}
+	query.B("FROM providers")
+	query.B("WHERE deleted_at is null AND social_login = true")
+
+	query.B("ORDER BY name ASC")
+	if p != nil {
+		p.PaginateQuery(query)
+	}
+
+	rows, err := tx.Query(query.String(), query.Args...)
+	if err != nil {
+		return nil, err
+	}
+	return scanRows(rows, func(provider *models.Provider) []any {
+		fields := (*providersTable)(provider).ScanFields()
+		if p != nil {
+			fields = append(fields, &p.TotalCount)
+		}
+		return fields
+	})
+}
+
 func validateSocialLoginProvider(p *models.Provider) error {
 	if !p.SocialLogin {
 		return fmt.Errorf("cannot create social login provider without the 'social_login' flag set")
@@ -376,7 +404,7 @@ func DeleteSocialLoginProviders(tx WriteTxn, opts DeleteSocialLoginProvidersOpts
 	stmt := `
 		UPDATE providers
 		SET deleted_at = ?
-		WHERE deleted_at is null AND social_login = true AND id <> (?)`
+		WHERE deleted_at is null AND social_login = true AND id NOT IN (?)`
 	_, err := tx.Exec(stmt, time.Now(), opts.ByNotIDs)
 	return err
 }

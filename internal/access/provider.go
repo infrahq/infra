@@ -75,3 +75,21 @@ func DeleteProvider(c *gin.Context, id uid.ID) error {
 
 	return data.DeleteProviders(db, data.DeleteProvidersOptions{ByID: id})
 }
+
+func GetSocialLoginProvider(c *gin.Context, kind models.ProviderKind) (*models.Provider, error) {
+	rCtx := GetRequestContext(c)
+	provider, err := data.GetSocialLoginProvider(rCtx.DBTxn, kind)
+	if err != nil {
+		return nil, err
+	}
+	return provider, nil
+}
+
+func ListSocialLoginProviders(c *gin.Context, p *data.Pagination) ([]models.Provider, error) {
+	rCtx := GetRequestContext(c)
+	providers, err := data.ListSocialLoginProviders(rCtx.DBTxn, p)
+	if err != nil {
+		return nil, err
+	}
+	return providers, nil
+}

@@ -6091,14 +6091,27 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "name": {
-                    "format": "email",
-                    "type": "string"
+                "oneOf": [
+                  {
+                    "required": [
+                      "social"
+                    ]
                   },
+                  {
+                    "required": [
+                      "org"
+                    ]
+                  }
+                ],
+                "properties": {
                   "org": {
                     "properties": {
-                      "name": {
+                      "orgName": {
+                        "type": "string"
+                      },
+                      "password": {
+                        "maxLength": 253,
+                        "minLength": 8,
                         "type": "string"
                       },
                       "subDomain": {
@@ -6106,24 +6119,41 @@
                         "maxLength": 63,
                         "minLength": 4,
                         "type": "string"
+                      },
+                      "userName": {
+                        "format": "email",
+                        "type": "string"
                       }
                     },
                     "required": [
-                      "name",
+                      "userName",
+                      "password",
+                      "orgName",
                       "subDomain"
                     ],
                     "type": "object"
                   },
-                  "password": {
-                    "maxLength": 253,
-                    "minLength": 8,
-                    "type": "string"
+                  "social": {
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "example": "google",
+                        "type": "string"
+                      },
+                      "redirectURL": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "code",
+                      "redirectURL"
+                    ],
+                    "type": "object"
                   }
                 },
-                "required": [
-                  "name",
-                  "password"
-                ],
                 "type": "object"
               }
             }
@@ -6194,6 +6224,110 @@
         "summary": "Signup",
         "tags": [
           "Misc"
+        ]
+      }
+    },
+    "/api/signup/providers": {
+      "get": {
+        "description": "ListSocialSignupProviders",
+        "operationId": "ListSocialSignupProviders",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "format": "int",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int",
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse_Provider"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "ListSocialSignupProviders",
+        "tags": [
+          "Providers"
         ]
       }
     },

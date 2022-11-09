@@ -86,11 +86,13 @@ export default function ProvidersAddDetails() {
             method: 'POST',
             body: JSON.stringify({
               name: name.trim(),
-              url,
-              clientID,
-              clientSecret,
               kind,
-              api,
+              client: {
+                url,
+                clientID,
+                clientSecret,
+                api,
+              }
             }),
           })
 
