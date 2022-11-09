@@ -1,7 +1,7 @@
-test:
+test: check-psql-env
 	go test -short ./...
 
-test-all:
+test-all: check-psql-env
 	go test ./...
 
 # update the expected command output file
@@ -57,3 +57,8 @@ docs: docs/api/openapi3.json
 .PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
 	go run ./internal/openapigen $@
+
+check-psql-env:
+ifndef POSTGRESQL_CONNECTION
+	$(error POSTGRESQL_CONNECTION is not defined. Use `make postgres` if you need to start postgres)
+endif
