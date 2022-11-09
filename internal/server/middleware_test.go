@@ -359,7 +359,11 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	assert.NilError(t, err)
 
 	t.Run("good", func(t *testing.T) {
-		destination := &models.Destination{Name: t.Name(), UniqueID: t.Name()}
+		destination := &models.Destination{
+			Name:     t.Name(),
+			UniqueID: t.Name(),
+			Kind:     models.DestinationKindKubernetes,
+		}
 		err := data.CreateDestination(db, destination)
 		assert.NilError(t, err)
 
@@ -387,7 +391,11 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	})
 
 	t.Run("good no destination header", func(t *testing.T) {
-		destination := &models.Destination{Name: t.Name(), UniqueID: t.Name()}
+		destination := &models.Destination{
+			Name:     t.Name(),
+			UniqueID: t.Name(),
+			Kind:     models.DestinationKindKubernetes,
+		}
 		err := data.CreateDestination(db, destination)
 		assert.NilError(t, err)
 

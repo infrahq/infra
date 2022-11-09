@@ -6,6 +6,13 @@ import (
 	"github.com/infrahq/infra/api"
 )
 
+type DestinationKind string
+
+const (
+	DestinationKindKubernetes DestinationKind = "kubernetes"
+	DestinationKindSSH        DestinationKind = "ssh"
+)
+
 type Destination struct {
 	Model
 	OrganizationMember
@@ -20,6 +27,7 @@ type Destination struct {
 
 	Resources CommaSeparatedStrings
 	Roles     CommaSeparatedStrings
+	Kind      DestinationKind
 }
 
 func (d *Destination) ToAPI() *api.Destination {
@@ -33,6 +41,7 @@ func (d *Destination) ToAPI() *api.Destination {
 		Created:  api.Time(d.CreatedAt),
 		Updated:  api.Time(d.UpdatedAt),
 		Name:     d.Name,
+		Kind:     string(d.Kind),
 		UniqueID: d.UniqueID,
 		Connection: api.DestinationConnection{
 			URL: d.ConnectionURL,

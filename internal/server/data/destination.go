@@ -16,15 +16,15 @@ func (d destinationsTable) Table() string {
 }
 
 func (d destinationsTable) Columns() []string {
-	return []string{"connection_ca", "connection_url", "created_at", "deleted_at", "id", "last_seen_at", "name", "organization_id", "resources", "roles", "unique_id", "updated_at", "version"}
+	return []string{"connection_ca", "connection_url", "created_at", "deleted_at", "id", "kind", "last_seen_at", "name", "organization_id", "resources", "roles", "unique_id", "updated_at", "version"}
 }
 
 func (d destinationsTable) Values() []any {
-	return []any{d.ConnectionCA, d.ConnectionURL, d.CreatedAt, d.DeletedAt, d.ID, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
+	return []any{d.ConnectionCA, d.ConnectionURL, d.CreatedAt, d.DeletedAt, d.ID, d.Kind, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
 }
 
 func (d *destinationsTable) ScanFields() []any {
-	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
+	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.Kind, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
 }
 
 // destinationsUpdateTable is used to update the destination. It excludes
@@ -50,6 +50,9 @@ func validateDestination(dest *models.Destination) error {
 	}
 	if dest.UniqueID == "" {
 		return fmt.Errorf("Destination.UniqueID is required")
+	}
+	if dest.Kind == "" {
+		return fmt.Errorf("Destination.Kind is required")
 	}
 	return nil
 }
@@ -107,6 +110,7 @@ func GetDestination(tx ReadTxn, opts GetDestinationOptions) (*models.Destination
 type ListDestinationsOptions struct {
 	ByUniqueID string
 	ByName     string
+	ByKind     string
 
 	Pagination *Pagination
 }
@@ -127,6 +131,9 @@ func ListDestinations(tx ReadTxn, opts ListDestinationsOptions) ([]models.Destin
 	}
 	if opts.ByName != "" {
 		query.B("AND name = ?", opts.ByName)
+	}
+	if opts.ByKind != "" {
+		query.B("AND kind = ?", opts.ByKind)
 	}
 
 	query.B("ORDER BY name")

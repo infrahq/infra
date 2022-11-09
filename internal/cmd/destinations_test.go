@@ -31,7 +31,11 @@ func TestDestinationsListCmd(t *testing.T) {
 			var apiDestinations []api.Destination
 			apiDestinations = append(apiDestinations, api.Destination{
 				Name: "destinationName",
+				Kind: "kubernetes",
 				ID:   123,
+				Connection: api.DestinationConnection{
+					URL: "10.0.0.1",
+				},
 			})
 
 			b, err := json.Marshal(api.ListResponse[api.Destination]{
@@ -67,5 +71,15 @@ func TestDestinationsListCmd(t *testing.T) {
 		err := Run(ctx, "destinations", "list", "--format=yaml")
 		assert.NilError(t, err)
 		golden.Assert(t, bufs.Stdout.String(), t.Name())
+	})
+
+	t.Run("list default table format", func(t *testing.T) {
+		setup(t)
+		ctx, bufs := PatchCLI(context.Background())
+
+		err := Run(ctx, "destinations", "list")
+		assert.NilError(t, err)
+		golden.Assert(t, bufs.Stdout.String(), t.Name())
+
 	})
 }

@@ -1,9 +1,10 @@
 - connected: false
   connection:
     ca: ""
-    url: ""
+    url: 10.0.0.1
   created: null
   id: "38"
+  kind: kubernetes
   lastSeen: null
   name: destinationName
   resources: null

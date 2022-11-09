@@ -825,6 +825,29 @@ DELETE FROM settings WHERE id=24567;
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-11-07T14:00"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				stmt := `INSERT INTO destinations(id, name) VALUES(12345, 'some')`
+				_, err := tx.Exec(stmt)
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM destinations`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				var dest destinationsTable
+
+				err := tx.QueryRow(`SELECT id, kind FROM destinations`).Scan(&dest.ID, &dest.Kind)
+				assert.NilError(t, err)
+				expected := destinationsTable{
+					Model: models.Model{ID: 12345},
+					Kind:  models.DestinationKind("kubernetes"),
+				}
+				assert.DeepEqual(t, expected, dest)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

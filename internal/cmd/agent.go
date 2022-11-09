@@ -167,7 +167,7 @@ func syncKubeConfig(_ context.Context) error {
 	}
 	client.Name = "agent"
 
-	user, destinations, grants, err := getUserDestinationGrants(client)
+	user, destinations, grants, err := getUserDestinationGrants(client, "kubernetes")
 	if err != nil {
 		return fmt.Errorf("list grants: %w", err)
 	}

@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
@@ -17,8 +19,9 @@ func TestCreateDestination(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 			destination := &models.Destination{
-				Name:          "kubernetes",
+				Name:          "thehost",
 				UniqueID:      "unique-id",
+				Kind:          "ssh",
 				ConnectionURL: "10.0.0.1:1001",
 				ConnectionCA:  "the-pem-encoded-cert",
 				LastSeenAt:    time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
@@ -38,8 +41,9 @@ func TestCreateDestination(t *testing.T) {
 					UpdatedAt: time.Now(),
 				},
 				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
-				Name:               "kubernetes",
+				Name:               "thehost",
 				UniqueID:           "unique-id",
+				Kind:               "ssh",
 				ConnectionURL:      "10.0.0.1:1001",
 				ConnectionCA:       "the-pem-encoded-cert",
 				LastSeenAt:         time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
@@ -55,6 +59,7 @@ func TestCreateDestination(t *testing.T) {
 			destination := &models.Destination{
 				Name:     "kubernetes",
 				UniqueID: "unique-id",
+				Kind:     "kubernetes",
 			}
 			err := CreateDestination(tx, destination)
 			assert.NilError(t, err)
@@ -63,6 +68,7 @@ func TestCreateDestination(t *testing.T) {
 			next := &models.Destination{
 				Name:     "other",
 				UniqueID: "unique-id",
+				Kind:     "ssh",
 			}
 			err = CreateDestination(tx, next)
 			var ucErr UniqueConstraintError
@@ -82,6 +88,7 @@ func TestUpdateDestination(t *testing.T) {
 			orig := &models.Destination{
 				Model:    models.Model{CreatedAt: created, UpdatedAt: created},
 				Name:     "example-cluster-1",
+				Kind:     "kubernetes",
 				UniqueID: "11111",
 			}
 			createDestinations(t, tx, orig)
@@ -93,6 +100,7 @@ func TestUpdateDestination(t *testing.T) {
 				Model:         models.Model{ID: orig.ID},
 				Name:          "example-cluster-2",
 				UniqueID:      "22222",
+				Kind:          "kubernetes",
 				ConnectionURL: "dest.internal:10001",
 				ConnectionCA:  "the-pem-encoded-cert",
 				Resources:     []string{"res1", "res3"},
@@ -114,6 +122,7 @@ func TestUpdateDestination(t *testing.T) {
 				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 				Name:               "example-cluster-2",
 				UniqueID:           "22222",
+				Kind:               "kubernetes",
 				ConnectionURL:      "dest.internal:10001",
 				ConnectionCA:       "the-pem-encoded-cert",
 				Resources:          []string{"res1", "res3"},
@@ -130,6 +139,7 @@ func TestGetDestination(t *testing.T) {
 		destination := &models.Destination{
 			Name:          "kubernetes",
 			UniqueID:      "unique-id",
+			Kind:          "kubernetes",
 			ConnectionURL: "10.0.0.1:1001",
 			ConnectionCA:  "the-pem-encoded-cert",
 			LastSeenAt:    time.Date(2022, 1, 2, 3, 4, 5, 600, time.UTC),
@@ -140,15 +150,18 @@ func TestGetDestination(t *testing.T) {
 		other := &models.Destination{
 			Name:     "other",
 			UniqueID: "other-unique-id",
+			Kind:     "kubernetes",
 		}
 		otherOrgDest := &models.Destination{
 			Name:               "kubernetes",
 			UniqueID:           "unique-id",
+			Kind:               "ssh",
 			OrganizationMember: models.OrganizationMember{OrganizationID: 200},
 		}
 		deleted := &models.Destination{
 			Name:     "deleted",
 			UniqueID: "unique-id",
+			Kind:     "ssh",
 		}
 		deleted.DeletedAt.Time = time.Now()
 		deleted.DeletedAt.Valid = true
@@ -188,6 +201,7 @@ func TestListDestinations(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		destination := &models.Destination{
 			Name:          "kubernetes",
+			Kind:          "kubernetes",
 			UniqueID:      "unique-id",
 			ConnectionURL: "10.0.0.1:1001",
 			ConnectionCA:  "the-pem-encoded-cert",
@@ -196,32 +210,44 @@ func TestListDestinations(t *testing.T) {
 			Resources:     []string{"res1", "res2"},
 			Roles:         []string{"role1", "role2"},
 		}
+		second := &models.Destination{
+			Name:          "bastion",
+			Kind:          "ssh",
+			UniqueID:      "notused",
+			ConnectionURL: "10.0.0.2:22",
+			ConnectionCA:  "fingerprint",
+		}
 		other := &models.Destination{
 			Name:     "other",
 			UniqueID: "other-unique-id",
+			Kind:     "kubernetes",
 		}
 		otherOrgDest := &models.Destination{
 			Name:               "kubernetes",
 			UniqueID:           "unique-id",
 			OrganizationMember: models.OrganizationMember{OrganizationID: 200},
+			Kind:               "ssh",
 		}
 		deleted := &models.Destination{
 			Name:     "deleted",
 			UniqueID: "unique-id",
+			Kind:     "ssh",
 		}
 		deleted.DeletedAt.Time = time.Now()
 		deleted.DeletedAt.Valid = true
-		createDestinations(t, db, destination, other, otherOrgDest, deleted)
+		createDestinations(t, db, destination, second, other, otherOrgDest, deleted)
+
+		var cmpDestination = cmp.Options{
+			cmpTimeWithDBPrecision,
+			cmpopts.EquateEmpty(),
+		}
 
 		t.Run("default options", func(t *testing.T) {
 			actual, err := ListDestinations(db, ListDestinationsOptions{})
 			assert.NilError(t, err)
 
-			expected := []models.Destination{
-				{Model: models.Model{ID: destination.ID}},
-				{Model: models.Model{ID: other.ID}},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			expected := []models.Destination{*second, *destination, *other}
+			assert.DeepEqual(t, actual, expected, cmpDestination)
 		})
 		t.Run("by uniqueID", func(t *testing.T) {
 			actual, err := ListDestinations(db, ListDestinationsOptions{
@@ -229,31 +255,32 @@ func TestListDestinations(t *testing.T) {
 			})
 			assert.NilError(t, err)
 
-			expected := []models.Destination{
-				{Model: models.Model{ID: destination.ID}},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
+			expected := []models.Destination{*destination}
+			assert.DeepEqual(t, actual, expected, cmpDestination)
 		})
 		t.Run("by name", func(t *testing.T) {
 			actual, err := ListDestinations(db, ListDestinationsOptions{ByName: "kubernetes"})
 			assert.NilError(t, err)
 
-			expected := []models.Destination{
-				{Model: models.Model{ID: destination.ID}},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-
+			expected := []models.Destination{*destination}
+			assert.DeepEqual(t, actual, expected, cmpDestination)
 		})
 		t.Run("with pagination", func(t *testing.T) {
-			page := &Pagination{Page: 2, Limit: 1}
+			page := &Pagination{Page: 2, Limit: 2}
 			actual, err := ListDestinations(db, ListDestinationsOptions{Pagination: page})
 			assert.NilError(t, err)
 
-			expected := []models.Destination{
-				{Model: models.Model{ID: other.ID}},
-			}
-			assert.DeepEqual(t, actual, expected, cmpModelByID)
-			assert.Equal(t, page.TotalCount, 2)
+			expected := []models.Destination{*other}
+			assert.DeepEqual(t, actual, expected, cmpDestination)
+			assert.Equal(t, page.TotalCount, 3)
+		})
+		t.Run("by kind", func(t *testing.T) {
+			actual, err := ListDestinations(db, ListDestinationsOptions{ByKind: "kubernetes"})
+			assert.NilError(t, err)
+
+			expected := []models.Destination{*destination, *other}
+			assert.DeepEqual(t, actual, expected, cmpDestination)
+
 		})
 	})
 }
@@ -262,7 +289,7 @@ func TestDeleteDestination(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
-		dest := &models.Destination{Name: "kube", UniqueID: "1111"}
+		dest := &models.Destination{Name: "kube", UniqueID: "1111", Kind: "kubernetes"}
 		createDestinations(t, tx, dest)
 
 		err := DeleteDestination(tx, dest.ID)
@@ -276,11 +303,11 @@ func TestDeleteDestination(t *testing.T) {
 func TestCountDestinationsByConnectedVersion(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		createDestinations(t, db,
-			&models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()},
-			&models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)},
-			&models.Destination{Name: "3", UniqueID: "3", Version: "0.1.0", LastSeenAt: time.Now()},
-			&models.Destination{Name: "4", UniqueID: "4", Version: "0.1.0"},
-			&models.Destination{Name: "5", UniqueID: "5", Version: "0.1.0"},
+			&models.Destination{Name: "1", UniqueID: "1", Kind: "ssh", LastSeenAt: time.Now()},
+			&models.Destination{Name: "2", UniqueID: "2", Kind: "ssh", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)},
+			&models.Destination{Name: "3", UniqueID: "3", Kind: "ssh", Version: "0.1.0", LastSeenAt: time.Now()},
+			&models.Destination{Name: "4", UniqueID: "4", Kind: "ssh", Version: "0.1.0"},
+			&models.Destination{Name: "5", UniqueID: "5", Kind: "ssh", Version: "0.1.0"},
 		)
 		actual, err := CountDestinationsByConnectedVersion(db)
 		assert.NilError(t, err)
@@ -306,11 +333,11 @@ func createDestinations(t *testing.T, tx GormTxn, destinations ...*models.Destin
 func TestCountAllDestinations(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		createDestinations(t, db,
-			&models.Destination{Name: "1", UniqueID: "1"},
-			&models.Destination{Name: "2", UniqueID: "2"},
-			&models.Destination{Name: "3", UniqueID: "3"},
-			&models.Destination{Name: "4", UniqueID: "4"},
-			&models.Destination{Name: "5", UniqueID: "5"},
+			&models.Destination{Name: "1", UniqueID: "1", Kind: "ssh"},
+			&models.Destination{Name: "2", UniqueID: "2", Kind: "ssh"},
+			&models.Destination{Name: "3", UniqueID: "3", Kind: "ssh"},
+			&models.Destination{Name: "4", UniqueID: "4", Kind: "ssh"},
+			&models.Destination{Name: "5", UniqueID: "5", Kind: "ssh"},
 		)
 		actual, err := CountAllDestinations(db)
 		assert.NilError(t, err)

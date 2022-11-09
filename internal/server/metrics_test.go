@@ -85,11 +85,11 @@ func TestMetrics(t *testing.T) {
 	t.Run("infra destinations", func(t *testing.T) {
 		db := setupDB(t)
 
-		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "1", UniqueID: "1", LastSeenAt: time.Now()}))
-		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "2", UniqueID: "2", Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)}))
-		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "3", UniqueID: "3", Version: "0.1.0", LastSeenAt: time.Now()}))
-		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "4", UniqueID: "4", Version: "0.1.0"}))
-		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "5", UniqueID: "5", Version: "0.1.0"}))
+		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "1", UniqueID: "1", Kind: models.DestinationKindKubernetes, LastSeenAt: time.Now()}))
+		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "2", UniqueID: "2", Kind: models.DestinationKindSSH, Version: "", LastSeenAt: time.Now().Add(-10 * time.Minute)}))
+		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "3", UniqueID: "3", Kind: models.DestinationKindKubernetes, Version: "0.1.0", LastSeenAt: time.Now()}))
+		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "4", UniqueID: "4", Kind: models.DestinationKindSSH, Version: "0.1.0"}))
+		assert.NilError(t, data.CreateDestination(db, &models.Destination{Name: "5", UniqueID: "5", Kind: models.DestinationKindSSH, Version: "0.1.0"}))
 
 		actual := run(db, `infra_destinations({.*})? \d+`)
 		golden.Assert(t, string(actual), t.Name())

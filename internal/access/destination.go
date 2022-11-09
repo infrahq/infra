@@ -32,13 +32,8 @@ func GetDestination(c *gin.Context, id uid.ID) (*models.Destination, error) {
 	return data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByID: id})
 }
 
-func ListDestinations(c *gin.Context, uniqueID, name string, p *data.Pagination) ([]models.Destination, error) {
+func ListDestinations(c *gin.Context, opts data.ListDestinationsOptions) ([]models.Destination, error) {
 	rCtx := GetRequestContext(c)
-	opts := data.ListDestinationsOptions{
-		ByName:     name,
-		ByUniqueID: uniqueID,
-		Pagination: p,
-	}
 	return data.ListDestinations(rCtx.DBTxn, opts)
 }
 

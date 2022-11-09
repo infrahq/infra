@@ -228,7 +228,7 @@ func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]s
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
-	_, destinations, grants, err := getUserDestinationGrants(client)
+	_, destinations, grants, err := getUserDestinationGrants(client, "")
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
