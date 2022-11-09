@@ -52,20 +52,25 @@ func CreateGroup(c *gin.Context, group *models.Group) error {
 	return data.CreateGroup(db, group)
 }
 
-func GetGroup(c *gin.Context, id uid.ID) (*models.Group, error) {
+func GetGroup(c *gin.Context, opts data.GetGroupOptions) (*models.Group, error) {
 	rCtx := GetRequestContext(c)
 	roles := []string{models.InfraAdminRole, models.InfraViewRole, models.InfraConnectorRole}
 	_, err := RequireInfraRole(c, roles...)
 	err = HandleAuthErr(err, "group", "get", roles...)
 	if errors.Is(err, ErrNotAuthorized) {
-		if !userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, id) {
+		// get the group, but only to check if the user is in it
+		group, err := data.GetGroup(rCtx.DBTxn, opts)
+		if err != nil {
+			return nil, err
+		}
+		if !userInGroup(rCtx.DBTxn, rCtx.Authenticated.User.ID, group.ID) {
 			return nil, err
 		}
 		// authorized by user belonging to the requested group
 	} else if err != nil {
 		return nil, err
 	}
-	return data.GetGroup(rCtx.DBTxn, data.GetGroupOptions{ByID: id})
+	return data.GetGroup(rCtx.DBTxn, opts)
 }
 
 func DeleteGroup(c *gin.Context, id uid.ID) error {

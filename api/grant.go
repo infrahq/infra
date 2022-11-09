@@ -146,6 +146,8 @@ func (r ListGrantsRequest) SetPage(page int) Paginatable {
 type GrantRequest struct {
 	User      uid.ID `json:"user"`
 	Group     uid.ID `json:"group"`
+	UserName  string `json:"userName"`
+	GroupName string `json:"groupName"`
 	Privilege string `json:"privilege" example:"view" note:"a role or permission"`
 	Resource  string `json:"resource" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
 }
@@ -154,7 +156,9 @@ func (r GrantRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		validate.RequireOneOf(
 			validate.Field{Name: "user", Value: r.User},
+			validate.Field{Name: "userName", Value: r.UserName},
 			validate.Field{Name: "group", Value: r.Group},
+			validate.Field{Name: "groupName", Value: r.GroupName},
 		),
 		validate.Required("privilege", r.Privilege),
 		validate.Required("resource", r.Resource),
