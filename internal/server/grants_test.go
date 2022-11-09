@@ -964,7 +964,7 @@ func TestAPI_CreateGrant(t *testing.T) {
 				assert.NilError(t, err)
 
 				expected := []api.FieldError{
-					{Errors: []string{"one of (user, name, group) is required"}},
+					{Errors: []string{"one of (user, userName, group, groupName) is required"}},
 					{FieldName: "privilege", Errors: []string{"is required"}},
 					{FieldName: "resource", Errors: []string{"is required"}},
 				}
@@ -1395,7 +1395,7 @@ func TestAPI_UpdateGrants(t *testing.T) {
 			body: api.UpdateGrantsRequest{
 				GrantsToRemove: []api.GrantRequest{
 					{
-						UserName:  user.Name,
+						GroupName: group.Name,
 						Privilege: models.InfraAdminRole,
 						Resource:  "another-cluster3",
 					},
