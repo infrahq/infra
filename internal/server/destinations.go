@@ -74,20 +74,22 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 
 func (a *API) UpdateDestination(c *gin.Context, r *api.UpdateDestinationRequest) (*api.Destination, error) {
 	rCtx := getRequestContext(c)
-	destination := &models.Destination{
-		Model: models.Model{
-			ID: r.ID,
-		},
-		Name:          r.Name,
-		UniqueID:      r.UniqueID,
-		ConnectionURL: r.Connection.URL,
-		ConnectionCA:  string(r.Connection.CA),
-		Resources:     r.Resources,
-		Roles:         r.Roles,
-		Version:       r.Version,
+
+	// Start with the existing value, so that non-update fields are not set to zero.
+	destination, err := access.GetDestination(c, r.ID)
+	if err != nil {
+		return nil, err
 	}
 
-	if err := access.SaveDestination(rCtx, destination); err != nil {
+	destination.Name = r.Name
+	destination.UniqueID = r.UniqueID
+	destination.ConnectionURL = r.Connection.URL
+	destination.ConnectionCA = string(r.Connection.CA)
+	destination.Resources = r.Resources
+	destination.Roles = r.Roles
+	destination.Version = r.Version
+
+	if err := access.UpdateDestination(rCtx, destination); err != nil {
 		return nil, fmt.Errorf("update destination: %w", err)
 	}
 

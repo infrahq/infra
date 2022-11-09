@@ -27,23 +27,6 @@ func (d *destinationsTable) ScanFields() []any {
 	return []any{&d.ConnectionCA, &d.ConnectionURL, &d.CreatedAt, &d.DeletedAt, &d.ID, &d.Kind, &d.LastSeenAt, &d.Name, &d.OrganizationID, &d.Resources, &d.Roles, &d.UniqueID, &d.UpdatedAt, &d.Version}
 }
 
-// destinationsUpdateTable is used to update the destination. It excludes
-// the CreatedAt field, because that field is not part of the input to
-// UpdateDestination.
-type destinationsUpdateTable models.Destination
-
-func (d destinationsUpdateTable) Table() string {
-	return "destinations"
-}
-
-func (d destinationsUpdateTable) Columns() []string {
-	return []string{"connection_ca", "connection_url", "deleted_at", "id", "last_seen_at", "name", "organization_id", "resources", "roles", "unique_id", "updated_at", "version"}
-}
-
-func (d destinationsUpdateTable) Values() []any {
-	return []any{d.ConnectionCA, d.ConnectionURL, d.DeletedAt, d.ID, d.LastSeenAt, d.Name, d.OrganizationID, d.Resources, d.Roles, d.UniqueID, d.UpdatedAt, d.Version}
-}
-
 func validateDestination(dest *models.Destination) error {
 	if dest.Name == "" {
 		return fmt.Errorf("Destination.Name is required")
@@ -68,7 +51,7 @@ func UpdateDestination(tx WriteTxn, destination *models.Destination) error {
 	if err := validateDestination(destination); err != nil {
 		return err
 	}
-	return update(tx, (*destinationsUpdateTable)(destination))
+	return update(tx, (*destinationsTable)(destination))
 }
 
 type GetDestinationOptions struct {

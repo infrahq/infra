@@ -34,7 +34,7 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 	// only save if there's significant difference between LastSeenAt and Now
 	if time.Since(destination.LastSeenAt) > lastSeenUpdateThreshold {
 		destination.LastSeenAt = time.Now()
-		if err := access.SaveDestination(rCtx, destination); err != nil {
+		if err := access.UpdateDestination(rCtx, destination); err != nil {
 			return fmt.Errorf("failed to update destination lastSeenAt: %w", err)
 		}
 	}
