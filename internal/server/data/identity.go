@@ -3,6 +3,7 @@ package data
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ssoroka/slice"
@@ -22,15 +23,15 @@ func (i identitiesTable) Table() string {
 }
 
 func (i identitiesTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "id", "last_seen_at", "name", "organization_id", "updated_at", "verification_token", "verified"}
+	return []string{"created_at", "created_by", "deleted_at", "id", "last_seen_at", "name", "organization_id", "ssh_username", "updated_at", "verification_token", "verified"}
 }
 
 func (i identitiesTable) Values() []any {
-	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, i.UpdatedAt, i.VerificationToken, i.Verified}
+	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, i.SSHUsername, i.UpdatedAt, i.VerificationToken, i.Verified}
 }
 
 func (i *identitiesTable) ScanFields() []any {
-	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
+	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, (*optionalString)(&i.SSHUsername), &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
 func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
@@ -144,7 +145,43 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 	if identity.VerificationToken == "" {
 		identity.VerificationToken = generate.MathRandom(10, generate.CharsetAlphaNumeric)
 	}
-	return insert(tx, (*identitiesTable)(identity))
+	if err := insert(tx, (*identitiesTable)(identity)); err != nil {
+		return err
+	}
+	username, err := SetSSHUsername(tx, identity)
+	identity.SSHUsername = username
+	return err
+}
+
+// TODO: test username taken, long username truncated, and both cases together
+func SetSSHUsername(tx WriteTxn, user *models.Identity) (string, error) {
+	user.SetOrganizationID(tx)
+	username, _, _ := strings.Cut(user.Name, "@")
+
+	const maxUsernameLength = 28 // 31 bytes minus 3 reserved for random numbers
+	if len(username) > maxUsernameLength {
+		username = username[:maxUsernameLength]
+	}
+
+	stmt := `
+		UPDATE identities SET ssh_username = ?
+		WHERE id = ? AND organization_id = ?
+		AND deleted_at is null`
+
+	for i := 0; i < 3; i++ {
+		nextUsername := username
+		if i != 0 {
+			nextUsername = username + generate.MathRandom(3, generate.CharsetNumbers)
+		}
+
+		_, err := tx.Exec(stmt, nextUsername, user.ID, user.OrganizationID)
+		var ucErr UniqueConstraintError
+		if errors.As(err, &ucErr) { // TODO: check the field?
+			continue
+		}
+		return nextUsername, err
+	}
+	return "", fmt.Errorf("failed to generated a unique ssh username")
 }
 
 type GetIdentityOptions struct {

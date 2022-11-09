@@ -1054,6 +1054,9 @@
                   },
                   "type": "array"
                 },
+                "sshUsername": {
+                  "type": "string"
+                },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
@@ -1327,6 +1330,9 @@
               "type": "object"
             },
             "type": "array"
+          },
+          "sshUsername": {
+            "type": "string"
           },
           "updated": {
             "description": "formatted as an RFC3339 date-time",

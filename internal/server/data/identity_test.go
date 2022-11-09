@@ -102,7 +102,7 @@ func TestGetIdentity(t *testing.T) {
 		assert.NilError(t, err)
 
 		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com"}
+			bond   = models.Identity{Name: "jbond@infrahq.com", SSHUsername: "jbond"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com", Groups: []models.Group{group}}
 			bauer  = models.Identity{Name: "jbauer@infrahq.com", Providers: []models.Provider{*InfraProvider(db)}}
 		)

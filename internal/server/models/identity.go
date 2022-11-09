@@ -22,6 +22,7 @@ type Identity struct {
 	CreatedBy         uid.ID
 	Verified          bool
 	VerificationToken string
+	SSHUsername       string
 
 	// Groups may be populated by some queries to contain the list of groups
 	// the user is a member of.  Some test helpers may also use this to add
@@ -36,11 +37,12 @@ type Identity struct {
 
 func (i *Identity) ToAPI() *api.User {
 	u := &api.User{
-		ID:         i.ID,
-		Created:    api.Time(i.CreatedAt),
-		Updated:    api.Time(i.UpdatedAt),
-		LastSeenAt: api.Time(i.LastSeenAt),
-		Name:       i.Name,
+		ID:          i.ID,
+		Created:     api.Time(i.CreatedAt),
+		Updated:     api.Time(i.UpdatedAt),
+		LastSeenAt:  api.Time(i.LastSeenAt),
+		Name:        i.Name,
+		SSHUsername: i.SSHUsername,
 		ProviderNames: slice.Map[Provider, string](i.Providers, func(p Provider) string {
 			return p.Name
 		}),
