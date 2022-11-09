@@ -53,7 +53,7 @@ export default function SCIMKey({ accessKey, errorMsg }) {
 
         {/* Finish */}
         <div className='my-10 flex justify-end'>
-          <Link href='/providers'>
+          <Link href='/settings?tab=providers'>
             <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
               Finish
             </a>

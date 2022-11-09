@@ -8,10 +8,10 @@ import Tippy from '@tippyjs/react'
 import { Transition, Dialog } from '@headlessui/react'
 import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 
-import { providers } from '../../lib/providers'
+import { providers } from '../../../lib/providers'
 
-import Dashboard from '../../components/layouts/dashboard'
-import SCIMKey from '../../components/scim-key'
+import Dashboard from '../../../components/layouts/dashboard'
+import SCIMKey from '../../../components/scim-key'
 
 function Provider({ kind, name, currentKind }) {
   return (
@@ -120,7 +120,7 @@ export default function ProvidersAddDetails() {
     }
 
     if (!enableSCIM) {
-      router.replace('/providers')
+      router.replace('/settings?tab=providers')
     }
 
     return false
@@ -194,7 +194,7 @@ export default function ProvidersAddDetails() {
           <Dialog
             as='div'
             className='relative z-50'
-            onClose={() => router.replace('/providers')}
+            onClose={() => router.replace('/settings?tab=providers')}
           >
             <Transition.Child
               as={Fragment}
@@ -231,7 +231,7 @@ export default function ProvidersAddDetails() {
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
           Connect Provider
         </h1>
-        <Link href='/providers'>
+        <Link href='/settings?tab=providers'>
           <a>
             <XMarkIcon
               className='h-5 w-5 text-gray-500 hover:text-gray-800'
@@ -255,7 +255,7 @@ export default function ProvidersAddDetails() {
                       key={p.name}
                       onClick={() => {
                         setKind(p.kind)
-                        router.replace(`/providers/add?type=${p.kind}`)
+                        router.replace(`/settings/providers/add?type=${p.kind}`)
                       }}
                     >
                       <Provider {...p} currentKind={kind} />

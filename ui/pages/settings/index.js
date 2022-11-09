@@ -114,13 +114,19 @@ export default function Settings() {
   const router = useRouter()
   const { user } = useUser()
 
-  const { data: { items: users } = {} } = useSWR('/api/users?limit=999')
-  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=999')
+  const page = router.query.p === undefined ? 1 : router.query.p
+  const limit = 1000
+
+  const { data: { items: providers } = {} } = useSWR(
+    `/api/providers?page=${page}&limit=${limit}`
+  )
+  const { data: { items: users } = {} } = useSWR(`/api/users?limit=${limit}`)
+  const { data: { items: groups } = {} } = useSWR(`/api/groups?limit=${limit}`)
   const { data: { items: grants } = {}, mutate } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=999'
+    `/api/grants?resource=infra&privilege=admin&limit=${limit}`
   )
   const { data: { items: selfGroups } = {} } = useSWR(
-    () => `/api/groups?userID=${user?.id}&limit=999`
+    () => `/api/groups?userID=${user?.id}&limit=${limit}`
   )
 
   const tabs = [TAB_ORG_ADMINS, TAB_PROVIDERS]
@@ -162,7 +168,75 @@ export default function Settings() {
             ))}
           </nav>
         </div>
-        {tab === TAB_PROVIDERS.name && <>PROVIDERS</>}
+        {tab === TAB_PROVIDERS.name && (
+          <>
+            <header className='my-2 flex items-center justify-end'>
+              {/* Add dialog */}
+              <Link href='/settings/providers/add'>
+                <a className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
+                  Connect provider
+                </a>
+              </Link>
+            </header>
+            <div className='mt-3 flex min-h-0 flex-1 flex-col'>
+              <Table
+                href={row => `/settings/providers/${row.original.id}`}
+                data={providers}
+                empty='No providers'
+                columns={[
+                  {
+                    cell: info => (
+                      <div className='flex flex-row items-center py-1'>
+                        <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
+                          <img
+                            alt='provider icon'
+                            className='h-4'
+                            src={`/providers/${info.row.original.kind}.svg`}
+                          />
+                        </div>
+                        <div className='flex flex-col'>
+                          <div className='text-sm font-medium text-gray-700'>
+                            {info.getValue()}
+                          </div>
+                          <div className='text-2xs text-gray-500 sm:hidden'>
+                            {info.row.original.url}
+                          </div>
+                          <div className='font-mono text-2xs text-gray-400 lg:hidden'>
+                            {info.row.original.clientID}
+                          </div>
+                        </div>
+                      </div>
+                    ),
+                    header: () => <span>Name</span>,
+                    accessorKey: 'name',
+                  },
+                  {
+                    cell: info => (
+                      <div className='hidden sm:table-cell'>
+                        {info.getValue()}
+                      </div>
+                    ),
+                    header: () => (
+                      <span className='hidden sm:table-cell'>URL</span>
+                    ),
+                    accessorKey: 'url',
+                  },
+                  {
+                    cell: info => (
+                      <div className='hidden font-mono lg:table-cell'>
+                        {info.getValue()}
+                      </div>
+                    ),
+                    header: () => (
+                      <span className='hidden lg:table-cell'>Client ID</span>
+                    ),
+                    accessorKey: 'clientID',
+                  },
+                ]}
+              />
+            </div>
+          </>
+        )}
         {/* Infra admins */}
         {tab === TAB_ORG_ADMINS.name && (
           <>
