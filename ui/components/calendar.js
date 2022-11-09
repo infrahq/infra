@@ -27,6 +27,13 @@ const daysOfWeek = [
   { id: 6, title: 'S', value: 'Sunday' },
 ]
 
+const timeRange = [
+  { name: 'in 7 days', value: '168h' },
+  { name: 'in 30 days', value: '720h' },
+  { name: 'in 60 days', value: '1440h' },
+  { name: 'in 90 days', value: '2160h' },
+]
+
 function CalendarRow({
   firstDay,
   lastDayInMonth,
@@ -36,8 +43,9 @@ function CalendarRow({
   onChange,
   activeDay,
   selectedDate,
+  extensionHour,
 }) {
-  const today = moment().startOf('day')
+  const earliestMaxExtensionTime = moment().add(extensionHour, 'h')
 
   let content = []
   //first row with empty spaces
@@ -49,7 +57,7 @@ function CalendarRow({
     const isBefore = moment(
       `${currentYear}-${currentMonth + 1}-1`,
       'YYYY-MM-DD'
-    ).isBefore(today)
+    ).isBefore(earliestMaxExtensionTime)
 
     content.push(
       <td
@@ -79,7 +87,7 @@ function CalendarRow({
       const isBefore = moment(
         `${currentYear}-${currentMonth + 1}-${i + 1}`,
         'YYYY-MM-DD'
-      ).isBefore(today)
+      ).isBefore(earliestMaxExtensionTime)
 
       content.push(
         <React.Fragment key={i + 1}>
@@ -115,7 +123,7 @@ function CalendarRow({
       const isBefore = moment(
         `${currentYear}-${currentMonth + 1}-${i + (7 * row - firstDay)}`,
         'YYYY-MM-DD'
-      ).isBefore(today)
+      ).isBefore(earliestMaxExtensionTime)
 
       content.push(
         <React.Fragment key={`${row}-${i}`}>
@@ -146,14 +154,10 @@ function CalendarRow({
   return <>{content}</>
 }
 
-export default function Calendar({ selectedDate, onChange }) {
-  const [activeMonth, setActiveMonth] = useState(
-    moment(selectedDate, 'YYYY/MM/DD').month()
-  )
+export default function Calendar({ selectedDate, onChange, extensionHour }) {
+  const [activeMonth, setActiveMonth] = useState(null)
   const [activeMonthString, setActiveMonthString] = useState({})
-  const [activeYear, setActiveYear] = useState(
-    moment(selectedDate, 'YYYY/MM/DD').year()
-  )
+  const [activeYear, setActiveYear] = useState(null)
   const [firstDayInMonth, setFirstDayInMonth] = useState([])
 
   const previousMonth = useRef(null)
@@ -177,91 +181,132 @@ export default function Calendar({ selectedDate, onChange }) {
     previousMonth.current = activeMonth
   }, [activeMonth])
 
+  useEffect(() => {
+    const earliestMaxExtensionTime = moment()
+      .add(extensionHour, 'h')
+      .format('YYYY/MM/DD')
+
+    if (selectedDate === 'YYYY/MM/DD') {
+      setActiveMonth(moment(earliestMaxExtensionTime, 'YYYY/MM/DD').month())
+      setActiveYear(moment(earliestMaxExtensionTime, 'YYYY/MM/DD').year())
+    } else {
+      setActiveMonth(moment(selectedDate, 'YYYY/MM/DD').month())
+      setActiveYear(moment(selectedDate, 'YYYY/MM/DD').year())
+    }
+  }, [selectedDate])
+
   return (
     <div className='w-60 border border-gray-200 bg-white p-3 sm:w-96 sm:rounded sm:p-4 sm:shadow-lg'>
-      <div className='w-full rounded'>
-        <div className='mb-4 flex items-center justify-between'>
-          <div className='hidden text-left text-sm font-bold text-gray-700 sm:flex'>
-            {`${activeMonthString.long} ${activeYear}`}
-          </div>
-          <div className='flex text-left text-sm font-bold text-gray-700 sm:hidden'>
-            {`${activeMonthString.short} ${String(activeYear).slice(-2)}`}
-          </div>
-          <div className='flex space-x-4'>
+      <div className='flex w-full items-center divide-x rounded'>
+        {/* date range selection */}
+        <div className='w-1/4 space-y-4 px-2 text-xs text-gray-900'>
+          {timeRange.map(range => (
             <button
-              className='disabled:cursor-not-allowed disabled:opacity-30'
+              className='hover:text-gray-300 disabled:text-gray-400 disabled:hover:cursor-not-allowed'
               type='button'
+              key={range.value}
               onClick={() => {
-                if (previousMonth.current === 0) {
-                  setActiveYear(activeYear - 1)
-                  setActiveMonth(11)
-                } else {
-                  setActiveMonth(activeMonth - 1)
-                }
+                const newSelect = moment()
+                  .add(
+                    parseInt(range.value),
+                    range.value.charAt(range.value.length - 1)
+                  )
+                  .format('YYYY/MM/DD')
+
+                onChange(newSelect)
               }}
-              disabled={
-                previousMonth.current === today.month() &&
-                activeYear === today.year()
-              }
+              disabled={parseInt(range.value) < extensionHour}
             >
-              <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
+              {range.name}
             </button>
-            <button
-              type='button'
-              onClick={() => {
-                if (previousMonth.current === 11) {
-                  setActiveYear(activeYear + 1)
-                  setActiveMonth(0)
-                } else {
-                  setActiveMonth(activeMonth + 1)
-                }
-              }}
-            >
-              <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
-            </button>
-          </div>
+          ))}
         </div>
-        <div className='-mx-2'>
-          <table className='w-full text-2xs font-normal text-gray-800'>
-            <thead>
-              <tr>
-                {daysOfWeek.map(day => (
-                  <th
-                    key={`${day.id}-${day.value}`}
-                    className='py-2 px-1 text-2xs font-semibold sm:px-2'
-                  >
-                    {day.title}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[0, 1, 2, 3, 4, 5].map(row => (
-                <tr key={row}>
-                  <CalendarRow
-                    firstDay={firstDayInMonth[activeMonth]}
-                    lastDayInMonth={new Date(
-                      activeYear,
-                      activeMonth + 1,
-                      0
-                    ).getDate()}
-                    row={row}
-                    currentMonth={activeMonth}
-                    currentYear={activeYear}
-                    activeDay={moment(selectedDate, 'YYYY/MM/DD').date()}
-                    onChange={e => {
-                      const selectedDate = moment(
-                        `${activeYear}-${activeMonth + 1}-${e}`,
-                        'YYYY/MM/DD'
-                      ).format('YYYY/MM/DD')
-                      onChange(selectedDate)
-                    }}
-                    selectedDate={moment(selectedDate, 'YYYY/MM/DD')}
-                  />
+        {/* datepicker */}
+        <div className='w-3/4 flex-col px-6'>
+          <div className='mb-4 flex items-center justify-between'>
+            <div className='hidden text-left text-sm font-bold text-gray-700 sm:flex'>
+              {`${activeMonthString?.long} ${activeYear}`}
+            </div>
+            <div className='flex text-left text-sm font-bold text-gray-700 sm:hidden'>
+              {`${activeMonthString?.short} ${String(activeYear).slice(-2)}`}
+            </div>
+            <div className='flex space-x-4'>
+              <button
+                className='disabled:cursor-not-allowed disabled:opacity-30'
+                type='button'
+                onClick={() => {
+                  if (previousMonth.current === 0) {
+                    setActiveYear(activeYear - 1)
+                    setActiveMonth(11)
+                  } else {
+                    setActiveMonth(activeMonth - 1)
+                  }
+                }}
+                disabled={
+                  previousMonth.current === today.month() &&
+                  activeYear === today.year()
+                }
+              >
+                <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
+              </button>
+              <button
+                type='button'
+                onClick={() => {
+                  if (previousMonth.current === 11) {
+                    setActiveYear(activeYear + 1)
+                    setActiveMonth(0)
+                  } else {
+                    setActiveMonth(activeMonth + 1)
+                  }
+                }}
+              >
+                <ChevronRightIcon className='h-4 w-4' aria-hidden='true' />
+              </button>
+            </div>
+          </div>
+          <div className='-mx-2'>
+            <table className='w-full text-2xs font-normal text-gray-800'>
+              <thead>
+                <tr>
+                  {daysOfWeek.map(day => (
+                    <th
+                      key={`${day.id}-${day.value}`}
+                      className='py-2 px-1 text-2xs font-semibold sm:px-2'
+                    >
+                      {day.title}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {[0, 1, 2, 3, 4, 5].map(row => (
+                  <tr key={row}>
+                    <CalendarRow
+                      firstDay={firstDayInMonth[activeMonth]}
+                      lastDayInMonth={new Date(
+                        activeYear,
+                        activeMonth + 1,
+                        0
+                      ).getDate()}
+                      row={row}
+                      currentMonth={activeMonth}
+                      currentYear={activeYear}
+                      activeDay={moment(selectedDate, 'YYYY/MM/DD').date()}
+                      extensionHour={extensionHour}
+                      onChange={e => {
+                        const newSelectedDate = moment(
+                          `${activeYear}-${activeMonth + 1}-${e}`,
+                          'YYYY/MM/DD'
+                        ).format('YYYY/MM/DD')
+                        onChange(newSelectedDate)
+                      }}
+                      selectedDate={moment(selectedDate, 'YYYY/MM/DD')}
+                    />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

@@ -201,8 +201,6 @@ export default function Settings() {
                 columns={[
                   {
                     cell: function Cell(info) {
-                      console.log(info.row.original.expires)
-                      console.log(info.row.original.extensionDeadline)
                       return (
                         <div className='flex flex-col py-0.5'>
                           <div className='truncate text-sm font-medium text-gray-700'>
@@ -253,19 +251,6 @@ export default function Settings() {
                       <span className='hidden sm:table-cell'>Expires</span>
                     ),
                     accessorKey: 'expires',
-                  },
-                  {
-                    cell: info => (
-                      <div className='hidden sm:table-cell'>
-                        {info.getValue() ? moment(info.getValue()).from() : '-'}
-                      </div>
-                    ),
-                    header: () => (
-                      <span className='hidden sm:table-cell'>
-                        Extension Deadline
-                      </span>
-                    ),
-                    accessorKey: 'extensionDeadline',
                   },
                   {
                     id: 'delete',

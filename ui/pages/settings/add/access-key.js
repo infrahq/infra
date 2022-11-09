@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import { XIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
-import { Listbox, Popover } from '@headlessui/react'
+import { Listbox } from '@headlessui/react'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
 import { usePopper } from 'react-popper'
@@ -11,63 +11,15 @@ import moment from 'moment'
 import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
-import Calendar from '../../../components/calendar'
-
-const CUSTOM_TYPE = 'custom'
-const CUSTOM_TITLE = 'custom ...'
 
 const expirationRate = [
-  { name: '7 days', value: '168h' },
   { name: '30 days', value: '720h', default: true },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
-  { name: CUSTOM_TITLE, value: '1h', type: CUSTOM_TYPE },
+  { name: '1 year', value: '8766h' },
 ]
 
-function CalendarInput({ setSelectedTTL, selectedTTL }) {
-  const selectedCustom = moment()
-    .add(
-      parseInt(selectedTTL.value),
-      selectedTTL.value.charAt(selectedTTL.value.length - 1)
-    )
-    .format('YYYY/MM/DD')
-
-  return (
-    <Popover className='relative'>
-      <Popover.Button className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'>
-        {selectedCustom}
-      </Popover.Button>
-      <Popover.Panel className='absolute z-20 mt-2'>
-        {({ close }) => (
-          <Calendar
-            selectedDate={selectedCustom}
-            onChange={e => {
-              console.log(e)
-
-              const duration = moment
-                .duration(
-                  moment(e, 'YYYY/MM/DD')
-                    .startOf('day')
-                    .diff(moment().startOf('day'))
-                )
-                .asHours()
-
-              setSelectedTTL({
-                name: CUSTOM_TITLE,
-                value: duration + 'h',
-                type: CUSTOM_TYPE,
-              })
-
-              close()
-            }}
-          />
-        )}
-      </Popover.Panel>
-    </Popover>
-  )
-}
-
-function ExpirationRateMenu({ selected, setSelected, allowCustom = false }) {
+function ExpirationRateMenu({ selected, setSelected }) {
   const [referenceElement, setReferenceElement] = useState(null)
   const [popperElement, setPopperElement] = useState(null)
   let { styles, attributes } = usePopper(referenceElement, popperElement, {
@@ -110,10 +62,7 @@ function ExpirationRateMenu({ selected, setSelected, allowCustom = false }) {
             className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
           >
             <div className='max-h-64 overflow-auto'>
-              {(allowCustom
-                ? expirationRate
-                : expirationRate.filter(r => r.name !== CUSTOM_TITLE)
-              ).map(rate => (
+              {expirationRate.map(rate => (
                 <Listbox.Option
                   key={rate.value}
                   className={({ active }) =>
@@ -156,9 +105,6 @@ export default function AccessKey() {
   const [selectedTTL, setSelectedTTL] = useState(
     expirationRate.find(e => e.default)
   )
-  const [selectedDeadline, setSelectedDeadline] = useState(
-    expirationRate.find(e => e.default)
-  )
   const [error, setError] = useState('')
 
   const { user } = useUser()
@@ -175,7 +121,7 @@ export default function AccessKey() {
           name,
           userID: user.id,
           ttl: selectedTTL.value,
-          extensionDeadline: selectedDeadline.value,
+          extensionDeadline: '720h',
         }),
       })
 
@@ -230,44 +176,20 @@ export default function AccessKey() {
           </div>
           <div className='flex flex-col space-y-1'>
             <label className='text-2xs font-medium text-gray-700'>
-              Extension Deadline
-            </label>
-            <div className='flex items-center space-x-4'>
-              <ExpirationRateMenu
-                selected={selectedDeadline}
-                setSelected={setSelectedDeadline}
-              />
-            </div>
-          </div>
-
-          <div className='flex flex-col space-y-1'>
-            <label className='text-2xs font-medium text-gray-700'>
               Expiration
             </label>
             <div className='flex flex-col sm:flex-row sm:items-center'>
               <ExpirationRateMenu
                 selected={selectedTTL}
                 setSelected={setSelectedTTL}
-                allowCustom
               />
-              {selectedTTL.type === CUSTOM_TYPE && (
-                <div className='mt-4 sm:ml-4 sm:mt-0'>
-                  <CalendarInput
-                    selectedTTL={selectedTTL}
-                    setSelectedTTL={setSelectedTTL}
-                  />
-                </div>
-              )}
             </div>
           </div>
-          {selectedTTL.value && selectedDeadline.value && (
+          {selectedTTL.value && (
             <div className='space-y-1 pt-6 text-xs text-gray-500'>
               <div>
-                This access key must be used at least once{' '}
-                <span className='font-semibold text-gray-900'>
-                  every {selectedDeadline.name}
-                </span>
-                ,
+                This access key must be used at least once every{' '}
+                <span className='font-semibold text-gray-900'>30 days</span>,
               </div>
               <div>
                 and will expire on{' '}
