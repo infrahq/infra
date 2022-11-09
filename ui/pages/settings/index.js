@@ -200,19 +200,35 @@ export default function Settings() {
                 }}
                 columns={[
                   {
-                    cell: info => (
-                      <div className='flex flex-col py-0.5'>
-                        <div className='truncate text-sm font-medium text-gray-700'>
-                          {info.getValue()}
+                    cell: function Cell(info) {
+                      console.log(info.row.original.expires)
+                      console.log(info.row.original.extensionDeadline)
+                      return (
+                        <div className='flex flex-col py-0.5'>
+                          <div className='truncate text-sm font-medium text-gray-700'>
+                            {info.getValue()}
+                          </div>
+                          <div className='space-y-1 pt-2 text-3xs text-gray-500 sm:hidden'>
+                            <div>
+                              The key must be used before{' '}
+                              <span className='font-semibold text-gray-700'>
+                                {moment(
+                                  info.row.original.extensionDeadline
+                                ).format('YYYY/MM/DD')}
+                              </span>
+                            </div>
+                            <div>
+                              and will expire on{' '}
+                              <span className='font-semibold text-gray-700'>
+                                {moment(info.row.original.expires).format(
+                                  'YYYY/MM/DD'
+                                )}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        {/* <div className='text-2xs text-gray-500 sm:hidden'>
-                          expire{' '}
-                          {info.getValue()
-                            ? dayjs(info.row.original.expires).toNow()
-                            : '-'}
-                        </div> */}
-                      </div>
-                    ),
+                      )
+                    },
                     header: () => <span>Name</span>,
                     accessorKey: 'name',
                   },

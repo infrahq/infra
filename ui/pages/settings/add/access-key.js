@@ -24,33 +24,44 @@ const expirationRate = [
   { name: CUSTOM_TITLE, value: '1h', type: CUSTOM_TYPE },
 ]
 
-function CalendarInput({ selectedCustom, setSelectedCustom, setSelectedTTL }) {
+function CalendarInput({ setSelectedTTL, selectedTTL }) {
+  const selectedCustom = moment()
+    .add(
+      parseInt(selectedTTL.value),
+      selectedTTL.value.charAt(selectedTTL.value.length - 1)
+    )
+    .format('YYYY/MM/DD')
+
   return (
     <Popover className='relative'>
       <Popover.Button className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'>
         {selectedCustom}
       </Popover.Button>
-      <Popover.Panel className='absolute z-20'>
-        <Calendar
-          selectedDate={selectedCustom}
-          onChange={e => {
-            setSelectedCustom(e)
+      <Popover.Panel className='absolute z-20 mt-2'>
+        {({ close }) => (
+          <Calendar
+            selectedDate={selectedCustom}
+            onChange={e => {
+              console.log(e)
 
-            const duration = moment
-              .duration(
-                moment(e, 'DD/MM/YYYY')
-                  .startOf('day')
-                  .diff(moment().startOf('day'))
-              )
-              .asHours()
+              const duration = moment
+                .duration(
+                  moment(e, 'YYYY/MM/DD')
+                    .startOf('day')
+                    .diff(moment().startOf('day'))
+                )
+                .asHours()
 
-            setSelectedTTL({
-              name: CUSTOM_TITLE,
-              value: duration + 'h',
-              type: CUSTOM_TYPE,
-            })
-          }}
-        />
+              setSelectedTTL({
+                name: CUSTOM_TITLE,
+                value: duration + 'h',
+                type: CUSTOM_TYPE,
+              })
+
+              close()
+            }}
+          />
+        )}
       </Popover.Panel>
     </Popover>
   )
@@ -149,12 +160,6 @@ export default function AccessKey() {
     expirationRate.find(e => e.default)
   )
   const [error, setError] = useState('')
-  const [selectedCustom, setSelectedCustom] = useState(() => {
-    const custom = expirationRate.find(e => e.type === CUSTOM_TYPE).value
-    return moment()
-      .add(parseInt(custom), custom.charAt(custom.length - 1))
-      .format('DD/MM/YYYY')
-  })
 
   const { user } = useUser()
 
@@ -248,8 +253,7 @@ export default function AccessKey() {
               {selectedTTL.type === CUSTOM_TYPE && (
                 <div className='mt-4 sm:ml-4 sm:mt-0'>
                   <CalendarInput
-                    selectedCustom={selectedCustom}
-                    setSelectedCustom={setSelectedCustom}
+                    selectedTTL={selectedTTL}
                     setSelectedTTL={setSelectedTTL}
                   />
                 </div>
