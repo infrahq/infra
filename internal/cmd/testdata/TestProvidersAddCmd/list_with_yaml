@@ -1,5 +1,4 @@
-- allowedDomains: null
-  authURL: ""
+- authURL: ""
   clientID: okta-client-id
   created: null
   id: ""

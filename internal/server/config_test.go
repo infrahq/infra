@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
@@ -450,7 +451,6 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		Kind:               models.ProviderKindOIDC, // the kind gets the default value
 		AuthURL:            "example.com/oauth2/default/v1/token",
 		Scopes:             []string{"openid", "email"},
-		AllowedDomains:     []string{},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
@@ -461,6 +461,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		cmp.FilterPath(
 			opt.PathField(models.Provider{}, "Scopes"),
 			cmp.Comparer(slices.Equal)),
+		cmpopts.EquateEmpty(),
 	}
 	assert.DeepEqual(t, okta, expected, cmpProvider)
 
@@ -477,7 +478,6 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		Kind:               models.ProviderKindAzure, // when specified, the kind is set
 		AuthURL:            "demo.azure.com/oauth2/v2.0/authorize",
 		Scopes:             []string{"openid", "email"},
-		AllowedDomains:     []string{},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 	assert.DeepEqual(t, azure, expected, cmpProvider)
@@ -498,7 +498,6 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		PrivateKey:         "-----BEGIN PRIVATE KEY-----\naaa=\n-----END PRIVATE KEY-----\n",
 		ClientEmail:        "example@tenant.iam.gserviceaccount.com",
 		DomainAdminEmail:   "admin@example.com",
-		AllowedDomains:     []string{},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 	assert.DeepEqual(t, google, expected, cmpProvider)
@@ -870,7 +869,6 @@ func TestLoadConfigUpdate(t *testing.T) {
 		Kind:               models.ProviderKindOIDC, // the kind gets the default value
 		AuthURL:            "new.example.com/v1/auth",
 		Scopes:             []string{"openid", "email", "groups"},
-		AllowedDomains:     []string{},
 		OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrg.ID},
 	}
 
@@ -881,6 +879,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		cmp.FilterPath(
 			opt.PathField(models.Provider{}, "Scopes"),
 			cmp.Comparer(slices.Equal)),
+		cmpopts.EquateEmpty(),
 	}
 
 	assert.DeepEqual(t, provider, expected, cmpProvider)

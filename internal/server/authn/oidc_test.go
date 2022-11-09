@@ -299,11 +299,11 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 		"UserWithEmailDomainNotAllowed": {
 			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
 				return &mockOIDCImplementation{
-					UserEmailResp: "user@infrahq.com",
+					UserEmailResp: "user@infra.app",
 				}
 			},
 			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
-				assert.ErrorContains(t, err, "infrahq.com is not an allowed email domain")
+				assert.ErrorContains(t, err, "infra.app is not an allowed email domain")
 			},
 		},
 		"UserIdentifierWithNoAtSign": {
@@ -327,7 +327,7 @@ func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
 				Name:           "mockoidc",
 				URL:            "mockOIDC.example.com",
 				Kind:           models.ProviderKindOIDC,
-				AllowedDomains: []string{"example.com"},
+				AllowedDomains: []string{"example.com", "infrahq.com"},
 			}
 			err := data.CreateProvider(db, provider)
 			assert.NilError(t, err)

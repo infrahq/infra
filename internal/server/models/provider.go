@@ -69,11 +69,11 @@ func (p *Provider) ToAPI() *api.Provider {
 		Created: api.Time(p.CreatedAt),
 		Updated: api.Time(p.UpdatedAt),
 
-		URL:            p.URL,
-		ClientID:       p.ClientID,
-		Kind:           p.Kind.String(),
-		AuthURL:        p.AuthURL,
-		Scopes:         p.Scopes,
-		AllowedDomains: p.AllowedDomains,
+		URL:      p.URL,
+		ClientID: p.ClientID,
+		Kind:     p.Kind.String(),
+		AuthURL:  p.AuthURL,
+		Scopes:   p.Scopes,
+		// TODO: specify allowed domains here once login providers are a separate endpoint (#3599)
 	}
 }

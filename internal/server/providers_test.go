@@ -58,7 +58,6 @@ func TestAPI_ListProviders(t *testing.T) {
 		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
 		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(apiProviders.Items[0].AllowedDomains, testProvider.AllowedDomains)) // this is sensitive
 	})
 	t.Run("list providers with no access key for org does not return allowed domains", func(t *testing.T) {
 		// nolint:noctx
@@ -80,7 +79,6 @@ func TestAPI_ListProviders(t *testing.T) {
 		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
 		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(apiProviders.Items[0].AllowedDomains, []string{}))
 	})
 	t.Run("list providers with expired access key does not return allowed domains", func(t *testing.T) {
 		// nolint:noctx
@@ -114,7 +112,6 @@ func TestAPI_ListProviders(t *testing.T) {
 		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
 		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(apiProviders.Items[0].AllowedDomains, []string{}))
 	})
 	t.Run("list providers with access key for different org does not return allowed domains", func(t *testing.T) {
 		// nolint:noctx
@@ -201,7 +198,6 @@ func TestAPI_GetProvider(t *testing.T) {
 		assert.Equal(t, provider.Name, testProvider.Name)
 		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(provider.AllowedDomains, testProvider.AllowedDomains)) // this is sensitive
 	})
 	t.Run("get provider with no access key for org returns provider without fields", func(t *testing.T) {
 		// nolint:noctx
@@ -222,7 +218,6 @@ func TestAPI_GetProvider(t *testing.T) {
 		assert.Equal(t, provider.Name, testProvider.Name)
 		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(provider.AllowedDomains, []string{}))
 	})
 	t.Run("get provider with expired access key for org returns provider without fields", func(t *testing.T) {
 		// nolint:noctx
@@ -256,7 +251,6 @@ func TestAPI_GetProvider(t *testing.T) {
 		assert.Equal(t, provider.Name, testProvider.Name)
 		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
-		assert.Assert(t, slices.Equal(provider.AllowedDomains, []string{}))
 	})
 }
 

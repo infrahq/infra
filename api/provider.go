@@ -20,16 +20,15 @@ func (r ProviderAPICredentials) ValidationRules() []validate.ValidationRule {
 }
 
 type Provider struct {
-	ID             uid.ID   `json:"id"`
-	Name           string   `json:"name" example:"okta"`
-	Created        Time     `json:"created"`
-	Updated        Time     `json:"updated"`
-	URL            string   `json:"url" example:"infrahq.okta.com"`
-	ClientID       string   `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	Kind           string   `json:"kind" example:"oidc"`
-	AuthURL        string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize"`
-	Scopes         []string `json:"scopes" example:"['openid', 'email']"`
-	AllowedDomains []string `json:"allowedDomains" example:"['example.com', 'infrahq.com']"` // only returned when authenticated
+	ID       uid.ID   `json:"id"`
+	Name     string   `json:"name" example:"okta"`
+	Created  Time     `json:"created"`
+	Updated  Time     `json:"updated"`
+	URL      string   `json:"url" example:"infrahq.okta.com"`
+	ClientID string   `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	Kind     string   `json:"kind" example:"oidc"`
+	AuthURL  string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize"`
+	Scopes   []string `json:"scopes" example:"['openid', 'email']"`
 }
 
 type CreateProviderRequest struct {
@@ -44,6 +43,14 @@ type CreateProviderRequest struct {
 
 var kinds = []string{"oidc", "okta", "azure", "google"}
 
+func ValidateAllowedDomains(value []string) validate.StringSliceRule {
+	return validate.StringSliceRule{
+		Value:     value,
+		Name:      "allowedDomains",
+		MaxLength: 20,
+	}
+}
+
 func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		ValidateName(r.Name),
@@ -51,6 +58,7 @@ func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("clientID", r.ClientID),
 		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
+		ValidateAllowedDomains(r.AllowedDomains),
 	}
 }
 
@@ -80,6 +88,7 @@ func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("clientID", r.ClientID),
 		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
+		ValidateAllowedDomains(r.AllowedDomains),
 	}
 }
 

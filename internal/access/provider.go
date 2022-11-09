@@ -26,12 +26,6 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	// if the caller is not authenticated for this org do not return the allowed domains, it is sensitive info
-	reqKey := rCtx.Authenticated.AccessKey
-	if reqKey == nil || reqKey.OrganizationID != rCtx.DBTxn.OrganizationID() {
-		// sanitize the response, the caller is not authorized to know this
-		provider.AllowedDomains = []string{}
-	}
 	return provider, nil
 }
 
@@ -40,14 +34,6 @@ func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Pro
 	providers, err := data.ListProviders(rCtx.DBTxn, opts)
 	if err != nil {
 		return nil, err
-	}
-	// if the caller is not authenticated for this org do not return the allowed domains, it is sensitive info
-	reqKey := rCtx.Authenticated.AccessKey
-	if reqKey == nil || reqKey.OrganizationID != rCtx.DBTxn.OrganizationID() {
-		// sanitize the response, the caller is not authorized to know this
-		for i := range providers {
-			providers[i].AllowedDomains = []string{}
-		}
 	}
 	return providers, nil
 }
