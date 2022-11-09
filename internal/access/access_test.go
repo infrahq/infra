@@ -183,7 +183,7 @@ func TestRequireInfraRole(t *testing.T) {
 	})
 }
 
-func grant(t *testing.T, db data.GormTxn, createdBy *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
+func grant(t *testing.T, db data.WriteTxn, createdBy *models.Identity, subject uid.PolymorphicID, privilege, resource string) {
 	err := data.CreateGrant(db, &models.Grant{
 		Subject:   subject,
 		Privilege: privilege,

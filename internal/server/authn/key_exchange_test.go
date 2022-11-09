@@ -16,7 +16,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 	db := setupDB(t)
 
 	type testCase struct {
-		setup       func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time)
+		setup       func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time)
 		expectedErr string
 		expected    func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
@@ -27,7 +27,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 
 	cases := map[string]testCase{
 		"InvalidAccessKeyCannotBeExchanged": {
-			setup: func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time) {
+			setup: func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "goku@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -39,7 +39,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			expectedErr: "could not get access key from database",
 		},
 		"ExpiredAccessKeyCannotBeExchanged": {
-			setup: func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time) {
+			setup: func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "bulma@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -59,7 +59,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			expectedErr: data.ErrAccessKeyExpired.Error(),
 		},
 		"AccessKeyCannotBeExchangedWhenUserNoLongerExists": {
-			setup: func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time) {
+			setup: func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "notforlong@example.com"}
 				user.DeletedAt.Time = time.Now()
 				user.DeletedAt.Valid = true
@@ -81,7 +81,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			expectedErr: "user is not valid",
 		},
 		"AccessKeyCannotBeExchangedForLongerLived": {
-			setup: func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time) {
+			setup: func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "krillin@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
@@ -105,7 +105,7 @@ func TestKeyExchangeAuthentication(t *testing.T) {
 			},
 		},
 		"ValidAccessKeySuccess": {
-			setup: func(t *testing.T, db data.GormTxn) (LoginMethod, time.Time) {
+			setup: func(t *testing.T, db data.WriteTxn) (LoginMethod, time.Time) {
 				user := &models.Identity{Name: "cell@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)

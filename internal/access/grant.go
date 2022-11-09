@@ -139,7 +139,7 @@ func logError(fn func() error, msg string) {
 	}
 }
 
-func userInGroup(db data.GormTxn, authnUserID uid.ID, groupID uid.ID) bool {
+func userInGroup(db data.ReadTxn, authnUserID uid.ID, groupID uid.ID) bool {
 	groups, err := data.ListGroupIDsForUser(db, authnUserID)
 	if err != nil {
 		return false

@@ -124,7 +124,7 @@ const headerInfraDestination = "Infra-Destination"
 //
 // Returns the organization from any source that is not nil, or an error if the
 // two sources do not match.
-func validateOrgMatchesRequest(req *http.Request, tx data.GormTxn, accessKeyOrg *models.Organization) (*models.Organization, error) {
+func validateOrgMatchesRequest(req *http.Request, tx data.ReadTxn, accessKeyOrg *models.Organization) (*models.Organization, error) {
 	orgFromRequest, err := getOrgFromRequest(req, tx)
 	if err != nil {
 		return nil, err
@@ -226,7 +226,7 @@ func getRequestContext(c *gin.Context) access.RequestContext {
 	return rCtx
 }
 
-func getOrgFromRequest(req *http.Request, tx data.GormTxn) (*models.Organization, error) {
+func getOrgFromRequest(req *http.Request, tx data.ReadTxn) (*models.Organization, error) {
 	host := req.Host
 
 	logging.Debugf("Host: %s", host)

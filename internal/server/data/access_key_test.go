@@ -164,7 +164,7 @@ var anyValidUID = cmp.Comparer(func(x, y uid.ID) bool {
 // PostgreSQL only has microsecond precision
 var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
-func createAccessKeyWithExtensionDeadline(t *testing.T, db GormTxn, ttl, extensionDeadline time.Duration) (string, *models.AccessKey) {
+func createAccessKeyWithExtensionDeadline(t *testing.T, db WriteTxn, ttl, extensionDeadline time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
 	err := CreateIdentity(db, identity)
 	assert.NilError(t, err)
@@ -268,7 +268,7 @@ func TestDeleteAccessKeys(t *testing.T) {
 	})
 }
 
-func createAccessKeys(t *testing.T, db GormTxn, keys ...*models.AccessKey) {
+func createAccessKeys(t *testing.T, db WriteTxn, keys ...*models.AccessKey) {
 	t.Helper()
 	for i := range keys {
 		_, err := CreateAccessKey(db, keys[i])
@@ -514,7 +514,7 @@ func TestListAccessKeys(t *testing.T) {
 	})
 }
 
-func createTestAccessKey(t *testing.T, db GormTxn, sessionDuration time.Duration) (string, *models.AccessKey) {
+func createTestAccessKey(t *testing.T, db WriteTxn, sessionDuration time.Duration) (string, *models.AccessKey) {
 	user := &models.Identity{Name: "tmp@infrahq.com"}
 	err := CreateIdentity(db, user)
 	assert.NilError(t, err)

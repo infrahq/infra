@@ -54,7 +54,7 @@ func TestCreateGroup(t *testing.T) {
 	})
 }
 
-func createGroups(t *testing.T, db GormTxn, groups ...*models.Group) {
+func createGroups(t *testing.T, db WriteTxn, groups ...*models.Group) {
 	t.Helper()
 	for i := range groups {
 		err := CreateGroup(db, groups[i])

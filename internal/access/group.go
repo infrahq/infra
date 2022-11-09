@@ -76,7 +76,7 @@ func DeleteGroup(c *gin.Context, id uid.ID) error {
 	return data.DeleteGroup(db, id)
 }
 
-func checkIdentitiesInList(db data.GormTxn, ids []uid.ID) ([]uid.ID, error) {
+func checkIdentitiesInList(db data.ReadTxn, ids []uid.ID) ([]uid.ID, error) {
 	if len(ids) == 0 {
 		return ids, nil
 	}

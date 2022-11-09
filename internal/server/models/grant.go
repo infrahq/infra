@@ -42,9 +42,12 @@ type Grant struct {
 	Model
 	OrganizationMember
 
-	Subject     uid.PolymorphicID `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // usually an identity, but could be a role definition
-	Privilege   string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // role or permission
-	Resource    string            `gorm:"uniqueIndex:idx_grant_srp,where:deleted_at is NULL"` // Universal Resource Notation
+	// Subject is the user or group ID the grant applies to.
+	Subject uid.PolymorphicID
+	// Privilege is the role or permission being granted.
+	Privilege string
+	// Resource identifies the resource the privilege applies to.
+	Resource    string
 	CreatedBy   uid.ID
 	UpdateIndex int64 `db:"-"`
 }

@@ -322,7 +322,7 @@ func TestCountDestinationsByConnectedVersion(t *testing.T) {
 	})
 }
 
-func createDestinations(t *testing.T, tx GormTxn, destinations ...*models.Destination) {
+func createDestinations(t *testing.T, tx WriteTxn, destinations ...*models.Destination) {
 	t.Helper()
 	for i := range destinations {
 		err := CreateDestination(tx, destinations[i])

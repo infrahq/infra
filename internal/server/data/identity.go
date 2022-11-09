@@ -33,7 +33,7 @@ func (i *identitiesTable) ScanFields() []any {
 	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
-func AssignIdentityToGroups(tx GormTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
+func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
 	pu, err := GetProviderUser(tx, provider.ID, user.ID)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ type GetIdentityOptions struct {
 	LoadProviders bool
 }
 
-func GetIdentity(tx GormTxn, opts GetIdentityOptions) (*models.Identity, error) {
+func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) {
 	if opts.ByID == 0 && opts.ByName == "" {
 		return nil, fmt.Errorf("GetIdentity must specify id or name")
 	}
@@ -225,7 +225,7 @@ type ListIdentityOptions struct {
 	LoadProviders bool
 }
 
-func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, error) {
+func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, error) {
 	if len(opts.ByNotIDs) > 0 && opts.CreatedBy == 0 {
 		return nil, fmt.Errorf("ListIdentities by 'not IDs' requires 'created by'")
 	}
@@ -302,7 +302,7 @@ func ListIdentities(tx GormTxn, opts ListIdentityOptions) ([]models.Identity, er
 	return result, nil
 }
 
-func loadIdentitiesGroups(tx GormTxn, identities []models.Identity) error {
+func loadIdentitiesGroups(tx ReadTxn, identities []models.Identity) error {
 	// get the ids of all the identities
 	identityIDs := []uid.ID{}
 	for _, i := range identities {
@@ -434,7 +434,7 @@ type DeleteIdentitiesOptions struct {
 	ByProviderID uid.ID
 }
 
-func DeleteIdentities(tx GormTxn, opts DeleteIdentitiesOptions) error {
+func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
 	if opts.ByProviderID == 0 {
 		return fmt.Errorf("DeleteIdentities requires a provider ID")
 	}
@@ -467,7 +467,7 @@ func DeleteIdentities(tx GormTxn, opts DeleteIdentitiesOptions) error {
 	return nil
 }
 
-func deleteReferencesToIdentities(tx GormTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
+func deleteReferencesToIdentities(tx WriteTxn, providerID uid.ID, toDelete []models.Identity) (unreferencedIdentityIDs []uid.ID, err error) {
 	for _, i := range toDelete {
 		if err := DeleteAccessKeys(tx, DeleteAccessKeysOptions{ByIssuedForID: i.ID, ByProviderID: providerID}); err != nil {
 			return nil, fmt.Errorf("delete identity access keys: %w", err)

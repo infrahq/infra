@@ -185,7 +185,7 @@ func hasMinimumCount(min int, password string, check func(rune) bool) bool {
 	return count >= min
 }
 
-func checkPasswordRequirements(db data.GormTxn, password string) error {
+func checkPasswordRequirements(db data.ReadTxn, password string) error {
 	settings, err := data.GetSettings(db)
 	if err != nil {
 		return err

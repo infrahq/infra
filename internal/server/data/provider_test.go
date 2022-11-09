@@ -26,7 +26,7 @@ func TestCreateProvider(t *testing.T) {
 	})
 }
 
-func createProviders(t *testing.T, db GormTxn, providers ...*models.Provider) {
+func createProviders(t *testing.T, db WriteTxn, providers ...*models.Provider) {
 	for i := range providers {
 		err := CreateProvider(db, providers[i])
 		assert.NilError(t, err)

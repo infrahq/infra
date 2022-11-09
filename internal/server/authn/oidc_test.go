@@ -87,13 +87,13 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 	sessionExpiry := time.Now().Add(5 * time.Minute)
 
 	type testCase struct {
-		setup    func(t *testing.T, db data.GormTxn) providers.OIDCClient
+		setup    func(t *testing.T, db data.WriteTxn) providers.OIDCClient
 		expected func(t *testing.T, authnIdentity AuthenticatedIdentity)
 	}
 
 	testCases := map[string]testCase{
 		"NewUserNewGroups": {
-			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
 				return &mockOIDCImplementation{
 					UserEmailResp:  "newusernewgroups@example.com",
 					UserGroupsResp: []string{"Everyone", "developers"},
@@ -106,7 +106,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"NewUserExistingGroups": {
-			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
 				existingGroup1 := &models.Group{Name: "existing1"}
 				existingGroup2 := &models.Group{Name: "existing2"}
 
@@ -137,7 +137,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserNewGroups": {
-			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existingusernewgroups@example.com"})
 				assert.NilError(t, err)
 
@@ -162,7 +162,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserExistingGroups": {
-			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
 				err := data.CreateIdentity(db, &models.Identity{Name: "existinguserexistinggroups@example.com"})
 				assert.NilError(t, err)
 
@@ -193,7 +193,7 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 			},
 		},
 		"ExistingUserGroupsWithNewGroups": {
-			setup: func(t *testing.T, db data.GormTxn) providers.OIDCClient {
+			setup: func(t *testing.T, db data.WriteTxn) providers.OIDCClient {
 				user := &models.Identity{Name: "eugwnw@example.com"}
 				err := data.CreateIdentity(db, user)
 				assert.NilError(t, err)
