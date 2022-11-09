@@ -1,13 +1,19 @@
 import useSWR from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
+import { useRouter } from 'next/router'
+import Link from 'next/link'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
+
 import GrantForm from '../../components/grant-form'
 import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
+
+const TAB_ORG_ADMINS = { name: 'admins', title: 'Organization Admins' }
+const TAB_PROVIDERS = { name: 'providers', title: 'Providers' }
 
 function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
   const grantsList = grants?.sort(sortBySubject)?.map(grant => {
@@ -105,6 +111,7 @@ function AdminList({ grants, users, groups, onRemove, auth, selfGroups }) {
 }
 
 export default function Settings() {
+  const router = useRouter()
   const { user } = useUser()
 
   const { data: { items: users } = {} } = useSWR('/api/users?limit=999')
@@ -116,6 +123,9 @@ export default function Settings() {
     () => `/api/groups?userID=${user?.id}&limit=999`
   )
 
+  const tabs = [TAB_ORG_ADMINS, TAB_PROVIDERS]
+  const tab = router.query.tab || TAB_ORG_ADMINS.name
+
   return (
     <div className='my-6'>
       <Head>
@@ -125,55 +135,86 @@ export default function Settings() {
         {/* Header */}
         <h1 className='mb-6 font-display text-xl font-medium'>Settings</h1>
 
-        {/* Infra admins */}
-        <div className='mb-3 flex flex-col justify-between'>
-          <h2 className='font-display text-lg font-medium'>
-            Organization Admins
-          </h2>
-          <p className='mt-1 mb-4 text-xs text-gray-500'>
-            These users have full access to this organization.
-          </p>
-          <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-            <GrantForm
-              resource='infra'
-              roles={['admin']}
-              grants={grants}
-              multiselect={false}
-              onSubmit={async ({ user, group }) => {
-                // don't add grants that already exist
-                if (grants?.find(g => g.user === user && g.group === group)) {
-                  return false
+        {/* Tabs */}
+        <div className='mb-3 border-b border-gray-200'>
+          <nav className='-mb-px flex' aria-label='Tabs'>
+            {tabs.map(t => (
+              <Link
+                key={t.name}
+                href={{
+                  pathname: `/settings/`,
+                  query: { tab: t.name },
+                }}
+              >
+                <a
+                  className={`
+                ${
+                  tab === t.name
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-600'
                 }
+                 whitespace-nowrap border-b-2 py-2 px-5 text-sm font-medium capitalize transition-colors`}
+                  aria-current={tab.current ? 'page' : undefined}
+                >
+                  {t.title}
+                </a>
+              </Link>
+            ))}
+          </nav>
+        </div>
+        {tab === TAB_PROVIDERS.name && <>PROVIDERS</>}
+        {/* Infra admins */}
+        {tab === TAB_ORG_ADMINS.name && (
+          <>
+            <div className='mb-3 flex flex-col justify-between'>
+              <p className='mt-1 mb-4 text-xs text-gray-500'>
+                These users have full access to this organization.
+              </p>
+              <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
+                <GrantForm
+                  resource='infra'
+                  roles={['admin']}
+                  grants={grants}
+                  multiselect={false}
+                  onSubmit={async ({ user, group }) => {
+                    // don't add grants that already exist
+                    if (
+                      grants?.find(g => g.user === user && g.group === group)
+                    ) {
+                      return false
+                    }
 
-                await fetch('/api/grants', {
-                  method: 'POST',
-                  body: JSON.stringify({
-                    user,
-                    group,
-                    privilege: 'admin',
-                    resource: 'infra',
-                  }),
+                    await fetch('/api/grants', {
+                      method: 'POST',
+                      body: JSON.stringify({
+                        user,
+                        group,
+                        privilege: 'admin',
+                        resource: 'infra',
+                      }),
+                    })
+
+                    // TODO: add optimistic updates
+                    mutate()
+                  }}
+                />
+              </div>
+            </div>
+            <AdminList
+              grants={grants}
+              users={users}
+              groups={groups}
+              selfGroups={selfGroups}
+              auth={user}
+              onRemove={async grantId => {
+                await fetch(`/api/grants/${grantId}`, {
+                  method: 'DELETE',
                 })
-
-                // TODO: add optimistic updates
-                mutate()
+                mutate({ items: grants?.filter(x => x.id !== grantId) })
               }}
             />
-          </div>
-        </div>
-        <AdminList
-          grants={grants}
-          users={users}
-          groups={groups}
-          selfGroups={selfGroups}
-          auth={user}
-          onRemove={async grantId => {
-            await fetch(`/api/grants/${grantId}`, {
-              method: 'DELETE',
-            })
-            mutate({ items: grants?.filter(x => x.id !== grantId) })
-          }}
-        />
+          </>
+        )}
       </div>
     </div>
   )
