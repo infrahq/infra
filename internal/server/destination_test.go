@@ -113,7 +113,7 @@ func TestAPI_CreateDestination(t *testing.T) {
 }
 
 var cmpAPIDestinationJSON = gocmp.Options{
-	gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+	gocmp.FilterPath(pathMapKey(`created`, `updated`, `lastSeen`), cmpApproximateTime),
 	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
 }
 
