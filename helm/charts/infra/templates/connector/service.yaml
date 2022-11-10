@@ -26,6 +26,13 @@ spec:
   sessionAffinity: {{ .Values.connector.service.sessionAffinity }}
 {{- end }}
   ports:
+    - port: {{ .Values.connector.service.port }}
+      name: {{ .Values.connector.service.portName }}
+      targetPort: http
+      protocol: TCP
+{{- if eq .Values.connector.service.type "NodePort" }}
+      nodePort: {{ .Values.connector.service.nodePort }}
+{{- end }}
     - port: {{ .Values.connector.service.securePort }}
       name: {{ .Values.connector.service.securePortName }}
       targetPort: https

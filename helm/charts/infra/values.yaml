@@ -1061,6 +1061,7 @@ connector:
 
     ## Connector container service ports
     addr:
+      http: 9080
       https: 9443
       metrics: 9091
 
