@@ -32,21 +32,37 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
+func Run(ctx context.Context, options Options) error {
+	switch options.Kind {
+	case "kubernetes":
+		return runKubernetesConnector(ctx, options)
+	case "ssh":
+		return runSSHConnector(ctx, options)
+	default:
+		return fmt.Errorf("unsupported connector kind: %v", options.Kind)
+	}
+}
+
 type Options struct {
 	Server ServerOptions
-	Name   string
-	CACert types.StringOrFile
-	CAKey  types.StringOrFile
+	Addr   ListenerOptions
+	Name   string // TODO: make this required
+	Kind   string
 
-	Addr ListenerOptions
-	// EndpointAddr is the host:port address where the connector proxy receives
-	// requests to the destination. If this value is empty then the host:port
-	// will be looked up from the kube API, using the name of the connector
+	// EndpointAddr is the host:port address that clients should use to connect
+	// to this destination.
+	// If this value is empty then the host:port will be looked up.
+	// For kubernetes the lookup is done using kube API, using the name of the connector
 	// service.
+	// For SSH the lookup is done from the network interface addresses.
 	// This value is sent to the infra API server to update the
 	// Destination.Connection.URL.
 	EndpointAddr types.HostPort
 
+	// Kubernetes specific options below here
+
+	CACert     types.StringOrFile
+	CAKey      types.StringOrFile
 	Kubernetes KubernetesOptions
 }
 
@@ -55,6 +71,25 @@ type ServerOptions struct {
 	AccessKey          types.StringOrFile
 	SkipTLSVerify      bool
 	TrustedCertificate types.StringOrFile
+}
+
+func (o Options) APIClient() *api.Client {
+	url := o.Server.URL
+	if !strings.HasPrefix(url, "http") {
+		url = "https://" + url
+	}
+	return &api.Client{
+		Name:      "connector",
+		Version:   internal.Version,
+		URL:       url,
+		AccessKey: o.Server.AccessKey.String(),
+		HTTP: http.Client{
+			Transport: httpTransportFromOptions(o.Server),
+		},
+		Headers: http.Header{
+			"Infra-Destination-Name": {o.Name}, // TODO: api support
+		},
+	}
 }
 
 type ListenerOptions struct {
@@ -111,7 +146,7 @@ type kubeClient interface {
 	UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error
 }
 
-func Run(ctx context.Context, options Options) error {
+func runKubernetesConnector(ctx context.Context, options Options) error {
 	k8s, err := kubernetes.NewKubernetes(
 		options.Kubernetes.AuthToken.String(),
 		options.Kubernetes.Addr,
@@ -150,6 +185,7 @@ func Run(ctx context.Context, options Options) error {
 
 	destination := &api.Destination{
 		Name:     options.Name,
+		Kind:     "kubernetes",
 		UniqueID: checkSum,
 	}
 
@@ -171,38 +207,29 @@ func Run(ctx context.Context, options Options) error {
 	}, []string{"host", "method", "path", "status"})
 	promRegistry.MustRegister(responseDuration)
 
-	client := &api.Client{
-		Name:      "connector",
-		Version:   internal.Version,
-		URL:       u.String(),
-		AccessKey: options.Server.AccessKey.String(),
-		HTTP: http.Client{
-			Transport: httpTransportFromOptions(options.Server),
-		},
-		Headers: http.Header{
-			"Infra-Destination": {checkSum},
-		},
-		OnUnauthorized: func() {
-			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
-			cancel()
-		},
-		ObserveFunc: func(start time.Time, request *http.Request, response *http.Response, err error) {
-			statusLabel := ""
-			if response != nil {
-				statusLabel = strconv.Itoa(response.StatusCode)
-			}
+	client := options.APIClient()
+	// Use the uniqueID header instead of the Name header
+	client.Headers = http.Header{"Infra-Destination": {checkSum}}
+	client.OnUnauthorized = func() {
+		logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
+		cancel()
+	}
+	client.ObserveFunc = func(start time.Time, request *http.Request, response *http.Response, err error) {
+		statusLabel := ""
+		if response != nil {
+			statusLabel = strconv.Itoa(response.StatusCode)
+		}
 
-			if err != nil {
-				statusLabel = "-1"
-			}
+		if err != nil {
+			statusLabel = "-1"
+		}
 
-			responseDuration.With(prometheus.Labels{
-				"host":   request.URL.Host,
-				"method": request.Method,
-				"path":   request.URL.Path,
-				"status": statusLabel,
-			}).Observe(time.Since(start).Seconds())
-		},
+		responseDuration.With(prometheus.Labels{
+			"host":   request.URL.Host,
+			"method": request.Method,
+			"path":   request.URL.Path,
+			"status": statusLabel,
+		}).Observe(time.Since(start).Seconds())
 	}
 
 	group, ctx := errgroup.WithContext(ctx)
@@ -222,7 +249,10 @@ func Run(ctx context.Context, options Options) error {
 			Multiplier:          1.5,
 		}
 		waiter := repeat.NewWaiter(backOff)
-		return syncGrantsToKubeBindings(ctx, con, waiter)
+		fn := func(ctx context.Context, grants []api.Grant) error {
+			return updateRoles(ctx, con.client, con.k8s, grants)
+		}
+		return syncGrantsToDestination(ctx, con, waiter, fn)
 	})
 	group.Go(func() error {
 		// TODO: how long should this wait? Use exponential backoff on error?
@@ -463,12 +493,17 @@ type waiter interface {
 	Wait(ctx context.Context) error
 }
 
-func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter) error {
+func syncGrantsToDestination(
+	ctx context.Context,
+	con connector,
+	waiter waiter,
+	toDestination func(context.Context, []api.Grant) error,
+) error {
 	var latestIndex int64 = 1
 
 	sync := func() error {
 		grants, err := con.client.ListGrants(ctx, api.ListGrantsRequest{
-			Destination:     con.destination.Name,
+			Destination:     con.destination.Name, // TODO: use options.Name when that is required
 			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
 		})
 		var apiError api.Error
@@ -487,9 +522,9 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
-		err = updateRoles(ctx, con.client, con.k8s, grants.Items)
+		err = toDestination(ctx, grants.Items)
 		if err != nil {
-			return fmt.Errorf("update roles: %w", err)
+			return fmt.Errorf("sync to destination: %w", err)
 		}
 
 		// Only update latestIndex once the entire operation was a success
@@ -499,7 +534,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 
 	for {
 		if err := sync(); err != nil {
-			logging.L.Error().Err(err).Msg("sync grants with kubernetes")
+			logging.L.Error().Err(err).Msg("sync grants to destination")
 		} else {
 			waiter.Reset()
 		}
@@ -587,11 +622,14 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 
 // createOrUpdateDestination creates a destination in the infra server if it does not exist and updates it if it does
 func createOrUpdateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
+	// TODO: we probably don't want to cache the ID
 	if local.ID != 0 {
 		return updateDestination(ctx, client, local)
 	}
 
-	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{UniqueID: local.UniqueID})
+	destinations, err := client.ListDestinations(ctx, api.ListDestinationsRequest{
+		Name: local.Name,
+	})
 	if err != nil {
 		return fmt.Errorf("error listing destinations: %w", err)
 	}
@@ -603,7 +641,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 
 	request := &api.CreateDestinationRequest{
 		Name:       local.Name,
-		Kind:       "kubernetes",
+		Kind:       local.Kind,
 		UniqueID:   local.UniqueID,
 		Version:    internal.FullVersion(),
 		Connection: local.Connection,

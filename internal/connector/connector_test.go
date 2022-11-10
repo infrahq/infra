@@ -253,7 +253,7 @@ func TestCertCache_Certificate(t *testing.T) {
 	})
 }
 
-func TestSyncGrantsToKubeBindings(t *testing.T) {
+func TestSyncGrantsToDestination_KubeBindings(t *testing.T) {
 	type testCase struct {
 		name                     string
 		fakeAPI                  *fakeAPIClient
@@ -274,7 +274,10 @@ func TestSyncGrantsToKubeBindings(t *testing.T) {
 			destination: &api.Destination{Name: "the-dest"},
 		}
 
-		err := syncGrantsToKubeBindings(ctx, con, waiter)
+		fn := func(ctx context.Context, grants []api.Grant) error {
+			return updateRoles(ctx, con.client, con.k8s, grants)
+		}
+		err := syncGrantsToDestination(ctx, con, waiter, fn)
 		assert.ErrorIs(t, err, errDone)
 
 		assert.Equal(t, len(waiter.resets), tc.successCount)

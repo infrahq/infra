@@ -37,7 +37,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func TestConnector_Run(t *testing.T) {
+func TestConnector_Run_Kubernetes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for short run")
 	}
@@ -79,6 +79,7 @@ func TestConnector_Run(t *testing.T) {
 			TrustedCertificate: serverOpts.TLS.Certificate,
 		},
 		Name:         "testing",
+		Kind:         "kubernetes",
 		CACert:       types.StringOrFile(readFile(t, "testdata/pki/connector.crt")),
 		CAKey:        types.StringOrFile(readFile(t, "testdata/pki/connector.key")),
 		EndpointAddr: types.HostPort{Host: "127.0.0.1", Port: 55555},
@@ -378,6 +379,7 @@ server:
   skipTLSVerify: true
   trustedCertificate: ca.pem
 name: the-name
+kind: ssh
 caCert: /path/to/cert
 caKey: /path/to/key
 addr:
@@ -388,6 +390,7 @@ addr:
 			expected: func() connector.Options {
 				return connector.Options{
 					Name: "the-name",
+					Kind: "ssh",
 					Addr: connector.ListenerOptions{
 						HTTP:    "localhost:84",
 						HTTPS:   "localhost:414",

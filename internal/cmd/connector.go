@@ -82,5 +82,6 @@ func defaultConnectorOptions() connector.Options {
 			HTTPS:   ":443",
 			Metrics: ":9090",
 		},
+		Kind: "kubernetes",
 	}
 }
