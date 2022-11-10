@@ -36,7 +36,7 @@ jobs:
         # disable auto-fix, and enable verbose
         run: LINT_ARGS=-v  make lint
 
-  test:
+  go-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -78,6 +78,15 @@ jobs:
           git diff --exit-code
           # show and check for uncommitted files
           git status --short; [[ "$(git status --short)" == "" ]]
+
+  test:
+    runs-on: ubuntu-latest
+    needs: [go-test]
+    if: ${{ always() }}
+    steps:
+      - run: |
+          RESULT="${{ needs.go-test.result }}"
+          [ "$RESULT" = 'success' ] || [ "$RESULT" = 'skipped' ] || exit 1
 
   check-generated:
     runs-on: ubuntu-latest
