@@ -483,7 +483,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con connector, waiter waiter)
 			return fmt.Errorf("list grants: %w", err)
 		}
 		logging.L.Info().
-			Int64("updateIndex", latestIndex).
+			Int64("updateIndex", grants.LastUpdateIndex.Index).
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
