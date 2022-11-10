@@ -27,8 +27,7 @@ export function saveToVisitedOrgs(domain, orgName) {
 }
 
 export function currentBaseDomain() {
-  let domain = window.location.host
-  let parts = domain.split('.')
+  let parts = window.location.host.split('.')
   if (parts.length > 2) {
     parts.shift() // remove the org
     domain = parts.join('.') // join the last two parts of the domain
@@ -37,8 +36,7 @@ export function currentBaseDomain() {
 }
 
 export function currentOrg() {
-  let domain = window.location.host
-  let parts = domain.split('.')
+  let parts = window.location.host.split('.')
   if (parts.length > 2) {
     return parts.shift() // this is the org
   }
