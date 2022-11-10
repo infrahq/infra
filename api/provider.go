@@ -48,6 +48,19 @@ func ValidateAllowedDomains(value []string) validate.StringSliceRule {
 		Value:     value,
 		Name:      "allowedDomains",
 		MaxLength: 20,
+		ItemRule: validate.StringRule{
+			Name:      "allowedDomains.values",
+			MaxLength: 254,
+			CharacterRanges: []validate.CharRange{
+				validate.AlphabetLower,
+				validate.AlphabetUpper,
+				validate.Numbers,
+				validate.Dash,
+				validate.Dot,
+				validate.Underscore,
+			},
+			FirstCharacterRange: validate.AlphaNumeric,
+		},
 	}
 }
 

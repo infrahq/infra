@@ -38,49 +38,7 @@ func TestAPI_ListProviders(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(dbProviders), 2) // infra provider and mokta
 
-	t.Run("list providers with access key for org returns provider with sensitive fields", func(t *testing.T) {
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodGet, "/api/providers", nil)
-
-		req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-		req.Header.Add("Infra-Version", apiVersionLatest)
-
-		resp := httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
-
-		var apiProviders api.ListResponse[api.Provider]
-		err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
-		assert.NilError(t, err)
-
-		assert.Equal(t, len(apiProviders.Items), 1) // infra provider is not returned
-		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
-		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
-		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-	})
-	t.Run("list providers with no access key for org does not return allowed domains", func(t *testing.T) {
-		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
-		assert.NilError(t, err)
-
-		req.Header.Add("Infra-Version", apiVersionLatest)
-
-		resp := httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
-
-		var apiProviders api.ListResponse[api.Provider]
-		err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
-		assert.NilError(t, err)
-
-		assert.Equal(t, len(apiProviders.Items), 1) // infra provider is not returned
-		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
-		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
-		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-	})
-	t.Run("list providers with expired access key does not return allowed domains", func(t *testing.T) {
+	t.Run("list providers returns providers for org", func(t *testing.T) {
 		// nolint:noctx
 		req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
 		assert.NilError(t, err)
@@ -112,50 +70,6 @@ func TestAPI_ListProviders(t *testing.T) {
 		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
 		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
 		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
-	})
-	t.Run("list providers with access key for different org does not return allowed domains", func(t *testing.T) {
-		// nolint:noctx
-		req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
-		assert.NilError(t, err)
-
-		otherOrg := &models.Organization{
-			Name:   "example",
-			Domain: "example",
-		}
-		err = data.CreateOrganization(s.DB(), otherOrg)
-		assert.NilError(t, err)
-
-		tx, err := s.db.Begin(context.Background(), nil)
-		assert.NilError(t, err)
-		tx = tx.WithOrgID(otherOrg.ID)
-
-		user := &models.Identity{Name: "bruce@example.com"}
-		err = data.CreateIdentity(tx, user)
-		assert.NilError(t, err)
-
-		key := &models.AccessKey{
-			IssuedFor:  user.ID,
-			ProviderID: testProvider.ID,
-			ExpiresAt:  time.Now().Add(1 * time.Minute),
-		}
-		bearer, err := data.CreateAccessKey(tx, key)
-		assert.NilError(t, err)
-		assert.NilError(t, tx.Commit())
-
-		req.Header.Add("Authorization", "Bearer "+bearer)
-		req.Header.Add("Infra-Version", apiVersionLatest)
-
-		resp := httptest.NewRecorder()
-		routes.ServeHTTP(resp, req)
-
-		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
-
-		var apiProviders api.ListResponse[api.Provider]
-		err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
-		assert.NilError(t, err)
-
-		// request is scoped to other org due to access key in header
-		assert.Equal(t, len(apiProviders.Items), 0) // no providers in other org
 	})
 }
 

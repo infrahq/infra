@@ -12,14 +12,16 @@ type StringSliceRule struct {
 	Value []string
 	// Name of the field in json.
 	Name string
+	// A rule to apply to each value of the slice
+	ItemRule StringRule
 
 	// MaxLength is the maximum allowed length of the slice
 	MaxLength int
 }
 
 // Slice validates a slice field
-func StringSlice(name string, value []string, maxLength int) ValidationRule {
-	return StringSliceRule{Name: name, Value: value, MaxLength: maxLength}
+func StringSlice(name string, value []string, itemRule StringRule, maxLength int) ValidationRule {
+	return StringSliceRule{Name: name, Value: value, ItemRule: itemRule, MaxLength: maxLength}
 }
 
 func (s StringSliceRule) Validate() *Failure {
@@ -33,6 +35,10 @@ func (s StringSliceRule) Validate() *Failure {
 	for _, val := range s.Value {
 		if strings.ContainsAny(val, ",") {
 			return Fail(s.Name, "list values cannot contain commas")
+		}
+		s.ItemRule.Value = val
+		if fail := s.ItemRule.Validate(); fail != nil {
+			return fail
 		}
 	}
 
