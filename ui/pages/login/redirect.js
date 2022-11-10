@@ -46,9 +46,7 @@ export default function Redirect() {
     return null
   }
 
-  return (
-    <Loader fullscreen={true}/>
-  )
+  return <Loader fullscreen={true} />
 }
 
 Redirect.layout = page => <LoginLayout>{page}</LoginLayout>
