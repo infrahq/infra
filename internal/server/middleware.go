@@ -19,11 +19,17 @@ import (
 	"github.com/infrahq/infra/internal/server/redis"
 )
 
-func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) error {
-	if uniqueID == "" {
-		return nil
+func handleInfraDestinationHeader(rCtx access.RequestContext, headers http.Header) error {
+	opts := data.GetDestinationOptions{}
+	if name := headers.Get(headerInfraDestinationName); name != "" {
+		opts.ByName = name
+	} else if uniqueID := headers.Get(headerInfraDestinationUniqueID); uniqueID != "" {
+		opts.ByUniqueID = uniqueID
+	} else {
+		return nil // no header
 	}
-	destination, err := data.GetDestination(rCtx.DBTxn, data.GetDestinationOptions{ByUniqueID: uniqueID})
+
+	destination, err := data.GetDestination(rCtx.DBTxn, opts)
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		return nil // destination does not exist yet
@@ -40,6 +46,11 @@ func handleInfraDestinationHeader(rCtx access.RequestContext, uniqueID string) e
 	}
 	return nil
 }
+
+const (
+	headerInfraDestinationUniqueID = "Infra-Destination"
+	headerInfraDestinationName     = "Infra-Destination-Name"
+)
 
 // authenticateRequest authenticates the user performing the request.
 //
@@ -94,12 +105,10 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 	}
 
 	if authned.User != nil {
-		if uniqueID := c.Request.Header.Get(headerInfraDestination); uniqueID != "" {
-			tx = tx.WithOrgID(authned.Organization.ID)
-			rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
-			if err := handleInfraDestinationHeader(rCtx, uniqueID); err != nil {
-				return authned, err
-			}
+		tx = tx.WithOrgID(authned.Organization.ID)
+		rCtx := access.RequestContext{DBTxn: tx, Authenticated: authned}
+		if err := handleInfraDestinationHeader(rCtx, c.Request.Header); err != nil {
+			return authned, err
 		}
 	}
 
@@ -115,8 +124,6 @@ func authenticateRequest(c *gin.Context, route routeSettings, srv *Server) (acce
 // If you change this value, you may also want to change the threshold in
 // data.ValidateRequestAccessKey.
 const lastSeenUpdateThreshold = 2 * time.Second
-
-const headerInfraDestination = "Infra-Destination"
 
 // validateOrgMatchesRequest checks that if both the accessKeyOrg and the org
 // from the request are set they have the same ID. If only one is set no

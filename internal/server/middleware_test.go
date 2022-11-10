@@ -358,10 +358,10 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 	secret, err := data.CreateAccessKey(db, &token)
 	assert.NilError(t, err)
 
-	t.Run("good", func(t *testing.T) {
+	t.Run("with uniqueID", func(t *testing.T) {
 		destination := &models.Destination{
 			Name:     t.Name(),
-			UniqueID: t.Name(),
+			UniqueID: "the-unique-id",
 			Kind:     models.DestinationKindKubernetes,
 		}
 		err := data.CreateDestination(db, destination)
@@ -370,7 +370,7 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		doRequest := func() {
 			r := httptest.NewRequest("GET", "/api/grants", nil)
 			r.Header.Set("Infra-Version", apiVersionLatest)
-			r.Header.Set("Infra-Destination", destination.UniqueID)
+			r.Header.Set(headerInfraDestinationUniqueID, destination.UniqueID)
 			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
 			w := httptest.NewRecorder()
 			routes.ServeHTTP(w, r)
@@ -388,6 +388,29 @@ func TestHandleInfraDestinationHeader(t *testing.T) {
 		assert.NilError(t, err)
 		assert.Equal(t, destination.LastSeenAt, updated.LastSeenAt,
 			"expected no updated to LastSeenAt")
+	})
+
+	t.Run("with name", func(t *testing.T) {
+		destination := &models.Destination{
+			Name: "the-destination-name",
+			Kind: models.DestinationKindKubernetes,
+		}
+		err := data.CreateDestination(db, destination)
+		assert.NilError(t, err)
+
+		doRequest := func() {
+			r := httptest.NewRequest("GET", "/api/grants", nil)
+			r.Header.Set("Infra-Version", apiVersionLatest)
+			r.Header.Set(headerInfraDestinationName, destination.Name)
+			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", secret))
+			w := httptest.NewRecorder()
+			routes.ServeHTTP(w, r)
+		}
+
+		doRequest()
+		destination, err = data.GetDestination(db, data.GetDestinationOptions{ByName: destination.Name})
+		assert.NilError(t, err)
+		assert.DeepEqual(t, destination.LastSeenAt, time.Now(), opt.TimeWithThreshold(time.Second))
 	})
 
 	t.Run("good no destination header", func(t *testing.T) {

@@ -20,7 +20,6 @@ func TestCreateDestination(t *testing.T) {
 
 			destination := &models.Destination{
 				Name:          "thehost",
-				UniqueID:      "unique-id",
 				Kind:          "ssh",
 				ConnectionURL: "10.0.0.1:1001",
 				ConnectionCA:  "the-pem-encoded-cert",
@@ -42,7 +41,6 @@ func TestCreateDestination(t *testing.T) {
 				},
 				OrganizationMember: models.OrganizationMember{OrganizationID: defaultOrganizationID},
 				Name:               "thehost",
-				UniqueID:           "unique-id",
 				Kind:               "ssh",
 				ConnectionURL:      "10.0.0.1:1001",
 				ConnectionCA:       "the-pem-encoded-cert",

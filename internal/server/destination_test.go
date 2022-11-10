@@ -98,7 +98,6 @@ func TestAPI_CreateDestination(t *testing.T) {
 				expected := []api.FieldError{
 					{FieldName: "connection.ca", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
-					{FieldName: "uniqueID", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -200,7 +199,6 @@ func TestAPI_UpdateDestination(t *testing.T) {
 				expected := []api.FieldError{
 					{FieldName: "connection.ca", Errors: []string{"is required"}},
 					{FieldName: "name", Errors: []string{"is required"}},
-					{FieldName: "uniqueID", Errors: []string{"is required"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
@@ -220,7 +218,7 @@ func TestAPI_UpdateDestination(t *testing.T) {
 			},
 			setup: func(t *testing.T, req *http.Request) {
 				// Set the header that connectors use
-				req.Header.Set(headerInfraDestination, "unique-id")
+				req.Header.Set(headerInfraDestinationName, "the-dest")
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
