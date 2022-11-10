@@ -118,7 +118,7 @@ export default function Settings() {
   const { user, isAdmin } = useUser()
 
   const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 3
+  const limit = 20
   const {
     data: { items: accessKeys, totalPages, totalCount } = {},
     mutate: accessKeyMutate,
