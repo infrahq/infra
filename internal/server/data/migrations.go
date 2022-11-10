@@ -73,6 +73,7 @@ func migrations() []*migrator.Migration {
 		addExpiresAtIndices(),
 		addDestinationKind(),
 		addAllowedDomainsToProvidersTable(),
+		fixDefaultOrgCreatedByMigration(),
 		// next one here
 	}
 }
@@ -890,6 +891,19 @@ func addAllowedDomainsToProvidersTable() *migrator.Migration {
 		ID: "2022-11-03T13:00",
 		Migrate: func(tx migrator.DB) error {
 			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
+			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func fixDefaultOrgCreatedByMigration() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-10T17:30",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `
+				UPDATE organizations SET created_by=1 WHERE created_by is null;
+				UPDATE organizations SET domain='' WHERE domain is null`
 			_, err := tx.Exec(stmt)
 			return err
 		},

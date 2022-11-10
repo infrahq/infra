@@ -438,16 +438,12 @@ INSERT INTO provider_users (identity_id, provider_id, id, created_at, updated_at
 			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO providers(id, name) VALUES (12345, 'okta');
-INSERT INTO settings(id) VALUES(24567);
 `
 				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, db WriteTxn) {
-				stmt := `
-DELETE FROM providers WHERE id=12345;
-DELETE FROM settings WHERE id=24567;
-`
+				stmt := `DELETE FROM providers WHERE id=12345;`
 				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
@@ -492,7 +488,7 @@ DELETE FROM settings WHERE id=24567;
 				assert.NilError(t, err)
 
 				expectedSettings := &models.Settings{
-					Model:              models.Model{ID: 24567},
+					Model:              models.Model{ID: 555111},
 					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 				}
 				assert.DeepEqual(t, s, expectedSettings)
@@ -526,16 +522,9 @@ DELETE FROM settings WHERE id=24567;
 				stmt := ` INSERT INTO providers(id, name, organization_id) VALUES (12345, 'okta', ?)`
 				_, err = db.Exec(stmt, originalOrgID)
 				assert.NilError(t, err)
-
-				stmt = `INSERT INTO settings(id, organization_id) VALUES(24567, ?); `
-				_, err = db.Exec(stmt, originalOrgID)
-				assert.NilError(t, err)
 			},
 			cleanup: func(t *testing.T, db WriteTxn) {
-				stmt := `
-DELETE FROM providers WHERE id=12345;
-DELETE FROM settings WHERE id=24567;
-`
+				stmt := `DELETE FROM providers WHERE id=12345;`
 				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
@@ -569,7 +558,7 @@ DELETE FROM settings WHERE id=24567;
 				assert.NilError(t, err)
 
 				expectedSettings := &models.Settings{
-					Model:              models.Model{ID: 24567},
+					Model:              models.Model{ID: 555111},
 					OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
 				}
 				assert.DeepEqual(t, s, expectedSettings)
@@ -854,6 +843,13 @@ DELETE FROM settings WHERE id=24567;
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-11-10T17:30"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				_, err := GetOrganization(tx, GetOrganizationOptions{ByID: defaultOrganizationID})
+				assert.NilError(t, err)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
@@ -869,7 +865,6 @@ DELETE FROM settings WHERE id=24567;
 
 	var initialSchema string
 	runStep(t, "initial schema", func(t *testing.T) {
-		patch.ModelsSymmetricKey(t)
 		rawDB, err := newRawDB(NewDBOptions{DSN: database.PostgresDriver(t, "").DSN})
 		assert.NilError(t, err)
 
@@ -884,7 +879,8 @@ DELETE FROM settings WHERE id=24567;
 		assert.NilError(t, err)
 	})
 
-	rawDB, err := newRawDB(NewDBOptions{DSN: database.PostgresDriver(t, "").DSN})
+	migratedDBDSN := database.PostgresDriver(t, "").DSN
+	rawDB, err := newRawDB(NewDBOptions{DSN: migratedDBDSN})
 	assert.NilError(t, err)
 	db := &DB{DB: rawDB}
 	for i, tc := range testCases {
@@ -916,9 +912,20 @@ in ./migrations.go, add a test case to this test, and run the tests again.
 		}
 	})
 
+	runStep(t, "setup a new DB with the migrated database", func(t *testing.T) {
+		models.SkipSymmetricKey = true
+		t.Cleanup(func() {
+			models.SkipSymmetricKey = false
+		})
+		_, err := NewDB(NewDBOptions{DSN: migratedDBDSN})
+		assert.NilError(t, err)
+	})
+
 	runStep(t, "check test case cleanup", func(t *testing.T) {
 		// delete the default org, that we expect to exist.
-		_, err := db.Exec(`DELETE from organizations where id = ?`, defaultOrganizationID)
+		_, err := db.Exec(` DELETE FROM organizations where id = ?`, defaultOrganizationID)
+		assert.NilError(t, err)
+		_, err = db.Exec(`DELETE FROM settings where organization_id = ?`, defaultOrganizationID)
 		assert.NilError(t, err)
 
 		data := dumpSchema(t, os.Getenv("POSTGRESQL_CONNECTION"),
