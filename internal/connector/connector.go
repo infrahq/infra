@@ -87,7 +87,7 @@ func (o Options) APIClient() *api.Client {
 			Transport: httpTransportFromOptions(o.Server),
 		},
 		Headers: http.Header{
-			"Infra-Destination-Name": {o.Name}, // TODO: api support
+			"Infra-Destination-Name": {o.Name},
 		},
 	}
 }

@@ -14,9 +14,8 @@ import (
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/infrahq/infra/internal/repeat"
-
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/repeat"
 )
 
 func runSSHConnector(ctx context.Context, opts Options) error {
