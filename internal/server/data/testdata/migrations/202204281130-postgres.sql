@@ -626,6 +626,10 @@ INSERT INTO migrations (id) VALUES
 ('202204181613'),
 ('202204211705');
 
+
+INSERT INTO settings VALUES (555111, '2022-11-10 23:02:50.361412+00', '2022-11-10 23:02:50.361412+00', NULL, 'private_jwk', 'public_jwk', true);
+
+
 --
 -- Name: access_keys access_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
