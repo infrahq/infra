@@ -38,6 +38,7 @@ jobs:
 
   go-test:
     runs-on: ubuntu-latest
+    name: "go-test (postgres ${{matrix.version}})"
     strategy:
       matrix:
         version: [12, 14]
