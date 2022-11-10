@@ -444,7 +444,11 @@ function AccessTable({
           No data
         </div>
       )}
-      {!grantsList && <Loader />}
+      {
+        <div className='flex w-full justify-center'>
+          <Loader className='h-12 w-12' />
+        </div>
+      }
     </div>
   )
 }

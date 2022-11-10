@@ -135,7 +135,11 @@ export default function Table({
           {empty}
         </div>
       )}
-      {!data && <Loader />}
+      {!data && (
+        <div className='flex w-full justify-center'>
+          <Loader className='h-12 w-12' />
+        </div>
+      )}
     </div>
   )
 }

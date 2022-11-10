@@ -64,7 +64,7 @@ export default function Callback() {
     return null
   }
 
-  return <Loader size={24} fullscreen />
+  return <Loader className='h-20 w-20' />
 }
 
 Callback.layout = page => <LoginLayout>{page}</LoginLayout>
