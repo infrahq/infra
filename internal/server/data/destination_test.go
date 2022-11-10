@@ -93,11 +93,8 @@ func TestUpdateDestination(t *testing.T) {
 			}
 			createDestinations(t, tx, orig)
 
-			// Unlike other update operations, the passed in destination
-			// may be constructed entirely by the caller and may not have the
-			// created, or updated time set.
 			destination := &models.Destination{
-				Model:         models.Model{ID: orig.ID},
+				Model:         orig.Model,
 				Name:          "example-cluster-2",
 				UniqueID:      "22222",
 				Kind:          "kubernetes",
