@@ -1,23 +1,120 @@
 import Link from 'next/link'
 import Head from 'next/head'
-import { XIcon, ChevronDownIcon, CheckIcon } from '@heroicons/react/outline'
-import { Listbox } from '@headlessui/react'
-import { useState } from 'react'
 import { useRouter } from 'next/router'
+import {
+  XIcon,
+  ChevronDownIcon,
+  CheckIcon,
+  DuplicateIcon,
+  SwitchHorizontalIcon,
+  UserCircleIcon,
+} from '@heroicons/react/outline'
+import { Transition, Listbox, Dialog } from '@headlessui/react'
+import { Fragment, useEffect, useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+import copy from 'copy-to-clipboard'
 import moment from 'moment'
 
-import { useUser } from '../../../lib/hooks'
+import { useConnectors, useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
 
-const expirationRate = [
+const EXPIRATION_RATE = [
   { name: '30 days', value: '720h', default: true },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
   { name: '1 year', value: '8766h' },
 ]
+
+const ACCESS_KEY_TYPE = [
+  { name: 'admin', default: true },
+  { name: 'connector' },
+]
+
+function AccessKeyDialogContent({ accessKey }) {
+  const [keyCopied, setKeyCopied] = useState(false)
+
+  return (
+    <div className='w-full 2xl:m-auto'>
+      <h1 className='py-1 font-display text-lg font-medium'>Access Key</h1>
+      <div className='space-y-4'>
+        <div className='mb-2'>
+          <p className='mt-1 text-sm text-gray-500'>
+            Make sure to copy the access key now as you will not be able to see
+            this again.
+          </p>
+        </div>
+        <div className='group relative my-4 flex'>
+          <pre className='w-full overflow-auto rounded-lg bg-gray-50 px-5 py-4 text-xs leading-normal text-gray-800'>
+            {accessKey}
+          </pre>
+          <button
+            className='absolute right-2 top-2 rounded-md border border-black/10 bg-white px-2 py-2 text-black/40 backdrop-blur-xl hover:text-black/70'
+            type='button'
+            onClick={() => {
+              copy(accessKey)
+              setKeyCopied(true)
+              setTimeout(() => setKeyCopied(false), 2000)
+            }}
+          >
+            {keyCopied ? (
+              <CheckIcon className='h-4 w-4 text-green-500' />
+            ) : (
+              <DuplicateIcon className='h-4 w-4' />
+            )}
+          </button>
+        </div>
+
+        {/* Finish */}
+        <div className='my-10 flex justify-end'>
+          <Link href='/settings'>
+            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
+              Finish
+            </a>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccessKeyDialog({ accessKey, accessKeyDialogOpen }) {
+  return (
+    <Transition.Root show={accessKeyDialogOpen} as={Fragment}>
+      <Dialog as='div' className='relative z-50' onClose={() => {}}>
+        <Transition.Child
+          as={Fragment}
+          enter='ease-out duration-150'
+          enterFrom='opacity-0'
+          enterTo='opacity-100'
+          leave='ease-in duration-100'
+          leaveFrom='opacity-100'
+          leaveTo='opacity-0'
+        >
+          <div className='fixed inset-0 bg-white bg-opacity-75 backdrop-blur-xl transition-opacity' />
+        </Transition.Child>
+        <div className='fixed inset-0 z-10 overflow-y-auto'>
+          <div className='flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0'>
+            <Transition.Child
+              as={Fragment}
+              enter='ease-out duration-150'
+              enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+              enterTo='opacity-100 translate-y-0 sm:scale-100'
+              leave='ease-in duration-100'
+              leaveFrom='opacity-100 translate-y-0 sm:scale-100'
+              leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+            >
+              <Dialog.Panel className='relative w-full transform overflow-hidden rounded-xl border border-gray-100 bg-white p-8 text-left shadow-xl shadow-gray-300/10 transition-all sm:my-8 sm:max-w-lg'>
+                <AccessKeyDialogContent accessKey={accessKey} />
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition.Root>
+  )
+}
 
 function ExpirationRateMenu({ selected, setSelected }) {
   const [referenceElement, setReferenceElement] = useState(null)
@@ -62,7 +159,7 @@ function ExpirationRateMenu({ selected, setSelected }) {
             className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
           >
             <div className='max-h-64 overflow-auto'>
-              {expirationRate.map(rate => (
+              {EXPIRATION_RATE.map(rate => (
                 <Listbox.Option
                   key={rate.value}
                   className={({ active }) =>
@@ -98,16 +195,41 @@ function ExpirationRateMenu({ selected, setSelected }) {
   )
 }
 
+// function AccessKeyType({ name, currentType }) {
+//   return (
+//     <div
+//       className={`${
+//         name === currentType ? 'bg-gray-400/20' : 'bg-white'
+//       } flex cursor-pointer select-none items-center rounded-lg border border-gray-300 bg-transparent px-3
+//         py-4 hover:opacity-75`}
+//     >
+//       {name === 'admin' && <UserCircleIcon className='mr-4 w-5 flex-shrink' />}
+//       {name === 'connector' && (
+//         <SwitchHorizontalIcon className='str mr-4 w-5 flex-shrink' />
+//       )}
+//       <div>
+//         <h3 className='flex-1 text-2xs capitalize'>{name}</h3>
+//       </div>
+//     </div>
+//   )
+// }
+
 export default function AccessKey() {
   const router = useRouter()
 
-  const [name, setName] = useState('')
   const [selectedTTL, setSelectedTTL] = useState(
-    expirationRate.find(e => e.default)
+    EXPIRATION_RATE.find(e => e.default)
   )
+  const [name, setName] = useState('')
   const [error, setError] = useState('')
+  const [generatedAccessKey, setGeneratedAccessKey] = useState('')
+  const [accessKeyDialogOpen, setAccessKeyDialogOpen] = useState(false)
 
   const { user } = useUser()
+
+  useEffect(() => {
+    setAccessKeyDialogOpen(generatedAccessKey.length > 0)
+  }, [generatedAccessKey])
 
   async function onSubmit(e) {
     e.preventDefault()
@@ -125,8 +247,9 @@ export default function AccessKey() {
         }),
       })
 
-      await jsonBody(res)
-      router.replace('/settings')
+      const data = await jsonBody(res)
+      // router.replace('/settings')
+      setGeneratedAccessKey(data.accessKey)
     } catch (e) {
       setError(e.message)
     }
@@ -141,7 +264,7 @@ export default function AccessKey() {
       </Head>
       <div className='flex items-center justify-between'>
         <h1 className='my-6 py-1 font-display text-xl font-medium'>
-          New Access Key
+          {`New access key`}
         </h1>
         <Link href='/settings'>
           <a>
@@ -152,6 +275,7 @@ export default function AccessKey() {
           </a>
         </Link>
       </div>
+
       <div className='flex w-full flex-col'>
         <form onSubmit={onSubmit} className='mb-6 flex flex-col space-y-6'>
           <div className='flex flex-col space-y-1'>
@@ -187,21 +311,38 @@ export default function AccessKey() {
           </div>
           {selectedTTL.value && (
             <div className='space-y-1 pt-6 text-xs text-gray-500'>
-              <div>
-                This access key must be used at least once every{' '}
-                <span className='font-semibold text-gray-900'>30 days</span>,
-              </div>
-              <div>
-                and will expire on{' '}
-                <span className='font-semibold text-gray-900'>
-                  {moment()
-                    .add(
-                      parseInt(selectedTTL.value),
-                      selectedTTL.value.charAt(selectedTTL.value.length - 1)
-                    )
-                    .format('h:mm:ss a, MMMM Do YYYY')}
-                </span>
-              </div>
+              {selectedTTL.default ? (
+                <div>
+                  This access key will expire on{' '}
+                  <span className='font-semibold text-gray-900'>
+                    {moment()
+                      .add(
+                        parseInt(selectedTTL.value),
+                        selectedTTL.value.charAt(selectedTTL.value.length - 1)
+                      )
+                      .format('h:mm:ss a, MMMM Do YYYY')}
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    This access key must be used at least once every{' '}
+                    <span className='font-semibold text-gray-900'>30 days</span>
+                    ,
+                  </div>
+                  <div>
+                    and will expire on{' '}
+                    <span className='font-semibold text-gray-900'>
+                      {moment()
+                        .add(
+                          parseInt(selectedTTL.value),
+                          selectedTTL.value.charAt(selectedTTL.value.length - 1)
+                        )
+                        .format('h:mm:ss a, MMMM Do YYYY')}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
           {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
@@ -214,6 +355,10 @@ export default function AccessKey() {
               Generate Access Key
             </button>
           </div>
+          <AccessKeyDialog
+            accessKeyDialogOpen={accessKeyDialogOpen}
+            accessKey={generatedAccessKey}
+          />
         </form>
       </div>
     </div>

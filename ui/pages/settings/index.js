@@ -118,19 +118,19 @@ export default function Settings() {
   const { user, isAdmin } = useUser()
 
   const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 10
+  const limit = 3
   const {
     data: { items: accessKeys, totalPages, totalCount } = {},
     mutate: accessKeyMutate,
   } = useSWR(`/api/access-keys?userID=${user.id}&page=${page}&limit=${limit}`)
 
-  const { data: { items: users } = {} } = useSWR('/api/users?limit=1000')
-  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=1000')
+  const { data: { items: users } = {} } = useSWR('/api/users?limit=999')
+  const { data: { items: groups } = {} } = useSWR('/api/groups?limit=999')
   const { data: { items: grants } = {}, mutate } = useSWR(
-    '/api/grants?resource=infra&privilege=admin&limit=1000'
+    '/api/grants?resource=infra&privilege=admin&limit=999'
   )
   const { data: { items: selfGroups } = {} } = useSWR(
-    () => `/api/groups?userID=${user?.id}&limit=1000`
+    () => `/api/groups?userID=${user?.id}&limit=999`
   )
 
   const tabs = isAdmin ? [TAB_ACCESS_KEY, TAB_ORG_ADMINS] : []
