@@ -854,6 +854,13 @@ DELETE FROM settings WHERE id=24567;
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-11-10T17:30"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				_, err := GetOrganization(tx, GetOrganizationOptions{ByID: defaultOrganizationID})
+				assert.NilError(t, err)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
