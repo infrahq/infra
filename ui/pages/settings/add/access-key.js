@@ -1,13 +1,10 @@
 import Link from 'next/link'
 import Head from 'next/head'
-import { useRouter } from 'next/router'
 import {
   XIcon,
   ChevronDownIcon,
   CheckIcon,
   DuplicateIcon,
-  SwitchHorizontalIcon,
-  UserCircleIcon,
 } from '@heroicons/react/outline'
 import { Transition, Listbox, Dialog } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
@@ -16,7 +13,7 @@ import * as ReactDOM from 'react-dom'
 import copy from 'copy-to-clipboard'
 import moment from 'moment'
 
-import { useConnectors, useUser } from '../../../lib/hooks'
+import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
 
@@ -195,28 +192,7 @@ function ExpirationRateMenu({ selected, setSelected }) {
   )
 }
 
-// function AccessKeyType({ name, currentType }) {
-//   return (
-//     <div
-//       className={`${
-//         name === currentType ? 'bg-gray-400/20' : 'bg-white'
-//       } flex cursor-pointer select-none items-center rounded-lg border border-gray-300 bg-transparent px-3
-//         py-4 hover:opacity-75`}
-//     >
-//       {name === 'admin' && <UserCircleIcon className='mr-4 w-5 flex-shrink' />}
-//       {name === 'connector' && (
-//         <SwitchHorizontalIcon className='str mr-4 w-5 flex-shrink' />
-//       )}
-//       <div>
-//         <h3 className='flex-1 text-2xs capitalize'>{name}</h3>
-//       </div>
-//     </div>
-//   )
-// }
-
 export default function AccessKey() {
-  const router = useRouter()
-
   const [selectedTTL, setSelectedTTL] = useState(
     EXPIRATION_RATE.find(e => e.default)
   )
