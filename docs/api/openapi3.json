@@ -5155,6 +5155,15 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "allowedDomains": {
+                    "example": "['example.com', 'infrahq.com']",
+                    "items": {
+                      "example": "['example.com', 'infrahq.com']",
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
                   "api": {
                     "properties": {
                       "clientEmail": {
@@ -5647,6 +5656,15 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "allowedDomains": {
+                    "example": "['example.com', 'infrahq.com']",
+                    "items": {
+                      "example": "['example.com', 'infrahq.com']",
+                      "type": "string"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
                   "api": {
                     "properties": {
                       "clientEmail": {

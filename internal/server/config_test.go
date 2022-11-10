@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/mitchellh/mapstructure"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v2"
@@ -460,6 +461,7 @@ func TestLoadConfigWithProviders(t *testing.T) {
 		cmp.FilterPath(
 			opt.PathField(models.Provider{}, "Scopes"),
 			cmp.Comparer(slices.Equal)),
+		cmpopts.EquateEmpty(),
 	}
 	assert.DeepEqual(t, okta, expected, cmpProvider)
 
@@ -877,6 +879,7 @@ func TestLoadConfigUpdate(t *testing.T) {
 		cmp.FilterPath(
 			opt.PathField(models.Provider{}, "Scopes"),
 			cmp.Comparer(slices.Equal)),
+		cmpopts.EquateEmpty(),
 	}
 
 	assert.DeepEqual(t, provider, expected, cmpProvider)

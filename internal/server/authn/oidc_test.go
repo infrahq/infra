@@ -273,3 +273,63 @@ func TestExchangeAuthCodeForProviderTokens(t *testing.T) {
 		})
 	}
 }
+
+func TestExchangeAuthCodeForProviderTokensAllowedDomains(t *testing.T) {
+	sessionExpiry := time.Now().Add(5 * time.Minute)
+
+	type testCase struct {
+		client   providers.OIDCClient
+		expected func(t *testing.T, authnIdentity AuthenticatedIdentity, err error)
+	}
+
+	testCases := map[string]testCase{
+		"UserWithAllowedEmailDomain": {
+			client: &mockOIDCImplementation{
+				UserEmailResp: "user@example.com",
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.NilError(t, err)
+				assert.Equal(t, "user@example.com", a.Identity.Name)
+				assert.Equal(t, "mockoidc", a.Provider.Name)
+				assert.Assert(t, a.SessionExpiry.Equal(sessionExpiry))
+			},
+		},
+		"UserWithEmailDomainNotAllowed": {
+			client: &mockOIDCImplementation{
+				UserEmailResp: "user@infra.app",
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.ErrorContains(t, err, "infra.app is not an allowed email domain")
+			},
+		},
+		"UserIdentifierWithNoAtSign": {
+			client: &mockOIDCImplementation{
+				UserEmailResp: "example.com",
+			},
+			expected: func(t *testing.T, a AuthenticatedIdentity, err error) {
+				assert.ErrorContains(t, err, "example.com is an invalid email address")
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := setupDB(t)
+
+			// setup fake identity provider with allowed domains specified
+			provider := &models.Provider{
+				Name:           "mockoidc",
+				URL:            "mockOIDC.example.com",
+				Kind:           models.ProviderKindOIDC,
+				AllowedDomains: []string{"example.com", "infrahq.com"},
+			}
+			err := data.CreateProvider(db, provider)
+			assert.NilError(t, err)
+
+			loginMethod := NewOIDCAuthentication(provider.ID, "mockOIDC.example.com/redirect", "AAA", tc.client)
+
+			a, err := loginMethod.Authenticate(context.Background(), db, sessionExpiry)
+			tc.expected(t, a, err)
+		})
+	}
+}

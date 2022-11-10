@@ -72,6 +72,7 @@ func migrations() []*migrator.Migration {
 		modifyDeviceFlowAuthRequestDropApproved(),
 		addExpiresAtIndices(),
 		addDestinationKind(),
+		addAllowedDomainsToProvidersTable(),
 		// next one here
 	}
 }
@@ -878,6 +879,17 @@ func addDestinationKind() *migrator.Migration {
 			stmt := `
 				ALTER TABLE destinations
 				ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'kubernetes'`
+			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func addAllowedDomainsToProvidersTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-03T13:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `ALTER TABLE providers ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
 			_, err := tx.Exec(stmt)
 			return err
 		},

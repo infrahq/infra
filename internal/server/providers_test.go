@@ -24,10 +24,11 @@ func TestAPI_ListProviders(t *testing.T) {
 	routes := s.GenerateRoutes()
 
 	testProvider := &models.Provider{
-		Name:    "mokta",
-		Kind:    models.ProviderKindOkta,
-		AuthURL: "https://example.com/v1/auth",
-		Scopes:  []string{"openid", "email"},
+		Name:           "mokta",
+		Kind:           models.ProviderKindOkta,
+		AuthURL:        "https://example.com/v1/auth",
+		Scopes:         []string{"openid", "email"},
+		AllowedDomains: []string{"example.com"},
 	}
 
 	err := data.CreateProvider(s.DB(), testProvider)
@@ -35,26 +36,136 @@ func TestAPI_ListProviders(t *testing.T) {
 
 	dbProviders, err := data.ListProviders(s.DB(), data.ListProvidersOptions{})
 	assert.NilError(t, err)
-	assert.Equal(t, len(dbProviders), 2)
+	assert.Equal(t, len(dbProviders), 2) // infra provider and mokta
 
-	// nolint:noctx
-	req := httptest.NewRequest(http.MethodGet, "/api/providers", nil)
-	req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
-	req.Header.Add("Infra-Version", "0.12.3")
+	t.Run("list providers returns providers for org", func(t *testing.T) {
+		// nolint:noctx
+		req, err := http.NewRequest(http.MethodGet, "/api/providers", nil)
+		assert.NilError(t, err)
 
-	resp := httptest.NewRecorder()
-	routes.ServeHTTP(resp, req)
+		user := &models.Identity{Name: "bruce@example.com"}
+		err = data.CreateIdentity(s.DB(), user)
+		assert.NilError(t, err)
 
-	assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+		key := &models.AccessKey{
+			IssuedFor:  user.ID,
+			ProviderID: testProvider.ID,
+			ExpiresAt:  time.Now().Add(-1 * time.Minute),
+		}
+		bearer, err := data.CreateAccessKey(s.DB(), key)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+bearer)
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
-	var apiProviders api.ListResponse[Provider]
-	err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+		var apiProviders api.ListResponse[api.Provider]
+		err = json.Unmarshal(resp.Body.Bytes(), &apiProviders)
+		assert.NilError(t, err)
+
+		assert.Equal(t, len(apiProviders.Items), 1) // infra provider is not returned
+		assert.Equal(t, apiProviders.Items[0].Name, testProvider.Name)
+		assert.Equal(t, apiProviders.Items[0].AuthURL, testProvider.AuthURL)
+		assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, testProvider.Scopes))
+	})
+}
+
+func TestAPI_GetProvider(t *testing.T) {
+	s := setupServer(t, withAdminUser)
+	routes := s.GenerateRoutes()
+
+	testProvider := &models.Provider{
+		Name:           "mokta",
+		Kind:           models.ProviderKindOkta,
+		AuthURL:        "https://example.com/v1/auth",
+		Scopes:         []string{"openid", "email"},
+		AllowedDomains: []string{"example.com"},
+	}
+
+	err := data.CreateProvider(s.DB(), testProvider)
 	assert.NilError(t, err)
 
-	assert.Equal(t, len(apiProviders.Items), 1)
-	assert.Equal(t, apiProviders.Items[0].Name, "mokta")
-	assert.Equal(t, apiProviders.Items[0].AuthURL, "https://example.com/v1/auth")
-	assert.Assert(t, slices.Equal(apiProviders.Items[0].Scopes, []string{"openid", "email"}))
+	dbProviders, err := data.ListProviders(s.DB(), data.ListProvidersOptions{})
+	assert.NilError(t, err)
+	assert.Equal(t, len(dbProviders), 2) // infra provider and mokta
+
+	t.Run("get provider with access key for org returns provider with sensitive fields", func(t *testing.T) {
+		// nolint:noctx
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/providers/%s", testProvider.ID), nil)
+		assert.NilError(t, err)
+
+		req.Header.Add("Authorization", "Bearer "+adminAccessKey(s))
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+		var provider api.Provider
+		err = json.Unmarshal(resp.Body.Bytes(), &provider)
+		assert.NilError(t, err)
+
+		assert.Equal(t, provider.Name, testProvider.Name)
+		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
+		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
+	})
+	t.Run("get provider with no access key for org returns provider without fields", func(t *testing.T) {
+		// nolint:noctx
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/providers/%s", testProvider.ID), nil)
+		assert.NilError(t, err)
+
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+		var provider api.Provider
+		err = json.Unmarshal(resp.Body.Bytes(), &provider)
+		assert.NilError(t, err)
+
+		assert.Equal(t, provider.Name, testProvider.Name)
+		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
+		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
+	})
+	t.Run("get provider with expired access key for org returns provider without fields", func(t *testing.T) {
+		// nolint:noctx
+		req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/providers/%s", testProvider.ID), nil)
+		assert.NilError(t, err)
+
+		user := &models.Identity{Name: "bruce@example.com"}
+		err = data.CreateIdentity(s.DB(), user)
+		assert.NilError(t, err)
+
+		key := &models.AccessKey{
+			IssuedFor:  user.ID,
+			ProviderID: testProvider.ID,
+			ExpiresAt:  time.Now().Add(-1 * time.Minute),
+		}
+		bearer, err := data.CreateAccessKey(s.DB(), key)
+		assert.NilError(t, err)
+		req.Header.Add("Authorization", "Bearer "+bearer)
+
+		req.Header.Add("Infra-Version", apiVersionLatest)
+
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		assert.Equal(t, http.StatusOK, resp.Code, resp.Body.String())
+
+		var provider api.Provider
+		err = json.Unmarshal(resp.Body.Bytes(), &provider)
+		assert.NilError(t, err)
+
+		assert.Equal(t, provider.Name, testProvider.Name)
+		assert.Equal(t, provider.AuthURL, testProvider.AuthURL)
+		assert.Assert(t, slices.Equal(provider.Scopes, testProvider.Scopes))
+	})
 }
 
 func TestAPI_DeleteProvider(t *testing.T) {
