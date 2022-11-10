@@ -28,10 +28,10 @@ const daysOfWeek = [
 ]
 
 const timeRange = [
-  { name: 'in 7 days', value: '168h' },
   { name: 'in 30 days', value: '720h' },
   { name: 'in 60 days', value: '1440h' },
   { name: 'in 90 days', value: '2160h' },
+  { name: 'in 1 year', value: '8766h' },
 ]
 
 function CalendarRow({
@@ -46,6 +46,7 @@ function CalendarRow({
   extensionHour,
 }) {
   const earliestMaxExtensionTime = moment().add(extensionHour, 'h')
+  console.log(earliestMaxExtensionTime)
 
   let content = []
   //first row with empty spaces

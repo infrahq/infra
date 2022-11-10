@@ -6,7 +6,7 @@ import {
   CheckIcon,
   DuplicateIcon,
 } from '@heroicons/react/outline'
-import { Transition, Listbox, Dialog } from '@headlessui/react'
+import { Transition, Listbox, Dialog, Popover } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
@@ -16,18 +16,65 @@ import moment from 'moment'
 import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
+import Calendar from '../../../components/calendar'
+
+const CUSTOM_TYPE = 'custom'
+const CUSTOM_TITLE = 'custom ...'
 
 const EXPIRATION_RATE = [
   { name: '30 days', value: '720h', default: true },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
   { name: '1 year', value: '8766h' },
+  { name: CUSTOM_TITLE, value: '1h', type: CUSTOM_TYPE },
 ]
 
-const ACCESS_KEY_TYPE = [
-  { name: 'admin', default: true },
-  { name: 'connector' },
-]
+function CalendarInput({ setSelectedTTL, selectedTTL, selectedDeadline }) {
+  const selectedCustom =
+    parseInt(selectedTTL?.value) < parseInt(selectedDeadline?.value)
+      ? 'YYYY/MM/DD'
+      : moment()
+          .add(
+            parseInt(selectedTTL?.value),
+            selectedTTL?.value?.charAt(selectedTTL?.value.length - 1)
+          )
+          .format('YYYY/MM/DD')
+
+  return (
+    <Popover className='relative'>
+      <Popover.Button className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'>
+        {selectedCustom}
+      </Popover.Button>
+      <Popover.Panel className='absolute z-20 mt-2'>
+        {({ close }) => (
+          <Calendar
+            selectedDate={selectedCustom}
+            extensionHour={parseInt(selectedDeadline.value)}
+            onChange={e => {
+              console.log(e)
+
+              const duration = moment
+                .duration(
+                  moment(e, 'YYYY/MM/DD')
+                    .startOf('day')
+                    .diff(moment().startOf('day'))
+                )
+                .asHours()
+
+              setSelectedTTL({
+                name: CUSTOM_TITLE,
+                value: duration + 'h',
+                type: CUSTOM_TYPE,
+              })
+
+              close()
+            }}
+          />
+        )}
+      </Popover.Panel>
+    </Popover>
+  )
+}
 
 function AccessKeyDialogContent({ accessKey }) {
   const [keyCopied, setKeyCopied] = useState(false)
@@ -113,7 +160,7 @@ function AccessKeyDialog({ accessKey, accessKeyDialogOpen }) {
   )
 }
 
-function ExpirationRateMenu({ selected, setSelected }) {
+function ExpirationRateMenu({ selected, setSelected, allowCustom = false }) {
   const [referenceElement, setReferenceElement] = useState(null)
   const [popperElement, setPopperElement] = useState(null)
   let { styles, attributes } = usePopper(referenceElement, popperElement, {
@@ -156,7 +203,10 @@ function ExpirationRateMenu({ selected, setSelected }) {
             className='absolute z-10 w-48 overflow-auto rounded-md border  border-gray-200 bg-white text-left text-xs text-gray-800 shadow-lg shadow-gray-300/20 focus:outline-none'
           >
             <div className='max-h-64 overflow-auto'>
-              {EXPIRATION_RATE.map(rate => (
+              {(allowCustom
+                ? EXPIRATION_RATE
+                : EXPIRATION_RATE.filter(r => r.name !== CUSTOM_TITLE)
+              ).map(rate => (
                 <Listbox.Option
                   key={rate.value}
                   className={({ active }) =>
@@ -193,7 +243,8 @@ function ExpirationRateMenu({ selected, setSelected }) {
 }
 
 export default function AccessKey() {
-  const [selectedTTL, setSelectedTTL] = useState(
+  const [selectedTTL, setSelectedTTL] = useState(null)
+  const [selectedDeadline, setSelectedDeadline] = useState(
     EXPIRATION_RATE.find(e => e.default)
   )
   const [name, setName] = useState('')
@@ -207,6 +258,12 @@ export default function AccessKey() {
     setAccessKeyDialogOpen(generatedAccessKey.length > 0)
   }, [generatedAccessKey])
 
+  useEffect(() => {
+    if (selectedTTL === null) {
+      setSelectedTTL(EXPIRATION_RATE.find(e => e.default))
+    }
+  }, [selectedTTL])
+
   async function onSubmit(e) {
     e.preventDefault()
 
@@ -219,7 +276,8 @@ export default function AccessKey() {
           name,
           userID: user.id,
           ttl: selectedTTL.value,
-          extensionDeadline: '720h',
+          // extensionDeadline: '720h',
+          extensionDeadline: selectedDeadline.value,
         }),
       })
 
@@ -276,18 +334,39 @@ export default function AccessKey() {
           </div>
           <div className='flex flex-col space-y-1'>
             <label className='text-2xs font-medium text-gray-700'>
-              Expiration
+              Extension Deadline
             </label>
-            <div className='flex flex-col sm:flex-row sm:items-center'>
+            <div className='flex items-center space-x-4'>
               <ExpirationRateMenu
-                selected={selectedTTL}
-                setSelected={setSelectedTTL}
+                selected={selectedDeadline}
+                setSelected={setSelectedDeadline}
               />
             </div>
           </div>
-          {selectedTTL.value && (
+          <div className='flex flex-col space-y-1'>
+            <label className='text-2xs font-medium text-gray-700'>
+              Expiration
+            </label>
+            <div className='flex flex-col sm:flex-row sm:items-center'>
+              {/* <ExpirationRateMenu
+                selected={selectedTTL}
+                setSelected={setSelectedTTL}
+                allowCustom
+              />
+              {selectedTTL.type === CUSTOM_TYPE && (
+                <div className='mt-4 sm:ml-4 sm:mt-0'> */}
+              <CalendarInput
+                selectedTTL={selectedTTL}
+                setSelectedTTL={setSelectedTTL}
+                selectedDeadline={selectedDeadline}
+              />
+              {/* </div> */}
+              {/* )} */}
+            </div>
+          </div>
+          {selectedTTL?.value && selectedDeadline?.value && (
             <div className='space-y-1 pt-6 text-xs text-gray-500'>
-              {selectedTTL.default ? (
+              {/* {selectedTTL.default ? (
                 <div>
                   This access key will expire on{' '}
                   <span className='font-semibold text-gray-900'>
@@ -299,26 +378,28 @@ export default function AccessKey() {
                       .format('h:mm:ss a, MMMM Do YYYY')}
                   </span>
                 </div>
-              ) : (
-                <>
-                  <div>
-                    This access key must be used at least once every{' '}
-                    <span className='font-semibold text-gray-900'>30 days</span>
-                    ,
-                  </div>
-                  <div>
-                    and will expire on{' '}
-                    <span className='font-semibold text-gray-900'>
-                      {moment()
-                        .add(
-                          parseInt(selectedTTL.value),
-                          selectedTTL.value.charAt(selectedTTL.value.length - 1)
-                        )
-                        .format('h:mm:ss a, MMMM Do YYYY')}
-                    </span>
-                  </div>
-                </>
-              )}
+              ) : ( */}
+              {/* <> */}
+              <div>
+                This access key must be used at least once every{' '}
+                <span className='font-semibold text-gray-900'>
+                  {selectedDeadline?.name}
+                </span>
+                ,
+              </div>
+              <div>
+                and will expire on{' '}
+                <span className='font-semibold text-gray-900'>
+                  {moment()
+                    .add(
+                      parseInt(selectedTTL?.value),
+                      selectedTTL?.value?.charAt(selectedTTL?.value.length - 1)
+                    )
+                    .format('h:mm:ss a, MMMM Do YYYY')}
+                </span>
+              </div>
+              {/* </>
+              )} */}
             </div>
           )}
           {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
