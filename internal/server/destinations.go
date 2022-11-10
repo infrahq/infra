@@ -60,7 +60,10 @@ func (a *API) CreateDestination(c *gin.Context, r *api.CreateDestinationRequest)
 
 	// set LastSeenAt if this request came from a connector. The middleware
 	// can't do this update in the case where the destination did not exist yet
-	if c.Request.Header.Get(headerInfraDestination) == r.UniqueID {
+	switch {
+	case c.Request.Header.Get(headerInfraDestinationName) == r.Name:
+		destination.LastSeenAt = time.Now()
+	case c.Request.Header.Get(headerInfraDestinationUniqueID) == r.UniqueID:
 		destination.LastSeenAt = time.Now()
 	}
 

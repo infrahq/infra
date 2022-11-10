@@ -31,9 +31,6 @@ func validateDestination(dest *models.Destination) error {
 	if dest.Name == "" {
 		return fmt.Errorf("Destination.Name is required")
 	}
-	if dest.UniqueID == "" {
-		return fmt.Errorf("Destination.UniqueID is required")
-	}
 	if dest.Kind == "" {
 		return fmt.Errorf("Destination.Kind is required")
 	}

@@ -7,7 +7,7 @@ import (
 
 type Destination struct {
 	ID         uid.ID                `json:"id"`
-	UniqueID   string                `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"`
+	UniqueID   string                `json:"uniqueID" form:"uniqueID" example:"94c2c570a20311180ec325fd56"` // TODO: remove this field from the API
 	Name       string                `json:"name" form:"name"`
 	Kind       string                `json:"kind"`
 	Created    Time                  `json:"created"`
@@ -38,7 +38,7 @@ func (r DestinationConnection) ValidationRules() []validate.ValidationRule {
 type ListDestinationsRequest struct {
 	Name     string `form:"name"`
 	Kind     string `form:"kind"`
-	UniqueID string `form:"unique_id"`
+	UniqueID string `form:"unique_id"` // TODO: remove this field from the API
 	PaginationRequest
 }
 
@@ -49,7 +49,7 @@ func (r ListDestinationsRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateDestinationRequest struct {
-	UniqueID   string                `json:"uniqueID"`
+	UniqueID   string                `json:"uniqueID"` // TODO: remove this field from the API
 	Name       string                `json:"name"`
 	Kind       string                `json:"kind"`
 	Version    string                `json:"version"`
@@ -61,7 +61,6 @@ type CreateDestinationRequest struct {
 
 func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("uniqueID", r.UniqueID),
 		validateDestinationName(r.Name),
 		validate.Required("name", r.Name),
 		// Allow "" for versions 0.16.1 and prior
@@ -73,7 +72,7 @@ func (r CreateDestinationRequest) ValidationRules() []validate.ValidationRule {
 type UpdateDestinationRequest struct {
 	ID         uid.ID                `uri:"id" json:"-"`
 	Name       string                `json:"name"`
-	UniqueID   string                `json:"uniqueID"`
+	UniqueID   string                `json:"uniqueID"` // TODO: remove this field from the API
 	Version    string                `json:"version"`
 	Connection DestinationConnection `json:"connection"`
 
@@ -83,7 +82,6 @@ type UpdateDestinationRequest struct {
 
 func (r UpdateDestinationRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("uniqueID", r.UniqueID),
 		validate.Required("id", r.ID),
 		validate.Required("name", r.Name),
 		validateDestinationName(r.Name),

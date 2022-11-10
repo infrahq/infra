@@ -1740,7 +1740,6 @@
                   }
                 },
                 "required": [
-                  "uniqueID",
                   "name"
                 ],
                 "type": "object"
@@ -2112,7 +2111,6 @@
                   }
                 },
                 "required": [
-                  "uniqueID",
                   "name"
                 ],
                 "type": "object"
