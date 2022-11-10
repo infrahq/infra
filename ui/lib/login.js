@@ -30,9 +30,8 @@ export function currentBaseDomain() {
   let parts = window.location.host.split('.')
   if (parts.length > 2) {
     parts.shift() // remove the org
-    domain = parts.join('.') // join the last two parts of the domain
   }
-  return domain
+  return parts.join('.') // return the domain without the org
 }
 
 export function currentOrg() {
