@@ -27,11 +27,7 @@ func GetProvider(c *gin.Context, id uid.ID) (*models.Provider, error) {
 
 func ListProviders(c *gin.Context, opts data.ListProvidersOptions) ([]models.Provider, error) {
 	rCtx := GetRequestContext(c)
-	providers, err := data.ListProviders(rCtx.DBTxn, opts)
-	if err != nil {
-		return nil, err
-	}
-	return providers, nil
+	return data.ListProviders(rCtx.DBTxn, opts)
 }
 
 func SaveProvider(c *gin.Context, provider *models.Provider) error {
