@@ -281,7 +281,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                       disabled={selectedNamespaces.length === 0}
                     >
                       <div className='flex flex-row items-center py-0.5'>
-                        <XIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />
                         Bulk remove access
                       </div>
                     </button>
