@@ -1,21 +1,22 @@
-import { useRouter } from 'next/router'
-import useSWR, { useSWRConfig } from 'swr'
 import { useEffect, useState, Fragment, useRef } from 'react'
-import Head from 'next/head'
-import Link from 'next/link'
-import copy from 'copy-to-clipboard'
-import {
-  XIcon,
-  CheckIcon,
-  DuplicateIcon,
-  DownloadIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-} from '@heroicons/react/outline'
-import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
-import dayjs from 'dayjs'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+import { useRouter } from 'next/router'
+import Head from 'next/head'
+import Link from 'next/link'
+
+import useSWR, { useSWRConfig } from 'swr'
+import dayjs from 'dayjs'
+import copy from 'copy-to-clipboard'
+import {
+  CheckIcon,
+  DocumentDuplicateIcon,
+  XMarkIcon,
+  ArrowDownTrayIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+} from '@heroicons/react/24/outline'
+import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
 
 import { useUser } from '../../../lib/hooks'
 import {
@@ -146,7 +147,7 @@ function EditRoleMenu({
               value={OPTION_REMOVE}
             >
               <div className='flex flex-row items-center py-0.5'>
-                <XIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove access
+                <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' /> Remove access
               </div>
             </Listbox.Option>
           </Listbox.Options>,
@@ -280,7 +281,7 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                       disabled={selectedNamespaces.length === 0}
                     >
                       <div className='flex flex-row items-center py-0.5'>
-                        <XIcon className='mr-1 mt-px h-3.5 w-3.5' />
+                        <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />
                         Bulk remove access
                       </div>
                     </button>
@@ -598,7 +599,7 @@ function AccessCluster({ roles, resource }) {
           className='flex items-center text-xs font-medium text-gray-300 hover:text-gray-400'
           rel='noreferrer'
         >
-          <DownloadIcon className='mr-1 h-3.5 w-3.5' />
+          <ArrowDownTrayIcon className='mr-1 h-3.5 w-3.5' />
           Infra CLI
         </a>
       </div>
@@ -625,7 +626,7 @@ function AccessCluster({ roles, resource }) {
           {commandCopied ? (
             <CheckIcon className='h-4 w-4 stroke-1 text-green-500' />
           ) : (
-            <DuplicateIcon className='h-4 w-4 stroke-1' />
+            <DocumentDuplicateIcon className='h-4 w-4 stroke-1' />
           )}
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router'
 import { useState } from 'react'
-import { MailIcon } from '@heroicons/react/outline'
+
+import { EnvelopeOpenIcon } from '@heroicons/react/24/outline'
 
 import LoginLayout from '../../components/layouts/login'
 import PasswordResetForm from '../../components/password-reset-form'
@@ -55,7 +56,7 @@ export default function PasswordReset() {
           <h1 className='text-base font-bold leading-snug'>Password Reset</h1>
           {submitted ? (
             <p className='my-3 flex max-w-[260px] flex-1 flex-col items-center justify-center text-center text-xs text-gray-600'>
-              <MailIcon className='mb-2 h-10 w-10 stroke-1 text-gray-400' />
+              <EnvelopeOpenIcon className='mb-2 h-10 w-10 stroke-1 text-gray-400' />
               Please check your inbox. We&apos;ve sent you a link to reset your
               password
             </p>

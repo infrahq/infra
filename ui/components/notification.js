@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useCallback } from 'react'
+
 import { Transition } from '@headlessui/react'
-import { CheckCircleIcon } from '@heroicons/react/outline'
-import { XIcon } from '@heroicons/react/solid'
+import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 export default function Notification({
   show,
@@ -61,7 +61,7 @@ export default function Notification({
                     onClick={() => setShow(false)}
                   >
                     <span className='sr-only'>Close</span>
-                    <XIcon className='h-5 w-5' aria-hidden='true' />
+                    <XMarkIcon className='h-5 w-5' aria-hidden='true' />
                   </button>
                 </div>
               </div>

@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useState } from 'react'
-import { Transition, Dialog } from '@headlessui/react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
+
 import { useSWRConfig } from 'swr'
 import Tippy from '@tippyjs/react'
-import { InformationCircleIcon, XIcon } from '@heroicons/react/outline'
+import { Transition, Dialog } from '@headlessui/react'
+import { XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline'
 
 import { providers } from '../../lib/providers'
 
@@ -232,7 +233,7 @@ export default function ProvidersAddDetails() {
         </h1>
         <Link href='/providers'>
           <a>
-            <XIcon
+            <XMarkIcon
               className='h-5 w-5 text-gray-500 hover:text-gray-800'
               aria-hidden='true'
             />
