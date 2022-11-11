@@ -374,19 +374,20 @@ export default function ProvidersAddDetails() {
                   </p>
                 )}
               </div>
-              <div>
+              <div className='group'>
                 <input
                   name='scim-checkbox'
                   type='checkbox'
-                  value=''
-                  class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500'
+                  checked={enableSCIM}
+                  class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 hover:cursor-pointer focus:ring-2 focus:ring-blue-500'
                   onChange={() => {
                     setEnableSCIM(!enableSCIM)
                   }}
                 />
                 <label
                   htmlFor='scim-checkbox'
-                  className='ml-2 text-sm font-medium'
+                  className='ml-2 text-sm font-medium group-hover:cursor-pointer'
+                  onClick={() => setEnableSCIM(!enableSCIM)}
                 >
                   Enable SCIM
                 </label>
