@@ -330,6 +330,23 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, errMsg.Code, int32(400))
 	})
 
+	t.Run("version 0.16.0", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		// nolint:noctx
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?user_id="+user.ID.String(), nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.16.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := &api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), resp1)
+		assert.NilError(t, err)
+
+		assert.Equal(t, len(resp1.Items), 1, resp1.Items)
+	})
+
 	t.Run("version 0.18.0", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?name=foo", nil)

@@ -137,6 +137,7 @@ func (s *Server) GenerateRoutes() Routes {
 	post(a, authn, "/api/device/approve", a.ApproveDeviceFlow)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
+	a.addPreviousVersionHandlers()
 
 	// registerUIRoutes must happen last because it uses catch-all middleware
 	// with no handlers. Any route added after the UI will end up using the
@@ -367,12 +368,14 @@ func responseStatusCode(method string, resp any) int {
 
 func get[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {
 	add(a, r, http.MethodGet, path, route[Req, Res]{
-		handler: handler,
-		routeSettings: routeSettings{
-			omitFromTelemetry: true,
-			txnOptions:        &sql.TxOptions{ReadOnly: true},
-		},
+		handler:       handler,
+		routeSettings: defaultRouteSettingsGet,
 	})
+}
+
+var defaultRouteSettingsGet = routeSettings{
+	omitFromTelemetry: true,
+	txnOptions:        &sql.TxOptions{ReadOnly: true},
 }
 
 func post[Req, Res any](a *API, r *routeGroup, path string, handler HandlerFunc[Req, Res]) {

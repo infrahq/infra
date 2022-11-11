@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -19,6 +20,7 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/redis"
+	"github.com/infrahq/infra/uid"
 )
 
 type API struct {
@@ -39,6 +41,8 @@ func addVersionHandler[Req, Res any](a *API, method, path, version string, route
 		a.versions = make(map[routeIdentifier][]routeVersion)
 	}
 
+	routeDef.routeSettings.omitFromDocs = true
+
 	key := routeIdentifier{method: method, path: path}
 	a.versions[key] = append(a.versions[key], routeVersion{
 		version: semver.MustParse(version),
@@ -49,6 +53,29 @@ func addVersionHandler[Req, Res any](a *API, method, path, version string, route
 			}
 		},
 	})
+}
+
+func (a *API) addPreviousVersionHandlers() {
+	type listAccessKeysRequest_v0_16_1 struct {
+		UserID      uid.ID `form:"user_id"`
+		Name        string `form:"name"`
+		ShowExpired bool   `form:"show_expired"`
+		api.PaginationRequest
+	}
+	addVersionHandler(a,
+		http.MethodGet, "/api/access-keys", "0.16.1",
+		route[listAccessKeysRequest_v0_16_1, *api.ListResponse[api.AccessKey]]{
+			routeSettings: defaultRouteSettingsGet,
+			handler: func(c *gin.Context, reqOld *listAccessKeysRequest_v0_16_1) (*api.ListResponse[api.AccessKey], error) {
+				req := &api.ListAccessKeysRequest{
+					UserID:            reqOld.UserID,
+					Name:              reqOld.Name,
+					ShowExpired:       reqOld.ShowExpired,
+					PaginationRequest: reqOld.PaginationRequest,
+				}
+				return a.ListAccessKeys(c, req)
+			},
+		})
 }
 
 var createTokenRoute = route[api.EmptyRequest, *api.CreateTokenResponse]{
