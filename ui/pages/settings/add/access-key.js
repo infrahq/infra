@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import Head from 'next/head'
 import {
-  XIcon,
+  XMarkIcon,
   ChevronDownIcon,
   CheckIcon,
-  DuplicateIcon,
-} from '@heroicons/react/outline'
+  DocumentDuplicateIcon,
+} from '@heroicons/react/24/outline'
 import { Transition, Listbox, Dialog, Popover } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { usePopper } from 'react-popper'
@@ -57,7 +57,7 @@ function AccessKeyDialogContent({ accessKey }) {
             {keyCopied ? (
               <CheckIcon className='h-4 w-4 text-green-500' />
             ) : (
-              <DuplicateIcon className='h-4 w-4' />
+              <DocumentDuplicateIcon className='h-4 w-4' />
             )}
           </button>
         </div>
@@ -243,7 +243,7 @@ export default function AccessKey() {
         </h1>
         <Link href='/settings'>
           <a>
-            <XIcon
+            <XMarkIcon
               className='h-5 w-5 text-gray-500 hover:text-gray-800'
               aria-hidden='true'
             />

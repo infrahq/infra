@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { TrashIcon } from '@heroicons/react/outline'
+import { TrashIcon } from '@heroicons/react/24/outline'
 import moment from 'moment'
 
 import { useUser } from '../../lib/hooks'
