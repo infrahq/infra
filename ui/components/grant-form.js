@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
+
 import useSWR from 'swr'
 import { Combobox } from '@headlessui/react'
-import { PlusIcon, CheckIcon } from '@heroicons/react/outline'
+import { PlusIcon, CheckIcon } from '@heroicons/react/24/outline'
 
 import { sortByRole } from '../lib/grants'
 

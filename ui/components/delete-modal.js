@@ -1,6 +1,7 @@
 import { Fragment, useRef } from 'react'
+
 import { Dialog, Transition } from '@headlessui/react'
-import { TrashIcon } from '@heroicons/react/outline'
+import { TrashIcon } from '@heroicons/react/24/outline'
 
 export default function DeleteModal({
   open,

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import copy from 'copy-to-clipboard'
 import Link from 'next/link'
-import { CheckIcon, DuplicateIcon } from '@heroicons/react/outline'
+
+import copy from 'copy-to-clipboard'
+import { DocumentDuplicateIcon, CheckIcon } from '@heroicons/react/24/outline'
 
 export default function SCIMKey({ accessKey, errorMsg }) {
   const [keyCopied, setKeyCopied] = useState(false)
@@ -35,7 +36,7 @@ export default function SCIMKey({ accessKey, errorMsg }) {
                   {keyCopied ? (
                     <CheckIcon className='h-4 w-4 text-green-500' />
                   ) : (
-                    <DuplicateIcon className='h-4 w-4' />
+                    <DocumentDuplicateIcon className='h-4 w-4' />
                   )}
                 </button>
               </div>

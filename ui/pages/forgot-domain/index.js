@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { MailIcon } from '@heroicons/react/outline'
+
+import { EnvelopeOpenIcon } from '@heroicons/react/24/outline'
 
 import LoginLayout from '../../components/layouts/login'
 
@@ -43,7 +44,7 @@ export default function ForgotDomain() {
 
       {submitted ? (
         <p className='my-3 flex max-w-[260px] flex-1 flex-col items-center justify-center text-center text-xs text-gray-600'>
-          <MailIcon className='mb-2 h-10 w-10 stroke-1 text-gray-400' />
+          <EnvelopeOpenIcon className='mb-2 h-10 w-10 stroke-1 text-gray-400' />
           Please check your inbox. We&apos;ve sent you an email with a list of
           your organizations.
         </p>

@@ -1,19 +1,20 @@
+import { Fragment, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import useSWR from 'swr'
-import dayjs from 'dayjs'
-import { Menu, Transition, Dialog } from '@headlessui/react'
-import { Fragment, useState } from 'react'
-import copy from 'copy-to-clipboard'
-import {
-  DuplicateIcon,
-  CheckIcon,
-  XIcon,
-  DotsVerticalIcon,
-} from '@heroicons/react/outline'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+
+import useSWR from 'swr'
+import dayjs from 'dayjs'
+import copy from 'copy-to-clipboard'
 import Tippy from '@tippyjs/react'
+import { Menu, Transition, Dialog } from '@headlessui/react'
+import {
+  CheckIcon,
+  DocumentDuplicateIcon,
+  XMarkIcon,
+  EllipsisVerticalIcon,
+} from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
 import { useServerConfig } from '../../lib/serverconfig'
@@ -99,7 +100,7 @@ function UsersAddDialog({ setOpen, onAdded = () => {} }) {
                       {passwordCopied ? (
                         <CheckIcon className='h-4 w-4 text-green-500' />
                       ) : (
-                        <DuplicateIcon className='h-4 w-4' />
+                        <DocumentDuplicateIcon className='h-4 w-4' />
                       )}
                     </button>
                   </div>
@@ -357,7 +358,7 @@ export default function Users() {
                       ref={setReferenceElement}
                       className='cursor-pointer rounded-md border border-transparent py-0.5 px-px text-gray-400 hover:bg-gray-50 hover:text-gray-600 group-hover:border-gray-200 group-hover:text-gray-500 group-hover:shadow-md group-hover:shadow-gray-300/20'
                     >
-                      <DotsVerticalIcon className='z-0 h-[18px]' />
+                      <EllipsisVerticalIcon className='z-0 h-[18px]' />
                     </Menu.Button>
                     {ReactDOM.createPortal(
                       <div
@@ -384,7 +385,7 @@ export default function Users() {
                                     } group flex w-full items-center rounded-md px-2 py-1.5 text-xs font-medium text-red-500`}
                                     onClick={() => setOpen(true)}
                                   >
-                                    <XIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
+                                    <XMarkIcon className='mr-1 mt-px h-3.5 w-3.5' />{' '}
                                     Remove Infra user
                                   </button>
                                 )}

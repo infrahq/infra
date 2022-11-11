@@ -1,20 +1,21 @@
+import { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+
+import useSWR from 'swr'
 import copy from 'copy-to-clipboard'
+import Confetti from 'react-dom-confetti'
 import {
   CheckIcon,
-  DuplicateIcon,
-  ExternalLinkIcon,
-  XIcon,
-} from '@heroicons/react/outline'
-import Confetti from 'react-dom-confetti'
+  DocumentDuplicateIcon,
+  XMarkIcon,
+  ArrowTopRightOnSquareIcon,
+} from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
 
 import Dashboard from '../../components/layouts/dashboard'
-import useSWR from 'swr'
 
 export default function DestinationsAdd() {
   const router = useRouter()
@@ -122,7 +123,7 @@ export default function DestinationsAdd() {
         </h1>
         <Link href='/destinations'>
           <a>
-            <XIcon
+            <XMarkIcon
               className='h-5 w-5 text-gray-500 hover:text-gray-800'
               aria-hidden='true'
             />
@@ -189,7 +190,7 @@ export default function DestinationsAdd() {
                 target='_blank'
                 rel='noreferrer'
               >
-                Helm <ExternalLinkIcon className='ml-0.5 h-3 w-3' />
+                Helm <ArrowTopRightOnSquareIcon className='ml-0.5 h-3 w-3' />
               </a>
               :
             </p>
@@ -209,7 +210,7 @@ export default function DestinationsAdd() {
               {commandCopied ? (
                 <CheckIcon className='h-4 w-4 text-green-500' />
               ) : (
-                <DuplicateIcon className='h-4 w-4' />
+                <DocumentDuplicateIcon className='h-4 w-4' />
               )}
             </button>
           </div>

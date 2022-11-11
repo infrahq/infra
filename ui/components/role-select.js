@@ -1,8 +1,9 @@
-import { Listbox } from '@headlessui/react'
-import { CheckIcon, ChevronDownIcon } from '@heroicons/react/solid'
 import { useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
+
+import { Listbox } from '@headlessui/react'
+import { CheckIcon, ChevronDownIcon } from '@heroicons/react/24/solid'
 
 import { descriptions } from '../lib/grants'
 

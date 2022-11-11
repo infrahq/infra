@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import Cookies from 'universal-cookie'
 import { useRouter } from 'next/router'
-import { ChevronRightIcon } from '@heroicons/react/outline'
+
 import Tippy from '@tippyjs/react'
+import Cookies from 'universal-cookie'
+import { ChevronRightIcon } from '@heroicons/react/24/outline'
 
 import LoginLayout from '../../components/layouts/login'
 

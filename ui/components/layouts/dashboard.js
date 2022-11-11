@@ -1,16 +1,17 @@
-import Link from 'next/link'
 import { Fragment, useState, forwardRef } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
+
 import { Dialog, Transition, Menu } from '@headlessui/react'
 import {
-  ChipIcon,
+  CpuChipIcon,
+  Squares2X2Icon,
   UserGroupIcon,
   UserIcon,
-  ViewGridIcon,
-  XIcon,
-  MenuIcon,
-  CogIcon,
-} from '@heroicons/react/outline'
+  Cog8ToothIcon,
+  XMarkIcon,
+  Bars3Icon,
+} from '@heroicons/react/24/outline'
 
 import { useUser } from '../../lib/hooks'
 
@@ -68,7 +69,7 @@ function SidebarNav({ children, open, setOpen }) {
                     onClick={() => setOpen(false)}
                   >
                     <span className='sr-only'>Close sidebar</span>
-                    <XIcon
+                    <XMarkIcon
                       className='h-6 w-6 text-gray-700 hover:text-gray-900'
                       aria-hidden='true'
                     />
@@ -104,13 +105,13 @@ export default function Dashboard({ children }) {
     {
       name: 'Infrastructure',
       href: '/destinations',
-      icon: ChipIcon,
+      icon: CpuChipIcon,
     },
     {
       name: 'Providers',
       href: '/providers',
       admin: true,
-      icon: ViewGridIcon,
+      icon: Squares2X2Icon,
     },
     {
       name: 'Groups',
@@ -128,7 +129,7 @@ export default function Dashboard({ children }) {
       name: 'Settings',
       href: '/settings',
       admin: true,
-      icon: CogIcon,
+      icon: Cog8ToothIcon,
     },
   ]
 
@@ -212,7 +213,7 @@ export default function Dashboard({ children }) {
             onClick={() => setSidebarOpen(true)}
           >
             <span className='sr-only'>Open sidebar</span>
-            <MenuIcon className='h-6 w-6' aria-hidden='true' />
+            <Bars3Icon className='h-6 w-6' aria-hidden='true' />
           </button>
           <div className='flex flex-1 justify-end'>
             <div className='ml-4 flex items-center md:ml-6'>
