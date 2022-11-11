@@ -124,12 +124,7 @@ func Run(ctx context.Context, options Options) error {
 	logging.L.Debug().Str("uniqueID", checkSum).Msg("Cluster uniqueID")
 
 	if options.Name == "" {
-		autoname, err := k8s.Name(checkSum)
-		if err != nil {
-			logging.Errorf("k8s name error: %s", err)
-			return err
-		}
-		options.Name = autoname
+		return fmt.Errorf("destination name is required")
 	}
 
 	certCache := NewCertCache([]byte(options.CACert), []byte(options.CAKey))
@@ -180,7 +175,7 @@ func Run(ctx context.Context, options Options) error {
 			Transport: httpTransportFromOptions(options.Server),
 		},
 		Headers: http.Header{
-			"Infra-Destination": {checkSum},
+			"Infra-Destination-Name": {options.Name},
 		},
 		OnUnauthorized: func() {
 			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
