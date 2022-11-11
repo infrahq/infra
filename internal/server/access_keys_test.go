@@ -205,6 +205,28 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		}
 	})
 
+	t.Run("success w/ pagination", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?limit=1", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.13.0") // use older version of the API
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		keys := api.ListResponse[api.AccessKey]{}
+		err = json.Unmarshal(resp.Body.Bytes(), &keys)
+		assert.NilError(t, err)
+
+		// TODO: replace this with a more strict assertion using DeepEqual
+		assert.Equal(t, keys.PaginationResponse, api.PaginationResponse{Limit: 1, Page: 1, TotalCount: 2, TotalPages: 2})
+
+		for _, item := range keys.Items {
+			assert.Assert(t, item.Expires.Time().UTC().After(time.Now().UTC()) || item.Expires.Time().IsZero())
+			assert.Assert(t, item.ExtensionDeadline.Time().UTC().After(time.Now().UTC()) || item.ExtensionDeadline.Time().IsZero())
+		}
+	})
+
 	t.Run("delete by name", func(t *testing.T) {
 		key := &models.AccessKey{Name: "delete me", IssuedFor: 1, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute)}
 		_, err := data.CreateAccessKey(srv.db, key)

@@ -105,50 +105,59 @@ func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
 func rebuildRequest(c *gin.Context, newReqObj interface{}) {
 	query := url.Values{}
 	body := map[string]interface{}{}
-	r := reflect.ValueOf(newReqObj)
-	t := r.Type()
-	for i := 0; i < r.NumField(); i++ {
-		f := r.Field(i)
-		if fieldName, ok := t.Field(i).Tag.Lookup("form"); ok {
-			if f.Type() == reflect.TypeOf(uid.ID(0)) {
-				query.Add(fieldName, uid.ID(f.Int()).String())
-				continue
-			}
 
-			// this list only needs to handle types we use with the "form" tag
-			// nolint:exhaustive
-			switch f.Kind() {
-			case reflect.String:
-				query.Add(fieldName, f.String())
-			case reflect.Slice:
-				// only type that does this is []uid.ID
-				switch f.Type() {
-				case reflect.TypeOf(uid.ID(0)):
-					for j := 0; j < f.Len(); j++ {
-						query.Add(fieldName, uid.ID(f.Index(j).Int()).String())
+	var rebuildRequestQuery func(t reflect.Value)
+
+	rebuildRequestQuery = func(v reflect.Value) {
+		t := v.Type()
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Field(i)
+			if v.Field(i).Kind() == reflect.Struct {
+				// follow the rabbit hole for nested structs
+				rebuildRequestQuery(f)
+			}
+			if fieldName, ok := t.Field(i).Tag.Lookup("form"); ok {
+				if f.Type() == reflect.TypeOf(uid.ID(0)) {
+					query.Add(fieldName, uid.ID(f.Int()).String())
+					continue
+				}
+
+				// this list only needs to handle types we use with the "form" tag
+				// nolint:exhaustive
+				switch f.Kind() {
+				case reflect.String:
+					query.Add(fieldName, f.String())
+				case reflect.Slice:
+					// only type that does this is []uid.ID
+					switch f.Type() {
+					case reflect.TypeOf(uid.ID(0)):
+						for j := 0; j < f.Len(); j++ {
+							query.Add(fieldName, uid.ID(f.Index(j).Int()).String())
+						}
+					default:
+						panic("unexpected type " + f.Elem().Type().Name())
+					}
+				case reflect.Int, reflect.Int64:
+					query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+				case reflect.Uint, reflect.Uint64:
+					query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
+				case reflect.Bool:
+					if f.Bool() {
+						query.Add(fieldName, "1")
+					} else {
+						query.Add(fieldName, "0")
 					}
 				default:
-					panic("unexpected type " + f.Elem().Type().Name())
+					panic("unhandled reflection kind " + f.Kind().String())
 				}
-			case reflect.Int, reflect.Int64:
-				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
-			case reflect.Uint, reflect.Uint64:
-				query.Add(fieldName, fmt.Sprintf("%d", f.Int()))
-			case reflect.Bool:
-				if f.Bool() {
-					query.Add(fieldName, "1")
-				} else {
-					query.Add(fieldName, "0")
-				}
-			default:
-				panic("unhandled reflection kind " + f.Kind().String())
+			}
+			if fieldname, ok := t.Field(i).Tag.Lookup("json"); ok {
+				fieldname = strings.SplitN(fieldname, ",", 2)[0]
+				body[fieldname] = f.Interface()
 			}
 		}
-		if fieldname, ok := t.Field(i).Tag.Lookup("json"); ok {
-			fieldname = strings.SplitN(fieldname, ",", 2)[0]
-			body[fieldname] = f.Interface()
-		}
 	}
+	rebuildRequestQuery(reflect.ValueOf(newReqObj))
 	c.Request.URL.RawQuery = query.Encode()
 
 	switch c.Request.Method {
