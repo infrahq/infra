@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	gocmp "github.com/google/go-cmp/cmp"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
@@ -159,30 +160,37 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	})
 	assert.NilError(t, err)
 
-	_, err = data.CreateAccessKey(db, &models.AccessKey{
+	ak1 := &models.AccessKey{
 		Name:       "foo",
 		IssuedFor:  user.ID,
 		ProviderID: provider.ID,
 		ExpiresAt:  time.Now().UTC().Add(5 * time.Minute),
-	})
+	}
+	_, err = data.CreateAccessKey(db, ak1)
 	assert.NilError(t, err)
 
-	_, err = data.CreateAccessKey(db, &models.AccessKey{
+	ak2 := &models.AccessKey{
 		Name:       "expired",
 		IssuedFor:  user.ID,
 		ProviderID: provider.ID,
 		ExpiresAt:  time.Now().UTC().Add(-5 * time.Minute),
-	})
+	}
+	_, err = data.CreateAccessKey(db, ak2)
 	assert.NilError(t, err)
 
-	_, err = data.CreateAccessKey(db, &models.AccessKey{
+	ak3 := &models.AccessKey{
 		Name:              "not_extended",
 		IssuedFor:         user.ID,
 		ProviderID:        provider.ID,
 		ExpiresAt:         time.Now().UTC().Add(5 * time.Minute),
 		ExtensionDeadline: time.Now().UTC().Add(-5 * time.Minute),
-	})
+	}
+	_, err = data.CreateAccessKey(db, ak3)
 	assert.NilError(t, err)
+
+	cmpAccessKeyShallow := gocmp.Comparer(func(x, y api.AccessKey) bool {
+		return x.ID == y.ID && x.IssuedForName == y.IssuedForName
+	})
 
 	t.Run("success", func(t *testing.T) {
 		resp := httptest.NewRecorder()
@@ -207,7 +215,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("success w/ pagination", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?limit=1", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?limit=2&user_id="+user.ID.String(), nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", "0.13.0") // use older version of the API
 
@@ -218,8 +226,16 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		err = json.Unmarshal(resp.Body.Bytes(), &keys)
 		assert.NilError(t, err)
 
-		// TODO: replace this with a more strict assertion using DeepEqual
-		assert.Equal(t, keys.PaginationResponse, api.PaginationResponse{Limit: 1, Page: 1, TotalCount: 2, TotalPages: 2})
+		expected := api.ListResponse[api.AccessKey]{
+			Count:              1,
+			PaginationResponse: api.PaginationResponse{Limit: 2, Page: 1, TotalCount: 1, TotalPages: 1},
+			Items: []api.AccessKey{
+				{ID: ak1.ID, IssuedForName: user.Name},
+			},
+		}
+
+		assert.Equal(t, keys.PaginationResponse, api.PaginationResponse{Limit: 2, Page: 1, TotalCount: 1, TotalPages: 1})
+		assert.DeepEqual(t, keys.Items, expected.Items, cmpAccessKeyShallow)
 
 		for _, item := range keys.Items {
 			assert.Assert(t, item.Expires.Time().UTC().After(time.Now().UTC()) || item.Expires.Time().IsZero())

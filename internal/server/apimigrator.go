@@ -17,8 +17,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/uid"
 )
+
+const maxQueryDepth = 5
 
 type apiMigration struct {
 	method          string
@@ -103,12 +106,19 @@ func rewriteRequired(c *gin.Context, migrationVersion *semver.Version) bool {
 }
 
 func rebuildRequest(c *gin.Context, newReqObj interface{}) {
+	var queryDepth int
 	query := url.Values{}
 	body := map[string]interface{}{}
 
 	var rebuildRequestQuery func(t reflect.Value)
 
 	rebuildRequestQuery = func(v reflect.Value) {
+		queryDepth++
+		if queryDepth > maxQueryDepth {
+			logging.Errorf("Hit max query depth while rebuilding api migration")
+			return
+		}
+
 		t := v.Type()
 		for i := 0; i < v.NumField(); i++ {
 			f := v.Field(i)
