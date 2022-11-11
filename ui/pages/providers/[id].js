@@ -120,10 +120,6 @@ export default function ProvidersEditDetails() {
   ]
 
   useEffect(() => {
-    setName(provider?.name)
-  }, [provider])
-
-  useEffect(() => {
     return clearTimer()
   }, [])
 
@@ -298,6 +294,7 @@ export default function ProvidersEditDetails() {
               <label className='text-2xs font-medium text-gray-700'>Name</label>
               <input
                 type='search'
+                placeholder={provider?.name}
                 value={name}
                 onKeyDown={e => {
                   if (e.key === 'Escape' || e.key === 'Esc') {
