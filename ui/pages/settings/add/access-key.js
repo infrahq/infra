@@ -6,7 +6,7 @@ import {
   CheckIcon,
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
-import { Transition, Listbox, Dialog, Popover } from '@headlessui/react'
+import { Transition, Listbox, Dialog } from '@headlessui/react'
 import { Fragment, useEffect, useState } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
@@ -16,10 +16,6 @@ import moment from 'moment'
 import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
-import Calendar from '../../../components/calendar'
-
-const CUSTOM_TYPE = 'custom'
-const CUSTOM_TITLE = 'custom ...'
 
 const EXPIRATION_RATE = [
   { name: '30 days', value: '720h', default: true },
