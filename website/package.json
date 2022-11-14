@@ -16,7 +16,7 @@
     "@heroicons/react": "^2.0.12",
     "@markdoc/markdoc": "^0.1.13",
     "@react-spring/web": "^9.5.5",
-    "@segment/analytics-next": "^1.45.0",
+    "@segment/analytics-next": "^1.46.0",
     "@segment/snippet": "^4.15.3",
     "analytics-node": "^6.2.0",
     "copy-to-clipboard": "^3.3.3",
