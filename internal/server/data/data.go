@@ -137,21 +137,23 @@ func (d *DB) OrganizationID() uid.ID {
 
 // Begin starts a new transaction.
 //
-// TODO: do we need to store the ctx and pass it to tx.{Exec,Query,QueryRow} to
-// cancel queries early? Tx.BeginTx says this ctx only fails tx.Commit, which
-// suggests that the queries before the commit or rollback are not cancelled by
-// this context.
+// TODO: describe how the context is used, and what it cancels.
 func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
 	tx, err := d.DB.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{Tx: tx, completed: new(atomic.Bool)}, nil
+	return &Transaction{
+		Tx:        tx,
+		txCtx:     ctx,
+		completed: new(atomic.Bool),
+	}, nil
 }
 
 // TODO: document that this type should only be created with DB.Begin
 type Transaction struct {
-	Tx *sql.Tx
+	Tx    *sql.Tx
+	txCtx context.Context
 
 	orgID     uid.ID
 	completed *atomic.Bool
@@ -163,17 +165,17 @@ func (t *Transaction) OrganizationID() uid.ID {
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.Exec(query, args...)
+	return t.Tx.ExecContext(t.txCtx, query, args...)
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.Query(query, args...)
+	return t.Tx.QueryContext(t.txCtx, query, args...)
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
 	query = rewriteQueryPlaceholders(query, len(args))
-	return t.Tx.QueryRow(query, args...)
+	return t.Tx.QueryRowContext(t.txCtx, query, args...)
 }
 
 // Rollback the transaction. If the transaction was already committed then do
