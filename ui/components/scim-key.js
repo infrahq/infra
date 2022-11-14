@@ -43,10 +43,10 @@ export default function SCIMKey({ accessKey, errorMsg }) {
             </>
           ) : (
             <div
-              class='mb-4 rounded-lg bg-red-100 p-4 text-sm text-red-700'
+              className='mb-4 rounded-lg bg-red-100 p-4 text-sm text-red-700'
               role='alert'
             >
-              <span class='font-medium'>Error:</span> {errorMsg}
+              <span className='font-medium'>Error:</span> {errorMsg}
             </div>
           )}
         </>

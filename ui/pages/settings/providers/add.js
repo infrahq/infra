@@ -379,7 +379,7 @@ export default function ProvidersAddDetails() {
                   name='scim-checkbox'
                   type='checkbox'
                   checked={enableSCIM}
-                  class='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 hover:cursor-pointer focus:ring-2 focus:ring-blue-500'
+                  className='h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 hover:cursor-pointer focus:ring-2 focus:ring-blue-500'
                   onChange={() => {
                     setEnableSCIM(!enableSCIM)
                   }}
