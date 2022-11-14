@@ -142,8 +142,8 @@ export default function Settings() {
         <h1 className='mb-6 font-display text-xl font-medium'>Settings</h1>
 
         {/* Tabs */}
-        <div className='mb-3 border-b border-gray-200'>
-          <nav className='-mb-px flex' aria-label='Tabs'>
+        <div className='border-b border-gray-200'>
+          <nav className='-mb-px flex space-x-4' aria-label='Tabs'>
             {tabs.map(t => (
               <Link
                 key={t.name}
@@ -168,127 +168,129 @@ export default function Settings() {
             ))}
           </nav>
         </div>
-        {tab === TAB_PROVIDERS.name && (
-          <>
-            <header className='my-2 flex items-center justify-end'>
-              {/* Add dialog */}
-              <Link href='/settings/providers/add'>
-                <a className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
-                  Connect provider
-                </a>
-              </Link>
-            </header>
-            <div className='mt-3 flex min-h-0 flex-1 flex-col'>
-              <Table
-                href={row => `/settings/providers/${row.original.id}`}
-                data={providers}
-                empty='No providers'
-                columns={[
-                  {
-                    cell: info => (
-                      <div className='flex flex-row items-center py-1'>
-                        <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
-                          <img
-                            alt='provider icon'
-                            className='h-4'
-                            src={`/providers/${info.row.original.kind}.svg`}
-                          />
+        <div className='mt-3'>
+          {tab === TAB_PROVIDERS.name && (
+            <>
+              <header className='my-2 flex items-center justify-end'>
+                {/* Add dialog */}
+                <Link href='/settings/providers/add'>
+                  <a className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
+                    Connect provider
+                  </a>
+                </Link>
+              </header>
+              <div className='mt-3 flex min-h-0 flex-1 flex-col'>
+                <Table
+                  href={row => `/settings/providers/${row.original.id}`}
+                  data={providers}
+                  empty='No providers'
+                  columns={[
+                    {
+                      cell: info => (
+                        <div className='flex flex-row items-center py-1'>
+                          <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
+                            <img
+                              alt='provider icon'
+                              className='h-4'
+                              src={`/providers/${info.row.original.kind}.svg`}
+                            />
+                          </div>
+                          <div className='flex flex-col'>
+                            <div className='text-sm font-medium text-gray-700'>
+                              {info.getValue()}
+                            </div>
+                            <div className='text-2xs text-gray-500 sm:hidden'>
+                              {info.row.original.url}
+                            </div>
+                            <div className='font-mono text-2xs text-gray-400 lg:hidden'>
+                              {info.row.original.clientID}
+                            </div>
+                          </div>
                         </div>
-                        <div className='flex flex-col'>
-                          <div className='text-sm font-medium text-gray-700'>
-                            {info.getValue()}
-                          </div>
-                          <div className='text-2xs text-gray-500 sm:hidden'>
-                            {info.row.original.url}
-                          </div>
-                          <div className='font-mono text-2xs text-gray-400 lg:hidden'>
-                            {info.row.original.clientID}
-                          </div>
+                      ),
+                      header: () => <span>Name</span>,
+                      accessorKey: 'name',
+                    },
+                    {
+                      cell: info => (
+                        <div className='hidden sm:table-cell'>
+                          {info.getValue()}
                         </div>
-                      </div>
-                    ),
-                    header: () => <span>Name</span>,
-                    accessorKey: 'name',
-                  },
-                  {
-                    cell: info => (
-                      <div className='hidden sm:table-cell'>
-                        {info.getValue()}
-                      </div>
-                    ),
-                    header: () => (
-                      <span className='hidden sm:table-cell'>URL</span>
-                    ),
-                    accessorKey: 'url',
-                  },
-                  {
-                    cell: info => (
-                      <div className='hidden font-mono lg:table-cell'>
-                        {info.getValue()}
-                      </div>
-                    ),
-                    header: () => (
-                      <span className='hidden lg:table-cell'>Client ID</span>
-                    ),
-                    accessorKey: 'clientID',
-                  },
-                ]}
-              />
-            </div>
-          </>
-        )}
-        {/* Infra admins */}
-        {tab === TAB_ORG_ADMINS.name && (
-          <>
-            <div className='mb-3 flex flex-col justify-between'>
-              <p className='mt-1 mb-4 text-xs text-gray-500'>
-                These users have full access to this organization.
-              </p>
-              <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
-                <GrantForm
-                  resource='infra'
-                  roles={['admin']}
-                  grants={grants}
-                  multiselect={false}
-                  onSubmit={async ({ user, group }) => {
-                    // don't add grants that already exist
-                    if (
-                      grants?.find(g => g.user === user && g.group === group)
-                    ) {
-                      return false
-                    }
-
-                    await fetch('/api/grants', {
-                      method: 'POST',
-                      body: JSON.stringify({
-                        user,
-                        group,
-                        privilege: 'admin',
-                        resource: 'infra',
-                      }),
-                    })
-
-                    // TODO: add optimistic updates
-                    mutate()
-                  }}
+                      ),
+                      header: () => (
+                        <span className='hidden sm:table-cell'>URL</span>
+                      ),
+                      accessorKey: 'url',
+                    },
+                    {
+                      cell: info => (
+                        <div className='hidden font-mono lg:table-cell'>
+                          {info.getValue()}
+                        </div>
+                      ),
+                      header: () => (
+                        <span className='hidden lg:table-cell'>Client ID</span>
+                      ),
+                      accessorKey: 'clientID',
+                    },
+                  ]}
                 />
               </div>
-            </div>
-            <AdminList
-              grants={grants}
-              users={users}
-              groups={groups}
-              selfGroups={selfGroups}
-              auth={user}
-              onRemove={async grantId => {
-                await fetch(`/api/grants/${grantId}`, {
-                  method: 'DELETE',
-                })
-                mutate({ items: grants?.filter(x => x.id !== grantId) })
-              }}
-            />
-          </>
-        )}
+            </>
+          )}
+          {/* Infra admins */}
+          {tab === TAB_ORG_ADMINS.name && (
+            <>
+              <div className='mb-3 flex flex-col justify-between'>
+                <p className='mt-1 mb-4 text-xs text-gray-500'>
+                  These users have full access to this organization.
+                </p>
+                <div className='w-full rounded-lg border border-gray-200/75 px-5 py-3'>
+                  <GrantForm
+                    resource='infra'
+                    roles={['admin']}
+                    grants={grants}
+                    multiselect={false}
+                    onSubmit={async ({ user, group }) => {
+                      // don't add grants that already exist
+                      if (
+                        grants?.find(g => g.user === user && g.group === group)
+                      ) {
+                        return false
+                      }
+
+                      await fetch('/api/grants', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          user,
+                          group,
+                          privilege: 'admin',
+                          resource: 'infra',
+                        }),
+                      })
+
+                      // TODO: add optimistic updates
+                      mutate()
+                    }}
+                  />
+                </div>
+              </div>
+              <AdminList
+                grants={grants}
+                users={users}
+                groups={groups}
+                selfGroups={selfGroups}
+                auth={user}
+                onRemove={async grantId => {
+                  await fetch(`/api/grants/${grantId}`, {
+                    method: 'DELETE',
+                  })
+                  mutate({ items: grants?.filter(x => x.id !== grantId) })
+                }}
+              />
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
