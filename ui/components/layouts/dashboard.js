@@ -5,7 +5,6 @@ import { useRouter } from 'next/router'
 import { Dialog, Transition, Menu } from '@headlessui/react'
 import {
   CpuChipIcon,
-  Squares2X2Icon,
   UserGroupIcon,
   UserIcon,
   Cog8ToothIcon,
@@ -106,12 +105,6 @@ export default function Dashboard({ children }) {
       name: 'Infrastructure',
       href: '/destinations',
       icon: CpuChipIcon,
-    },
-    {
-      name: 'Providers',
-      href: '/providers',
-      admin: true,
-      icon: Squares2X2Icon,
     },
     {
       name: 'Groups',

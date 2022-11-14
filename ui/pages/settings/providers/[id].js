@@ -6,10 +6,10 @@ import Link from 'next/link'
 import useSWR, { useSWRConfig } from 'swr'
 import dayjs from 'dayjs'
 
-import Dashboard from '../../components/layouts/dashboard'
-import RemoveButton from '../../components/remove-button'
-import Notification from '../../components/notification'
-import SCIMKey from '../../components/scim-key'
+import Dashboard from '../../../components/layouts/dashboard'
+import RemoveButton from '../../../components/remove-button'
+import Notification from '../../../components/notification'
+import SCIMKey from '../../../components/scim-key'
 
 function SCIMKeyDialog({ provider, setOpen }) {
   const [scimAccessKey, setSCIMAccessKey] = useState('')
@@ -183,7 +183,7 @@ export default function ProvidersEditDetails() {
       <header className='mt-6 mb-12 space-y-4'>
         <div className='flex flex-col justify-between md:flex-row md:items-center'>
           <h1 className='flex max-w-[75%] truncate py-1 font-display text-xl font-medium'>
-            <Link href='/providers'>
+            <Link href='/settings?tab=providers'>
               <a className='text-gray-500/75 hover:text-gray-600'>Providers</a>
             </Link>{' '}
             <span className='mx-3 font-light text-gray-400'> / </span>{' '}
@@ -253,7 +253,7 @@ export default function ProvidersEditDetails() {
                   method: 'DELETE',
                 })
 
-                router.replace('/providers')
+                router.replace('/settings?tab=providers')
               }}
               modalTitle='Remove Identity Provider'
               modalMessage={
