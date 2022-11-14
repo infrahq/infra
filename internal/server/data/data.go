@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -91,15 +92,41 @@ func (d *DB) SQLdb() *sql.DB {
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return d.DB.Exec(query, args...)
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return d.DB.Query(query, args...)
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return d.DB.QueryRow(query, args...)
+}
+
+func rewriteQueryPlaceholders(query string, num int) string {
+	var counter int
+	var buf strings.Builder
+	buf.Grow(len(query))
+
+	for _, r := range query {
+		if r != '?' {
+			buf.WriteRune(r)
+			continue
+		}
+
+		counter++
+		buf.WriteString("$" + strconv.Itoa(counter))
+	}
+
+	// if counter == 0 it could indicate the query was constructed with the
+	// correct placeholders and doesn't need rewrite.
+	if counter != 0 && counter != num {
+		panic(fmt.Sprintf("wrong number of placeholders (%d) for args (%d)", counter, num))
+	}
+	return buf.String()
 }
 
 func (d *DB) OrganizationID() uid.ID {
@@ -135,14 +162,17 @@ func (t *Transaction) OrganizationID() uid.ID {
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return t.Tx.Exec(query, args...)
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return t.Tx.Query(query, args...)
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
+	query = rewriteQueryPlaceholders(query, len(args))
 	return t.Tx.QueryRow(query, args...)
 }
 
