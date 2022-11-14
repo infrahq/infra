@@ -119,7 +119,6 @@ export default function Dashboard({ children }) {
     {
       name: 'Settings',
       href: '/settings',
-      admin: true,
       icon: Cog8ToothIcon,
     },
   ]
