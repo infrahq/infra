@@ -219,7 +219,7 @@ export default function AccessKey() {
       })
 
       const data = await jsonBody(res)
-      // router.replace('/settings')
+
       setGeneratedAccessKey(data.accessKey)
     } catch (e) {
       setError(e.message)
