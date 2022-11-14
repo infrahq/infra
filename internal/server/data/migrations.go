@@ -723,7 +723,7 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 			}
 
 			if len(ids) > 0 {
-				_, err := tx.Exec(`DELETE FROM provider_users WHERE identity_id IN ?`, ids)
+				_, err := tx.Exec(`DELETE FROM provider_users WHERE identity_id = any(?)`, ids)
 				if err != nil {
 					return fmt.Errorf("delete removed provider_users: %w", err)
 				}

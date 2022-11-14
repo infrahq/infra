@@ -98,7 +98,7 @@ func ListGroups(tx ReadTxn, opts ListGroupsOptions) ([]models.Group, error) {
 		query.B("AND name = ?", opts.ByName)
 	}
 	if len(opts.ByIDs) > 0 {
-		query.B("AND groups.id IN (?)", opts.ByIDs)
+		query.B("AND groups.id = any(?)", opts.ByIDs)
 	}
 
 	query.B("ORDER BY name ASC")
@@ -191,7 +191,7 @@ func AddUsersToGroup(tx WriteTxn, groupID uid.ID, idsToAdd []uid.ID) error {
 // with ID groupID.
 // Note that DeleteGroup also removes users from the group.
 func RemoveUsersFromGroup(tx WriteTxn, groupID uid.ID, idsToRemove []uid.ID) error {
-	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id IN (?)`
+	stmt := `DELETE FROM identities_groups WHERE group_id = ? AND identity_id = any(?)`
 	_, err := tx.Exec(stmt, groupID, idsToRemove)
 	return handleError(err)
 }

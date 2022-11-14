@@ -117,12 +117,12 @@ func ListProviders(tx ReadTxn, opts ListProvidersOptions) ([]models.Provider, er
 		query.B("AND kind <> ?", models.ProviderKindInfra)
 	}
 	if len(opts.ByIDs) > 0 {
-		query.B("AND id IN (?)", opts.ByIDs)
+		query.B("AND id = any(?)", opts.ByIDs)
 	}
 	if opts.CreatedBy != 0 {
 		query.B("AND created_by = ?", opts.CreatedBy)
 		if len(opts.NotIDs) > 0 {
-			query.B("AND id NOT IN (?)", opts.NotIDs)
+			query.B("AND id <> all(?)", opts.NotIDs)
 		}
 	}
 
@@ -235,7 +235,7 @@ func DeleteProviders(db WriteTxn, opts DeleteProvidersOptions) error {
 	stmt := `
 		UPDATE providers
 		SET deleted_at = ?
-		WHERE deleted_at is null AND id IN (?) AND organization_id = ?`
+		WHERE deleted_at is null AND id = any(?) AND organization_id = ?`
 	_, err := db.Exec(stmt, time.Now(), ids, db.OrganizationID())
 	return err
 }

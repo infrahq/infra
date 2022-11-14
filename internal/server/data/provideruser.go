@@ -161,7 +161,7 @@ func ListProviderUsers(tx ReadTxn, opts ListProviderUsersOptions) ([]models.Prov
 		query.B("AND identity_id = ?", opts.ByIdentityID)
 	}
 	if len(opts.ByIdentityIDs) != 0 {
-		query.B("AND identity_id IN (?)", opts.ByIdentityIDs)
+		query.B("AND identity_id = any(?)", opts.ByIdentityIDs)
 	}
 	if opts.HideInactive {
 		query.B("AND active = ?", opts.HideInactive)
