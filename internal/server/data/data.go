@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,8 +12,6 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -78,7 +75,7 @@ func NewDB(dbOpts NewDBOptions) (*DB, error) {
 // DB wraps the underlying database and provides access to the default org,
 // and settings.
 type DB struct {
-	*gorm.DB // embedded for now to minimize the diff
+	DB *sql.DB
 
 	DefaultOrg *models.Organization
 	// DefaultOrgSettings are the settings for DefaultOrg
@@ -86,36 +83,23 @@ type DB struct {
 }
 
 func (d *DB) Close() error {
-	sqlDB, err := d.DB.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get database conn to close: %w", err)
-	}
-	return sqlDB.Close()
+	return d.DB.Close()
 }
 
 func (d *DB) SQLdb() *sql.DB {
-	sqlDB, err := d.DB.DB()
-	if err != nil {
-		panic("DB must have an sql.DB ConnPool")
-	}
-	return sqlDB
-}
-
-func (d *DB) DriverName() string {
-	return d.Dialector.Name()
+	return d.DB
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
-	db := d.DB.Exec(query, args...)
-	return driver.RowsAffected(db.RowsAffected), db.Error
+	return d.DB.Exec(query, args...)
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
-	return d.DB.Raw(query, args...).Rows()
+	return d.DB.Query(query, args...)
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
-	return d.DB.Raw(query, args...).Row()
+	return d.DB.QueryRow(query, args...)
 }
 
 func (d *DB) OrganizationID() uid.ID {
@@ -124,22 +108,26 @@ func (d *DB) OrganizationID() uid.ID {
 	return d.DefaultOrg.ID
 }
 
+// Begin starts a new transaction.
+//
+// TODO: do we need to store the ctx and pass it to tx.{Exec,Query,QueryRow} to
+// cancel queries early? Tx.BeginTx says this ctx only fails tx.Commit, which
+// suggests that the queries before the commit or rollback are not cancelled by
+// this context.
 func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
-	tx := d.DB.WithContext(ctx).Begin(opts)
-	if err := tx.Error; err != nil {
+	tx, err := d.DB.BeginTx(ctx, opts)
+	if err != nil {
 		return nil, err
 	}
-	return &Transaction{DB: tx, completed: new(atomic.Bool)}, nil
+	return &Transaction{Tx: tx, completed: new(atomic.Bool)}, nil
 }
 
+// TODO: document that this type should only be created with DB.Begin
 type Transaction struct {
-	*gorm.DB
+	Tx *sql.Tx
+
 	orgID     uid.ID
 	completed *atomic.Bool
-}
-
-func (t *Transaction) DriverName() string {
-	return t.Dialector.Name()
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
@@ -147,16 +135,15 @@ func (t *Transaction) OrganizationID() uid.ID {
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
-	db := t.DB.Exec(query, args...)
-	return driver.RowsAffected(db.RowsAffected), db.Error
+	return t.Tx.Exec(query, args...)
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
-	return t.DB.Raw(query, args...).Rows()
+	return t.Tx.Query(query, args...)
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
-	return t.DB.Raw(query, args...).Row()
+	return t.Tx.QueryRow(query, args...)
 }
 
 // Rollback the transaction. If the transaction was already committed then do
@@ -165,7 +152,7 @@ func (t *Transaction) Rollback() error {
 	if t.completed.Load() {
 		return nil
 	}
-	err := t.DB.Rollback().Error
+	err := t.Tx.Rollback()
 	if err == nil {
 		t.completed.Store(true)
 	}
@@ -173,7 +160,7 @@ func (t *Transaction) Rollback() error {
 }
 
 func (t *Transaction) Commit() error {
-	err := t.DB.Commit().Error
+	err := t.Tx.Commit()
 	if err == nil {
 		t.completed.Store(true)
 	}
@@ -190,26 +177,19 @@ func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 }
 
 // newRawDB creates a new database connection without running migrations.
-func newRawDB(options NewDBOptions) (*gorm.DB, error) {
+func newRawDB(options NewDBOptions) (*sql.DB, error) {
 	if options.DSN == "" {
 		return nil, fmt.Errorf("missing postgres dsn")
 	}
 
-	db, err := gorm.Open(postgres.Open(options.DSN), &gorm.Config{
-		Logger: logging.NewDatabaseLogger(time.Second),
-	})
+	db, err := sql.Open("pgx", options.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("getting db driver: %w", err)
-	}
-
-	sqlDB.SetMaxOpenConns(options.MaxOpenConnections)
-	sqlDB.SetMaxIdleConns(options.MaxIdleConnections)
-	sqlDB.SetConnMaxIdleTime(options.MaxIdleTimeout)
+	db.SetMaxOpenConns(options.MaxOpenConnections)
+	db.SetMaxIdleConns(options.MaxIdleConnections)
+	db.SetConnMaxIdleTime(options.MaxIdleTimeout)
 
 	return db, nil
 }
@@ -311,8 +291,6 @@ func handleError(err error) error {
 	}
 
 	switch {
-	case errors.Is(err, gorm.ErrRecordNotFound):
-		return internal.ErrNotFound
 	case errors.Is(err, sql.ErrNoRows):
 		return internal.ErrNotFound
 	}

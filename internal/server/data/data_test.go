@@ -44,7 +44,6 @@ func txnForTestCase(t *testing.T, db *DB, orgID uid.ID) *Transaction {
 func runDBTests(t *testing.T, run func(t *testing.T, db *DB)) {
 	db := setupDB(t)
 	run(t, db)
-	db.Rollback()
 }
 
 func TestSnowflakeIDSerialization(t *testing.T) {
@@ -186,8 +185,11 @@ func TestLongRunningQueriesAreCancelled(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-			tx := db.WithContext(ctx)
-			err := tx.Exec("select pg_sleep(2);").Error
+			tx, err := db.Begin(ctx, nil)
+			assert.NilError(t, err)
+			defer tx.Rollback()
+
+			_, err = tx.Exec("select pg_sleep(2);")
 			assert.Error(t, err, "timeout: context deadline exceeded")
 
 			elapsed := time.Since(started)

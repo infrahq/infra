@@ -1,12 +1,11 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/generate"
@@ -46,26 +45,25 @@ func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	if schemaSuffix != "" {
 		name = fmt.Sprintf("testing_%v_%v", suffix, generate.MathRandom(5, generate.CharsetNumbers))
 	}
-	db, err := gorm.Open(postgres.Open(pgConn))
+	db, err := sql.Open("pgx", pgConn)
 	assert.NilError(t, err, "connect to postgresql")
 	t.Cleanup(func() {
-		assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS "+name+" CASCADE").Error)
-		sqlDB, err := db.DB()
+		_, err := db.Exec("DROP SCHEMA IF EXISTS " + name + " CASCADE")
 		assert.NilError(t, err)
-		assert.NilError(t, sqlDB.Close())
+		assert.NilError(t, db.Close())
 	})
 
 	// Drop any leftover schema before creating a new one.
-	assert.NilError(t, db.Exec("DROP SCHEMA IF EXISTS "+name+" CASCADE").Error)
-	assert.NilError(t, db.Exec("CREATE SCHEMA "+name).Error)
+	_, err = db.Exec("DROP SCHEMA IF EXISTS " + name + " CASCADE")
+	assert.NilError(t, err)
+	_, err = db.Exec("CREATE SCHEMA " + name)
+	assert.NilError(t, err)
 
 	dsn := pgConn + " search_path=" + name
-	pgsql := postgres.Open(dsn)
-	return &Driver{Dialector: pgsql, DSN: dsn}
+	return &Driver{DSN: dsn}
 }
 
 type Driver struct {
-	Dialector gorm.Dialector
 	// DSN is the connection string that can be used to connect to this
 	// database.
 	DSN string
