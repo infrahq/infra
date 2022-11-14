@@ -32,7 +32,7 @@ func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every t
 }
 
 func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
-	tx = &data.DB{DB: tx.WithContext(ctx), DefaultOrgSettings: tx.DefaultOrgSettings, DefaultOrg: tx.DefaultOrg}
+	// TODO: use a real tx and set the context for cancellation
 
 	return func() error { // jobs shouldn't return errors, we just do this to be compatible with the "routine" struct.
 		t := time.NewTicker(every)

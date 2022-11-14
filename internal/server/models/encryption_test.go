@@ -42,7 +42,7 @@ func TestEncryptedAtRest(t *testing.T) {
 		ASecret: "don't tell",
 	}
 
-	err = db.Save(m).Error
+	_, err = db.Exec(`INSERT into struct_for_testings VALUES(?, ?)`, m.ID, m.ASecret)
 	assert.NilError(t, err)
 
 	var result string
@@ -55,7 +55,7 @@ func TestEncryptedAtRest(t *testing.T) {
 
 	m2 := &StructForTesting{}
 
-	err = db.Find(m2, db.Where("id = ?", id)).Error
+	err = db.QueryRow(`SELECT a_secret FROM struct_for_testings where id = ?`, id).Scan(&m2.ASecret)
 	assert.NilError(t, err)
 
 	assert.Equal(t, "don't tell", string(m2.ASecret))

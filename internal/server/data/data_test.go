@@ -180,23 +180,7 @@ func TestLongRunningQueriesAreCancelled(t *testing.T) {
 	}
 
 	runDBTests(t, func(t *testing.T, db *DB) {
-		t.Run("Gorm", func(t *testing.T) {
-			started := time.Now()
-
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-			defer cancel()
-			tx, err := db.Begin(ctx, nil)
-			assert.NilError(t, err)
-			defer tx.Rollback()
-
-			_, err = tx.Exec("select pg_sleep(2);")
-			assert.Error(t, err, "timeout: context deadline exceeded")
-
-			elapsed := time.Since(started)
-			assert.Assert(t, elapsed < 1500*time.Millisecond, "query should have timed out and been cancelled")
-		})
-
-		t.Run("sqlx", func(t *testing.T) {
+		t.Run("sql", func(t *testing.T) {
 			started := time.Now()
 
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
