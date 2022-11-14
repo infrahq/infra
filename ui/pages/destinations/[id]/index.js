@@ -302,7 +302,6 @@ function GrantCell({ grantsList, grant, destination, onRemove, onUpdate }) {
                               <input
                                 type='checkbox'
                                 className='h-4 w-4 rounded border-gray-300 text-blue-600 hover:cursor-pointer focus:ring-blue-500 sm:left-6'
-                                value={resource}
                                 checked={selectedNamespaces.includes(resource)}
                                 onChange={e => {
                                   setSelectedNamespaces(
