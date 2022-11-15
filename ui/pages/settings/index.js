@@ -151,19 +151,16 @@ export default function Settings() {
                   pathname: `/settings/`,
                   query: { tab: t.name },
                 }}
-              >
-                <a
-                  className={`
+                className={`
                 ${
                   tab === t.name
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-600'
                 }
                  whitespace-nowrap border-b-2 py-2 px-5 text-sm font-medium capitalize transition-colors`}
-                  aria-current={tab.current ? 'page' : undefined}
-                >
-                  {t.title}
-                </a>
+                aria-current={tab.current ? 'page' : undefined}
+              >
+                {t.title}
               </Link>
             ))}
           </nav>
@@ -173,10 +170,11 @@ export default function Settings() {
             <>
               <header className='my-2 flex items-center justify-end'>
                 {/* Add dialog */}
-                <Link href='/settings/providers/add'>
-                  <a className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
-                    Connect provider
-                  </a>
+                <Link
+                  href='/settings/providers/add'
+                  className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+                >
+                  Connect provider
                 </Link>
               </header>
               <div className='mt-3 flex min-h-0 flex-1 flex-col'>

@@ -35,10 +35,11 @@ export default function Destinations() {
 
         {/* Add dialog */}
         {isAdmin && (
-          <Link href='/destinations/add'>
-            <a className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'>
-              Connect cluster
-            </a>
+          <Link
+            href='/destinations/add'
+            className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+          >
+            Connect cluster
           </Link>
         )}
       </header>
