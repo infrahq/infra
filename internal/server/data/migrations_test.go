@@ -850,6 +850,15 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				assert.NilError(t, err)
 			},
 		},
+		{
+			label: testCaseLine("2022-11-15T10:00"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`INSERT INTO access_keys(id, issued_for, name) VALUES(10000, 12345, 'foo')`)
+				assert.NilError(t, err)
+				_, err = tx.Exec(`INSERT INTO access_keys(id, issued_for, name) VALUES(10001, 12346, 'foo')`)
+				assert.NilError(t, err)
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))
