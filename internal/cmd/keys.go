@@ -10,7 +10,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/uid"
 )
 
 const thirtyDays = 30 * (24 * time.Hour)
@@ -192,6 +191,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 }
 
 type keyListOptions struct {
+	AllUsers    bool
 	UserName    string
 	ShowExpired bool
 }
@@ -212,14 +212,15 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 
 			ctx := context.Background()
 
-			var keys []api.AccessKey
-			var userID uid.ID
-			if options.UserName != "" {
-				config, err := currentHostConfig()
-				if err != nil {
-					return err
-				}
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
 
+			var keys []api.AccessKey
+			userID := config.UserID
+
+			if options.UserName != "" {
 				if options.UserName == config.Name { // user is requesting their own stuff
 					userID = config.UserID
 				} else {
@@ -237,12 +238,17 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				}
 			}
 
+			if options.AllUsers {
+				userID = 0
+			}
+
 			logging.Debugf("call server: list access keys")
 			keys, err = listAll(ctx, client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
 			if err != nil {
 				return err
 			}
 
+			// TODO: remove IssuedFor unless the user is getting access keys for a different user or using --all
 			type row struct {
 				Name              string `header:"NAME"`
 				IssuedFor         string `header:"ISSUED FOR"`
@@ -276,6 +282,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVar(&options.AllUsers, "all", false, "Show keys for all users")
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
 	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd
