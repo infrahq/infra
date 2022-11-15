@@ -879,7 +879,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 		{
 			label: testCaseLine("2022-10-26T18:00"),
 			expected: func(t *testing.T, tx WriteTxn) {
-				// TODO:
+				// schema changes are tested with schema comparison
 			},
 		},
 	}

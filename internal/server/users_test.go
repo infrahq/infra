@@ -59,6 +59,9 @@ func TestAPI_GetUser(t *testing.T) {
 	accessKeyMe, err := data.CreateAccessKey(srv.DB(), token)
 	assert.NilError(t, err)
 
+	pubKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPkW3mIACvMmXqbeGF/U2MY8jbQ5NT24tRL0cl+32vRMmIDGcEyLkWh98D9qJlwCIZ8vJahAI3sqYJRoIHkiaRTslWwAZWNnTJ3TzeKUn/g0xutASD4znmQhNk3OuKPyuDKRxvsOuBVzuKiNNeUWVf5v/4gPrmBffS19cPPlHG+TwHNzTvyvbLcZu+xE18x8eCM4uRam0wa4RfHrMtaqPb/kFGz7skXv0/JFCXKrc//dMKHbr/brjj7fKYFYbMG7k15LewfZ/fLqsbJsvuP8OTIE7195fKhL1Gln8AKOM1E0CLX9nxK7qx4MlrDgEJBbqikWb2kVKmpxwcA7UcoUbwKZb4/QrOUDy22aHnIErIl2is9IP8RfBdKgzmgT1QmVPcGHI4gBAPb279zw58nAVp58gzHvK/oTDlAD2zq87i/PeDSzdoVZe0zliKOXAVzLQGI+9vsZ+6URHBe6J+Tj+PxOD5sWduhepOa/UKF96+CeEg/oso4UHR83z5zR38idc=`
+	addUserPublicKey(t, srv.DB(), idMe, pubKey)
+
 	type testCase struct {
 		urlPath  string
 		setup    func(t *testing.T, req *http.Request)
@@ -181,6 +184,20 @@ func TestAPI_GetUser(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func addUserPublicKey(t *testing.T, db *data.DB, userID uid.ID, key string) {
+	t.Helper()
+	tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+	c, _ := gin.CreateTestContext(nil)
+	rCtx := access.RequestContext{}
+	rCtx.DBTxn = tx
+	rCtx.Authenticated.User = &models.Identity{Model: models.Model{ID: userID}}
+	c.Set(access.RequestContextKey, rCtx)
+
+	_, err := AddUserPublicKey(c, &api.AddUserPublicKeyRequest{PublicKey: key})
+	assert.NilError(t, err)
+	assert.NilError(t, tx.Commit())
 }
 
 func TestAPI_ListUsers(t *testing.T) {

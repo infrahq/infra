@@ -264,31 +264,32 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 		query.B("INNER JOIN user_public_keys ON identities.id = user_public_keys.user_id")
 		query.B("AND user_public_keys.fingerprint = ?", opts.ByPublicKeyFingerprint)
 	}
-	query.B("WHERE identities.deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	query.B("WHERE identities.deleted_at IS NULL")
+	query.B("AND identities.organization_id = ?", tx.OrganizationID())
 	if opts.ByID != 0 {
-		query.B("AND id = ?", opts.ByID)
+		query.B("AND identities.id = ?", opts.ByID)
 	}
 	if len(opts.ByIDs) > 0 {
-		query.B("AND id IN")
+		query.B("AND identities.id IN")
 		queryInClause(query, opts.ByIDs)
 	}
 	if opts.ByName != "" {
-		query.B("AND name = ?", opts.ByName)
+		query.B("AND identities.name = ?", opts.ByName)
 	}
 	if opts.ByNotName != "" {
-		query.B("AND name != ?", opts.ByNotName)
+		query.B("AND identities.name != ?", opts.ByNotName)
 	}
 	if opts.ByGroupID != 0 {
 		query.B("AND identities_groups.group_id = ?", opts.ByGroupID)
 	}
 	if opts.CreatedBy != 0 {
-		query.B("AND created_by = ?", opts.CreatedBy)
+		query.B("AND identities.created_by = ?", opts.CreatedBy)
 		if len(opts.ByNotIDs) > 0 {
-			query.B("AND id NOT IN ")
+			query.B("AND identities.id NOT IN ")
 			queryInClause(query, opts.ByNotIDs)
 		}
 	}
-	query.B("ORDER BY name ASC")
+	query.B("ORDER BY identities.name ASC")
 	if opts.Pagination != nil {
 		opts.Pagination.PaginateQuery(query)
 	}
