@@ -237,7 +237,11 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		}
 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
+			ID:          loginRes.UserID,
+			Password:    password,
+			OldPassword: loginReq.PasswordCredentials.Password,
+		}); err != nil {
 			if passwordError(cli, err) {
 				goto PROMPTLOGIN
 			}
