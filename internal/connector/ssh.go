@@ -144,6 +144,7 @@ func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Gran
 			return fmt.Errorf("get user: %w", err)
 		}
 
+		// TODO: log the user was created
 		if err := addLinuxUser(user); err != nil {
 			return err
 		}
@@ -163,7 +164,7 @@ func grantsByUserID(grants []api.Grant) map[string]api.Grant {
 func addLinuxUser(user *api.User) error {
 	args := []string{
 		"--comment", fmt.Sprintf("%v,%v", user.ID, sentinelManagedByInfra),
-		"-m", user.SSHUsername,
+		"-m", "-p", "*", user.SSHUsername,
 	}
 	cmd := exec.Command("useradd", args...)
 	// TODO: capture error to syslog

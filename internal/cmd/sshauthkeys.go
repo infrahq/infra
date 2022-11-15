@@ -3,19 +3,27 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	logsyslog "log/syslog"
+	"os"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 )
 
-var syslog *logsyslog.Writer
+var logger zerolog.Logger
 
 func init() {
+	out := []io.Writer{os.Stderr}
 	// TODO: log to stderr if this fails?
-	syslog, _ = logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
+	syslog, _ := logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
+	if syslog != nil {
+		out = append(out, syslog)
+	}
+	logger = zerolog.New(io.MultiWriter(out...))
 }
 
 type sshAuthKeysOptions struct {
@@ -37,7 +45,7 @@ func newSSHAuthKeysCmd(cli *CLI) *cobra.Command {
 
 			// log the error to syslog, since we expect stdout/stderr to be hidden
 			if err := runSSHAuthKeys(cli, opts); err != nil {
-				syslog.Err(err.Error())
+				logger.Err(err).Msg("ssh auth-keys exit")
 				return err
 			}
 			return nil
@@ -50,9 +58,12 @@ func newSSHAuthKeysCmd(cli *CLI) *cobra.Command {
 }
 
 func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
+	// TODO:
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	ctx := context.Background()
-	syslog.Info("Running infra ssh auth-keys")
-	syslog.Debug(fmt.Sprintf("Fingerprint=%v Username=%v", opts.fingerprint, opts.username))
+	logger.Info().Msg("Running infra ssh auth-keys")
+	logger.Debug().Msgf("Fingerprint=%v Username=%v", opts.fingerprint, opts.username)
 
 	// This command only uses a small subset of these options, but its expected
 	// that it runs in the same environment as the ssh connector, so may as well
@@ -83,7 +94,7 @@ func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 	for _, key := range user.PublicKeys {
 		// TODO: add expiration to this output when it's available
 		cli.Output("%v %v", key.KeyType, key.PublicKey)
-		syslog.Debug(fmt.Sprintf("%v %v", key.KeyType, key.PublicKey))
+		logger.Debug().Msgf("%v %v", key.KeyType, key.PublicKey)
 	}
 	return nil
 }
@@ -104,7 +115,7 @@ func verifyUsernameAndFingerprint(
 	}
 
 	user := users.Items[0]
-	syslog.Debug(fmt.Sprintf("user=%v (%v) pub keys %v", user.Name, user.ID, len(user.PublicKeys)))
+	logger.Debug().Msgf("user=%v (%v) pub keys %v", user.Name, user.ID, len(user.PublicKeys))
 
 	if user.SSHUsername != opts.username {
 		return nil, fmt.Errorf("public key is for a different user")
