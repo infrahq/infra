@@ -60,10 +60,11 @@ function AccessKeyDialogContent({ accessKey }) {
 
         {/* Finish */}
         <div className='my-10 flex justify-end'>
-          <Link href='/settings'>
-            <a className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'>
-              Finish
-            </a>
+          <Link
+            href='/settings'
+            className='flex-none items-center self-center rounded-md border border-transparent bg-black px-4 py-2 text-2xs font-medium text-white shadow-sm hover:bg-gray-800'
+          >
+            Finish
           </Link>
         </div>
       </div>
@@ -238,12 +239,10 @@ export default function AccessKey() {
           {`New access key`}
         </h1>
         <Link href='/settings'>
-          <a>
-            <XMarkIcon
-              className='h-5 w-5 text-gray-500 hover:text-gray-800'
-              aria-hidden='true'
-            />
-          </a>
+          <XMarkIcon
+            className='h-5 w-5 text-gray-500 hover:text-gray-800'
+            aria-hidden='true'
+          />
         </Link>
       </div>
 
@@ -263,7 +262,10 @@ export default function AccessKey() {
                 }
               }}
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={e => {
+                setName(e.target.value)
+                setError('')
+              }}
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
                 error ? 'border-red-500' : 'border-gray-300'
               }`}
