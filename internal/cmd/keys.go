@@ -20,7 +20,7 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 		Use:     "keys",
 		Short:   "Manage access keys",
 		Aliases: []string{"key"},
-		Group:   "Management commands:",
+		GroupID: groupManagement,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 	"gotest.tools/v3/env"
 	"gotest.tools/v3/fs"
+	"gotest.tools/v3/golden"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
@@ -557,4 +559,15 @@ func TestConnectorCmd_NoFlagDefaults(t *testing.T) {
 			t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
 		}
 	})
+}
+
+func TestRootCmd_UsageTemplate(t *testing.T) {
+	ctx := context.Background()
+	cmd := NewRootCmd(newCLI(ctx))
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	assert.NilError(t, cmd.Usage())
+
+	golden.Assert(t, buf.String(), "expected-usage")
 }

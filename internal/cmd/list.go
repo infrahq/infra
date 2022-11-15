@@ -17,7 +17,7 @@ func newListCmd(cli *CLI) *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List accessible destinations",
 		Args:    NoArgs,
-		Group:   "Core commands:",
+		GroupID: groupCore,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err

@@ -21,7 +21,7 @@ func newProvidersCmd(cli *CLI) *cobra.Command {
 		Use:     "providers",
 		Short:   "Manage identity providers",
 		Aliases: []string{"provider"},
-		Group:   "Management commands:",
+		GroupID: groupManagement,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err
