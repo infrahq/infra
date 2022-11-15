@@ -244,7 +244,12 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 	})
 
 	t.Run("delete by name", func(t *testing.T) {
-		key := &models.AccessKey{Name: "delete me", IssuedFor: 1, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute)}
+		key := &models.AccessKey{
+			Name:       "delete me",
+			IssuedFor:  user.ID,
+			ProviderID: provider.ID,
+			ExpiresAt:  time.Now().Add(5 * time.Minute),
+		}
 		_, err := data.CreateAccessKey(srv.db, key)
 		assert.NilError(t, err)
 

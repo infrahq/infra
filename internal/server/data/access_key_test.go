@@ -588,15 +588,18 @@ func TestUpdateAccessKey(t *testing.T) {
 
 func TestGetAccessKey(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
+		user := &models.Identity{Name: "su@example.com"}
+		createIdentities(t, db, user)
+
 		ak := &models.AccessKey{
 			Name:       "the-key",
-			IssuedFor:  600600,
+			IssuedFor:  user.ID,
 			ProviderID: 700700,
 		}
 
 		other := &models.AccessKey{
 			Name:       "the-other-key",
-			IssuedFor:  600600,
+			IssuedFor:  user.ID,
 			ProviderID: 700700,
 		}
 
@@ -607,6 +610,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
+			expected.IssuedForName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -615,6 +619,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
+			expected.IssuedForName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -623,6 +628,7 @@ func TestGetAccessKey(t *testing.T) {
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
+			expected.IssuedForName = "su@example.com"
 			assert.DeepEqual(t, actual, &expected, cmpTimeWithDBPrecision, cmpopts.EquateEmpty())
 		})
 
@@ -681,29 +687,35 @@ func TestGetAccessKeyByID(t *testing.T) {
 }
 
 func TestRemoveExpiredAccessKeys(t *testing.T) {
-	tx := setupDB(t)
-	ak := &models.AccessKey{
-		Name:      "foo expiry",
-		IssuedFor: uid.New(),
-		ExpiresAt: time.Now().Add(-2 * time.Hour),
-	}
-	_, err := CreateAccessKey(tx, ak)
-	assert.NilError(t, err)
+	runDBTests(t, func(t *testing.T, db *DB) {
+		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+		user := &models.Identity{Name: "user@example.com"}
+		createIdentities(t, tx, user)
 
-	ak2 := &models.AccessKey{
-		Name:      "foo expiry2",
-		IssuedFor: uid.New(),
-		ExpiresAt: time.Now().Add(10 * time.Minute),
-	}
-	_, err = CreateAccessKey(tx, ak2)
-	assert.NilError(t, err)
+		ak := &models.AccessKey{
+			Name:      "foo expiry",
+			IssuedFor: user.ID,
+			ExpiresAt: time.Now().Add(-2 * time.Hour),
+		}
+		_, err := CreateAccessKey(tx, ak)
+		assert.NilError(t, err)
 
-	err = RemoveExpiredAccessKeys(tx)
-	assert.NilError(t, err)
+		ak2 := &models.AccessKey{
+			Name:      "foo expiry2",
+			IssuedFor: user.ID,
+			ExpiresAt: time.Now().Add(10 * time.Minute),
+		}
+		_, err = CreateAccessKey(tx, ak2)
+		assert.NilError(t, err)
 
-	_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak.ID})
-	assert.ErrorContains(t, err, "not found")
+		err = RemoveExpiredAccessKeys(tx)
+		assert.NilError(t, err)
 
-	_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak2.ID})
-	assert.NilError(t, err)
+		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak.ID})
+		assert.ErrorContains(t, err, "not found")
+
+		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak2.ID})
+		assert.NilError(t, err)
+	})
+
 }

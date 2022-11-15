@@ -20,4 +20,7 @@ type DeviceFlowAuthRequest struct {
 
 	// AccessKey will be populated by some queries, but is never used on writes.
 	AccessKey *AccessKey `db:"-"`
+
+	// Organization will be populated by some queries, but is never used on writes.
+	Organization *Organization `db:"-"`
 }
