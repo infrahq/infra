@@ -170,17 +170,33 @@ func saveHostConfig(hostConfig ClientHostConfig) error {
 	return nil
 }
 
+// Deprecated: use readConfig and ClientConfig.CurrentHostConfig
 func currentHostConfig() (*ClientHostConfig, error) {
 	cfg, err := readConfig()
 	if err != nil {
 		return nil, err
 	}
+	return cfg.CurrentHostConfig()
+}
 
-	for i, c := range cfg.Hosts {
-		if c.Current {
-			return &cfg.Hosts[i], nil
+func (c ClientConfig) CurrentHostConfig() (*ClientHostConfig, error) {
+	for i, host := range c.Hosts {
+		if host.Current {
+			return &c.Hosts[i], nil
 		}
 	}
 
 	return nil, ErrConfigNotFound
+}
+
+func (c ClientConfig) APIClient() (*api.Client, error) {
+	cfg, err := readConfig()
+	if err != nil {
+		return nil, err
+	}
+	hostConfig, err := cfg.CurrentHostConfig()
+	if err != nil {
+		return nil, err
+	}
+	return apiClientFromHostConfig(hostConfig)
 }

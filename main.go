@@ -17,8 +17,13 @@ func main() {
 	if err := cmd.Run(context.Background(), os.Args[1:]...); err != nil {
 		var userErr cmd.Error
 		var unknownAuthErr x509.UnknownAuthorityError
+		var exitCodeErr exitCoder
 
 		switch {
+		case errors.As(err, &exitCodeErr):
+			// error message must be printed by caller
+			os.Exit(exitCodeErr.ExitCode())
+
 		case errors.Is(err, terminal.InterruptErr):
 			logging.Debugf("user interrupted the process")
 		case errors.As(err, &userErr):
@@ -33,4 +38,8 @@ func main() {
 
 		os.Exit(1)
 	}
+}
+
+type exitCoder interface {
+	ExitCode() int
 }

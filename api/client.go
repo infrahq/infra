@@ -248,6 +248,10 @@ func (c Client) GetUser(ctx context.Context, id uid.ID) (*User, error) {
 	return get[User](ctx, c, fmt.Sprintf("/api/users/%s", id), Query{})
 }
 
+func (c Client) GetUserSelf(ctx context.Context) (*User, error) {
+	return get[User](ctx, c, "/api/users/self", Query{})
+}
+
 func (c Client) CreateUser(ctx context.Context, req *CreateUserRequest) (*CreateUserResponse, error) {
 	return post[CreateUserResponse](ctx, c, "/api/users", req)
 }
