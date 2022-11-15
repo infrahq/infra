@@ -10,19 +10,26 @@ import {
   CheckIcon,
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
-import { Transition, Listbox, Dialog } from '@headlessui/react'
+import { Transition, Listbox, Dialog, Popover } from '@headlessui/react'
+import { Fragment, useEffect, useState } from 'react'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
 import copy from 'copy-to-clipboard'
 import moment from 'moment'
 
 import { useUser } from '../../../lib/hooks'
 
 import Dashboard from '../../../components/layouts/dashboard'
+import Calendar from '../../../components/calendar'
+
+const CUSTOM_TITLE = 'custom...'
 
 const EXPIRATION_RATE = [
   { name: '30 days', value: '720h' },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
   { name: '1 year', value: '8766h' },
+  { name: CUSTOM_TITLE, value: '720h', custom: true },
 ]
 
 function AccessKeyDialogContent({ accessKey }) {
@@ -155,7 +162,7 @@ function ExpirationRateMenu({ selected, setSelected }) {
             <div className='max-h-64 overflow-auto'>
               {EXPIRATION_RATE.map(rate => (
                 <Listbox.Option
-                  key={rate.value}
+                  key={`${rate.name}-${rate.value}`}
                   className={({ active }) =>
                     `${
                       active ? 'bg-gray-100' : ''
@@ -186,6 +193,50 @@ function ExpirationRateMenu({ selected, setSelected }) {
         )}
       </div>
     </Listbox>
+  )
+}
+
+function CalendarInput({ setSelectedTTL, selectedTTL }) {
+  const selectedCustom = moment()
+    .add(
+      parseInt(selectedTTL.value),
+      selectedTTL.value.charAt(selectedTTL.value.length - 1)
+    )
+    .format('YYYY/MM/DD')
+
+  return (
+    <Popover className='relative'>
+      <Popover.Button className='relative w-48 cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-sm'>
+        {selectedCustom}
+      </Popover.Button>
+      <Popover.Panel className='absolute z-20 mt-2'>
+        {({ close }) => (
+          <Calendar
+            selectedDate={selectedCustom}
+            extensionHour={720} // the default extension deadline is 30 days (720h)
+            onChange={e => {
+              console.log(e)
+
+              const duration = moment
+                .duration(
+                  moment(e, 'YYYY/MM/DD')
+                    .startOf('day')
+                    .diff(moment().startOf('day'))
+                )
+                .asHours()
+
+              setSelectedTTL({
+                name: CUSTOM_TITLE,
+                value: duration + 'h',
+                custom: true,
+              })
+
+              close()
+            }}
+          />
+        )}
+      </Popover.Panel>
+    </Popover>
   )
 }
 
@@ -279,6 +330,14 @@ export default function AccessKey() {
                 selected={selectedTTL}
                 setSelected={setSelectedTTL}
               />
+              {selectedTTL.custom && (
+                <div className='mt-4 sm:ml-4 sm:mt-0'>
+                  <CalendarInput
+                    selectedTTL={selectedTTL}
+                    setSelectedTTL={setSelectedTTL}
+                  />
+                </div>
+              )}
             </div>
           </div>
           {selectedTTL?.value && (
