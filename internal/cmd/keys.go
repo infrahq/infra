@@ -38,28 +38,32 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 
 type keyCreateOptions struct {
 	Name              string
+	UserName          string
 	TTL               time.Duration
 	ExtensionDeadline time.Duration
 }
 
 func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
+	var connector bool
+	var quiet bool
 
 	cmd := &cobra.Command{
-		Use:   "add USER|connector",
+		Use:   "add",
 		Short: "Create an access key",
 		Long:  `Create an access key for a user or a connector.`,
 		Example: `
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add user@example.com --ttl=12h --name example-key
+$ infra keys add --ttl=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
-$ infra keys add connector
+$ infra keys add --connector
+
+# Set an environment variable with the newly created access key
+$ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 `,
-		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			userName := args[0]
 
 			if options.Name != "" {
 				if strings.Contains(options.Name, " ") {
@@ -77,11 +81,15 @@ $ infra keys add connector
 				return err
 			}
 
-			var userID uid.ID
-			if userName == config.Name { // user is requesting their own stuff
-				userID = config.UserID
-			} else {
-				user, err := getUserByNameOrID(client, userName)
+			userID := config.UserID
+
+			// override the user setting if the user wants to create a connector access key
+			if connector {
+				options.UserName = "connector"
+			}
+
+			if options.UserName != "" {
+				user, err := getUserByNameOrID(client, options.UserName)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
@@ -111,24 +119,35 @@ $ infra keys add connector
 				return err
 			}
 
-			var expMsg strings.Builder
-			expMsg.WriteString("This key will expire in ")
-			expMsg.WriteString(format.ExactDuration(options.TTL))
-			if !resp.Expires.Equal(resp.ExtensionDeadline) {
-				expMsg.WriteString(", and must be used every ")
-				expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
-				expMsg.WriteString(" to remain valid")
-			}
-			cli.Output("Issued access key %q for %q", resp.Name, userName)
-			cli.Output(expMsg.String())
-			cli.Output("")
+			if !quiet {
+				var expMsg strings.Builder
+				expMsg.WriteString("This key will expire in ")
+				expMsg.WriteString(format.ExactDuration(options.TTL))
+				if !resp.Expires.Equal(resp.ExtensionDeadline) {
+					expMsg.WriteString(", and must be used every ")
+					expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
+					expMsg.WriteString(" to remain valid")
+				}
+				if options.UserName != "" {
+					cli.Output("Issued access key %q for %q", resp.Name, options.UserName)
+				} else {
+					cli.Output("Issued access key %q", resp.Name)
+				}
+				cli.Output(expMsg.String())
+				cli.Output("")
 
-			cli.Output("Key: %s", resp.AccessKey)
+				cli.Output("Key: %s", resp.AccessKey)
+			} else {
+				cli.Output(resp.AccessKey)
+			}
 			return nil
 		},
 	}
 
 	cmd.Flags().StringVar(&options.Name, "name", "", "The name of the access key")
+	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who will own the key")
+	cmd.Flags().BoolVar(&connector, "connector", false, "Create the key for the connector")
+	cmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "Only display the access key")
 	cmd.Flags().DurationVar(&options.TTL, "ttl", thirtyDays, "The total time that the access key will be valid for")
 	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
