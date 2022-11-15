@@ -22,7 +22,9 @@ module.exports = phase => ({
           {
             key: 'Content-Security-Policy',
             value:
-              phase === PHASE_DEVELOPMENT_SERVER ? '' : `default-src 'self'`,
+              phase === PHASE_DEVELOPMENT_SERVER
+                ? ''
+                : `default-src 'self'; img-src * 'self' data: https:;`,
           },
           {
             key: 'X-Content-Type-Options',
