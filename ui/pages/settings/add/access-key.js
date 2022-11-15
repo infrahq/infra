@@ -1,5 +1,9 @@
 import Link from 'next/link'
 import Head from 'next/head'
+import { Fragment, useEffect, useState } from 'react'
+import { usePopper } from 'react-popper'
+import * as ReactDOM from 'react-dom'
+
 import {
   XMarkIcon,
   ChevronDownIcon,
@@ -7,9 +11,6 @@ import {
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 import { Transition, Listbox, Dialog } from '@headlessui/react'
-import { Fragment, useEffect, useState } from 'react'
-import { usePopper } from 'react-popper'
-import * as ReactDOM from 'react-dom'
 import copy from 'copy-to-clipboard'
 import moment from 'moment'
 
@@ -18,7 +19,7 @@ import { useUser } from '../../../lib/hooks'
 import Dashboard from '../../../components/layouts/dashboard'
 
 const EXPIRATION_RATE = [
-  { name: '30 days', value: '720h', default: true },
+  { name: '30 days', value: '720h' },
   { name: '60 days', value: '1440h' },
   { name: '90 days', value: '2160h' },
   { name: '1 year', value: '8766h' },
@@ -189,9 +190,7 @@ function ExpirationRateMenu({ selected, setSelected }) {
 }
 
 export default function AccessKey() {
-  const [selectedTTL, setSelectedTTL] = useState(
-    EXPIRATION_RATE.find(e => e.default)
-  )
+  const [selectedTTL, setSelectedTTL] = useState(EXPIRATION_RATE[0])
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [generatedAccessKey, setGeneratedAccessKey] = useState('')

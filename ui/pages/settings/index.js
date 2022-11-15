@@ -14,7 +14,7 @@ import Dashboard from '../../components/layouts/dashboard'
 import DeleteModal from '../../components/delete-modal'
 import Table from '../../components/table'
 
-const TAB_ACCESS_KEY = { name: 'access_key', title: 'Access Key' }
+const TAB_ACCESS_KEY = { name: 'access_keys', title: 'Access Keys' }
 const TAB_ORG_ADMINS = { name: 'admins', title: 'Organization Admins' }
 const TAB_PROVIDERS = { name: 'providers', title: 'Providers' }
 
@@ -219,22 +219,12 @@ export default function Settings() {
                             {info.getValue()}
                           </div>
                           <div className='space-y-1 pt-2 text-3xs text-gray-500 sm:hidden'>
-                            <div>
-                              The key must be used before{' '}
-                              <span className='font-semibold text-gray-700'>
-                                {moment(
-                                  info.row.original.extensionDeadline
-                                ).format('YYYY/MM/DD')}
-                              </span>
-                            </div>
-                            <div>
-                              and will expire on{' '}
-                              <span className='font-semibold text-gray-700'>
-                                {moment(info.row.original.expires).format(
-                                  'YYYY/MM/DD'
-                                )}
-                              </span>
-                            </div>
+                            the key will expire on{' '}
+                            <span className='font-semibold text-gray-700'>
+                              {moment(info.row.original.expires).format(
+                                'YYYY/MM/DD'
+                              )}
+                            </span>
                           </div>
                         </div>
                       )

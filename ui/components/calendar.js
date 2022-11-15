@@ -1,6 +1,7 @@
 import moment from 'moment'
+
 import React, { useRef, useEffect, useState } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/outline'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
 const monthName = [
   { id: 0, long: 'January', short: 'Jan' },
@@ -18,13 +19,13 @@ const monthName = [
 ]
 
 const daysOfWeek = [
-  { id: 0, title: 'S', value: 'Sunday' },
+  { id: 0, title: 'Su', value: 'Sunday' },
   { id: 1, title: 'M', value: 'Monday' },
   { id: 2, title: 'T', value: 'Tuesday' },
   { id: 3, title: 'W', value: 'Wednesday' },
-  { id: 4, title: 'T', value: 'Thursday' },
+  { id: 4, title: 'Th', value: 'Thursday' },
   { id: 5, title: 'F', value: 'Friday' },
-  { id: 6, title: 'S', value: 'Sunday' },
+  { id: 6, title: 'S', value: 'Saturday' },
 ]
 
 const timeRange = [
@@ -45,11 +46,12 @@ function CalendarRow({
   selectedDate,
   extensionHour,
 }) {
-  const earliestMaxExtensionTime = moment().add(extensionHour, 'h')
-  console.log(earliestMaxExtensionTime)
+  const earliestMaxExtensionTime = moment()
+    .add(extensionHour, 'h')
+    .startOf('day')
 
   let content = []
-  //first row with empty spaces
+  // first row with empty spaces
   if (!row) {
     for (let i = 0; i < firstDay; i++) {
       content.push(<td key={`norow-${i}`}></td>)
@@ -118,7 +120,7 @@ function CalendarRow({
 
     return <>{content}</>
   }
-  //other rows
+  // other rows
   for (let i = 1; i <= 7; i++) {
     if (i + (7 * row - firstDay) <= lastDayInMonth) {
       const isBefore = moment(
