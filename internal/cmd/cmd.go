@@ -383,29 +383,30 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 			Title: "Other commands:",
 		})
 
-	// Core commands:
-	rootCmd.AddCommand(newLoginCmd(cli))
-	rootCmd.AddCommand(newLogoutCmd(cli))
-	rootCmd.AddCommand(newListCmd(cli))
-	rootCmd.AddCommand(newUseCmd(cli))
+	rootCmd.AddCommand(
+		// Core commands
+		newLoginCmd(cli),
+		newLogoutCmd(cli),
+		newListCmd(cli),
+		newUseCmd(cli),
 
-	// Management commands:
-	rootCmd.AddCommand(newDestinationsCmd(cli))
-	rootCmd.AddCommand(newGrantsCmd(cli))
-	rootCmd.AddCommand(newUsersCmd(cli))
-	rootCmd.AddCommand(newGroupsCmd(cli))
-	rootCmd.AddCommand(newKeysCmd(cli))
-	rootCmd.AddCommand(newProvidersCmd(cli))
+		// Management commands
+		newDestinationsCmd(cli),
+		newGrantsCmd(cli),
+		newUsersCmd(cli),
+		newGroupsCmd(cli),
+		newKeysCmd(cli),
+		newProvidersCmd(cli),
 
-	// Other commands:
-	rootCmd.AddCommand(newInfoCmd(cli))
-	rootCmd.AddCommand(newVersionCmd(cli))
+		// Other commands
+		newInfoCmd(cli),
+		newVersionCmd(cli),
 
-	// Hidden
-	rootCmd.AddCommand(newTokensCmd(cli))
-	rootCmd.AddCommand(newServerCmd())
-	rootCmd.AddCommand(newConnectorCmd())
-	rootCmd.AddCommand(newAgentCmd())
+		// Hidden commands
+		newTokensCmd(cli),
+		newServerCmd(),
+		newConnectorCmd(),
+		newAgentCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
