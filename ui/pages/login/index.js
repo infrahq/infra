@@ -217,10 +217,11 @@ export default function Login() {
             </div>
             {isEmailConfigured && (
               <div className='mt-4 flex items-center justify-end text-sm'>
-                <Link href='/password-reset'>
-                  <a className='font-medium text-blue-600 hover:text-blue-500'>
-                    Forgot your password?
-                  </a>
+                <Link
+                  href='/password-reset'
+                  className='font-medium text-blue-600 hover:text-blue-500'
+                >
+                  Forgot your password?
                 </Link>
               </div>
             )}

@@ -55,11 +55,12 @@ export default function Organizations() {
       <div className='text-center text-xs text-gray-500'>
         Not seeing your organization?
       </div>
-      <Link href='/forgot-domain'>
-        <a className='my-1 inline-flex items-center text-xs font-semibold text-blue-500'>
-          Find my organization{' '}
-          <ChevronRightIcon className='mt-0.5 h-3 w-3 stroke-2' />
-        </a>
+      <Link
+        href='/forgot-domain'
+        className='my-1 inline-flex items-center text-xs font-semibold text-blue-500'
+      >
+        Find my organization{' '}
+        <ChevronRightIcon className='mt-0.5 h-3 w-3 stroke-2' />
       </Link>
     </div>
   )
