@@ -73,8 +73,8 @@ $ infra login
 $ export INFRA_SERVER=example.infrahq.com
 $ export INFRA_PROVIDER=google
 $ infra login`,
-		Args:  MaxArgs(1),
-		Group: "Core commands:",
+		Args:    MaxArgs(1),
+		GroupID: groupCore,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
 				options.Server = server

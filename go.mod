@@ -17,7 +17,7 @@ require (
 	github.com/muesli/termenv v0.13.0
 	github.com/prometheus/client_golang v1.13.1
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
-	github.com/spf13/cobra v1.4.0
+	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.2.0
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 	golang.org/x/term v0.2.0
@@ -134,7 +134,7 @@ require (
 	github.com/hashicorp/vault/sdk v0.5.3 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -192,9 +192,6 @@ require (
 
 // switch back to main repo when https://github.com/gin-gonic/gin/pull/3045 is merged
 replace github.com/gin-gonic/gin => github.com/infrahq/gin v1.7.2-0.20220120203023-0eaa562f3a8a
-
-// switch back to main repo when https://github.com/spf13/cobra/pull/1003 is merged
-replace github.com/spf13/cobra => github.com/infrahq/cobra v1.4.0-groups
 
 // switch back to main repo when https://github.com/go-gorm/gorm/pull/5288 is merged
 replace gorm.io/gorm => github.com/infrahq/gorm v1.23.5-0.20220422194753-04115485c083

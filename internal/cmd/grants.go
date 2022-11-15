@@ -30,7 +30,7 @@ func newGrantsCmd(cli *CLI) *cobra.Command {
 		Use:     "grants",
 		Short:   "Manage access to resources",
 		Aliases: []string{"grant"},
-		Group:   "Management commands:",
+		GroupID: groupManagement,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err

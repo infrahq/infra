@@ -186,7 +186,7 @@ $ infra use development
 # Use a Kubernetes namespace context
 $ infra use development.kube-system`,
 		Args:              ExactArgs(1),
-		Group:             "Core commands:",
+		GroupID:           groupCore,
 		ValidArgsFunction: getUseCompletion,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
@@ -347,6 +347,12 @@ func defaultConnectorOptions() connector.Options {
 	}
 }
 
+const (
+	groupCore       = "group-core"
+	groupManagement = "group-management"
+	groupOther      = "group-other"
+)
+
 func NewRootCmd(cli *CLI) *cobra.Command {
 	cobra.EnableCommandSorting = false
 
@@ -363,34 +369,49 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	// Core commands:
-	rootCmd.AddCommand(newLoginCmd(cli))
-	rootCmd.AddCommand(newLogoutCmd(cli))
-	rootCmd.AddCommand(newListCmd(cli))
-	rootCmd.AddCommand(newUseCmd(cli))
+	rootCmd.AddGroup(
+		&cobra.Group{
+			ID:    groupCore,
+			Title: "Core commands:",
+		},
+		&cobra.Group{
+			ID:    groupManagement,
+			Title: "Management commands:",
+		},
+		&cobra.Group{
+			ID:    groupOther,
+			Title: "Other commands:",
+		})
 
-	// Management commands:
-	rootCmd.AddCommand(newDestinationsCmd(cli))
-	rootCmd.AddCommand(newGrantsCmd(cli))
-	rootCmd.AddCommand(newUsersCmd(cli))
-	rootCmd.AddCommand(newGroupsCmd(cli))
-	rootCmd.AddCommand(newKeysCmd(cli))
-	rootCmd.AddCommand(newProvidersCmd(cli))
+	rootCmd.AddCommand(
+		// Core commands
+		newLoginCmd(cli),
+		newLogoutCmd(cli),
+		newListCmd(cli),
+		newUseCmd(cli),
 
-	// Other commands:
-	rootCmd.AddCommand(newInfoCmd(cli))
-	rootCmd.AddCommand(newVersionCmd(cli))
+		// Management commands
+		newDestinationsCmd(cli),
+		newGrantsCmd(cli),
+		newUsersCmd(cli),
+		newGroupsCmd(cli),
+		newKeysCmd(cli),
+		newProvidersCmd(cli),
 
-	// Hidden
-	rootCmd.AddCommand(newTokensCmd(cli))
-	rootCmd.AddCommand(newServerCmd())
-	rootCmd.AddCommand(newConnectorCmd())
-	rootCmd.AddCommand(newAgentCmd())
+		// Other commands
+		newInfoCmd(cli),
+		newVersionCmd(cli),
+
+		// Hidden commands
+		newTokensCmd(cli),
+		newServerCmd(),
+		newConnectorCmd(),
+		newAgentCmd())
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
 
-	rootCmd.SetHelpCommandGroup("Other commands:")
+	rootCmd.SetHelpCommandGroupID(groupOther)
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.AddCommand(newCompletionsCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
@@ -431,10 +452,10 @@ Aliases:
 Examples:
 {{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
 
-Available Commands:{{end}}{{range $cmds}}{{if (and (eq .Group "") (or .IsAvailableCommand (eq .Name "help")))}}
+Available Commands:{{end}}{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{range $group := .Groups}}
 
-{{.Title}}{{range $cmds}}{{if (and (eq .Group $group.Group) (or .IsAvailableCommand (eq .Name "help")))}}
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
 
 Flags:
