@@ -1,14 +1,15 @@
 ---
 title: CLI Reference
-position: 1
 ---
 # CLI Reference
 
-## `infra login`
+## Commands
+
+### `infra login`
 
 Login to Infra
 
-### Description
+#### Description
 
 Login to Infra and start a background agent to keep local configuration up-to-date
 
@@ -16,7 +17,7 @@ Login to Infra and start a background agent to keep local configuration up-to-da
 infra login [SERVER] [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # By default, login will prompt for all required information.
@@ -38,7 +39,7 @@ $ export INFRA_PROVIDER=google
 $ infra login
 ```
 
-### Options
+#### Options
 
 ```console
       --key string                       Login with an access key
@@ -50,17 +51,17 @@ $ infra login
       --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra logout`
+### `infra logout`
 
 Log out of Infra
 
-### Description
+#### Description
 
 Log out of Infra
 Note: [SERVER] and [--all] cannot be both specified. Choose either one or all servers.
@@ -69,7 +70,7 @@ Note: [SERVER] and [--all] cannot be both specified. Choose either one or all se
 infra logout [SERVER] [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Log out of current server
@@ -91,20 +92,20 @@ $ infra logout infraexampleserver.com --clear
 $ infra logout --all --clear
 ```
 
-### Options
+#### Options
 
 ```console
       --all     logout of all servers
       --clear   clear from list of servers
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra list`
+### `infra list`
 
 List accessible destinations
 
@@ -112,13 +113,13 @@ List accessible destinations
 infra list [flags]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra use`
+### `infra use`
 
 Access a destination
 
@@ -126,7 +127,7 @@ Access a destination
 infra use DESTINATION [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 
@@ -137,13 +138,13 @@ $ infra use development
 $ infra use development.kube-system
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra destinations list`
+### `infra destinations list`
 
 List connected destinations
 
@@ -151,19 +152,19 @@ List connected destinations
 infra destinations list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --format string   Output format [json|yaml]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra destinations remove`
+### `infra destinations remove`
 
 Disconnect a destination
 
@@ -171,25 +172,25 @@ Disconnect a destination
 infra destinations remove DESTINATION [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 $ infra destinations remove docker-desktop
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if destination does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra grants list`
+### `infra grants list`
 
 List grants
 
@@ -197,7 +198,7 @@ List grants
 infra grants list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --destination string   Filter by destination
@@ -208,13 +209,13 @@ infra grants list [flags]
       --user string          Filter by user name or id
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra grants add`
+### `infra grants add`
 
 Grant a user or group access to a destination
 
@@ -222,7 +223,7 @@ Grant a user or group access to a destination
 infra grants add USER|GROUP DESTINATION [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Grant a user access to a destination
@@ -239,7 +240,7 @@ $ infra grants add johndoe@example.com infra --role admin
 
 ```
 
-### Options
+#### Options
 
 ```console
       --force         Create grant even if requested user, destination, or role are unknown
@@ -247,13 +248,13 @@ $ infra grants add johndoe@example.com infra --role admin
       --role string   Type of access that the user or group will be given (default "connect")
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra grants remove`
+### `infra grants remove`
 
 Revoke a user or group's access to a destination
 
@@ -261,7 +262,7 @@ Revoke a user or group's access to a destination
 infra grants remove USER|GROUP DESTINATION [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Remove all grants of a user in a destination
@@ -278,7 +279,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 
 ```
 
-### Options
+#### Options
 
 ```console
       --force         Exit successfully even if grant does not exist
@@ -286,17 +287,17 @@ $ infra grants remove janedoe@example.com infra --role admin
       --role string   Role to revoke
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra users add`
+### `infra users add`
 
 Create a user
 
-### Description
+#### Description
 
 Create a user.
 
@@ -306,20 +307,20 @@ Note: A temporary password will be created. The user will be prompted to set a n
 infra users add USER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Create a user
 $ infra users add johndoe@example.com
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra users edit`
+### `infra users edit`
 
 Update a user
 
@@ -327,26 +328,26 @@ Update a user
 infra users edit USER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Set a new password for a user
 $ infra users edit janedoe@example.com --password
 ```
 
-### Options
+#### Options
 
 ```console
       --password   Set a new password, or if admin, set a temporary password for the user
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra users list`
+### `infra users list`
 
 List users
 
@@ -354,19 +355,19 @@ List users
 infra users list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --format string   Output format [json|yaml]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra users remove`
+### `infra users remove`
 
 Delete a user
 
@@ -374,26 +375,26 @@ Delete a user
 infra users remove USER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Delete a user
 $ infra users remove janedoe@example.com
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if user does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra groups add`
+### `infra groups add`
 
 Create a group
 
@@ -401,20 +402,20 @@ Create a group
 infra groups add GROUP [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Create a group
 $ infra groups add Engineering
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra groups adduser`
+### `infra groups adduser`
 
 Add a user to a group
 
@@ -422,7 +423,7 @@ Add a user to a group
 infra groups adduser USER GROUP [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Add a user to a group
@@ -430,13 +431,13 @@ $ infra groups adduser johndoe@example.com Engineering
 
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra groups list`
+### `infra groups list`
 
 List groups
 
@@ -444,20 +445,20 @@ List groups
 infra groups list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --no-truncate     Do not truncate the list of users for each group
       --num-users int   The number of users to display in each group (default 8)
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra groups remove`
+### `infra groups remove`
 
 Delete a group
 
@@ -465,26 +466,26 @@ Delete a group
 infra groups remove GROUP [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Delete a group
 $ infra groups remove Engineering
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if the group does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra groups removeuser`
+### `infra groups removeuser`
 
 Remove a user from a group
 
@@ -492,7 +493,7 @@ Remove a user from a group
 infra groups removeuser USER GROUP [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Remove a user from a group
@@ -500,19 +501,19 @@ $ infra groups removeuser johndoe@example.com Engineering
 
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if the user or group does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra keys list`
+### `infra keys list`
 
 List access keys
 
@@ -520,24 +521,24 @@ List access keys
 infra keys list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --show-expired   Show expired access keys
       --user string    The name of a user to list access keys for
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra keys add`
+### `infra keys add`
 
 Create an access key
 
-### Description
+#### Description
 
 Create an access key for a user or a connector.
 
@@ -545,7 +546,7 @@ Create an access key for a user or a connector.
 infra keys add USER|connector [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 
@@ -557,7 +558,7 @@ $ infra keys add connector
 
 ```
 
-### Options
+#### Options
 
 ```console
       --extension-deadline duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
@@ -565,13 +566,13 @@ $ infra keys add connector
       --ttl duration                  The total time that the access key will be valid for (default 720h0m0s)
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra keys remove`
+### `infra keys remove`
 
 Delete an access key
 
@@ -579,19 +580,19 @@ Delete an access key
 infra keys remove KEY [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if access key does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra providers list`
+### `infra providers list`
 
 List connected identity providers
 
@@ -599,23 +600,23 @@ List connected identity providers
 infra providers list [flags]
 ```
 
-### Options
+#### Options
 
 ```console
       --format string   Output format [json|yaml]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra providers add`
+### `infra providers add`
 
 Connect an identity provider
 
-### Description
+#### Description
 
 Add an identity provider for users to authenticate.
 PROVIDER is a short unique name of the identity provider being added (eg. okta)
@@ -624,7 +625,7 @@ PROVIDER is a short unique name of the identity provider being added (eg. okta)
 infra providers add PROVIDER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Connect Okta to Infra
@@ -634,7 +635,7 @@ $ infra providers add okta --url example.okta.com --client-id 0oa3sz06o6do0muoW5
 $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0muoW5d7 --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1VCq7YzN --service-account-key ~/client-123.json --workspace-domain-admin admin@example.com --kind google
 ```
 
-### Options
+#### Options
 
 ```console
       --client-id string                OIDC client ID
@@ -647,13 +648,13 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
       --workspace-domain-admin string   The email of your Google Workspace domain admin
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra providers edit`
+### `infra providers edit`
 
 Update a provider
 
@@ -661,7 +662,7 @@ Update a provider
 infra providers edit PROVIDER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 # Set a new client secret for a connected provider
@@ -672,7 +673,7 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
 
 ```
 
-### Options
+#### Options
 
 ```console
       --client-secret string            Set a new client secret
@@ -682,13 +683,13 @@ $ infra providers edit google --client-secret VT_oXtkEDaT7UFY-C3DSRWYb00qyKZ1K1V
       --workspace-domain-admin string   The email of your Google workspace domain admin
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra providers remove`
+### `infra providers remove`
 
 Disconnect an identity provider
 
@@ -696,25 +697,25 @@ Disconnect an identity provider
 infra providers remove PROVIDER [flags]
 ```
 
-### Examples
+#### Examples
 
 ```bash
 $ infra providers remove okta
 ```
 
-### Options
+#### Options
 
 ```console
       --force   Exit successfully even if provider does not exist
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra info`
+### `infra info`
 
 Display the info about the current session
 
@@ -722,13 +723,13 @@ Display the info about the current session
 infra info [flags]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra version`
+### `infra version`
 
 Display the Infra version
 
@@ -736,13 +737,13 @@ Display the Infra version
 infra version [flags]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra about`
+### `infra about`
 
 Display information about Infra
 
@@ -750,17 +751,17 @@ Display information about Infra
 infra about [flags]
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
       --log-level string   Show logs when running the command [error, warn, info, debug] (default "info")
 ```
-## `infra completion`
+### `infra completion`
 
 Generate shell auto-completion for the CLI
 
-### Description
+#### Description
 
 To load completions:
 
@@ -804,7 +805,7 @@ and source this file from your PowerShell profile.
 infra completion
 ```
 
-### Options inherited from parent commands
+**Additional options**
 
 ```console
       --help               Display help
