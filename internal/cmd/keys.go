@@ -168,7 +168,26 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			err = client.DeleteAccessKeyByName(ctx, args[0])
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
+
+			keyName := args[0]
+
+			userID := config.UserID
+			keys, err := listAll(ctx, client.ListAccessKeys, api.ListAccessKeysRequest{Name: keyName, UserID: userID})
+			if err != nil {
+				return err
+			}
+
+			if len(keys) == 0 {
+				return Error{
+					Message: "No access key named: " + keyName,
+				}
+			}
+
+			err = client.DeleteAccessKey(ctx, keys[0].ID)
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
