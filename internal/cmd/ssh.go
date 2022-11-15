@@ -117,9 +117,20 @@ func writeInfraKnownHosts(infraSSHDir string, dests []api.Destination) error {
 		return err
 	}
 	for _, dest := range dests {
-		line := fmt.Sprintf("%v %v", dest.Connection.URL, dest.Connection.CA)
-		if _, err := fh.WriteString(line); err != nil {
-			return err
+		hostname := dest.Connection.URL
+		if host, _, err := net.SplitHostPort(hostname); err == nil {
+			hostname = host
+		}
+
+		for _, key := range strings.Split(string(dest.Connection.CA), "\n") {
+			if key == "" {
+				continue
+			}
+
+			line := fmt.Sprintf("%v %v\n", hostname, key)
+			if _, err := fh.WriteString(line); err != nil {
+				return err
+			}
 		}
 	}
 	if err := fh.Sync(); err != nil {
