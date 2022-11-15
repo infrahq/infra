@@ -11,9 +11,6 @@ import {
   DocumentDuplicateIcon,
 } from '@heroicons/react/24/outline'
 import { Transition, Listbox, Dialog, Popover } from '@headlessui/react'
-import { Fragment, useEffect, useState } from 'react'
-import { usePopper } from 'react-popper'
-import * as ReactDOM from 'react-dom'
 import copy from 'copy-to-clipboard'
 import moment from 'moment'
 
