@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -42,7 +43,10 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 			Multiplier:          1.5,
 		}
 		waiter := repeat.NewWaiter(backOff)
-		return syncGrantsToDestination(ctx, con, waiter, updateLocalUsers)
+		fn := func(ctx context.Context, grants []api.Grant) error {
+			return updateLocalUsers(ctx, client, grants)
+		}
+		return syncGrantsToDestination(ctx, con, waiter, fn)
 	})
 
 	return group.Wait()
@@ -106,23 +110,66 @@ func readHostKeys(in []byte, out io.Writer) error {
 	return err
 }
 
-func updateLocalUsers(ctx context.Context, grants []api.Grant) error {
-	// TODO: grants for groups need to be resolved to a user somehow
+// TODO: grants for groups need to be resolved to a user somehow
+func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Grant) error {
+	byUserID := grantsByUserID(grants)
 
-	// List all users managed by infra
+	// List all the local users
 	localUsers, err := readLocalUsers("/etc/passwd")
 	if err != nil {
 		return err
 	}
 
-	_ = localUsers
-
 	// Compare that list to the grants to get a list to remove and a list to add
+	toDelete := []localUser{}
+	for _, user := range localUsers {
+		if !user.IsManagedByInfra() {
+			continue
+		}
+		infraUID := user.Info[0]
+		if _, ok := byUserID[infraUID]; !ok {
+			toDelete = append(toDelete, user)
+			continue
+		}
+		delete(byUserID, infraUID)
+	}
 
 	// Remove users
+	// TODO:
+
 	// Add users
+	for _, grant := range byUserID {
+		user, err := client.GetUser(ctx, grant.User)
+		if err != nil {
+			return fmt.Errorf("get user: %w", err)
+		}
+
+		if err := addLinuxUser(user); err != nil {
+			return err
+		}
+	}
 
 	return nil
+}
+
+func grantsByUserID(grants []api.Grant) map[string]api.Grant {
+	result := make(map[string]api.Grant, len(grants))
+	for _, grant := range grants {
+		result[grant.ID.String()] = grant
+	}
+	return result
+}
+
+func addLinuxUser(user *api.User) error {
+	args := []string{
+		"--comment", fmt.Sprintf("%v,%v", user.ID, sentinelManagedByInfra),
+		"-m", user.SSHUsername,
+	}
+	cmd := exec.Command("useradd", args...)
+	// TODO: capture error to syslog
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 type localUser struct {

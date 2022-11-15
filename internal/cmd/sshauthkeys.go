@@ -74,6 +74,8 @@ func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 		return err
 	}
 
+	// TODO: verify that the user account is created by infra
+
 	if err := authorizeUserForDestination(ctx, client, user, config.Name); err != nil {
 		return err
 	}
