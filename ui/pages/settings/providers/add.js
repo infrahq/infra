@@ -232,12 +232,10 @@ export default function ProvidersAddDetails() {
           Connect Provider
         </h1>
         <Link href='/settings?tab=providers'>
-          <a>
-            <XMarkIcon
-              className='h-5 w-5 text-gray-500 hover:text-gray-800'
-              aria-hidden='true'
-            />
-          </a>
+          <XMarkIcon
+            className='h-5 w-5 text-gray-500 hover:text-gray-800'
+            aria-hidden='true'
+          />
         </Link>
       </div>
       <div className='flex w-full flex-col'>

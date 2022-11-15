@@ -8,10 +8,8 @@ import { useUser } from '../../lib/hooks'
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
   let { href, children, ...rest } = props
   return (
-    <Link href={href}>
-      <a ref={ref} {...rest}>
-        {children}
-      </a>
+    <Link href={href} ref={ref} {...rest}>
+      {children}
     </Link>
   )
 })

@@ -80,13 +80,15 @@ export default function Table({
                     key={cell.id}
                   >
                     {href ? (
-                      <Link href={href(row)}>
-                        <a tabIndex='-1' className='block px-5 py-2'>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </a>
+                      <Link
+                        href={href(row)}
+                        tabIndex='-1'
+                        className='block px-5 py-2'
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </Link>
                     ) : (
                       flexRender(cell.column.columnDef.cell, cell.getContext())

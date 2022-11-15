@@ -183,8 +183,11 @@ export default function ProvidersEditDetails() {
       <header className='mt-6 mb-12 space-y-4'>
         <div className='flex flex-col justify-between md:flex-row md:items-center'>
           <h1 className='flex max-w-[75%] truncate py-1 font-display text-xl font-medium'>
-            <Link href='/settings?tab=providers'>
-              <a className='text-gray-500/75 hover:text-gray-600'>Providers</a>
+            <Link
+              href='/settings?tab=providers'
+              className='text-gray-500/75 hover:text-gray-600'
+            >
+              Providers
             </Link>{' '}
             <span className='mx-3 font-light text-gray-400'> / </span>{' '}
             <div className='flex truncate'>

@@ -17,10 +17,8 @@ import { useUser } from '../../lib/hooks'
 const NavLink = forwardRef(function NavLinkFunc(props, ref) {
   let { href, children, ...rest } = props
   return (
-    <Link href={href}>
-      <a ref={ref} {...rest}>
-        {children}
-      </a>
+    <Link ref={ref} {...rest} href={href}>
+      {children}
     </Link>
   )
 })
@@ -146,9 +144,7 @@ export default function Dashboard({ children }) {
       <>
         <div className='mb-2 flex flex-shrink-0 select-none items-center px-3'>
           <Link href='/destinations'>
-            <a>
-              <img className='my-2 h-7' src='/logo.svg' alt='Infra' />
-            </a>
+            <img className='my-2 h-7' src='/logo.svg' alt='Infra' />
           </Link>
         </div>
         <div className='mt-5 h-0 flex-1 overflow-y-auto'>
@@ -156,28 +152,28 @@ export default function Dashboard({ children }) {
             {navigation
               ?.filter(n => (n.admin ? isAdmin : true))
               .map(item => (
-                <Link key={item.name} href={item.href}>
-                  <a
-                    onClick={() => setSidebarOpen(false)}
-                    className={`
-                          ${
-                            router.asPath.startsWith(item.href)
-                              ? 'bg-gray-100/50 text-gray-800'
-                              : 'bg-transparent text-gray-500/75 hover:text-gray-500'
-                          }
-                        group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
-                  >
-                    <item.icon
-                      className={`${
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`
+                      ${
                         router.asPath.startsWith(item.href)
-                          ? 'fill-blue-100 text-blue-500'
-                          : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                          ? 'bg-gray-100/50 text-gray-800'
+                          : 'bg-transparent text-gray-500/75 hover:text-gray-500'
                       }
+                    group flex items-center rounded-md py-1.5 px-3 text-sm font-medium`}
+                >
+                  <item.icon
+                    className={`${
+                      router.asPath.startsWith(item.href)
+                        ? 'fill-blue-100 text-blue-500'
+                        : 'fill-gray-50 text-gray-500/75 group-hover:text-gray-500'
+                    }
                     mr-2 h-[18px] w-[18px] flex-shrink`}
-                      aria-hidden='true'
-                    />
-                    {item.name}
-                  </a>
+                    aria-hidden='true'
+                  />
+                  {item.name}
                 </Link>
               ))}
           </nav>

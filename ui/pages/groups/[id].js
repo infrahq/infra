@@ -133,8 +133,11 @@ export default function GroupDetails() {
       <header className='mt-6 mb-12 space-y-4'>
         <div className='flex flex-col justify-between md:flex-row md:items-center'>
           <h1 className='max-w-[75%] truncate py-1 font-display text-xl font-medium'>
-            <Link href='/groups'>
-              <a className='text-gray-500/75 hover:text-gray-600'>Groups</a>
+            <Link
+              href='/groups'
+              className='text-gray-500/75 hover:text-gray-600'
+            >
+              Groups
             </Link>{' '}
             <span className='mx-2 font-light text-gray-400'> / </span>{' '}
             {group?.name}
