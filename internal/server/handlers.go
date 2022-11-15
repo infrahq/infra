@@ -35,7 +35,6 @@ type routeVersion struct {
 	handler func(c *gin.Context)
 }
 
-// nolint // will be used in the future
 func addVersionHandler[Req, Res any](a *API, method, path, version string, routeDef route[Req, Res]) {
 	if a.versions == nil {
 		a.versions = make(map[routeIdentifier][]routeVersion)

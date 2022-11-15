@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	gocmp "github.com/google/go-cmp/cmp"
 	"gopkg.in/square/go-jose.v2"
 	"gotest.tools/v3/assert"
@@ -172,4 +173,19 @@ func TestWellKnownJWKs(t *testing.T) {
 
 var cmpWellKnownJWKsJSON = gocmp.Options{
 	gocmp.FilterPath(pathMapKey(`kid`, `x`), cmpAnyString),
+}
+
+func TestAPI_AddPreviousVersionHandlers_Order(t *testing.T) {
+	a := API{}
+	a.addPreviousVersionHandlers()
+
+	for routeID, versions := range a.versions {
+		prev := semver.MustParse("0.0.0")
+		for _, v := range versions {
+			assert.Assert(t, prev.LessThan(v.version),
+				"handlers for %v are in the wrong order, %v should be before %v",
+				routeID, v.version, prev)
+			prev = v.version
+		}
+	}
 }
