@@ -24,8 +24,6 @@ require (
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/postgres v1.3.7
-	gorm.io/gorm v1.23.5
 	k8s.io/api v0.25.4
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.3
@@ -142,8 +140,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.12.0 // indirect
 	github.com/jackc/pgx/v4 v4.17.2
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kataras/tablewriter v0.0.0-20180708051242-e063d29b7c23 // indirect
@@ -192,6 +188,3 @@ require (
 
 // switch back to main repo when https://github.com/gin-gonic/gin/pull/3045 is merged
 replace github.com/gin-gonic/gin => github.com/infrahq/gin v1.7.2-0.20220120203023-0eaa562f3a8a
-
-// switch back to main repo when https://github.com/go-gorm/gorm/pull/5288 is merged
-replace gorm.io/gorm => github.com/infrahq/gorm v1.23.5-0.20220422194753-04115485c083
