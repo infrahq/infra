@@ -348,10 +348,6 @@ func (c Client) ListGrants(ctx context.Context, req ListGrantsRequest) (*ListRes
 	})
 }
 
-func (c Client) GetGrant(ctx context.Context, id uid.ID) (*Grant, error) {
-	return get[Grant](ctx, c, fmt.Sprintf("/api/grants/%s", id), Query{})
-}
-
 func (c Client) CreateGrant(ctx context.Context, req *GrantRequest) (*CreateGrantResponse, error) {
 	return post[CreateGrantResponse](ctx, c, "/api/grants", req)
 }
