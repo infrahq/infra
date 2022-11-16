@@ -1,2 +1,2 @@
-  NAME      ISSUED FOR  CREATED       EXPIRES           EXTENSION DEADLINE  
-  user-key  my-user     24 hours ago  6 hours from now  never               
+  NAME      ISSUED FOR  CREATED       LAST USED  EXPIRES           EXTENSION DEADLINE  
+  user-key  my-user     24 hours ago  never      6 hours from now  never               
