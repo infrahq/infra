@@ -1,26 +1,22 @@
-import { useEffect, useState, Fragment, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { usePopper } from 'react-popper'
 import * as ReactDOM from 'react-dom'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
 
-import useSWR, { useSWRConfig } from 'swr'
+import useSWR from 'swr'
 import dayjs from 'dayjs'
-import copy from 'copy-to-clipboard'
 import {
   CheckIcon,
-  DocumentDuplicateIcon,
   XMarkIcon,
-  ArrowDownTrayIcon,
   ChevronDownIcon,
   ChevronRightIcon,
 } from '@heroicons/react/24/outline'
-import { Popover, Transition, Listbox, Disclosure } from '@headlessui/react'
+import { Transition, Listbox, Disclosure } from '@headlessui/react'
 
 import { useUser } from '../../../lib/hooks'
 import {
-  sortByPrivilege,
   sortByRole,
   sortBySubject,
   descriptions,
@@ -453,6 +449,62 @@ function AccessTable({
   )
 }
 
+function SelfAccessTable({ destination, grants }) {
+  const resourcesList = [...new Set(grants?.map(g => g.resource))]
+  const resourcesRoleList = []
+  resourcesList.forEach(resource => {
+    const roles = grants
+      .filter(g => g.resource === resource)
+      .map(g => g.privilege)
+
+    resourcesRoleList.push({
+      resource,
+      roles,
+    })
+  })
+
+  return (
+    <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
+      <table className='w-full text-sm text-gray-600'>
+        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
+          <tr>
+            <th scope='col' className='py-2 px-5 text-left font-medium sm:pl-6'>
+              Resource
+            </th>
+            <th scope='col' className='py-2 px-5 text-left font-medium sm:pl-6'>
+              Roles
+            </th>
+          </tr>
+        </thead>
+        <tbody className='divide-y divide-gray-200 bg-white'>
+          {resourcesRoleList.map(item => (
+            <tr key={item.resource}>
+              <td className='w-[30%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                {item.resource.split('.').pop() === destination
+                  ? 'Cluster'
+                  : item.resource.split('.').pop()}
+              </td>
+              <td className='w-[50%] whitespace-nowrap px-5 py-4 text-sm text-gray-500'>
+                {item.roles.join(', ')}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {resourcesRoleList && resourcesRoleList.length === 0 && (
+        <div className='flex justify-center py-5 text-sm text-gray-500'>
+          You have no access to this cluster
+        </div>
+      )}
+      {!resourcesRoleList && (
+        <div className='flex w-full justify-center'>
+          <Loader className='h-10 w-10' />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function NamespacesDropdownMenu({
   selectedResources,
   setSelectedResources,
@@ -583,56 +635,6 @@ function NamespacesDropdownMenu({
   )
 }
 
-function AccessCluster({ roles, resource }) {
-  const [commandCopied, setCommandCopied] = useState(false)
-
-  const command = `infra login ${window.location.host} \ninfra use ${resource} \nkubectl get pods`
-
-  return (
-    <div className='w-full flex-1'>
-      <div className='mx-6 mt-4 mb-1 flex items-center justify-between text-sm'>
-        <h1 className='flex items-center font-semibold'>Access cluster</h1>
-        <a
-          target='_blank'
-          href='https://infrahq.com/docs/install/install-infra-cli'
-          className='flex items-center text-xs font-medium text-gray-300 hover:text-gray-400'
-          rel='noreferrer'
-        >
-          <ArrowDownTrayIcon className='mr-1 h-3.5 w-3.5' />
-          Infra CLI
-        </a>
-      </div>
-      <p className='mx-6 my-4 text-xs text-gray-300'>
-        You have{' '}
-        <span className='font-semibold text-white'>{roles.join(', ')}</span>{' '}
-        access.
-      </p>
-      <div className='group relative mt-4 flex flex-1 flex-col'>
-        <pre className='w-full flex-1 overflow-auto break-all bg-zinc-900 p-6 pt-4 text-2xs leading-normal text-gray-300'>
-          {command}
-        </pre>
-        <button
-          className={`absolute right-2 top-2 rounded-md border border-white/10 bg-white/5 px-2 py-2 text-white opacity-0 backdrop-blur-xl ${
-            commandCopied ? 'opacity-100' : 'group-hover:opacity-100'
-          }`}
-          disabled={commandCopied}
-          onClick={() => {
-            copy(command)
-            setCommandCopied(true)
-            setTimeout(() => setCommandCopied(false), 2000)
-          }}
-        >
-          {commandCopied ? (
-            <CheckIcon className='h-4 w-4 stroke-1 text-green-500' />
-          ) : (
-            <DocumentDuplicateIcon className='h-4 w-4 stroke-1' />
-          )}
-        </button>
-      </div>
-    </div>
-  )
-}
-
 export default function DestinationDetail() {
   const router = useRouter()
   const destinationId = router.query.id
@@ -647,24 +649,11 @@ export default function DestinationDetail() {
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
   )
+  const { data: { items: currentUserAllGrants } = {} } = useSWR(
+    `/api/grants?user=${user?.id}&destination=${destination?.name}`
+  )
 
-  const { mutate: mutateCurrentUserGrants } = useSWRConfig()
-
-  const [currentUserRoles, setCurrentUserRoles] = useState([])
   const [selectedResources, setSelectedResources] = useState([])
-
-  useEffect(() => {
-    mutateCurrentUserGrants(
-      `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
-    )
-
-    const roles = currentUserGrants
-      ?.filter(g => g.resource !== 'infra')
-      ?.map(ug => ug.privilege)
-      .sort(sortByPrivilege)
-
-    setCurrentUserRoles(roles)
-  }, [grants, user, destination, currentUserGrants, mutateCurrentUserGrants])
 
   const metadata = [
     { label: 'ID', value: destination?.id, font: 'font-mono' },
@@ -726,32 +715,6 @@ export default function DestinationDetail() {
             </div>
           </h1>
           <div className='my-3 flex space-x-2 md:my-0'>
-            {/* {currentUserRoles && currentUserRoles?.length > 0 && (
-              <Popover className='relative'>
-                <Popover.Button className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-blue-500 shadow-sm hover:text-blue-600'>
-                  Access cluster
-                  <ChevronDownIcon className='ml-1 h-4 w-4' />
-                </Popover.Button>
-                <Transition
-                  as={Fragment}
-                  enter='transition ease-out duration-100 origin-top-left md:origin-top-right'
-                  enterFrom='transform opacity-0 scale-90 translate-y-0'
-                  enterTo='transform opacity-100 scale-100 translate-y-1'
-                  leave='transition ease-in duration-75 origin-top-left md:origin-top-right'
-                  leaveFrom='transform opacity-100 scale-100 translate-y-1'
-                  leaveTo='transform opacity-0 scale-90 translate-y-0'
-                >
-                  <Popover.Panel className='absolute left-0 z-10 flex w-80 overflow-hidden rounded-xl bg-black text-white shadow-2xl shadow-black/40 md:left-auto md:right-0'>
-                    <AccessCluster
-                      userID={user?.id}
-                      roles={currentUserRoles}
-                      kind={destination?.kind}
-                      resource={destination?.name}
-                    />
-                  </Popover.Panel>
-                </Transition>
-              </Popover>
-            )} */}
             {isAdmin && (
               <RemoveButton
                 onRemove={async () => {
@@ -971,6 +934,12 @@ export default function DestinationDetail() {
             />
           </div>
         </>
+      )}
+      {!isAdmin && (
+        <SelfAccessTable
+          destination={destination?.name}
+          grants={currentUserAllGrants}
+        />
       )}
     </div>
   )

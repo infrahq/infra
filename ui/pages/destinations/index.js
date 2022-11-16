@@ -7,7 +7,6 @@ import { useUser } from '../../lib/hooks'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
-import { useEffect, useState } from 'react'
 
 const LIMIT = 20
 
@@ -24,24 +23,6 @@ export default function Destinations() {
   const { data: { items: currentUserGrants } = {} } = useSWR(
     `/api/grants?user=${user?.id}&limit=1000&showSystem=1`
   )
-
-  // const [currentUserAccessStatusMap, setCurrentUserAccessStatusMap] = useState(
-  //   new Map()
-  // )
-
-  // useEffect(() => {
-  //   const listDestinations = destinations?.map(d => d.name)
-  //   const newMap = currentUserAccessStatusMap
-
-  //   listDestinations?.forEach(d => {
-  //     const numAccess = currentUserGrants?.filter(
-  //       g => g.resource === d || g.resource.slice(0, d.length) === d
-  //     )
-
-  //     newMap.set(d, numAccess?.length)
-  //   })
-  //   setCurrentUserAccessStatusMap(newMap)
-  // }, [currentUserGrants, destinations])
 
   if (loading) {
     return null
@@ -84,32 +65,52 @@ export default function Destinations() {
         }}
         columns={[
           {
-            cell: info => (
-              <div className='flex flex-row items-center py-1'>
-                <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
-                  <img
-                    alt='kubernetes icon'
-                    className='h-5'
-                    src={`/kubernetes.svg`}
-                  />
-                </div>
-                <div className='flex flex-col'>
-                  <div className='text-sm font-medium text-gray-700'>
-                    {info.getValue()}
+            cell: function Cell(info) {
+              const numAccess = isAdmin
+                ? 0
+                : currentUserGrants?.filter(
+                    g =>
+                      g.resource === info.row.original.name ||
+                      g.resource.slice(0, info.row.original.name.length) ===
+                        info.row.original.name
+                  ).length
+
+              return (
+                <>
+                  <div className='flex flex-row items-center py-1'>
+                    <div className='mr-3 flex h-9 w-9 flex-none items-center justify-center rounded-md border border-gray-200'>
+                      <img
+                        alt='kubernetes icon'
+                        className='h-5'
+                        src={`/kubernetes.svg`}
+                      />
+                    </div>
+                    <div className='flex flex-col'>
+                      <div className='text-sm font-medium text-gray-700'>
+                        {info.getValue()}
+                      </div>
+                      <div className='text-2xs text-gray-500'>
+                        {info.row.original.resources?.length > 0 && (
+                          <span>
+                            {info.row.original.resources?.length}&nbsp;
+                            {info.row.original.resources?.length === 1
+                              ? 'namespace'
+                              : 'namespaces'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className='text-2xs text-gray-500'>
-                    {info.row.original.resources?.length > 0 && (
-                      <span>
-                        {info.row.original.resources?.length}&nbsp;
-                        {info.row.original.resources?.length === 1
-                          ? 'namespace'
-                          : 'namespaces'}
+                  <div className='sm:hidden'>
+                    {!isAdmin && numAccess === 0 && (
+                      <span className='inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800'>
+                        No Access
                       </span>
                     )}
                   </div>
-                </div>
-              </div>
-            ),
+                </>
+              )
+            },
             header: () => <span>Name</span>,
             accessorKey: 'name',
           },
@@ -157,7 +158,7 @@ export default function Destinations() {
               return (
                 !isAdmin &&
                 numAccess === 0 && (
-                  <span className='inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800'>
+                  <span className='hidden items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800 sm:inline-flex'>
                     No Access
                   </span>
                 )
