@@ -53,7 +53,7 @@ export default function ProvidersAddDetails() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [name, setName] = useState('')
-  const [scimAccessKey, setSCIMAccessKey] = useState()
+  const [scimAccessKey, setSCIMAccessKey] = useState('')
   const [keyDialogOpen, setKeyDialogOpen] = useState(false)
 
   useEffect(() => {

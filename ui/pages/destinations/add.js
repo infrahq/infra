@@ -137,7 +137,10 @@ export default function DestinationsAdd() {
           }`}
         >
           <div className='relative flex flex-col space-y-1'>
-            <label className='text-2xs font-medium text-gray-700'>
+            <label
+              htmlFor='name'
+              className='text-2xs font-medium text-gray-700'
+            >
               Cluster name
             </label>
             <input
