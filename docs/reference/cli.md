@@ -524,6 +524,7 @@ infra keys list [flags]
 #### Options
 
 ```console
+      --all            Show keys for all users
       --show-expired   Show expired access keys
       --user string    The name of a user to list access keys for
 ```
@@ -543,7 +544,7 @@ Create an access key
 Create an access key for a user or a connector.
 
 ```bash
-infra keys add USER|connector [flags]
+infra keys add [flags]
 ```
 
 #### Examples
@@ -551,19 +552,25 @@ infra keys add USER|connector [flags]
 ```bash
 
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add user@example.com --ttl=12h --name example-key
+$ infra keys add --ttl=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
-$ infra keys add connector
+$ infra keys add --connector
+
+# Set an environment variable with the newly created access key
+$ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 
 ```
 
 #### Options
 
 ```console
+      --connector                     Create the key for the connector
       --extension-deadline duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
       --name string                   The name of the access key
+  -q, --quiet                         Only display the access key
       --ttl duration                  The total time that the access key will be valid for (default 720h0m0s)
+      --user string                   The name of the user who will own the key
 ```
 
 **Additional options**
