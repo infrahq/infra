@@ -46,6 +46,7 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		ID:                ak.ID,
 		Name:              ak.Name,
 		Created:           api.Time(ak.CreatedAt),
+		LastUsed:          api.Time(ak.UpdatedAt),
 		IssuedFor:         ak.IssuedFor,
 		IssuedForName:     ak.IssuedForName,
 		ProviderID:        ak.ProviderID,

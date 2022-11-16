@@ -272,6 +272,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				Name              string `header:"NAME"`
 				IssuedFor         string `header:"ISSUED FOR"`
 				Created           string `header:"CREATED"`
+				LastUsed          string `header:"LAST USED"`
 				Expires           string `header:"EXPIRES"`
 				ExtensionDeadline string `header:"EXTENSION DEADLINE"`
 			}
@@ -286,6 +287,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					Name:              k.Name,
 					IssuedFor:         name,
 					Created:           format.HumanTime(k.Created.Time(), "never"),
+					LastUsed:          format.HumanTime(k.LastUsed.Time(), "never"),
 					Expires:           format.HumanTime(k.Expires.Time(), "never"),
 					ExtensionDeadline: format.HumanTime(k.ExtensionDeadline.Time(), "never"),
 				})
