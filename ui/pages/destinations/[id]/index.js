@@ -726,7 +726,7 @@ export default function DestinationDetail() {
             </div>
           </h1>
           <div className='my-3 flex space-x-2 md:my-0'>
-            {currentUserRoles && currentUserRoles?.length > 0 && (
+            {/* {currentUserRoles && currentUserRoles?.length > 0 && (
               <Popover className='relative'>
                 <Popover.Button className='inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-blue-500 shadow-sm hover:text-blue-600'>
                   Access cluster
@@ -751,7 +751,7 @@ export default function DestinationDetail() {
                   </Popover.Panel>
                 </Transition>
               </Popover>
-            )}
+            )} */}
             {isAdmin && (
               <RemoveButton
                 onRemove={async () => {

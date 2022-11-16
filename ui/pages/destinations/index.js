@@ -7,17 +7,41 @@ import { useUser } from '../../lib/hooks'
 
 import Table from '../../components/table'
 import Dashboard from '../../components/layouts/dashboard'
+import { useEffect, useState } from 'react'
+
+const LIMIT = 20
 
 export default function Destinations() {
   const router = useRouter()
   const page = router.query.p === undefined ? 1 : router.query.p
-  const limit = 20
 
-  const { isAdmin, loading } = useUser()
+  const { user, isAdmin, loading } = useUser()
 
   const { data: { items: destinations, totalCount, totalPages } = {} } = useSWR(
-    `/api/destinations?page=${page}&limit=${limit}`
+    `/api/destinations?page=${page}&limit=${LIMIT}`
   )
+
+  const { data: { items: currentUserGrants } = {} } = useSWR(
+    `/api/grants?user=${user?.id}&limit=1000&showSystem=1`
+  )
+
+  // const [currentUserAccessStatusMap, setCurrentUserAccessStatusMap] = useState(
+  //   new Map()
+  // )
+
+  // useEffect(() => {
+  //   const listDestinations = destinations?.map(d => d.name)
+  //   const newMap = currentUserAccessStatusMap
+
+  //   listDestinations?.forEach(d => {
+  //     const numAccess = currentUserGrants?.filter(
+  //       g => g.resource === d || g.resource.slice(0, d.length) === d
+  //     )
+
+  //     newMap.set(d, numAccess?.length)
+  //   })
+  //   setCurrentUserAccessStatusMap(newMap)
+  // }, [currentUserGrants, destinations])
 
   if (loading) {
     return null
@@ -49,7 +73,7 @@ export default function Destinations() {
         count={totalCount}
         pageCount={totalPages}
         pageIndex={parseInt(page) - 1}
-        pageSize={limit}
+        pageSize={LIMIT}
         data={destinations}
         empty='No infrastructure'
         onPageChange={({ pageIndex }) => {
@@ -121,6 +145,25 @@ export default function Destinations() {
             ),
             header: () => <span>Status</span>,
             accessorKey: 'connected',
+          },
+          {
+            cell: function Cell(info) {
+              const numAccess = currentUserGrants?.filter(
+                g =>
+                  g.resource === info.row.original.name ||
+                  g.resource.slice(0, info.row.original.name.length) ===
+                    info.row.original.name
+              ).length
+              return (
+                !isAdmin &&
+                numAccess === 0 && (
+                  <span className='inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-px text-2xs font-medium text-yellow-800'>
+                    No Access
+                  </span>
+                )
+              )
+            },
+            id: 'access_status',
           },
         ]}
       />
