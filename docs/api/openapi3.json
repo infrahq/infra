@@ -302,55 +302,6 @@
           }
         }
       },
-      "Grant": {
-        "properties": {
-          "created": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "created_by": {
-            "description": "id of the user that created the grant",
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "group": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "id": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          },
-          "privilege": {
-            "description": "a role or permission",
-            "type": "string"
-          },
-          "resource": {
-            "description": "a resource name in Infra's Universal Resource Notation",
-            "type": "string"
-          },
-          "updated": {
-            "description": "formatted as an RFC3339 date-time",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "user": {
-            "example": "4yJ3n3D8E2",
-            "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-            "type": "string"
-          }
-        }
-      },
       "Group": {
         "properties": {
           "created": {
@@ -1029,77 +980,6 @@
               "uppercaseMin": {
                 "format": "int",
                 "type": "integer"
-              }
-            },
-            "type": "object"
-          }
-        }
-      },
-      "SignupResponse": {
-        "properties": {
-          "organization": {
-            "properties": {
-              "created": {
-                "description": "formatted as an RFC3339 date-time",
-                "example": "2022-03-14T09:48:00Z",
-                "format": "date-time",
-                "type": "string"
-              },
-              "domain": {
-                "type": "string"
-              },
-              "id": {
-                "example": "4yJ3n3D8E2",
-                "format": "uid",
-                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "updated": {
-                "description": "formatted as an RFC3339 date-time",
-                "example": "2022-03-14T09:48:00Z",
-                "format": "date-time",
-                "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "user": {
-            "properties": {
-              "created": {
-                "description": "formatted as an RFC3339 date-time",
-                "example": "2022-03-14T09:48:00Z",
-                "format": "date-time",
-                "type": "string"
-              },
-              "id": {
-                "example": "4yJ3n3D8E2",
-                "format": "uid",
-                "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-                "type": "string"
-              },
-              "lastSeenAt": {
-                "description": "formatted as an RFC3339 date-time",
-                "example": "2022-03-14T09:48:00Z",
-                "format": "date-time",
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "providerNames": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "updated": {
-                "description": "formatted as an RFC3339 date-time",
-                "example": "2022-03-14T09:48:00Z",
-                "format": "date-time",
-                "type": "string"
               }
             },
             "type": "object"
@@ -2389,7 +2269,7 @@
         },
         "summary": "StartDeviceFlow",
         "tags": [
-          "Misc"
+          "Authentication"
         ]
       }
     },
@@ -2503,7 +2383,7 @@
         },
         "summary": "ApproveDeviceAdd",
         "tags": [
-          "Misc"
+          "Authentication"
         ]
       }
     },
@@ -2605,7 +2485,7 @@
         },
         "summary": "GetDeviceFlowStatus",
         "tags": [
-          "Misc"
+          "Authentication"
         ]
       }
     },
@@ -2708,7 +2588,7 @@
         },
         "summary": "RequestForgotDomains",
         "tags": [
-          "Misc"
+          "Organizations"
         ]
       }
     },
@@ -3395,111 +3275,6 @@
           }
         },
         "summary": "DeleteGrant",
-        "tags": [
-          "Grants"
-        ]
-      },
-      "get": {
-        "description": "GetGrant",
-        "operationId": "GetGrant",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Infra-Version",
-            "required": true,
-            "schema": {
-              "description": "Version of the API being requested",
-              "example": "0.0.0",
-              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "Authorization",
-            "required": true,
-            "schema": {
-              "description": "Bearer followed by your access key",
-              "example": "Bearer ACCESSKEY",
-              "format": "Bearer [\\da-zA-Z]{10}\\.[\\da-zA-Z]{24}",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "example": "4yJ3n3D8E2",
-              "format": "uid",
-              "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Grant"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "GetGrant",
         "tags": [
           "Grants"
         ]
@@ -4464,7 +4239,7 @@
         },
         "summary": "ListOrganizations",
         "tags": [
-          "Misc"
+          "Organizations"
         ]
       },
       "post": {
@@ -4582,7 +4357,7 @@
         },
         "summary": "CreateOrganization",
         "tags": [
-          "Misc"
+          "Organizations"
         ]
       }
     },
@@ -4689,7 +4464,7 @@
         },
         "summary": "DeleteOrganization",
         "tags": [
-          "Misc"
+          "Organizations"
         ]
       },
       "get": {
@@ -4795,7 +4570,7 @@
         },
         "summary": "GetOrganization",
         "tags": [
-          "Misc"
+          "Organizations"
         ]
       }
     },
@@ -4904,7 +4679,7 @@
         },
         "summary": "VerifiedPasswordReset",
         "tags": [
-          "Misc"
+          "Authentication"
         ]
       }
     },
@@ -5007,7 +4782,7 @@
         },
         "summary": "RequestPasswordReset",
         "tags": [
-          "Misc"
+          "Authentication"
         ]
       }
     },
@@ -5872,7 +5647,7 @@
         },
         "summary": "GetServerConfiguration",
         "tags": [
-          "Misc"
+          "Settings"
         ]
       }
     },
@@ -5957,7 +5732,7 @@
         },
         "summary": "GetSettings",
         "tags": [
-          "Misc"
+          "Settings"
         ]
       },
       "put": {
@@ -6087,134 +5862,7 @@
         },
         "summary": "UpdateSettings",
         "tags": [
-          "Misc"
-        ]
-      }
-    },
-    "/api/signup": {
-      "post": {
-        "description": "Signup",
-        "operationId": "Signup",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Infra-Version",
-            "required": true,
-            "schema": {
-              "description": "Version of the API being requested",
-              "example": "0.0.0",
-              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "name": {
-                    "format": "email",
-                    "type": "string"
-                  },
-                  "org": {
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "subDomain": {
-                        "format": "[a-zA-Z0-9\\-]",
-                        "maxLength": 63,
-                        "minLength": 4,
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "subDomain"
-                    ],
-                    "type": "object"
-                  },
-                  "password": {
-                    "maxLength": 253,
-                    "minLength": 8,
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name",
-                  "password"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "400": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Unauthorized: Requestor is not authenticated"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Forbidden: Requestor does not have the right permissions"
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Duplicate Record"
-          },
-          "default": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignupResponse"
-                }
-              }
-            },
-            "description": "Success"
-          }
-        },
-        "summary": "Signup",
-        "tags": [
-          "Misc"
+          "Settings"
         ]
       }
     },
@@ -6999,7 +6647,7 @@
         },
         "summary": "Version",
         "tags": [
-          "Misc"
+          "Settings"
         ]
       }
     }

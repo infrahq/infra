@@ -24,7 +24,7 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 		Use:     "destinations",
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
-		Group:   "Management commands:",
+		GroupID: groupManagement,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			if err := rootPreRun(cmd.Flags()); err != nil {
 				return err

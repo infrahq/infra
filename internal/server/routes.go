@@ -77,7 +77,6 @@ func (s *Server) GenerateRoutes() Routes {
 	del(a, authn, "/api/organizations/:id", a.DeleteOrganization)
 
 	get(a, authn, "/api/grants", a.ListGrants)
-	get(a, authn, "/api/grants/:id", a.GetGrant)
 	post(a, authn, "/api/grants", a.CreateGrant)
 	del(a, authn, "/api/grants/:id", a.DeleteGrant)
 	patch(a, authn, "/api/grants", a.UpdateGrants)
@@ -110,7 +109,7 @@ func (s *Server) GenerateRoutes() Routes {
 
 	// no auth required, org not required
 	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
-	post(a, noAuthnNoOrg, "/api/signup", a.Signup)
+	add(a, noAuthnNoOrg, http.MethodPost, "/api/signup", a.SignupRoute())
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 	post(a, noAuthnNoOrg, "/api/forgot-domain-request", a.RequestForgotDomains)

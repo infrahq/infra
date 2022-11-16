@@ -44,8 +44,8 @@ $ infra logout infraexampleserver.com --clear
 		
 # Logout and clear list of all servers 
 $ infra logout --all --clear`,
-		Args:  MaxArgs(1),
-		Group: "Core commands:",
+		Args:    MaxArgs(1),
+		GroupID: groupCore,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				if options.all {

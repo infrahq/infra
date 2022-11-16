@@ -19,7 +19,7 @@ import (
 )
 
 func TestDeviceFlow(t *testing.T) {
-	srv := setupServer(t, withAdminUser)
+	srv := setupServer(t, withAdminUser, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
 	org := &models.Organization{
@@ -49,6 +49,7 @@ func TestDeviceFlow(t *testing.T) {
 	key := accessKey.Token()
 
 	doPost := func(t *testing.T, accessKey, path string, reqObj any, respObj any) *httptest.ResponseRecorder {
+		t.Helper()
 		req := httptest.NewRequest(http.MethodPost, path, jsonBody(t, reqObj))
 		req.Header.Set("Infra-Version", apiVersionLatest)
 		if len(accessKey) > 0 {
@@ -71,12 +72,12 @@ func TestDeviceFlow(t *testing.T) {
 	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
 
 	// get flow status pending
-	pollResp := &api.DeviceFlowStatusResponse{}
+	statusResp := &api.DeviceFlowStatusResponse{}
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
-	}, pollResp)
+	}, statusResp)
 
-	assert.Equal(t, pollResp.Status, "pending")
+	assert.Equal(t, statusResp.Status, "pending")
 
 	// approve
 	doPost(t, key, "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
@@ -86,15 +87,58 @@ func TestDeviceFlow(t *testing.T) {
 	// get flow status with key
 	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
-	}, pollResp)
+	}, statusResp)
 
-	assert.Equal(t, pollResp.DeviceCode, dfResp.DeviceCode)
-	assert.Equal(t, pollResp.Status, "confirmed")
-	newKey := pollResp.LoginResponse.AccessKey
+	expected := &api.DeviceFlowStatusResponse{
+		Status:     "confirmed",
+		DeviceCode: dfResp.DeviceCode,
+		LoginResponse: &api.LoginResponse{
+			UserID:           user.ID,
+			Name:             user.Name,
+			AccessKey:        "<any-string>",
+			Expires:          api.Time(accessKey.ExpiresAt),
+			OrganizationName: org.Name,
+		},
+	}
+	var cmpDeviceFlowStatusResponse = gocmp.Options{
+		gocmp.FilterPath(
+			opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
+		cmpApiTimeWithThreshold(2 * time.Second),
+	}
+	assert.DeepEqual(t, expected, statusResp, cmpDeviceFlowStatusResponse)
+
+	newKey := statusResp.LoginResponse.AccessKey
 	assert.Assert(t, len(newKey) > 0)
 	assert.Assert(t, strings.Contains(newKey, "."))
 
-	assert.Equal(t, pollResp.LoginResponse.UserID, user.ID)
+	t.Run("attempting to claim the code again should do nothing", func(t *testing.T) {
+		tx := txnForTestCase(t, srv.db, org.ID)
+		otherUser := &models.Identity{Name: "other@example.com"}
+		err = data.CreateIdentity(tx, otherUser)
+		assert.NilError(t, err)
+
+		otherKey := &models.AccessKey{
+			Name:          "Other key",
+			IssuedFor:     otherUser.ID,
+			IssuedForName: otherUser.Name,
+			ProviderID:    data.InfraProvider(tx).ID,
+			ExpiresAt:     time.Now().Add(10 * time.Minute),
+			Scopes:        models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
+		}
+		_, err = data.CreateAccessKey(tx, otherKey)
+		assert.NilError(t, err)
+		assert.NilError(t, tx.Commit())
+
+		doPost(t, otherKey.Token(), "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+			UserCode: dfResp.UserCode,
+		}, nil)
+
+		doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+			DeviceCode: dfResp.DeviceCode,
+		}, statusResp)
+
+		assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
+	})
 }
 
 func TestAPI_StartDeviceFlow(t *testing.T) {

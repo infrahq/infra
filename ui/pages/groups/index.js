@@ -22,7 +22,7 @@ function AddGroupsDialog({ setOpen }) {
     try {
       const res = await fetch('/api/groups', {
         method: 'POST',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: name.trim() }),
       })
 
       const group = await jsonBody(res)
@@ -59,7 +59,9 @@ function AddGroupsDialog({ setOpen }) {
                   }
                 }}
                 value={name}
-                onChange={e => setName(e.target.value)}
+                // trim leading whitespace on input. trailing whitespace will be
+                // trimmed on submit
+                onChange={e => setName(e.target.value.trimLeft())}
                 className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
                   error ? 'border-red-500' : 'border-gray-300'
                 }`}

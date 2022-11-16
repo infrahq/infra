@@ -73,8 +73,8 @@ $ infra login
 $ export INFRA_SERVER=example.infrahq.com
 $ export INFRA_PROVIDER=google
 $ infra login`,
-		Args:  MaxArgs(1),
-		Group: "Core commands:",
+		Args:    MaxArgs(1),
+		GroupID: groupCore,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
 				options.Server = server
@@ -237,7 +237,11 @@ func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent 
 		}
 
 		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{ID: loginRes.UserID, Password: password}); err != nil {
+		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
+			ID:          loginRes.UserID,
+			Password:    password,
+			OldPassword: loginReq.PasswordCredentials.Password,
+		}); err != nil {
 			if passwordError(cli, err) {
 				goto PROMPTLOGIN
 			}
