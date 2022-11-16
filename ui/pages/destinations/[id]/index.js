@@ -463,32 +463,63 @@ function SelfAccessTable({ destination, grants }) {
     })
   })
 
+  const clusterList = resourcesRoleList.filter(
+    item => item.resource === destination
+  )
+  const namespacesList = resourcesRoleList.filter(
+    item => item.resource !== destination
+  )
+
   return (
     <div className='overflow-x-auto rounded-lg border border-gray-200/75'>
       <table className='w-full text-sm text-gray-600'>
-        <thead className='border-b border-gray-200/75 bg-zinc-50/50 text-xs text-gray-500'>
+        <thead className='border-b border-gray-200/75 bg-white text-xs font-semibold text-gray-900'>
           <tr>
             <th scope='col' className='py-2 px-5 text-left font-medium sm:pl-6'>
               Resource
             </th>
             <th scope='col' className='py-2 px-5 text-left font-medium sm:pl-6'>
-              Roles
+              Role(s)
             </th>
           </tr>
         </thead>
         <tbody className='divide-y divide-gray-200 bg-white'>
-          {resourcesRoleList.map(item => (
-            <tr key={item.resource}>
-              <td className='w-[30%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
-                {item.resource.split('.').pop() === destination
-                  ? 'Cluster'
-                  : item.resource.split('.').pop()}
-              </td>
-              <td className='w-[50%] whitespace-nowrap px-5 py-4 text-sm text-gray-500'>
-                {item.roles.join(', ')}
-              </td>
-            </tr>
-          ))}
+          {clusterList.length > 0 &&
+            clusterList.map(item => (
+              <tr key={item.resource}>
+                <td className='w-[30%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                  {destination}
+                </td>
+                <td className='w-[50%] whitespace-nowrap px-5 py-4 text-sm text-gray-500'>
+                  {item.roles.join(', ')}
+                </td>
+              </tr>
+            ))}
+          {namespacesList.length > 0 && (
+            <>
+              <tr className='border-t border-gray-200'>
+                <th
+                  colSpan={5}
+                  scope='colgroup'
+                  className='bg-gray-50 px-4 py-2 text-left text-2xs font-semibold text-gray-900 sm:px-6'
+                >
+                  Namespaces
+                </th>
+              </tr>
+              <>
+                {namespacesList.map(item => (
+                  <tr key={item.resource}>
+                    <td className='w-[30%] whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6'>
+                      {item.resource.split('.').pop()}
+                    </td>
+                    <td className='w-[50%] whitespace-nowrap px-5 py-4 text-sm text-gray-500'>
+                      {item.roles.join(', ')}
+                    </td>
+                  </tr>
+                ))}
+              </>
+            </>
+          )}
         </tbody>
       </table>
       {resourcesRoleList && resourcesRoleList.length === 0 && (
@@ -646,11 +677,9 @@ export default function DestinationDetail() {
   const { data: { items: grants } = {}, mutate } = useSWR(
     `/api/grants?destination=${destination?.name}`
   )
-  const { data: { items: currentUserGrants } = {} } = useSWR(
-    `/api/grants?user=${user?.id}&resource=${destination?.name}&showInherited=1&limit=1000`
-  )
+
   const { data: { items: currentUserAllGrants } = {} } = useSWR(
-    `/api/grants?user=${user?.id}&destination=${destination?.name}`
+    `/api/grants?user=${user?.id}&destination=${destination?.name}&showInherited=1&limit=1000`
   )
 
   const [selectedResources, setSelectedResources] = useState([])

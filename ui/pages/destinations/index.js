@@ -21,7 +21,7 @@ export default function Destinations() {
   )
 
   const { data: { items: currentUserGrants } = {} } = useSWR(
-    `/api/grants?user=${user?.id}&limit=1000&showSystem=1`
+    `/api/grants?user=${user?.id}&limit=1000&showInherited=1`
   )
 
   if (loading) {
