@@ -339,7 +339,7 @@ export default function AccessKey() {
           </div>
           {selectedTTL?.value && (
             <div className='space-y-1 pt-6 text-xs text-gray-500'>
-              {selectedTTL.default ? (
+              {selectedTTL.value === EXPIRATION_RATE[0].value ? (
                 <div>
                   This access key will expire on{' '}
                   <span className='font-semibold text-gray-900'>
