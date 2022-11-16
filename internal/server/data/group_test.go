@@ -151,7 +151,7 @@ func TestListGroups(t *testing.T) {
 		thirdUser := models.Identity{Name: "thirdly@example.com"}
 		createIdentities(t, db, &firstUser, &secondUser, &thirdUser)
 
-		var cmpGroupShallow = gocmp.Comparer(func(x, y models.Group) bool {
+		cmpGroupShallow := gocmp.Comparer(func(x, y models.Group) bool {
 			return x.Name == y.Name && x.TotalUsers == y.TotalUsers
 		})
 

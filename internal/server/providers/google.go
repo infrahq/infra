@@ -59,26 +59,30 @@ func (g *google) GetUserInfo(ctx context.Context, providerUser *models.ProviderU
 		return nil, fmt.Errorf("could not get user info from provider: %w", err)
 	}
 
-	newGroups, err := g.checkGoogleWorkspaceGroups(ctx, providerUser)
-	if err != nil {
-		logging.Debugf("unable to retrieve groups from google api: %s", err.Error())
+	if g.GoogleCredentials.PrivateKey != "" {
+		newGroups, err := g.checkGoogleWorkspaceGroups(ctx, providerUser)
+		if err != nil {
+			logging.Debugf("unable to retrieve groups from google api: %s", err.Error())
 
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
+			}
+
+			// these errors just mean that the groups API client was not configured, we can continue
+			if !errors.Is(err, ErrGoogleClientNotConfigured) {
+				return nil, fmt.Errorf("could not check google user groups: %w", err)
+			}
+
+			newGroups = []string{} // set the groups empty to clear them
+			logging.Warnf("Unable to get groups from the Google API for provider ID:%q. Make sure the service account has the required permissions.", providerUser.ProviderID)
 		}
 
-		// these errors just mean that the groups API client was not configured, we can continue
-		if !errors.Is(err, ErrGoogleClientNotConfigured) {
-			return nil, fmt.Errorf("could not check google user groups: %w", err)
-		}
+		info.Groups = newGroups
 
-		newGroups = []string{} // set the groups empty to clear them
-		logging.Warnf("Unable to get groups from the Google API for provider ID:%q. Make sure the service account has the required permissions.", providerUser.ProviderID)
+		logging.Debugf("user synchronized with %q groups from google provider", &newGroups)
+	} else {
+		logging.Debugf("skipped checking google groups, no private key set")
 	}
-
-	info.Groups = newGroups
-
-	logging.Debugf("user synchronized with %q groups from google provider", &newGroups)
 
 	return info, nil
 }

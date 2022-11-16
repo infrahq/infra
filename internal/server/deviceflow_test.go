@@ -100,7 +100,7 @@ func TestDeviceFlow(t *testing.T) {
 			OrganizationName: org.Name,
 		},
 	}
-	var cmpDeviceFlowStatusResponse = gocmp.Options{
+	cmpDeviceFlowStatusResponse := gocmp.Options{
 		gocmp.FilterPath(
 			opt.PathField(api.LoginResponse{}, "AccessKey"), cmpAnyString),
 		cmpApiTimeWithThreshold(2 * time.Second),
@@ -163,7 +163,7 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 			ExpiresInSeconds:    600,
 			PollIntervalSeconds: 5,
 		}
-		var cmpDeviceFlowResponse = gocmp.Options{
+		cmpDeviceFlowResponse := gocmp.Options{
 			gocmp.FilterPath(
 				opt.PathField(api.DeviceFlowResponse{}, "DeviceCode"), cmpAnyString),
 			gocmp.FilterPath(
@@ -171,5 +171,4 @@ func TestAPI_StartDeviceFlow(t *testing.T) {
 		}
 		assert.DeepEqual(t, flowResp, expected, cmpDeviceFlowResponse)
 	})
-
 }

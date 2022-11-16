@@ -294,7 +294,6 @@ func TestUpdateGrants(t *testing.T) {
 			actual, err = ListGrants(tx, ListGrantsOptions{ByDestination: "foo"})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, actual, expected, cmpModel)
-
 		})
 		t.Run("success delete", func(t *testing.T) {
 			tx := txnForTestCase(t, db, db.DefaultOrg.ID)

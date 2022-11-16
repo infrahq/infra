@@ -242,33 +242,35 @@ export default function ProvidersEditDetails() {
             </Transition.Root>
           </h1>
 
-          <div className='my-3 flex space-x-2 md:my-0'>
-            <button
-              onClick={() => setKeyDialogOpen(true)}
-              className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
-              type='button'
-            >
-              Generate SCIM Access Key
-            </button>
-            <RemoveButton
-              onRemove={async () => {
-                await fetch(`/api/providers/${id}`, {
-                  method: 'DELETE',
-                })
+          {!provider?.managed && (
+            <div className='my-3 flex space-x-2 md:my-0'>
+              <button
+                onClick={() => setKeyDialogOpen(true)}
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
+                type='button'
+              >
+                Generate SCIM Access Key
+              </button>
+              <RemoveButton
+                onRemove={async () => {
+                  await fetch(`/api/providers/${id}`, {
+                    method: 'DELETE',
+                  })
 
-                router.replace('/settings?tab=providers')
-              }}
-              modalTitle='Remove Identity Provider'
-              modalMessage={
-                <>
-                  Are you sure you want to remove{' '}
-                  <span className='font-bold'>{provider?.name}</span>?
-                </>
-              }
-            >
-              Remove Provider
-            </RemoveButton>
-          </div>
+                  router.replace('/settings?tab=providers')
+                }}
+                modalTitle='Remove Identity Provider'
+                modalMessage={
+                  <>
+                    Are you sure you want to remove{' '}
+                    <span className='font-bold'>{provider?.name}</span>?
+                  </>
+                }
+              >
+                Remove Provider
+              </RemoveButton>
+            </div>
+          )}
         </div>
         {provider && (
           <div className='flex flex-row border-t border-gray-100'>
@@ -291,7 +293,7 @@ export default function ProvidersEditDetails() {
         )}
       </header>
       <div className='my-2.5'>
-        {provider && (
+        {provider?.managed && (
           <form onSubmit={onSubmit} className='mb-6 space-y-2'>
             <div>
               <label className='text-2xs font-medium text-gray-700'>Name</label>
@@ -317,7 +319,6 @@ export default function ProvidersEditDetails() {
                 <p className='my-1 text-xs text-red-500'>{errors.name}</p>
               )}{' '}
             </div>
-
             <div>
               <label className='text-2xs font-medium text-gray-700'>
                 URL (Domain)

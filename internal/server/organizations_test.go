@@ -16,6 +16,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
+	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -275,6 +276,8 @@ func TestAPI_CreateOrganization(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPost, "/api/organizations", body)
 		req.Header.Add("Infra-Version", "0.14.1")
+		ctx := providers.WithOIDCClient(req.Context(), &fakeOIDCImplementation{})
+		*req = *req.WithContext(ctx)
 
 		if tc.setup != nil {
 			tc.setup(t, req)

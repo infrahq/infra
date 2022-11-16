@@ -59,6 +59,8 @@ type Provider struct {
 	PrivateKey       EncryptedAtRest
 	ClientEmail      string
 	DomainAdminEmail string
+
+	Managed bool // managed providers are social logins controlled by Infra
 }
 
 func (p *Provider) ToAPI() *api.Provider {
@@ -73,5 +75,6 @@ func (p *Provider) ToAPI() *api.Provider {
 		Kind:     p.Kind.String(),
 		AuthURL:  p.AuthURL,
 		Scopes:   p.Scopes,
+		Managed:  p.Managed,
 	}
 }

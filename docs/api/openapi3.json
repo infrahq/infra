@@ -917,6 +917,9 @@
                   "example": "oidc",
                   "type": "string"
                 },
+                "managed": {
+                  "type": "boolean"
+                },
                 "name": {
                   "description": "Name of the provider",
                   "example": "okta",
@@ -1151,6 +1154,9 @@
             "description": "Kind of provider",
             "example": "oidc",
             "type": "string"
+          },
+          "managed": {
+            "type": "boolean"
           },
           "name": {
             "description": "Name of the provider",
@@ -4381,7 +4387,6 @@
                       }
                     },
                     "required": [
-                      "providerID",
                       "redirectURL",
                       "code"
                     ],
@@ -5925,6 +5930,9 @@
                     ],
                     "example": "oidc",
                     "type": "string"
+                  },
+                  "managed": {
+                    "type": "boolean"
                   },
                   "name": {
                     "example": "okta",

@@ -30,6 +30,11 @@ func (a *API) ListProviders(c *gin.Context, r *api.ListProvidersRequest) (*api.L
 		return nil, err
 	}
 
+	// if social login is configured, also return that option
+	if a.server.Google != nil {
+		providers = append(providers, *a.server.Google)
+	}
+
 	result := api.NewListResponse(providers, PaginationToResponse(p), func(provider models.Provider) api.Provider {
 		return *provider.ToAPI()
 	})

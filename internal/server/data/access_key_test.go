@@ -727,5 +727,4 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak2.ID})
 		assert.NilError(t, err)
 	})
-
 }

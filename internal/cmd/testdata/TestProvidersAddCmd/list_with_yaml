@@ -3,6 +3,7 @@
   created: null
   id: ""
   kind: ""
+  managed: false
   name: okta
   scopes: null
   updated: null

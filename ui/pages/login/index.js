@@ -7,12 +7,17 @@ import Tippy from '@tippyjs/react'
 import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
-import { saveToVisitedOrgs } from '../../lib/login'
+import {
+  saveToVisitedOrgs,
+  currentBaseDomain,
+  currentOrg,
+  persistLoginRedirectCookie,
+} from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
-function oidcLogin({ id, clientID, authURL, scopes }, next) {
+function oidcLogin({ id, clientID, authURL, scopes, managed }, next) {
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)
@@ -23,7 +28,13 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
     .join('')
   window.localStorage.setItem('state', state)
 
-  const redirectURL = window.location.origin + '/login/callback'
+  let redirectURL = window.location.origin + '/login/callback'
+  if (managed) {
+    // managed oidc providers (social login) need to be sent to the base redirect URL before they are redirected to org login
+    persistLoginRedirectCookie(currentOrg())
+    redirectURL =
+      window.location.protocol + '//' + currentBaseDomain() + '/login/redirect'
+  }
   window.localStorage.setItem('redirectURL', redirectURL)
 
   document.location.href = `${authURL}?redirect_uri=${redirectURL}&client_id=${clientID}&response_type=code&scope=${scopes.join(
