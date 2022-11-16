@@ -1,10 +1,16 @@
-import useSWR from 'swr'
 import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { TrashIcon } from '@heroicons/react/24/outline'
+
+import useSWR from 'swr'
 import moment from 'moment'
+import {
+  TrashIcon,
+  ChevronDownIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline'
+import { Menu } from '@headlessui/react'
 
 import { useUser } from '../../lib/hooks'
 import { sortBySubject } from '../../lib/grants'
@@ -151,28 +157,78 @@ export default function Settings() {
 
         {/* Tabs */}
         {tabs.length > 0 && (
-          <div className='mb-3 border-b border-gray-200'>
-            <nav className='-mb-px flex' aria-label='Tabs'>
-              {tabs.map(t => (
-                <Link
-                  key={t.name}
-                  href={{
-                    pathname: `/settings/`,
-                    query: { tab: t.name },
-                  }}
-                  className={`
+          <div>
+            <div className='mb-4 sm:hidden'>
+              <label htmlFor='tabs' className='sr-only'>
+                Select a tab from settings page
+              </label>
+              <Menu as='div' className='relative inline-block w-full text-left'>
+                <Menu.Button className='inline-flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-100'>
+                  {tabs.find(t => t.name === tab).title}
+                  <ChevronDownIcon
+                    className='ml-2 h-4 w-4'
+                    aria-hidden='true'
+                  />
+                </Menu.Button>
+
+                <Menu.Items className='absolute right-0 z-10 mt-2 w-full origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
+                  <div className='py-1'>
+                    {tabs.map(t => (
+                      <Menu.Item key={t.name}>
+                        {({ active }) => (
+                          <Link
+                            href={{
+                              pathname: `/settings/`,
+                              query: { tab: t.name },
+                            }}
+                            className={`
+                            ${
+                              active
+                                ? 'bg-gray-100 text-gray-900'
+                                : 'text-gray-700'
+                            }
+                            flex items-center justify-between px-4 py-2 text-sm`}
+                          >
+                            {t.title}
+                            {tab === t.name && (
+                              <CheckIcon
+                                className='h-3 w-3 text-gray-900'
+                                aria-hidden='true'
+                              />
+                            )}
+                          </Link>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </div>
+                </Menu.Items>
+              </Menu>
+            </div>
+            <div className='hidden sm:block'>
+              <div className='mb-3 border-b border-gray-200'>
+                <nav className='-mb-px flex' aria-label='Tabs'>
+                  {tabs.map(t => (
+                    <Link
+                      key={t.name}
+                      href={{
+                        pathname: `/settings/`,
+                        query: { tab: t.name },
+                      }}
+                      className={`
                 ${
                   tab === t.name
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-600'
                 }
                  whitespace-nowrap border-b-2 py-2 px-5 text-sm font-medium capitalize transition-colors`}
-                  aria-current={tab.current ? 'page' : undefined}
-                >
-                  {t.title}
-                </Link>
-              ))}
-            </nav>
+                      aria-current={tab.current ? 'page' : undefined}
+                    >
+                      {t.title}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </div>
           </div>
         )}
 
