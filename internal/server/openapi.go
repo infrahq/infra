@@ -37,12 +37,19 @@ var funcPartialNameToTagNames = []struct {
 	{partial: "AccessKey", tag: "Authentication"},
 	{partial: "Login", tag: "Authentication"},
 	{partial: "Logout", tag: "Authentication"},
+	{partial: "Device", tag: "Authentication"},
+	{partial: "Password", tag: "Authentication"},
 	{partial: "Destination", tag: "Destinations"},
 	{partial: "Token", tag: "Destinations"},
 	{partial: "Grant", tag: "Grants"},
 	{partial: "Group", tag: "Groups"},
 	{partial: "Provider", tag: "Providers"},
 	{partial: "User", tag: "Users"},
+	{partial: "Settings", tag: "Settings"},
+	{partial: "Configuration", tag: "Settings"},
+	{partial: "Version", tag: "Settings"},
+	{partial: "Organization", tag: "Organizations"},
+	{partial: "Domain", tag: "Organizations"},
 }
 
 // openAPIRouteDefinition converts the route into a format that can be used

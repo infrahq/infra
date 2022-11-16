@@ -76,7 +76,16 @@ type WellKnownJWKResponse struct {
 	Keys []jose.JSONWebKey `json:"keys"`
 }
 
-func (a *API) Signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
+func (a *API) SignupRoute() route[api.SignupRequest, *api.SignupResponse] {
+	return route[api.SignupRequest, *api.SignupResponse]{
+		handler: a.signup,
+		routeSettings: routeSettings{
+			omitFromDocs: true,
+		},
+	}
+}
+
+func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse, error) {
 	if !a.server.options.EnableSignup {
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
