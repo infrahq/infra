@@ -136,6 +136,7 @@ func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Gran
 
 	// Remove users
 	// TODO:
+	_ = toDelete
 
 	// Add users
 	for _, grant := range byUserID {
