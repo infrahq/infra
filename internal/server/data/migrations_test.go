@@ -858,6 +858,10 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				_, err = tx.Exec(`INSERT INTO access_keys(id, issued_for, name) VALUES(10001, 12346, 'foo')`)
 				assert.NilError(t, err)
 			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE FROM access_keys WHERE id IN (10000, 10001)`)
+				assert.NilError(t, err)
+			},
 		},
 	}
 

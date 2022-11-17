@@ -255,7 +255,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		resp := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		routes.ServeHTTP(resp, req)

@@ -53,7 +53,6 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		Created:           api.Time(accessKey.CreatedAt),
 		Name:              accessKey.Name,
 		IssuedFor:         accessKey.IssuedFor,
-		LastUsed:          api.Time(accessKey.UpdatedAt),
 		Expires:           api.Time(accessKey.ExpiresAt),
 		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
 		AccessKey:         raw,

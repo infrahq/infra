@@ -49,7 +49,6 @@ func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 type CreateAccessKeyResponse struct {
 	ID                uid.ID `json:"id"`
 	Created           Time   `json:"created"`
-	LastUsed          Time   `json:"lastUsed"`
 	Name              string `json:"name"`
 	IssuedFor         uid.ID `json:"issuedFor"`
 	ProviderID        uid.ID `json:"providerID"`

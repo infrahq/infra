@@ -99,6 +99,12 @@ func TestKeysAddCmd(t *testing.T) {
 		assert.Equal(t, req.Name, "") // filled by server
 		assert.Equal(t, withNewline(bufs.Stdout.String()), expectedKeysAddOutput)
 	})
+
+	t.Run("with unexpected arguments", func(t *testing.T) {
+		err := Run(context.Background(), "keys", "add", "something")
+		assert.ErrorContains(t, err, `"infra keys add" accepts no arguments`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add`)
+	})
 }
 
 // expectedKeysAddOutput can be updated automatically by running tests with -update
