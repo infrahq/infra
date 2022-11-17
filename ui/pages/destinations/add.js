@@ -95,7 +95,7 @@ export default function DestinationsAdd() {
       body: JSON.stringify({
         userID: id,
         name: keyName,
-        ttl: '87600h',
+        ttl: '87660h',
         extensionDeadline: '720h',
       }),
     })
