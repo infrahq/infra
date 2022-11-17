@@ -43,7 +43,7 @@ func (a *azure) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
 	return a.OIDCClient.AuthServerInfo(ctx)
 }
 
-func (a *azure) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+func (a *azure) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (*IdentityProviderAuth, error) {
 	return a.OIDCClient.ExchangeAuthCodeForProviderTokens(ctx, code)
 }
 

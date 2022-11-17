@@ -41,7 +41,7 @@ func (g *google) AuthServerInfo(ctx context.Context) (*AuthServerInfo, error) {
 	return g.OIDCClient.AuthServerInfo(ctx)
 }
 
-func (g *google) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (rawAccessToken, rawRefreshToken string, accessTokenExpiry time.Time, email string, err error) {
+func (g *google) ExchangeAuthCodeForProviderTokens(ctx context.Context, code string) (*IdentityProviderAuth, error) {
 	return g.OIDCClient.ExchangeAuthCodeForProviderTokens(ctx, code)
 }
 

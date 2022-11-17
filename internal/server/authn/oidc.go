@@ -39,7 +39,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
-	accessToken, refreshToken, expiry, email, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
+	idpAuth, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return AuthenticatedIdentity{}, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
@@ -50,23 +50,23 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 
 	if len(provider.AllowedDomains) > 0 {
 		// get the domain of the email
-		at := strings.LastIndex(email, "@") // get the last @ since the email spec allows for multiple @s
+		at := strings.LastIndex(idpAuth.Email, "@") // get the last @ since the email spec allows for multiple @s
 		if at == -1 {
-			return AuthenticatedIdentity{}, fmt.Errorf("%s is an invalid email address", email)
+			return AuthenticatedIdentity{}, fmt.Errorf("%s is an invalid email address", idpAuth.Email)
 		}
-		domain := email[at+1:]
+		domain := idpAuth.Email[at+1:]
 		if !slices.Contains(provider.AllowedDomains, domain) {
 			return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain", domain)
 		}
 	}
 
-	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: email, LoadGroups: true})
+	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email, LoadGroups: true})
 	if err != nil {
 		if !errors.Is(err, internal.ErrNotFound) {
 			return AuthenticatedIdentity{}, fmt.Errorf("get user: %w", err)
 		}
 
-		identity = &models.Identity{Name: email}
+		identity = &models.Identity{Name: idpAuth.Email}
 
 		if err := data.CreateIdentity(db, identity); err != nil {
 			return AuthenticatedIdentity{}, fmt.Errorf("create user: %w", err)
@@ -79,9 +79,9 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	providerUser.RedirectURL = a.RedirectURL
-	providerUser.AccessToken = models.EncryptedAtRest(accessToken)
-	providerUser.RefreshToken = models.EncryptedAtRest(refreshToken)
-	providerUser.ExpiresAt = expiry
+	providerUser.AccessToken = models.EncryptedAtRest(idpAuth.AccessToken)
+	providerUser.RefreshToken = models.EncryptedAtRest(idpAuth.RefreshToken)
+	providerUser.ExpiresAt = idpAuth.AccessTokenExpiry
 	err = data.UpdateProviderUser(db, providerUser)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("UpdateProviderUser: %w", err)
