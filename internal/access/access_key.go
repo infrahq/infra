@@ -82,7 +82,7 @@ func DeleteAccessKey(c *gin.Context, id uid.ID, name string) error {
 		if len(keys) > 0 {
 			key = &keys[0]
 		} else {
-			return fmt.Errorf("no key named '%s' found", name)
+			return fmt.Errorf("%w: no key named '%s' found", internal.ErrNotFound, name)
 		}
 	}
 

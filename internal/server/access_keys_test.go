@@ -245,7 +245,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 	t.Run("delete by name", func(t *testing.T) {
 		key := &models.AccessKey{
-			Name:       "delete me",
+			Name:       "deleteme",
 			IssuedFor:  user.ID,
 			ProviderID: provider.ID,
 			ExpiresAt:  time.Now().Add(5 * time.Minute),
@@ -254,7 +254,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deleteme", nil)
 		req.Header.Set("Authorization", "Bearer "+ak1.Token())
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
@@ -267,17 +267,27 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		err := data.CreateIdentity(db, user)
 		assert.NilError(t, err)
 
-		key := &models.AccessKey{Name: "delete me too", IssuedFor: user.ID, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute), OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
+		key := &models.AccessKey{Name: "deletemetoo", IssuedFor: user.ID, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute), OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
 		_, err = data.CreateAccessKey(srv.db, key)
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=delete+me+too", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletemetoo", nil)
 		req.Header.Set("Authorization", "Bearer "+key.Token())
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusNoContent)
+	})
+
+	t.Run("delete by name missing", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletesomething", nil)
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusNotFound)
 	})
 
 	t.Run("show expired", func(t *testing.T) {

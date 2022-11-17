@@ -83,3 +83,10 @@ func (req ListAccessKeysRequest) SetPage(page int) Paginatable {
 type DeleteAccessKeyRequest struct {
 	Name string `form:"name"`
 }
+
+func (r DeleteAccessKeyRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		ValidateName(r.Name),
+		validate.Required("name", r.Name),
+	}
+}
