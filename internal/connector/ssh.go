@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 )
 
@@ -136,7 +137,9 @@ func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Gran
 
 	// Remove users
 	// TODO:
-	_ = toDelete
+	for _, user := range toDelete {
+		logging.Infof("TODO: delete : %v", user.Username)
+	}
 
 	// Add users
 	for _, grant := range byUserID {
@@ -157,7 +160,7 @@ func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Gran
 func grantsByUserID(grants []api.Grant) map[string]api.Grant {
 	result := make(map[string]api.Grant, len(grants))
 	for _, grant := range grants {
-		result[grant.ID.String()] = grant
+		result[grant.User.String()] = grant
 	}
 	return result
 }
