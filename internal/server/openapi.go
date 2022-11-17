@@ -189,8 +189,8 @@ func buildProperty(f reflect.StructField, t, parent reflect.Type, parentSchema *
 	}
 
 	s := &openapi3.Schema{}
-	updateSchemaFromStructTags(f, s)
 	setTypeInfo(t, s)
+	updateSchemaFromStructTags(f, s)
 
 	if s.Type == "array" {
 		s.Items = buildProperty(f, t.Elem(), parent, parentSchema)
