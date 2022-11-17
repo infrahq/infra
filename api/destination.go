@@ -12,7 +12,7 @@ type Destination struct {
 	Kind       string                `json:"kind" note:"Kind of destination. eg. kubernetes or ssh or postgres" example:"kubernetes"`
 	Created    Time                  `json:"created"`
 	Updated    Time                  `json:"updated"`
-	Connection DestinationConnection `json:"connection" note:"Object that includes the URL and CA for the destination" example:"{'url':'localhost:8443', 'ca':'clustercertificate'}"`
+	Connection DestinationConnection `json:"connection" note:"Object that includes the URL and CA for the destination"`
 
 	Resources []string `json:"resources" note:"Destination specific. For Kubernetes, it is the list of namespaces" example:"['default', 'kube-system']"`
 	Roles     []string `json:"roles" example:"['cluster-admin', 'admin', 'edit', 'view', 'exec', 'logs', 'port-forward']" note:"Destination specific. For Kubernetes, it is the list of cluster roles available on that cluster"`
