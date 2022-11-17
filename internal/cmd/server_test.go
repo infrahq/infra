@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"path/filepath"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"gotest.tools/v3/assert"
+	"gotest.tools/v3/env"
 	"gotest.tools/v3/fs"
 
 	"github.com/infrahq/infra/internal/cmd/types"
@@ -424,4 +426,42 @@ func TestServerCmd_NoFlagDefaults(t *testing.T) {
 			t.Fatalf("Flag --%v uses non-zero value %v. %v", flag.Name, flag.Value, msg)
 		}
 	})
+}
+
+func TestCanonicalPath(t *testing.T) {
+	t.Setenv("HOME", "/home/user")
+	t.Setenv("USERPROFILE", "/home/user")
+	wd, err := filepath.EvalSymlinks(t.TempDir())
+	assert.NilError(t, err)
+
+	env.ChangeWorkingDir(t, wd)
+
+	type testCase struct {
+		path     string
+		expected string
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		actual, err := canonicalPath(tc.path)
+		assert.NilError(t, err)
+		assert.Equal(t, tc.expected, actual)
+	}
+
+	testCases := []testCase{
+		{path: "/already/abs", expected: "/already/abs"},
+		{path: "relative/no/dot", expected: wd + "/relative/no/dot"},
+		{path: "./relative/dot", expected: wd + "/relative/dot"},
+		{path: "$HOME/dir", expected: "/home/user/dir"},
+		{path: "${HOME}/dir", expected: "/home/user/dir"},
+		{path: "/not/$HOMEFOO/dir", expected: "/not/dir"},
+		{path: "$HOMEFOO/dir", expected: "/dir"},
+		{path: "~/config", expected: "/home/user/config"},
+		{path: "~user/config", expected: wd + "/~user/config"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("in=%v out=%v", tc.path, tc.expected), func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -126,3 +127,17 @@ var runServer = func(ctx context.Context, srv *server.Server) error {
 
 // newServer is a shim for testing.
 var newServer = server.New
+
+func canonicalPath(path string) (string, error) {
+	path = os.ExpandEnv(path)
+
+	if strings.HasPrefix(path, "~/") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		path = strings.Replace(path, "~", homeDir, 1)
+	}
+
+	return filepath.Abs(path)
+}

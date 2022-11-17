@@ -9,8 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/lensesio/tableprinter"
@@ -21,8 +19,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
-	"github.com/infrahq/infra/internal/cmd/types"
-	"github.com/infrahq/infra/internal/connector"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -171,178 +167,6 @@ func httpTransportForHostConfig(config *ClientHostConfig) *http.Transport {
 			//nolint:gosec // We may purposely set insecureskipverify via a flag
 			InsecureSkipVerify: config.SkipTLSVerify,
 			RootCAs:            pool,
-		},
-	}
-}
-
-func newUseCmd(cli *CLI) *cobra.Command {
-	return &cobra.Command{
-		Use:   "use DESTINATION",
-		Short: "Access a destination",
-		Example: `
-# Use a Kubernetes context
-$ infra use development
-
-# Use a Kubernetes namespace context
-$ infra use development.kube-system`,
-		Args:              ExactArgs(1),
-		GroupID:           groupCore,
-		ValidArgsFunction: getUseCompletion,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			destination := args[0]
-
-			client, err := defaultAPIClient()
-			if err != nil {
-				return err
-			}
-
-			config, err := currentHostConfig()
-			if err != nil {
-				return err
-			}
-
-			err = updateKubeConfig(client, config.UserID)
-			if err != nil {
-				return err
-			}
-
-			parts := strings.Split(destination, ".")
-
-			if len(parts) == 1 {
-				return kubernetesSetContext(destination, "")
-			}
-
-			return kubernetesSetContext(parts[0], parts[1])
-		},
-	}
-}
-
-func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := defaultAPIClient()
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
-	}
-	_, destinations, grants, err := getUserDestinationGrants(client, "")
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
-	}
-
-	resources := make(map[string]struct{}, len(grants))
-
-	for _, g := range grants {
-		resources[g.Resource] = struct{}{}
-	}
-
-	validArgs := make([]string, 0, len(resources))
-
-	for r := range resources {
-		var exists bool
-		for _, d := range destinations {
-			if strings.HasPrefix(r, d.Name) {
-				exists = true
-				break
-			}
-		}
-
-		if exists {
-			validArgs = append(validArgs, r)
-		}
-
-	}
-
-	return validArgs, cobra.ShellCompDirectiveNoSpace
-
-}
-
-func canonicalPath(path string) (string, error) {
-	path = os.ExpandEnv(path)
-
-	if strings.HasPrefix(path, "~/") {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		path = strings.Replace(path, "~", homeDir, 1)
-	}
-
-	return filepath.Abs(path)
-}
-
-func newConnectorCmd() *cobra.Command {
-	var configFilename string
-
-	cmd := &cobra.Command{
-		Use:    "connector",
-		Short:  "Start the Infra connector",
-		Args:   NoArgs,
-		Hidden: true,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			logging.UseServerLogger()
-
-			options := defaultConnectorOptions()
-			err := cliopts.Load(&options, cliopts.Options{
-				Filename:  configFilename,
-				EnvPrefix: "INFRA_CONNECTOR",
-				Flags:     cmd.Flags(),
-			})
-			if err != nil {
-				return err
-			}
-
-			// backwards compat for old access key values with a prefix
-			accessKey := options.Server.AccessKey.String()
-			switch {
-			case strings.HasPrefix(accessKey, "file:"):
-				filename := strings.TrimPrefix(accessKey, "file:")
-				if err := options.Server.AccessKey.Set(filename); err != nil {
-					return err
-				}
-				logging.L.Warn().Msg("accessKey with 'file:' prefix is deprecated. Use the filename without the file: prefix instead.")
-			case strings.HasPrefix(accessKey, "env:"):
-				key := strings.TrimPrefix(accessKey, "env:")
-				options.Server.AccessKey = types.StringOrFile(os.Getenv(key))
-				logging.L.Warn().Msg("accessKey with 'env:' prefix is deprecated. Use the INFRA_ACCESS_KEY env var instead.")
-			case strings.HasPrefix(accessKey, "plaintext:"):
-				options.Server.AccessKey = types.StringOrFile(strings.TrimPrefix(accessKey, "plaintext:"))
-				logging.L.Warn().Msg("accessKey with 'plaintext:' prefix is deprecated. Use the literal value without a prefix.")
-			}
-
-			// Also accept the same env var as the CLI for setting the access key
-			if accessKey, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
-				if err := options.Server.AccessKey.Set(accessKey); err != nil {
-					return err
-				}
-			}
-			return runConnector(cmd.Context(), options)
-		},
-	}
-
-	cmd.Flags().StringVarP(&configFilename, "config-file", "f", "", "Connector config file")
-	cmd.Flags().StringP("server-url", "s", "", "Infra server hostname")
-	cmd.Flags().StringP("server-access-key", "a", "", "Infra access key (use file:// to load from a file)")
-	cmd.Flags().StringP("name", "n", "", "Destination name")
-	cmd.Flags().String("ca-cert", "", "Path to CA certificate file")
-	cmd.Flags().String("ca-key", "", "Path to CA key file")
-	cmd.Flags().Bool("server-skip-tls-verify", false, "Skip verifying server TLS certificates")
-
-	return cmd
-}
-
-// runConnector is a shim for testing
-var runConnector = connector.Run
-
-func defaultConnectorOptions() connector.Options {
-	return connector.Options{
-		Addr: connector.ListenerOptions{
-			HTTP:    ":80",
-			HTTPS:   ":443",
-			Metrics: ":9090",
 		},
 	}
 }
