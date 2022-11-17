@@ -190,6 +190,6 @@ func (id *ID) UnmarshalText(b []byte) error {
 func (id ID) DescribeSchema(schema *openapi3.Schema) {
 	schema.Type = "string"
 	schema.Format = "uid"
-	schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}`
+	schema.Pattern = `[1-9a-km-zA-HJ-NP-Z]{1,11}`
 	schema.Example = "4yJ3n3D8E2"
 }

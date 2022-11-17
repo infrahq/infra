@@ -46,7 +46,7 @@ func (i *IDOrSelf) UnmarshalText(b []byte) error {
 func (i IDOrSelf) DescribeSchema(schema *openapi3.Schema) {
 	schema.Type = "string"
 	schema.Format = "uid|self"
-	schema.Pattern = `[\da-zA-HJ-NP-Z]{1,11}|self`
+	schema.Pattern = `[1-9a-km-zA-HJ-NP-Z]{1,11}|self`
 	schema.Example = "4yJ3n3D8E2"
 	schema.Description = "a uid or the literal self"
 }
