@@ -48,6 +48,10 @@ func TestEmail_Validate(t *testing.T) {
 			email: "<myaddr@example.com>",
 		},
 		{
+			name:  "starts with number",
+			email: "91ok@example.com",
+		},
+		{
 			name:        "with name",
 			email:       "My Name <myaddr@example.com>",
 			expectedErr: `validation failed: addr: email address must not contain display name "My Name"`,
