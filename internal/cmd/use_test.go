@@ -120,8 +120,8 @@ func TestUse(t *testing.T) {
 		kubeconfig, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
 
-		assert.Equal(t, len(kubeconfig.Clusters), 2)
-		assert.Equal(t, len(kubeconfig.Contexts), 2)
+		assert.Equal(t, len(kubeconfig.Clusters), 1)
+		assert.Equal(t, len(kubeconfig.Contexts), 1)
 		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
 		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
@@ -136,29 +136,12 @@ func TestUse(t *testing.T) {
 		kubeconfig, err := clientConfig().RawConfig()
 		assert.NilError(t, err)
 
-		assert.Equal(t, len(kubeconfig.Clusters), 2)
-		assert.Equal(t, len(kubeconfig.Contexts), 2)
+		assert.Equal(t, len(kubeconfig.Clusters), 1)
+		assert.Equal(t, len(kubeconfig.Contexts), 1)
 		assert.Equal(t, len(kubeconfig.AuthInfos), 1)
-		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
-		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
-	})
-
-	t.Run("InfraUse", func(t *testing.T) {
-		setup(t)
-
-		err := Run(context.Background(), "use", "infra:cluster")
-		assert.NilError(t, err)
-
-		kubeconfig, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
 		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster")
-
-		err = Run(context.Background(), "use", "infra:cluster.namespace")
-		assert.NilError(t, err)
-
-		kubeconfig, err = clientConfig().RawConfig()
-		assert.NilError(t, err)
-		assert.Equal(t, kubeconfig.CurrentContext, "infra:cluster:namespace")
+		assert.Equal(t, kubeconfig.Contexts[kubeconfig.CurrentContext].Namespace, "namespace")
+		assert.Assert(t, is.Contains(kubeconfig.AuthInfos, "testuser@example.com"))
 	})
 
 	t.Run("UseUnknown", func(t *testing.T) {
