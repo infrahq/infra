@@ -24,7 +24,7 @@ func (p PolymorphicID) ID() (ID, error) {
 func (p PolymorphicID) DescribeSchema(schema *openapi3.Schema) {
 	schema.Type = "string"
 	schema.Format = "poly-uid"
-	schema.Pattern = `\w:[\da-zA-HJ-NP-Z]{1,11}`
+	schema.Pattern = `\w:[1-9a-km-zA-HJ-NP-Z]{1,11}`
 	schema.Example = "i:4yJ3n3D8E3"
 }
 
