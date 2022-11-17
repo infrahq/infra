@@ -46,7 +46,7 @@ func secretChecksum(secret string) []byte {
 func validateAccessKey(accessKey *models.AccessKey) error {
 	switch {
 	case accessKey.IssuedFor == 0:
-		return fmt.Errorf("issusedFor is required")
+		return fmt.Errorf("issuedFor is required")
 	case accessKey.ProviderID == 0:
 		return fmt.Errorf("providerID is required")
 	case len(accessKey.KeyID) != models.AccessKeyKeyLength:
@@ -226,7 +226,7 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 		query.B("AND access_keys.name = ?", opts.ByName)
 		query.B("AND access_keys.issued_for = ?", opts.IssuedFor)
 	default:
-		return nil, fmt.Errorf("either an ID, or name and issused_for are required")
+		return nil, fmt.Errorf("either an ID, or name and issued_for are required")
 	}
 
 	fields := append(accessKey.ScanFields(), &accessKey.IssuedForName)
