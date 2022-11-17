@@ -246,7 +246,7 @@ export default function Settings() {
                 </h2>
               )}
               <Link
-                href='/settings/add/access-key'
+                href='/settings/access-key/add'
                 className='inline-flex items-center rounded-md border border-transparent bg-black  px-4 py-2 text-xs font-medium text-white shadow-sm hover:cursor-pointer hover:bg-gray-800'
               >
                 Add access key
