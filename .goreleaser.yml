@@ -61,3 +61,6 @@ checksum:
   name_template: "{{ .ProjectName }}-checksums.txt"
 snapshot:
   name_template: "{{ .Env.RELEASE_NAME }}"
+before:
+  hooks:
+    - go run -ldflags '-s -X github.com/infrahq/infra/internal.Version={{ .Version }}' ./internal/openapigen ./openapi-{{ .Version }}.json
