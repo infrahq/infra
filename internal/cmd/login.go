@@ -37,7 +37,7 @@ type loginCmdOptions struct {
 	User               string
 }
 
-const DeviceFlowMinVersion = "0.16.0"
+const DeviceFlowMinVersion = "0.18.0"
 
 func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
@@ -57,7 +57,7 @@ infra login example.infrahq.com --user foo@gmail.com
 # Login with username and password in (non-interactive)
 export INFRA_SERVER=example.infrahq.com
 export INFRA_USER=foo@gmail.com
-export INFRA_PASSWORD=baz
+export INFRA_PASSWORD=p4ssw0rd
 infra login
 		`,
 		RunE: func(cmd *cobra.Command, args []string) error {

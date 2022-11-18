@@ -10,7 +10,7 @@ title: CLI Reference
 Login to Infra
 
 ```bash
-infra login SERVER [flags]
+infra login [SERVER] [flags]
 ```
 
 #### Examples
@@ -18,10 +18,16 @@ infra login SERVER [flags]
 ```bash
 
 # Login
-$ infra login my.infrahq.com
+infra login example.infrahq.com
 
 # Login with username (will prompt for password)
-$ infra login --user me@example.com
+infra login example.infrahq.com --user foo@gmail.com
+
+# Login with username and password in (non-interactive)
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=foo@gmail.com
+export INFRA_PASSWORD=p4ssw0rd
+infra login
 		
 ```
 
@@ -30,11 +36,10 @@ $ infra login --user me@example.com
 ```console
       --no-agent                         Skip starting the Infra agent in the background
       --non-interactive                  Disable all prompts for input
-  -p, --password string                  Password
       --skip-tls-verify                  Skip verifying server TLS certificates
       --tls-trusted-cert filepath        TLS certificate or CA used by the server
       --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
-  -u, --user string                      User email
+      --user string                      User email
 ```
 
 **Additional options**
