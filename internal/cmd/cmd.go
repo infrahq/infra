@@ -14,7 +14,6 @@ import (
 	"github.com/lensesio/tableprinter"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal"
@@ -254,11 +253,6 @@ func rootPreRun(flags *pflag.FlagSet) error {
 		return err
 	}
 	return nil
-}
-
-func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {
-	isNonInteractiveMode := os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
-	flags.BoolVar(bind, "non-interactive", isNonInteractiveMode, "Disable all prompts for input")
 }
 
 func addFormatFlag(flags *pflag.FlagSet, bind *string) {
