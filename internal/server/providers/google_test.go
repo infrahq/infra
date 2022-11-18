@@ -113,7 +113,7 @@ func TestGoogle_GetUserInfo(t *testing.T) {
 				ClientEmail:      "something",
 				DomainAdminEmail: "admin",
 			}
-			oidcClient := NewOIDCClient(provider, "invalid", "http://localhost:8301")
+			oidcClient := NewOIDCClient(provider, "invalid", "https://example.com/callback")
 			info, err := oidcClient.GetUserInfo(context.WithValue(ctx, testGroupsKey{}, test.groupsResponse), &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})
 			test.verifyFunc(t, info, err)
 		})
