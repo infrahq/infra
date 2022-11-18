@@ -162,7 +162,7 @@ func addAuthURLAndScopeToProviders() *migrator.Migration {
 
 					logging.Debugf("migrating %s provider", provider.Name)
 
-					providerClient := providers.NewOIDCClient(provider, "not-used", "http://localhost:8301")
+					providerClient := providers.NewOIDCClient(provider, "not-used", "")
 					authServerInfo, err := providerClient.AuthServerInfo(context.Background())
 					if err != nil {
 						if errors.Is(err, context.DeadlineExceeded) {
