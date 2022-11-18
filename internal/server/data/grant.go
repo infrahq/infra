@@ -176,11 +176,13 @@ func ListGrants(tx ReadTxn, opts ListGrantsOptions) ([]models.Grant, error) {
 			for _, id := range groupIDs {
 				subjects = append(subjects, uid.NewGroupPolymorphicID(id).String())
 			}
-			query.B(`AND subject = any(?)`, subjects)
+			query.B(`AND subject IN`)
+			queryInClause(query, subjects)
 		}
 	}
 	if len(opts.ByPrivileges) > 0 {
-		query.B("AND privilege = any(?)", opts.ByPrivileges)
+		query.B("AND privilege IN")
+		queryInClause(query, opts.ByPrivileges)
 	}
 	if opts.ByResource != "" {
 		query.B("AND resource = ?", opts.ByResource)
@@ -379,7 +381,8 @@ func DeleteGrants(tx WriteTxn, opts DeleteGrantsOptions) error {
 	case opts.ByCreatedBy != 0:
 		query.B("created_by = ?", opts.ByCreatedBy)
 		if len(opts.NotIDs) > 0 {
-			query.B("AND id <> all(?)", opts.NotIDs)
+			query.B("AND id NOT IN")
+			queryInClause(query, opts.NotIDs)
 		}
 	default:
 		return fmt.Errorf("DeleteGrants requires an ID to delete")

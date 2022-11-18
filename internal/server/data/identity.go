@@ -51,9 +51,14 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models
 
 	// remove user from groups
 	if len(groupsToBeRemoved) > 0 {
-		stmt := `DELETE FROM identities_groups WHERE identity_id = ? AND group_id in (
-		   SELECT id FROM groups WHERE organization_id = ? AND name = any(?))`
-		if _, err := tx.Exec(stmt, user.ID, tx.OrganizationID(), groupsToBeRemoved); err != nil {
+		query := querybuilder.New(`DELETE FROM identities_groups`)
+		query.B(`WHERE identity_id = ?`, user.ID)
+		query.B(`AND group_id in (`)
+		query.B(`SELECT id FROM groups WHERE organization_id = ?`, tx.OrganizationID())
+		query.B(`AND name IN`)
+		queryInClause(query, groupsToBeRemoved)
+		query.B(`)`)
+		if _, err := tx.Exec(query.String(), query.Args...); err != nil {
 			return err
 		}
 		for _, name := range groupsToBeRemoved {
@@ -71,8 +76,12 @@ func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models
 		Name string
 	}
 
-	stmt := `SELECT id, name FROM groups WHERE deleted_at is null AND name = any(?) AND organization_id = ?`
-	rows, err := tx.Query(stmt, groupsToBeAdded, tx.OrganizationID())
+	query := querybuilder.New(`SELECT id, name FROM groups`)
+	query.B(`WHERE deleted_at is null`)
+	query.B(`AND organization_id = ?`, tx.OrganizationID())
+	query.B(`AND name IN`)
+	queryInClause(query, groupsToBeAdded)
+	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return err
 	}
@@ -245,7 +254,8 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 		query.B("AND id = ?", opts.ByID)
 	}
 	if len(opts.ByIDs) > 0 {
-		query.B("AND id = any(?)", opts.ByIDs)
+		query.B("AND id IN")
+		queryInClause(query, opts.ByIDs)
 	}
 	if opts.ByName != "" {
 		query.B("AND name = ?", opts.ByName)
@@ -259,7 +269,8 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	if opts.CreatedBy != 0 {
 		query.B("AND created_by = ?", opts.CreatedBy)
 		if len(opts.ByNotIDs) > 0 {
-			query.B("AND id <> all(?)", opts.ByNotIDs)
+			query.B("AND id NOT IN ")
+			queryInClause(query, opts.ByNotIDs)
 		}
 	}
 	query.B("ORDER BY name ASC")
@@ -310,12 +321,11 @@ func loadIdentitiesGroups(tx ReadTxn, identities []models.Identity) error {
 	}
 
 	// get the groups that contain these identities
-	stmt := `
-		SELECT identity_id, group_id
-		FROM identities_groups
-		WHERE identity_id = any(?)
-	`
-	rows, err := tx.Query(stmt, identityIDs)
+	query := querybuilder.New(`SELECT identity_id, group_id`)
+	query.B(`FROM identities_groups`)
+	query.B(`WHERE identity_id IN`)
+	queryInClause(query, identityIDs)
+	rows, err := tx.Query(query.String(), query.Args...)
 	if err != nil {
 		return err
 	}
@@ -457,7 +467,8 @@ func DeleteIdentities(tx WriteTxn, opts DeleteIdentitiesOptions) error {
 	if len(ids) > 0 {
 		query := querybuilder.New("UPDATE identities")
 		query.B("SET deleted_at = ?", time.Now())
-		query.B("WHERE id = any(?)", ids)
+		query.B("WHERE id IN")
+		queryInClause(query, ids)
 		query.B("AND organization_id = ?", tx.OrganizationID())
 
 		_, err := tx.Exec(query.String(), query.Args...)

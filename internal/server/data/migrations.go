@@ -11,6 +11,7 @@ import (
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/server/data/migrator"
+	"github.com/infrahq/infra/internal/server/data/querybuilder"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
 	"github.com/infrahq/infra/uid"
@@ -723,7 +724,10 @@ func removeDeletedIdentityProviderUsers() *migrator.Migration {
 			}
 
 			if len(ids) > 0 {
-				_, err := tx.Exec(`DELETE FROM provider_users WHERE identity_id = any(?)`, ids)
+				query := querybuilder.New(`DELETE FROM provider_users`)
+				query.B(`WHERE identity_id IN`)
+				queryInClause(query, ids)
+				_, err := tx.Exec(query.String(), query.Args...)
 				if err != nil {
 					return fmt.Errorf("delete removed provider_users: %w", err)
 				}
