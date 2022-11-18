@@ -93,6 +93,10 @@ func CreateAccessKey(db WriteTxn, accessKey *models.AccessKey) (body string, err
 		accessKey.ExpiresAt = time.Now().Add(time.Hour * 12).UTC()
 	}
 
+	if accessKey.ExtensionDeadline.IsZero() {
+		accessKey.ExtensionDeadline = accessKey.ExpiresAt
+	}
+
 	if accessKey.Name == "" {
 		// set a default name for look-up and CLI usage
 		if accessKey.ID == 0 {
@@ -150,10 +154,9 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 	query.B("AND access_keys.organization_id = ?", tx.OrganizationID())
 
 	if !opts.IncludeExpired {
-		// TODO: can we remove the need to check for both the zero value and nil?
-		now, zero := time.Now(), time.Time{}
-		query.B("AND (expires_at > ? OR expires_at = ? OR expires_at is null)", now, zero)
-		query.B("AND (extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
+		now := time.Now()
+		query.B("AND expires_at > ?", now)
+		query.B("AND extension_deadline > ?", now)
 	}
 	if opts.ByIssuedForID != 0 {
 		query.B("AND issued_for = ?", opts.ByIssuedForID)

@@ -45,13 +45,14 @@ func TestCreateAccessKey(t *testing.T) {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				IssuedFor:      jerry.ID,
-				ProviderID:     infraProviderID,
-				KeyID:          "<any-string>",
-				Secret:         "<any-string>",
-				ExpiresAt:      time.Now().Add(12 * time.Hour),
-				Name:           fmt.Sprintf("%s-%s", jerry.Name, key.ID.String()),
-				SecretChecksum: secretChecksum(key.Secret),
+				IssuedFor:         jerry.ID,
+				ProviderID:        infraProviderID,
+				KeyID:             "<any-string>",
+				Secret:            "<any-string>",
+				ExpiresAt:         time.Now().Add(12 * time.Hour),
+				ExtensionDeadline: time.Now().Add(12 * time.Hour),
+				Name:              fmt.Sprintf("%s-%s", jerry.Name, key.ID.String()),
+				SecretChecksum:    secretChecksum(key.Secret),
 			}
 			assert.DeepEqual(t, key, expected, cmpAccessKey)
 			assert.Equal(t, pair, key.Token())
@@ -145,6 +146,7 @@ var cmpAccessKey = cmp.Options{
 	cmp.FilterPath(opt.PathField(models.AccessKey{}, "KeyID"), nonZeroString),
 	cmp.FilterPath(opt.PathField(models.AccessKey{}, "Secret"), nonZeroString),
 	cmp.FilterPath(opt.PathField(models.AccessKey{}, "ExpiresAt"), opt.TimeWithThreshold(time.Second)),
+	cmp.FilterPath(opt.PathField(models.AccessKey{}, "ExtensionDeadline"), opt.TimeWithThreshold(time.Second)),
 }
 
 var nonZeroString = cmp.Comparer(func(x, y string) bool {
