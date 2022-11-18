@@ -262,18 +262,48 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, resp.Code, http.StatusNoContent)
 	})
 
+	t.Run("do not allow delete of the key used in the request", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys/"+ak1.ID.String(), nil)
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusBadRequest)
+	})
+
 	t.Run("delete by name as non-admin", func(t *testing.T) {
-		user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "deletemyownkey@example.com", OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
+		user := &models.Identity{
+			Model:              models.Model{ID: uid.New()},
+			Name:               "deletemyownkey@example.com",
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
 		err := data.CreateIdentity(db, user)
 		assert.NilError(t, err)
 
-		key := &models.AccessKey{Name: "deletemetoo", IssuedFor: user.ID, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute), OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
-		_, err = data.CreateAccessKey(srv.db, key)
+		key1 := &models.AccessKey{
+			Name:               "deletemetoo",
+			IssuedFor:          user.ID,
+			ProviderID:         provider.ID,
+			ExpiresAt:          time.Now().Add(5 * time.Minute),
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
+		_, err = data.CreateAccessKey(srv.db, key1)
+		assert.NilError(t, err)
+
+		key2 := &models.AccessKey{
+			Name:               "deletemetoo2",
+			IssuedFor:          user.ID,
+			ProviderID:         provider.ID,
+			ExpiresAt:          time.Now().Add(5 * time.Minute),
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
+		_, err = data.CreateAccessKey(srv.db, key2)
 		assert.NilError(t, err)
 
 		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletemetoo", nil)
-		req.Header.Set("Authorization", "Bearer "+key.Token())
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletemetoo2", nil)
+		req.Header.Set("Authorization", "Bearer "+key1.Token())
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		routes.ServeHTTP(resp, req)
@@ -304,7 +334,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.NilError(t, err)
 
 		// TODO: replace this with a more strict assertion using DeepEqual
-		assert.Equal(t, len(keys.Items), 4)
+		assert.Equal(t, len(keys.Items), 5)
 
 		sort.SliceIsSorted(keys.Items, func(i, j int) bool {
 			return keys.Items[i].Name < keys.Items[j].Name
