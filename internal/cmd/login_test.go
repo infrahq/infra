@@ -75,8 +75,10 @@ func TestLoginCmd_Options(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
 
+		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
+
 		// TODO: remove --skip-tls-verify
-		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--user", "admin@example.com", "--password", "p4ssw0rd")
+		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--user", "admin@example.com")
 		assert.NilError(t, err)
 
 		_, err = readStoredAgentProcessID()
