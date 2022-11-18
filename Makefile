@@ -56,7 +56,7 @@ docs: docs/api/openapi3.json
 
 .PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
-	go test ./internal/server -run TestWriteOpenAPIDocToFile -update
+	go run -ldflags '-s -X github.com/infrahq/infra/internal.Version=0.0.0' ./internal/openapigen $@
 
 check-psql-env:
 ifndef POSTGRESQL_CONNECTION
