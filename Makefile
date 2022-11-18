@@ -56,7 +56,7 @@ docs: docs/api/openapi3.json
 
 .PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
-	go run ./internal/openapigen $@
+	go test ./internal/server -run TestWriteOpenAPIDocToFile -update
 
 check-psql-env:
 ifndef POSTGRESQL_CONNECTION
