@@ -102,7 +102,7 @@ $ infra login --user me@example.com
 	}
 
 	cmd.Flags().StringVarP(&options.User, "user", "u", "", "User email")
-	cmd.Flags().StringVarP(&options.Password, "password", "p", "", "User password")
+	cmd.Flags().StringVarP(&options.Password, "password", "p", "", "Password")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
 	cmd.Flags().StringVar(&options.TrustedFingerprint, "tls-trusted-fingerprint", "", "SHA256 fingerprint of the server TLS certificate")
