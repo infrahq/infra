@@ -44,7 +44,7 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{
-		Use:     "login [SERVER]",
+		Use:     "login SERVER",
 		Short:   "Login to Infra",
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
