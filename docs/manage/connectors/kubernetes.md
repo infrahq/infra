@@ -25,7 +25,7 @@ Copy the commands shown. They will add the Helm repo and update it, and then ins
 First, generate an access key:
 
 ```shell
-infra keys add connector
+ACCESS_KEY=$(infra keys add --connector -q)
 ```
 
 Next, use this access key to connect your cluster:
@@ -33,7 +33,7 @@ Next, use this access key to connect your cluster:
 ```shell
 helm upgrade --install infra-connector infrahq/infra \
     --set connector.config.server=INFRA_SERVER_HOSTNAME \
-    --set connector.config.accessKey=ACCESS_KEY \
+    --set connector.config.accessKey=$ACCESS_KEY \
     --set connector.config.name=example-cluster-name
 ```
 
@@ -63,7 +63,7 @@ Here is a sample Helm values file you might want to start with, replacing the
 connector:
   config:
     ## Infra server access key. You can get this by running
-    ## infra keys add connector --name connectorname --ttl=87600h
+    ## infra keys add --connector --name connectorname --ttl=87600h
     accessKey: "XXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYY"
     ## Infra server address
     server: "api.infrahq.com"

@@ -316,9 +316,9 @@ ALTER TABLE ONLY settings
 
 CREATE INDEX idx_access_keys_expires_at ON access_keys USING btree (expires_at);
 
-CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_issued_for_name ON access_keys USING btree (organization_id, issued_for, name) WHERE (deleted_at IS NULL);
 
-CREATE UNIQUE INDEX idx_access_keys_name ON access_keys USING btree (organization_id, name) WHERE (deleted_at IS NULL);
+CREATE UNIQUE INDEX idx_access_keys_key_id ON access_keys USING btree (key_id) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_credentials_identity_id ON credentials USING btree (organization_id, identity_id) WHERE (deleted_at IS NULL);
 

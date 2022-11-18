@@ -961,9 +961,15 @@ func getTestDefaultOrgUserDetails(t *testing.T, server *Server, name string) (*m
 		assert.NilError(t, err, "credentials")
 	}
 
-	accessKey, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{IssuedFor: user.ID})
+	keys, err := data.ListAccessKeys(tx, data.ListAccessKeyOptions{ByIssuedForID: user.ID})
 	if !errors.Is(err, internal.ErrNotFound) {
 		assert.NilError(t, err, "access_key")
+	}
+
+	// only return the first key
+	var accessKey *models.AccessKey
+	if len(keys) > 0 {
+		accessKey = &keys[0]
 	}
 
 	return user, credential, accessKey

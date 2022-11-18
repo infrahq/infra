@@ -46,7 +46,7 @@ func secretChecksum(secret string) []byte {
 func validateAccessKey(accessKey *models.AccessKey) error {
 	switch {
 	case accessKey.IssuedFor == 0:
-		return fmt.Errorf("issusedFor is required")
+		return fmt.Errorf("issuedFor is required")
 	case accessKey.ProviderID == 0:
 		return fmt.Errorf("providerID is required")
 	case len(accessKey.KeyID) != models.AccessKeyKeyLength:
@@ -210,10 +210,6 @@ type GetAccessKeysOptions struct {
 
 // GetAccessKey by any unique field. This must be scoped by organizationID as it's callable by users.
 func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, error) {
-	if opts.ByID == 0 && opts.ByName == "" && opts.IssuedFor == 0 {
-		return nil, fmt.Errorf("GetAccessKey must supply id, issuedFor, or name")
-	}
-
 	accessKey := &accessKeyTable{}
 	query := querybuilder.New("SELECT")
 	query.B(columnsForSelect(accessKey))
@@ -222,14 +218,15 @@ func GetAccessKey(tx ReadTxn, opts GetAccessKeysOptions) (*models.AccessKey, err
 	query.B("ON access_keys.issued_for = identities.id")
 	query.B("WHERE access_keys.deleted_at is null")
 	query.B("AND access_keys.organization_id = ?", tx.OrganizationID())
-	if opts.ByID != 0 {
+
+	switch {
+	case opts.ByID != 0:
 		query.B("AND access_keys.id = ?", opts.ByID)
-	}
-	if opts.ByName != "" {
+	case opts.ByName != "" && opts.IssuedFor != 0:
 		query.B("AND access_keys.name = ?", opts.ByName)
-	}
-	if opts.IssuedFor != 0 {
-		query.B("AND issued_for = ?", opts.IssuedFor)
+		query.B("AND access_keys.issued_for = ?", opts.IssuedFor)
+	default:
+		return nil, fmt.Errorf("either an ID, or name and issued_for are required")
 	}
 
 	fields := append(accessKey.ScanFields(), &accessKey.IssuedForName)

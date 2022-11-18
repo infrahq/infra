@@ -605,8 +605,15 @@ func TestGetAccessKey(t *testing.T) {
 
 		createAccessKeys(t, db, ak, other)
 
+		t.Run("default options", func(t *testing.T) {
+			_, err := GetAccessKey(db, GetAccessKeysOptions{})
+			assert.ErrorContains(t, err, "either an ID, or name")
+		})
 		t.Run("found by name", func(t *testing.T) {
-			actual, err := GetAccessKey(db, GetAccessKeysOptions{ByName: "the-key"})
+			actual, err := GetAccessKey(db, GetAccessKeysOptions{
+				ByName:    "the-key",
+				IssuedFor: user.ID,
+			})
 			assert.NilError(t, err)
 			expected := *ak
 			expected.Secret = ""
@@ -633,7 +640,10 @@ func TestGetAccessKey(t *testing.T) {
 		})
 
 		t.Run("not found", func(t *testing.T) {
-			_, err := GetAccessKey(db, GetAccessKeysOptions{ByName: "not-this-key-name"})
+			_, err := GetAccessKey(db, GetAccessKeysOptions{
+				ByName:    "not-this-key-name",
+				IssuedFor: 600600,
+			})
 			assert.ErrorIs(t, err, internal.ErrNotFound)
 		})
 

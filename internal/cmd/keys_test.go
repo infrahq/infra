@@ -74,7 +74,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "my-user")
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "--user=my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
@@ -92,7 +92,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "my-user")
+		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--user=my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
@@ -100,10 +100,10 @@ func TestKeysAddCmd(t *testing.T) {
 		assert.Equal(t, withNewline(bufs.Stdout.String()), expectedKeysAddOutput)
 	})
 
-	t.Run("without required arguments", func(t *testing.T) {
-		err := Run(context.Background(), "keys", "add")
-		assert.ErrorContains(t, err, `"infra keys add" requires exactly 1 argument`)
-		assert.ErrorContains(t, err, `Usage:  infra keys add USER`)
+	t.Run("with unexpected arguments", func(t *testing.T) {
+		err := Run(context.Background(), "keys", "add", "something")
+		assert.ErrorContains(t, err, `"infra keys add" accepts no arguments`)
+		assert.ErrorContains(t, err, `Usage:  infra keys add`)
 	})
 }
 

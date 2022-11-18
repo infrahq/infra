@@ -450,6 +450,12 @@
                 "issuedForName": {
                   "type": "string"
                 },
+                "lastUsed": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
                 "name": {
                   "type": "string"
                 },
@@ -1073,6 +1079,9 @@
             "in": "query",
             "name": "name",
             "schema": {
+              "format": "[a-zA-Z0-9\\-_.]",
+              "maxLength": 256,
+              "minLength": 2,
               "type": "string"
             }
           }

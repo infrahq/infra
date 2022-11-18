@@ -8,6 +8,7 @@ import (
 type AccessKey struct {
 	ID                uid.ID `json:"id"`
 	Created           Time   `json:"created"`
+	LastUsed          Time   `json:"lastUsed"`
 	Name              string `json:"name"`
 	IssuedForName     string `json:"issuedForName"`
 	IssuedFor         uid.ID `json:"issuedFor"`
@@ -81,4 +82,11 @@ func (req ListAccessKeysRequest) SetPage(page int) Paginatable {
 
 type DeleteAccessKeyRequest struct {
 	Name string `form:"name"`
+}
+
+func (r DeleteAccessKeyRequest) ValidationRules() []validate.ValidationRule {
+	return []validate.ValidationRule{
+		ValidateName(r.Name),
+		validate.Required("name", r.Name),
+	}
 }

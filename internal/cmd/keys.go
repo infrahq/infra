@@ -10,7 +10,6 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/logging"
-	"github.com/infrahq/infra/uid"
 )
 
 const thirtyDays = 30 * (24 * time.Hour)
@@ -38,28 +37,33 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 
 type keyCreateOptions struct {
 	Name              string
+	UserName          string
 	TTL               time.Duration
 	ExtensionDeadline time.Duration
+	Connector         bool
+	Quiet             bool
 }
 
 func newKeysAddCmd(cli *CLI) *cobra.Command {
 	var options keyCreateOptions
 
 	cmd := &cobra.Command{
-		Use:   "add USER|connector",
+		Use:   "add",
 		Short: "Create an access key",
 		Long:  `Create an access key for a user or a connector.`,
+		Args:  NoArgs,
 		Example: `
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add user@example.com --ttl=12h --name example-key
+$ infra keys add --ttl=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
-$ infra keys add connector
+$ infra keys add --connector
+
+# Set an environment variable with the newly created access key
+$ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 `,
-		Args: ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			userName := args[0]
 
 			if options.Name != "" {
 				if strings.Contains(options.Name, " ") {
@@ -77,11 +81,15 @@ $ infra keys add connector
 				return err
 			}
 
-			var userID uid.ID
-			if userName == config.Name { // user is requesting their own stuff
-				userID = config.UserID
-			} else {
-				user, err := getUserByNameOrID(client, userName)
+			userID := config.UserID
+
+			// override the user setting if the user wants to create a connector access key
+			if options.Connector {
+				options.UserName = "connector"
+			}
+
+			if options.UserName != "" {
+				user, err := getUserByNameOrID(client, options.UserName)
 				if err != nil {
 					if api.ErrorStatusCode(err) == 403 {
 						logging.Debugf("%s", err.Error())
@@ -111,6 +119,11 @@ $ infra keys add connector
 				return err
 			}
 
+			if options.Quiet {
+				cli.Output(resp.AccessKey)
+				return nil
+			}
+
 			var expMsg strings.Builder
 			expMsg.WriteString("This key will expire in ")
 			expMsg.WriteString(format.ExactDuration(options.TTL))
@@ -119,7 +132,11 @@ $ infra keys add connector
 				expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
 				expMsg.WriteString(" to remain valid")
 			}
-			cli.Output("Issued access key %q for %q", resp.Name, userName)
+			if options.UserName != "" {
+				cli.Output("Issued access key %q for %q", resp.Name, options.UserName)
+			} else {
+				cli.Output("Issued access key %q", resp.Name)
+			}
 			cli.Output(expMsg.String())
 			cli.Output("")
 
@@ -129,14 +146,22 @@ $ infra keys add connector
 	}
 
 	cmd.Flags().StringVar(&options.Name, "name", "", "The name of the access key")
+	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who will own the key")
+	cmd.Flags().BoolVar(&options.Connector, "connector", false, "Create the key for the connector")
+	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", false, "Only display the access key")
 	cmd.Flags().DurationVar(&options.TTL, "ttl", thirtyDays, "The total time that the access key will be valid for")
 	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd
 }
 
+type keyRemoveOptions struct {
+	Force    bool
+	UserName string
+}
+
 func newKeysRemoveCmd(cli *CLI) *cobra.Command {
-	var force bool
+	var options keyRemoveOptions
 
 	cmd := &cobra.Command{
 		Use:     "remove KEY",
@@ -150,7 +175,40 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 				return err
 			}
 
-			err = client.DeleteAccessKeyByName(ctx, args[0])
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
+
+			keyName := args[0]
+			userID := config.UserID
+
+			if options.UserName != "" {
+				user, err := getUserByNameOrID(client, options.UserName)
+				if err != nil {
+					if api.ErrorStatusCode(err) == 403 {
+						logging.Debugf("%s", err.Error())
+						return Error{
+							Message: "Cannot list keys: missing privileges for GetUser",
+						}
+					}
+					return err
+				}
+				userID = user.ID
+			}
+
+			keys, err := listAll(ctx, client.ListAccessKeys, api.ListAccessKeysRequest{Name: keyName, UserID: userID})
+			if err != nil {
+				return err
+			}
+
+			if len(keys) == 0 {
+				return Error{
+					Message: "No access key named: " + keyName,
+				}
+			}
+
+			err = client.DeleteAccessKey(ctx, keys[0].ID)
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
 					logging.Debugf("%s", err.Error())
@@ -167,12 +225,14 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVar(&force, "force", false, "Exit successfully even if access key does not exist")
+	cmd.Flags().BoolVar(&options.Force, "force", false, "Exit successfully even if access key does not exist")
+	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who owns the key")
 
 	return cmd
 }
 
 type keyListOptions struct {
+	AllUsers    bool
 	UserName    string
 	ShowExpired bool
 }
@@ -193,14 +253,15 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 
 			ctx := context.Background()
 
-			var keys []api.AccessKey
-			var userID uid.ID
-			if options.UserName != "" {
-				config, err := currentHostConfig()
-				if err != nil {
-					return err
-				}
+			config, err := currentHostConfig()
+			if err != nil {
+				return err
+			}
 
+			var keys []api.AccessKey
+			userID := config.UserID
+
+			if options.UserName != "" {
 				if options.UserName == config.Name { // user is requesting their own stuff
 					userID = config.UserID
 				} else {
@@ -218,16 +279,22 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				}
 			}
 
+			if options.AllUsers {
+				userID = 0
+			}
+
 			logging.Debugf("call server: list access keys")
 			keys, err = listAll(ctx, client.ListAccessKeys, api.ListAccessKeysRequest{ShowExpired: options.ShowExpired, UserID: userID})
 			if err != nil {
 				return err
 			}
 
+			// TODO: remove IssuedFor unless the user is getting access keys for a different user or using --all
 			type row struct {
 				Name              string `header:"NAME"`
 				IssuedFor         string `header:"ISSUED FOR"`
 				Created           string `header:"CREATED"`
+				LastUsed          string `header:"LAST USED"`
 				Expires           string `header:"EXPIRES"`
 				ExtensionDeadline string `header:"EXTENSION DEADLINE"`
 			}
@@ -242,6 +309,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					Name:              k.Name,
 					IssuedFor:         name,
 					Created:           format.HumanTime(k.Created.Time(), "never"),
+					LastUsed:          format.HumanTime(k.LastUsed.Time(), "never"),
 					Expires:           format.HumanTime(k.Expires.Time(), "never"),
 					ExtensionDeadline: format.HumanTime(k.ExtensionDeadline.Time(), "never"),
 				})
@@ -257,6 +325,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVar(&options.AllUsers, "all", false, "Show keys for all users")
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of a user to list access keys for")
 	cmd.Flags().BoolVar(&options.ShowExpired, "show-expired", false, "Show expired access keys")
 	return cmd

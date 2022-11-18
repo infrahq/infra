@@ -81,7 +81,7 @@
   establish a connection to Infra. If you do not already have an access key,
   generate one using Infra CLI.
 
-  $ infra keys add connector
+  $ infra keys add --connector
 
   Set an access key with `connector.config.accessKey`.
 

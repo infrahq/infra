@@ -60,9 +60,30 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 func DeleteAccessKey(c *gin.Context, id uid.ID, name string) error {
 	rCtx := GetRequestContext(c)
 
-	key, err := data.GetAccessKey(rCtx.DBTxn, data.GetAccessKeysOptions{ByID: id, ByName: name})
-	if err != nil {
-		return err
+	var key *models.AccessKey
+	var err error
+
+	if id != 0 {
+		key, err = data.GetAccessKey(rCtx.DBTxn, data.GetAccessKeysOptions{ByID: id})
+		if err != nil {
+			return err
+		}
+	} else {
+		// if the specific key isn't specified, look up the key by name for the current user
+		opts := data.ListAccessKeyOptions{
+			IncludeExpired: false,
+			ByIssuedForID:  rCtx.Authenticated.User.ID,
+			ByName:         name,
+		}
+		keys, err := data.ListAccessKeys(rCtx.DBTxn, opts)
+		if err != nil {
+			return err
+		}
+		if len(keys) > 0 {
+			key = &keys[0]
+		} else {
+			return fmt.Errorf("%w: no key named '%s' found", internal.ErrNotFound, name)
+		}
 	}
 
 	if key.IssuedFor == rCtx.Authenticated.User.ID {
