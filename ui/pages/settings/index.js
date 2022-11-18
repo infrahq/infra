@@ -274,6 +274,22 @@ export default function Settings() {
                           <div className='truncate text-sm font-medium text-gray-700'>
                             {info.getValue()}
                           </div>
+                          {info.row.original.created && (
+                            <div className='space-y-1 pt-2 text-3xs text-gray-500 sm:hidden'>
+                              created -{' '}
+                              <span className='font-semibold text-gray-700'>
+                                {moment(info.row.original.created).from()}
+                              </span>
+                            </div>
+                          )}
+                          {info.row.original.lastUsed && (
+                            <div className='space-y-1 pt-2 text-3xs text-gray-500 sm:hidden'>
+                              last used -{' '}
+                              <span className='font-semibold text-gray-700'>
+                                {moment(info.row.original.lastUsed).from()}
+                              </span>
+                            </div>
+                          )}
                           <div className='space-y-1 pt-2 text-3xs text-gray-500 sm:hidden'>
                             the key will expire on{' '}
                             <span className='font-semibold text-gray-700'>
@@ -298,6 +314,17 @@ export default function Settings() {
                       <span className='hidden sm:table-cell'>Created</span>
                     ),
                     accessorKey: 'created',
+                  },
+                  {
+                    cell: info => (
+                      <div className='hidden sm:table-cell'>
+                        {info.getValue() ? moment(info.getValue()).from() : '-'}
+                      </div>
+                    ),
+                    header: () => (
+                      <span className='hidden sm:table-cell'>Last used</span>
+                    ),
+                    accessorKey: 'lastUsed',
                   },
                   {
                     cell: info => (
