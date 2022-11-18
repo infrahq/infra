@@ -65,6 +65,7 @@ $ infra login --user me@example.com
 			}
 
 			if options.Server == "" {
+				cmd.Usage()
 				return Error{
 					Message: "No server specified.",
 				}
@@ -81,13 +82,13 @@ $ infra login --user me@example.com
 			if isNonInteractive() {
 				if options.User == "" {
 					return Error{
-						Message: "No user specified. Use the --user flag or INFRA_USER environment variable to specify a user email.",
+						Message: "No user specified. Use the --user flag or INFRA_USER environment variable to specify a user email, or run in interactive mode.",
 					}
 				}
 
 				if options.Password == "" {
 					return Error{
-						Message: "No password provided. Use the --password flag or INFRA_PASSWORD environment variable to specify as password.",
+						Message: "No password provided. Use the --password flag or INFRA_PASSWORD environment variable to specify as password, or run in interactive mode",
 					}
 				}
 			}
