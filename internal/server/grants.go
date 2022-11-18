@@ -73,6 +73,15 @@ func (a *API) ListGrants(c *gin.Context, r *api.ListGrantsRequest) (*ListGrantsR
 	return (*ListGrantsResponse)(result), nil
 }
 
+func (a *API) GetGrant(c *gin.Context, r *api.Resource) (*api.Grant, error) {
+	grant, err := access.GetGrant(c, r.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return grant.ToAPI(), nil
+}
+
 func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrantResponse, error) {
 	var subject uid.PolymorphicID
 
@@ -99,6 +108,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 			ByPrivileges: []string{grant.Privilege},
 		}
 		grants, err := access.ListGrants(c, opts, 0)
+
 		if err != nil {
 			return nil, err
 		}
@@ -115,6 +125,7 @@ func (a *API) CreateGrant(c *gin.Context, r *api.GrantRequest) (*api.CreateGrant
 	}
 
 	return &api.CreateGrantResponse{Grant: grant.ToAPI(), WasCreated: true}, nil
+
 }
 
 func (a *API) DeleteGrant(c *gin.Context, r *api.Resource) (*api.EmptyResponse, error) {
