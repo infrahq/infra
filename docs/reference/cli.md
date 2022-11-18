@@ -590,7 +590,8 @@ infra keys remove KEY [flags]
 #### Options
 
 ```console
-      --force   Exit successfully even if access key does not exist
+      --force         Exit successfully even if access key does not exist
+      --user string   The name of the user who owns the key
 ```
 
 **Additional options**
