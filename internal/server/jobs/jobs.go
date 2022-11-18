@@ -6,14 +6,14 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 )
 
-func RemoveOldDeviceFlowRequests(ctx context.Context, tx *data.DB) error {
+func RemoveOldDeviceFlowRequests(ctx context.Context, tx *data.Transaction) error {
 	return data.DeleteExpiredDeviceFlowAuthRequests(tx)
 }
 
-func RemoveExpiredAccessKeys(ctx context.Context, tx *data.DB) error {
+func RemoveExpiredAccessKeys(ctx context.Context, tx *data.Transaction) error {
 	return data.RemoveExpiredAccessKeys(tx)
 }
 
-func RemoveExpiredPasswordResetTokens(ctx context.Context, tx *data.DB) error {
+func RemoveExpiredPasswordResetTokens(ctx context.Context, tx *data.Transaction) error {
 	return data.RemoveExpiredPasswordResetTokens(tx)
 }
