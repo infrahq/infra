@@ -212,8 +212,6 @@ function CalendarInput({ setSelectedTTL, selectedTTL }) {
             selectedDate={selectedCustom}
             extensionHour={720} // the default extension deadline is 30 days (720h)
             onChange={e => {
-              console.log(e)
-
               const duration = moment
                 .duration(
                   moment(e, 'YYYY/MM/DD')
