@@ -18,7 +18,6 @@ import (
 	"github.com/goware/urlx"
 	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
@@ -33,6 +32,7 @@ type loginCmdOptions struct {
 	SkipTLSVerify      bool
 	TrustedCertificate string
 	TrustedFingerprint string
+	NonInteractive     bool
 	NoAgent            bool
 	User               string
 	Password           string
@@ -44,7 +44,7 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{
-		Use:     "login SERVER",
+		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
@@ -64,10 +64,13 @@ $ infra login --user me@example.com
 				options.Server = server
 			}
 
+			if len(args) == 1 {
+				options.Server = args[0]
+			}
+
 			if options.Server == "" {
-				cmd.Usage()
 				return Error{
-					Message: "No server specified.",
+					Message: "No server specified. Usage: infra login SERVER",
 				}
 			}
 
@@ -79,7 +82,7 @@ $ infra login --user me@example.com
 				options.Password = password
 			}
 
-			if isNonInteractive() {
+			if options.NonInteractive {
 				if options.User == "" {
 					return Error{
 						Message: "No user specified. Use the --user flag or INFRA_USER environment variable to specify a user email, or run in interactive mode.",
@@ -88,13 +91,9 @@ $ infra login --user me@example.com
 
 				if options.Password == "" {
 					return Error{
-						Message: "No password provided. Use the --password flag or INFRA_PASSWORD environment variable to specify as password, or run in interactive mode",
+						Message: "No password specified. Use the --password flag or INFRA_PASSWORD environment variable to specify as password, or run in interactive mode",
 					}
 				}
-			}
-
-			if len(args) == 1 {
-				options.Server = args[0]
 			}
 
 			return login(cli, options)
@@ -107,12 +106,8 @@ $ infra login --user me@example.com
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
 	cmd.Flags().StringVar(&options.TrustedFingerprint, "tls-trusted-fingerprint", "", "SHA256 fingerprint of the server TLS certificate")
 	cmd.Flags().BoolVar(&options.NoAgent, "no-agent", false, "Skip starting the Infra agent in the background")
-
+	addNonInteractiveFlag(cmd.Flags(), &options.NonInteractive)
 	return cmd
-}
-
-func isNonInteractive() bool {
-	return os.Stdin == nil || !term.IsTerminal(int(os.Stdin.Fd()))
 }
 
 func login(cli *CLI, options loginCmdOptions) error {
@@ -338,7 +333,7 @@ func newLoginClient(cli *CLI, options loginCmdOptions) (loginClient, error) {
 		}
 
 		if !fingerprintMatch(cli, options.TrustedFingerprint, uaErr.Cert) {
-			if isNonInteractive() {
+			if options.NonInteractive {
 				if options.TrustedCertificate != "" {
 					return c, err
 				}

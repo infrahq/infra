@@ -2,9 +2,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -55,11 +59,10 @@ func TestLoginCmd_Options(t *testing.T) {
 
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
-	adminAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 	opts.Config.Users = []server.User{
 		{
-			Name:      "admin@example.com",
-			AccessKey: adminAccessKey,
+			Name:     "admin@example.com",
+			Password: "p4ssw0rd",
 		},
 	}
 	srv, err := server.New(opts)
@@ -73,7 +76,7 @@ func TestLoginCmd_Options(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// TODO: remove --skip-tls-verify
-		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--key", adminAccessKey)
+		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--user", "admin@example.com", "--password", "p4ssw0rd")
 		assert.NilError(t, err)
 
 		_, err = readStoredAgentProcessID()
@@ -86,7 +89,7 @@ func TestLoginCmd_Options(t *testing.T) {
 		expected := []ClientHostConfig{
 			{
 				Name:          "admin@example.com",
-				AccessKey:     adminAccessKey,
+				AccessKey:     "any access key",
 				UserID:        anyUID,
 				Host:          srv.Addrs.HTTPS.String(),
 				SkipTLSVerify: true,
@@ -219,6 +222,70 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 	opts.DBConnectionString = pgDriver.DSN
 }
 
+func TestLoginCmd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+
+	t.Run("without required arguments", func(t *testing.T) {
+		err := Run(context.Background(), "login")
+		assert.ErrorContains(t, err, "No server specified.")
+	})
+}
+
+func TestLoginCmd_UserPass(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+	kubeConfigPath := filepath.Join(home, "kube.config")
+	t.Setenv("KUBECONFIG", kubeConfigPath)
+
+	t.Run("without username flag and without tty", func(t *testing.T) {
+		err := Run(context.Background(), "login", "example.infrahq.com")
+		assert.ErrorContains(t, err, "No user specified.")
+	})
+
+	t.Run("without password flag and without tty", func(t *testing.T) {
+		err := Run(context.Background(), "login", "example.infrahq.com", "--user", "foo")
+		assert.ErrorContains(t, err, "No password specified.")
+	})
+
+	t.Run("logs in", func(t *testing.T) {
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/api/login" {
+
+				var loginRequest api.LoginRequest
+				err := json.NewDecoder(req.Body).Decode(&loginRequest)
+				assert.Check(t, err)
+				assert.Equal(t, loginRequest.PasswordCredentials.Name, "foo")
+				assert.Equal(t, loginRequest.PasswordCredentials.Password, "baz")
+
+				res := &api.LoginResponse{
+					UserID:                 uid.New(),
+					Name:                   "foo",
+					AccessKey:              "abc.xyz",
+					OrganizationName:       "Default",
+					PasswordUpdateRequired: false,
+					Expires:                api.Time(time.Now().UTC().Add(time.Hour * 24)),
+				}
+				err = json.NewEncoder(resp).Encode(res)
+				assert.Check(t, err)
+			}
+		}
+
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
+
+		ctx, bufs := PatchCLI(context.Background())
+
+		err := Run(ctx, "login", srv.Listener.Addr().String(), "--user", "foo", "--password", "baz", "--tls-trusted-fingerprint", certs.Fingerprint(srv.Certificate().Raw))
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Logged in as"))
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "foo"))
+	})
+}
+
 func TestLoginCmd_TLSVerify(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -229,9 +296,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
-	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
-		{Name: "admin@example.com", AccessKey: accessKey},
+		{Name: "admin@example.com", Password: "p4ssw0rd"},
 	}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
@@ -273,7 +339,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		g, ctx := errgroup.WithContext(ctx)
 		g.Go(func() error {
 			// TODO: why isn't this working without --non-interactive=false? the other test works
-			return Run(ctx, "login", "--non-interactive=false", "--key", accessKey, srv.Addrs.HTTPS.String())
+			return Run(ctx, "login", "--non-interactive=false", "--user", "admin@example.com", "--password", "p4ssw0rd", srv.Addrs.HTTPS.String())
 		})
 		exp := expector{console: console}
 		exp.ExpectString(t, "verify the certificate can be trusted")
@@ -308,7 +374,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		err := Run(ctx, "logout")
 		assert.NilError(t, err)
 
-		err = Run(ctx, "login", "--key", accessKey, srv.Addrs.HTTPS.String())
+		err = Run(ctx, "login", "--user", "admin@example.com", "--password", "p4ssw0rd", srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
 		cert, err := os.ReadFile("testdata/pki/localhost.crt")
@@ -340,7 +406,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		err = Run(ctx, "login",
 			"--tls-trusted-cert", "testdata/pki/localhost.crt",
-			"--key", accessKey,
+			"--user", "admin@example.com", "--password", "p4ssw0rd",
 			srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
@@ -367,7 +433,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Run("login with trusted fingerprint", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
-		t.Setenv("INFRA_ACCESS_KEY", accessKey)
+		t.Setenv("INFRA_USER", "admin@example.com")
+		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
 		t.Setenv("INFRA_SERVER", srv.Addrs.HTTPS.String())
 
 		err := Run(ctx, "logout", "--clear")
@@ -411,7 +478,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		err = Run(ctx, "login",
 			"--tls-trusted-fingerprint", "BA::D0::FF",
-			"--key", accessKey,
+			"--user", "admin@example.com", "--password", "p4ssw0rd",
 			srv.Addrs.HTTPS.String())
 		assert.ErrorContains(t, err, "authenticity of the server could not be verified")
 
