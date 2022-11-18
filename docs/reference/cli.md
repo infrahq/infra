@@ -29,7 +29,7 @@ $ infra login --user me@example.com
 
 ```console
       --no-agent                         Skip starting the Infra agent in the background
-  -p, --password string                  User password
+  -p, --password string                  Password
       --skip-tls-verify                  Skip verifying server TLS certificates
       --tls-trusted-cert filepath        TLS certificate or CA used by the server
       --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
