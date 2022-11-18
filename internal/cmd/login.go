@@ -144,8 +144,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 	switch {
 	case options.User != "":
 		if options.Password == "" {
-			options.Password, err = promptPassword(cli)
-			if err != nil {
+			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO); err != nil {
 				return err
 			}
 		}
@@ -499,16 +498,6 @@ func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.Lo
 			}
 		}
 	}
-}
-
-func promptPassword(cli *CLI) (string, error) {
-	var password string
-
-	if err := survey.AskOne(&survey.Password{Message: "Password:"}, &password, cli.surveyIO); err != nil {
-		return "", err
-	}
-
-	return password, nil
 }
 
 func promptVerifyTLSCert(cli *CLI, cert *x509.Certificate) error {
