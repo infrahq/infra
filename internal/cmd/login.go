@@ -35,7 +35,6 @@ type loginCmdOptions struct {
 	NonInteractive     bool
 	NoAgent            bool
 	User               string
-	Password           string
 }
 
 const DeviceFlowMinVersion = "0.16.0"
@@ -44,16 +43,22 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
 
 	cmd := &cobra.Command{
-		Use:     "login SERVER",
+		Use:     "login [SERVER]",
 		Short:   "Login to Infra",
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
 		Example: `
 # Login
-$ infra login my.infrahq.com
+infra login example.infrahq.com
 
 # Login with username (will prompt for password)
-$ infra login --user me@example.com
+infra login example.infrahq.com --user foo@gmail.com
+
+# Login with username and password in (non-interactive)
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=foo@gmail.com
+export INFRA_PASSWORD=baz
+infra login
 		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
@@ -68,40 +73,15 @@ $ infra login --user me@example.com
 				options.Server = args[0]
 			}
 
-			if options.Server == "" {
-				return Error{
-					Message: "No server specified. Usage: infra login SERVER",
-				}
-			}
-
 			if user, ok := os.LookupEnv("INFRA_USER"); ok {
 				options.User = user
-			}
-
-			if password, ok := os.LookupEnv("INFRA_PASSWORD"); ok {
-				options.Password = password
-			}
-
-			if options.NonInteractive {
-				if options.User == "" {
-					return Error{
-						Message: "No user specified. Use the --user flag or INFRA_USER environment variable to specify a user email, or run in interactive mode.",
-					}
-				}
-
-				if options.Password == "" {
-					return Error{
-						Message: "No password specified. Use the --password flag or INFRA_PASSWORD environment variable to specify as password, or run in interactive mode",
-					}
-				}
 			}
 
 			return login(cli, options)
 		},
 	}
 
-	cmd.Flags().StringVarP(&options.User, "user", "u", "", "User email")
-	cmd.Flags().StringVarP(&options.Password, "password", "p", "", "Password")
+	cmd.Flags().StringVar(&options.User, "user", "", "User email")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
 	cmd.Flags().StringVar(&options.TrustedFingerprint, "tls-trusted-fingerprint", "", "SHA256 fingerprint of the server TLS certificate")
@@ -115,6 +95,40 @@ func login(cli *CLI, options loginCmdOptions) error {
 	config, err := readConfig()
 	if err != nil {
 		return err
+	}
+
+	var password string
+	if p, ok := os.LookupEnv("INFRA_PASSWORD"); ok {
+		password = p
+	}
+
+	if options.NonInteractive {
+		if options.Server == "" {
+			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
+		}
+
+		if options.User == "" {
+			return Error{
+				Message: "Non-interactive login requires --user or the environment variable INFRA_USER to be set",
+			}
+		}
+
+		if password == "" {
+			return Error{
+				Message: "Non-interactive login requires the environment variable INFRA_PASSWORD to be set",
+			}
+		}
+	}
+
+	if options.Server == "" {
+		if len(config.Hosts) == 1 {
+			options.Server = config.Hosts[0].Host
+		} else {
+			options.Server, err = promptServer(cli, config)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	options.Server = strings.TrimPrefix(options.Server, "https://")
@@ -138,15 +152,15 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 	switch {
 	case options.User != "":
-		if options.Password == "" {
-			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO); err != nil {
+		if password == "" {
+			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &password, cli.surveyIO); err != nil {
 				return err
 			}
 		}
 
 		loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
 			Name:     options.User,
-			Password: options.Password,
+			Password: password,
 		}
 
 	default:
@@ -450,7 +464,7 @@ func deviceFlowLogin(ctx context.Context, client *api.Client, cli *CLI) (*api.Lo
 	url := resp.VerificationURI + "?code=" + resp.UserCode
 
 	// display to user
-	cli.Output("Navigate to " + url + " and enter the following code:\n")
+	cli.Output("Navigate to " + url + " and verify your code:\n")
 	cli.Output("\t\t" + resp.UserCode + "\n")
 
 	// we don't care if this fails. some devices won't be able to open the browser
@@ -557,4 +571,56 @@ manually verify the certificate can be trusted.
 		return nil
 	}
 	return terminal.InterruptErr
+}
+
+// Returns the host address of the Infra server that user would like to log into
+func promptServer(cli *CLI, config *ClientConfig) (string, error) {
+	servers := config.Hosts
+
+	if len(servers) == 0 {
+		return promptNewServer(cli)
+	}
+
+	return promptServerList(cli, servers)
+}
+
+func promptNewServer(cli *CLI) (string, error) {
+	var server string
+	err := survey.AskOne(
+		&survey.Input{Message: "Server:"},
+		&server,
+		cli.surveyIO,
+		survey.WithValidator(survey.Required),
+	)
+	return strings.TrimSpace(server), err
+}
+
+func promptServerList(cli *CLI, servers []ClientHostConfig) (string, error) {
+	var promptOptions []string
+	for _, server := range servers {
+		promptOptions = append(promptOptions, server.Host)
+	}
+
+	defaultOption := "Connect to a new server"
+	promptOptions = append(promptOptions, defaultOption)
+
+	prompt := &survey.Select{
+		Message: "Select a server:",
+		Options: promptOptions,
+	}
+
+	filter := func(filterValue string, optValue string, optIndex int) bool {
+		return strings.Contains(optValue, filterValue) || strings.EqualFold(optValue, defaultOption)
+	}
+
+	var i int
+	if err := survey.AskOne(prompt, &i, survey.WithFilter(filter), cli.surveyIO); err != nil {
+		return "", err
+	}
+
+	if promptOptions[i] == defaultOption {
+		return promptNewServer(cli)
+	}
+
+	return servers[i].Host, nil
 }
