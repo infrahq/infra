@@ -243,6 +243,91 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		}
 	})
 
+	t.Run("show expired", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?showExpired=1", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		keys := api.ListResponse[api.AccessKey]{}
+		err := json.Unmarshal(resp.Body.Bytes(), &keys)
+		assert.NilError(t, err)
+
+		// TODO: replace this with a more strict assertion using DeepEqual
+		assert.Equal(t, len(keys.Items), 4)
+
+		sort.SliceIsSorted(keys.Items, func(i, j int) bool {
+			return keys.Items[i].Name < keys.Items[j].Name
+		})
+	})
+
+	t.Run("latest", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		// nolint:noctx
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.12.3")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		resp1 := &api.ListResponse[api.AccessKey]{}
+		err := json.Unmarshal(resp.Body.Bytes(), resp1)
+		assert.NilError(t, err)
+
+		assert.Assert(t, len(resp1.Items) > 0)
+	})
+
+	t.Run("no version header", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		// nolint:noctx
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusBadRequest)
+
+		errMsg := api.Error{}
+		err := json.Unmarshal(resp.Body.Bytes(), &errMsg)
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
+		assert.Equal(t, errMsg.Code, int32(400))
+	})
+}
+
+func TestAPI_DeleteAccessKey(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	db := srv.DB()
+
+	user := &models.Identity{
+		Model: models.Model{ID: uid.New()},
+		Name:  "foo@example.com",
+	}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+	provider := data.InfraProvider(db)
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   user.PolyID(),
+		Privilege: "admin",
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	ak1 := &models.AccessKey{
+		Name:       "foo",
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  time.Now().UTC().Add(5 * time.Minute),
+	}
+	_, err = data.CreateAccessKey(db, ak1)
+	assert.NilError(t, err)
+
 	t.Run("delete by name", func(t *testing.T) {
 		key := &models.AccessKey{
 			Name:       "deleteme",
@@ -318,60 +403,5 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusNotFound)
-	})
-
-	t.Run("show expired", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?showExpired=1", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", apiVersionLatest)
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		keys := api.ListResponse[api.AccessKey]{}
-		err := json.Unmarshal(resp.Body.Bytes(), &keys)
-		assert.NilError(t, err)
-
-		// TODO: replace this with a more strict assertion using DeepEqual
-		assert.Equal(t, len(keys.Items), 5)
-
-		sort.SliceIsSorted(keys.Items, func(i, j int) bool {
-			return keys.Items[i].Name < keys.Items[j].Name
-		})
-	})
-
-	t.Run("latest", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.12.3")
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		resp1 := &api.ListResponse[api.AccessKey]{}
-		err := json.Unmarshal(resp.Body.Bytes(), resp1)
-		assert.NilError(t, err)
-
-		assert.Assert(t, len(resp1.Items) > 0)
-	})
-
-	t.Run("no version header", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusBadRequest)
-
-		errMsg := api.Error{}
-		err := json.Unmarshal(resp.Body.Bytes(), &errMsg)
-		assert.NilError(t, err)
-
-		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
-		assert.Equal(t, errMsg.Code, int32(400))
 	})
 }
