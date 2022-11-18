@@ -48,6 +48,13 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 		Short:   "Login to Infra",
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
+		Example: `
+# Login
+$ infra login my.infrahq.com
+
+# Login with username (will prompt for password)
+$ infra login --user me@example.com
+		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
 				return err
