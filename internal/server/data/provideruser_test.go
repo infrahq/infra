@@ -31,8 +31,13 @@ func (m *mockOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.A
 	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
 }
 
-func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
-	return "acc", "ref", exp, m.UserEmailResp, nil
+func (m *mockOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
+	return &providers.IdentityProviderAuth{
+		AccessToken:       "acc",
+		RefreshToken:      "ref",
+		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
+		Email:             m.UserEmailResp,
+	}, nil
 }
 
 func (m *mockOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {

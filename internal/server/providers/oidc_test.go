@@ -265,7 +265,7 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 		name          string
 		provider      OIDCClient
 		tokenResponse func(t *testing.T) tokenResponse
-		verifyFunc    func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error)
+		verifyFunc    func(t *testing.T, auth *IdentityProviderAuth, err error)
 	}{
 		{
 			name:     "invalid provider client fails",
@@ -276,12 +276,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: oktaInvalidClientIDResp,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "Invalid value for 'client_id' parameter")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -293,12 +289,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: oktaInvalidAuthCodeResp,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "authorization code is invalid")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -310,12 +302,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: `{"access_token": ""}`,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "server response missing access_token")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -335,12 +323,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "id token issued by a different provider")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -361,12 +345,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "expected audience \"client-id\"")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -392,12 +372,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "token is expired")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -423,12 +399,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "missing an email address")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -454,12 +426,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.ErrorContains(t, err, "claim has invalid email address")
-				assert.Equal(t, accessToken, "")
-				assert.Equal(t, refreshToken, "")
-				assert.Assert(t, accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "")
 			},
 		},
 		{
@@ -485,12 +453,12 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 					body: body,
 				}
 			},
-			verifyFunc: func(t *testing.T, accessToken, refreshToken string, accessTokenExpiry time.Time, email string, err error) {
+			verifyFunc: func(t *testing.T, auth *IdentityProviderAuth, err error) {
 				assert.NilError(t, err)
-				assert.Assert(t, accessToken != "")
-				assert.Assert(t, refreshToken != "")
-				assert.Assert(t, !accessTokenExpiry.IsZero())
-				assert.Equal(t, email, "hello@example.com")
+				assert.Assert(t, auth.AccessToken != "")
+				assert.Assert(t, auth.RefreshToken != "")
+				assert.Assert(t, !auth.AccessTokenExpiry.IsZero())
+				assert.Equal(t, auth.Email, "hello@example.com")
 			},
 		},
 	}
@@ -498,8 +466,8 @@ func TestExchangeAuthCodeForProviderToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			server.tokenResponse = test.tokenResponse(t)
-			accToken, refToken, accTokenExp, email, err := test.provider.ExchangeAuthCodeForProviderTokens(ctx, "some-auth-code")
-			test.verifyFunc(t, accToken, refToken, accTokenExp, email, err)
+			auth, err := test.provider.ExchangeAuthCodeForProviderTokens(ctx, "some-auth-code")
+			test.verifyFunc(t, auth, err)
 		})
 	}
 }

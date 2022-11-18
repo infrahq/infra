@@ -772,8 +772,13 @@ func (m *fakeOIDCImplementation) AuthServerInfo(_ context.Context) (*providers.A
 	return &providers.AuthServerInfo{AuthURL: "example.com/v1/auth", ScopesSupported: []string{"openid", "email"}}, nil
 }
 
-func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (acc, ref string, exp time.Time, email string, err error) {
-	return "acc", "ref", exp, "", nil
+func (m *fakeOIDCImplementation) ExchangeAuthCodeForProviderTokens(_ context.Context, _ string) (*providers.IdentityProviderAuth, error) {
+	return &providers.IdentityProviderAuth{
+		AccessToken:       "acc",
+		RefreshToken:      "ref",
+		AccessTokenExpiry: time.Now().Add(1 * time.Minute),
+		Email:             "hello@example.com",
+	}, nil
 }
 
 func (m *fakeOIDCImplementation) RefreshAccessToken(_ context.Context, providerUser *models.ProviderUser) (accessToken string, expiry *time.Time, err error) {
