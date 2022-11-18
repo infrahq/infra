@@ -334,6 +334,8 @@
       "ListGrantsResponse": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -391,18 +393,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -411,6 +421,8 @@
       "ListResponse_AccessKey": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -471,18 +483,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -491,6 +511,8 @@
       "ListResponse_Destination": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -571,18 +593,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -591,6 +621,8 @@
       "ListResponse_Group": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -628,18 +660,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -648,6 +688,8 @@
       "ListResponse_Organization": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -684,18 +726,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -704,6 +754,8 @@
       "ListResponse_Provider": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -762,18 +814,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -782,6 +842,8 @@
       "ListResponse_User": {
         "properties": {
           "count": {
+            "description": "Total number of items on the current page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
@@ -827,18 +889,26 @@
             "type": "array"
           },
           "limit": {
+            "description": "Number of objects per page",
+            "example": "100",
             "format": "int",
             "type": "integer"
           },
           "page": {
+            "description": "Page number retrieved",
+            "example": "1",
             "format": "int",
             "type": "integer"
           },
           "totalCount": {
+            "description": "Total number of objects",
+            "example": "485",
             "format": "int",
             "type": "integer"
           },
           "totalPages": {
+            "description": "Total number of pages",
+            "example": "5",
             "format": "int",
             "type": "integer"
           }
@@ -1204,18 +1274,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -1560,39 +1638,59 @@
             }
           },
           {
+            "description": "Name of the destination",
+            "example": "production-cluster",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the destination",
+              "example": "production-cluster",
               "type": "string"
             }
           },
           {
+            "description": "Kind of destination. eg. kubernetes or ssh or postgres",
+            "example": "kubernetes",
             "in": "query",
             "name": "kind",
             "schema": {
+              "description": "Kind of destination. eg. kubernetes or ssh or postgres",
+              "example": "kubernetes",
               "type": "string"
             }
           },
           {
+            "description": "Unique ID generated by the connector",
+            "example": "94c2c570a20311180ec325fd56",
             "in": "query",
             "name": "unique_id",
             "schema": {
+              "description": "Unique ID generated by the connector",
+              "example": "94c2c570a20311180ec325fd56",
               "type": "string"
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -2705,18 +2803,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -3332,18 +3438,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -4163,18 +4277,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -4819,18 +4941,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,
@@ -6036,18 +6166,26 @@
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {
+              "description": "Page number to retrieve",
+              "example": "1",
               "format": "int",
               "minimum": 0,
               "type": "integer"
             }
           },
           {
+            "description": "Number of objects to retrieve per page (up to 1000)",
+            "example": "100",
             "in": "query",
             "name": "limit",
             "schema": {
+              "description": "Number of objects to retrieve per page (up to 1000)",
+              "example": "100",
               "format": "int",
               "maximum": 1000,
               "minimum": 0,

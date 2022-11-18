@@ -133,7 +133,7 @@ func (d Duration) DescribeSchema(schema *openapi3.Schema) {
 
 type ListResponse[T any] struct {
 	PaginationResponse `json:",inline"`
-	Count              int `json:"count"`
+	Count              int `json:"count" note:"Total number of items on the current page" example:"100"`
 	Items              []T `json:"items"`
 
 	// LastUpdateIndex is set to the latest update index for any request made
