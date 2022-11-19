@@ -444,8 +444,6 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Run("login with trusted fingerprint", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
-		t.Setenv("INFRA_USER", "admin@example.com")
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
 		t.Setenv("INFRA_SERVER", srv.Addrs.HTTPS.String())
 
 		err := Run(ctx, "logout", "--clear")
@@ -457,8 +455,10 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		block, _ := pem.Decode(cert)
 		fingerprint := certs.Fingerprint(block.Bytes)
 
-		err = Run(ctx, "login",
-			"--tls-trusted-fingerprint", fingerprint)
+		t.Setenv("INFRA_USER", "admin@example.com")
+		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
+
+		err = Run(ctx, "login", "--tls-trusted-fingerprint", fingerprint)
 		assert.NilError(t, err)
 
 		// Check the client config
