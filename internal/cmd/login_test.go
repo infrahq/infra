@@ -259,7 +259,7 @@ func TestLoginCmd_UserPass(t *testing.T) {
 				var loginRequest api.LoginRequest
 				err := json.NewDecoder(req.Body).Decode(&loginRequest)
 				assert.Check(t, err)
-				assert.Equal(t, loginRequest.PasswordCredentials.Name, "foo@example.com")
+				assert.Equal(t, loginRequest.PasswordCredentials.Name, "admin@example.com")
 				assert.Equal(t, loginRequest.PasswordCredentials.Password, "p4ssw0rd")
 
 				res := &api.LoginResponse{
@@ -275,7 +275,7 @@ func TestLoginCmd_UserPass(t *testing.T) {
 			}
 		}
 
-		t.Setenv("INFRA_USER", "foo@example.com")
+		t.Setenv("INFRA_USER", "admin@example.com")
 		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
 
 		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
@@ -302,7 +302,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
 	opts.Users = []server.User{
-		{Name: "foo@example.com", Password: "p4ssw0rd"},
+		{Name: "admin@example.com", Password: "p4ssw0rd"},
 	}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
@@ -346,7 +346,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		g, ctx := errgroup.WithContext(ctx)
 		g.Go(func() error {
 			// TODO: why isn't this working without --non-interactive=false? the other test works
-			return Run(ctx, "login", "--non-interactive=false", "--user", "foo@example.com", srv.Addrs.HTTPS.String())
+			return Run(ctx, "login", "--non-interactive=false", "--user", "admin@example.com", srv.Addrs.HTTPS.String())
 		})
 		exp := expector{console: console}
 		exp.ExpectString(t, "verify the certificate can be trusted")
@@ -362,7 +362,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		assert.NilError(t, err)
 		expected := []ClientHostConfig{
 			{
-				Name:               "foo@example.com",
+				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
 				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
@@ -383,7 +383,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
 
-		err = Run(ctx, "login", "--user", "foo@example.com", srv.Addrs.HTTPS.String())
+		err = Run(ctx, "login", "--user", "admin@example.com", srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
 		cert, err := os.ReadFile("testdata/pki/localhost.crt")
@@ -394,7 +394,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		assert.NilError(t, err)
 		expected := []ClientHostConfig{
 			{
-				Name:               "foo@example.com",
+				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
 				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
@@ -417,7 +417,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		err = Run(ctx, "login",
 			"--tls-trusted-cert", "testdata/pki/localhost.crt",
-			"--user", "foo@example.com",
+			"--user", "admin@example.com",
 			srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
@@ -429,7 +429,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		assert.NilError(t, err)
 		expected := []ClientHostConfig{
 			{
-				Name:               "foo@example.com",
+				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
 				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
@@ -444,7 +444,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Run("login with trusted fingerprint", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
-		t.Setenv("INFRA_USER", "foo@example.com")
+		t.Setenv("INFRA_USER", "admin@example.com")
 		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
 		t.Setenv("INFRA_SERVER", srv.Addrs.HTTPS.String())
 
@@ -466,7 +466,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		assert.NilError(t, err)
 		expected := []ClientHostConfig{
 			{
-				Name:               "foo@example.com",
+				Name:               "admin@example.com",
 				AccessKey:          "any-access-key",
 				UserID:             anyUID,
 				Host:               srv.Addrs.HTTPS.String(),
@@ -491,7 +491,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		err = Run(ctx, "login",
 			"--tls-trusted-fingerprint", "BA::D0::FF",
-			"--user", "foo@example.com",
+			"--user", "admin@example.com",
 			srv.Addrs.HTTPS.String())
 		assert.ErrorContains(t, err, "authenticity of the server could not be verified")
 
