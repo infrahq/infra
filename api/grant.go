@@ -10,21 +10,21 @@ import (
 )
 
 type Grant struct {
-	ID uid.ID `json:"id"`
+	ID uid.ID `json:"id" note:"ID of grant created" example:"3w9XyTrkzk"`
 
 	Created   Time   `json:"created"`
 	CreatedBy uid.ID `json:"created_by" note:"id of the user that created the grant"`
 	Updated   Time   `json:"updated"`
 
-	User      uid.ID `json:"user,omitempty"`
-	Group     uid.ID `json:"group,omitempty"`
-	Privilege string `json:"privilege" note:"a role or permission"`
-	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation"`
+	User      uid.ID `json:"user,omitempty" note:"UserID for a user being granted access" example:"6hNnjfjVcc"`
+	Group     uid.ID `json:"group,omitempty" note:"GroupID for a group being granted access" example:"3zMaadcd2U"`
+	Privilege string `json:"privilege" note:"a role or permission" example:"cluster-admin"`
+	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation" example:"production.namespace"`
 }
 
 type CreateGrantResponse struct {
 	*Grant     `json:",inline"`
-	WasCreated bool `json:"wasCreated"`
+	WasCreated bool `json:"wasCreated" note:"Indicates that grant was successfully created" example:"true"`
 }
 
 func (r *CreateGrantResponse) StatusCode() int {
@@ -35,13 +35,13 @@ func (r *CreateGrantResponse) StatusCode() int {
 }
 
 type ListGrantsRequest struct {
-	User          uid.ID `form:"user"`
-	Group         uid.ID `form:"group"`
-	Resource      string `form:"resource" example:"production.namespace"`
-	Destination   string `form:"destination" example:"production"`
-	Privilege     string `form:"privilege" example:"view"`
-	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups"`
-	ShowSystem    bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants"`
+	User          uid.ID `form:"user" note:"ID of user granted access" example:"6TjWTAgYYu"`
+	Group         uid.ID `form:"group" note:"ID of group granted access" example:"6k3Eqcqu6B"`
+	Resource      string `form:"resource" example:"production.namespace" note:"a resource name in Infra's Universal Resource Notation"`
+	Destination   string `form:"destination" example:"production" note:"name of the destination where a connector is installed"`
+	Privilege     string `form:"privilege" example:"view" note:"a role or permission"`
+	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups" example:"true"`
+	ShowSystem    bool   `form:"showSystem" note:"if true, this shows the connector and other internal grants" example:"false"`
 	BlockingRequest
 	PaginationRequest
 }
@@ -144,10 +144,10 @@ func (r ListGrantsRequest) SetPage(page int) Paginatable {
 
 // GrantRequest defines a grant request which can be used for creating or deleting grants
 type GrantRequest struct {
-	User      uid.ID `json:"user"`
-	Group     uid.ID `json:"group"`
-	UserName  string `json:"userName"`
-	GroupName string `json:"groupName"`
+	User      uid.ID `json:"user" note:"ID of the user granted access" example:"6kdoMDd6PA"`
+	Group     uid.ID `json:"group" note:"ID of the group granted access" example:"6Ti2p7r1h7"`
+	UserName  string `json:"userName" note:"Name of the user granted access" example:"admin@example.com"`
+	GroupName string `json:"groupName" note:"Name of the group granted access" example:"dev"`
 	Privilege string `json:"privilege" example:"view" note:"a role or permission"`
 	Resource  string `json:"resource" example:"production" note:"a resource name in Infra's Universal Resource Notation"`
 }
