@@ -37,7 +37,7 @@ func (r *CreateGrantResponse) StatusCode() int {
 type ListGrantsRequest struct {
 	User          uid.ID `form:"user" note:"ID of user granted access" example:"6TjWTAgYYu"`
 	Group         uid.ID `form:"group" note:"ID of group granted access" example:"6k3Eqcqu6B"`
-	Resource      string `form:"resource" example:"production.namespace" note:"a resource name in Infra's Universal Resource Notation"`
+	Resource      string `form:"resource" example:"production.namespace" note:"a resource name"`
 	Destination   string `form:"destination" example:"production" note:"name of the destination where a connector is installed"`
 	Privilege     string `form:"privilege" example:"view" note:"a role or permission"`
 	ShowInherited bool   `form:"showInherited" note:"if true, this field includes grants that the user inherits through groups" example:"true"`
