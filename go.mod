@@ -15,7 +15,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/lensesio/tableprinter v0.0.0-20201125135848-89e81fc956e7
 	github.com/muesli/termenv v0.13.0
-	github.com/prometheus/client_golang v1.13.1
+	github.com/prometheus/client_golang v1.14.0
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.3.0
@@ -163,7 +163,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/oklog/run v1.1.0 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
