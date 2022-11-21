@@ -3,8 +3,9 @@ package cmd
 import (
 	"bufio"
 	"context"
-	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -35,14 +36,14 @@ func newSSHCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func newSSHHostsCmd(*CLI) *cobra.Command {
+func newSSHHostsCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "hosts",
+		Use:   "hosts HOSTNAME PORT",
 		Short: "Check if the host is known to infra",
 		Args:  ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			host, port := args[0], args[1]
-			if err := runSSHHosts(host, port); err != nil {
+			if err := runSSHHosts(cli, host, port); err != nil {
 				// Prevent an error from being printed to stderr, because it
 				// is printed every time a user runs ssh for a non-infra host.
 				logging.L.Debug().Err(err).Msg("exit from infra ssh hosts")
@@ -68,7 +69,7 @@ func (e exitError) Error() string {
 	return fmt.Sprintf("exit code %v", e.code)
 }
 
-func runSSHHosts(hostname, port string) error {
+func runSSHHosts(cli *CLI, hostname, port string) error {
 	ctx := context.Background()
 
 	client, err := defaultAPIClient()
@@ -88,7 +89,7 @@ func runSSHHosts(hostname, port string) error {
 		return fmt.Errorf("no destination matching that hostname")
 	}
 
-	if err := setupDestinationSSHConfig(ctx, destination); err != nil {
+	if err := setupDestinationSSHConfig(ctx, cli, destination); err != nil {
 		return err
 	}
 	return nil
@@ -146,7 +147,7 @@ func writeInfraKnownHosts(infraSSHDir string, dest *api.Destination) error {
 	return nil
 }
 
-func setupDestinationSSHConfig(ctx context.Context, destination *api.Destination) error {
+func setupDestinationSSHConfig(ctx context.Context, cli *CLI, destination *api.Destination) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("user home directory: %w", err)
@@ -163,7 +164,7 @@ func setupDestinationSSHConfig(ctx context.Context, destination *api.Destination
 		return err
 	}
 
-	if err := provisionSSHKey(ctx, client, infraSSHDir); err != nil {
+	if err := provisionSSHKey(ctx, cli, client, infraSSHDir); err != nil {
 		return fmt.Errorf("create ssh keypair: %w", err)
 	}
 
@@ -182,7 +183,7 @@ func setupDestinationSSHConfig(ctx context.Context, destination *api.Destination
 	return nil
 }
 
-func provisionSSHKey(ctx context.Context, client *api.Client, infraSSHDir string) error {
+func provisionSSHKey(ctx context.Context, cli *CLI, client *api.Client, infraSSHDir string) error {
 	keyFilename := filepath.Join(infraSSHDir, "key")
 
 	// TODO: check expiration
@@ -191,9 +192,9 @@ func provisionSSHKey(ctx context.Context, client *api.Client, infraSSHDir string
 		return nil
 	}
 
-	// TODO: print message about creating a new key pair
+	fmt.Fprintf(cli.Stderr, "Creating a new RSA 4096 bit key pair in %v\n", keyFilename)
 
-	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	priv, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return fmt.Errorf("generate key pair: %w", err)
 	}
@@ -202,7 +203,10 @@ func provisionSSHKey(ctx context.Context, client *api.Client, infraSSHDir string
 	if err != nil {
 		return err
 	}
-	block := &pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: priv}
+	block := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(priv),
+	}
 	if err := pem.Encode(fh, block); err != nil {
 		return err
 	}
@@ -210,7 +214,7 @@ func provisionSSHKey(ctx context.Context, client *api.Client, infraSSHDir string
 		return err
 	}
 
-	sshPubKey, err := ssh.NewPublicKey(pub)
+	sshPubKey, err := ssh.NewPublicKey(&priv.PublicKey)
 	if err != nil {
 		return err
 	}
@@ -320,7 +324,7 @@ Match {{ .Hostname }}
     IdentitiesOnly yes
     UserKnownHostsFile ~/.ssh/infra/known_hosts
     User {{ .Username }}
-    Post {{ .Port }}
+    Port {{ .Port }}
 
 `
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/server"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -79,6 +80,29 @@ func newTestClientConfig(srv *httptest.Server, user api.User) ClientConfig {
 				Host:               srv.Listener.Addr().String(),
 				TrustedCertificate: string(certs.PEMEncodeCertificate(srv.Certificate().Raw)),
 				AccessKey:          "the-access-key",
+				Expires:            api.Time(time.Now().Add(time.Hour)),
+				Current:            true,
+			},
+		},
+	}
+}
+
+func newTestClientConfigForServer(srv *server.Server, user api.User, acKey string) ClientConfig {
+	if user.Name == "" {
+		user.Name = "testuser@example.com"
+	}
+	if user.ID == 0 {
+		user.ID = uid.New()
+	}
+	return ClientConfig{
+		ClientConfigVersion: clientConfigVersion,
+		Hosts: []ClientHostConfig{
+			{
+				UserID:             user.ID,
+				Name:               user.Name,
+				Host:               srv.Addrs.HTTPS.String(),
+				TrustedCertificate: string(srv.Options().TLS.Certificate),
+				AccessKey:          acKey,
 				Expires:            api.Time(time.Now().Add(time.Hour)),
 				Current:            true,
 			},
