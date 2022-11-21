@@ -57,9 +57,7 @@ func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, 
 	return body, err
 }
 
-func DeleteAccessKey(c *gin.Context, id uid.ID, name string) error {
-	rCtx := GetRequestContext(c)
-
+func DeleteAccessKey(rCtx RequestContext, id uid.ID, name string) error {
 	var key *models.AccessKey
 	var err error
 
@@ -89,10 +87,13 @@ func DeleteAccessKey(c *gin.Context, id uid.ID, name string) error {
 	if key.IssuedFor == rCtx.Authenticated.User.ID {
 		// users can delete their own keys
 	} else {
-		_, err := RequireInfraRole(c, models.InfraAdminRole)
-		if err != nil {
+		if err := IsAuthorized(rCtx, models.InfraAdminRole); err != nil {
 			return HandleAuthErr(err, "access key", "delete", models.InfraAdminRole)
 		}
+	}
+
+	if rCtx.Authenticated.AccessKey.ID == key.ID {
+		return fmt.Errorf("%w: cannot delete the access key used by this request", internal.ErrBadRequest)
 	}
 
 	return data.DeleteAccessKeys(rCtx.DBTxn, data.DeleteAccessKeysOptions{ByID: key.ID})

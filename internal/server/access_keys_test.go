@@ -243,53 +243,6 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		}
 	})
 
-	t.Run("delete by name", func(t *testing.T) {
-		key := &models.AccessKey{
-			Name:       "deleteme",
-			IssuedFor:  user.ID,
-			ProviderID: provider.ID,
-			ExpiresAt:  time.Now().Add(5 * time.Minute),
-		}
-		_, err := data.CreateAccessKey(srv.db, key)
-		assert.NilError(t, err)
-
-		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deleteme", nil)
-		req.Header.Set("Authorization", "Bearer "+ak1.Token())
-		req.Header.Set("Infra-Version", apiVersionLatest)
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusNoContent)
-	})
-
-	t.Run("delete by name as non-admin", func(t *testing.T) {
-		user := &models.Identity{Model: models.Model{ID: uid.New()}, Name: "deletemyownkey@example.com", OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
-		err := data.CreateIdentity(db, user)
-		assert.NilError(t, err)
-
-		key := &models.AccessKey{Name: "deletemetoo", IssuedFor: user.ID, ProviderID: provider.ID, ExpiresAt: time.Now().Add(5 * time.Minute), OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID}}
-		_, err = data.CreateAccessKey(srv.db, key)
-		assert.NilError(t, err)
-
-		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletemetoo", nil)
-		req.Header.Set("Authorization", "Bearer "+key.Token())
-		req.Header.Set("Infra-Version", apiVersionLatest)
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusNoContent)
-	})
-
-	t.Run("delete by name missing", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletesomething", nil)
-		req.Header.Set("Authorization", "Bearer "+ak1.Token())
-		req.Header.Set("Infra-Version", apiVersionLatest)
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusNotFound)
-	})
-
 	t.Run("show expired", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?showExpired=1", nil)
@@ -343,5 +296,112 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
 		assert.Equal(t, errMsg.Code, int32(400))
+	})
+}
+
+func TestAPI_DeleteAccessKey(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	db := srv.DB()
+
+	user := &models.Identity{
+		Model: models.Model{ID: uid.New()},
+		Name:  "foo@example.com",
+	}
+	err := data.CreateIdentity(db, user)
+	assert.NilError(t, err)
+	provider := data.InfraProvider(db)
+	err = data.CreateGrant(db, &models.Grant{
+		Subject:   user.PolyID(),
+		Privilege: "admin",
+		Resource:  "infra",
+	})
+	assert.NilError(t, err)
+
+	ak1 := &models.AccessKey{
+		Name:       "foo",
+		IssuedFor:  user.ID,
+		ProviderID: provider.ID,
+		ExpiresAt:  time.Now().UTC().Add(5 * time.Minute),
+	}
+	_, err = data.CreateAccessKey(db, ak1)
+	assert.NilError(t, err)
+
+	t.Run("delete by name", func(t *testing.T) {
+		key := &models.AccessKey{
+			Name:       "deleteme",
+			IssuedFor:  user.ID,
+			ProviderID: provider.ID,
+			ExpiresAt:  time.Now().Add(5 * time.Minute),
+		}
+		_, err := data.CreateAccessKey(srv.db, key)
+		assert.NilError(t, err)
+
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deleteme", nil)
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusNoContent)
+	})
+
+	t.Run("do not allow delete of the key used in the request", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys/"+ak1.ID.String(), nil)
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusBadRequest)
+	})
+
+	t.Run("delete by name as non-admin", func(t *testing.T) {
+		user := &models.Identity{
+			Model:              models.Model{ID: uid.New()},
+			Name:               "deletemyownkey@example.com",
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
+		err := data.CreateIdentity(db, user)
+		assert.NilError(t, err)
+
+		key1 := &models.AccessKey{
+			Name:               "deletemetoo",
+			IssuedFor:          user.ID,
+			ProviderID:         provider.ID,
+			ExpiresAt:          time.Now().Add(5 * time.Minute),
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
+		_, err = data.CreateAccessKey(srv.db, key1)
+		assert.NilError(t, err)
+
+		key2 := &models.AccessKey{
+			Name:               "deletemetoo2",
+			IssuedFor:          user.ID,
+			ProviderID:         provider.ID,
+			ExpiresAt:          time.Now().Add(5 * time.Minute),
+			OrganizationMember: models.OrganizationMember{OrganizationID: provider.OrganizationID},
+		}
+		_, err = data.CreateAccessKey(srv.db, key2)
+		assert.NilError(t, err)
+
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletemetoo2", nil)
+		req.Header.Set("Authorization", "Bearer "+key1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusNoContent)
+	})
+
+	t.Run("delete by name missing", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodDelete, "/api/access-keys?name=deletesomething", nil)
+		req.Header.Set("Authorization", "Bearer "+ak1.Token())
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusNotFound)
 	})
 }

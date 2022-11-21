@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/server/data"
@@ -21,7 +22,13 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 	err = data.CreateIdentity(db, user)
 	assert.NilError(t, err)
 
-	c, _ := loginAs(&data.Transaction{DB: db.DB}, user, org)
+	c, _ := gin.CreateTestContext(nil)
+	tx := txnForTestCase(t, db).WithOrgID(org.ID)
+	rCtx := RequestContext{
+		DBTxn:         tx,
+		Authenticated: Authenticated{User: user, Organization: org},
+	}
+	c.Set(RequestContextKey, rCtx)
 
 	t.Run("can manage my own keys", func(t *testing.T) {
 		key := &models.AccessKey{
@@ -33,7 +40,9 @@ func TestAccessKeys_SelfManagement(t *testing.T) {
 		_, err = CreateAccessKey(c, key)
 		assert.NilError(t, err)
 
-		err = DeleteAccessKey(c, key.ID, "")
+		r := rCtx // shallow copy
+		r.Authenticated.AccessKey = &models.AccessKey{}
+		err = DeleteAccessKey(r, key.ID, "")
 		assert.NilError(t, err)
 	})
 
