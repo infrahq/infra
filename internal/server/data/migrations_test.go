@@ -216,7 +216,7 @@ INSERT INTO providers (id, created_at, updated_at, deleted_at, name, url, client
 			setup: func(t *testing.T, db WriteTxn) {
 				stmt := `
 INSERT INTO destinations (id, created_at, updated_at, name, unique_id)
-VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574', 'the-destination', 'unique-id');`
+VALUES (12345, '2022-07-05 00:41:49.143574', '2022-07-05 01:41:49.143574Z', 'the-destination', 'unique-id');`
 				_, err := db.Exec(stmt)
 				assert.NilError(t, err)
 			},
