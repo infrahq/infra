@@ -18,7 +18,7 @@ type Grant struct {
 
 	User      uid.ID `json:"user,omitempty" note:"UserID for a user being granted access" example:"6hNnjfjVcc"`
 	Group     uid.ID `json:"group,omitempty" note:"GroupID for a group being granted access" example:"3zMaadcd2U"`
-	Privilege string `json:"privilege" note:"a role or permission" example:"cluster-admin"`
+	Privilege string `json:"privilege" note:"a role or permission" example:"admin"`
 	Resource  string `json:"resource" note:"a resource name in Infra's Universal Resource Notation" example:"production.namespace"`
 }
 
