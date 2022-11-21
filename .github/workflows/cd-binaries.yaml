@@ -48,9 +48,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: binaries
-          path: |
-            dist/
-            openapi-*.json
+          path: dist/
 
   publish:
     runs-on: ubuntu-latest
@@ -64,7 +62,7 @@ jobs:
       - run: |
           # fail fast if the release does not exist
           gh release view v${{ needs.prepare.outputs.release-name }} || exit 1
-          gh release upload v${{ needs.prepare.outputs.release-name }} *-checksums.txt *.zip *.deb *.rpm openapi-*.json
+          gh release upload v${{ needs.prepare.outputs.release-name }} *.txt *.zip *.deb *.rpm
         env:
           GH_TOKEN: ${{ github.token }}
 
