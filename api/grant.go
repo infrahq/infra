@@ -24,7 +24,7 @@ type Grant struct {
 
 type CreateGrantResponse struct {
 	*Grant     `json:",inline"`
-	WasCreated bool `json:"wasCreated" note:"Indicates that grant was successfully created" example:"true"`
+	WasCreated bool `json:"wasCreated" note:"Indicates that grant was successfully created, false if there was a conflict" example:"true"`
 }
 
 func (r *CreateGrantResponse) StatusCode() int {
