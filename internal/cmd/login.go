@@ -180,12 +180,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 	if err := loginToInfra(cli, lc, loginReq, options.NoAgent); err != nil {
 		return err
 	}
-	// TODO: return this from login response?
-	sshUsername, err := getSSHUsername(ctx)
-	if err != nil {
-		return err
-	}
-	return updateUserSSHConfig(cli, sshUsername)
+	return updateUserSSHConfig(cli)
 }
 
 func checkDeviceFlowCompatibility(ctx context.Context, api *api.Client) error {

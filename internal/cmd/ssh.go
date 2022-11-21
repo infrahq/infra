@@ -39,9 +39,10 @@ func newSSHHostsCmd(*CLI) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hosts",
 		Short: "Check if the host is known to infra",
-		Args:  ExactArgs(1),
+		Args:  ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := runSSHHosts(args[0]); err != nil {
+			host, port := args[0], args[1]
+			if err := runSSHHosts(host, port); err != nil {
 				// Prevent an error from being printed to stderr, because it
 				// is printed every time a user runs ssh for a non-infra host.
 				logging.L.Debug().Err(err).Msg("exit from infra ssh hosts")
@@ -67,7 +68,7 @@ func (e exitError) Error() string {
 	return fmt.Sprintf("exit code %v", e.code)
 }
 
-func runSSHHosts(hostname string) error {
+func runSSHHosts(hostname, port string) error {
 	ctx := context.Background()
 
 	client, err := defaultAPIClient()
@@ -82,55 +83,58 @@ func runSSHHosts(hostname string) error {
 	}
 
 	// Exit if the hostname is not known to infra
-	destination := destinationForName(dests.Items, hostname)
+	destination := destinationForName(dests.Items, hostname, port)
 	if destination == nil {
 		return fmt.Errorf("no destination matching that hostname")
 	}
 
-	if err := setupSSHConfig(ctx, dests.Items); err != nil {
+	if err := setupDestinationSSHConfig(ctx, destination); err != nil {
 		return err
 	}
 	return nil
 }
 
-func destinationForName(dests []api.Destination, hostname string) *api.Destination {
+func destinationForName(dests []api.Destination, hostname, port string) *api.Destination {
 	for _, dest := range dests {
-		if dest.Connection.URL == hostname {
+		destHost, destPort := splitHostPortSSH(dest.Connection.URL)
+		if hostname == destHost && port == destPort {
 			return &dest
 		}
 
-		// Try the url without port
-		host, _, err := net.SplitHostPort(dest.Connection.URL)
-		if err == nil && hostname == host {
-			return &dest
-		}
+		// TODO: match destination name as well?
 	}
 	return nil
 }
 
-// TODO: write this file path to the infra config as well?
-// TODO: only write one dest at a time, and leave the rest of the file.
-func writeInfraKnownHosts(infraSSHDir string, dests []api.Destination) error {
+func splitHostPortSSH(hostname string) (host, port string) {
+	var err error
+	host, port, err = net.SplitHostPort(hostname)
+	if err != nil {
+		return hostname, "22"
+	}
+	return host, port
+}
+
+func writeInfraKnownHosts(infraSSHDir string, dest *api.Destination) error {
 	filename := filepath.Join(infraSSHDir, "known_hosts")
 	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
-	for _, dest := range dests {
-		hostname := dest.Connection.URL
-		if host, _, err := net.SplitHostPort(hostname); err == nil {
-			hostname = host
+
+	hostname := dest.Connection.URL
+	if host, _, err := net.SplitHostPort(hostname); err == nil {
+		hostname = host
+	}
+
+	for _, key := range strings.Split(string(dest.Connection.CA), "\n") {
+		if key == "" {
+			continue
 		}
 
-		for _, key := range strings.Split(string(dest.Connection.CA), "\n") {
-			if key == "" {
-				continue
-			}
-
-			line := fmt.Sprintf("%v %v\n", hostname, key)
-			if _, err := fh.WriteString(line); err != nil {
-				return err
-			}
+		line := fmt.Sprintf("%v %v\n", hostname, key)
+		if _, err := fh.WriteString(line); err != nil {
+			return err
 		}
 	}
 	if err := fh.Sync(); err != nil {
@@ -142,7 +146,7 @@ func writeInfraKnownHosts(infraSSHDir string, dests []api.Destination) error {
 	return nil
 }
 
-func setupSSHConfig(ctx context.Context, destinations []api.Destination) error {
+func setupDestinationSSHConfig(ctx context.Context, destination *api.Destination) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("user home directory: %w", err)
@@ -160,11 +164,20 @@ func setupSSHConfig(ctx context.Context, destinations []api.Destination) error {
 	}
 
 	if err := provisionSSHKey(ctx, client, infraSSHDir); err != nil {
+		return fmt.Errorf("create ssh keypair: %w", err)
+	}
+
+	if err := writeInfraKnownHosts(infraSSHDir, destination); err != nil {
+		return fmt.Errorf("write known hosts: %w", err)
+	}
+
+	user, err := client.GetUserSelf(ctx)
+	if err != nil {
 		return err
 	}
 
-	if err := writeInfraKnownHosts(infraSSHDir, destinations); err != nil {
-		return fmt.Errorf("write known hosts: %w", err)
+	if err := writeDestinationSSHConfig(infraSSHDir, destination, user); err != nil {
+		return fmt.Errorf("write infra ssh config: %w", err)
 	}
 	return nil
 }
@@ -177,6 +190,8 @@ func provisionSSHKey(ctx context.Context, client *api.Client, infraSSHDir string
 	if fileExists(keyFilename) {
 		return nil
 	}
+
+	// TODO: print message about creating a new key pair
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -218,27 +233,7 @@ func fileExists(filename string) bool {
 	return err == nil
 }
 
-func getSSHUsername(ctx context.Context) (string, error) {
-	cfg, err := readConfig()
-	if err != nil {
-		return "", err
-	}
-	hostCfg, err := cfg.CurrentHostConfig()
-	if err != nil {
-		return "", err
-	}
-	client, err := cfg.APIClient()
-	if err != nil {
-		return "", err
-	}
-	user, err := client.GetUser(ctx, hostCfg.UserID)
-	if err != nil {
-		return "", err
-	}
-	return user.SSHUsername, nil
-}
-
-func updateUserSSHConfig(cli *CLI, sshUsername string) error {
+func updateUserSSHConfig(cli *CLI) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("user home directory: %w", err)
@@ -285,8 +280,7 @@ func updateUserSSHConfig(cli *CLI, sshUsername string) error {
 		return err
 	}
 
-	data := map[string]string{"Username": sshUsername}
-	if err := infraSSHConfigTemplate.Execute(tmp, data); err != nil {
+	if _, err := tmp.Write([]byte(infraUserSSHConfig)); err != nil {
 		return err
 	}
 	if err := tmp.Sync(); err != nil {
@@ -307,15 +301,26 @@ connecting to Infra SSH destinations.
 	return nil
 }
 
-var infraSSHConfigTemplate = template.Must(template.New("ssh-config").Parse(infraSSHConfig))
+const infraUserSSHConfig = `
 
-const infraSSHConfig = `
+Match exec "infra ssh hosts %h %p"
+    Include ~/.ssh/infra/config
 
-Match exec "infra ssh hosts %h"
+`
+
+var infraDestinationSSHConfigTemplate = template.Must(template.New("ssh-config").
+	Parse(infraDestinationSSHConfig))
+
+const infraDestinationSSHConfig = `
+
+# This file is managed by Infra. Do not edit!
+
+Match {{ .Hostname }}
     IdentityFile ~/.ssh/infra/key
     IdentitiesOnly yes
-    User {{ .Username }}
     UserKnownHostsFile ~/.ssh/infra/known_hosts
+    User {{ .Username }}
+    Post {{ .Port }}
 
 `
 
@@ -351,4 +356,29 @@ func hasInfraMatchLine(sshConfig io.Reader) bool {
 		logging.Warnf("Failed to read ssh config: %v", err)
 	}
 	return false
+}
+
+func writeDestinationSSHConfig(infraSSHDir string, destination *api.Destination, user *api.User) error {
+	filename := filepath.Join(infraSSHDir, "config")
+	fh, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	host, port := splitHostPortSSH(destination.Connection.URL)
+	data := map[string]any{
+		"Username": user.SSHUsername,
+		"Hostname": host,
+		"Port":     port,
+	}
+	if err := infraDestinationSSHConfigTemplate.Execute(fh, data); err != nil {
+		return err
+	}
+	if err := fh.Sync(); err != nil {
+		return err
+	}
+	if err := fh.Close(); err != nil {
+		return err
+	}
+	return nil
 }

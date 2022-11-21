@@ -33,7 +33,7 @@ func TestUpdateUserSSHConfig(t *testing.T) {
 
 		ctx := context.Background()
 		ctx, bufs := PatchCLI(ctx)
-		err := updateUserSSHConfig(newCLI(ctx), "theusername")
+		err := updateUserSSHConfig(newCLI(ctx))
 		assert.NilError(t, err)
 
 		expectedOutput := "has been created or updated to use 'infra ssh hosts'"
@@ -62,7 +62,7 @@ Match something
 
 
 Match exec "infra ssh hosts %h"
-    ProxyCommand "infra ssh connect %h"
+    Include somethingelse
 
 
 Host more below
@@ -75,11 +75,8 @@ Host bastion
 
 	var expectedInfraSSHConfig = `
 
-Match exec "infra ssh hosts %h"
-    IdentityFile ~/.ssh/infra/key
-    IdentitiesOnly yes
-    User theusername
-    UserKnownHostsFile ~/.ssh/infra/known_hosts
+Match exec "infra ssh hosts %h %p"
+    Include ~/.ssh/infra/config
 
 `
 
