@@ -79,7 +79,7 @@
           },
           "privilege": {
             "description": "a role or permission",
-            "example": "cluster-admin",
+            "example": "admin",
             "type": "string"
           },
           "resource": {
@@ -101,7 +101,7 @@
             "type": "string"
           },
           "wasCreated": {
-            "description": "Indicates that grant was successfully created",
+            "description": "Indicates that grant was successfully created, false it already existed beforehand",
             "example": "true",
             "type": "boolean"
           }
@@ -340,7 +340,7 @@
           },
           "privilege": {
             "description": "a role or permission",
-            "example": "cluster-admin",
+            "example": "admin",
             "type": "string"
           },
           "resource": {
@@ -430,7 +430,7 @@
                 },
                 "privilege": {
                   "description": "a role or permission",
-                  "example": "cluster-admin",
+                  "example": "admin",
                   "type": "string"
                 },
                 "resource": {
@@ -1246,11 +1246,9 @@
             }
           },
           {
-            "description": "UserID of the user whose access keys you want to list",
             "in": "query",
             "name": "userID",
             "schema": {
-              "description": "UserID of the user whose access keys you want to list",
               "example": "4yJ3n3D8E2",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -1258,20 +1256,16 @@
             }
           },
           {
-            "description": "Name of the user",
             "in": "query",
             "name": "name",
             "schema": {
-              "description": "Name of the user",
               "type": "string"
             }
           },
           {
-            "description": "By default we will not show expired access keys",
             "in": "query",
             "name": "showExpired",
             "schema": {
-              "description": "By default we will not show expired access keys",
               "type": "boolean"
             }
           },
@@ -2725,12 +2719,12 @@
             }
           },
           {
-            "description": "a resource name in Infra's Universal Resource Notation",
+            "description": "a resource name",
             "example": "production.namespace",
             "in": "query",
             "name": "resource",
             "schema": {
-              "description": "a resource name in Infra's Universal Resource Notation",
+              "description": "a resource name",
               "example": "production.namespace",
               "type": "string"
             }
