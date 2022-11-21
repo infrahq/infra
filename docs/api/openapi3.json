@@ -64,23 +64,27 @@
             "type": "string"
           },
           "group": {
-            "example": "4yJ3n3D8E2",
+            "description": "GroupID for a group being granted access",
+            "example": "3zMaadcd2U",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "id": {
-            "example": "4yJ3n3D8E2",
+            "description": "ID of grant created",
+            "example": "3w9XyTrkzk",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "privilege": {
             "description": "a role or permission",
+            "example": "admin",
             "type": "string"
           },
           "resource": {
             "description": "a resource name in Infra's Universal Resource Notation",
+            "example": "production.namespace",
             "type": "string"
           },
           "updated": {
@@ -90,12 +94,15 @@
             "type": "string"
           },
           "user": {
-            "example": "4yJ3n3D8E2",
+            "description": "UserID for a user being granted access",
+            "example": "6hNnjfjVcc",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "wasCreated": {
+            "description": "Indicates that grant was successfully created, false it already existed beforehand",
+            "example": "true",
             "type": "boolean"
           }
         }
@@ -336,23 +343,27 @@
             "type": "string"
           },
           "group": {
-            "example": "4yJ3n3D8E2",
+            "description": "GroupID for a group being granted access",
+            "example": "3zMaadcd2U",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "id": {
-            "example": "4yJ3n3D8E2",
+            "description": "ID of grant created",
+            "example": "3w9XyTrkzk",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "privilege": {
             "description": "a role or permission",
+            "example": "admin",
             "type": "string"
           },
           "resource": {
             "description": "a resource name in Infra's Universal Resource Notation",
+            "example": "production.namespace",
             "type": "string"
           },
           "updated": {
@@ -362,7 +373,8 @@
             "type": "string"
           },
           "user": {
-            "example": "4yJ3n3D8E2",
+            "description": "UserID for a user being granted access",
+            "example": "6hNnjfjVcc",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
@@ -423,23 +435,27 @@
                   "type": "string"
                 },
                 "group": {
-                  "example": "4yJ3n3D8E2",
+                  "description": "GroupID for a group being granted access",
+                  "example": "3zMaadcd2U",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "id": {
-                  "example": "4yJ3n3D8E2",
+                  "description": "ID of grant created",
+                  "example": "3w9XyTrkzk",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "privilege": {
                   "description": "a role or permission",
+                  "example": "admin",
                   "type": "string"
                 },
                 "resource": {
                   "description": "a resource name in Infra's Universal Resource Notation",
+                  "example": "production.namespace",
                   "type": "string"
                 },
                 "updated": {
@@ -449,7 +465,8 @@
                   "type": "string"
                 },
                 "user": {
-                  "example": "4yJ3n3D8E2",
+                  "description": "UserID for a user being granted access",
+                  "example": "6hNnjfjVcc",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
@@ -2810,39 +2827,49 @@
             }
           },
           {
+            "description": "ID of user granted access",
+            "example": "6TjWTAgYYu",
             "in": "query",
             "name": "user",
             "schema": {
-              "example": "4yJ3n3D8E2",
+              "description": "ID of user granted access",
+              "example": "6TjWTAgYYu",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
           },
           {
+            "description": "ID of group granted access",
+            "example": "6k3Eqcqu6B",
             "in": "query",
             "name": "group",
             "schema": {
-              "example": "4yJ3n3D8E2",
+              "description": "ID of group granted access",
+              "example": "6k3Eqcqu6B",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
           },
           {
+            "description": "a resource name",
             "example": "production.namespace",
             "in": "query",
             "name": "resource",
             "schema": {
+              "description": "a resource name",
               "example": "production.namespace",
               "type": "string"
             }
           },
           {
+            "description": "name of the destination where a connector is installed",
             "example": "production",
             "in": "query",
             "name": "destination",
             "schema": {
+              "description": "name of the destination where a connector is installed",
               "example": "production",
               "format": "[a-zA-Z0-9\\-_]",
               "maxLength": 256,
@@ -2851,29 +2878,35 @@
             }
           },
           {
+            "description": "a role or permission",
             "example": "view",
             "in": "query",
             "name": "privilege",
             "schema": {
+              "description": "a role or permission",
               "example": "view",
               "type": "string"
             }
           },
           {
             "description": "if true, this field includes grants that the user inherits through groups",
+            "example": "true",
             "in": "query",
             "name": "showInherited",
             "schema": {
               "description": "if true, this field includes grants that the user inherits through groups",
+              "example": "true",
               "type": "boolean"
             }
           },
           {
             "description": "if true, this shows the connector and other internal grants",
+            "example": "false",
             "in": "query",
             "name": "showSystem",
             "schema": {
               "description": "if true, this shows the connector and other internal grants",
+              "example": "false",
               "type": "boolean"
             }
           },
@@ -3040,12 +3073,15 @@
                       ],
                       "properties": {
                         "group": {
-                          "example": "4yJ3n3D8E2",
+                          "description": "ID of the group granted access",
+                          "example": "6Ti2p7r1h7",
                           "format": "uid",
                           "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                           "type": "string"
                         },
                         "groupName": {
+                          "description": "Name of the group granted access",
+                          "example": "dev",
                           "type": "string"
                         },
                         "privilege": {
@@ -3059,12 +3095,15 @@
                           "type": "string"
                         },
                         "user": {
-                          "example": "4yJ3n3D8E2",
+                          "description": "ID of the user granted access",
+                          "example": "6kdoMDd6PA",
                           "format": "uid",
                           "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                           "type": "string"
                         },
                         "userName": {
+                          "description": "Name of the user granted access",
+                          "example": "admin@example.com",
                           "type": "string"
                         }
                       },
@@ -3102,12 +3141,15 @@
                       ],
                       "properties": {
                         "group": {
-                          "example": "4yJ3n3D8E2",
+                          "description": "ID of the group granted access",
+                          "example": "6Ti2p7r1h7",
                           "format": "uid",
                           "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                           "type": "string"
                         },
                         "groupName": {
+                          "description": "Name of the group granted access",
+                          "example": "dev",
                           "type": "string"
                         },
                         "privilege": {
@@ -3121,12 +3163,15 @@
                           "type": "string"
                         },
                         "user": {
-                          "example": "4yJ3n3D8E2",
+                          "description": "ID of the user granted access",
+                          "example": "6kdoMDd6PA",
                           "format": "uid",
                           "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                           "type": "string"
                         },
                         "userName": {
+                          "description": "Name of the user granted access",
+                          "example": "admin@example.com",
                           "type": "string"
                         }
                       },
@@ -3266,12 +3311,15 @@
                 ],
                 "properties": {
                   "group": {
-                    "example": "4yJ3n3D8E2",
+                    "description": "ID of the group granted access",
+                    "example": "6Ti2p7r1h7",
                     "format": "uid",
                     "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   },
                   "groupName": {
+                    "description": "Name of the group granted access",
+                    "example": "dev",
                     "type": "string"
                   },
                   "privilege": {
@@ -3285,12 +3333,15 @@
                     "type": "string"
                   },
                   "user": {
-                    "example": "4yJ3n3D8E2",
+                    "description": "ID of the user granted access",
+                    "example": "6kdoMDd6PA",
                     "format": "uid",
                     "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                     "type": "string"
                   },
                   "userName": {
+                    "description": "Name of the user granted access",
+                    "example": "admin@example.com",
                     "type": "string"
                   }
                 },
