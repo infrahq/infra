@@ -27,33 +27,33 @@ func clientConfig() clientcmd.ClientConfig {
 func kubernetesSetContext(cluster, namespace string) error {
 	config := clientConfig()
 
-	kubeconfig, err := config.RawConfig()
+	kubeConfig, err := config.RawConfig()
 	if err != nil {
 		return err
 	}
 
 	name := strings.TrimPrefix(cluster, "infra:")
 
-	if namespace != "" {
-		name = fmt.Sprintf("%s:%s", name, namespace)
-	}
-
 	// set friendly name based on user input rather than internal format
 	friendlyName := strings.ReplaceAll(name, ":", ".")
 
-	context := fmt.Sprintf("infra:%s", name)
-	if _, ok := kubeconfig.Contexts[context]; !ok {
+	contextName := fmt.Sprintf("infra:%s", name)
+	kubeContext, ok := kubeConfig.Contexts[contextName]
+	if !ok {
 		return fmt.Errorf("context not found: %v", friendlyName)
 	}
 
-	kubeconfig.CurrentContext = context
+	kubeContext.Namespace = namespace
 
-	if err := clientcmd.WriteToFile(kubeconfig, config.ConfigAccess().GetDefaultFilename()); err != nil {
+	kubeConfig.CurrentContext = contextName
+	kubeConfig.Contexts[contextName] = kubeContext
+
+	configFile := config.ConfigAccess().GetDefaultFilename()
+	if err := safelyWriteConfigToFile(kubeConfig, configFile); err != nil {
 		return err
 	}
 
 	fmt.Fprintf(os.Stderr, "Switched to context %q.\n", friendlyName)
-
 	return nil
 }
 
@@ -85,11 +85,16 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 		return err
 	}
 
-	keep := make(map[string]bool)
+	type clusterContext struct {
+		Namespace string
+		URL       string
+		CA        []byte
+	}
+
+	infraContexts := make(map[string]clusterContext)
 
 	for _, g := range grants {
 		parts := strings.Split(g.Resource, ".")
-
 		cluster := parts[0]
 
 		var namespace string
@@ -97,68 +102,65 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 			namespace = parts[1]
 		}
 
-		context := "infra:" + cluster
-
-		if namespace != "" {
-			context += ":" + namespace
+		if namespace == "default" {
+			namespace = ""
 		}
 
-		var (
-			url    string
-			ca     []byte
-			exists bool
-		)
+		contextName := "infra:" + cluster
+		if _, ok := infraContexts[contextName]; ok && namespace != "" {
+			continue
+		}
 
+		var infraContext clusterContext
 		for _, d := range destinations {
 			if !isResourceForDestination(g.Resource, d.Name) {
 				continue
 			}
 
 			if isDestinationAvailable(d) {
-				url = d.Connection.URL
-				ca = []byte(d.Connection.CA)
-				exists = true
+				infraContext = clusterContext{
+					URL: d.Connection.URL,
+					CA:  []byte(d.Connection.CA),
+				}
 				break
 			}
 		}
 
-		if !exists {
+		if infraContext.URL == "" {
 			continue
 		}
 
-		u, err := urlx.Parse(url)
+		infraContext.Namespace = namespace
+		infraContexts[contextName] = infraContext
+	}
+
+	for contextName, infraContext := range infraContexts {
+		logging.Debugf("creating kubeconfig for %s", contextName)
+
+		u, err := urlx.Parse(infraContext.URL)
 		if err != nil {
 			return err
 		}
 
 		u.Scheme = "https"
 
-		logging.Debugf("creating kubeconfig for %s", context)
-
-		kubeConfig.Clusters[context] = &clientcmdapi.Cluster{
+		kubeConfig.Clusters[contextName] = &clientcmdapi.Cluster{
 			Server:                   u.String(),
-			CertificateAuthorityData: ca,
+			CertificateAuthorityData: infraContext.CA,
 		}
 
 		// use existing kubeContext if possible which may contain
 		// user-defined overrides. preserve them if possible
-		kubeContext, ok := kubeConfig.Contexts[context]
+		kubeContext, ok := kubeConfig.Contexts[contextName]
 		if !ok {
 			kubeContext = &clientcmdapi.Context{
-				Cluster:   context,
+				Cluster:   contextName,
 				AuthInfo:  user.Name,
-				Namespace: namespace,
+				Namespace: infraContext.Namespace,
 			}
 		}
 
-		if namespace != "" {
-			// force the namespace if defined by Infra
-			if kubeContext.Namespace != namespace {
-				kubeContext.Namespace = namespace
-			}
-		}
-
-		kubeConfig.Contexts[context] = kubeContext
+		kubeConfig.Contexts[contextName] = kubeContext
 
 		executable, err := os.Executable()
 		if err != nil {
@@ -173,8 +175,6 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 				InteractiveMode: clientcmdapi.IfAvailableExecInteractiveMode,
 			},
 		}
-
-		keep[context] = true
 	}
 
 	// cleanup others
@@ -189,7 +189,7 @@ func writeKubeconfig(user *api.User, destinations []api.Destination, grants []ap
 			continue
 		}
 
-		if _, ok := keep[id]; !ok {
+		if _, ok := infraContexts[id]; !ok {
 			delete(kubeConfig.AuthInfos, ctx.AuthInfo)
 			delete(kubeConfig.Clusters, ctx.Cluster)
 			delete(kubeConfig.Contexts, id)

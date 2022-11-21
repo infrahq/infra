@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"gotest.tools/v3/assert"
 	"k8s.io/client-go/tools/clientcmd"
@@ -16,12 +17,6 @@ import (
 )
 
 func TestWriteKubeconfig(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-	kubeConfigPath := filepath.Join(home, "nonexistent", "kubeconfig")
-	t.Setenv("KUBECONFIG", kubeConfigPath)
-
 	user := api.User{Name: "user"}
 	destinations := []api.Destination{
 		{
@@ -48,64 +43,201 @@ func TestWriteKubeconfig(t *testing.T) {
 			},
 		},
 	}
-	grants := []api.Grant{
-		{
-			Resource: "connected",
+
+	run := func(t *testing.T, grants ...api.Grant) clientcmdapi.Config {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		t.Setenv("USERPROFILE", home)
+		kubeConfigPath := filepath.Join(home, "nonexistent", "kubeconfig")
+		t.Setenv("KUBECONFIG", kubeConfigPath)
+
+		err := writeKubeconfig(&user, destinations, grants)
+		assert.NilError(t, err)
+
+		configFileStat, err := os.Stat(kubeConfigPath)
+		assert.NilError(t, err)
+		assert.Equal(t, int(configFileStat.Mode().Perm()), 0o600)
+
+		kubeConfig, err := clientConfig().RawConfig()
+		assert.NilError(t, err)
+
+		return kubeConfig
+	}
+
+	expectedClusters := map[string]*clientcmdapi.Cluster{
+		"infra:connected": {
+			Server:                   "https://connected.example.com",
+			CertificateAuthorityData: []byte(destinationCA),
 		},
 	}
 
-	err := writeKubeconfig(&user, destinations, grants)
-	assert.NilError(t, err)
+	expectedAuthInfos := map[string]*clientcmdapi.AuthInfo{
+		"user": {},
+	}
 
-	expected := clientcmdapi.Config{
-		Clusters: map[string]*clientcmdapi.Cluster{
+	kubeConfigCmpOpts := []cmp.Option{
+		cmpopts.EquateEmpty(),
+		cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
+		cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
+		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"),
+		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "Exec"),
+	}
+
+	t.Run("OneNamespace", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
 			"infra:connected": {
-				Server:                   "https://connected.example.com",
-				CertificateAuthorityData: []byte(destinationCA),
+				AuthInfo:  "user",
+				Cluster:   "infra:connected",
+				Namespace: "namespace",
 			},
-		},
-		Contexts: map[string]*clientcmdapi.Context{
+		}
+
+		actual := run(t, api.Grant{Resource: "connected.namespace"})
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("MultipleNamespaces", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo:  "user",
+				Cluster:   "infra:connected",
+				Namespace: "namespace",
+			},
+		}
+
+		grants := []api.Grant{
+			{Resource: "connected.namespace"},
+			{Resource: "connected.namespace2"},
+			{Resource: "connected.namespace3"},
+		}
+
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("DefaultNamespace", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
 			"infra:connected": {
 				AuthInfo: "user",
 				Cluster:  "infra:connected",
 			},
-		},
-		AuthInfos: map[string]*clientcmdapi.AuthInfo{
-			"user": {},
-		},
-	}
-
-	configFileStats, err := os.Stat(kubeConfigPath)
-	assert.NilError(t, err)
-
-	permissions := configFileStats.Mode().Perm()
-	assert.Equal(t, int(permissions), 0o600) // kube config should not be world or group readable, only user read/write
-
-	actual, err := clientConfig().RawConfig()
-	assert.NilError(t, err)
-
-	assert.DeepEqual(t, expected, actual,
-		cmpopts.EquateEmpty(),
-		cmpopts.IgnoreFields(clientcmdapi.Cluster{}, "LocationOfOrigin"),
-		cmpopts.IgnoreFields(clientcmdapi.Context{}, "LocationOfOrigin"),
-		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "LocationOfOrigin"),
-		cmpopts.IgnoreFields(clientcmdapi.AuthInfo{}, "Exec"),
-	)
-
-	t.Run("clearKubeconfig", func(t *testing.T) {
-		err := clearKubeconfig()
-		assert.NilError(t, err)
-
-		expected := clientcmdapi.Config{
-			Clusters:  map[string]*clientcmdapi.Cluster{},
-			Contexts:  map[string]*clientcmdapi.Context{},
-			AuthInfos: map[string]*clientcmdapi.AuthInfo{},
 		}
 
-		actual, err := clientConfig().RawConfig()
-		assert.NilError(t, err)
+		grants := []api.Grant{
+			{Resource: "connected.default"},
+		}
 
-		assert.DeepEqual(t, expected, actual, cmpopts.EquateEmpty())
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("DefaultAndMultipleNamespaces", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo: "user",
+				Cluster:  "infra:connected",
+			},
+		}
+
+		grants := []api.Grant{
+			{Resource: "connected.namespace"},
+			{Resource: "connected.namespace2"},
+			{Resource: "connected.default"},
+			{Resource: "connected.namespace3"},
+		}
+
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("Cluster", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo: "user",
+				Cluster:  "infra:connected",
+			},
+		}
+
+		actual := run(t, api.Grant{Resource: "connected"})
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("ClusterAndDefaultNamespace", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo: "user",
+				Cluster:  "infra:connected",
+			},
+		}
+
+		grants := []api.Grant{
+			{Resource: "connected.default"},
+			{Resource: "connected"},
+		}
+
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("ClusterAndMultipleNamespaces", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo: "user",
+				Cluster:  "infra:connected",
+			},
+		}
+
+		grants := []api.Grant{
+			{Resource: "connected.namespace"},
+			{Resource: "connected.namespace2"},
+			{Resource: "connected.namespace3"},
+			{Resource: "connected"},
+		}
+
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
+	})
+
+	t.Run("OmitUnavailableClusters", func(t *testing.T) {
+		expectedContexts := map[string]*clientcmdapi.Context{
+			"infra:connected": {
+				AuthInfo: "user",
+				Cluster:  "infra:connected",
+			},
+		}
+
+		grants := []api.Grant{
+			{Resource: "connected"},
+			{Resource: "disconnected"},
+			{Resource: "pending"},
+		}
+
+		actual := run(t, grants...)
+
+		assert.DeepEqual(t, actual.Contexts, expectedContexts, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.Clusters, expectedClusters, kubeConfigCmpOpts...)
+		assert.DeepEqual(t, actual.AuthInfos, expectedAuthInfos, kubeConfigCmpOpts...)
 	})
 }
 
@@ -162,61 +294,6 @@ func TestWriteKubeconfig_UserNamespaceOverride(t *testing.T) {
 	actual, err := clientConfig().RawConfig()
 	assert.NilError(t, err)
 	assert.Equal(t, actual.Contexts["infra:cluster"].Namespace, "override")
-}
-
-func TestWriteKubeconfig_UserNamespaceOverrideResetNamespacedContext(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	t.Setenv("USERPROFILE", home)
-
-	kubeconfig := filepath.Join(home, "kubeconfig")
-	t.Setenv("KUBECONFIG", kubeconfig)
-
-	expected := clientcmdapi.Config{
-		Clusters: map[string]*clientcmdapi.Cluster{
-			"infra:cluster:default": {
-				Server:                   "https://cluster.example.com",
-				CertificateAuthorityData: []byte(destinationCA),
-			},
-		},
-		Contexts: map[string]*clientcmdapi.Context{
-			"infra:cluster:default": {
-				AuthInfo:  "user",
-				Cluster:   "infra:cluster",
-				Namespace: "override",
-			},
-		},
-		AuthInfos: map[string]*clientcmdapi.AuthInfo{
-			"user": {},
-		},
-	}
-
-	err := clientcmd.WriteToFile(expected, kubeconfig)
-	assert.NilError(t, err)
-
-	user := api.User{Name: "user"}
-	destinations := []api.Destination{
-		{
-			Name:      "cluster",
-			Connected: true,
-			Connection: api.DestinationConnection{
-				URL: "cluster.example.com",
-				CA:  destinationCA,
-			},
-		},
-	}
-	grants := []api.Grant{
-		{
-			Resource: "cluster.default",
-		},
-	}
-
-	err = writeKubeconfig(&user, destinations, grants)
-	assert.NilError(t, err)
-
-	actual, err := clientConfig().RawConfig()
-	assert.NilError(t, err)
-	assert.Equal(t, actual.Contexts["infra:cluster:default"].Namespace, "default")
 }
 
 func TestSafelyWriteConfigToFile(t *testing.T) {
