@@ -13,31 +13,30 @@ import (
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
-	"github.com/infrahq/infra/uid"
 )
 
 type oidcAuthn struct {
-	ProviderID         uid.ID
-	RedirectURL        string
-	Code               string
-	OIDCProviderClient providers.OIDCClient
+	Provider            *models.Provider
+	RedirectURL         string
+	Code                string
+	OIDCProviderClient  providers.OIDCClient
+	AllowedLoginDomains []string
 }
 
-func NewOIDCAuthentication(providerID uid.ID, redirectURL string, code string, oidcProviderClient providers.OIDCClient) LoginMethod {
-	return &oidcAuthn{
-		ProviderID:         providerID,
-		RedirectURL:        redirectURL,
-		Code:               code,
-		OIDCProviderClient: oidcProviderClient,
+func NewOIDCAuthentication(provider *models.Provider, redirectURL string, code string, oidcProviderClient providers.OIDCClient, allowedLoginDomains []string) (LoginMethod, error) {
+	if provider == nil {
+		return nil, fmt.Errorf("nil provider in oidc authentication")
 	}
+	return &oidcAuthn{
+		Provider:            provider,
+		RedirectURL:         redirectURL,
+		Code:                code,
+		OIDCProviderClient:  oidcProviderClient,
+		AllowedLoginDomains: allowedLoginDomains,
+	}, nil
 }
 
 func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requestedExpiry time.Time) (AuthenticatedIdentity, error) {
-	provider, err := data.GetProvider(db, data.GetProviderOptions{ByID: a.ProviderID})
-	if err != nil {
-		return AuthenticatedIdentity{}, err
-	}
-
 	// exchange code for tokens from identity provider (these tokens are for the IDP, not Infra)
 	idpAuth, err := a.OIDCProviderClient.ExchangeAuthCodeForProviderTokens(ctx, a.Code)
 	if err != nil {
@@ -48,14 +47,14 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	if len(provider.AllowedDomains) > 0 {
+	if len(a.AllowedLoginDomains) > 0 {
 		// get the domain of the email
 		at := strings.LastIndex(idpAuth.Email, "@") // get the last @ since the email spec allows for multiple @s
 		if at == -1 {
 			return AuthenticatedIdentity{}, fmt.Errorf("%s is an invalid email address", idpAuth.Email)
 		}
 		domain := idpAuth.Email[at+1:]
-		if !slices.Contains(provider.AllowedDomains, domain) {
+		if !slices.Contains(a.AllowedLoginDomains, domain) {
 			return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain", domain)
 		}
 	}
@@ -73,7 +72,7 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		}
 	}
 
-	providerUser, err := data.CreateProviderUser(db, provider, identity)
+	providerUser, err := data.CreateProviderUser(db, a.Provider, identity)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("add user for provider login: %w", err)
 	}
@@ -88,14 +87,14 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 	}
 
 	// update users attributes (such as groups) from the IDP
-	err = data.SyncProviderUser(ctx, db, identity, provider, a.OIDCProviderClient)
+	err = data.SyncProviderUser(ctx, db, identity, a.Provider, a.OIDCProviderClient)
 	if err != nil {
 		return AuthenticatedIdentity{}, fmt.Errorf("sync user on login: %w", err)
 	}
 
 	return AuthenticatedIdentity{
 		Identity:      identity,
-		Provider:      provider,
+		Provider:      a.Provider,
 		SessionExpiry: requestedExpiry,
 	}, nil
 }

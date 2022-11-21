@@ -8,18 +8,21 @@ import (
 type Organization struct {
 	Model
 
-	Name      string
-	Domain    string
+	Name                string
+	Domain              string
+	AllowedLoginDomains CommaSeparatedStrings // the email domains that are allowed to login to this org
+
 	CreatedBy uid.ID
 }
 
 func (o *Organization) ToAPI() *api.Organization {
 	return &api.Organization{
-		ID:      o.ID,
-		Name:    o.Name,
-		Created: api.Time(o.CreatedAt),
-		Updated: api.Time(o.UpdatedAt),
-		Domain:  o.Domain,
+		ID:                  o.ID,
+		Name:                o.Name,
+		Created:             api.Time(o.CreatedAt),
+		Updated:             api.Time(o.UpdatedAt),
+		Domain:              o.Domain,
+		AllowedLoginDomains: o.AllowedLoginDomains,
 	}
 }
 

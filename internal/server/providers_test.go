@@ -24,11 +24,10 @@ func TestAPI_ListProviders(t *testing.T) {
 	routes := s.GenerateRoutes()
 
 	testProvider := &models.Provider{
-		Name:           "mokta",
-		Kind:           models.ProviderKindOkta,
-		AuthURL:        "https://example.com/v1/auth",
-		Scopes:         []string{"openid", "email"},
-		AllowedDomains: []string{"example.com"},
+		Name:    "mokta",
+		Kind:    models.ProviderKindOkta,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
 	}
 
 	err := data.CreateProvider(s.DB(), testProvider)
@@ -78,11 +77,10 @@ func TestAPI_GetProvider(t *testing.T) {
 	routes := s.GenerateRoutes()
 
 	testProvider := &models.Provider{
-		Name:           "mokta",
-		Kind:           models.ProviderKindOkta,
-		AuthURL:        "https://example.com/v1/auth",
-		Scopes:         []string{"openid", "email"},
-		AllowedDomains: []string{"example.com"},
+		Name:    "mokta",
+		Kind:    models.ProviderKindOkta,
+		AuthURL: "https://example.com/v1/auth",
+		Scopes:  []string{"openid", "email"},
 	}
 
 	err := data.CreateProvider(s.DB(), testProvider)

@@ -227,9 +227,10 @@ func initialize(db *DB) error {
 	switch {
 	case errors.Is(err, internal.ErrNotFound):
 		org = &models.Organization{
-			Model:     models.Model{ID: defaultOrganizationID},
-			Name:      "Default",
-			CreatedBy: models.CreatedBySystem,
+			Model:               models.Model{ID: defaultOrganizationID},
+			Name:                "Default",
+			CreatedBy:           models.CreatedBySystem,
+			AllowedLoginDomains: []string{},
 		}
 		if err := CreateOrganization(tx, org); err != nil {
 			return fmt.Errorf("failed to create default organization: %w", err)
