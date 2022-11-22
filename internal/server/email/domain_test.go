@@ -8,16 +8,16 @@ import (
 
 func TestDomain(t *testing.T) {
 	t.Run("rejects non-email format", func(t *testing.T) {
-		_, err := GetDomain("hello")
+		_, err := Domain("hello")
 		assert.ErrorContains(t, err, "hello is an invalid email address")
 	})
 	t.Run("gets domain of typical email", func(t *testing.T) {
-		domain, err := GetDomain("hello@example.com")
+		domain, err := Domain("hello@example.com")
 		assert.NilError(t, err)
 		assert.Equal(t, domain, "example.com")
 	})
 	t.Run("gets last domain in email", func(t *testing.T) {
-		domain, err := GetDomain("hello@example.com@infrahq.com")
+		domain, err := Domain("hello@example.com@infrahq.com")
 		assert.NilError(t, err)
 		assert.Equal(t, domain, "infrahq.com")
 	})

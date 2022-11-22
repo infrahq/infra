@@ -798,11 +798,11 @@
           "items": {
             "items": {
               "properties": {
-                "allowedLoginDomains": {
-                  "description": "domains which can be used with social login for this organization",
+                "allowedDomains": {
+                  "description": "domains which can be used to login to this organization",
                   "example": "['example.com', 'infrahq.com']",
                   "items": {
-                    "description": "domains which can be used with social login for this organization",
+                    "description": "domains which can be used to login to this organization",
                     "example": "['example.com', 'infrahq.com']",
                     "type": "string"
                   },
@@ -1056,11 +1056,11 @@
       },
       "Organization": {
         "properties": {
-          "allowedLoginDomains": {
-            "description": "domains which can be used with social login for this organization",
+          "allowedDomains": {
+            "description": "domains which can be used to login to this organization",
             "example": "['example.com', 'infrahq.com']",
             "items": {
-              "description": "domains which can be used with social login for this organization",
+              "description": "domains which can be used to login to this organization",
               "example": "['example.com', 'infrahq.com']",
               "type": "string"
             },

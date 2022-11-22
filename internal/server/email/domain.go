@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func GetDomain(email string) (string, error) {
+func Domain(email string) (string, error) {
 	at := strings.LastIndex(email, "@") // get the last @ since the email spec allows for multiple @s
 	if at == -1 {
 		return "", fmt.Errorf("%s is an invalid email address", email)

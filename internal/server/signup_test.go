@@ -199,7 +199,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				assert.Equal(t, respBody.User.Name, "admin@example.com")
 				assert.Equal(t, respBody.Organization.Name, "acme")
-				assert.DeepEqual(t, respBody.Organization.AllowedLoginDomains, []string{"example.com"})
+				assert.DeepEqual(t, respBody.Organization.AllowedDomains, []string{"example.com"})
 				userID := respBody.User.ID
 				orgID := respBody.Organization.ID
 
@@ -265,7 +265,7 @@ func TestAPI_Signup(t *testing.T) {
 
 				assert.Equal(t, respBody.User.Name, "example@gmail.com")
 				assert.Equal(t, respBody.Organization.Name, "acme-goog")
-				assert.DeepEqual(t, respBody.Organization.AllowedLoginDomains, []string{""}) // this is empty by default for gmail
+				assert.DeepEqual(t, respBody.Organization.AllowedDomains, []string{""}) // this is empty by default for gmail
 			},
 		},
 	}

@@ -934,7 +934,7 @@ func moveAllowedDomainsToOrganizationsTable() *migrator.Migration {
 				return err
 			}
 
-			stmt = `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_login_domains text DEFAULT ''`
+			stmt = `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
 			_, err := tx.Exec(stmt)
 			return err
 		},

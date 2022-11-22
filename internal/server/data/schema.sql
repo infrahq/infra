@@ -208,7 +208,7 @@ CREATE TABLE organizations (
     name text,
     created_by bigint,
     domain text,
-    allowed_login_domains text DEFAULT ''::text
+    allowed_domains text DEFAULT ''::text
 );
 
 CREATE TABLE password_reset_tokens (

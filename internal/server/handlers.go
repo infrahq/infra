@@ -90,7 +90,7 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
-	allowedSocialLoginDomain, err := email.GetDomain(r.Name)
+	allowedSocialLoginDomain, err := email.Domain(r.Name)
 	if err != nil {
 		// this should be caught by request validation before we hit this
 		return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
@@ -106,8 +106,8 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		Name:     r.Name,
 		Password: r.Password,
 		Org: &models.Organization{
-			Name:                r.Org.Name,
-			AllowedLoginDomains: []string{allowedSocialLoginDomain},
+			Name:           r.Org.Name,
+			AllowedDomains: []string{allowedSocialLoginDomain},
 		},
 		SubDomain: r.Org.Subdomain,
 	}
@@ -217,7 +217,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			r.OIDC.RedirectURL,
 			r.OIDC.Code,
 			providerClient,
-			// TODO: specify allowed login domains from rCtx.Authenticated.Organization.AllowedLoginDomains
+			// TODO: specify allowed login domains from rCtx.Authenticated.Organization.AllowedDomains
 			//		 in social login PR #3657
 			[]string{},
 		)

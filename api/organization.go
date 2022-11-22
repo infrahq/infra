@@ -6,12 +6,12 @@ import (
 )
 
 type Organization struct {
-	ID                  uid.ID   `json:"id"`
-	Name                string   `json:"name"`
-	Created             Time     `json:"created"`
-	Updated             Time     `json:"updated"`
-	Domain              string   `json:"domain"`
-	AllowedLoginDomains []string `json:"allowedLoginDomains" note:"domains which can be used with social login for this organization" example:"['example.com', 'infrahq.com']"`
+	ID             uid.ID   `json:"id"`
+	Name           string   `json:"name"`
+	Created        Time     `json:"created"`
+	Updated        Time     `json:"updated"`
+	Domain         string   `json:"domain"`
+	AllowedDomains []string `json:"allowedDomains" note:"domains which can be used to login to this organization" example:"['example.com', 'infrahq.com']"`
 }
 
 type GetOrganizationRequest struct {
