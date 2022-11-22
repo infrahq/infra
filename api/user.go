@@ -21,13 +21,13 @@ type User struct {
 	Updated       Time     `json:"updated"`
 	LastSeenAt    Time     `json:"lastSeenAt"`
 	Name          string   `json:"name" note:"Name of the user" example:"bob@example.com"`
-	ProviderNames []string `json:"providerNames,omitempty" note:"Array of provider names" example:"['okta']"`
+	ProviderNames []string `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
 }
 
 type ListUsersRequest struct {
 	Name       string   `form:"name" note:"Name of the user" example:"bob@example.com"`
 	Group      uid.ID   `form:"group" note:"Group the user belongs to" example:"admins"`
-	IDs        []uid.ID `form:"ids" note:"Array of User IDs"`
+	IDs        []uid.ID `form:"ids" note:"List of User IDs"`
 	ShowSystem bool     `form:"showSystem" note:"if true, this shows the connector and other internal users" example:"false"`
 	PaginationRequest
 }

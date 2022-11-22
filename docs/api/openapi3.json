@@ -1000,10 +1000,10 @@
                   "type": "string"
                 },
                 "providerNames": {
-                  "description": "Array of provider names",
+                  "description": "List of providers this user belongs to",
                   "example": "['okta']",
                   "items": {
-                    "description": "Array of provider names",
+                    "description": "List of providers this user belongs to",
                     "example": "['okta']",
                     "type": "string"
                   },
@@ -1229,10 +1229,10 @@
             "type": "string"
           },
           "providerNames": {
-            "description": "Array of provider names",
+            "description": "List of providers this user belongs to",
             "example": "['okta']",
             "items": {
-              "description": "Array of provider names",
+              "description": "List of providers this user belongs to",
               "example": "['okta']",
               "type": "string"
             },
@@ -3107,9 +3107,9 @@
               "schema": {
                 "properties": {
                   "grantsToAdd": {
-                    "description": "Array of grant objects. See POST api/grants for more",
+                    "description": "List of grant objects. See POST api/grants for more",
                     "items": {
-                      "description": "Array of grant objects. See POST api/grants for more",
+                      "description": "List of grant objects. See POST api/grants for more",
                       "oneOf": [
                         {
                           "required": [
@@ -3177,9 +3177,9 @@
                     "type": "array"
                   },
                   "grantsToRemove": {
-                    "description": "Array of grant objects. See POST api/grants for more",
+                    "description": "List of grant objects. See POST api/grants for more",
                     "items": {
-                      "description": "Array of grant objects. See POST api/grants for more",
+                      "description": "List of grant objects. See POST api/grants for more",
                       "oneOf": [
                         {
                           "required": [
@@ -6463,13 +6463,13 @@
             }
           },
           {
-            "description": "Array of User IDs",
+            "description": "List of User IDs",
             "in": "query",
             "name": "ids",
             "schema": {
-              "description": "Array of User IDs",
+              "description": "List of User IDs",
               "items": {
-                "description": "Array of User IDs",
+                "description": "List of User IDs",
                 "example": "4yJ3n3D8E2",
                 "format": "uid",
                 "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
