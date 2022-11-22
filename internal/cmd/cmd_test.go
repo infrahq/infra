@@ -24,6 +24,11 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("HOME", "/this test forgot to t.SetEnv(HOME, ...)")
 	_ = os.Setenv("USERPROFILE", "/this test forgot to t.SetEnv(USERPROFILE, ...)")
 	_ = os.Setenv("KUBECONFIG", "/this test forgot to t.SetEnv(KUBECONFIG, ...)")
+
+	// Default to not running the agent in tests, because background processes
+	// are difficult to manage.
+	_ = os.Setenv("INFRA_NO_AGENT", "true")
+
 	os.Exit(m.Run())
 }
 
