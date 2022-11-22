@@ -6,21 +6,21 @@ import (
 )
 
 type AccessKey struct {
-	ID                uid.ID `json:"id"`
+	ID                uid.ID `json:"id" note:"ID of the access key"`
 	Created           Time   `json:"created"`
 	LastUsed          Time   `json:"lastUsed"`
-	Name              string `json:"name"`
-	IssuedForName     string `json:"issuedForName"`
-	IssuedFor         uid.ID `json:"issuedFor"`
-	ProviderID        uid.ID `json:"providerID"`
+	Name              string `json:"name" example:"cicdkey" note:"Name of the access key"`
+	IssuedForName     string `json:"issuedForName" example:"admin@example.com" note:"Name of the user the key was issued to"`
+	IssuedFor         uid.ID `json:"issuedFor" note:"ID of the user the key was issued to"`
+	ProviderID        uid.ID `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
 	Expires           Time   `json:"expires" note:"key is no longer valid after this time"`
 	ExtensionDeadline Time   `json:"extensionDeadline" note:"key must be used within this duration to remain valid"`
 }
 
 type ListAccessKeysRequest struct {
-	UserID      uid.ID `form:"userID"`
-	Name        string `form:"name"`
-	ShowExpired bool   `form:"showExpired"`
+	UserID      uid.ID `form:"userID" note:"UserID of the user whose access keys you want to list"`
+	Name        string `form:"name" note:"Name of the user" example:"john@example.com"`
+	ShowExpired bool   `form:"showExpired" note:"Whether to show expired access keys. Defaults to false" example:"true"`
 	PaginationRequest
 }
 
@@ -81,7 +81,7 @@ func (req ListAccessKeysRequest) SetPage(page int) Paginatable {
 }
 
 type DeleteAccessKeyRequest struct {
-	Name string `form:"name"`
+	Name string `form:"name" note:"Name of the access key to delete" example:"cicdkey"`
 }
 
 func (r DeleteAccessKeyRequest) ValidationRules() []validate.ValidationRule {

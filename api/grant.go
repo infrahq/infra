@@ -166,6 +166,6 @@ func (r GrantRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type UpdateGrantsRequest struct {
-	GrantsToAdd    []GrantRequest `json:"grantsToAdd"`
-	GrantsToRemove []GrantRequest `json:"grantsToRemove"`
+	GrantsToAdd    []GrantRequest `json:"grantsToAdd" note:"Array of grant objects. See POST api/grants for more"`
+	GrantsToRemove []GrantRequest `json:"grantsToRemove" note:"Array of grant objects. See POST api/grants for more"`
 }
