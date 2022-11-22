@@ -30,9 +30,8 @@ func (r ListOrganizationsRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type CreateOrganizationRequest struct {
-	Name                string   `json:"name"`
-	Domain              string   `json:"domain"`
-	AllowedLoginDomains []string `json:"allowedLoginDomains" note:"domains which can be used with social login for this organization" example:"['example.com', 'infrahq.com']"`
+	Name   string `json:"name"`
+	Domain string `json:"domain"`
 }
 
 func (r CreateOrganizationRequest) ValidationRules() []validate.ValidationRule {
