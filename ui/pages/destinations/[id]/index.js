@@ -604,7 +604,9 @@ function AccessCluster({ roles, resource }) {
       </div>
       <p className='mx-6 my-4 text-xs text-gray-300'>
         You have{' '}
-        <span className='font-semibold text-white'>{roles.join(', ')}</span>{' '}
+        <span className='font-semibold text-white'>
+          {[...new Set(roles)].join(', ')}
+        </span>{' '}
         access.
       </p>
       <div className='group relative mt-4 flex flex-1 flex-col'>
