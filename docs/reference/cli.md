@@ -569,7 +569,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
       --extension-deadline duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
       --name string                   The name of the access key
   -q, --quiet                         Only display the access key
-      --ttl duration                  The total time that the access key will be valid for (default 720h0m0s)
+      --ttl duration                  The total time that the access key will be valid for (default 8784h0m0s)
       --user string                   The name of the user who will own the key
 ```
 

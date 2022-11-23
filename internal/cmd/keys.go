@@ -12,7 +12,10 @@ import (
 	"github.com/infrahq/infra/internal/logging"
 )
 
-const thirtyDays = 30 * (24 * time.Hour)
+const (
+	thirtyDays = 30 * (24 * time.Hour)
+	oneYear    = 366 * (24 * time.Hour) // leap year
+)
 
 func newKeysCmd(cli *CLI) *cobra.Command {
 	cmd := &cobra.Command{
@@ -126,10 +129,18 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 
 			var expMsg strings.Builder
 			expMsg.WriteString("This key will expire in ")
-			expMsg.WriteString(format.ExactDuration(options.TTL))
+			if options.TTL == oneYear {
+				expMsg.WriteString("1 year")
+			} else {
+				expMsg.WriteString(format.ExactDuration(options.TTL))
+			}
 			if !resp.Expires.Equal(resp.ExtensionDeadline) {
 				expMsg.WriteString(", and must be used every ")
-				expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
+				if options.ExtensionDeadline == thirtyDays {
+					expMsg.WriteString("30 days")
+				} else {
+					expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
+				}
 				expMsg.WriteString(" to remain valid")
 			}
 			if options.UserName != "" {
@@ -149,7 +160,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who will own the key")
 	cmd.Flags().BoolVar(&options.Connector, "connector", false, "Create the key for the connector")
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", false, "Only display the access key")
-	cmd.Flags().DurationVar(&options.TTL, "ttl", thirtyDays, "The total time that the access key will be valid for")
+	cmd.Flags().DurationVar(&options.TTL, "ttl", oneYear, "The total time that the access key will be valid for")
 	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd

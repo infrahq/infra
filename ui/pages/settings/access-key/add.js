@@ -22,10 +22,10 @@ import Calendar from '../../../components/calendar'
 const CUSTOM_TITLE = 'custom...'
 
 const EXPIRATION_RATE = [
-  { name: '30 days', value: '720h' },
-  { name: '60 days', value: '1440h' },
-  { name: '90 days', value: '2160h' },
   { name: '1 year', value: '8766h' },
+  { name: '90 days', value: '2160h' },
+  { name: '60 days', value: '1440h' },
+  { name: '30 days', value: '720h' },
   { name: CUSTOM_TITLE, value: '720h', custom: true },
 ]
 
