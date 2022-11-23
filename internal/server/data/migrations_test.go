@@ -846,7 +846,8 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 		{
 			label: testCaseLine("2022-11-10T17:30"),
 			expected: func(t *testing.T, tx WriteTxn) {
-				_, err := GetOrganization(tx, GetOrganizationOptions{ByID: defaultOrganizationID})
+				var orgID uid.ID
+				err := tx.QueryRow(`SELECT ID FROM organizations WHERE id = ?`, defaultOrganizationID).Scan(&orgID)
 				assert.NilError(t, err)
 			},
 		},
@@ -861,6 +862,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			cleanup: func(t *testing.T, tx WriteTxn) {
 				_, err := tx.Exec(`DELETE FROM access_keys WHERE id IN (10000, 10001)`)
 				assert.NilError(t, err)
+			},
+		},
+		{
+			label: testCaseLine("2022-11-21T11:00"),
+			expected: func(t *testing.T, db WriteTxn) {
+				// schema changes are tested with schema comparison
 			},
 		},
 	}

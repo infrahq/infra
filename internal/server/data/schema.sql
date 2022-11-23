@@ -207,7 +207,8 @@ CREATE TABLE organizations (
     deleted_at timestamp with time zone,
     name text,
     created_by bigint,
-    domain text
+    domain text,
+    allowed_domains text DEFAULT ''::text
 );
 
 CREATE TABLE password_reset_tokens (
@@ -249,8 +250,7 @@ CREATE TABLE providers (
     private_key text,
     client_email text,
     domain_admin_email text,
-    organization_id bigint,
-    allowed_domains text DEFAULT ''::text
+    organization_id bigint
 );
 
 CREATE SEQUENCE seq_update_index

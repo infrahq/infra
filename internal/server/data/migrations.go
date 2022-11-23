@@ -76,6 +76,7 @@ func migrations() []*migrator.Migration {
 		addAllowedDomainsToProvidersTable(),
 		fixDefaultOrgCreatedByMigration(),
 		modifyAccessKeysIndex(),
+		moveAllowedDomainsToOrganizationsTable(),
 		// next one here
 	}
 }
@@ -922,6 +923,22 @@ func modifyAccessKeysIndex() *migrator.Migration {
 			stmt := `
 				DROP INDEX IF EXISTS idx_access_keys_name;
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_access_keys_issued_for_name ON access_keys (organization_id, issued_for, name) WHERE (deleted_at is null)`
+			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func moveAllowedDomainsToOrganizationsTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-21T11:00",
+		Migrate: func(tx migrator.DB) error {
+			stmt := `ALTER TABLE providers DROP COLUMN IF EXISTS allowed_domains`
+			if _, err := tx.Exec(stmt); err != nil {
+				return err
+			}
+
+			stmt = `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
 			_, err := tx.Exec(stmt)
 			return err
 		},

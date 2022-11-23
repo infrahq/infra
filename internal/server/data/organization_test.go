@@ -14,9 +14,10 @@ import (
 func TestCreateOrganization(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		org := &models.Organization{
-			Name:      "syndicate",
-			Domain:    "syndicate-123",
-			CreatedBy: 777,
+			Name:           "syndicate",
+			Domain:         "syndicate-123",
+			CreatedBy:      777,
+			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
 		}
 
 		err := CreateOrganization(db, org)
@@ -33,9 +34,10 @@ func TestCreateOrganization(t *testing.T) {
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			},
-			Name:      "syndicate",
-			Domain:    "syndicate-123",
-			CreatedBy: 777,
+			Name:           "syndicate",
+			Domain:         "syndicate-123",
+			CreatedBy:      777,
+			AllowedDomains: models.CommaSeparatedStrings{"example.com", "infrahq.com"},
 		}
 		assert.DeepEqual(t, expected, actual, cmpModel)
 
@@ -50,7 +52,6 @@ func TestCreateOrganization(t *testing.T) {
 			Name:               models.InternalInfraProviderName,
 			Kind:               models.ProviderKindInfra,
 			CreatedBy:          models.CreatedBySystem,
-			AllowedDomains:     models.CommaSeparatedStrings{},
 		}
 		assert.DeepEqual(t, orgInfraIDP, expectedOrgInfraProviderIDP, cmpTimeWithDBPrecision)
 
@@ -104,12 +105,14 @@ func TestGetOrganization(t *testing.T) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 		first := &models.Organization{
-			Name:   "first",
-			Domain: "first.example.com",
+			Name:           "first",
+			Domain:         "first.example.com",
+			AllowedDomains: []string{},
 		}
 		deleted := &models.Organization{
-			Name:   "deleted",
-			Domain: "none.example.com",
+			Name:           "deleted",
+			Domain:         "none.example.com",
+			AllowedDomains: []string{},
 		}
 		deleted.DeletedAt.Valid = true
 		deleted.DeletedAt.Time = time.Now()
@@ -153,8 +156,9 @@ func TestUpdateOrganization(t *testing.T) {
 				CreatedAt: past,
 				UpdatedAt: past,
 			},
-			Name:   "second",
-			Domain: "second.example.com",
+			Name:           "second",
+			Domain:         "second.example.com",
+			AllowedDomains: []string{},
 		}
 		err := CreateOrganization(db, org)
 		assert.NilError(t, err)
@@ -163,6 +167,7 @@ func TestUpdateOrganization(t *testing.T) {
 		updated.Domain = "third.example.com"
 		updated.Name = "next"
 		updated.CreatedBy = 7123
+		updated.AllowedDomains = []string{"example.com"}
 
 		err = UpdateOrganization(tx, &updated)
 		assert.NilError(t, err)
@@ -176,9 +181,10 @@ func TestUpdateOrganization(t *testing.T) {
 				CreatedAt: past,
 				UpdatedAt: time.Now(),
 			},
-			Name:      "next",
-			Domain:    "third.example.com",
-			CreatedBy: 7123,
+			Name:           "next",
+			Domain:         "third.example.com",
+			CreatedBy:      7123,
+			AllowedDomains: []string{"example.com"},
 		}
 		assert.DeepEqual(t, expected, actual, cmpModel)
 	})
@@ -189,16 +195,19 @@ func TestListOrganizations(t *testing.T) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
 
 		first := &models.Organization{
-			Name:   "first",
-			Domain: "first.example.com",
+			Name:           "first",
+			Domain:         "first.example.com",
+			AllowedDomains: []string{},
 		}
 		second := &models.Organization{
-			Name:   "second",
-			Domain: "second.example.com",
+			Name:           "second",
+			Domain:         "second.example.com",
+			AllowedDomains: []string{},
 		}
 		deleted := &models.Organization{
-			Name:   "deleted",
-			Domain: "none.example.com",
+			Name:           "deleted",
+			Domain:         "none.example.com",
+			AllowedDomains: []string{},
 		}
 		deleted.DeletedAt.Valid = true
 		deleted.DeletedAt.Time = time.Now()

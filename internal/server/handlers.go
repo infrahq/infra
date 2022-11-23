@@ -90,12 +90,25 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		return nil, fmt.Errorf("%w: signup is disabled", internal.ErrBadRequest)
 	}
 
+	allowedSocialLoginDomain, err := email.Domain(r.Name)
+	if err != nil {
+		// this should be caught by request validation before we hit this
+		return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
+	}
+	if allowedSocialLoginDomain == "gmail.com" {
+		// the admin will have to manually specify this later, default to no allowed domains
+		allowedSocialLoginDomain = ""
+	}
+
 	keyExpires := time.Now().UTC().Add(a.server.options.SessionDuration)
 
 	suDetails := access.SignupDetails{
-		Name:      r.Name,
-		Password:  r.Password,
-		Org:       &models.Organization{Name: r.Org.Name},
+		Name:     r.Name,
+		Password: r.Password,
+		Org: &models.Organization{
+			Name:           r.Org.Name,
+			AllowedDomains: []string{allowedSocialLoginDomain},
+		},
 		SubDomain: r.Org.Subdomain,
 	}
 	identity, bearer, err := access.Signup(c, keyExpires, a.server.options.BaseDomain, suDetails)
@@ -199,7 +212,18 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			return nil, fmt.Errorf("update provider client: %w", err)
 		}
 
-		loginMethod = authn.NewOIDCAuthentication(r.OIDC.ProviderID, r.OIDC.RedirectURL, r.OIDC.Code, providerClient)
+		loginMethod, err = authn.NewOIDCAuthentication(
+			provider,
+			r.OIDC.RedirectURL,
+			r.OIDC.Code,
+			providerClient,
+			// TODO: specify allowed login domains from rCtx.Authenticated.Organization.AllowedDomains
+			//		 in social login PR #3657
+			[]string{},
+		)
+		if err != nil {
+			return nil, err
+		}
 	default:
 		// make sure to always fail by default
 		return nil, fmt.Errorf("%w: missing login credentials", internal.ErrBadRequest)

@@ -62,11 +62,10 @@ func cleanupURL(url string) string {
 
 func (a *API) CreateProvider(c *gin.Context, r *api.CreateProviderRequest) (*api.Provider, error) {
 	provider := &models.Provider{
-		Name:           r.Name,
-		URL:            cleanupURL(r.URL),
-		ClientID:       r.ClientID,
-		ClientSecret:   models.EncryptedAtRest(r.ClientSecret),
-		AllowedDomains: r.AllowedDomains,
+		Name:         r.Name,
+		URL:          cleanupURL(r.URL),
+		ClientID:     r.ClientID,
+		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
 	if r.API != nil {
@@ -136,11 +135,10 @@ func (a *API) UpdateProvider(c *gin.Context, r *api.UpdateProviderRequest) (*api
 		Model: models.Model{
 			ID: r.ID,
 		},
-		Name:           r.Name,
-		URL:            cleanupURL(r.URL),
-		ClientID:       r.ClientID,
-		ClientSecret:   models.EncryptedAtRest(r.ClientSecret),
-		AllowedDomains: r.AllowedDomains,
+		Name:         r.Name,
+		URL:          cleanupURL(r.URL),
+		ClientID:     r.ClientID,
+		ClientSecret: models.EncryptedAtRest(r.ClientSecret),
 	}
 
 	if r.API != nil {

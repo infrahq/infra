@@ -32,37 +32,15 @@ type Provider struct {
 }
 
 type CreateProviderRequest struct {
-	Name           string                  `json:"name" example:"okta"`
-	URL            string                  `json:"url" example:"infrahq.okta.com"`
-	ClientID       string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret   string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	AllowedDomains []string                `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
-	Kind           string                  `json:"kind" example:"oidc"`
-	API            *ProviderAPICredentials `json:"api"`
+	Name         string                  `json:"name" example:"okta"`
+	URL          string                  `json:"url" example:"infrahq.okta.com"`
+	ClientID     string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string                  `json:"kind" example:"oidc"`
+	API          *ProviderAPICredentials `json:"api"`
 }
 
 var kinds = []string{"oidc", "okta", "azure", "google"}
-
-func ValidateAllowedDomains(value []string) validate.StringSliceRule {
-	return validate.StringSliceRule{
-		Value:     value,
-		Name:      "allowedDomains",
-		MaxLength: 20,
-		ItemRule: validate.StringRule{
-			Name:      "allowedDomains.values",
-			MaxLength: 254,
-			CharacterRanges: []validate.CharRange{
-				validate.AlphabetLower,
-				validate.AlphabetUpper,
-				validate.Numbers,
-				validate.Dash,
-				validate.Dot,
-				validate.Underscore,
-			},
-			FirstCharacterRange: validate.AlphaNumeric,
-		},
-	}
-}
 
 func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
@@ -71,7 +49,6 @@ func (r CreateProviderRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("clientID", r.ClientID),
 		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
-		ValidateAllowedDomains(r.AllowedDomains),
 	}
 }
 
@@ -82,14 +59,13 @@ type PatchProviderRequest struct {
 }
 
 type UpdateProviderRequest struct {
-	ID             uid.ID                  `uri:"id" json:"-"`
-	Name           string                  `json:"name" example:"okta"`
-	URL            string                  `json:"url" example:"infrahq.okta.com"`
-	ClientID       string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
-	ClientSecret   string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
-	AllowedDomains []string                `json:"allowedDomains" example:"['example.com', 'infrahq.com']"`
-	Kind           string                  `json:"kind" example:"oidc"`
-	API            *ProviderAPICredentials `json:"api"`
+	ID           uid.ID                  `uri:"id" json:"-"`
+	Name         string                  `json:"name" example:"okta"`
+	URL          string                  `json:"url" example:"infrahq.okta.com"`
+	ClientID     string                  `json:"clientID" example:"0oapn0qwiQPiMIyR35d6"`
+	ClientSecret string                  `json:"clientSecret" example:"jmda5eG93ax3jMDxTGrbHd_TBGT6kgNZtrCugLbU"`
+	Kind         string                  `json:"kind" example:"oidc"`
+	API          *ProviderAPICredentials `json:"api"`
 }
 
 func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
@@ -101,7 +77,6 @@ func (r UpdateProviderRequest) ValidationRules() []validate.ValidationRule {
 		validate.Required("clientID", r.ClientID),
 		validate.Required("clientSecret", r.ClientSecret),
 		validate.Enum("kind", r.Kind, kinds),
-		ValidateAllowedDomains(r.AllowedDomains),
 	}
 }
 

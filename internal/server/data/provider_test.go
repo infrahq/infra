@@ -275,7 +275,6 @@ func TestUpdateProvider(t *testing.T) {
 				PrivateKey:       "private-key",
 				ClientEmail:      "client-email@example.com",
 				DomainAdminEmail: "domain-admin-email@example.com",
-				AllowedDomains:   []string{"example.com"},
 			}
 			err := UpdateProvider(tx, &updated)
 			assert.NilError(t, err)

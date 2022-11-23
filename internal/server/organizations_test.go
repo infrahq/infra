@@ -31,9 +31,7 @@ func TestAPI_GetOrganization(t *testing.T) {
 	srv := setupServer(t, withAdminUser, withSupportAdminGrant, withMultiOrgEnabled)
 	routes := srv.GenerateRoutes()
 
-	var (
-		first = models.Organization{Name: "first", Domain: "first.com"}
-	)
+	first := models.Organization{Name: "first", Domain: "first.com"}
 
 	createOrgs(t, srv.DB(), &first)
 	createID := func(t *testing.T, name string) uid.ID {
@@ -157,17 +155,20 @@ func TestAPI_GetOrganization(t *testing.T) {
 						"name": "%[2]v",
 						"created": "%[3]v",
 						"updated": "%[3]v",
-						"domain": "%[4]v"
+						"domain": "%[4]v",
+						"allowedDomains": "%[5]v"
 					}`,
 					srv.db.DefaultOrg.ID.String(),
 					srv.db.DefaultOrg.Name,
 					time.Now().UTC().Format(time.RFC3339),
 					srv.db.DefaultOrg.Domain,
+					srv.db.DefaultOrg.AllowedDomains,
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 
-				var cmpAPIOrganizationJSON = gocmp.Options{
+				cmpAPIOrganizationJSON := gocmp.Options{
 					gocmp.FilterPath(pathMapKey(`created`, `updated`), cmpApproximateTime),
+					gocmp.FilterPath(pathMapKey(`allowedDomains`), cmpEquateEmptySlice),
 				}
 				assert.DeepEqual(t, actual, expected, cmpAPIOrganizationJSON)
 			},
@@ -178,7 +179,6 @@ func TestAPI_GetOrganization(t *testing.T) {
 			run(t, tc)
 		})
 	}
-
 }
 
 func TestAPI_ListOrganizations(t *testing.T) {
