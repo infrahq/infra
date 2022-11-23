@@ -41,7 +41,7 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 type keyCreateOptions struct {
 	Name              string
 	UserName          string
-	TTL               time.Duration
+	Expiry            time.Duration
 	InactivityTimeout time.Duration
 	Connector         bool
 	Quiet             bool
@@ -57,7 +57,7 @@ func newKeysAddCmd(cli *CLI) *cobra.Command {
 		Args:  NoArgs,
 		Example: `
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add --ttl=12h --name example-key
+$ infra keys add --expiry=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
 $ infra keys add --connector
@@ -109,7 +109,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 			resp, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 				UserID:            userID,
 				Name:              options.Name,
-				TTL:               api.Duration(options.TTL),
+				Expiry:            api.Duration(options.Expiry),
 				InactivityTimeout: api.Duration(options.InactivityTimeout),
 			})
 			if err != nil {
@@ -132,7 +132,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 			if options.Expiry == oneYear {
 				expMsg.WriteString("1 year")
 			} else {
-				expMsg.WriteString(format.ExactDuration(options.TTL))
+				expMsg.WriteString(format.ExactDuration(options.Expiry))
 			}
 			if !resp.Expires.Equal(resp.InactivityTimeout) {
 				expMsg.WriteString(", and must be used every ")
@@ -160,7 +160,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 	cmd.Flags().StringVar(&options.UserName, "user", "", "The name of the user who will own the key")
 	cmd.Flags().BoolVar(&options.Connector, "connector", false, "Create the key for the connector")
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", false, "Only display the access key")
-	cmd.Flags().DurationVar(&options.TTL, "ttl", oneYear, "The total time that the access key will be valid for")
+	cmd.Flags().DurationVar(&options.Expiry, "expiry", oneYear, "The total time that the access key will be valid for")
 	cmd.Flags().DurationVar(&options.InactivityTimeout, "inactivity-timeout", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd

@@ -33,7 +33,7 @@ func (r ListAccessKeysRequest) ValidationRules() []validate.ValidationRule {
 type CreateAccessKeyRequest struct {
 	UserID            uid.ID   `json:"userID"`
 	Name              string   `json:"name"`
-	TTL               Duration `json:"ttl" note:"maximum time valid"`
+	Expiry            Duration `json:"expiry" note:"maximum time valid"`
 	InactivityTimeout Duration `json:"inactivityTimeout" note:"key must be used within this duration to remain valid"`
 }
 
@@ -41,7 +41,7 @@ func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
 		ValidateName(r.Name),
 		validate.Required("userID", r.UserID),
-		validate.Required("ttl", r.TTL),
+		validate.Required("expiry", r.Expiry),
 		validate.Required("inactivityTimeout", r.InactivityTimeout),
 	}
 }

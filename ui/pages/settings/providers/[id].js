@@ -33,7 +33,7 @@ function SCIMKeyDialog({ provider, setOpen }) {
         body: JSON.stringify({
           userID: provider.id,
           name: keyName,
-          ttl: '87600h',
+          expiry: '87600h',
           inactivityTimeout: '720h',
         }),
       })

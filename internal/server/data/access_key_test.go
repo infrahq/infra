@@ -164,7 +164,7 @@ var anyValidUID = cmp.Comparer(func(x, y uid.ID) bool {
 // PostgreSQL only has microsecond precision
 var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
-func createAccessKeyWithInactivityTimeout(t *testing.T, db WriteTxn, ttl, timeout time.Duration) (string, *models.AccessKey) {
+func createAccessKeyWithInactivityTimeout(t *testing.T, db WriteTxn, expiry, timeout time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
 	err := CreateIdentity(db, identity)
 	assert.NilError(t, err)
@@ -172,7 +172,7 @@ func createAccessKeyWithInactivityTimeout(t *testing.T, db WriteTxn, ttl, timeou
 	token := &models.AccessKey{
 		IssuedFor:         identity.ID,
 		ProviderID:        InfraProvider(db).ID,
-		ExpiresAt:         time.Now().Add(ttl),
+		ExpiresAt:         time.Now().Add(expiry),
 		InactivityTimeout: time.Now().Add(timeout).UTC(),
 	}
 

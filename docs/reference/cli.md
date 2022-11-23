@@ -552,7 +552,7 @@ infra keys add [flags]
 ```bash
 
 # Create an access key named 'example-key' for a user that expires in 12 hours
-$ infra keys add --ttl=12h --name example-key
+$ infra keys add --expiry=12h --name example-key
 
 # Create an access key to add a Kubernetes connection to Infra
 $ infra keys add --connector
@@ -569,7 +569,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
       --inactivity-timeout duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
       --name string                   The name of the access key
   -q, --quiet                         Only display the access key
-      --ttl duration                  The total time that the access key will be valid for (default 8760h0m0s)
+      --expiry duration                  The total time that the access key will be valid for (default 720h0m0s)
       --user string                   The name of the user who will own the key
 ```
 

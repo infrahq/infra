@@ -133,7 +133,7 @@ export default function ProvidersAddDetails() {
         body: JSON.stringify({
           userID: id,
           name: name + '-scim',
-          ttl: '87600h',
+          expiry: '87600h',
           inactivityTimeout: '720h',
         }),
       })

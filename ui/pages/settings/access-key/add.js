@@ -193,11 +193,11 @@ function ExpirationRateMenu({ selected, setSelected }) {
   )
 }
 
-function CalendarInput({ setSelectedTTL, selectedTTL }) {
+function CalendarInput({ setSelectedExpiry, selectedExpiry }) {
   const selectedCustom = moment()
     .add(
-      parseInt(selectedTTL.value),
-      selectedTTL.value.charAt(selectedTTL.value.length - 1)
+      parseInt(selectedExpiry.value),
+      selectedExpiry.value.charAt(selectedExpiry.value.length - 1)
     )
     .format('YYYY/MM/DD')
 
@@ -220,7 +220,7 @@ function CalendarInput({ setSelectedTTL, selectedTTL }) {
                 )
                 .asHours()
 
-              setSelectedTTL({
+              setSelectedExpiry({
                 name: CUSTOM_TITLE,
                 value: duration + 'h',
                 custom: true,
@@ -236,7 +236,7 @@ function CalendarInput({ setSelectedTTL, selectedTTL }) {
 }
 
 export default function AccessKey() {
-  const [selectedTTL, setSelectedTTL] = useState(EXPIRATION_RATE[0])
+  const [selectedExpiry, setSelectedExpiry] = useState(EXPIRATION_RATE[0])
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [generatedAccessKey, setGeneratedAccessKey] = useState('')
@@ -259,7 +259,7 @@ export default function AccessKey() {
         body: JSON.stringify({
           name,
           userID: user.id,
-          ttl: selectedTTL.value,
+          expiry: selectedExpiry.value,
           inactivityTimeout: '720h',
         }),
       })
@@ -322,29 +322,29 @@ export default function AccessKey() {
             </label>
             <div className='flex flex-col sm:flex-row sm:items-center'>
               <ExpirationRateMenu
-                selected={selectedTTL}
-                setSelected={setSelectedTTL}
+                selected={selectedExpiry}
+                setSelected={setSelectedExpiry}
               />
-              {selectedTTL.custom && (
+              {selectedExpiry.custom && (
                 <div className='mt-4 sm:ml-4 sm:mt-0'>
                   <CalendarInput
-                    selectedTTL={selectedTTL}
-                    setSelectedTTL={setSelectedTTL}
+                    selectedExpiry={selectedExpiry}
+                    setSelectedExpiry={setSelectedExpiry}
                   />
                 </div>
               )}
             </div>
           </div>
-          {selectedTTL?.value && (
+          {selectedExpiry?.value && (
             <div className='space-y-1 pt-6 text-xs text-gray-500'>
-              {selectedTTL.value === EXPIRATION_RATE[0].value ? (
+              {selectedExpiry.value === EXPIRATION_RATE[0].value ? (
                 <div>
                   This access key will expire on{' '}
                   <span className='font-semibold text-gray-900'>
                     {moment()
                       .add(
-                        parseInt(selectedTTL.value),
-                        selectedTTL.value.charAt(selectedTTL.value.length - 1)
+                        parseInt(selectedExpiry.value),
+                        selectedExpiry.value.charAt(selectedExpiry.value.length - 1)
                       )
                       .format('h:mm:ss a, MMMM Do YYYY')}
                   </span>
@@ -361,9 +361,9 @@ export default function AccessKey() {
                     <span className='font-semibold text-gray-900'>
                       {moment()
                         .add(
-                          parseInt(selectedTTL?.value),
-                          selectedTTL?.value?.charAt(
-                            selectedTTL?.value.length - 1
+                          parseInt(selectedExpiry?.value),
+                          selectedExpiry?.value?.charAt(
+                            selectedExpiry?.value.length - 1
                           )
                         )
                         .format('h:mm:ss a, MMMM Do YYYY')}

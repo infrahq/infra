@@ -1581,6 +1581,12 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "expiry": {
+                    "description": "maximum time valid",
+                    "example": "72h3m6.5s",
+                    "format": "duration",
+                    "type": "string"
+                  },
                   "inactivityTimeout": {
                     "description": "key must be used within this duration to remain valid",
                     "example": "72h3m6.5s",
@@ -1593,12 +1599,6 @@
                     "minLength": 2,
                     "type": "string"
                   },
-                  "ttl": {
-                    "description": "maximum time valid",
-                    "example": "72h3m6.5s",
-                    "format": "duration",
-                    "type": "string"
-                  },
                   "userID": {
                     "example": "4yJ3n3D8E2",
                     "format": "uid",
@@ -1608,7 +1608,7 @@
                 },
                 "required": [
                   "userID",
-                  "ttl",
+                  "expiry",
                   "inactivityTimeout"
                 ],
                 "type": "object"

@@ -51,7 +51,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 			setup: func(t *testing.T) api.CreateAccessKeyRequest {
 				return api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
-					TTL:               api.Duration(time.Minute),
+					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},
@@ -70,7 +70,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 				return api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					Name:              "mysupersecretaccesskey",
-					TTL:               api.Duration(time.Minute),
+					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},
@@ -89,7 +89,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 				return api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					Name:              "this-name-should-not-contain-slash/",
-					TTL:               api.Duration(time.Minute),
+					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},

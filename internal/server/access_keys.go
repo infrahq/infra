@@ -38,7 +38,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 	accessKey := &models.AccessKey{
 		IssuedFor:           r.UserID,
 		Name:                r.Name,
-		ExpiresAt:           time.Now().UTC().Add(time.Duration(r.TTL)),
+		ExpiresAt:           time.Now().UTC().Add(time.Duration(r.Expiry)),
 		InactivityExtension: time.Duration(r.InactivityTimeout),
 		InactivityTimeout:   time.Now().UTC().Add(time.Duration(r.InactivityTimeout)),
 	}

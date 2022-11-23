@@ -37,7 +37,7 @@ func (a *API) addRequestRewrites() {
 		return api.CreateAccessKeyRequest{
 			UserID:            o.UserID,
 			Name:              o.Name,
-			TTL:               o.TTL,
+			Expiry:            o.TTL,
 			InactivityTimeout: o.ExtensionDeadline,
 		}
 	})
