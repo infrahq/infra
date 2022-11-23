@@ -14,7 +14,7 @@ import (
 
 const (
 	thirtyDays = 30 * (24 * time.Hour)
-	oneYear    = 366 * (24 * time.Hour) // leap year
+	oneYear    = 365 * (24 * time.Hour)
 )
 
 func newKeysCmd(cli *CLI) *cobra.Command {
