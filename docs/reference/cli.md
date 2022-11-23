@@ -566,10 +566,10 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 
 ```console
       --connector                     Create the key for the connector
+      --expiry duration               The total time that the access key will be valid for (default 8760h0m0s)
       --inactivity-timeout duration   A specified deadline that the access key must be used within to remain valid (default 720h0m0s)
       --name string                   The name of the access key
   -q, --quiet                         Only display the access key
-      --expiry duration                  The total time that the access key will be valid for (default 720h0m0s)
       --user string                   The name of the user who will own the key
 ```
 
