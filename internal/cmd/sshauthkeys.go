@@ -21,9 +21,9 @@ func init() {
 	// TODO: log to stderr if this fails?
 	syslog, _ := logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
 	if syslog != nil {
-		out = append(out, syslog)
+		out = append(out, zerolog.SyslogLevelWriter(syslog))
 	}
-	logger = zerolog.New(io.MultiWriter(out...))
+	logger = zerolog.New(zerolog.MultiLevelWriter(out...))
 }
 
 type sshAuthKeysOptions struct {
@@ -58,9 +58,6 @@ func newSSHAuthKeysCmd(cli *CLI) *cobra.Command {
 }
 
 func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
-	// TODO:
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
 	ctx := context.Background()
 	logger.Info().Msg("Running infra ssh auth-keys")
 	logger.Debug().Msgf("Fingerprint=%v Username=%v", opts.fingerprint, opts.username)
