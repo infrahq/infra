@@ -660,7 +660,7 @@ func createOrUpdateDestination(ctx context.Context, client apiClient, local *api
 
 // updateDestination updates a destination in the infra server
 func updateDestination(ctx context.Context, client apiClient, local *api.Destination) error {
-	logging.Debugf("updating information at server")
+	logging.Debugf("updating destination details")
 
 	request := api.UpdateDestinationRequest{
 		ID:         local.ID,

@@ -1,10 +1,53 @@
 package connector
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/uid"
 )
+
+func TestUpdateLocalUsers(t *testing.T) {
+	logDir := t.TempDir()
+	logFile := filepath.Join(logDir, "users.log")
+	cwd, _ := os.Getwd()
+	t.Setenv("PATH", filepath.Join(cwd, "testdata/bin")+":"+os.Getenv("PATH"))
+	t.Setenv("TEST_CONNECTOR_USER_LOG_FILE", logFile)
+
+	etcPasswdFilename = "testdata/localusers-etcpasswd"
+	t.Cleanup(func() {
+		etcPasswdFilename = "/etc/passwd"
+	})
+
+	ctx := context.Background()
+	fakeClient := &fakeAPIClient{
+		users: map[uid.ID]api.User{
+			1111: {ID: 1111, Name: "one@example.com", SSHUsername: "one111"},
+			2222: {ID: 2222, Name: "two@example.com", SSHUsername: "two222"},
+		},
+	}
+	grants := []api.Grant{
+		{ID: 123, User: 1111, Privilege: "connect"},
+		{ID: 124, User: 2222, Privilege: "connect"},
+	}
+
+	err := updateLocalUsers(ctx, fakeClient, grants)
+	assert.NilError(t, err)
+
+	actual, err := os.ReadFile(logFile)
+	assert.NilError(t, err)
+
+	expected := `pkill '--uid' 'three333' 
+userdel '--remove' 'three333' 
+useradd '--comment' 'Ej,managed by infra' '-m' '-p' '*' 'two222' 
+`
+	assert.Equal(t, expected, string(actual))
+}
 
 func TestReadHostKeysFromDir(t *testing.T) {
 	hostKeys, err := readHostKeysFromDir("./testdata/etcssh")

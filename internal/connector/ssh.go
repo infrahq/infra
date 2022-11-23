@@ -111,18 +111,20 @@ func readHostKeys(in []byte, out io.Writer) error {
 	return err
 }
 
+// etcPasswdFilename is a shim for testing.
+var etcPasswdFilename = "/etc/passwd"
+
 // TODO: grants for groups need to be resolved to a user somehow
-func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Grant) error {
+func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant) error {
 	byUserID := grantsByUserID(grants)
 
-	// List all the local users
-	localUsers, err := readLocalUsers("/etc/passwd")
+	localUsers, err := readLocalUsers(etcPasswdFilename)
 	if err != nil {
 		return err
 	}
 
 	// Compare that list to the grants to get a list to remove and a list to add
-	toDelete := []localUser{}
+	var toDelete []localUser
 	for _, user := range localUsers {
 		if !user.IsManagedByInfra() {
 			continue
@@ -135,23 +137,23 @@ func updateLocalUsers(ctx context.Context, client *api.Client, grants []api.Gran
 		delete(byUserID, infraUID)
 	}
 
-	// Remove users
-	// TODO:
 	for _, user := range toDelete {
-		logging.Infof("TODO: delete : %v", user.Username)
+		if err := removeLinuxUser(user); err != nil {
+			return fmt.Errorf("remove user: %w", err)
+		}
+		logging.L.Info().Str("username", user.Username).Msg("removed user")
 	}
 
-	// Add users
 	for _, grant := range byUserID {
 		user, err := client.GetUser(ctx, grant.User)
 		if err != nil {
 			return fmt.Errorf("get user: %w", err)
 		}
 
-		// TODO: log the user was created
 		if err := addLinuxUser(user); err != nil {
-			return err
+			return fmt.Errorf("create user: %w", err)
 		}
+		logging.L.Info().Str("username", user.SSHUsername).Msg("created user")
 	}
 
 	return nil
@@ -171,10 +173,28 @@ func addLinuxUser(user *api.User) error {
 		"-m", "-p", "*", user.SSHUsername,
 	}
 	cmd := exec.Command("useradd", args...)
-	// TODO: capture error to syslog
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = logging.L
+	cmd.Stderr = logging.L
 	return cmd.Run()
+}
+
+func removeLinuxUser(user localUser) error {
+	//nolint:gosec
+	cmd := exec.Command("pkill", "--uid", user.Username)
+	cmd.Stdout = logging.L
+	cmd.Stderr = logging.L
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("kill processes: %w", err)
+	}
+
+	//nolint:gosec
+	cmd = exec.Command("userdel", "--remove", user.Username)
+	cmd.Stdout = logging.L
+	cmd.Stderr = logging.L
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("userdel: %w", err)
+	}
+	return nil
 }
 
 type localUser struct {

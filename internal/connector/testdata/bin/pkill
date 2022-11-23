@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+set -eu
+(echo -n "pkill "; printf "'%s' " "$@"; echo) >> ${TEST_CONNECTOR_USER_LOG_FILE}

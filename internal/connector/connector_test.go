@@ -367,6 +367,8 @@ type fakeAPIClient struct {
 	listGrantsResult  *api.ListResponse[api.Grant]
 	listGrantsError   error
 	listGrantsIndexes []int64
+
+	users map[uid.ID]api.User
 }
 
 func (f *fakeAPIClient) ListGrants(ctx context.Context, req api.ListGrantsRequest) (*api.ListResponse[api.Grant], error) {
@@ -379,6 +381,9 @@ func (f *fakeAPIClient) GetGroup(ctx context.Context, id uid.ID) (*api.Group, er
 }
 
 func (f *fakeAPIClient) GetUser(ctx context.Context, id uid.ID) (*api.User, error) {
+	if user, ok := f.users[id]; ok {
+		return &user, nil
+	}
 	return &api.User{Name: "theuser@example.com"}, nil
 }
 
