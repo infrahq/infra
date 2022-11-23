@@ -9,6 +9,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/api"
+	data "github.com/infrahq/infra/internal/linux"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -62,9 +63,9 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDNpxkQM9F1eTnfcxjLSqJ1W5v+e8x2jKpHPZdpB9Ug
 }
 
 func TestReadLocalUsers(t *testing.T) {
-	actual, err := readLocalUsers("./testdata/etcpasswd")
+	actual, err := data.ReadLocalUsers("./testdata/etcpasswd")
 	assert.NilError(t, err)
-	expected := []localUser{
+	expected := []data.LocalUser{
 		{
 			Username: "root",
 			Info:     []string{"root"},

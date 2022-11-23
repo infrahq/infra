@@ -59,8 +59,10 @@ func newSSHAuthKeysCmd(cli *CLI) *cobra.Command {
 
 func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 	ctx := context.Background()
-	logger.Info().Msg("Running infra ssh auth-keys")
-	logger.Debug().Msgf("Fingerprint=%v Username=%v", opts.fingerprint, opts.username)
+	logger.Debug().
+		Str("username", opts.username).
+		Str("fingerprint", opts.fingerprint).
+		Msgf("Running infra ssh auth-keys")
 
 	// This command only uses a small subset of these options, but its expected
 	// that it runs in the same environment as the ssh connector, so may as well

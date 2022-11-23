@@ -1,12 +1,10 @@
 package connector
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/infrahq/infra/api"
+	"github.com/infrahq/infra/internal/linux"
 	"github.com/infrahq/infra/internal/logging"
 	"github.com/infrahq/infra/internal/repeat"
 )
@@ -118,13 +117,13 @@ var etcPasswdFilename = "/etc/passwd"
 func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant) error {
 	byUserID := grantsByUserID(grants)
 
-	localUsers, err := readLocalUsers(etcPasswdFilename)
+	localUsers, err := linux.ReadLocalUsers(etcPasswdFilename)
 	if err != nil {
 		return err
 	}
 
 	// Compare that list to the grants to get a list to remove and a list to add
-	var toDelete []localUser
+	var toDelete []linux.LocalUser
 	for _, user := range localUsers {
 		if !user.IsManagedByInfra() {
 			continue
@@ -138,7 +137,7 @@ func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant)
 	}
 
 	for _, user := range toDelete {
-		if err := removeLinuxUser(user); err != nil {
+		if err := linux.RemoveUser(user); err != nil {
 			return fmt.Errorf("remove user: %w", err)
 		}
 		logging.L.Info().Str("username", user.Username).Msg("removed user")
@@ -150,7 +149,7 @@ func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant)
 			return fmt.Errorf("get user: %w", err)
 		}
 
-		if err := addLinuxUser(user); err != nil {
+		if err := linux.AddUser(user); err != nil {
 			return fmt.Errorf("create user: %w", err)
 		}
 		logging.L.Info().Str("username", user.SSHUsername).Msg("created user")
@@ -165,83 +164,4 @@ func grantsByUserID(grants []api.Grant) map[string]api.Grant {
 		result[grant.User.String()] = grant
 	}
 	return result
-}
-
-func addLinuxUser(user *api.User) error {
-	args := []string{
-		"--comment", fmt.Sprintf("%v,%v", user.ID, sentinelManagedByInfra),
-		"-m", "-p", "*", user.SSHUsername,
-	}
-	cmd := exec.Command("useradd", args...)
-	cmd.Stdout = logging.L
-	cmd.Stderr = logging.L
-	return cmd.Run()
-}
-
-func removeLinuxUser(user localUser) error {
-	//nolint:gosec
-	cmd := exec.Command("pkill", "--uid", user.Username)
-	cmd.Stdout = logging.L
-	cmd.Stderr = logging.L
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("kill processes: %w", err)
-	}
-
-	//nolint:gosec
-	cmd = exec.Command("userdel", "--remove", user.Username)
-	cmd.Stdout = logging.L
-	cmd.Stderr = logging.L
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("userdel: %w", err)
-	}
-	return nil
-}
-
-type localUser struct {
-	Username string
-	UID      string
-	GID      string
-	Info     []string
-	HomeDir  string
-}
-
-const sentinelManagedByInfra = "managed by infra"
-
-func (u localUser) IsManagedByInfra() bool {
-	return len(u.Info) > 1 && u.Info[1] == sentinelManagedByInfra
-}
-
-func readLocalUsers(filename string) ([]localUser, error) {
-	fh, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer fh.Close() // read-only file, safe to ignore errors
-	scan := bufio.NewScanner(fh)
-
-	var result []localUser
-	for scan.Scan() {
-		line := strings.TrimSpace(scan.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		fields := strings.Split(line, ":")
-		if len(fields) < 7 {
-			return nil, fmt.Errorf("invalid line contains less than 7 fields")
-		}
-		result = append(result, localUser{
-			Username: fields[0],
-			// field 1 is not used
-			UID:     fields[2],
-			GID:     fields[3],
-			Info:    strings.FieldsFunc(fields[4], isRuneComma),
-			HomeDir: fields[5],
-			// field 6 is login shell
-		})
-	}
-	return result, scan.Err()
-}
-
-func isRuneComma(r rune) bool {
-	return r == ','
 }
