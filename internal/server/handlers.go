@@ -95,7 +95,7 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		// this should be caught by request validation before we hit this
 		return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
-	if allowedSocialLoginDomain == "gmail.com" {
+	if allowedSocialLoginDomain == "gmail.com" || allowedSocialLoginDomain == "googlemail.com" {
 		// the admin will have to manually specify this later, default to no allowed domains
 		allowedSocialLoginDomain = ""
 	}

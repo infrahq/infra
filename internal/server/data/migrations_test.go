@@ -870,12 +870,6 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				// schema changes are tested with schema comparison
 			},
 		},
-		{
-			label: testCaseLine(addManagedFlagToProvidersTable().ID),
-			expected: func(t *testing.T, db WriteTxn) {
-				// schema changes are tested with schema comparison
-			},
-		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

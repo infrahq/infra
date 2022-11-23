@@ -77,7 +77,6 @@ func migrations() []*migrator.Migration {
 		fixDefaultOrgCreatedByMigration(),
 		modifyAccessKeysIndex(),
 		moveAllowedDomainsToOrganizationsTable(),
-		addManagedFlagToProvidersTable(),
 		// next one here
 	}
 }
@@ -940,19 +939,6 @@ func moveAllowedDomainsToOrganizationsTable() *migrator.Migration {
 			}
 
 			stmt = `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS allowed_domains text DEFAULT ''`
-			_, err := tx.Exec(stmt)
-			return err
-		},
-	}
-}
-
-func addManagedFlagToProvidersTable() *migrator.Migration {
-	return &migrator.Migration{
-		ID: "2022-11-23T13:00",
-		Migrate: func(tx migrator.DB) error {
-			stmt := `
-				ALTER TABLE providers ADD COLUMN IF NOT EXISTS managed boolean DEFAULT false;
-			`
 			_, err := tx.Exec(stmt)
 			return err
 		},

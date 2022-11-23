@@ -8,8 +8,10 @@ import (
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/server/data"
+	"github.com/infrahq/infra/internal/server/email"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/providers"
+	"golang.org/x/exp/slices"
 )
 
 type oidcAuthn struct {
@@ -44,7 +46,24 @@ func (a *oidcAuthn) Authenticate(ctx context.Context, db *data.Transaction, requ
 		return AuthenticatedIdentity{}, fmt.Errorf("exhange code for tokens: %w", err)
 	}
 
-	// TODO: check allowed domains here in the case of social login
+	if a.Provider.Managed {
+		// this is a social login, check if they can access this org
+		domain, err := email.Domain(idpAuth.Email)
+		if err != nil {
+			return AuthenticatedIdentity{}, err
+		}
+		if !slices.Contains(a.AllowedDomains, domain) {
+			// check if the user has been added manually
+			_, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email})
+			if err != nil {
+				if errors.Is(err, internal.ErrNotFound) {
+					return AuthenticatedIdentity{}, fmt.Errorf("%s is not an allowed email domain or existing user", domain)
+				}
+				// someting else went wrong getting the user
+				return AuthenticatedIdentity{}, fmt.Errorf("check user identity on social oidc login: %w", err)
+			}
+		}
+	}
 
 	identity, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: idpAuth.Email, LoadGroups: true})
 	if err != nil {

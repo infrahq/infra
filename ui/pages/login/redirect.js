@@ -23,7 +23,7 @@ export default function Redirect() {
         '&state=' +
         state
       const org = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
-      if (org !== undefined && org !== '') {
+      if (org) {
         // build the callback URL to finish the login at the org
         callbackURL = org + '.' + callbackURL
         // login redirect is complete so we no longer need this cookie
