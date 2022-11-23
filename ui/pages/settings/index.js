@@ -453,7 +453,7 @@ export default function Settings() {
             <div className='mt-3 flex min-h-0 flex-1 flex-col'>
               <Table
                 href={row => `/settings/providers/${row.original.id}`}
-                data={providers}
+                data={providers?.filter(p => p.id !== '')} // remove google login provider
                 empty='No providers'
                 columns={[
                   {
