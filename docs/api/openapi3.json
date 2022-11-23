@@ -396,9 +396,13 @@
             "type": "string"
           },
           "name": {
+            "description": "Name of the group",
+            "example": "admins",
             "type": "string"
           },
           "totalUsers": {
+            "description": "Total number of users in the group",
+            "example": "14",
             "format": "int",
             "type": "integer"
           },
@@ -532,18 +536,22 @@
                   "type": "string"
                 },
                 "id": {
+                  "description": "ID of the access key",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "issuedFor": {
+                  "description": "ID of the user the key was issued to",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "issuedForName": {
+                  "description": "Name of the user the key was issued to",
+                  "example": "admin@example.com",
                   "type": "string"
                 },
                 "lastUsed": {
@@ -553,9 +561,12 @@
                   "type": "string"
                 },
                 "name": {
+                  "description": "Name of the access key",
+                  "example": "cicdkey",
                   "type": "string"
                 },
                 "providerID": {
+                  "description": "ID of the provider if the user is managed by an OIDC provider",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -744,9 +755,13 @@
                   "type": "string"
                 },
                 "name": {
+                  "description": "Name of the group",
+                  "example": "admins",
                   "type": "string"
                 },
                 "totalUsers": {
+                  "description": "Total number of users in the group",
+                  "example": "14",
                   "format": "int",
                   "type": "integer"
                 },
@@ -865,10 +880,12 @@
             "items": {
               "properties": {
                 "authURL": {
+                  "description": "Authorize endpoint for the OIDC provider",
                   "example": "https://example.com/oauth2/v1/authorize",
                   "type": "string"
                 },
                 "clientID": {
+                  "description": "Client ID for the OIDC provider",
                   "example": "0oapn0qwiQPiMIyR35d6",
                   "type": "string"
                 },
@@ -879,22 +896,27 @@
                   "type": "string"
                 },
                 "id": {
+                  "description": "Provider ID",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "kind": {
+                  "description": "Kind of provider",
                   "example": "oidc",
                   "type": "string"
                 },
                 "name": {
+                  "description": "Name of the provider",
                   "example": "okta",
                   "type": "string"
                 },
                 "scopes": {
+                  "description": "Scopes set in the OIDC provider configuration",
                   "example": "['openid', 'email']",
                   "items": {
+                    "description": "Scopes set in the OIDC provider configuration",
                     "example": "['openid', 'email']",
                     "type": "string"
                   },
@@ -907,6 +929,7 @@
                   "type": "string"
                 },
                 "url": {
+                  "description": "URL of the Infra Server",
                   "example": "infrahq.okta.com",
                   "type": "string"
                 }
@@ -959,6 +982,7 @@
                   "type": "string"
                 },
                 "id": {
+                  "description": "User ID",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -971,10 +995,16 @@
                   "type": "string"
                 },
                 "name": {
+                  "description": "Name of the user",
+                  "example": "bob@example.com",
                   "type": "string"
                 },
                 "providerNames": {
+                  "description": "List of providers this user belongs to",
+                  "example": "['okta']",
                   "items": {
+                    "description": "List of providers this user belongs to",
+                    "example": "['okta']",
                     "type": "string"
                   },
                   "type": "array"
@@ -1075,10 +1105,12 @@
       "Provider": {
         "properties": {
           "authURL": {
+            "description": "Authorize endpoint for the OIDC provider",
             "example": "https://example.com/oauth2/v1/authorize",
             "type": "string"
           },
           "clientID": {
+            "description": "Client ID for the OIDC provider",
             "example": "0oapn0qwiQPiMIyR35d6",
             "type": "string"
           },
@@ -1089,22 +1121,27 @@
             "type": "string"
           },
           "id": {
+            "description": "Provider ID",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "kind": {
+            "description": "Kind of provider",
             "example": "oidc",
             "type": "string"
           },
           "name": {
+            "description": "Name of the provider",
             "example": "okta",
             "type": "string"
           },
           "scopes": {
+            "description": "Scopes set in the OIDC provider configuration",
             "example": "['openid', 'email']",
             "items": {
+              "description": "Scopes set in the OIDC provider configuration",
               "example": "['openid', 'email']",
               "type": "string"
             },
@@ -1117,6 +1154,7 @@
             "type": "string"
           },
           "url": {
+            "description": "URL of the Infra Server",
             "example": "infrahq.okta.com",
             "type": "string"
           }
@@ -1173,6 +1211,7 @@
             "type": "string"
           },
           "id": {
+            "description": "User ID",
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -1185,10 +1224,16 @@
             "type": "string"
           },
           "name": {
+            "description": "Name of the user",
+            "example": "bob@example.com",
             "type": "string"
           },
           "providerNames": {
+            "description": "List of providers this user belongs to",
+            "example": "['okta']",
             "items": {
+              "description": "List of providers this user belongs to",
+              "example": "['okta']",
               "type": "string"
             },
             "type": "array"
@@ -1248,9 +1293,13 @@
             }
           },
           {
+            "description": "Name of the access key to delete",
+            "example": "cicdkey",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the access key to delete",
+              "example": "cicdkey",
               "format": "[a-zA-Z0-9\\-_.]",
               "maxLength": 256,
               "minLength": 2,
@@ -1352,9 +1401,11 @@
             }
           },
           {
+            "description": "UserID of the user whose access keys you want to list",
             "in": "query",
             "name": "userID",
             "schema": {
+              "description": "UserID of the user whose access keys you want to list",
               "example": "4yJ3n3D8E2",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -1362,16 +1413,24 @@
             }
           },
           {
+            "description": "Name of the user",
+            "example": "john@example.com",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the user",
+              "example": "john@example.com",
               "type": "string"
             }
           },
           {
+            "description": "Whether to show expired access keys. Defaults to false",
+            "example": "true",
             "in": "query",
             "name": "showExpired",
             "schema": {
+              "description": "Whether to show expired access keys. Defaults to false",
+              "example": "true",
               "type": "boolean"
             }
           },
@@ -3048,7 +3107,9 @@
               "schema": {
                 "properties": {
                   "grantsToAdd": {
+                    "description": "List of grant objects. See POST api/grants for more",
                     "items": {
+                      "description": "List of grant objects. See POST api/grants for more",
                       "oneOf": [
                         {
                           "required": [
@@ -3116,7 +3177,9 @@
                     "type": "array"
                   },
                   "grantsToRemove": {
+                    "description": "List of grant objects. See POST api/grants for more",
                     "items": {
+                      "description": "List of grant objects. See POST api/grants for more",
                       "oneOf": [
                         {
                           "required": [
@@ -3662,16 +3725,22 @@
             }
           },
           {
+            "description": "Name of the group to retrieve",
+            "example": "admins",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the group to retrieve",
+              "example": "admins",
               "type": "string"
             }
           },
           {
+            "description": "UserID of a user who is a member of the group",
             "in": "query",
             "name": "userID",
             "schema": {
+              "description": "UserID of a user who is a member of the group",
               "example": "4yJ3n3D8E2",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -5173,10 +5242,12 @@
             }
           },
           {
+            "description": "Name of the provider",
             "example": "okta",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the provider",
               "example": "okta",
               "type": "string"
             }
@@ -6368,27 +6439,37 @@
             }
           },
           {
+            "description": "Name of the user",
+            "example": "bob@example.com",
             "in": "query",
             "name": "name",
             "schema": {
+              "description": "Name of the user",
+              "example": "bob@example.com",
               "type": "string"
             }
           },
           {
+            "description": "Group the user belongs to",
+            "example": "admins",
             "in": "query",
             "name": "group",
             "schema": {
-              "example": "4yJ3n3D8E2",
+              "description": "Group the user belongs to",
+              "example": "admins",
               "format": "uid",
               "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
               "type": "string"
             }
           },
           {
+            "description": "List of User IDs",
             "in": "query",
             "name": "ids",
             "schema": {
+              "description": "List of User IDs",
               "items": {
+                "description": "List of User IDs",
                 "example": "4yJ3n3D8E2",
                 "format": "uid",
                 "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
@@ -6399,10 +6480,12 @@
           },
           {
             "description": "if true, this shows the connector and other internal users",
+            "example": "false",
             "in": "query",
             "name": "showSystem",
             "schema": {
               "description": "if true, this shows the connector and other internal users",
+              "example": "false",
               "type": "boolean"
             }
           },

@@ -16,19 +16,19 @@ func (r GetUserRequest) ValidationRules() []validate.ValidationRule {
 }
 
 type User struct {
-	ID            uid.ID   `json:"id"`
+	ID            uid.ID   `json:"id" note:"User ID"`
 	Created       Time     `json:"created"`
 	Updated       Time     `json:"updated"`
 	LastSeenAt    Time     `json:"lastSeenAt"`
-	Name          string   `json:"name"`
-	ProviderNames []string `json:"providerNames,omitempty"`
+	Name          string   `json:"name" note:"Name of the user" example:"bob@example.com"`
+	ProviderNames []string `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
 }
 
 type ListUsersRequest struct {
-	Name       string   `form:"name"`
-	Group      uid.ID   `form:"group"`
-	IDs        []uid.ID `form:"ids"`
-	ShowSystem bool     `form:"showSystem" note:"if true, this shows the connector and other internal users"`
+	Name       string   `form:"name" note:"Name of the user" example:"bob@example.com"`
+	Group      uid.ID   `form:"group" note:"Group the user belongs to" example:"admins"`
+	IDs        []uid.ID `form:"ids" note:"List of User IDs"`
+	ShowSystem bool     `form:"showSystem" note:"if true, this shows the connector and other internal users" example:"false"`
 	PaginationRequest
 }
 
