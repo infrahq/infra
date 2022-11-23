@@ -208,7 +208,6 @@ func New(options Options) (*Server, error) {
 			Kind:         models.ProviderKindGoogle,
 			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
 			Scopes:       []string{"openid", "email"}, // TODO: update once our social client has groups
-			Managed:      true,
 		}
 	}
 

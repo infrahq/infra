@@ -29,7 +29,6 @@ type Provider struct {
 	Kind     string   `json:"kind" example:"oidc" note:"Kind of provider"`
 	AuthURL  string   `json:"authURL" example:"https://example.com/oauth2/v1/authorize" note:"Authorize endpoint for the OIDC provider"`
 	Scopes   []string `json:"scopes" example:"['openid', 'email']" note:"Scopes set in the OIDC provider configuration"`
-	Managed  bool     `json:"managed" note:"Indicates this identity provider is managed by Infra and cannot be modified"`
 }
 
 type CreateProviderRequest struct {

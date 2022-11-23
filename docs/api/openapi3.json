@@ -917,10 +917,6 @@
                   "example": "oidc",
                   "type": "string"
                 },
-                "managed": {
-                  "description": "Indicates this identity provider is managed by Infra and cannot be modified",
-                  "type": "boolean"
-                },
                 "name": {
                   "description": "Name of the provider",
                   "example": "okta",
@@ -1155,10 +1151,6 @@
             "description": "Kind of provider",
             "example": "oidc",
             "type": "string"
-          },
-          "managed": {
-            "description": "Indicates this identity provider is managed by Infra and cannot be modified",
-            "type": "boolean"
           },
           "name": {
             "description": "Name of the provider",

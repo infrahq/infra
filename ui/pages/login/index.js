@@ -17,7 +17,7 @@ import {
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
-function oidcLogin({ id, clientID, authURL, scopes, managed }, next) {
+function oidcLogin({ id, clientID, authURL, scopes }, next) {
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)
@@ -29,7 +29,7 @@ function oidcLogin({ id, clientID, authURL, scopes, managed }, next) {
   window.localStorage.setItem('state', state)
 
   let redirectURL = window.location.origin + '/login/callback'
-  if (managed) {
+  if (id === '') {
     // managed oidc providers (social login) need to be sent to the base redirect URL before they are redirected to org login
     persistLoginRedirectCookie(currentOrg())
     redirectURL =
