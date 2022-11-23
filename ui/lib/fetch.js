@@ -1,6 +1,6 @@
 const fetch = global.fetch
 
-const base = '0.17.0'
+const base = '0.18.1'
 
 // Patch the global fetch to include our base API
 // version for requests to the same domain

@@ -31,7 +31,7 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 	t.Helper()
 	options := Options{
 		SessionDuration:          10 * time.Minute,
-		SessionExtensionDeadline: 30 * time.Minute,
+		SessionInactivityTimeout: 30 * time.Minute,
 		API: APIOptions{
 			RequestTimeout:         time.Minute,
 			BlockingRequestTimeout: 5 * time.Minute,
@@ -350,7 +350,7 @@ func TestServer_PersistSignupUser(t *testing.T) {
 		opts.EnableSignup = true
 		opts.BaseDomain = "example.com"
 		opts.SessionDuration = time.Minute
-		opts.SessionExtensionDeadline = time.Minute
+		opts.SessionInactivityTimeout = time.Minute
 	})
 	routes := s.GenerateRoutes()
 

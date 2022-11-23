@@ -468,11 +468,11 @@ func TestAuthenticateRequest(t *testing.T) {
 	createIdentities(t, tx, user)
 
 	token := &models.AccessKey{
-		IssuedFor:          user.ID,
-		ProviderID:         data.InfraProvider(tx).ID,
-		ExpiresAt:          time.Now().Add(10 * time.Second),
-		Extension:          time.Hour,
-		OrganizationMember: models.OrganizationMember{OrganizationID: org.ID},
+		IssuedFor:           user.ID,
+		ProviderID:          data.InfraProvider(tx).ID,
+		ExpiresAt:           time.Now().Add(10 * time.Second),
+		InactivityExtension: time.Hour,
+		OrganizationMember:  models.OrganizationMember{OrganizationID: org.ID},
 	}
 
 	key, err := data.CreateAccessKey(tx, token)
@@ -565,7 +565,7 @@ func TestAuthenticateRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "LastSeenAt and ExtensionDeadline are updated",
+			name: "LastSeenAt and InactivityTimeout are updated",
 			setup: func(t *testing.T, req *http.Request) {
 				tx := txnForTestCase(t, srv.db, org.ID)
 				user := *user // shallow copy user
@@ -573,7 +573,7 @@ func TestAuthenticateRequest(t *testing.T) {
 				assert.NilError(t, data.UpdateIdentity(tx, &user))
 
 				ak := *token // shallow copy access key
-				ak.ExtensionDeadline = time.Now().Add(2 * time.Minute)
+				ak.InactivityTimeout = time.Now().Add(2 * time.Minute)
 				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
 
 				assert.NilError(t, tx.Commit())
@@ -590,12 +590,12 @@ func TestAuthenticateRequest(t *testing.T) {
 
 				ak, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{ByID: token.ID})
 				assert.NilError(t, err)
-				assert.DeepEqual(t, ak.ExtensionDeadline, time.Now().Add(token.Extension),
+				assert.DeepEqual(t, ak.InactivityTimeout, time.Now().Add(token.InactivityExtension),
 					opt.TimeWithThreshold(time.Second))
 			},
 		},
 		{
-			name: "LastSeenAt and ExtensionDeadline updates are throttled",
+			name: "LastSeenAt and InactivityTimeout updates are throttled",
 			setup: func(t *testing.T, req *http.Request) {
 				now = time.Now().Truncate(time.Microsecond) // truncate to DB precision
 
@@ -605,7 +605,7 @@ func TestAuthenticateRequest(t *testing.T) {
 				assert.NilError(t, data.UpdateIdentity(tx, &user))
 
 				ak := *token // shallow copy access key
-				ak.ExtensionDeadline = now.Add(ak.Extension)
+				ak.InactivityTimeout = now.Add(ak.InactivityExtension)
 				assert.NilError(t, data.UpdateAccessKey(tx, &ak))
 
 				assert.NilError(t, tx.Commit())
@@ -623,7 +623,7 @@ func TestAuthenticateRequest(t *testing.T) {
 
 				ak, err := data.GetAccessKey(tx, data.GetAccessKeysOptions{ByID: token.ID})
 				assert.NilError(t, err)
-				assert.Equal(t, ak.ExtensionDeadline, now.Add(token.Extension),
+				assert.Equal(t, ak.InactivityTimeout, now.Add(token.InactivityExtension),
 					"expected no update")
 			},
 		},

@@ -210,7 +210,7 @@ function CalendarInput({ setSelectedTTL, selectedTTL }) {
         {({ close }) => (
           <Calendar
             selectedDate={selectedCustom}
-            extensionHour={720} // the default extension deadline is 30 days (720h)
+            inactivityHour={720} // the default inactivity timeout is 30 days (720h)
             onChange={e => {
               const duration = moment
                 .duration(
@@ -260,7 +260,7 @@ export default function AccessKey() {
           name,
           userID: user.id,
           ttl: selectedTTL.value,
-          extensionDeadline: '720h',
+          inactivityTimeout: '720h',
         }),
       })
 

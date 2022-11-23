@@ -96,7 +96,7 @@ export default function DestinationsAdd() {
         userID: id,
         name: keyName,
         ttl: '87660h',
-        extensionDeadline: '720h',
+        inactivityTimeout: '720h',
       }),
     })
     const key = await jsonBody(res)

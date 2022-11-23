@@ -19,16 +19,16 @@
             "format": "date-time",
             "type": "string"
           },
-          "extensionDeadline": {
-            "description": "the key must be used by this time to remain valid",
-            "example": "2022-03-14T09:48:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
           "id": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
             "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "inactivityTimeout": {
+            "description": "the key must be used by this time to remain valid",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
             "type": "string"
           },
           "issuedFor": {
@@ -529,17 +529,17 @@
                   "format": "date-time",
                   "type": "string"
                 },
-                "extensionDeadline": {
-                  "description": "key must be used within this duration to remain valid",
-                  "example": "2022-03-14T09:48:00Z",
-                  "format": "date-time",
-                  "type": "string"
-                },
                 "id": {
                   "description": "ID of the access key",
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
                   "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "inactivityTimeout": {
+                  "description": "key must be used by this time to remain valid",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
                   "type": "string"
                 },
                 "issuedFor": {
@@ -1581,8 +1581,8 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "extensionDeadline": {
-                    "description": "How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity",
+                  "inactivityTimeout": {
+                    "description": "key must be used within this duration to remain valid",
                     "example": "72h3m6.5s",
                     "format": "duration",
                     "type": "string"
@@ -1609,7 +1609,7 @@
                 "required": [
                   "userID",
                   "ttl",
-                  "extensionDeadline"
+                  "inactivityTimeout"
                 ],
                 "type": "object"
               }

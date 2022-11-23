@@ -132,7 +132,7 @@ func TestProvidersAddCmd(t *testing.T) {
 			UserID:            0,
 			Name:              "okta-SCIM",
 			TTL:               api.Duration(time.Hour * 87600),
-			ExtensionDeadline: api.Duration(time.Hour * 87600),
+			InactivityTimeout: api.Duration(time.Hour * 87600),
 		}
 		assert.DeepEqual(t, createKeyRequest, expectedKey)
 	})
@@ -369,7 +369,7 @@ func TestProvidersEditCmd(t *testing.T) {
 			UserID:            0,
 			Name:              "okta-SCIM",
 			TTL:               api.Duration(time.Hour * 87600),
-			ExtensionDeadline: api.Duration(time.Hour * 87600),
+			InactivityTimeout: api.Duration(time.Hour * 87600),
 		}
 		assert.DeepEqual(t, req, expected)
 	})

@@ -120,13 +120,13 @@ func (a *API) ApproveDeviceAdd(c *gin.Context, req *api.ApproveDeviceFlowRequest
 	// create access key
 	user := rctx.Authenticated.User
 	accessKey := &models.AccessKey{
-		OrganizationMember: models.OrganizationMember{OrganizationID: rctx.Authenticated.Organization.ID},
-		IssuedFor:          user.ID,
-		IssuedForName:      user.Name,
-		Name:               "Device " + dfar.DeviceCode,
-		ExpiresAt:          rctx.Authenticated.AccessKey.ExpiresAt,
-		Extension:          30 * days,
-		ExtensionDeadline:  time.Now().UTC().Add(30 * days),
+		OrganizationMember:  models.OrganizationMember{OrganizationID: rctx.Authenticated.Organization.ID},
+		IssuedFor:           user.ID,
+		IssuedForName:       user.Name,
+		Name:                "Device " + dfar.DeviceCode,
+		ExpiresAt:           rctx.Authenticated.AccessKey.ExpiresAt,
+		InactivityExtension: 30 * days,
+		InactivityTimeout:   time.Now().UTC().Add(30 * days),
 	}
 
 	_, err = access.CreateAccessKey(c, accessKey)

@@ -42,7 +42,7 @@ type keyCreateOptions struct {
 	Name              string
 	UserName          string
 	TTL               time.Duration
-	ExtensionDeadline time.Duration
+	InactivityTimeout time.Duration
 	Connector         bool
 	Quiet             bool
 }
@@ -110,7 +110,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 				UserID:            userID,
 				Name:              options.Name,
 				TTL:               api.Duration(options.TTL),
-				ExtensionDeadline: api.Duration(options.ExtensionDeadline),
+				InactivityTimeout: api.Duration(options.InactivityTimeout),
 			})
 			if err != nil {
 				if api.ErrorStatusCode(err) == 403 {
@@ -129,17 +129,17 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 
 			var expMsg strings.Builder
 			expMsg.WriteString("This key will expire in ")
-			if options.TTL == oneYear {
+			if options.Expiry == oneYear {
 				expMsg.WriteString("1 year")
 			} else {
 				expMsg.WriteString(format.ExactDuration(options.TTL))
 			}
-			if !resp.Expires.Equal(resp.ExtensionDeadline) {
+			if !resp.Expires.Equal(resp.InactivityTimeout) {
 				expMsg.WriteString(", and must be used every ")
-				if options.ExtensionDeadline == thirtyDays {
+				if options.InactivityTimeout == thirtyDays {
 					expMsg.WriteString("30 days")
 				} else {
-					expMsg.WriteString(format.ExactDuration(options.ExtensionDeadline))
+					expMsg.WriteString(format.ExactDuration(options.InactivityTimeout))
 				}
 				expMsg.WriteString(" to remain valid")
 			}
@@ -161,7 +161,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 	cmd.Flags().BoolVar(&options.Connector, "connector", false, "Create the key for the connector")
 	cmd.Flags().BoolVarP(&options.Quiet, "quiet", "q", false, "Only display the access key")
 	cmd.Flags().DurationVar(&options.TTL, "ttl", oneYear, "The total time that the access key will be valid for")
-	cmd.Flags().DurationVar(&options.ExtensionDeadline, "extension-deadline", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
+	cmd.Flags().DurationVar(&options.InactivityTimeout, "inactivity-timeout", thirtyDays, "A specified deadline that the access key must be used within to remain valid")
 
 	return cmd
 }
@@ -307,7 +307,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 				Created           string `header:"CREATED"`
 				LastUsed          string `header:"LAST USED"`
 				Expires           string `header:"EXPIRES"`
-				ExtensionDeadline string `header:"EXTENSION DEADLINE"`
+				InactivityTimeout string `header:"INACTIVITY TIMEOUT"`
 			}
 
 			var rows []row
@@ -322,7 +322,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 					Created:           format.HumanTime(k.Created.Time(), "never"),
 					LastUsed:          format.HumanTime(k.LastUsed.Time(), "never"),
 					Expires:           format.HumanTime(k.Expires.Time(), "never"),
-					ExtensionDeadline: format.HumanTime(k.ExtensionDeadline.Time(), "never"),
+					InactivityTimeout: format.HumanTime(k.InactivityTimeout.Time(), "never"),
 				})
 			}
 

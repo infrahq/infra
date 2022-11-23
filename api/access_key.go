@@ -14,7 +14,7 @@ type AccessKey struct {
 	IssuedFor         uid.ID `json:"issuedFor" note:"ID of the user the key was issued to"`
 	ProviderID        uid.ID `json:"providerID" note:"ID of the provider if the user is managed by an OIDC provider"`
 	Expires           Time   `json:"expires" note:"key is no longer valid after this time"`
-	ExtensionDeadline Time   `json:"extensionDeadline" note:"key must be used within this duration to remain valid"`
+	InactivityTimeout Time   `json:"inactivityTimeout" note:"key must be used by this time to remain valid"`
 }
 
 type ListAccessKeysRequest struct {
@@ -34,7 +34,7 @@ type CreateAccessKeyRequest struct {
 	UserID            uid.ID   `json:"userID"`
 	Name              string   `json:"name"`
 	TTL               Duration `json:"ttl" note:"maximum time valid"`
-	ExtensionDeadline Duration `json:"extensionDeadline,omitempty" note:"How long the key is active for before it needs to be renewed. The access key must be used within this amount of time to renew validity"`
+	InactivityTimeout Duration `json:"inactivityTimeout" note:"key must be used within this duration to remain valid"`
 }
 
 func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
@@ -42,7 +42,7 @@ func (r CreateAccessKeyRequest) ValidationRules() []validate.ValidationRule {
 		ValidateName(r.Name),
 		validate.Required("userID", r.UserID),
 		validate.Required("ttl", r.TTL),
-		validate.Required("extensionDeadline", r.ExtensionDeadline),
+		validate.Required("inactivityTimeout", r.InactivityTimeout),
 	}
 }
 
@@ -53,7 +53,7 @@ type CreateAccessKeyResponse struct {
 	IssuedFor         uid.ID `json:"issuedFor"`
 	ProviderID        uid.ID `json:"providerID"`
 	Expires           Time   `json:"expires" note:"after this deadline the key is no longer valid"`
-	ExtensionDeadline Time   `json:"extensionDeadline" note:"the key must be used by this time to remain valid"`
+	InactivityTimeout Time   `json:"inactivityTimeout" note:"the key must be used by this time to remain valid"`
 	AccessKey         string `json:"accessKey"`
 }
 

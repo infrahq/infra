@@ -45,14 +45,14 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		tc.expected(t, resp)
 	}
 
-	var testCases = []testCase{
+	testCases := []testCase{
 		{
 			name: "automatic name",
 			setup: func(t *testing.T) api.CreateAccessKeyRequest {
 				return api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					TTL:               api.Duration(time.Minute),
-					ExtensionDeadline: api.Duration(time.Minute),
+					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -71,7 +71,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 					UserID:            userResp.ID,
 					Name:              "mysupersecretaccesskey",
 					TTL:               api.Duration(time.Minute),
-					ExtensionDeadline: api.Duration(time.Minute),
+					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -90,7 +90,7 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 					UserID:            userResp.ID,
 					Name:              "this-name-should-not-contain-slash/",
 					TTL:               api.Duration(time.Minute),
-					ExtensionDeadline: api.Duration(time.Minute),
+					InactivityTimeout: api.Duration(time.Minute),
 				}
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
@@ -183,7 +183,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		IssuedFor:         user.ID,
 		ProviderID:        provider.ID,
 		ExpiresAt:         time.Now().UTC().Add(5 * time.Minute),
-		ExtensionDeadline: time.Now().UTC().Add(-5 * time.Minute),
+		InactivityTimeout: time.Now().UTC().Add(-5 * time.Minute),
 	}
 	_, err = data.CreateAccessKey(db, ak3)
 	assert.NilError(t, err)
@@ -209,7 +209,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, len(keys.Items), 2)
 		for _, item := range keys.Items {
 			assert.Assert(t, item.Expires.Time().UTC().After(time.Now().UTC()) || item.Expires.Time().IsZero())
-			assert.Assert(t, item.ExtensionDeadline.Time().UTC().After(time.Now().UTC()) || item.ExtensionDeadline.Time().IsZero())
+			assert.Assert(t, item.InactivityTimeout.Time().UTC().After(time.Now().UTC()) || item.InactivityTimeout.Time().IsZero())
 		}
 	})
 
@@ -239,7 +239,7 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		for _, item := range keys.Items {
 			assert.Assert(t, item.Expires.Time().UTC().After(time.Now().UTC()) || item.Expires.Time().IsZero())
-			assert.Assert(t, item.ExtensionDeadline.Time().UTC().After(time.Now().UTC()) || item.ExtensionDeadline.Time().IsZero())
+			assert.Assert(t, item.InactivityTimeout.Time().UTC().After(time.Now().UTC()) || item.InactivityTimeout.Time().IsZero())
 		}
 	})
 

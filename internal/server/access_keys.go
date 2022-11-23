@@ -36,11 +36,11 @@ func (a *API) DeleteAccessKeys(c *gin.Context, r *api.DeleteAccessKeyRequest) (*
 
 func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*api.CreateAccessKeyResponse, error) {
 	accessKey := &models.AccessKey{
-		IssuedFor:         r.UserID,
-		Name:              r.Name,
-		ExpiresAt:         time.Now().UTC().Add(time.Duration(r.TTL)),
-		Extension:         time.Duration(r.ExtensionDeadline),
-		ExtensionDeadline: time.Now().UTC().Add(time.Duration(r.ExtensionDeadline)),
+		IssuedFor:           r.UserID,
+		Name:                r.Name,
+		ExpiresAt:           time.Now().UTC().Add(time.Duration(r.TTL)),
+		InactivityExtension: time.Duration(r.InactivityTimeout),
+		InactivityTimeout:   time.Now().UTC().Add(time.Duration(r.InactivityTimeout)),
 	}
 
 	raw, err := access.CreateAccessKey(c, accessKey)
@@ -54,7 +54,7 @@ func (a *API) CreateAccessKey(c *gin.Context, r *api.CreateAccessKeyRequest) (*a
 		Name:              accessKey.Name,
 		IssuedFor:         accessKey.IssuedFor,
 		Expires:           api.Time(accessKey.ExpiresAt),
-		ExtensionDeadline: api.Time(accessKey.ExtensionDeadline),
+		InactivityTimeout: api.Time(accessKey.InactivityTimeout),
 		AccessKey:         raw,
 	}, nil
 }

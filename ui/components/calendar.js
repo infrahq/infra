@@ -37,10 +37,10 @@ function CalendarRow({
   onChange,
   activeDay,
   selectedDate,
-  extensionHour,
+  inactivityTimeoutHour,
 }) {
-  const earliestMaxExtensionTime = moment()
-    .add(extensionHour, 'h')
+  const earliestInactivityTimeout = moment()
+    .add(inactivityTimeoutHour, 'h')
     .startOf('day')
 
   let content = []
@@ -53,7 +53,7 @@ function CalendarRow({
     const isBefore = moment(
       `${currentYear}-${currentMonth + 1}-1`,
       'YYYY-MM-DD'
-    ).isBefore(earliestMaxExtensionTime)
+    ).isBefore(earliestInactivityTimeout)
 
     content.push(
       <td
@@ -83,7 +83,7 @@ function CalendarRow({
       const isBefore = moment(
         `${currentYear}-${currentMonth + 1}-${i + 1}`,
         'YYYY-MM-DD'
-      ).isBefore(earliestMaxExtensionTime)
+      ).isBefore(earliestInactivityTimeout)
 
       content.push(
         <React.Fragment key={i + 1}>
@@ -119,7 +119,7 @@ function CalendarRow({
       const isBefore = moment(
         `${currentYear}-${currentMonth + 1}-${i + (7 * row - firstDay)}`,
         'YYYY-MM-DD'
-      ).isBefore(earliestMaxExtensionTime)
+      ).isBefore(earliestInactivityTimeout)
 
       content.push(
         <React.Fragment key={`${row}-${i}`}>
@@ -150,7 +150,7 @@ function CalendarRow({
   return <>{content}</>
 }
 
-export default function Calendar({ selectedDate, onChange, extensionHour }) {
+export default function Calendar({ selectedDate, onChange, inactivityTimeoutHour }) {
   const [activeMonth, setActiveMonth] = useState(null)
   const [activeMonthString, setActiveMonthString] = useState({})
   const [activeYear, setActiveYear] = useState(null)
@@ -158,8 +158,8 @@ export default function Calendar({ selectedDate, onChange, extensionHour }) {
 
   const previousMonth = useRef(null)
 
-  const earliestMaxExtensionTime = moment()
-    .add(extensionHour, 'h')
+  const earliestInactivityTimeout = moment()
+    .add(inactivityTimeoutHour, 'h')
     .startOf('day')
 
   useEffect(() => {
@@ -181,8 +181,8 @@ export default function Calendar({ selectedDate, onChange, extensionHour }) {
 
   useEffect(() => {
     if (selectedDate === 'YYYY/MM/DD') {
-      setActiveMonth(moment(earliestMaxExtensionTime, 'YYYY/MM/DD').month())
-      setActiveYear(moment(earliestMaxExtensionTime, 'YYYY/MM/DD').year())
+      setActiveMonth(moment(earliestInactivityTimeout, 'YYYY/MM/DD').month())
+      setActiveYear(moment(earliestInactivityTimeout, 'YYYY/MM/DD').year())
     } else {
       setActiveMonth(moment(selectedDate, 'YYYY/MM/DD').month())
       setActiveYear(moment(selectedDate, 'YYYY/MM/DD').year())
@@ -213,8 +213,8 @@ export default function Calendar({ selectedDate, onChange, extensionHour }) {
                 }
               }}
               disabled={
-                previousMonth.current === earliestMaxExtensionTime.month() &&
-                activeYear === earliestMaxExtensionTime.year()
+                previousMonth.current === earliestInactivityTimeout.month() &&
+                activeYear === earliestInactivityTimeout.year()
               }
             >
               <ChevronLeftIcon className='h-4 w-4' aria-hidden='true' />
@@ -262,7 +262,7 @@ export default function Calendar({ selectedDate, onChange, extensionHour }) {
                     currentMonth={activeMonth}
                     currentYear={activeYear}
                     activeDay={moment(selectedDate, 'YYYY/MM/DD').date()}
-                    extensionHour={extensionHour}
+                    inactivityTimeoutHour={inactivityTimeoutHour}
                     onChange={e => {
                       const newSelectedDate = moment(
                         `${activeYear}-${activeMonth + 1}-${e}`,

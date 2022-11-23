@@ -124,13 +124,13 @@ func TestServerCmd_LoadOptions(t *testing.T) {
 			name: "all options from config",
 			setup: func(t *testing.T, cmd *cobra.Command) {
 				content := `
-version: 0.2
+version: 0.3
 tlsCache: /cache/dir
 enableTelemetry: false # default is true
 enableSignup: false    # default is true
 enableLogSampling: false # default is true
 sessionDuration: 3m
-sessionExtensionDeadline: 1m
+sessionInactivityTimeout: 1m
 
 dbEncryptionKey: /this-is-the-path
 dbEncryptionKeyProvider: the-provider
@@ -207,10 +207,10 @@ api:
 			},
 			expected: func(t *testing.T) server.Options {
 				return server.Options{
-					Version:                  0.2,
+					Version:                  0.3,
 					TLSCache:                 "/cache/dir",
 					SessionDuration:          3 * time.Minute,
-					SessionExtensionDeadline: 1 * time.Minute,
+					SessionInactivityTimeout: 1 * time.Minute,
 
 					DBEncryptionKey:         "/this-is-the-path",
 					DBEncryptionKeyProvider: "the-provider",
@@ -321,7 +321,7 @@ api:
 					"--db-host", "thehostname",
 					"--enable-telemetry=false",
 					"--session-duration", "3m",
-					"--session-extension-deadline", "1m",
+					"--session-inactivity-timeout", "1m",
 					"--enable-signup=false",
 				})
 			},
@@ -332,7 +332,7 @@ api:
 				expected.DBPort = 12345
 				expected.EnableTelemetry = false
 				expected.SessionDuration = 3 * time.Minute
-				expected.SessionExtensionDeadline = 1 * time.Minute
+				expected.SessionInactivityTimeout = 1 * time.Minute
 				expected.EnableSignup = false
 				expected.BaseDomain = ""
 				return expected

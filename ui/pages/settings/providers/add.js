@@ -134,7 +134,7 @@ export default function ProvidersAddDetails() {
           userID: id,
           name: name + '-scim',
           ttl: '87600h',
-          extensionDeadline: '720h',
+          inactivityTimeout: '720h',
         }),
       })
 

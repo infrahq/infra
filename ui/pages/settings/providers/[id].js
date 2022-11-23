@@ -34,7 +34,7 @@ function SCIMKeyDialog({ provider, setOpen }) {
           userID: provider.id,
           name: keyName,
           ttl: '87600h',
-          extensionDeadline: '720h',
+          inactivityTimeout: '720h',
         }),
       })
 

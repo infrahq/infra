@@ -73,7 +73,7 @@ func TestLogin(t *testing.T) {
 		assert.Assert(t, result.Bearer != "")
 		assert.Equal(t, result.AccessKey.IssuedFor, user.ID)
 		assert.Equal(t, result.AccessKey.ExpiresAt, exp)
-		assert.Equal(t, result.AccessKey.Extension, ext)
+		assert.Equal(t, result.AccessKey.InactivityExtension, ext)
 		assert.Equal(t, result.User.ID, user.ID)
 	})
 }
