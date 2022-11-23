@@ -59,10 +59,11 @@ func TestLoginCmd_Options(t *testing.T) {
 
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
+	adminAccessKey := "aaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbb"
 	opts.Config.Users = []server.User{
 		{
-			Name:     "admin@example.com",
-			Password: "p4ssw0rd",
+			Name:      "admin@example.com",
+			AccessKey: adminAccessKey,
 		},
 	}
 	srv, err := server.New(opts)
@@ -75,10 +76,8 @@ func TestLoginCmd_Options(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
 
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
 		// TODO: remove --skip-tls-verify
-		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--user", "admin@example.com")
+		err := Run(ctx, "login", srv.Addrs.HTTPS.String(), "--skip-tls-verify", "--no-agent", "--key", adminAccessKey)
 		assert.NilError(t, err)
 
 		_, err = readStoredAgentProcessID()
@@ -91,7 +90,7 @@ func TestLoginCmd_Options(t *testing.T) {
 		expected := []ClientHostConfig{
 			{
 				Name:          "admin@example.com",
-				AccessKey:     "any access key",
+				AccessKey:     adminAccessKey,
 				UserID:        anyUID,
 				Host:          srv.Addrs.HTTPS.String(),
 				SkipTLSVerify: true,
@@ -301,8 +300,9 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 	opts := defaultServerOptions(dir)
 	setupServerOptions(t, &opts)
+	accessKey := "0000000001.adminadminadminadmin1234"
 	opts.Users = []server.User{
-		{Name: "admin@example.com", Password: "p4ssw0rd"},
+		{Name: "admin@example.com", AccessKey: accessKey},
 	}
 	srv, err := server.New(opts)
 	assert.NilError(t, err)
@@ -341,12 +341,10 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		console := newConsole(t)
 		ctx = PatchCLIWithPTY(ctx, console.Tty())
 
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
 		g, ctx := errgroup.WithContext(ctx)
 		g.Go(func() error {
 			// TODO: why isn't this working without --non-interactive=false? the other test works
-			return Run(ctx, "login", "--non-interactive=false", "--user", "admin@example.com", srv.Addrs.HTTPS.String())
+			return Run(ctx, "login", "--non-interactive=false", "--key", accessKey, srv.Addrs.HTTPS.String())
 		})
 		exp := expector{console: console}
 		exp.ExpectString(t, "verify the certificate can be trusted")
@@ -381,9 +379,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		err := Run(ctx, "logout")
 		assert.NilError(t, err)
 
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
-		err = Run(ctx, "login", "--user", "admin@example.com", srv.Addrs.HTTPS.String())
+		err = Run(ctx, "login", "--key", accessKey, srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
 		cert, err := os.ReadFile("testdata/pki/localhost.crt")
@@ -413,11 +409,9 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		err := Run(ctx, "logout", "--clear")
 		assert.NilError(t, err)
 
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
 		err = Run(ctx, "login",
 			"--tls-trusted-cert", "testdata/pki/localhost.crt",
-			"--user", "admin@example.com",
+			"--key", accessKey,
 			srv.Addrs.HTTPS.String())
 		assert.NilError(t, err)
 
@@ -444,6 +438,7 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 	t.Run("login with trusted fingerprint", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(ctx)
 		t.Cleanup(cancel)
+		t.Setenv("INFRA_ACCESS_KEY", accessKey)
 		t.Setenv("INFRA_SERVER", srv.Addrs.HTTPS.String())
 
 		err := Run(ctx, "logout", "--clear")
@@ -455,10 +450,8 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 		block, _ := pem.Decode(cert)
 		fingerprint := certs.Fingerprint(block.Bytes)
 
-		t.Setenv("INFRA_USER", "admin@example.com")
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
-		err = Run(ctx, "login", "--tls-trusted-fingerprint", fingerprint)
+		err = Run(ctx, "login",
+			"--tls-trusted-fingerprint", fingerprint)
 		assert.NilError(t, err)
 
 		// Check the client config
@@ -487,11 +480,9 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		ctx, bufs := PatchCLI(ctx)
 
-		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
-
 		err = Run(ctx, "login",
 			"--tls-trusted-fingerprint", "BA::D0::FF",
-			"--user", "admin@example.com",
+			"--key", accessKey,
 			srv.Addrs.HTTPS.String())
 		assert.ErrorContains(t, err, "authenticity of the server could not be verified")
 

@@ -29,6 +29,7 @@ import (
 
 type loginCmdOptions struct {
 	Server             string
+	AccessKey          string
 	SkipTLSVerify      bool
 	TrustedCertificate string
 	TrustedFingerprint string
@@ -51,7 +52,11 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 # Login
 infra login example.infrahq.com
 
-# Login with username (will prompt for password)
+# Login with username and password (prompt for password)
+infra login example.infrahq.com --user foo@gmail.com
+
+# Login with access key
+export INFRA_ACCESS_KEY=
 infra login example.infrahq.com --user foo@gmail.com
 
 # Login with username and password in (non-interactive)
@@ -81,6 +86,7 @@ infra login
 		},
 	}
 
+	cmd.Flags().StringVar(&options.AccessKey, "key", "", "Login with an access key")
 	cmd.Flags().StringVar(&options.User, "user", "", "User email")
 	cmd.Flags().BoolVar(&options.SkipTLSVerify, "skip-tls-verify", false, "Skip verifying server TLS certificates")
 	cmd.Flags().Var((*types.StringOrFile)(&options.TrustedCertificate), "tls-trusted-cert", "TLS certificate or CA used by the server")
@@ -131,6 +137,10 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
+	if options.AccessKey == "" {
+		options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
+	}
+
 	options.Server = strings.TrimPrefix(options.Server, "https://")
 	options.Server = strings.TrimPrefix(options.Server, "http://")
 
@@ -151,6 +161,8 @@ func login(cli *CLI, options loginCmdOptions) error {
 	loginReq := &api.LoginRequest{}
 
 	switch {
+	case options.AccessKey != "":
+		loginReq.AccessKey = options.AccessKey
 	case options.User != "":
 		if password == "" {
 			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &password, cli.surveyIO); err != nil {
