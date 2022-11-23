@@ -12,6 +12,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/cmd/cliopts"
+	"github.com/infrahq/infra/internal/linux"
 )
 
 var logger zerolog.Logger
@@ -84,7 +85,9 @@ func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 		return err
 	}
 
-	// TODO: verify that the user account is created by infra
+	if err := verifyUserIsManagedByInfra(opts.username); err != nil {
+		return err
+	}
 
 	if err := authorizeUserForDestination(ctx, client, user, config.Name); err != nil {
 		return err
@@ -120,6 +123,20 @@ func verifyUsernameAndFingerprint(
 		return nil, fmt.Errorf("public key is for a different user")
 	}
 	return &user, nil
+}
+
+func verifyUserIsManagedByInfra(username string) error {
+	localUsers, err := linux.ReadLocalUsers("/etc/passwd")
+	if err != nil {
+		return fmt.Errorf("read users: %w", err)
+	}
+
+	for _, lu := range localUsers {
+		if lu.Username == username && lu.IsManagedByInfra() {
+			return nil
+		}
+	}
+	return fmt.Errorf("user is not managed by infra")
 }
 
 func authorizeUserForDestination(
