@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal/testing/database"

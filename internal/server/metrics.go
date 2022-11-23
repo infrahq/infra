@@ -11,7 +11,7 @@ import (
 
 func setupMetrics(db *data.DB) *prometheus.Registry {
 	registry := metrics.NewRegistry(productVersion())
-	registry.MustRegister(collectors.NewDBStatsCollector(db.SQLdb(), db.DriverName()))
+	registry.MustRegister(collectors.NewDBStatsCollector(db.SQLdb(), "postgres"))
 
 	registry.MustRegister(metrics.NewCollector(prometheus.Opts{
 		Namespace: "infra",

@@ -202,7 +202,6 @@ func (g *Migrator) runMigration(migration *Migration) error {
 }
 
 func (g *Migrator) createMigrationTableIfNotExists() error {
-	// TODO: replace gorm helper
 	if HasTable(g.tx, "migrations") {
 		return nil
 	}

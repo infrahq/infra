@@ -3,9 +3,9 @@ package data
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -13,8 +13,7 @@ import (
 
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/rs/zerolog"
 
 	"github.com/infrahq/infra/internal"
 	"github.com/infrahq/infra/internal/logging"
@@ -78,7 +77,7 @@ func NewDB(dbOpts NewDBOptions) (*DB, error) {
 // DB wraps the underlying database and provides access to the default org,
 // and settings.
 type DB struct {
-	*gorm.DB // embedded for now to minimize the diff
+	DB *sql.DB
 
 	DefaultOrg *models.Organization
 	// DefaultOrgSettings are the settings for DefaultOrg
@@ -86,36 +85,63 @@ type DB struct {
 }
 
 func (d *DB) Close() error {
-	sqlDB, err := d.DB.DB()
-	if err != nil {
-		return fmt.Errorf("failed to get database conn to close: %w", err)
-	}
-	return sqlDB.Close()
+	return d.DB.Close()
 }
 
 func (d *DB) SQLdb() *sql.DB {
-	sqlDB, err := d.DB.DB()
-	if err != nil {
-		panic("DB must have an sql.DB ConnPool")
-	}
-	return sqlDB
-}
-
-func (d *DB) DriverName() string {
-	return d.Dialector.Name()
+	return d.DB
 }
 
 func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
-	db := d.DB.Exec(query, args...)
-	return driver.RowsAffected(db.RowsAffected), db.Error
+	var affected int64
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	result, err := d.DB.Exec(query, args...)
+	if err == nil {
+		affected, err = result.RowsAffected()
+	}
+	logQuery(query, err, start, affected)
+	return result, err
 }
 
 func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
-	return d.DB.Raw(query, args...).Rows()
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	rows, err := d.DB.Query(query, args...)
+	logQuery(query, err, start, -1)
+	return rows, err
+
 }
 
 func (d *DB) QueryRow(query string, args ...any) *sql.Row {
-	return d.DB.Raw(query, args...).Row()
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	row := d.DB.QueryRow(query, args...)
+	logQuery(query, row.Err(), start, -1)
+	return row
+}
+
+func rewriteQueryPlaceholders(query string, num int) string {
+	var counter int
+	var buf strings.Builder
+	buf.Grow(len(query))
+
+	for _, r := range query {
+		if r != '?' {
+			buf.WriteRune(r)
+			continue
+		}
+
+		counter++
+		buf.WriteString("$" + strconv.Itoa(counter))
+	}
+
+	// if counter == 0 it could indicate the query was constructed with the
+	// correct placeholders and doesn't need rewrite.
+	if counter != 0 && counter != num {
+		panic(fmt.Sprintf("wrong number of placeholders (%d) for args (%d)", counter, num))
+	}
+	return buf.String()
 }
 
 func (d *DB) OrganizationID() uid.ID {
@@ -124,22 +150,28 @@ func (d *DB) OrganizationID() uid.ID {
 	return d.DefaultOrg.ID
 }
 
+// Begin starts a new transaction. The ctx will cancel any queries performed by
+// the returned Transaction.
 func (d *DB) Begin(ctx context.Context, opts *sql.TxOptions) (*Transaction, error) {
-	tx := d.DB.WithContext(ctx).Begin(opts)
-	if err := tx.Error; err != nil {
+	tx, err := d.DB.BeginTx(ctx, opts)
+	if err != nil {
 		return nil, err
 	}
-	return &Transaction{DB: tx, completed: new(atomic.Bool)}, nil
+	return &Transaction{
+		Tx:        tx,
+		txCtx:     ctx,
+		completed: new(atomic.Bool),
+	}, nil
 }
 
+// Transaction is a database transaction with metadata about the request that
+// was given this transaction. Use DB.Begin to create a transaction.
 type Transaction struct {
-	*gorm.DB
+	Tx    *sql.Tx
+	txCtx context.Context
+
 	orgID     uid.ID
 	completed *atomic.Bool
-}
-
-func (t *Transaction) DriverName() string {
-	return t.Dialector.Name()
 }
 
 func (t *Transaction) OrganizationID() uid.ID {
@@ -147,16 +179,31 @@ func (t *Transaction) OrganizationID() uid.ID {
 }
 
 func (t *Transaction) Exec(query string, args ...any) (sql.Result, error) {
-	db := t.DB.Exec(query, args...)
-	return driver.RowsAffected(db.RowsAffected), db.Error
+	var affected int64
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	result, err := t.Tx.ExecContext(t.txCtx, query, args...)
+	if err == nil {
+		affected, err = result.RowsAffected()
+	}
+	logQuery(query, err, start, affected)
+	return result, err
 }
 
 func (t *Transaction) Query(query string, args ...any) (*sql.Rows, error) {
-	return t.DB.Raw(query, args...).Rows()
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	rows, err := t.Tx.QueryContext(t.txCtx, query, args...)
+	logQuery(query, err, start, -1)
+	return rows, err
 }
 
 func (t *Transaction) QueryRow(query string, args ...any) *sql.Row {
-	return t.DB.Raw(query, args...).Row()
+	start := time.Now()
+	query = rewriteQueryPlaceholders(query, len(args))
+	row := t.Tx.QueryRowContext(t.txCtx, query, args...)
+	logQuery(query, row.Err(), start, -1)
+	return row
 }
 
 // Rollback the transaction. If the transaction was already committed then do
@@ -165,7 +212,7 @@ func (t *Transaction) Rollback() error {
 	if t.completed.Load() {
 		return nil
 	}
-	err := t.DB.Rollback().Error
+	err := t.Tx.Rollback()
 	if err == nil {
 		t.completed.Store(true)
 	}
@@ -173,7 +220,7 @@ func (t *Transaction) Rollback() error {
 }
 
 func (t *Transaction) Commit() error {
-	err := t.DB.Commit().Error
+	err := t.Tx.Commit()
 	if err == nil {
 		t.completed.Store(true)
 	}
@@ -190,26 +237,19 @@ func (t *Transaction) WithOrgID(orgID uid.ID) *Transaction {
 }
 
 // newRawDB creates a new database connection without running migrations.
-func newRawDB(options NewDBOptions) (*gorm.DB, error) {
+func newRawDB(options NewDBOptions) (*sql.DB, error) {
 	if options.DSN == "" {
 		return nil, fmt.Errorf("missing postgres dsn")
 	}
 
-	db, err := gorm.Open(postgres.Open(options.DSN), &gorm.Config{
-		Logger: logging.NewDatabaseLogger(time.Second),
-	})
+	db, err := sql.Open("pgx", options.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, fmt.Errorf("getting db driver: %w", err)
-	}
-
-	sqlDB.SetMaxOpenConns(options.MaxOpenConnections)
-	sqlDB.SetMaxIdleConns(options.MaxIdleConnections)
-	sqlDB.SetConnMaxIdleTime(options.MaxIdleTimeout)
+	db.SetMaxOpenConns(options.MaxOpenConnections)
+	db.SetMaxIdleConns(options.MaxIdleConnections)
+	db.SetConnMaxIdleTime(options.MaxIdleTimeout)
 
 	return db, nil
 }
@@ -311,8 +351,6 @@ func handleError(err error) error {
 	}
 
 	switch {
-	case errors.Is(err, gorm.ErrRecordNotFound):
-		return internal.ErrNotFound
 	case errors.Is(err, sql.ErrNoRows):
 		return internal.ErrNotFound
 	}
@@ -389,4 +427,36 @@ func InfraConnectorIdentity(db ReadTxn) *models.Identity {
 		logging.L.Panic().Err(err).Msg("failed to retrieve connector identity")
 	}
 	return connector
+}
+
+const slowQueryThreshold = time.Second
+
+func logQuery(query string, err error, startedAt time.Time, rows int64) {
+	level := zerolog.TraceLevel
+
+	elapsed := time.Since(startedAt)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		level = zerolog.WarnLevel
+	case elapsed > slowQueryThreshold:
+		level = zerolog.WarnLevel
+	}
+
+	query = normalizeQueryString(query)
+	logging.L.WithLevel(level).
+		CallerSkipFrame(2). // logQuery + tx.{Query,Exec}
+		Int64("rows", rows).
+		Str("query", query).
+		Dur("elapsed", elapsed).
+		Msg("DB query")
+}
+
+var replaceQueryWhitespace = strings.NewReplacer("\t", " ", "\n", " ")
+
+// normalizeQueryString prepares a query string for being logged or printed.
+// normalizeQueryString removes leading and trailing whitespace, and converts any
+// tabs or newlines in the query string to spaces.
+func normalizeQueryString(query string) string {
+	query = strings.TrimSpace(query)
+	return replaceQueryWhitespace.Replace(query)
 }

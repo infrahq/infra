@@ -206,3 +206,23 @@ func countRows(tx ReadTxn, table Table) (int64, error) {
 	err := tx.QueryRow(query.String(), query.Args...).Scan(&count)
 	return count, handleError(err)
 }
+
+// queryInClause adds a (?, ?, ?, ...) string to the query string, and all the
+// items to the query.Args. An empty slice will add (null) to the query string
+// which will match no rows. This is done to prevent a syntax error.
+// queryInClause should generally be used after an IN or NOT IN condition in the
+// query.
+func queryInClause[T any](query *querybuilder.Query, items []T) {
+	if len(items) == 0 {
+		query.B("(null)")
+		return
+	}
+	query.B("(")
+	for i, item := range items {
+		if i != 0 {
+			query.B(",")
+		}
+		query.B("?", item)
+	}
+	query.B(")")
+}

@@ -230,7 +230,7 @@ func TestAPI_Signup(t *testing.T) {
 				assert.Equal(t, userResp.ID, respBody.User.ID)
 
 				// check the user is an admin
-				tx := (&data.Transaction{DB: srv.db.DB}).WithOrgID(orgID)
+				tx := txnForTestCase(t, srv.db, orgID)
 				_, err = data.GetGrant(tx, data.GetGrantOptions{
 					BySubject:   uid.NewIdentityPolymorphicID(userID),
 					ByResource:  access.ResourceInfraAPI,

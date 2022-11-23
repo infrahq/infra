@@ -56,7 +56,7 @@ func TestMigrations(t *testing.T) {
 		}
 
 		if index == 0 {
-			filename := fmt.Sprintf("testdata/migrations/%v-%v.sql", tc.label.Name, db.Dialector.Name())
+			filename := fmt.Sprintf("testdata/migrations/%v-postgres.sql", tc.label.Name)
 			raw, err := ioutil.ReadFile(filename)
 			assert.NilError(t, err)
 

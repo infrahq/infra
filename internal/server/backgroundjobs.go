@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -16,7 +17,7 @@ import (
 // panics will be caught and logged
 //
 // jobs should gracefully exit if their context quits, eg ctx.Done() or ctx.Err()
-type BackgroundJobFunc func(ctx context.Context, tx *data.DB) error
+type BackgroundJobFunc func(ctx context.Context, tx *data.Transaction) error
 
 func (s *Server) SetupBackgroundJobs(ctx context.Context) {
 	s.registerJob(ctx, jobs.RemoveOldDeviceFlowRequests, 10*time.Minute)
@@ -31,16 +32,14 @@ func (s *Server) registerJob(ctx context.Context, job BackgroundJobFunc, every t
 	})
 }
 
-func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
-	tx = &data.DB{DB: tx.WithContext(ctx), DefaultOrgSettings: tx.DefaultOrgSettings, DefaultOrg: tx.DefaultOrg}
-
-	return func() error { // jobs shouldn't return errors, we just do this to be compatible with the "routine" struct.
+func jobWrapper(ctx context.Context, db *data.DB, job BackgroundJobFunc, every time.Duration) func() error {
+	return func() error {
 		t := time.NewTicker(every)
 		funcName := getFuncName(job)
 
-		jobWithRescue := func() {
+		jobWithRescue := func() error {
 			if ctx.Err() != nil {
-				return
+				return ctx.Err()
 			}
 			defer func() {
 				if err := recover(); err != nil {
@@ -48,21 +47,27 @@ func jobWrapper(ctx context.Context, tx *data.DB, job BackgroundJobFunc, every t
 				}
 			}()
 
-			startAt := time.Now().UTC()
-			logging.Debugf("background job %s starting", funcName)
-
-			err := job(ctx, tx)
+			tx, err := db.Begin(ctx, nil)
 			if err != nil {
-				logging.Errorf("background job %s error: %s", funcName, err.Error())
-			} else {
-				logging.Infof("background job %s successful, elapsed: %s", funcName, time.Since(startAt))
+				return fmt.Errorf("failed to start transaction :%w", err)
 			}
+			if err := job(ctx, tx); err != nil {
+				_ = tx.Rollback()
+				return err
+			}
+			return tx.Commit()
 		}
 
 		for {
 			select {
 			case <-t.C:
-				jobWithRescue()
+				startAt := time.Now().UTC()
+				logging.Debugf("background job %s starting", funcName)
+				if err := jobWithRescue(); err != nil {
+					logging.Errorf("background job %s error: %s", funcName, err.Error())
+				} else {
+					logging.Infof("background job %s successful, elapsed: %s", funcName, time.Since(startAt))
+				}
 			case <-ctx.Done():
 				t.Stop()
 				return nil // time to quit.
