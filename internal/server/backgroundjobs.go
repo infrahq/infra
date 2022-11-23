@@ -10,13 +10,11 @@ import (
 	"github.com/infrahq/infra/internal/server/jobs"
 )
 
-// BackgroundJobFunc is the interface for implementing a new background job.
-//
-// errors will be logged but will not cause the app to crash.
-//
-// panics will be caught and logged
-//
-// jobs should gracefully exit if their context quits, eg ctx.Done() or ctx.Err()
+// BackgroundJobFunc is the interface for running periodic background jobs, like
+// garbage collection. Errors and panics from the job will be logged by
+// jobWrapper, and will not stop the goroutine running the job.
+// The job should exit when ctx is cancelled. Unlike most transactions, the
+// transaction passed to this job will not have an OrganizationID.
 type BackgroundJobFunc func(ctx context.Context, tx *data.Transaction) error
 
 func (s *Server) SetupBackgroundJobs(ctx context.Context) {
