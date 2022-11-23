@@ -31,10 +31,7 @@ func newSSHCmd(cli *CLI) *cobra.Command {
 		Hidden: true,
 	}
 
-	cmd.AddCommand(
-		newSSHHostsCmd(cli),
-		newSSHAuthKeysCmd(cli))
-
+	cmd.AddCommand(newSSHHostsCmd(cli))
 	return cmd
 }
 

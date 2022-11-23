@@ -15,6 +15,17 @@ import (
 	"github.com/infrahq/infra/internal/linux"
 )
 
+func newSSHDCmd(cli *CLI) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:    "sshd",
+		Short:  "Commands for integrating with ssh server",
+		Hidden: true,
+	}
+
+	cmd.AddCommand(newSSHDAuthKeysCmd(cli))
+	return cmd
+}
+
 var logger zerolog.Logger
 
 func init() {
@@ -33,7 +44,7 @@ type sshAuthKeysOptions struct {
 	configFilename string
 }
 
-func newSSHAuthKeysCmd(cli *CLI) *cobra.Command {
+func newSSHDAuthKeysCmd(cli *CLI) *cobra.Command {
 	var opts sshAuthKeysOptions
 	cmd := &cobra.Command{
 		Use:    "auth-keys",
