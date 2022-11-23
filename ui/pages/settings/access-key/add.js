@@ -344,7 +344,9 @@ export default function AccessKey() {
                     {moment()
                       .add(
                         parseInt(selectedExpiry.value),
-                        selectedExpiry.value.charAt(selectedExpiry.value.length - 1)
+                        selectedExpiry.value.charAt(
+                          selectedExpiry.value.length - 1
+                        )
                       )
                       .format('h:mm:ss a, MMMM Do YYYY')}
                   </span>

@@ -150,7 +150,11 @@ function CalendarRow({
   return <>{content}</>
 }
 
-export default function Calendar({ selectedDate, onChange, inactivityTimeoutHour }) {
+export default function Calendar({
+  selectedDate,
+  onChange,
+  inactivityTimeoutHour,
+}) {
   const [activeMonth, setActiveMonth] = useState(null)
   const [activeMonthString, setActiveMonthString] = useState({})
   const [activeYear, setActiveYear] = useState(null)
