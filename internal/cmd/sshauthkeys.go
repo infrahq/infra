@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	logsyslog "log/syslog"
-	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -26,18 +25,6 @@ func newSSHDCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-var logger zerolog.Logger
-
-func init() {
-	out := []io.Writer{os.Stderr}
-	// TODO: log to stderr if this fails?
-	syslog, _ := logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
-	if syslog != nil {
-		out = append(out, zerolog.SyslogLevelWriter(syslog))
-	}
-	logger = zerolog.New(zerolog.MultiLevelWriter(out...))
-}
-
 type sshAuthKeysOptions struct {
 	fingerprint    string
 	username       string
@@ -51,12 +38,14 @@ func newSSHDAuthKeysCmd(cli *CLI) *cobra.Command {
 		Hidden: true,
 		Args:   ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			logger := setupLogger(cli)
+
 			// sshd_config: AuthorizedKeysCommand infra ssh auth-keys %u %f
 			opts.username = args[0]
 			opts.fingerprint = args[1]
 
 			// log the error to syslog, since we expect stdout/stderr to be hidden
-			if err := runSSHAuthKeys(cli, opts); err != nil {
+			if err := runSSHDAuthKeys(cli, logger, opts); err != nil {
 				logger.Err(err).Msg("ssh auth-keys exit")
 				return err
 			}
@@ -69,7 +58,17 @@ func newSSHDAuthKeysCmd(cli *CLI) *cobra.Command {
 	return cmd
 }
 
-func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
+func setupLogger(cli *CLI) zerolog.Logger {
+	out := []io.Writer{cli.Stderr}
+	// TODO: log to stderr if this fails?
+	syslog, _ := logsyslog.New(logsyslog.LOG_AUTH|logsyslog.LOG_WARNING, "infra-ssh")
+	if syslog != nil {
+		out = append(out, zerolog.SyslogLevelWriter(syslog))
+	}
+	return zerolog.New(zerolog.MultiLevelWriter(out...))
+}
+
+func runSSHDAuthKeys(cli *CLI, logger zerolog.Logger, opts sshAuthKeysOptions) error {
 	ctx := context.Background()
 	logger.Debug().
 		Str("username", opts.username).
@@ -91,7 +90,7 @@ func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 	client := config.APIClient()
 	client.Name = "ssh-auth-keys-cmd"
 
-	user, err := verifyUsernameAndFingerprint(ctx, client, opts)
+	user, err := verifyUsernameAndFingerprint(ctx, logger, client, opts)
 	if err != nil {
 		return err
 	}
@@ -114,6 +113,7 @@ func runSSHAuthKeys(cli *CLI, opts sshAuthKeysOptions) error {
 
 func verifyUsernameAndFingerprint(
 	ctx context.Context,
+	logger zerolog.Logger,
 	client *api.Client,
 	opts sshAuthKeysOptions,
 ) (*api.User, error) {
@@ -136,8 +136,11 @@ func verifyUsernameAndFingerprint(
 	return &user, nil
 }
 
+// etcPasswdFilename is a shim for testing.
+var etcPasswdFilename = "/etc/passwd"
+
 func verifyUserIsManagedByInfra(username string) error {
-	localUsers, err := linux.ReadLocalUsers("/etc/passwd")
+	localUsers, err := linux.ReadLocalUsers(etcPasswdFilename)
 	if err != nil {
 		return fmt.Errorf("read users: %w", err)
 	}

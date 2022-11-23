@@ -1,0 +1,5 @@
+root:x:0:0:root:/root:/bin/ash
+adm:x:3:4::/var/adm:/sbin/nologin
+anyuser:x:1001:1001:Ah,managed by infra:/home/anyuser:/bin/bash
+otheruser:x:1000:1000::/home/otheruser:/bin/bash
+nogrant:x:1002:1002:Ah2,managed by infra:/home/nogrant:/bin/bash
