@@ -18,7 +18,7 @@ var SymmetricKey *secrets.SymmetricKey
 var SkipSymmetricKey bool
 
 func (s EncryptedAtRest) Encrypt() (string, error) {
-	if SkipSymmetricKey {
+	if SkipSymmetricKey || s == "" {
 		return string(s), nil
 	}
 
@@ -38,9 +38,9 @@ func (s EncryptedAtRest) Value() (driver.Value, error) {
 	return s.Encrypt()
 }
 
-func (s EncryptedAtRest) Decrypt() (string, error) {
-	if SkipSymmetricKey {
-		return string(s), nil
+func decrypt(s string) (string, error) {
+	if SkipSymmetricKey || s == "" {
+		return s, nil
 	}
 
 	if SymmetricKey == nil {
@@ -66,12 +66,7 @@ func (s *EncryptedAtRest) Scan(v interface{}) error {
 		return fmt.Errorf("unsupported type: %T", v)
 	}
 
-	if SkipSymmetricKey {
-		*s = EncryptedAtRest(vStr)
-		return nil
-	}
-
-	str, err := EncryptedAtRest(vStr).Decrypt()
+	str, err := decrypt(vStr)
 	if err != nil {
 		return err
 	}

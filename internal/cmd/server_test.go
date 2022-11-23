@@ -348,7 +348,7 @@ api:
 }
 
 func TestServerCmd_WithSecretsConfig(t *testing.T) {
-	pgDriver := database.PostgresDriver(t, "cmd_server")
+	pgDriver := database.PostgresDriver(t, "_cmd")
 	patchRunServer(t, noServerRun)
 
 	content := `

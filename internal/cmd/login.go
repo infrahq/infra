@@ -22,6 +22,7 @@ import (
 
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
+	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/format"
 	"github.com/infrahq/infra/internal/generate"
@@ -76,6 +77,10 @@ $ infra login`,
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
+				return err
+			}
+			// There is no flag for server, so we check it separately
 			if server, ok := os.LookupEnv("INFRA_SERVER"); ok {
 				options.Server = server
 			}

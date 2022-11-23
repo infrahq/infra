@@ -1,12 +1,15 @@
 package database
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gotest.tools/v3/assert"
+
+	"github.com/infrahq/infra/internal/generate"
 )
 
 type TestingT interface {
@@ -25,7 +28,9 @@ var isEnvironmentCI = os.Getenv("CI") != ""
 // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING.
 //
 // schemaSuffix is used to create a schema name to isolate the database from
-// other tests.
+// other tests. Most tests should specify a schemaSuffix to identify the package
+// using the database. Database migration tests will use an empty string for the
+// suffix because those tests required a schema with the name "testing".
 func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	t.Helper()
 	pgConn, ok := os.LookupEnv("POSTGRESQL_CONNECTION")
@@ -37,7 +42,10 @@ func PostgresDriver(t TestingT, schemaSuffix string) *Driver {
 	}
 
 	suffix := strings.NewReplacer("--", "", ";", "", "/", "").Replace(schemaSuffix)
-	name := "testing" + suffix
+	name := "testing"
+	if schemaSuffix != "" {
+		name = fmt.Sprintf("testing_%v_%v", suffix, generate.MathRandom(5, generate.CharsetNumbers))
+	}
 	db, err := gorm.Open(postgres.Open(pgConn))
 	assert.NilError(t, err, "connect to postgresql")
 	t.Cleanup(func() {

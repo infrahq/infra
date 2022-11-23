@@ -215,9 +215,7 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 	assert.NilError(t, err)
 	opts.TLS.Certificate = types.StringOrFile(cert)
 
-	// TODO: why do tests fail when the same schemaSuffix is used?
-	suffix := "_cmd_" + t.Name()
-	pgDriver := database.PostgresDriver(t, suffix)
+	pgDriver := database.PostgresDriver(t, "_cmd")
 	opts.DBConnectionString = pgDriver.DSN
 }
 
