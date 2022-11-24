@@ -34,17 +34,11 @@ Download the [latest](https://github.com/infrahq/infra/releases/latest) packages
 
 ```
 sudo dpkg -i infra_*.deb
-```
 
-```
 sudo apt install ./infra_*.deb
-```
 
-```
 sudo rpm -i infra-*.rpm
-```
 
-```
 sudo dnf install infra-*.rpm
 ```
 
