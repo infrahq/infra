@@ -199,11 +199,15 @@ func New(options Options) (*Server, error) {
 	}
 
 	if options.GoogleClientID != "" {
+		clientSecret, err := secrets.GetSecret(options.GoogleClientSecret, server.secrets)
+		if err != nil {
+			return nil, fmt.Errorf("could not load google client secret: %w", err)
+		}
 		server.Google = &models.Provider{
 			Name:         "Google",
 			URL:          "accounts.google.com",
 			ClientID:     options.GoogleClientID,
-			ClientSecret: models.EncryptedAtRest(options.GoogleClientSecret),
+			ClientSecret: models.EncryptedAtRest(clientSecret),
 			CreatedBy:    models.CreatedBySystem,
 			Kind:         models.ProviderKindGoogle,
 			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
