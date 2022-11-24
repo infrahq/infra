@@ -83,6 +83,7 @@ kubectl get pods -A
 ```
 
 **Note**
+
 By default, Infra will give view access to the user who made the install. To modify permissions or give additional access, use Infra dashboard or [CLI](integrations/kubernetes#access-control).
 
 ## Next steps
