@@ -30,7 +30,7 @@ scoop install infra
 
 #### Linux
 
-Download the [latest](https://github.com/infrahq/infra/releases/latest) packages from GitHub and install it with `dpkg`,  `apt`, `rpm`, or `dnf`
+Download the [latest](https://github.com/infrahq/infra/releases/latest) packages from GitHub and install it with `dpkg`,  `apt`, `rpm`, or `dnf`.
 
 ```
 sudo dpkg -i infra_*.deb
