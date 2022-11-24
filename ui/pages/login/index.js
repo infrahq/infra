@@ -3,6 +3,7 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import Link from 'next/link'
 import Tippy from '@tippyjs/react'
+import Cookies from 'universal-cookie'
 
 import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
@@ -10,14 +11,12 @@ import { useServerConfig } from '../../lib/serverconfig'
 import {
   saveToVisitedOrgs,
   currentBaseDomain,
-  currentOrg,
-  persistLoginRedirectCookie,
 } from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
 
-function oidcLogin({ id, clientID, authURL, scopes }, next) {
+function oidcLogin({ baseDomain, id, clientID, authURL, scopes }, next) {
   window.localStorage.setItem('providerID', id)
   if (next) {
     window.localStorage.setItem('next', next)
@@ -28,12 +27,23 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
     .join('')
   window.localStorage.setItem('state', state)
 
+  if (baseDomain === "") {
+    // this is possible if not configured on the server
+    // fallback to the browser domain
+    baseDomain = currentBaseDomain()
+  }
+
   let redirectURL = window.location.origin + '/login/callback'
   if (id === '') {
     // managed oidc providers (social login) need to be sent to the base redirect URL before they are redirected to org login
-    persistLoginRedirectCookie(currentOrg())
+    const cookies = new Cookies()
+    cookies.set('finishLogin', window.location.host, {
+      path: '/',
+      domain: `.${baseDomain}`,
+      sameSite: 'lax',
+    })
     redirectURL =
-      window.location.protocol + '//' + currentBaseDomain() + '/login/redirect'
+      window.location.protocol + '//' + baseDomain + '/login/redirect'
   }
   window.localStorage.setItem('redirectURL', redirectURL)
 
@@ -42,7 +52,7 @@ function oidcLogin({ id, clientID, authURL, scopes }, next) {
   )}&state=${state}`
 }
 
-function Providers({ providers }) {
+function Providers({ baseDomain, providers }) {
   const router = useRouter()
   const { next } = router.query
   return (
@@ -62,7 +72,7 @@ function Providers({ providers }) {
                   placement='top'
                 >
                   <button
-                    onClick={() => oidcLogin({ ...p }, next)}
+                    onClick={() => oidcLogin({ baseDomain, ...p }, next)}
                     className='my-2 inline-flex w-full items-center rounded-md border border-gray-300 bg-white py-2.5 px-4 text-gray-500 shadow-sm hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   >
                     <img
@@ -105,7 +115,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [errors, setErrors] = useState({})
   const [updatePasswordForUser, setUpdatePasswordForUser] = useState('')
-  const { isEmailConfigured } = useServerConfig()
+  const { isEmailConfigured, baseDomain } = useServerConfig()
   const { login } = useUser()
 
   async function onSubmit(e) {
@@ -162,7 +172,7 @@ export default function Login() {
           </h2>
           {providers?.length > 0 && (
             <>
-              <Providers providers={providers || []} />
+              <Providers baseDomain={baseDomain} providers={providers || []} />
               <div className='relative mt-6 mb-2 w-full'>
                 <div
                   className='absolute inset-0 flex items-center'

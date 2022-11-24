@@ -25,24 +25,3 @@ export function currentBaseDomain() {
   }
   return parts.join('.') // return the domain without the org
 }
-
-export function currentOrg() {
-  let parts = window.location.host.split('.')
-  if (parts.length > 2) {
-    return parts.shift() // this is the org
-  }
-  return ''
-}
-
-export function persistLoginRedirectCookie(orgName) {
-  const cookies = new Cookies()
-
-  // set the cookie domain to a general base domain
-  let cookieDomain = currentBaseDomain()
-
-  cookies.set('finishLogin', orgName, {
-    path: '/',
-    domain: `.${cookieDomain}`,
-    sameSite: 'lax',
-  })
-}

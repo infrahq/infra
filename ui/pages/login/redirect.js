@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import Cookies from 'universal-cookie'
 
@@ -10,29 +10,30 @@ export default function Redirect() {
   const router = useRouter()
   const { isReady } = router
   const { code, state } = router.query
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function finish({ code, state }) {
       const cookies = new Cookies()
-      // start with the base of the login callback URL we will redirect to
-      let callbackURL =
-        currentBaseDomain() +
+      const redirect = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
+      if (!redirect) {
+        setError("login failed: unable to redirect to finish login, check that you allow cookies")
+      }
+      // build the callback URL to finish the login at the org
+      const callbackURL =
+        window.location.protocol + 
+        '//' +
+        redirect +
         '/login/callback' +
         '?code=' +
         code +
         '&state=' +
         state
-      const org = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
-      if (org) {
-        // build the callback URL to finish the login at the org
-        callbackURL = org + '.' + callbackURL
-        // login redirect is complete so we no longer need this cookie
-        cookies.remove('finishLogin', {
-          path: '/',
-          domain: `.${currentBaseDomain()}`,
-        })
-      }
-      callbackURL = window.location.protocol + '//' + callbackURL
+      // login redirect is complete so we no longer need this cookie
+      cookies.remove('finishLogin', {
+        path: '/',
+        domain: `.${currentBaseDomain()}`,
+      })
       // send the browser to the org specific callback URL to finish login
       router.replace(callbackURL)
     }
@@ -46,7 +47,15 @@ export default function Redirect() {
     return null
   }
 
-  return <Loader className='h-20 w-20' />
+  return (
+    <>
+    {error ? (
+      <p className='my-1 text-xs text-red-500'>{error}</p>
+    ): (
+      <Loader className='h-20 w-20' />
+    )}
+    </>
+  )
 }
 
 Redirect.layout = page => <LoginLayout>{page}</LoginLayout>
