@@ -950,28 +950,16 @@ func updateAccessKeysTimeoutColumn() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-11-22T14:00",
 		Migrate: func(tx migrator.DB) error {
-			stmt := `
-				SELECT EXISTS (
-					SELECT 1 
-					FROM information_schema.columns 
-					WHERE table_name='access_keys' AND column_name='extension_deadline'
-				);
-			`
-			var exists bool
-			if err := tx.QueryRow(stmt).Scan(&exists); err != nil {
-				return fmt.Errorf("%w: check extension_deadline column", err)
+			if !migrator.HasColumn(tx, "access_keys", "extension_deadline") {
+				return nil
 			}
-
-			if exists {
-				stmt := `
+			stmt := `
 					ALTER TABLE access_keys RENAME COLUMN extension TO inactivity_extension;
 					ALTER TABLE access_keys RENAME COLUMN extension_deadline TO inactivity_timeout;
 				`
-				if _, err := tx.Exec(stmt); err != nil {
-					return fmt.Errorf("rename access key extension deadline: %w", err)
-				}
+			if _, err := tx.Exec(stmt); err != nil {
+				return fmt.Errorf("rename access key extension deadline: %w", err)
 			}
-
 			return nil
 		},
 	}
