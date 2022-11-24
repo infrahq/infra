@@ -11,40 +11,91 @@
 
 </div>
 
-## Introduction
+Infra provides authentication and access management to servers, clusters, and databases.
 
-Infra manages access to infrastructure such as Kubernetes, with support for [more connectors](#connectors) coming soon.
+## Getting Started
 
-- **Discover & access** infrastructure via a single command: `infra login`
-- **No more out-of-sync credentials** for users (e.g. Kubeconfig)
-- **Okta, Google, Azure AD** identity provider support for onboarding and offboarding
-- **Fine-grained** access to specific resources that works with existing RBAC rules
-- **API-first design** for managing access as code or via existing tooling
-- **Temporary access** to coordinate access with systems like PagerDuty (coming soon)
-- **Audit logs** for who did what, when to stay compliant (coming soon)
+#### macOS
 
-## Connectors
+```
+brew install infrahq/tap/infra
+```
 
-| Connector          | Status        | Documentation                                                        |
-| ------------------ | ------------- | -------------------------------------------------------------------- |
-| Kubernetes         | ✅ Available  | [Get started](https://infrahq.com/docs/manage/connectors/kubernetes) |
-| Postgres           | _Coming soon_ | _Coming soon_                                                        |
-| SSH                | _Coming soon_ | _Coming soon_                                                        |
-| AWS                | _Coming soon_ | _Coming soon_                                                        |
-| Container Registry | _Coming soon_ | _Coming soon_                                                        |
-| MongoDB            | _Coming soon_ | _Coming soon_                                                        |
-| Snowflake          | _Coming soon_ | _Coming soon_                                                        |
-| MySQL              | _Coming soon_ | _Coming soon_                                                        |
-| RDP                | _Coming soon_ | _Coming soon_                                                        |
+#### Windows
 
-## Documentation
+```powershell
+scoop bucket add infrahq https://github.com/infrahq/scoop.git
+scoop install infra
+```
 
-- [Deploy Infra](https://infrahq.com/docs/getting-started/deploy)
-- [Install Infra CLI](https://infrahq.com/docs/start/install-infra-cli)
-- [Helm Chart Reference](https://infrahq.com/docs/reference/helm)
-- [What is Infra?](https://infrahq.com/docs/getting-started/what-is-infra)
-- [Architecture](https://infrahq.com/docs/reference/architecture)
-- [Security](https://infrahq.com/docs/reference/security)
+#### Linux
+
+Download the [latest](https://github.com/infrahq/infra/releases/latest) packages from GitHub and install it with `dpkg`,  `apt`, `rpm`, or `dnf`
+
+```
+sudo dpkg -i infra_*.deb
+```
+
+```
+sudo apt install ./infra_*.deb
+```
+
+```
+sudo rpm -i infra-*.rpm
+```
+
+```
+sudo dnf install infra-*.rpm
+```
+
+### Create an access key
+
+Log into Infra. If you don't have a self-hosted Infra configured, you can sign up for a [free Infra instance](https://signup.infrahq.com) to get started.
+
+```
+infra login 
+```
+
+You'll be prompted for the Infra URL you created when you signed up. (e.g. `<org>.infrahq.com`).
+
+Then, create an access key:
+
+```
+INFRA_ACCESS_KEY=$(infra keys add --connector -q)
+```
+
+### Connect Kubernetes cluster
+
+Install Infra connector via [helm](https://helm.sh):
+
+```
+helm repo add infrahq https://helm.infrahq.com
+helm repo update
+helm install infra infrahq/infra --set connector.config.accessKey $INFRA_ACCESS_KEY --set connector.config.name=example
+```
+
+### Access your cluster
+
+Run `kubectl` to switch to your newly connected cluster.
+
+```
+kubectl config use-context infra:example
+```
+
+Lastly, connect to the cluster:
+
+```
+kubectl get pods -A
+```
+
+**Note**
+By default, Infra will give view access to the user who made the install. To modify permissions or give additional access, use Infra dashboard or [CLI](integrations/kubernetes#access-control).
+
+## Next steps
+
+Congratulations. You've successfully connected your first cluster.
+
+Infra works best when used with a team. Next, configure how users authenticate by connecting an [identity provider](./manage/authentication.md#identity-providers), or add users directly by [inviting them](./manage/users-groups#adding-a-user).
 
 ## Community
 
