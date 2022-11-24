@@ -17,11 +17,13 @@ export default function Redirect() {
       const cookies = new Cookies()
       const redirect = cookies.get('finishLogin') // the org to redirect to is stored in this cookie
       if (!redirect) {
-        setError("login failed: unable to redirect to finish login, check that you allow cookies")
+        setError(
+          'login failed: unable to redirect to finish login, check that you allow cookies'
+        )
       }
       // build the callback URL to finish the login at the org
       const callbackURL =
-        window.location.protocol + 
+        window.location.protocol +
         '//' +
         redirect +
         '/login/callback' +
@@ -49,11 +51,11 @@ export default function Redirect() {
 
   return (
     <>
-    {error ? (
-      <p className='my-1 text-xs text-red-500'>{error}</p>
-    ): (
-      <Loader className='h-20 w-20' />
-    )}
+      {error ? (
+        <p className='my-1 text-xs text-red-500'>{error}</p>
+      ) : (
+        <Loader className='h-20 w-20' />
+      )}
     </>
   )
 }

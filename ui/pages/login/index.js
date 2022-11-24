@@ -8,10 +8,7 @@ import Cookies from 'universal-cookie'
 import { useUser } from '../../lib/hooks'
 import { providers as providersList } from '../../lib/providers'
 import { useServerConfig } from '../../lib/serverconfig'
-import {
-  saveToVisitedOrgs,
-  currentBaseDomain,
-} from '../../lib/login'
+import { saveToVisitedOrgs, currentBaseDomain } from '../../lib/login'
 
 import LoginLayout from '../../components/layouts/login'
 import UpdatePassword from '../../components/update-password'
@@ -27,7 +24,7 @@ function oidcLogin({ baseDomain, id, clientID, authURL, scopes }, next) {
     .join('')
   window.localStorage.setItem('state', state)
 
-  if (baseDomain === "") {
+  if (baseDomain === '') {
     // this is possible if not configured on the server
     // fallback to the browser domain
     baseDomain = currentBaseDomain()
