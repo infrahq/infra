@@ -44,7 +44,7 @@ sudo dnf install infra-*.rpm
 
 ### Create an access key
 
-Log into Infra. If you don't have a self-hosted Infra configured, you can sign up for a [free Infra instance](https://signup.infrahq.com) to get started.
+Log in to Infra. If you don't have a self-hosted Infra configured, you can sign up for a [free Infra instance](https://signup.infrahq.com) to get started.
 
 ```
 infra login 
