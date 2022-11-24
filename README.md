@@ -11,7 +11,7 @@
 
 </div>
 
-Infra provides authentication and access management to servers, clusters, and databases.
+[Infra](https://infrahq.com) provides authentication and access management to servers, clusters, and databases.
 
 ## Getting Started
 
@@ -88,7 +88,7 @@ kubectl get pods -A
 
 Congratulations. You've successfully connected your first cluster.
 
-Infra works best when used with a team. Next, configure how users authenticate by connecting an [identity provider](./manage/authentication.md#identity-providers), or add users directly by [inviting them](./manage/users-groups#adding-a-user).
+Infra works best when used with a team. Next, configure how users authenticate by connecting an [identity provider](https://infrahq.com/docs/manage/authentication#identity-providers), or add users directly by [inviting them](https://infrahq.com/docs/manage/users-groups#adding-a-user).
 
 ## Community
 
