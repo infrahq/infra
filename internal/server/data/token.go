@@ -8,7 +8,6 @@ import (
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/infrahq/infra/internal/claims"
-	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -51,7 +50,6 @@ func createJWT(db ReadTxn, identity *models.Identity, groups []string, expires t
 	custom := claims.Custom{
 		Name:   identity.Name,
 		Groups: groups,
-		Nonce:  generate.MathRandom(10, generate.CharsetAlphaNumeric),
 	}
 
 	raw, err := jwt.Signed(signer).Claims(claim).Claims(custom).CompactSerialize()
