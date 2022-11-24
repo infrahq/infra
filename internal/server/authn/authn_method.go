@@ -75,8 +75,8 @@ func Login(
 		return LoginResult{}, fmt.Errorf("login failed to update last seen: %w", err)
 	}
 
-	if authenticated.Identity.SSHUsername == "" {
-		if _, err := data.SetSSHUsername(db, authenticated.Identity); err != nil {
+	if authenticated.Identity.SSHLoginName == "" {
+		if _, err := data.SetSSHLoginName(db, authenticated.Identity); err != nil {
 			return LoginResult{}, err
 		}
 	}

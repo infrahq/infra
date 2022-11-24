@@ -372,7 +372,7 @@ func handleError(err error) error {
 				"idx_access_keys_key_id":      "keyId",
 				"idx_credentials_identity_id": "identityID",
 				"idx_organizations_domain":    "domain",
-				"idx_user_ssh_username":       "sshUsername",
+				"idx_user_ssh_login_name":     "sshLoginName",
 			}
 
 			columnName := constraintFields[pgErr.ConstraintName]

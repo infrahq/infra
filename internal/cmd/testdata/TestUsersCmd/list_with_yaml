@@ -2,6 +2,6 @@
   id: "Y"
   lastSeenAt: null
   name: apple@example.com
-  sshUsername: ""
+  sshLoginName: ""
   updated: null
 

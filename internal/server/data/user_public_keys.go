@@ -62,9 +62,9 @@ func AddUserPublicKey(tx WriteTxn, key *models.UserPublicKey) error {
 	if err != nil {
 		return err
 	}
-	if user.SSHUsername != "" {
+	if user.SSHLoginName != "" {
 		return nil
 	}
-	_, err = SetSSHUsername(tx, user)
+	_, err = SetSSHLoginName(tx, user)
 	return err
 }

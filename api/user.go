@@ -23,7 +23,7 @@ type User struct {
 	Name          string          `json:"name" note:"Name of the user" example:"bob@example.com"`
 	ProviderNames []string        `json:"providerNames,omitempty" note:"List of providers this user belongs to" example:"['okta']"`
 	PublicKeys    []UserPublicKey `json:"publicKeys,omitempty" note:"List of the users public keys"`
-	SSHUsername   string          `json:"sshUsername"`
+	SSHLoginName  string          `json:"sshLoginName" note:"Username for SSH destinations"`
 }
 
 type ListUsersRequest struct {

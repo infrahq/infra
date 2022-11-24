@@ -165,7 +165,7 @@ func TestAPI_GetUser(t *testing.T) {
 						"lastSeenAt": "%[2]v",
 						"created": "%[2]v",
 						"providerNames": ["infra"],
-						"sshUsername": "mememe",
+						"sshLoginName": "mememe",
 						"updated": "%[2]v",
 						"publicKeys": [
 							{

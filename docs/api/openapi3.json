@@ -1054,7 +1054,8 @@
                   },
                   "type": "array"
                 },
-                "sshUsername": {
+                "sshLoginName": {
+                  "description": "Username for SSH destinations",
                   "type": "string"
                 },
                 "updated": {
@@ -1331,7 +1332,8 @@
             },
             "type": "array"
           },
-          "sshUsername": {
+          "sshLoginName": {
+            "description": "Username for SSH destinations",
             "type": "string"
           },
           "updated": {

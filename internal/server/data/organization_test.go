@@ -65,7 +65,7 @@ func TestCreateOrganization(t *testing.T) {
 			Name:               models.InternalInfraConnectorIdentityName,
 			CreatedBy:          models.CreatedBySystem,
 			VerificationToken:  "abcde12345",
-			SSHUsername:        "connector",
+			SSHLoginName:       "connector",
 		}
 		assert.DeepEqual(t, connector, expectedConnector, anyValidToken)
 

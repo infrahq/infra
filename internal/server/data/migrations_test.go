@@ -898,7 +898,7 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 			expected: func(t *testing.T, tx WriteTxn) {
 				user, err := GetIdentity(tx, GetIdentityOptions{ByName: "su@example.com"})
 				assert.NilError(t, err)
-				assert.Equal(t, user.SSHUsername, "")
+				assert.Equal(t, user.SSHLoginName, "")
 			},
 		},
 	}

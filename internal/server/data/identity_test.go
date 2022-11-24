@@ -95,7 +95,7 @@ func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
 	})
 }
 
-func TestSetSSHUsername(t *testing.T) {
+func TestSetSSHLoginName(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		type testCase struct {
 			name     string
@@ -116,13 +116,13 @@ func TestSetSSHUsername(t *testing.T) {
 
 			generate.SetSeed(500)
 
-			username, err := SetSSHUsername(tx, user)
+			username, err := SetSSHLoginName(tx, user)
 			assert.NilError(t, err)
 			assert.Equal(t, username, tc.expected)
 
 			actual, err := GetIdentity(tx, GetIdentityOptions{ByID: user.ID})
 			assert.NilError(t, err)
-			assert.Equal(t, actual.SSHUsername, username)
+			assert.Equal(t, actual.SSHLoginName, username)
 		}
 
 		testCases := []testCase{
@@ -137,7 +137,7 @@ func TestSetSSHUsername(t *testing.T) {
 				setup: func(t *testing.T, tx *Transaction) {
 					user := &models.Identity{
 						Name:              "taken@otherdomain.com",
-						SSHUsername:       "taken",
+						SSHLoginName:      "taken",
 						VerificationToken: "10001",
 					}
 					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
@@ -150,13 +150,13 @@ func TestSetSSHUsername(t *testing.T) {
 				setup: func(t *testing.T, tx *Transaction) {
 					user := &models.Identity{
 						Name:              "taken@otherdomain.com",
-						SSHUsername:       "taken",
+						SSHLoginName:      "taken",
 						VerificationToken: "10001",
 					}
 					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
 					user = &models.Identity{
 						Name:              "taken@thirddomain.com",
-						SSHUsername:       "taken446",
+						SSHLoginName:      "taken446",
 						VerificationToken: "10002",
 					}
 					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
@@ -184,7 +184,7 @@ func TestSetSSHUsername(t *testing.T) {
 				setup: func(t *testing.T, tx *Transaction) {
 					user := &models.Identity{
 						Name:              "taken@otherdomain.com",
-						SSHUsername:       "thisusernameistoooooooooolon",
+						SSHLoginName:      "thisusernameistoooooooooolon",
 						VerificationToken: "10003",
 					}
 					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
@@ -219,7 +219,7 @@ func TestGetIdentity(t *testing.T) {
 		assert.NilError(t, err)
 
 		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com", SSHUsername: "jbond"}
+			bond   = models.Identity{Name: "jbond@infrahq.com", SSHLoginName: "jbond"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com", Groups: []models.Group{group}}
 			bauer  = models.Identity{Name: "jbauer@infrahq.com", Providers: []models.Provider{*InfraProvider(db)}}
 		)

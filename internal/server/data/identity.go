@@ -24,16 +24,16 @@ func (i identitiesTable) Table() string {
 }
 
 func (i identitiesTable) Columns() []string {
-	return []string{"created_at", "created_by", "deleted_at", "id", "last_seen_at", "name", "organization_id", "ssh_username", "updated_at", "verification_token", "verified"}
+	return []string{"created_at", "created_by", "deleted_at", "id", "last_seen_at", "name", "organization_id", "ssh_login_name", "updated_at", "verification_token", "verified"}
 }
 
 func (i identitiesTable) Values() []any {
-	sshUsername := sql.NullString{String: i.SSHUsername, Valid: i.SSHUsername != ""}
-	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, sshUsername, i.UpdatedAt, i.VerificationToken, i.Verified}
+	sshLoginName := sql.NullString{String: i.SSHLoginName, Valid: i.SSHLoginName != ""}
+	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, sshLoginName, i.UpdatedAt, i.VerificationToken, i.Verified}
 }
 
 func (i *identitiesTable) ScanFields() []any {
-	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, (*optionalString)(&i.SSHUsername), &i.UpdatedAt, &i.VerificationToken, &i.Verified}
+	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, (*optionalString)(&i.SSHLoginName), &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
 func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
@@ -150,17 +150,17 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 	if err := insert(tx, (*identitiesTable)(identity)); err != nil {
 		return err
 	}
-	username, err := SetSSHUsername(tx, identity)
-	identity.SSHUsername = username
+	username, err := SetSSHLoginName(tx, identity)
+	identity.SSHLoginName = username
 	return err
 }
 
-func SetSSHUsername(tx WriteTxn, user *models.Identity) (string, error) {
+func SetSSHLoginName(tx WriteTxn, user *models.Identity) (string, error) {
 	user.SetOrganizationID(tx)
-	normalizedUsername := normalizeEmailToSSHUsername(user.Name)
+	normalizedUsername := normalizeEmailToSSHLoginName(user.Name)
 
 	stmt := `
-		UPDATE identities SET ssh_username = ?
+		UPDATE identities SET ssh_login_name = ?
 		WHERE id = ? AND organization_id = ?
 		AND deleted_at is null`
 
@@ -185,7 +185,7 @@ func SetSSHUsername(tx WriteTxn, user *models.Identity) (string, error) {
 }
 
 // See https://man7.org/linux/man-pages/man8/useradd.8.html#CAVEATS
-func normalizeEmailToSSHUsername(emailAddr string) string {
+func normalizeEmailToSSHLoginName(emailAddr string) string {
 	username, _, _ := strings.Cut(emailAddr, "@")
 	username = strings.ToLower(username)
 

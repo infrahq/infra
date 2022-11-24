@@ -79,7 +79,7 @@ func migrations() []*migrator.Migration {
 		moveAllowedDomainsToOrganizationsTable(),
 		updateAccessKeysTimeoutColumn(),
 		addUserPubicKeysTable(),
-		addUserSSHUsername(),
+		addUserSSHLoginName(),
 		// next one here
 	}
 }
@@ -998,15 +998,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_user_public_keys_user_fingerprint ON user_
 	}
 }
 
-func addUserSSHUsername() *migrator.Migration {
+func addUserSSHLoginName() *migrator.Migration {
 	return &migrator.Migration{
 		ID: "2022-11-17T14:00",
 		Migrate: func(db migrator.DB) error {
 			stmt := `
-ALTER TABLE identities ADD COLUMN IF NOT EXISTS ssh_username text;
+ALTER TABLE identities ADD COLUMN IF NOT EXISTS ssh_login_name text;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_ssh_username ON identities
-	USING btree (organization_id, ssh_username)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_ssh_login_name ON identities
+	USING btree (organization_id, ssh_login_name)
 `
 			_, err := db.Exec(stmt)
 			return err
