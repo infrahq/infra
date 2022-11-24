@@ -371,7 +371,7 @@ func writeDestinationSSHConfig(infraSSHDir string, destination *api.Destination,
 
 	host, port := splitHostPortSSH(destination.Connection.URL)
 	data := map[string]any{
-		"Username": user.SSHUsername,
+		"Username": user.SSHLoginName,
 		"Hostname": host,
 		"Port":     port,
 	}

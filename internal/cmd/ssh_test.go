@@ -66,7 +66,7 @@ func TestSSHHostsCmd(t *testing.T) {
 	assert.NilError(t, err)
 	assert.Equal(t, len(users.Items), 1)
 	user := users.Items[0]
-	assert.Equal(t, user.SSHUsername, "anyuser")
+	assert.Equal(t, user.SSHLoginName, "anyuser")
 
 	cfg := newTestClientConfigForServer(srv, user, "0000000002.notadminsecretnotadmin02")
 	assert.NilError(t, writeConfig(&cfg))
@@ -123,16 +123,13 @@ Match 127.12.12.1
 	assert.NilError(t, err)
 	assert.Equal(t, pubKey.Type(), "ssh-rsa")
 
-	// TODO: use GetUser when that API response includes public keys
-	users, err = client.ListUsers(ctx, api.ListUsersRequest{Name: "anyuser@example.com"})
+	updated, err := client.GetUser(ctx, user.ID)
 	assert.NilError(t, err)
-	assert.Equal(t, len(users.Items), 1)
-	user = users.Items[0]
 
-	assert.Equal(t, len(user.PublicKeys), 1)
-	assert.Equal(t, user.PublicKeys[0].KeyType, "ssh-rsa")
+	assert.Equal(t, len(updated.PublicKeys), 1)
+	assert.Equal(t, updated.PublicKeys[0].KeyType, "ssh-rsa")
 	parts := strings.Fields(string(raw))
-	assert.Equal(t, user.PublicKeys[0].PublicKey, parts[1])
+	assert.Equal(t, updated.PublicKeys[0].PublicKey, parts[1])
 }
 
 func TestUpdateUserSSHConfig(t *testing.T) {
