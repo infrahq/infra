@@ -95,7 +95,7 @@ func (a *API) signup(c *gin.Context, r *api.SignupRequest) (*api.SignupResponse,
 		// this should be caught by request validation before we hit this
 		return nil, fmt.Errorf("%w: %s", internal.ErrBadRequest, err)
 	}
-	if allowedSocialLoginDomain == "gmail.com" {
+	if allowedSocialLoginDomain == "gmail.com" || allowedSocialLoginDomain == "googlemail.com" {
 		// the admin will have to manually specify this later, default to no allowed domains
 		allowedSocialLoginDomain = ""
 	}
@@ -202,9 +202,19 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 
 		loginMethod = authn.NewPasswordCredentialAuthentication(r.PasswordCredentials.Name, r.PasswordCredentials.Password)
 	case r.OIDC != nil:
-		provider, err := access.GetProvider(c, r.OIDC.ProviderID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid identity provider: %w", err)
+		var provider *models.Provider
+		if r.OIDC.ProviderID == 0 {
+			if a.server.Google == nil {
+				return nil, fmt.Errorf("%w: google login is not configured, provider id must be specified for oidc login", internal.ErrBadRequest)
+			}
+			// default to Google social login
+			provider = a.server.Google
+		} else {
+			var err error
+			provider, err = access.GetProvider(c, r.OIDC.ProviderID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid identity provider: %w", err)
+			}
 		}
 
 		providerClient, err := a.providerClient(c, provider, r.OIDC.RedirectURL)
@@ -217,9 +227,7 @@ func (a *API) Login(c *gin.Context, r *api.LoginRequest) (*api.LoginResponse, er
 			r.OIDC.RedirectURL,
 			r.OIDC.Code,
 			providerClient,
-			// TODO: specify allowed login domains from rCtx.Authenticated.Organization.AllowedDomains
-			//		 in social login PR #3657
-			[]string{},
+			rCtx.Authenticated.Organization.AllowedDomains,
 		)
 		if err != nil {
 			return nil, err

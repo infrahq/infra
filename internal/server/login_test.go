@@ -261,10 +261,6 @@ func TestAPI_Login(t *testing.T) {
 						Errors:    []string{"is required"},
 					},
 					{
-						FieldName: "oidc.providerID",
-						Errors:    []string{"is required"},
-					},
-					{
 						FieldName: "oidc.redirectURL",
 						Errors:    []string{"is required"},
 					},

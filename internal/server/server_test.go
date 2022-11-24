@@ -36,6 +36,8 @@ func setupServer(t *testing.T, ops ...func(*testing.T, *Options)) *Server {
 			RequestTimeout:         time.Minute,
 			BlockingRequestTimeout: 5 * time.Minute,
 		},
+		GoogleClientID:     "123",
+		GoogleClientSecret: "abc",
 	}
 	for _, op := range ops {
 		op(t, &options)

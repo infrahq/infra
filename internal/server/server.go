@@ -24,6 +24,7 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 	"github.com/infrahq/infra/internal/server/data"
 	"github.com/infrahq/infra/internal/server/email"
+	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/internal/server/redis"
 	"github.com/infrahq/infra/metrics"
 )
@@ -50,6 +51,9 @@ type Options struct {
 
 	// Redis contains configuration options to the cache server.
 	Redis redis.Options
+
+	GoogleClientID     string
+	GoogleClientSecret string
 
 	DBEncryptionKey         string
 	DBEncryptionKeyProvider string
@@ -124,6 +128,7 @@ type Server struct {
 	Addrs           Addrs
 	routines        []routine
 	metricsRegistry *prometheus.Registry
+	Google          *models.Provider
 }
 
 type Addrs struct {
@@ -191,6 +196,19 @@ func New(options Options) (*Server, error) {
 
 	if options.EnableTelemetry {
 		server.tel = NewTelemetry(server.db, db.DefaultOrgSettings.ID)
+	}
+
+	if options.GoogleClientID != "" {
+		server.Google = &models.Provider{
+			Name:         "Google",
+			URL:          "accounts.google.com",
+			ClientID:     options.GoogleClientID,
+			ClientSecret: models.EncryptedAtRest(options.GoogleClientSecret),
+			CreatedBy:    models.CreatedBySystem,
+			Kind:         models.ProviderKindGoogle,
+			AuthURL:      "https://accounts.google.com/o/oauth2/v2/auth",
+			Scopes:       []string{"openid", "email"}, // TODO: update once our social client has groups
+		}
 	}
 
 	if err := server.loadConfig(server.options.Config); err != nil {

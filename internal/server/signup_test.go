@@ -268,6 +268,28 @@ func TestAPI_Signup(t *testing.T) {
 				assert.DeepEqual(t, respBody.Organization.AllowedDomains, []string{""}) // this is empty by default for gmail
 			},
 		},
+		{
+			name: "successful signup with googlemail",
+			setup: func(t *testing.T) api.SignupRequest {
+				return api.SignupRequest{
+					Name:     "example@googlemail.com",
+					Password: "password",
+					Org:      api.SignupOrg{Name: "acme-googmail", Subdomain: "acme-goog-mail-co"},
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				// the response is success
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				respBody := &api.SignupResponse{}
+				err := json.NewDecoder(resp.Body).Decode(respBody)
+				assert.NilError(t, err)
+
+				assert.Equal(t, respBody.User.Name, "example@googlemail.com")
+				assert.Equal(t, respBody.Organization.Name, "acme-googmail")
+				assert.DeepEqual(t, respBody.Organization.AllowedDomains, []string{""}) // this is empty by default for gmail
+			},
+		},
 	}
 
 	for _, tc := range testCases {

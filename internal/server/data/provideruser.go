@@ -41,8 +41,6 @@ func (p *providerUserTable) OnInsert() error {
 
 func validateProviderUser(u *models.ProviderUser) error {
 	switch {
-	case u.ProviderID == 0:
-		return fmt.Errorf("providerID is required")
 	case u.IdentityID == 0:
 		return fmt.Errorf("identityID is required")
 	case u.Email == "":
@@ -54,8 +52,6 @@ func validateProviderUser(u *models.ProviderUser) error {
 
 func validateProviderUserPatch(u *models.ProviderUser) error {
 	switch {
-	case u.ProviderID == 0:
-		return fmt.Errorf("providerID is required")
 	case u.IdentityID == 0:
 		return fmt.Errorf("identityID is required")
 	default:

@@ -13,7 +13,6 @@ type LoginRequestOIDC struct {
 
 func (r LoginRequestOIDC) ValidationRules() []validate.ValidationRule {
 	return []validate.ValidationRule{
-		validate.Required("providerID", r.ProviderID),
 		validate.Required("redirectURL", r.RedirectURL),
 		validate.Required("code", r.Code),
 	}

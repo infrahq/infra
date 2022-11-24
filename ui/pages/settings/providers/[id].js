@@ -291,98 +291,93 @@ export default function ProvidersEditDetails() {
         )}
       </header>
       <div className='my-2.5'>
-        {provider && (
-          <form onSubmit={onSubmit} className='mb-6 space-y-2'>
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>Name</label>
-              <input
-                type='search'
-                placeholder={provider?.name}
-                value={name}
-                onKeyDown={e => {
-                  if (e.key === 'Escape' || e.key === 'Esc') {
-                    e.preventDefault()
-                  }
-                }}
-                onChange={e => {
-                  setName(e.target.value)
-                  setErrors({})
-                  setError('')
-                }}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.name && (
-                <p className='my-1 text-xs text-red-500'>{errors.name}</p>
-              )}{' '}
-            </div>
+        <form onSubmit={onSubmit} className='mb-6 space-y-2'>
+          <div>
+            <label className='text-2xs font-medium text-gray-700'>Name</label>
+            <input
+              type='search'
+              placeholder={provider?.name}
+              value={name}
+              onKeyDown={e => {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                  e.preventDefault()
+                }
+              }}
+              onChange={e => {
+                setName(e.target.value)
+                setErrors({})
+                setError('')
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.name ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.name && (
+              <p className='my-1 text-xs text-red-500'>{errors.name}</p>
+            )}{' '}
+          </div>
+          <div>
+            <label className='text-2xs font-medium text-gray-700'>
+              URL (Domain)
+            </label>
+            <input
+              type='text'
+              value={provider?.url}
+              readOnly
+              className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
+            />
+          </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                URL (Domain)
-              </label>
-              <input
-                type='text'
-                value={provider?.url}
-                readOnly
-                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
-              />
-            </div>
+          <div>
+            <label className='text-2xs font-medium text-gray-700'>
+              Client ID
+            </label>
+            <input
+              readOnly
+              type='text'
+              value={provider?.clientID}
+              className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
+            />
+          </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                Client ID
-              </label>
-              <input
-                readOnly
-                type='text'
-                value={provider?.clientID}
-                className='mt-1 block w-full rounded-md border-gray-300 bg-gray-200 text-gray-600 shadow-sm focus:border-gray-300 focus:ring-0 sm:text-sm'
-              />
-            </div>
+          <div>
+            <label className='text-2xs font-medium text-gray-700'>
+              Client Secret
+            </label>
+            <input
+              type='password'
+              placeholder='*********************'
+              value={clientSecret}
+              onChange={e => {
+                setClientSecret(e.target.value)
+                setErrors({})
+                setError('')
+              }}
+              className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+                errors.clientsecret ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.clientsecret && (
+              <p className='my-1 text-xs text-red-500'>{errors.clientsecret}</p>
+            )}
+          </div>
 
-            <div>
-              <label className='text-2xs font-medium text-gray-700'>
-                Client Secret
-              </label>
-              <input
-                type='password'
-                placeholder='*********************'
-                value={clientSecret}
-                onChange={e => {
-                  setClientSecret(e.target.value)
-                  setErrors({})
-                  setError('')
-                }}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors.clientsecret ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              {errors.clientsecret && (
-                <p className='my-1 text-xs text-red-500'>
-                  {errors.clientsecret}
-                </p>
-              )}
+          <div className='flex items-center justify-end'>
+            {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
+            <div className='pt-5 pb-3'>
+              <button
+                disabled={
+                  clientSecret.length === 0 &&
+                  (name === provider?.name || name.length === 0)
+                }
+                type='submit'
+                className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
+              >
+                Save Changes
+              </button>
             </div>
-
-            <div className='flex items-center justify-end'>
-              {error && <p className='my-1 text-xs text-red-500'>{error}</p>}
-              <div className='pt-5 pb-3'>
-                <button
-                  disabled={
-                    clientSecret.length === 0 &&
-                    (name === provider?.name || name.length === 0)
-                  }
-                  type='submit'
-                  className='inline-flex items-center rounded-md border border-transparent bg-black px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30'
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
+          </div>
+        </form>
       </div>
       {/* Notification */}
       <Notification

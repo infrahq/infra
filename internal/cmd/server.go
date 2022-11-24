@@ -80,6 +80,8 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Duration("session-inactivity-timeout", 0, "A user must interact with Infra at least once within this amount of time for their session to remain valid")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
 	cmd.Flags().String("base-domain", "", "base-domain for the server, eg example.com")
+	cmd.Flags().String("google-client-id", "", "Client ID of the Google client used for social login")
+	cmd.Flags().String("google-client-secret", "", "Client secret of the Google client used for social login")
 
 	return cmd
 }

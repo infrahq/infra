@@ -36,12 +36,7 @@ export default function Callback() {
     const redirectURL = window.localStorage.getItem('redirectURL')
     const next = window.localStorage.getItem('next')
 
-    if (
-      state === window.localStorage.getItem('state') &&
-      code &&
-      providerID &&
-      redirectURL
-    ) {
+    if (state === window.localStorage.getItem('state') && code && redirectURL) {
       finish({
         providerID,
         code,

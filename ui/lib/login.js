@@ -11,17 +11,17 @@ export function saveToVisitedOrgs(domain, orgName) {
       name: orgName,
     })
 
-    // set the cookie domain to a general base domain
-    let cookieDomain = window.location.host
-    let parts = cookieDomain.split('.')
-    if (parts.length > 2) {
-      parts.shift() // remove the org
-      cookieDomain = parts.join('.') // join the last two parts of the domain
-    }
-
     cookies.set('orgs', visitedOrgs, {
       path: '/',
-      domain: `.${cookieDomain}`,
+      domain: `.${currentBaseDomain()}`,
     })
   }
+}
+
+export function currentBaseDomain() {
+  let parts = window.location.host.split('.')
+  if (parts.length > 2) {
+    parts.shift() // remove the org
+  }
+  return parts.join('.') // return the domain without the org
 }
