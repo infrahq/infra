@@ -53,15 +53,16 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 infra login example.infrahq.com
 
 # Login with username and password (prompt for password)
-infra login example.infrahq.com --user foo@gmail.com
+infra login example.infrahq.com --user user@example.com
 
 # Login with access key
-export INFRA_ACCESS_KEY=
-infra login example.infrahq.com --user foo@gmail.com
-
-# Login with username and password in (non-interactive)
 export INFRA_SERVER=example.infrahq.com
-export INFRA_USER=foo@gmail.com
+export INFRA_ACCESS_KEY=2vrEbqFEUr.jtTlxkgYdvghJNdEa8YoUxN0
+infra login example.infrahq.com --user user@example.com
+
+# Login with username and password
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=user@example.com
 export INFRA_PASSWORD=p4ssw0rd
 infra login
 		`,
