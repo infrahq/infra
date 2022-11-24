@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -163,10 +165,21 @@ func TestAPI_GetUser(t *testing.T) {
 						"lastSeenAt": "%[2]v",
 						"created": "%[2]v",
 						"providerNames": ["infra"],
-						"updated": "%[2]v"
+						"updated": "%[2]v",
+						"publicKeys": [
+							{
+								"id": "<any-valid-uid>",
+								"created": "%[2]v",
+								"fingerprint": "SHA256:dwF3R8L454kABUAJc+ZdJeaV2xbcXVJfb81tuv/1KLo",
+								"publicKey": "%[3]v",
+								"keyType": "ssh-rsa",
+								"name": ""
+							}
+						]
 					}`,
 					idMe.String(),
 					time.Now().UTC().Format(time.RFC3339),
+					strings.Fields(pubKey)[1],
 				))
 				actual := jsonUnmarshal(t, resp.Body.String())
 
@@ -221,10 +234,9 @@ func TestAPI_ListUsers(t *testing.T) {
 		err := json.NewEncoder(&buf).Encode(body)
 		assert.NilError(t, err)
 
-		// nolint:noctx
 		req := httptest.NewRequest(http.MethodPost, "/api/users", &buf)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -239,6 +251,9 @@ func TestAPI_ListUsers(t *testing.T) {
 	id3 := createID(t, "HAL@example.com")
 	_ = createID(t, "other-HAL@example.com")
 
+	pubKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPkW3mIACvMmXqbeGF/U2MY8jbQ5NT24tRL0cl+32vRMmIDGcEyLkWh98D9qJlwCIZ8vJahAI3sqYJRoIHkiaRTslWwAZWNnTJ3TzeKUn/g0xutASD4znmQhNk3OuKPyuDKRxvsOuBVzuKiNNeUWVf5v/4gPrmBffS19cPPlHG+TwHNzTvyvbLcZu+xE18x8eCM4uRam0wa4RfHrMtaqPb/kFGz7skXv0/JFCXKrc//dMKHbr/brjj7fKYFYbMG7k15LewfZ/fLqsbJsvuP8OTIE7195fKhL1Gln8AKOM1E0CLX9nxK7qx4MlrDgEJBbqikWb2kVKmpxwcA7UcoUbwKZb4/QrOUDy22aHnIErIl2is9IP8RfBdKgzmgT1QmVPcGHI4gBAPb279zw58nAVp58gzHvK/oTDlAD2zq87i/PeDSzdoVZe0zliKOXAVzLQGI+9vsZ+6URHBe6J+Tj+PxOD5sWduhepOa/UKF96+CeEg/oso4UHR83z5zR38idc=`
+	addUserPublicKey(t, srv.DB(), id1, pubKey)
+
 	type testCase struct {
 		urlPath  string
 		setup    func(t *testing.T, req *http.Request)
@@ -249,7 +264,7 @@ func TestAPI_ListUsers(t *testing.T) {
 		// nolint:noctx
 		req := httptest.NewRequest(http.MethodGet, tc.urlPath, nil)
 		req.Header.Add("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Add("Infra-Version", "0.12.3")
+		req.Header.Add("Infra-Version", apiVersionLatest)
 
 		if tc.setup != nil {
 			tc.setup(t, req)
@@ -447,6 +462,27 @@ func TestAPI_ListUsers(t *testing.T) {
 			},
 		},
 		// TODO: assert full JSON response
+		"query by public key fingerprint": {
+			urlPath: "/api/users?publicKeyFingerprint=" + url.QueryEscape("SHA256:dwF3R8L454kABUAJc+ZdJeaV2xbcXVJfb81tuv/1KLo"),
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, resp.Body.String())
+
+				var actual api.ListResponse[api.User]
+				err := json.NewDecoder(resp.Body).Decode(&actual)
+				assert.NilError(t, err)
+
+				expected := api.ListResponse[api.User]{
+					Count: 1,
+					Items: []api.User{
+						{Name: "me@example.com"},
+					},
+					PaginationResponse: api.PaginationResponse{Page: 1, Limit: 100, TotalPages: 1, TotalCount: 1},
+				}
+				assert.DeepEqual(t, actual, expected, cmpAPIUserShallow)
+				assert.Equal(t, len(actual.Items[0].PublicKeys), 1, "%#v", actual)
+				assert.Equal(t, actual.Items[0].PublicKeys[0].Fingerprint, "SHA256:dwF3R8L454kABUAJc+ZdJeaV2xbcXVJfb81tuv/1KLo")
+			},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -892,6 +928,87 @@ func TestAPI_UpdateUser(t *testing.T) {
 					{FieldName: "password", Errors: []string{"needs minimum length of 8"}},
 				}
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestAddUserPublicKey(t *testing.T) {
+	srv := setupServer(t, withAdminUser)
+	routes := srv.GenerateRoutes()
+
+	type testCase struct {
+		name     string
+		setup    func(t *testing.T, req *http.Request)
+		body     func(t *testing.T) api.AddUserPublicKeyRequest
+		expected func(t *testing.T, resp *httptest.ResponseRecorder)
+	}
+
+	run := func(t *testing.T, tc testCase) {
+		body := tc.body(t)
+
+		req := httptest.NewRequest(http.MethodPut, "/api/users/public-key", jsonBody(t, body))
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		if tc.setup != nil {
+			tc.setup(t, req)
+		}
+		resp := httptest.NewRecorder()
+		routes.ServeHTTP(resp, req)
+
+		tc.expected(t, resp)
+	}
+
+	var cmpAPIPublicKeyJSON = gocmp.Options{
+		gocmp.FilterPath(pathMapKey(`created`), cmpApproximateTime),
+		gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+	}
+
+	testCases := []testCase{
+		{
+			name: "missing authentication",
+			setup: func(t *testing.T, req *http.Request) {
+				req.Header.Del("Authorization")
+			},
+			body: func(t *testing.T) api.AddUserPublicKeyRequest {
+				return api.AddUserPublicKeyRequest{}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusUnauthorized, (*responseDebug)(resp))
+			},
+		},
+		{
+			name: "success",
+			body: func(t *testing.T) api.AddUserPublicKeyRequest {
+				pubKey := `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDPkW3mIACvMmXqbeGF/U2MY8jbQ5NT24tRL0cl+32vRMmIDGcEyLkWh98D9qJlwCIZ8vJahAI3sqYJRoIHkiaRTslWwAZWNnTJ3TzeKUn/g0xutASD4znmQhNk3OuKPyuDKRxvsOuBVzuKiNNeUWVf5v/4gPrmBffS19cPPlHG+TwHNzTvyvbLcZu+xE18x8eCM4uRam0wa4RfHrMtaqPb/kFGz7skXv0/JFCXKrc//dMKHbr/brjj7fKYFYbMG7k15LewfZ/fLqsbJsvuP8OTIE7195fKhL1Gln8AKOM1E0CLX9nxK7qx4MlrDgEJBbqikWb2kVKmpxwcA7UcoUbwKZb4/QrOUDy22aHnIErIl2is9IP8RfBdKgzmgT1QmVPcGHI4gBAPb279zw58nAVp58gzHvK/oTDlAD2zq87i/PeDSzdoVZe0zliKOXAVzLQGI+9vsZ+6URHBe6J+Tj+PxOD5sWduhepOa/UKF96+CeEg/oso4UHR83z5zR38idc=`
+				return api.AddUserPublicKeyRequest{
+					Name:      "the-name",
+					PublicKey: pubKey,
+				}
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusOK, (*responseDebug)(resp))
+
+				actual := jsonUnmarshal(t, resp.Body.String())
+				expected := jsonUnmarshal(t, fmt.Sprintf(`
+{
+	"id": "<any-valid-uid>",
+	"created": "%[1]v",
+	"fingerprint": "SHA256:dwF3R8L454kABUAJc+ZdJeaV2xbcXVJfb81tuv/1KLo",
+	"keyType": "ssh-rsa",
+	"name": "the-name",
+	"publicKey": "AAAAB3NzaC1yc2EAAAADAQABAAABgQDPkW3mIACvMmXqbeGF/U2MY8jbQ5NT24tRL0cl+32vRMmIDGcEyLkWh98D9qJlwCIZ8vJahAI3sqYJRoIHkiaRTslWwAZWNnTJ3TzeKUn/g0xutASD4znmQhNk3OuKPyuDKRxvsOuBVzuKiNNeUWVf5v/4gPrmBffS19cPPlHG+TwHNzTvyvbLcZu+xE18x8eCM4uRam0wa4RfHrMtaqPb/kFGz7skXv0/JFCXKrc//dMKHbr/brjj7fKYFYbMG7k15LewfZ/fLqsbJsvuP8OTIE7195fKhL1Gln8AKOM1E0CLX9nxK7qx4MlrDgEJBbqikWb2kVKmpxwcA7UcoUbwKZb4/QrOUDy22aHnIErIl2is9IP8RfBdKgzmgT1QmVPcGHI4gBAPb279zw58nAVp58gzHvK/oTDlAD2zq87i/PeDSzdoVZe0zliKOXAVzLQGI+9vsZ+6URHBe6J+Tj+PxOD5sWduhepOa/UKF96+CeEg/oso4UHR83z5zR38idc="
+}`,
+					time.Now().Format(time.RFC3339)))
+
+				assert.DeepEqual(t, actual, expected, cmpAPIPublicKeyJSON)
 			},
 		},
 	}

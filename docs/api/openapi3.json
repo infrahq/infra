@@ -1020,7 +1020,9 @@
                   "type": "array"
                 },
                 "publicKeys": {
+                  "description": "List of the users public keys",
                   "items": {
+                    "description": "List of the users public keys",
                     "properties": {
                       "created": {
                         "description": "formatted as an RFC3339 date-time",
@@ -1035,7 +1037,7 @@
                       "id": {
                         "example": "4yJ3n3D8E2",
                         "format": "uid",
-                        "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                        "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                         "type": "string"
                       },
                       "keyType": {
@@ -1292,7 +1294,9 @@
             "type": "array"
           },
           "publicKeys": {
+            "description": "List of the users public keys",
             "items": {
+              "description": "List of the users public keys",
               "properties": {
                 "created": {
                   "description": "formatted as an RFC3339 date-time",
@@ -1307,7 +1311,7 @@
                 "id": {
                   "example": "4yJ3n3D8E2",
                   "format": "uid",
-                  "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
                   "type": "string"
                 },
                 "keyType": {
@@ -1347,7 +1351,7 @@
           "id": {
             "example": "4yJ3n3D8E2",
             "format": "uid",
-            "pattern": "[\\da-zA-HJ-NP-Z]{1,11}",
+            "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
             "type": "string"
           },
           "keyType": {
@@ -6586,15 +6590,17 @@
             }
           },
           {
-            "description": "Page number to retrieve",
-            "example": "1",
+            "description": "Find the user with a public key that matches this SHA256 fingerprint.",
             "in": "query",
             "name": "publicKeyFingerprint",
             "schema": {
+              "description": "Find the user with a public key that matches this SHA256 fingerprint.",
               "type": "string"
             }
           },
           {
+            "description": "Page number to retrieve",
+            "example": "1",
             "in": "query",
             "name": "page",
             "schema": {

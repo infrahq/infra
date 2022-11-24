@@ -29,7 +29,7 @@ func (a *API) ListUsers(c *gin.Context, r *api.ListUsersRequest) (*api.ListRespo
 		ByGroupID:              r.Group,
 		ByPublicKeyFingerprint: r.PublicKeyFingerprint,
 		LoadProviders:          true,
-		LoadPublicKeys:         true,
+		LoadPublicKeys:         r.PublicKeyFingerprint != "",
 	}
 	if !r.ShowSystem {
 		opts.ByNotName = models.InternalInfraConnectorIdentityName
@@ -55,7 +55,11 @@ func (a *API) GetUser(c *gin.Context, r *api.GetUserRequest) (*api.User, error) 
 		}
 		r.ID.ID = iden.ID
 	}
-	identity, err := access.GetIdentity(c, data.GetIdentityOptions{ByID: r.ID.ID, LoadProviders: true})
+	identity, err := access.GetIdentity(c, data.GetIdentityOptions{
+		ByID:           r.ID.ID,
+		LoadProviders:  true,
+		LoadPublicKeys: true,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +164,7 @@ func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.User
 	}
 
 	userPublicKey := &models.UserPublicKey{
+		Name:        r.Name,
 		UserID:      rCtx.Authenticated.User.ID,
 		PublicKey:   base64.StdEncoding.EncodeToString(key.Marshal()),
 		KeyType:     key.Type(),
