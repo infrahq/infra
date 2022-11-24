@@ -41,7 +41,7 @@ func Login(
 	db *data.Transaction,
 	loginMethod LoginMethod,
 	requestedExpiry time.Time,
-	keyExtension time.Duration,
+	inactivityTimeout time.Duration,
 ) (LoginResult, error) {
 	// challenge the user to authenticate
 	authenticated, err := loginMethod.Authenticate(ctx, db, requestedExpiry)
@@ -52,13 +52,13 @@ func Login(
 	// login authentication was successful, create an access key for the user
 
 	accessKey := &models.AccessKey{
-		IssuedFor:         authenticated.Identity.ID,
-		IssuedForName:     authenticated.Identity.Name,
-		ProviderID:        authenticated.Provider.ID,
-		ExpiresAt:         authenticated.SessionExpiry,
-		ExtensionDeadline: time.Now().UTC().Add(keyExtension),
-		Extension:         keyExtension,
-		Scopes:            models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
+		IssuedFor:           authenticated.Identity.ID,
+		IssuedForName:       authenticated.Identity.Name,
+		ProviderID:          authenticated.Provider.ID,
+		ExpiresAt:           authenticated.SessionExpiry,
+		InactivityTimeout:   time.Now().UTC().Add(inactivityTimeout),
+		InactivityExtension: inactivityTimeout,
+		Scopes:              models.CommaSeparatedStrings{models.ScopeAllowCreateAccessKey},
 	}
 
 	if authenticated.AuthScope.PasswordResetOnly {

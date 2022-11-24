@@ -19,7 +19,7 @@ import (
 	"github.com/infrahq/infra/uid"
 )
 
-var apiVersion = "0.16.2"
+var apiVersion = "0.18.1"
 
 var (
 	ErrTimeout            = errors.New("client timed out waiting for response from server")

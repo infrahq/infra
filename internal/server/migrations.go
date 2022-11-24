@@ -27,9 +27,47 @@ func (a *API) addRequestRewrites() {
 	addRequestRewrite(a, http.MethodGet, "/api/access-keys", "0.16.1", func(o oldListAccessKeysRequest) newListAccessKeysRequest {
 		return newListAccessKeysRequest(o)
 	})
+	type createAccessKeysRequestV0_18_0 struct {
+		UserID            uid.ID       `json:"userID"`
+		Name              string       `json:"name"`
+		TTL               api.Duration `json:"ttl"`
+		ExtensionDeadline api.Duration `json:"extensionDeadline"`
+	}
+	addRequestRewrite(a, http.MethodPost, "/api/access-keys", "0.18.0", func(o createAccessKeysRequestV0_18_0) api.CreateAccessKeyRequest {
+		return api.CreateAccessKeyRequest{
+			UserID:            o.UserID,
+			Name:              o.Name,
+			Expiry:            o.TTL,
+			InactivityTimeout: o.ExtensionDeadline,
+		}
+	})
 }
 
 func (a *API) addResponseRewrites() {
+	type accessKeyV0_18_0 struct {
+		ID                uid.ID   `json:"id"`
+		Created           api.Time `json:"created"`
+		LastUsed          api.Time `json:"lastUsed"`
+		Name              string   `json:"name"`
+		IssuedForName     string   `json:"issuedForName"`
+		IssuedFor         uid.ID   `json:"issuedFor"`
+		ProviderID        uid.ID   `json:"providerID"`
+		Expires           api.Time `json:"expires"`
+		ExtensionDeadline api.Time `json:"inactivityTimeout"`
+	}
+	addResponseRewrite(a, http.MethodPost, "/api/access-keys", "0.18.0", func(newResponse *api.AccessKey) *accessKeyV0_18_0 {
+		return &accessKeyV0_18_0{
+			ID:                newResponse.ID,
+			Created:           newResponse.Created,
+			LastUsed:          newResponse.LastUsed,
+			Name:              newResponse.Name,
+			IssuedForName:     newResponse.IssuedForName,
+			IssuedFor:         newResponse.IssuedFor,
+			ProviderID:        newResponse.ProviderID,
+			Expires:           newResponse.Expires,
+			ExtensionDeadline: newResponse.InactivityTimeout,
+		}
+	})
 	// all response migrations go here
 }
 

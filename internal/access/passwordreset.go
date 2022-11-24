@@ -9,7 +9,7 @@ import (
 	"github.com/infrahq/infra/internal/server/models"
 )
 
-func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (token string, user *models.Identity, err error) {
+func PasswordResetRequest(c *gin.Context, email string, expiry time.Duration) (token string, user *models.Identity, err error) {
 	// no auth required
 	rCtx := GetRequestContext(c)
 	db := rCtx.DBTxn
@@ -28,7 +28,7 @@ func PasswordResetRequest(c *gin.Context, email string, ttl time.Duration) (toke
 		return "", nil, err
 	}
 
-	token, err = data.CreatePasswordResetToken(db, user.ID, ttl)
+	token, err = data.CreatePasswordResetToken(db, user.ID, expiry)
 	if err != nil {
 		return "", nil, err
 	}

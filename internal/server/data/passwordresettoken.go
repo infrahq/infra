@@ -42,9 +42,9 @@ func (p *passwordResetToken) OnInsert() error {
 	return nil
 }
 
-func CreatePasswordResetToken(tx WriteTxn, userID uid.ID, ttl time.Duration) (string, error) {
-	if userID == 0 || ttl == 0 {
-		return "", fmt.Errorf("a userID and ttl are required")
+func CreatePasswordResetToken(tx WriteTxn, userID uid.ID, expiry time.Duration) (string, error) {
+	if userID == 0 || expiry == 0 {
+		return "", fmt.Errorf("a userID and expiry are required")
 	}
 
 	tries := 0
@@ -60,7 +60,7 @@ retry:
 		ID:         uid.New(),
 		Token:      token,
 		IdentityID: userID,
-		ExpiresAt:  time.Now().Add(ttl).UTC(),
+		ExpiresAt:  time.Now().Add(expiry).UTC(),
 	}
 
 	tries++

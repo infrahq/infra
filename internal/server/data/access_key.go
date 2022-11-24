@@ -22,20 +22,20 @@ func (a accessKeyTable) Table() string {
 }
 
 func (a accessKeyTable) Columns() []string {
-	return []string{"created_at", "deleted_at", "expires_at", "extension", "extension_deadline", "id", "issued_for", "key_id", "name", "organization_id", "provider_id", "scopes", "secret_checksum", "updated_at"}
+	return []string{"created_at", "deleted_at", "expires_at", "inactivity_extension", "inactivity_timeout", "id", "issued_for", "key_id", "name", "organization_id", "provider_id", "scopes", "secret_checksum", "updated_at"}
 }
 
 func (a accessKeyTable) Values() []any {
-	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.Extension, a.ExtensionDeadline, a.ID, a.IssuedFor, a.KeyID, a.Name, a.OrganizationID, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
+	return []any{a.CreatedAt, a.DeletedAt, a.ExpiresAt, a.InactivityExtension, a.InactivityTimeout, a.ID, a.IssuedFor, a.KeyID, a.Name, a.OrganizationID, a.ProviderID, a.Scopes, a.SecretChecksum, a.UpdatedAt}
 }
 
 func (a *accessKeyTable) ScanFields() []any {
-	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.Extension, &a.ExtensionDeadline, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.OrganizationID, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
+	return []any{&a.CreatedAt, &a.DeletedAt, &a.ExpiresAt, &a.InactivityExtension, &a.InactivityTimeout, &a.ID, &a.IssuedFor, &a.KeyID, &a.Name, &a.OrganizationID, &a.ProviderID, &a.Scopes, &a.SecretChecksum, &a.UpdatedAt}
 }
 
 var (
-	ErrAccessKeyExpired          = fmt.Errorf("access key expired")
-	ErrAccessKeyDeadlineExceeded = fmt.Errorf("%w: extension deadline exceeded", ErrAccessKeyExpired)
+	ErrAccessKeyExpired        = fmt.Errorf("access key expired")
+	ErrAccessInactivityTimeout = fmt.Errorf("%w: timed out due to inactivity", ErrAccessKeyExpired)
 )
 
 func secretChecksum(secret string) []byte {
@@ -153,7 +153,7 @@ func ListAccessKeys(tx ReadTxn, opts ListAccessKeyOptions) ([]models.AccessKey, 
 		// TODO: can we remove the need to check for both the zero value and nil?
 		now, zero := time.Now(), time.Time{}
 		query.B("AND (expires_at > ? OR expires_at = ? OR expires_at is null)", now, zero)
-		query.B("AND (extension_deadline > ? OR extension_deadline = ? OR extension_deadline is null)", now, zero)
+		query.B("AND (inactivity_timeout > ? OR inactivity_timeout = ? OR inactivity_timeout is null)", now, zero)
 	}
 	if opts.ByIssuedForID != 0 {
 		query.B("AND issued_for = ?", opts.ByIssuedForID)
@@ -290,16 +290,16 @@ func ValidateRequestAccessKey(tx *Transaction, authnKey string) (*models.AccessK
 		return nil, ErrAccessKeyExpired
 	}
 
-	if !t.ExtensionDeadline.IsZero() {
-		if now.After(t.ExtensionDeadline) {
-			return nil, ErrAccessKeyDeadlineExceeded
+	if !t.InactivityTimeout.IsZero() {
+		if now.After(t.InactivityTimeout) {
+			return nil, ErrAccessInactivityTimeout
 		}
 
-		origDeadline := t.ExtensionDeadline
-		t.ExtensionDeadline = now.Add(t.Extension)
+		origTimeout := t.InactivityTimeout
+		t.InactivityTimeout = now.Add(t.InactivityExtension)
 		// Throttle updates when the key is used frequently. Uses the
 		// same value as server.lastSeenUpdateThreshold.
-		if t.ExtensionDeadline.Sub(origDeadline) > 2*time.Second {
+		if t.InactivityTimeout.Sub(origTimeout) > 2*time.Second {
 			if err := UpdateAccessKey(tx, t); err != nil {
 				return nil, err
 			}

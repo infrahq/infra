@@ -77,7 +77,7 @@ func newServerCmd() *cobra.Command {
 	cmd.Flags().Bool("enable-telemetry", false, "Enable telemetry")
 	cmd.Flags().Var(&types.URL{}, "ui-proxy-url", "Enable UI and proxy requests to this url")
 	cmd.Flags().Duration("session-duration", 0, "Maximum session duration per user login")
-	cmd.Flags().Duration("session-extension-deadline", 0, "A user must interact with Infra at least once within this amount of time for their session to remain valid")
+	cmd.Flags().Duration("session-inactivity-timeout", 0, "A user must interact with Infra at least once within this amount of time for their session to remain valid")
 	cmd.Flags().Bool("enable-signup", false, "Enable one-time admin signup")
 	cmd.Flags().String("base-domain", "", "base-domain for the server, eg example.com")
 
@@ -86,13 +86,13 @@ func newServerCmd() *cobra.Command {
 
 func defaultServerOptions(infraDir string) server.Options {
 	return server.Options{
-		Version:                  0.2, // update this as the config version changes
+		Version:                  0.3, // update this as the config version changes
 		TLSCache:                 filepath.Join(infraDir, "cache"),
 		DBEncryptionKey:          filepath.Join(infraDir, "sqlite3.db.key"),
 		DBEncryptionKeyProvider:  "native",
 		EnableTelemetry:          true,
 		SessionDuration:          24 * time.Hour * 30, // 30 days
-		SessionExtensionDeadline: 24 * time.Hour * 3,  // 3 days
+		SessionInactivityTimeout: 24 * time.Hour * 3,  // 3 days
 		EnableSignup:             false,
 		BaseDomain:               "",
 		EnableLogSampling:        true,

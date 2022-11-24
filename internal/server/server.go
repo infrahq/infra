@@ -45,8 +45,8 @@ type Options struct {
 	// grouped by the request path.
 	EnableLogSampling bool
 
-	SessionDuration          time.Duration
-	SessionExtensionDeadline time.Duration
+	SessionDuration          time.Duration // the lifetime of the access key infra issues on login
+	SessionInactivityTimeout time.Duration // access keys issued on login must be used within this window of time, or they become invalid
 
 	// Redis contains configuration options to the cache server.
 	Redis redis.Options

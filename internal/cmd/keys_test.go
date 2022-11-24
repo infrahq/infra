@@ -74,15 +74,15 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--name=the-name", "--user=my-user")
+		err := Run(ctx, "keys", "add", "--expiry=400h", "--inactivity-timeout=5h", "--name=the-name", "--user=my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
 		expected := api.CreateAccessKeyRequest{
 			UserID:            uid.ID(12345678),
 			Name:              "the-name",
-			TTL:               api.Duration(400 * time.Hour),
-			ExtensionDeadline: api.Duration(5 * time.Hour),
+			Expiry:            api.Duration(400 * time.Hour),
+			InactivityTimeout: api.Duration(5 * time.Hour),
 		}
 		assert.DeepEqual(t, expected, req)
 		assert.Equal(t, withNewline(bufs.Stdout.String()), expectedKeysAddOutput)
@@ -92,7 +92,7 @@ func TestKeysAddCmd(t *testing.T) {
 		ch := setup(t)
 
 		ctx, bufs := PatchCLI(context.Background())
-		err := Run(ctx, "keys", "add", "--ttl=400h", "--extension-deadline=5h", "--user=my-user")
+		err := Run(ctx, "keys", "add", "--expiry=400h", "--inactivity-timeout=5h", "--user=my-user")
 		assert.NilError(t, err)
 
 		req := <-ch
@@ -190,7 +190,7 @@ func TestKeysListCmd(t *testing.T) {
 						IssuedForName:     "admin",
 						Created:           api.Time(base.Add(time.Minute)),
 						Expires:           api.Time(base.Add(30 * time.Hour)),
-						ExtensionDeadline: api.Time(base.Add(50 * time.Hour)),
+						InactivityTimeout: api.Time(base.Add(50 * time.Hour)),
 					},
 					{
 						Name:          "storage",

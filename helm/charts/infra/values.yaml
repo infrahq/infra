@@ -443,7 +443,7 @@ server:
     # sessionDuration: 720h0m0s # 30 days
 
     ## How frequently a user must use session for it to remain active
-    # sessionExtensionDeadline: 72h0m0s # once every 3 days
+    # sessionInactivityTimeout: 72h0m0s # once every 3 days
 
     ## Additional secret providers to configure
     secrets: []

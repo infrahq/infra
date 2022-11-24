@@ -268,8 +268,8 @@ $ infra providers add google --url accounts.google.com --client-id 0oa3sz06o6do0
 				key, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 					UserID:            provider.ID,
 					Name:              fmt.Sprintf("%s-SCIM", args[0]),
-					TTL:               api.Duration(time.Hour * 87600), // 10 years
-					ExtensionDeadline: api.Duration(time.Hour * 87600), // 10 years
+					Expiry:            api.Duration(time.Hour * 87600), // 10 years
+					InactivityTimeout: api.Duration(time.Hour * 87600), // 10 years
 				})
 				if err != nil {
 					return err
@@ -333,8 +333,8 @@ func updateProvider(cli *CLI, name string, opts providerEditOptions) error {
 		key, err := client.CreateAccessKey(ctx, &api.CreateAccessKeyRequest{
 			UserID:            provider.ID,
 			Name:              keyName,
-			TTL:               api.Duration(time.Hour * 87600), // 10 years
-			ExtensionDeadline: api.Duration(time.Hour * 87600), // 10 years
+			Expiry:            api.Duration(time.Hour * 87600), // 10 years
+			InactivityTimeout: api.Duration(time.Hour * 87600), // 10 years
 		})
 		if err != nil {
 			if api.ErrorStatusCode(err) == 403 {

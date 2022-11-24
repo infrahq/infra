@@ -30,9 +30,9 @@ type AccessKey struct {
 	IssuedForName string `db:"-"`
 	ProviderID    uid.ID
 
-	ExpiresAt         time.Time     // time at which the key must expire. Extensions do not extend this value.
-	Extension         time.Duration // how long to increase the lifetime extension deadline by
-	ExtensionDeadline time.Time     // time by which the key must be used or it is forced to expire early. using the key sets this to now() + Extension
+	ExpiresAt           time.Time     // time at which the key must expire. Extensions to the inactivity timeout do not extend this value.
+	InactivityExtension time.Duration // how long to increase the inactivity timout by
+	InactivityTimeout   time.Time     // time by which the key must be used or it is forced to expire early. using the key sets this to now() + inactivity extension
 
 	KeyID          string
 	Secret         string `db:"-"`
@@ -46,12 +46,12 @@ func (ak *AccessKey) ToAPI() *api.AccessKey {
 		ID:                ak.ID,
 		Name:              ak.Name,
 		Created:           api.Time(ak.CreatedAt),
-		LastUsed:          api.Time(ak.UpdatedAt), // this tracks UpdatedAt which requires the ExtensionDeadline to be set, otherwise it won't be updated
+		LastUsed:          api.Time(ak.UpdatedAt), // this tracks UpdatedAt which requires the InactivityTimeout to be set, otherwise it won't be updated
 		IssuedFor:         ak.IssuedFor,
 		IssuedForName:     ak.IssuedForName,
 		ProviderID:        ak.ProviderID,
 		Expires:           api.Time(ak.ExpiresAt),
-		ExtensionDeadline: api.Time(ak.ExtensionDeadline),
+		InactivityTimeout: api.Time(ak.InactivityTimeout),
 	}
 }
 

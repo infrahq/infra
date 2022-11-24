@@ -72,15 +72,15 @@ func TestCreateAccessKey(t *testing.T) {
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
-				Name:              "the-key",
-				IssuedFor:         jerry.ID,
-				ProviderID:        infraProviderID,
-				ExpiresAt:         time.Now().Add(time.Hour),
-				Extension:         3 * time.Hour,
-				ExtensionDeadline: time.Now().Add(time.Minute),
-				KeyID:             "0123456789",
-				Secret:            "012345678901234567890123",
-				Scopes:            []string{"first", "third"},
+				Name:                "the-key",
+				IssuedFor:           jerry.ID,
+				ProviderID:          infraProviderID,
+				ExpiresAt:           time.Now().Add(time.Hour),
+				InactivityExtension: 3 * time.Hour,
+				InactivityTimeout:   time.Now().Add(time.Minute),
+				KeyID:               "0123456789",
+				Secret:              "012345678901234567890123",
+				Scopes:              []string{"first", "third"},
 			}
 			pair, err := CreateAccessKey(tx, key)
 			assert.NilError(t, err)
@@ -164,7 +164,7 @@ var anyValidUID = cmp.Comparer(func(x, y uid.ID) bool {
 // PostgreSQL only has microsecond precision
 var cmpTimeWithDBPrecision = cmpopts.EquateApproxTime(time.Microsecond)
 
-func createAccessKeyWithExtensionDeadline(t *testing.T, db WriteTxn, ttl, extensionDeadline time.Duration) (string, *models.AccessKey) {
+func createAccessKeyWithInactivityTimeout(t *testing.T, db WriteTxn, expiry, timeout time.Duration) (string, *models.AccessKey) {
 	identity := &models.Identity{Name: "Wall-E"}
 	err := CreateIdentity(db, identity)
 	assert.NilError(t, err)
@@ -172,8 +172,8 @@ func createAccessKeyWithExtensionDeadline(t *testing.T, db WriteTxn, ttl, extens
 	token := &models.AccessKey{
 		IssuedFor:         identity.ID,
 		ProviderID:        InfraProvider(db).ID,
-		ExpiresAt:         time.Now().Add(ttl),
-		ExtensionDeadline: time.Now().Add(extensionDeadline).UTC(),
+		ExpiresAt:         time.Now().Add(expiry),
+		InactivityTimeout: time.Now().Add(timeout).UTC(),
 	}
 
 	body, err := CreateAccessKey(db, token)
@@ -294,13 +294,13 @@ func TestCheckAccessKeyExpired(t *testing.T) {
 	})
 }
 
-func TestCheckAccessKeyPastExtensionDeadline(t *testing.T) {
+func TestCheckAccessKeyPastInactivityTimeout(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		tx := txnForTestCase(t, db, db.DefaultOrg.ID)
-		body, _ := createAccessKeyWithExtensionDeadline(t, tx, 1*time.Hour, -1*time.Hour)
+		body, _ := createAccessKeyWithInactivityTimeout(t, tx, 1*time.Hour, -1*time.Hour)
 
 		_, err := ValidateRequestAccessKey(tx, body)
-		assert.ErrorIs(t, err, ErrAccessKeyDeadlineExceeded)
+		assert.ErrorIs(t, err, ErrAccessInactivityTimeout)
 	})
 }
 
@@ -332,7 +332,7 @@ func TestListAccessKeys(t *testing.T) {
 			IssuedFor:         user.ID,
 			ProviderID:        InfraProvider(db).ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
-			ExtensionDeadline: time.Now().Add(-time.Hour).UTC(),
+			InactivityTimeout: time.Now().Add(-time.Hour).UTC(),
 			KeyID:             "1234567892",
 		}
 		deleted := &models.AccessKey{
@@ -341,7 +341,7 @@ func TestListAccessKeys(t *testing.T) {
 			IssuedFor:         user.ID,
 			ProviderID:        InfraProvider(db).ID,
 			ExpiresAt:         time.Now().Add(time.Hour).UTC(),
-			ExtensionDeadline: time.Now().Add(time.Hour).UTC(),
+			InactivityTimeout: time.Now().Add(time.Hour).UTC(),
 			KeyID:             "1234567893",
 		}
 		deleted.DeletedAt.Time = time.Now()
@@ -545,15 +545,15 @@ func TestUpdateAccessKey(t *testing.T) {
 					CreatedAt: created,
 					UpdatedAt: created,
 				},
-				Name:              "this-is-my-key",
-				IssuedFor:         212121,
-				ProviderID:        provider.ID,
-				ExpiresAt:         time.Date(2022, 2, 1, 2, 3, 4, 0, time.UTC),
-				ExtensionDeadline: time.Date(2022, 2, 1, 4, 3, 4, 0, time.UTC),
-				Extension:         2 * time.Hour,
-				KeyID:             "the-key-id",
-				Secret:            "the-key-secret-is-thatok",
-				Scopes:            models.CommaSeparatedStrings{"one", "two"},
+				Name:                "this-is-my-key",
+				IssuedFor:           212121,
+				ProviderID:          provider.ID,
+				ExpiresAt:           time.Date(2022, 2, 1, 2, 3, 4, 0, time.UTC),
+				InactivityTimeout:   time.Date(2022, 2, 1, 4, 3, 4, 0, time.UTC),
+				InactivityExtension: 2 * time.Hour,
+				KeyID:               "the-key-id",
+				Secret:              "the-key-secret-is-thatok",
+				Scopes:              models.CommaSeparatedStrings{"one", "two"},
 			}
 		}
 
@@ -727,5 +727,4 @@ func TestRemoveExpiredAccessKeys(t *testing.T) {
 		_, err = GetAccessKey(tx, GetAccessKeysOptions{ByID: ak2.ID})
 		assert.NilError(t, err)
 	})
-
 }

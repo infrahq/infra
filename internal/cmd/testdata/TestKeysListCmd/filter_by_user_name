@@ -1,2 +1,2 @@
-  NAME      ISSUED FOR  CREATED       LAST USED  EXPIRES           EXTENSION DEADLINE  
+  NAME      ISSUED FOR  CREATED       LAST USED  EXPIRES           INACTIVITY TIMEOUT  
   user-key  my-user     24 hours ago  never      6 hours from now  never               

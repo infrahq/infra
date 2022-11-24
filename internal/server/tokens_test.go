@@ -74,7 +74,7 @@ func TestAPI_CreateToken(t *testing.T) {
 				assert.Assert(t, respBody.Token != "")
 			},
 		},
-		"infra provider user with expired extension deadline on the access key": {
+		"infra provider user with expired inactivity timeout on the access key": {
 			setup: func(t *testing.T, req *http.Request) {
 				user := &models.Identity{
 					Name: "spike2@example.com",
@@ -88,7 +88,7 @@ func TestAPI_CreateToken(t *testing.T) {
 					IssuedFor:         user.ID,
 					ProviderID:        data.InfraProvider(srv.DB()).ID,
 					ExpiresAt:         time.Now().Add(10 * time.Second),
-					ExtensionDeadline: time.Now(),
+					InactivityTimeout: time.Now(),
 				}
 				accessKey, err := data.CreateAccessKey(srv.DB(), key)
 				assert.NilError(t, err)
