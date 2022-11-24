@@ -21,17 +21,17 @@ export default function Callback() {
     async function finish({ providerID, code, redirectURL, next }) {
       try {
         const user = await login({
-        oidc: {
-          providerID,
-          code,
-          redirectURL,
-        },
-      })
+          oidc: {
+            providerID,
+            code,
+            redirectURL,
+          },
+        })
 
-      router.replace(next ? decodeURIComponent(next) : '/')
+        router.replace(next ? decodeURIComponent(next) : '/')
 
-      window.localStorage.removeItem('next')
-      saveToVisitedOrgs(window.location.host, user?.organizationName)
+        window.localStorage.removeItem('next')
+        saveToVisitedOrgs(window.location.host, user?.organizationName)
       } catch (e) {
         setError(e.message)
       }
