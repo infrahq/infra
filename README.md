@@ -70,13 +70,21 @@ helm install infra infrahq/infra --set connector.config.accessKey $INFRA_ACCESS_
 
 ### Access your cluster
 
+Use `infra list` to see what you have access to through Infra. 
+
 Run `kubectl` to switch to your newly connected cluster.
 
 ```
 kubectl config use-context infra:example
 ```
 
-Lastly, connect to the cluster:
+Alternatively, you can switch clusters via `infra use` command. 
+
+```
+infra use example
+```
+
+Lastly, try running a command on the Kubernetes cluster:
 
 ```
 kubectl get pods -A
