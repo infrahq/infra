@@ -50,7 +50,6 @@ func (p Provider) ValidationRules() []validate.ValidationRule {
 type Grant struct {
 	User     string
 	Group    string
-	Machine  string // deprecated
 	Resource string
 	Role     string
 }
@@ -60,7 +59,6 @@ func (g Grant) ValidationRules() []validate.ValidationRule {
 		validate.RequireOneOf(
 			validate.Field{Name: "user", Value: g.User},
 			validate.Field{Name: "group", Value: g.Group},
-			validate.Field{Name: "machine", Value: g.Machine},
 		),
 		validate.Required("resource", g.Resource),
 	}
@@ -645,9 +643,6 @@ func (s Server) loadConfig(config Config) error {
 		switch {
 		case g.User != "":
 			config.Users = append(config.Users, User{Name: g.User})
-		case g.Machine != "":
-			logging.Warnf("please update 'machine' grant to 'user', the 'machine' grant type is deprecated and will be removed in a future release")
-			config.Users = append(config.Users, User{Name: g.Machine})
 		}
 	}
 
@@ -820,15 +815,6 @@ func (Server) loadGrant(db data.WriteTxn, input Grant) (*models.Grant, error) {
 		}
 
 		id = uid.NewGroupPolymorphicID(group.ID)
-
-	// TODO: remove this when deprecated machines in config are removed
-	case input.Machine != "":
-		machine, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: input.Machine})
-		if err != nil {
-			return nil, err
-		}
-
-		id = uid.NewIdentityPolymorphicID(machine.ID)
 
 	default:
 		return nil, errors.New("invalid grant: missing identity")
