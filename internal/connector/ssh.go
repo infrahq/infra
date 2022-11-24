@@ -149,10 +149,15 @@ func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant)
 			return fmt.Errorf("get user: %w", err)
 		}
 
+		if user.SSHLoginName == "" {
+			logging.L.Error().Str("user", user.Name).Msg("missing SSHLoginName")
+			continue
+		}
+
 		if err := linux.AddUser(user); err != nil {
 			return fmt.Errorf("create user: %w", err)
 		}
-		logging.L.Info().Str("username", user.SSHUsername).Msg("created user")
+		logging.L.Info().Str("username", user.SSHLoginName).Msg("created user")
 	}
 
 	return nil

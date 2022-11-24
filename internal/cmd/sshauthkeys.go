@@ -130,7 +130,7 @@ func verifyUsernameAndFingerprint(
 	user := users.Items[0]
 	logger.Debug().Msgf("user=%v (%v) pub keys %v", user.Name, user.ID, len(user.PublicKeys))
 
-	if user.SSHUsername != opts.username {
+	if user.SSHLoginName != opts.username {
 		return nil, fmt.Errorf("public key is for a different user")
 	}
 	return &user, nil

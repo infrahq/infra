@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -137,7 +136,6 @@ func addUserPublicKeyByEmail(t *testing.T, db data.WriteTxn, email string, pubKe
 	t.Helper()
 	user, err := data.GetIdentity(db, data.GetIdentityOptions{ByName: email})
 	assert.NilError(t, err, email)
-	fmt.Println(user.SSHUsername)
 
 	key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(pubKey))
 	assert.NilError(t, err)

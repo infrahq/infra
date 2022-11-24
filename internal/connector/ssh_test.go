@@ -28,8 +28,8 @@ func TestUpdateLocalUsers(t *testing.T) {
 	ctx := context.Background()
 	fakeClient := &fakeAPIClient{
 		users: map[uid.ID]api.User{
-			1111: {ID: 1111, Name: "one@example.com", SSHUsername: "one111"},
-			2222: {ID: 2222, Name: "two@example.com", SSHUsername: "two222"},
+			1111: {ID: 1111, Name: "one@example.com", SSHLoginName: "one111"},
+			2222: {ID: 2222, Name: "two@example.com", SSHLoginName: "two222"},
 		},
 	}
 	grants := []api.Grant{
