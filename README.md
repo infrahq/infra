@@ -70,7 +70,13 @@ helm install infra infrahq/infra --set connector.config.accessKey $INFRA_ACCESS_
 
 ### Access your cluster
 
-Use `infra list` to see what you have access to through Infra. 
+Give yourself permission to access the cluster:
+
+```
+infra grants add <your user email> example --role view
+```
+
+Use `infra list` to verify access.
 
 Run `kubectl` to switch to your newly connected cluster.
 
@@ -78,7 +84,7 @@ Run `kubectl` to switch to your newly connected cluster.
 kubectl config use-context infra:example
 ```
 
-Alternatively, you can switch clusters via `infra use` command. 
+Alternatively, you can switch clusters via `infra use` command.
 
 ```
 infra use example
@@ -89,8 +95,6 @@ Lastly, try running a command on the Kubernetes cluster:
 ```
 kubectl get pods -A
 ```
-
-**Note:** By default, Infra will give view access to the user who made the install. To modify permissions or give additional access, use Infra dashboard or CLI.
 
 ## Next steps
 
