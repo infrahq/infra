@@ -583,12 +583,10 @@ func (k *Kubernetes) Nodes() ([]corev1.Node, error) {
 	return nodes.Items, nil
 }
 
-func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
+func (k *Kubernetes) NodePort(service *corev1.Service, servicePort *corev1.ServicePort) (string, int, error) {
 	if len(service.Spec.Ports) == 0 {
 		return "", -1, fmt.Errorf("service has no ports")
 	}
-
-	nodePort := int(service.Spec.Ports[0].NodePort)
 
 	nodes, err := k.Nodes()
 	if err != nil {
@@ -601,7 +599,7 @@ func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
 			switch address.Type {
 			case corev1.NodeExternalDNS, corev1.NodeExternalIP:
 				logging.Debugf("using external node address %s", nodeIP)
-				return address.Address, nodePort, nil
+				return address.Address, int(servicePort.NodePort), nil
 			case corev1.NodeInternalDNS, corev1.NodeInternalIP:
 				// no need to set nodeIP more than once
 				if nodeIP == "" {
@@ -618,7 +616,7 @@ func (k *Kubernetes) NodePort(service *corev1.Service) (string, int, error) {
 	}
 
 	logging.Debugf("using internal node address %s", nodeIP)
-	return nodeIP, nodePort, nil
+	return nodeIP, int(servicePort.NodePort), nil
 }
 
 // Find a suitable Endpoint to use by inspecting Service objects
@@ -633,6 +631,18 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		return "", -1, err
 	}
 
+	var servicePort *corev1.ServicePort
+	for i, port := range service.Spec.Ports {
+		if port.Name == "https" {
+			servicePort = &service.Spec.Ports[i]
+			break
+		}
+	}
+
+	if servicePort == nil {
+		return "", -1, fmt.Errorf("service does not have an https port")
+	}
+
 	var host string
 
 	// nolint:exhaustive
@@ -640,7 +650,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 	case corev1.ServiceTypeClusterIP:
 		host = service.Spec.ClusterIP
 	case corev1.ServiceTypeNodePort:
-		return k.NodePort(service)
+		return k.NodePort(service, servicePort)
 	case corev1.ServiceTypeLoadBalancer:
 		if len(service.Status.LoadBalancer.Ingress) == 0 {
 			return "", -1, fmt.Errorf("no address available for load balancer, it may still be provisioning")
@@ -657,18 +667,7 @@ func (k *Kubernetes) Endpoint() (string, int, error) {
 		return "", -1, fmt.Errorf("unsupported service type")
 	}
 
-	var httpsPort int
-	for _, port := range service.Spec.Ports {
-		if port.Name == "https" {
-			httpsPort = int(port.Port)
-		}
-	}
-
-	if httpsPort == 0 {
-		return "", -1, fmt.Errorf("service does not have an https port")
-	}
-
-	return host, httpsPort, nil
+	return host, int(servicePort.Port), nil
 }
 
 func (k *Kubernetes) IsServiceTypeClusterIP() (bool, error) {
