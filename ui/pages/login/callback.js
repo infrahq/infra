@@ -67,7 +67,9 @@ export default function Callback() {
   return (
     <>
       {error ? (
-        <p className='my-1 text-xs text-red-500'>An error occurred while logging in: {error}</p>
+        <p className='my-1 text-xs text-red-500'>
+          An error occurred while logging in: {error}
+        </p>
       ) : (
         <Loader className='h-20 w-20' />
       )}
