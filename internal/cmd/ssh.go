@@ -111,7 +111,7 @@ func splitHostPortSSH(hostname string) (host, port string) {
 	var err error
 	host, port, err = net.SplitHostPort(hostname)
 	if err != nil {
-		return hostname, "22"
+		return hostname, "22" // default port for ssh client connections is 22
 	}
 	return host, port
 }
@@ -298,7 +298,7 @@ func updateUserSSHConfig(cli *CLI) error {
 		return err
 	}
 	cli.Output(`
-Your SSH config at %v has been created or updated to use 'infra ssh hosts' for
+Your SSH config at %v has been updated to connect to Infra SSH destinations.
 connecting to Infra SSH destinations.
 `,
 		filename)

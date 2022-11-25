@@ -156,7 +156,7 @@ func TestUpdateUserSSHConfig(t *testing.T) {
 		err := updateUserSSHConfig(newCLI(ctx))
 		assert.NilError(t, err)
 
-		expectedOutput := "has been created or updated to use 'infra ssh hosts'"
+		expectedOutput := "has been updated to connect to Infra SSH destinations"
 		if tc.expectCLIOutput {
 			assert.Assert(t, cmp.Contains(bufs.Stdout.String(), expectedOutput))
 		} else {
