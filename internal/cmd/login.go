@@ -39,7 +39,7 @@ type loginCmdOptions struct {
 	Password           string
 }
 
-const DeviceFlowMinVersion = "0.18.0"
+const DeviceFlowMinVersion = "0.16.0"
 
 func newLoginCmd(cli *CLI) *cobra.Command {
 	var options loginCmdOptions
