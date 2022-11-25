@@ -917,7 +917,7 @@ connector:
     annotations: {}
 
     ## HTTP service port
-    port: 80
+    port: 8080
 
     ## HTTP service port name
     portName: http
