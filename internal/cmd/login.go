@@ -36,6 +36,7 @@ type loginCmdOptions struct {
 	NonInteractive     bool
 	NoAgent            bool
 	User               string
+	Password           string
 }
 
 const DeviceFlowMinVersion = "0.18.0"
@@ -48,8 +49,7 @@ func newLoginCmd(cli *CLI) *cobra.Command {
 		Short:   "Login to Infra",
 		Args:    MaxArgs(1),
 		GroupID: groupCore,
-		Example: `
-# Login
+		Example: `# Login
 infra login example.infrahq.com
 
 # Login with username and password (prompt for password)
@@ -64,8 +64,7 @@ infra login example.infrahq.com --user user@example.com
 export INFRA_SERVER=example.infrahq.com
 export INFRA_USER=user@example.com
 export INFRA_PASSWORD=p4ssw0rd
-infra login
-		`,
+infra login`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
 				return err
@@ -79,8 +78,8 @@ infra login
 				options.Server = args[0]
 			}
 
-			if user, ok := os.LookupEnv("INFRA_USER"); ok {
-				options.User = user
+			if password, ok := os.LookupEnv("INFRA_PASSWORD"); ok {
+				options.Password = password
 			}
 
 			return login(cli, options)
@@ -104,42 +103,15 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return err
 	}
 
-	var password string
-	if p, ok := os.LookupEnv("INFRA_PASSWORD"); ok {
-		password = p
-	}
-
-	if options.NonInteractive {
-		if options.Server == "" {
+	if options.Server == "" {
+		if options.NonInteractive {
 			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
 		}
 
-		if options.User == "" {
-			return Error{
-				Message: "Non-interactive login requires --user or the environment variable INFRA_USER to be set",
-			}
+		options.Server, err = promptServer(cli, config)
+		if err != nil {
+			return err
 		}
-
-		if password == "" {
-			return Error{
-				Message: "Non-interactive login requires the environment variable INFRA_PASSWORD to be set",
-			}
-		}
-	}
-
-	if options.Server == "" {
-		if len(config.Hosts) == 1 {
-			options.Server = config.Hosts[0].Host
-		} else {
-			options.Server, err = promptServer(cli, config)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if options.AccessKey == "" {
-		options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
 	}
 
 	options.Server = strings.TrimPrefix(options.Server, "https://")
@@ -165,18 +137,27 @@ func login(cli *CLI, options loginCmdOptions) error {
 	case options.AccessKey != "":
 		loginReq.AccessKey = options.AccessKey
 	case options.User != "":
-		if password == "" {
-			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &password, cli.surveyIO); err != nil {
+		if options.Password == "" {
+
+			if options.NonInteractive {
+				return Error{Message: "Non-interactive login requires setting INFRA_PASSWORD environment variables"}
+			}
+
+			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO); err != nil {
 				return err
 			}
 		}
 
 		loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
 			Name:     options.User,
-			Password: password,
+			Password: options.Password,
 		}
 
 	default:
+		if options.NonInteractive {
+			return Error{Message: "Non-interactive login requires setting either the INFRA_ACCESS_KEY or both the INFRA_USER and INFRA_PASSWORD environment variables"}
+		}
+
 		if err = checkDeviceFlowCompatibility(ctx, lc.APIClient); err != nil {
 			return err
 		}
