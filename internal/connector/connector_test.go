@@ -49,7 +49,8 @@ func TestAuthenticator_Authenticate(t *testing.T) {
 		opts := Options{
 			Server: ServerOptions{SkipTLSVerify: true, AccessKey: "the-access-key"},
 		}
-		authn := newAuthenticator("https://127.0.0.1:12345", opts)
+		assert.NilError(t, opts.Server.URL.Set("https://127.0.0.1:12345"))
+		authn := newAuthenticator(opts)
 		authn.client = tc.fakeClient
 
 		actual, err := authn.Authenticate(req)

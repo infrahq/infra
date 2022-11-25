@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -74,7 +75,7 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 
 	opts := connector.Options{
 		Server: connector.ServerOptions{
-			URL:                srv.Addrs.HTTPS.String(),
+			URL:                urlFromAddr(t, srv.Addrs.HTTPS),
 			AccessKey:          "0000000002.connectorconnectorconnec",
 			TrustedCertificate: serverOpts.TLS.Certificate,
 		},
@@ -184,6 +185,13 @@ func TestConnector_Run_Kubernetes(t *testing.T) {
 	assert.DeepEqual(t, fakeKube.writes, expectedWrites, cmpKubeRequest)
 
 	// TODO: check proxy is listening
+}
+
+func urlFromAddr(t *testing.T, addr net.Addr) types.URL {
+	t.Helper()
+	var u types.URL
+	assert.NilError(t, u.Set(addr.String()))
+	return u
 }
 
 var cmpDestinationModel = cmp.Options{
@@ -397,7 +405,7 @@ addr:
 						Metrics: "127.0.0.1:8000",
 					},
 					Server: connector.ServerOptions{
-						URL:                "the-server",
+						URL:                types.URL{Scheme: "http", Host: "the-server"},
 						AccessKey:          "/var/run/secrets/key",
 						SkipTLSVerify:      true,
 						TrustedCertificate: "ca.pem",

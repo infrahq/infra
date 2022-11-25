@@ -67,21 +67,18 @@ type Options struct {
 }
 
 type ServerOptions struct {
-	URL                string
+	URL                types.URL
 	AccessKey          types.StringOrFile
 	SkipTLSVerify      bool
 	TrustedCertificate types.StringOrFile
 }
 
 func (o Options) APIClient() *api.Client {
-	url := o.Server.URL
-	if !strings.HasPrefix(url, "http") {
-		url = "https://" + url
-	}
+	o.Server.URL.Scheme = "https"
 	return &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
-		URL:       url,
+		URL:       o.Server.URL.String(),
 		AccessKey: o.Server.AccessKey.String(),
 		HTTP: http.Client{
 			Transport: httpTransportFromOptions(o.Server),
@@ -176,13 +173,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return certCache.Certificate()
 	}
 
-	u, err := urlx.Parse(options.Server.URL)
-	if err != nil {
-		return fmt.Errorf("invalid server url: %w", err)
-	}
-
-	u.Scheme = "https"
-
+	options.Server.URL.Scheme = "https"
 	destination := &api.Destination{
 		Name:     options.Name,
 		Kind:     "kubernetes",
@@ -335,7 +326,7 @@ func runKubernetesConnector(ctx context.Context, options Options) error {
 		return err
 	})
 
-	authn := newAuthenticator(u.String(), options)
+	authn := newAuthenticator(options)
 	router.Use(
 		metrics.Middleware(promRegistry),
 		proxyMiddleware(proxy, authn, k8s.Config.BearerToken),

@@ -63,7 +63,7 @@ func TestSSHDAuthKeysCmd(t *testing.T) {
 	connectorOpts := connector.Options{
 		Name: "prodhost",
 		Server: connector.ServerOptions{
-			URL:                srv.Addrs.HTTPS.String(),
+			URL:                urlFromAddr(t, srv.Addrs.HTTPS),
 			AccessKey:          "0000000003.connectorsecretconnector",
 			TrustedCertificate: opts.TLS.Certificate,
 		},
