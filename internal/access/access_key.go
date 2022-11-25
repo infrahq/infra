@@ -32,24 +32,22 @@ func ListAccessKeys(c *gin.Context, identityID uid.ID, name string, showExpired 
 	return data.ListAccessKeys(rCtx.DBTxn, opts)
 }
 
-func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (body string, err error) {
+func CreateAccessKey(c *gin.Context, accessKey *models.AccessKey) (string, error) {
 	rCtx := GetRequestContext(c)
 
 	if rCtx.Authenticated.AccessKey != nil && !rCtx.Authenticated.AccessKey.Scopes.Includes(models.ScopeAllowCreateAccessKey) {
-		// non-login access keys can not currently create other access keys.
-		return "", fmt.Errorf("%w: cannot use an access key not issued from login to create other access keys", internal.ErrBadRequest)
-	}
-
-	if accessKey.IssuedFor == rCtx.Authenticated.User.ID {
-		// can create access keys for yourself.
-	} else {
-		_, err = RequireInfraRole(c, models.InfraAdminRole)
-		if err != nil {
-			return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+		if connector := data.InfraConnectorIdentity(rCtx.DBTxn); connector.ID != accessKey.IssuedFor {
+			// non-login access keys can not currently create non-connector access keys.
+			return "", fmt.Errorf("%w: cannot use an access key to create other access keys", internal.ErrBadRequest)
 		}
 	}
 
-	body, err = data.CreateAccessKey(rCtx.DBTxn, accessKey)
+	err := IsAuthorized(rCtx, models.InfraAdminRole)
+	if err != nil && accessKey.IssuedFor != rCtx.Authenticated.User.ID {
+		return "", HandleAuthErr(err, "access key", "create", models.InfraAdminRole)
+	}
+
+	body, err := data.CreateAccessKey(rCtx.DBTxn, accessKey)
 	if err != nil {
 		return "", fmt.Errorf("create token: %w", err)
 	}
