@@ -50,10 +50,6 @@ lint:
 	(cd ./internal/tools/querylinter/cmd; go build -o ./querylinter.so -buildmode=plugin .)
 	golangci-lint run $(LINT_ARGS)
 
-.PHONY: docs
-docs: docs/api/openapi3.json
-	go run ./internal/docgen
-
 .PHONY: docs/api/openapi3.json
 docs/api/openapi3.json:
 	go run -ldflags '-s -X github.com/infrahq/infra/internal.Version=0.0.0' ./internal/openapigen $@
