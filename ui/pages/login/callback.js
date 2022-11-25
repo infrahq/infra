@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useSWRConfig } from 'swr'
 
@@ -15,21 +15,26 @@ export default function Callback() {
   const router = useRouter()
   const { isReady } = router
   const { code, state } = router.query
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function finish({ providerID, code, redirectURL, next }) {
-      const user = await login({
-        oidc: {
-          providerID,
-          code,
-          redirectURL,
-        },
-      })
+      try {
+        const user = await login({
+          oidc: {
+            providerID,
+            code,
+            redirectURL,
+          },
+        })
 
-      router.replace(next ? decodeURIComponent(next) : '/')
+        router.replace(next ? decodeURIComponent(next) : '/')
 
-      window.localStorage.removeItem('next')
-      saveToVisitedOrgs(window.location.host, user?.organizationName)
+        window.localStorage.removeItem('next')
+        saveToVisitedOrgs(window.location.host, user?.organizationName)
+      } catch (e) {
+        setError(e.message)
+      }
     }
 
     const providerID = window.localStorage.getItem('providerID')
@@ -59,7 +64,17 @@ export default function Callback() {
     return null
   }
 
-  return <Loader className='h-20 w-20' />
+  return (
+    <>
+      {error ? (
+        <p className='my-1 text-xs text-red-500'>
+          An error occurred while logging in: {error}
+        </p>
+      ) : (
+        <Loader className='h-20 w-20' />
+      )}
+    </>
+  )
 }
 
 Callback.layout = page => <LoginLayout>{page}</LoginLayout>
