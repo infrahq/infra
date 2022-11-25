@@ -65,7 +65,7 @@ Install Infra connector via [helm](https://helm.sh):
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra --set connector.config.accessKey $INFRA_ACCESS_KEY --set connector.config.name=example
+helm install infra infrahq/infra --set connector.config.accessKey=$INFRA_ACCESS_KEY --set connector.config.name=example
 ```
 
 ### Access your cluster
