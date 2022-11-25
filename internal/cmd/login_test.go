@@ -2,9 +2,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -219,6 +223,73 @@ func setupServerOptions(t *testing.T, opts *server.Options) {
 	opts.DBConnectionString = pgDriver.DSN
 }
 
+func TestLoginCmd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+
+	t.Run("without required arguments", func(t *testing.T) {
+		err := Run(context.Background(), "login")
+		assert.ErrorContains(t, err, "INFRA_SERVER")
+	})
+}
+
+func TestLoginCmd_UserPass(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home) // for windows
+	kubeConfigPath := filepath.Join(home, "kube.config")
+	t.Setenv("KUBECONFIG", kubeConfigPath)
+
+	t.Run("without username flag and without tty", func(t *testing.T) {
+		err := Run(context.Background(), "login", "example.infrahq.com")
+		assert.ErrorContains(t, err, "INFRA_USER")
+	})
+
+	t.Run("without password flag and without tty", func(t *testing.T) {
+		err := Run(context.Background(), "login", "example.infrahq.com", "--user", "foo")
+		assert.ErrorContains(t, err, "INFRA_PASSWORD")
+	})
+
+	t.Run("logs in", func(t *testing.T) {
+		handler := func(resp http.ResponseWriter, req *http.Request) {
+			if req.URL.Path == "/api/login" {
+
+				var loginRequest api.LoginRequest
+				err := json.NewDecoder(req.Body).Decode(&loginRequest)
+				assert.Check(t, err)
+				assert.Equal(t, loginRequest.PasswordCredentials.Name, "admin@example.com")
+				assert.Equal(t, loginRequest.PasswordCredentials.Password, "p4ssw0rd")
+
+				res := &api.LoginResponse{
+					UserID:                 uid.New(),
+					Name:                   "foo@gmail.com",
+					AccessKey:              "abc.xyz",
+					OrganizationName:       "Default",
+					PasswordUpdateRequired: false,
+					Expires:                api.Time(time.Now().UTC().Add(time.Hour * 24)),
+				}
+				err = json.NewEncoder(resp).Encode(res)
+				assert.Check(t, err)
+			}
+		}
+
+		t.Setenv("INFRA_USER", "admin@example.com")
+		t.Setenv("INFRA_PASSWORD", "p4ssw0rd")
+
+		srv := httptest.NewTLSServer(http.HandlerFunc(handler))
+		t.Cleanup(srv.Close)
+
+		ctx, bufs := PatchCLI(context.Background())
+
+		err := Run(ctx, "login", srv.Listener.Addr().String(), "--tls-trusted-fingerprint", certs.Fingerprint(srv.Certificate().Raw))
+		assert.NilError(t, err)
+
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "Logged in as"))
+		assert.Assert(t, strings.Contains(bufs.Stderr.String(), "foo@gmail.com"))
+	})
+}
+
 func TestLoginCmd_TLSVerify(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -423,65 +494,4 @@ func TestLoginCmd_TLSVerify(t *testing.T) {
 
 		golden.Assert(t, bufs.Stderr.String(), t.Name())
 	})
-}
-
-func TestAuthURLForProvider(t *testing.T) {
-	expectedOktaAuthURL := "https://okta.example.com/oauth2/v1/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
-	okta := api.Provider{
-		AuthURL:  "https://okta.example.com/oauth2/v1/authorize",
-		ClientID: "001",
-		Kind:     "okta",
-		Scopes: []string{
-			"email",
-			"openid",
-		},
-	}
-	url, err := authURLForProvider(okta, "state")
-	assert.NilError(t, err)
-	assert.Equal(t, url, expectedOktaAuthURL)
-
-	expectedAzureAuthURL := "https://login.microsoftonline.com/0/oauth2/v2.0/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
-	azure := api.Provider{
-		AuthURL:  "https://login.microsoftonline.com/0/oauth2/v2.0/authorize",
-		ClientID: "001",
-		Kind:     "azure",
-		Scopes: []string{
-			"email",
-			"openid",
-		},
-	}
-	url, err = authURLForProvider(azure, "state")
-	assert.NilError(t, err)
-	assert.Equal(t, url, expectedAzureAuthURL)
-
-	expectedGoogleAuthURL := "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&client_id=001&prompt=consent&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=email+openid&state=state"
-	google := api.Provider{
-		AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-		ClientID: "001",
-		Kind:     "google",
-		Scopes: []string{
-			"email",
-			"openid",
-		},
-	}
-	url, err = authURLForProvider(google, "state")
-	assert.NilError(t, err)
-	assert.Equal(t, url, expectedGoogleAuthURL)
-
-	// test that the client resolve the auth URL when the server does not send it
-	// this test does an external call to example.okta.com, if it fails check your network connection
-	expectedResolvedAuthURL := "https://example.okta.com/oauth2/v1/authorize?client_id=001&redirect_uri=http%3A%2F%2Flocalhost%3A8301&response_type=code&scope=openid+email+offline_access+groups&state=state"
-	oldProvider := api.Provider{
-		// no AuthURL set
-		URL:      "example.okta.com",
-		ClientID: "001",
-		Kind:     "okta",
-		Scopes: []string{
-			"email",
-			"openid",
-		},
-	}
-	url, err = authURLForProvider(oldProvider, "state")
-	assert.NilError(t, err)
-	assert.Equal(t, url, expectedResolvedAuthURL)
 }

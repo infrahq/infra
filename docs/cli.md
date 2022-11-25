@@ -9,10 +9,6 @@ title: CLI Reference
 
 Login to Infra
 
-#### Description
-
-Login to Infra and start a background agent to keep local configuration up-to-date
-
 ```bash
 infra login [SERVER] [flags]
 ```
@@ -20,23 +16,22 @@ infra login [SERVER] [flags]
 #### Examples
 
 ```bash
-# By default, login will prompt for all required information.
-$ infra login
+# Login
+infra login example.infrahq.com
 
-# Login to a specific server
-$ infra login infraexampleserver.com
+# Login with username and password (prompt for password)
+infra login example.infrahq.com --user user@example.com
 
-# Login with a specific identity provider
-$ infra login --provider okta
+# Login with access key
+export INFRA_SERVER=example.infrahq.com
+export INFRA_ACCESS_KEY=2vrEbqFEUr.jtTlxkgYdvghJNdEa8YoUxN0
+infra login example.infrahq.com
 
-# Login with an access key
-$ export INFRA_ACCESS_KEY=1M4CWy9wF5.fAKeKEy5sMLH9ZZzAur0ZIjy
-$ infra login
-
-# Login with pre-set provider and server
-$ export INFRA_SERVER=example.infrahq.com
-$ export INFRA_PROVIDER=google
-$ infra login
+# Login with username and password
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=user@example.com
+export INFRA_PASSWORD=p4ssw0rd
+infra login
 ```
 
 #### Options
@@ -45,10 +40,10 @@ $ infra login
       --key string                       Login with an access key
       --no-agent                         Skip starting the Infra agent in the background
       --non-interactive                  Disable all prompts for input
-      --provider string                  Login with an identity provider
       --skip-tls-verify                  Skip verifying server TLS certificates
       --tls-trusted-cert filepath        TLS certificate or CA used by the server
       --tls-trusted-fingerprint string   SHA256 fingerprint of the server TLS certificate
+      --user string                      User email
 ```
 
 **Additional options**
