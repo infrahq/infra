@@ -42,7 +42,6 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		req.Header.Set("Infra-Version", apiVersionLatest)
 
 		for k := range tc.headers {
-			req.Header.Del(k)
 			for _, v := range tc.headers[k] {
 				req.Header.Set(k, v)
 			}
