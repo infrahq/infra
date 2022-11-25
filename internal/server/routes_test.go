@@ -253,7 +253,7 @@ func TestWrapRoute_HandleErrorOnCommit(t *testing.T) {
 }
 
 func newRouterGroup(g *gin.RouterGroup) *routeGroup {
-	return &routeGroup{RouterGroup: g, noAuthentication: true, noOrgRequired: true}
+	return &routeGroup{RouterGroup: g, authenticationOptional: true, organizationOptional: true}
 }
 
 func TestInfraVersionHeader(t *testing.T) {
@@ -290,7 +290,7 @@ func TestRequestTimeout(t *testing.T) {
 	assert.Assert(t, ok)
 	a := &API{server: srv}
 
-	group := &routeGroup{RouterGroup: router.Group("/"), noAuthentication: true, noOrgRequired: true}
+	group := &routeGroup{RouterGroup: router.Group("/"), authenticationOptional: true, organizationOptional: true}
 	add(a, group, http.MethodGet, "/sleep", route[api.EmptyRequest, *api.EmptyResponse]{
 		handler: func(c *gin.Context, req *api.EmptyRequest) (*api.EmptyResponse, error) {
 			ctx := getRequestContext(c)

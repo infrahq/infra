@@ -111,14 +111,14 @@ func (s *Server) GenerateRoutes() Routes {
 	add(a, authn, http.MethodGet, "/api/debug/pprof/*profile", pprofRoute)
 
 	// no auth required, org not required
-	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true, noOrgRequired: true}
+	noAuthnNoOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), authenticationOptional: true, organizationOptional: true}
 	add(a, noAuthnNoOrg, http.MethodPost, "/api/signup", a.SignupRoute())
 	get(a, noAuthnNoOrg, "/api/version", a.Version)
 	get(a, noAuthnNoOrg, "/api/server-configuration", a.GetServerConfiguration)
 	post(a, noAuthnNoOrg, "/api/forgot-domain-request", a.RequestForgotDomains)
 
 	// no auth required, org required
-	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), noAuthentication: true}
+	noAuthnWithOrg := &routeGroup{RouterGroup: apiGroup.Group("/"), authenticationOptional: true}
 
 	post(a, noAuthnWithOrg, "/api/login", a.Login)
 	post(a, noAuthnWithOrg, "/api/password-reset-request", a.RequestPasswordReset)
@@ -174,8 +174,8 @@ type routeIdentifier struct {
 // constructed from the get, post, put, del helper functions.
 type routeGroup struct {
 	*gin.RouterGroup
-	noAuthentication bool
-	noOrgRequired    bool
+	authenticationOptional bool
+	organizationOptional   bool
 }
 
 func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route route[Req, Res]) {
@@ -184,8 +184,8 @@ func add[Req, Res any](a *API, group *routeGroup, method, urlPath string, route 
 		path:   path.Join(group.BasePath(), urlPath),
 	}
 
-	route.authenticationOptional = group.noAuthentication
-	route.organizationOptional = group.noOrgRequired
+	route.authenticationOptional = group.authenticationOptional
+	route.organizationOptional = group.organizationOptional
 
 	if !route.omitFromDocs {
 		a.register(openAPIRouteDefinition(routeID, route))
