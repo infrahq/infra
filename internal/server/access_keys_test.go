@@ -315,26 +315,8 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		})
 	})
 
-	t.Run("latest", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.12.3")
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		resp1 := &api.ListResponse[api.AccessKey]{}
-		err := json.Unmarshal(resp.Body.Bytes(), resp1)
-		assert.NilError(t, err)
-
-		assert.Assert(t, len(resp1.Items) > 0)
-	})
-
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		// nolint:noctx
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -347,6 +329,50 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
 		assert.Equal(t, errMsg.Code, int32(400))
+	})
+
+	t.Run("version 0.18.0", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?name=foo", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.18.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var cmpResponse = gocmp.Options{
+			gocmp.FilterPath(pathMapKey(`created`, `lastUsed`, `expires`), cmpApproximateTime),
+		}
+
+		actual := jsonUnmarshal(t, resp.Body.String())
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+			{
+				"limit": 100,
+				"page": 1,
+				"totalCount": 1,
+				"totalPages": 1,
+				"count": 1,
+				"items": [
+					{
+						"id": "%[2]v",
+						"created": "%[1]v",
+						"lastUsed": "%[1]v",
+						"name": "foo",
+						"extensionDeadline": null,
+						"issuedForName": "foo@example.com",
+						"issuedFor": "%[3]v",
+						"expires": "%[4]v",
+						"providerID": "%[5]v"
+					}
+				]
+			}
+			`,
+			time.Now().Format(time.RFC3339),
+			ak1.ID,
+			user.ID,
+			ak1.ExpiresAt.Format(time.RFC3339),
+			provider.ID))
+		assert.DeepEqual(t, actual, expected, cmpResponse)
 	})
 }
 
