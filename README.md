@@ -46,6 +46,12 @@ sudo dnf install infra-*.rpm
 
 Log in to Infra. If you don't have a self-hosted Infra configured, you can sign up for a [free Infra instance](https://signup.infrahq.com) to get started.
 
+Set the INFRA_SERVER variable to your Infra URL:
+
+```
+export INFRA_SERVER=<org>.infrahq.com
+```
+
 ```
 infra login 
 ```
@@ -65,12 +71,18 @@ Install Infra connector via [helm](https://helm.sh):
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra --set connector.config.accessKey $INFRA_ACCESS_KEY --set connector.config.name=example
+helm install infra infrahq/infra --set connector.config.server=$INFRA_SERVER --set connector.config.accessKey=$INFRA_ACCESS_KEY --set connector.config.name=example
 ```
 
 ### Access your cluster
 
-Use `infra list` to see what you have access to through Infra. 
+Give yourself permission to access the cluster:
+
+```
+infra grants add <your user email> example --role view
+```
+
+Use `infra list` to verify access.
 
 Run `kubectl` to switch to your newly connected cluster.
 
@@ -78,7 +90,7 @@ Run `kubectl` to switch to your newly connected cluster.
 kubectl config use-context infra:example
 ```
 
-Alternatively, you can switch clusters via `infra use` command. 
+Alternatively, you can switch clusters via `infra use` command.
 
 ```
 infra use example
@@ -89,8 +101,6 @@ Lastly, try running a command on the Kubernetes cluster:
 ```
 kubectl get pods -A
 ```
-
-**Note:** By default, Infra will give view access to the user who made the install. To modify permissions or give additional access, use Infra dashboard or CLI.
 
 ## Next steps
 
