@@ -82,6 +82,10 @@ infra login`,
 				options.Password = password
 			}
 
+			if options.AccessKey == "" {
+				options.AccessKey = os.Getenv("INFRA_ACCESS_KEY")
+			}
+
 			return login(cli, options)
 		},
 	}
@@ -139,7 +143,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 	case options.User != "":
 		if options.Password == "" {
 			if options.NonInteractive {
-				return Error{Message: "Non-interactive login requires setting INFRA_PASSWORD environment variables"}
+				return Error{Message: "Non-interactive login requires setting the INFRA_PASSWORD environment variable"}
 			}
 
 			if err := survey.AskOne(&survey.Password{Message: "Password:"}, &options.Password, cli.surveyIO); err != nil {

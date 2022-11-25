@@ -243,12 +243,12 @@ func TestLoginCmd_UserPass(t *testing.T) {
 
 	t.Run("without username flag and without tty", func(t *testing.T) {
 		err := Run(context.Background(), "login", "example.infrahq.com")
-		assert.ErrorContains(t, err, "INFRA_USER to be set")
+		assert.ErrorContains(t, err, "INFRA_USER")
 	})
 
 	t.Run("without password flag and without tty", func(t *testing.T) {
 		err := Run(context.Background(), "login", "example.infrahq.com", "--user", "foo")
-		assert.ErrorContains(t, err, "INFRA_PASSWORD to be set")
+		assert.ErrorContains(t, err, "INFRA_PASSWORD")
 	})
 
 	t.Run("logs in", func(t *testing.T) {
