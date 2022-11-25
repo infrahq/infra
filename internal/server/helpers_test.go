@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -272,6 +273,21 @@ var cmpAnyString = gocmp.Comparer(func(x, y interface{}) bool {
 	return xs == ys
 })
 
+// cmpAnyString is a gocmp.Option that allows a field to match a string with any suffix.
+var cmpAnyStringSuffix = gocmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	ys, _ := y.(string)
+
+	switch {
+	case strings.HasSuffix(xs, "<any-string>"):
+		return strings.HasPrefix(ys, strings.TrimSuffix(xs, "<any-string>"))
+	case strings.HasSuffix(ys, "<any-string>"):
+		return strings.HasPrefix(xs, strings.TrimSuffix(ys, "<any-string>"))
+	}
+
+	return xs == ys
+})
+
 // cmpEquateEmptySlice is a gocmp.Option that evalutes any empty slice as equal regardless of their types, then falls back to deep comparison
 var cmpEquateEmptySlice = gocmp.Comparer(func(x, y interface{}) bool {
 	xs, _ := x.([]any)
@@ -282,4 +298,28 @@ var cmpEquateEmptySlice = gocmp.Comparer(func(x, y interface{}) bool {
 	}
 
 	return reflect.DeepEqual(xs, ys)
+})
+
+// cmpAnyValidAccessKey is a gocmp.Option that allows a field to match any valid access key
+var cmpAnyValidAccessKey = gocmp.Comparer(func(x, y interface{}) bool {
+	xs, _ := x.(string)
+	ys, _ := y.(string)
+
+	validAccessKey := func(s string) bool {
+		key, secret, ok := strings.Cut(s, ".")
+		if !ok {
+			return false
+		}
+
+		return len(key) == 10 && len(secret) == 24
+	}
+
+	switch {
+	case xs == "<any-valid-access-key>":
+		return validAccessKey(ys)
+	case ys == "<any-valid-access-key>":
+		return validAccessKey(xs)
+	}
+
+	return xs == ys
 })

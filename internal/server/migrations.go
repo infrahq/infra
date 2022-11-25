@@ -53,19 +53,43 @@ func (a *API) addResponseRewrites() {
 		IssuedFor         uid.ID   `json:"issuedFor"`
 		ProviderID        uid.ID   `json:"providerID"`
 		Expires           api.Time `json:"expires"`
-		ExtensionDeadline api.Time `json:"inactivityTimeout"`
+		ExtensionDeadline api.Time `json:"extensionDeadline"`
 	}
-	addResponseRewrite(a, http.MethodPost, "/api/access-keys", "0.18.0", func(newResponse *api.AccessKey) *accessKeyV0_18_0 {
-		return &accessKeyV0_18_0{
+	addResponseRewrite(a, http.MethodGet, "/api/access-keys", "0.18.0", func(newResponse *api.ListResponse[api.AccessKey]) *api.ListResponse[accessKeyV0_18_0] {
+		return api.NewListResponse(newResponse.Items, newResponse.PaginationResponse, func(newResponseItem api.AccessKey) accessKeyV0_18_0 {
+			return accessKeyV0_18_0{
+				ID:                newResponseItem.ID,
+				Created:           newResponseItem.Created,
+				LastUsed:          newResponseItem.LastUsed,
+				Name:              newResponseItem.Name,
+				IssuedForName:     newResponseItem.IssuedForName,
+				IssuedFor:         newResponseItem.IssuedFor,
+				ProviderID:        newResponseItem.ProviderID,
+				Expires:           newResponseItem.Expires,
+				ExtensionDeadline: newResponseItem.InactivityTimeout,
+			}
+		})
+	})
+	type createAccessKeyV0_18_0 struct {
+		ID                uid.ID   `json:"id"`
+		Created           api.Time `json:"created"`
+		Name              string   `json:"name"`
+		IssuedFor         uid.ID   `json:"issuedFor"`
+		ProviderID        uid.ID   `json:"providerID"`
+		Expires           api.Time `json:"expires"`
+		ExtensionDeadline api.Time `json:"extensionDeadline"`
+		AccessKey         string   `json:"accessKey"`
+	}
+	addResponseRewrite(a, http.MethodPost, "/api/access-keys", "0.18.0", func(newResponse *api.CreateAccessKeyResponse) *createAccessKeyV0_18_0 {
+		return &createAccessKeyV0_18_0{
 			ID:                newResponse.ID,
 			Created:           newResponse.Created,
-			LastUsed:          newResponse.LastUsed,
 			Name:              newResponse.Name,
-			IssuedForName:     newResponse.IssuedForName,
 			IssuedFor:         newResponse.IssuedFor,
 			ProviderID:        newResponse.ProviderID,
 			Expires:           newResponse.Expires,
 			ExtensionDeadline: newResponse.InactivityTimeout,
+			AccessKey:         newResponse.AccessKey,
 		}
 	})
 	// all response migrations go here

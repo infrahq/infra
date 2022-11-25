@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -22,8 +23,9 @@ import (
 func TestAPI_CreateAccessKey(t *testing.T) {
 	type testCase struct {
 		name     string
-		setup    func(t *testing.T) api.CreateAccessKeyRequest
+		setup    func(t *testing.T) io.Reader
 		expected func(t *testing.T, response *httptest.ResponseRecorder)
+		headers  http.Header
 	}
 
 	srv := setupServer(t, withAdminUser)
@@ -35,9 +37,15 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		body := tc.setup(t)
 
 		// nolint:noctx
-		req := httptest.NewRequest(http.MethodPost, "/api/access-keys", jsonBody(t, body))
+		req := httptest.NewRequest(http.MethodPost, "/api/access-keys", body)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 		req.Header.Set("Infra-Version", apiVersionLatest)
+
+		for k := range tc.headers {
+			for _, v := range tc.headers[k] {
+				req.Header.Set(k, v)
+			}
+		}
 
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
@@ -48,12 +56,12 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 	testCases := []testCase{
 		{
 			name: "automatic name",
-			setup: func(t *testing.T) api.CreateAccessKeyRequest {
-				return api.CreateAccessKeyRequest{
+			setup: func(t *testing.T) io.Reader {
+				return jsonBody(t, &api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
-				}
+				})
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -66,13 +74,13 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		},
 		{
 			name: "user provided name",
-			setup: func(t *testing.T) api.CreateAccessKeyRequest {
-				return api.CreateAccessKeyRequest{
+			setup: func(t *testing.T) io.Reader {
+				return jsonBody(t, &api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					Name:              "mysupersecretaccesskey",
 					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
-				}
+				})
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
@@ -85,13 +93,13 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 		},
 		{
 			name: "invalid name",
-			setup: func(t *testing.T) api.CreateAccessKeyRequest {
-				return api.CreateAccessKeyRequest{
+			setup: func(t *testing.T) io.Reader {
+				return jsonBody(t, &api.CreateAccessKeyRequest{
 					UserID:            userResp.ID,
 					Name:              "this-name-should-not-contain-slash/",
 					Expiry:            api.Duration(time.Minute),
 					InactivityTimeout: api.Duration(time.Minute),
-				}
+				})
 			},
 			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
 				assert.Equal(t, resp.Code, http.StatusBadRequest, resp.Body.String())
@@ -106,6 +114,41 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 				assert.DeepEqual(t, respBody.FieldErrors, expected)
 			},
 		},
+		{
+			name: "migration from <= 0.18.0",
+			setup: func(t *testing.T) io.Reader {
+				return jsonBody(t, map[string]string{
+					"userID":            userResp.ID.String(),
+					"ttl":               api.Duration(time.Minute).String(),
+					"extensionDeadline": api.Duration(time.Minute).String(),
+				})
+			},
+			expected: func(t *testing.T, resp *httptest.ResponseRecorder) {
+				assert.Equal(t, resp.Code, http.StatusCreated, resp.Body.String())
+
+				expected := jsonUnmarshal(t, fmt.Sprintf(`{
+						"id": "<any-valid-uid>",
+						"created": "%[3]v",
+						"issuedFor": "%[1]s",
+						"expires": "%[4]v",
+						"extensionDeadline": "%[4]v",
+						"accessKey": "<any-valid-access-key>",
+						"name": "%[2]s-<any-string>",
+						"providerID": ""
+					}`,
+					userResp.ID,
+					userResp.Name,
+					time.Now().UTC().Format(time.RFC3339),
+					time.Now().Add(time.Minute).UTC().Format(time.RFC3339),
+				))
+
+				actual := jsonUnmarshal(t, resp.Body.String())
+				assert.DeepEqual(t, actual, expected, cmpAPICreateAccessKeyJSON)
+			},
+			headers: map[string][]string{
+				"Infra-Version": {"0.18.0"},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -113,6 +156,13 @@ func TestAPI_CreateAccessKey(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+var cmpAPICreateAccessKeyJSON = gocmp.Options{
+	gocmp.FilterPath(pathMapKey(`created`, `expires`, `extensionDeadline`), cmpApproximateTime),
+	gocmp.FilterPath(pathMapKey(`id`), cmpAnyValidUID),
+	gocmp.FilterPath(pathMapKey(`accessKey`), cmpAnyValidAccessKey),
+	gocmp.FilterPath(pathMapKey(`name`), cmpAnyStringSuffix),
 }
 
 func TestAPI_ListAccessKeys_Success(t *testing.T) {
@@ -264,26 +314,8 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		})
 	})
 
-	t.Run("latest", func(t *testing.T) {
-		resp := httptest.NewRecorder()
-		// nolint:noctx
-		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
-		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
-		req.Header.Set("Infra-Version", "0.12.3")
-
-		routes.ServeHTTP(resp, req)
-		assert.Equal(t, resp.Code, http.StatusOK)
-
-		resp1 := &api.ListResponse[api.AccessKey]{}
-		err := json.Unmarshal(resp.Body.Bytes(), resp1)
-		assert.NilError(t, err)
-
-		assert.Assert(t, len(resp1.Items) > 0)
-	})
-
 	t.Run("no version header", func(t *testing.T) {
 		resp := httptest.NewRecorder()
-		// nolint:noctx
 		req := httptest.NewRequest(http.MethodGet, "/api/access-keys", nil)
 		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
 
@@ -296,6 +328,50 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		assert.Assert(t, strings.Contains(errMsg.Message, "Infra-Version header is required"))
 		assert.Equal(t, errMsg.Code, int32(400))
+	})
+
+	t.Run("version 0.18.0", func(t *testing.T) {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/api/access-keys?name=foo", nil)
+		req.Header.Set("Authorization", "Bearer "+adminAccessKey(srv))
+		req.Header.Set("Infra-Version", "0.18.0")
+
+		routes.ServeHTTP(resp, req)
+		assert.Equal(t, resp.Code, http.StatusOK)
+
+		var cmpResponse = gocmp.Options{
+			gocmp.FilterPath(pathMapKey(`created`, `lastUsed`, `expires`), cmpApproximateTime),
+		}
+
+		actual := jsonUnmarshal(t, resp.Body.String())
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+			{
+				"limit": 100,
+				"page": 1,
+				"totalCount": 1,
+				"totalPages": 1,
+				"count": 1,
+				"items": [
+					{
+						"id": "%[2]v",
+						"created": "%[1]v",
+						"lastUsed": "%[1]v",
+						"name": "foo",
+						"extensionDeadline": null,
+						"issuedForName": "foo@example.com",
+						"issuedFor": "%[3]v",
+						"expires": "%[4]v",
+						"providerID": "%[5]v"
+					}
+				]
+			}
+			`,
+			time.Now().Format(time.RFC3339),
+			ak1.ID,
+			user.ID,
+			ak1.ExpiresAt.Format(time.RFC3339),
+			provider.ID))
+		assert.DeepEqual(t, actual, expected, cmpResponse)
 	})
 }
 
