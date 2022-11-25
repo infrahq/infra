@@ -109,7 +109,7 @@ func login(cli *CLI, options loginCmdOptions) error {
 
 	if options.Server == "" {
 		if options.NonInteractive {
-			return Error{Message: "Non-interactive login requires the [SERVER] argument or environment variable INFRA_SERVER to be set"}
+			return Error{Message: "Non-interactive login requires the [SERVER] argument or the INFRA_SERVER environment variable to be set"}
 		}
 
 		options.Server, err = promptServer(cli, config)
