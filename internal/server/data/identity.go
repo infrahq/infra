@@ -1,7 +1,6 @@
 package data
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -28,12 +27,11 @@ func (i identitiesTable) Columns() []string {
 }
 
 func (i identitiesTable) Values() []any {
-	sshLoginName := sql.NullString{String: i.SSHLoginName, Valid: i.SSHLoginName != ""}
-	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, sshLoginName, i.UpdatedAt, i.VerificationToken, i.Verified}
+	return []any{i.CreatedAt, i.CreatedBy, i.DeletedAt, i.ID, i.LastSeenAt, i.Name, i.OrganizationID, i.SSHLoginName, i.UpdatedAt, i.VerificationToken, i.Verified}
 }
 
 func (i *identitiesTable) ScanFields() []any {
-	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, (*optionalString)(&i.SSHLoginName), &i.UpdatedAt, &i.VerificationToken, &i.Verified}
+	return []any{&i.CreatedAt, &i.CreatedBy, &i.DeletedAt, &i.ID, &i.LastSeenAt, &i.Name, &i.OrganizationID, &i.SSHLoginName, &i.UpdatedAt, &i.VerificationToken, &i.Verified}
 }
 
 func AssignIdentityToGroups(tx WriteTxn, user *models.Identity, provider *models.Provider, newGroups []string) error {
@@ -150,12 +148,12 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 	if err := insert(tx, (*identitiesTable)(identity)); err != nil {
 		return err
 	}
-	username, err := SetSSHLoginName(tx, identity)
+	username, err := setSSHLoginName(tx, *identity)
 	identity.SSHLoginName = username
 	return err
 }
 
-func SetSSHLoginName(tx WriteTxn, user *models.Identity) (string, error) {
+func setSSHLoginName(tx WriteTxn, user models.Identity) (string, error) {
 	user.SetOrganizationID(tx)
 	normalizedUsername := normalizeEmailToSSHLoginName(user.Name)
 

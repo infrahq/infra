@@ -52,19 +52,5 @@ func AddUserPublicKey(tx WriteTxn, key *models.UserPublicKey) error {
 	case key.KeyType == "":
 		return fmt.Errorf("key type is required")
 	}
-	if err := insert(tx, (*userPublicKeysTable)(key)); err != nil {
-		return err
-	}
-
-	// Create an ssh username for anyone that existed before we added the field
-	// TODO: we have the user in the caller, can we use that instead of querying again?
-	user, err := GetIdentity(tx, GetIdentityOptions{ByID: key.UserID})
-	if err != nil {
-		return err
-	}
-	if user.SSHLoginName != "" {
-		return nil
-	}
-	_, err = SetSSHLoginName(tx, user)
-	return err
+	return insert(tx, (*userPublicKeysTable)(key))
 }

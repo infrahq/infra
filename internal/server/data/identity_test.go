@@ -116,7 +116,7 @@ func TestSetSSHLoginName(t *testing.T) {
 
 			generate.SetSeed(500)
 
-			username, err := SetSSHLoginName(tx, user)
+			username, err := setSSHLoginName(tx, *user)
 			assert.NilError(t, err)
 			assert.Equal(t, username, tc.expected)
 
