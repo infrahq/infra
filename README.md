@@ -46,6 +46,12 @@ sudo dnf install infra-*.rpm
 
 Log in to Infra. If you don't have a self-hosted Infra configured, you can sign up for a [free Infra instance](https://signup.infrahq.com) to get started.
 
+Set the INFRA_SERVER variable to your Infra URL:
+
+```
+export INFRA_SERVER=<org>.infrahq.com
+```
+
 ```
 infra login 
 ```
@@ -65,7 +71,7 @@ Install Infra connector via [helm](https://helm.sh):
 ```
 helm repo add infrahq https://helm.infrahq.com
 helm repo update
-helm install infra infrahq/infra --set connector.config.accessKey=$INFRA_ACCESS_KEY --set connector.config.name=example
+helm install infra infrahq/infra --set connector.config.server=$INFRA_SERVER --set connector.config.accessKey=$INFRA_ACCESS_KEY --set connector.config.name=example
 ```
 
 ### Access your cluster
