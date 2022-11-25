@@ -230,7 +230,7 @@ func TestLoginCmd(t *testing.T) {
 
 	t.Run("without required arguments", func(t *testing.T) {
 		err := Run(context.Background(), "login")
-		assert.ErrorContains(t, err, "INFRA_SERVER to be set")
+		assert.ErrorContains(t, err, "INFRA_SERVER")
 	})
 }
 
