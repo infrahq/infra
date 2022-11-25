@@ -330,6 +330,10 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		assert.Equal(t, errMsg.Code, int32(400))
 	})
 
+	var cmpResponse = gocmp.Options{
+		gocmp.FilterPath(pathMapKey(`created`, `lastUsed`, `expires`), cmpApproximateTime),
+	}
+
 	t.Run("version 0.16.0", func(t *testing.T) {
 		resp := httptest.NewRecorder()
 		// nolint:noctx
@@ -340,11 +344,35 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
 
-		resp1 := &api.ListResponse[api.AccessKey]{}
-		err = json.Unmarshal(resp.Body.Bytes(), resp1)
-		assert.NilError(t, err)
-
-		assert.Equal(t, len(resp1.Items), 1, resp1.Items)
+		actual := jsonUnmarshal(t, resp.Body.String())
+		expected := jsonUnmarshal(t, fmt.Sprintf(`
+			{
+				"limit": 100,
+				"page": 1,
+				"totalCount": 1,
+				"totalPages": 1,
+				"count": 1,
+				"items": [
+					{
+						"id": "%[2]v",
+						"created": "%[1]v",
+						"lastUsed": "%[1]v",
+						"name": "foo",
+						"extensionDeadline": null,
+						"issuedForName": "foo@example.com",
+						"issuedFor": "%[3]v",
+						"expires": "%[4]v",
+						"providerID": "%[5]v"
+					}
+				]
+			}
+			`,
+			time.Now().Format(time.RFC3339),
+			ak1.ID,
+			user.ID,
+			ak1.ExpiresAt.Format(time.RFC3339),
+			provider.ID))
+		assert.DeepEqual(t, actual, expected, cmpResponse)
 	})
 
 	t.Run("version 0.18.0", func(t *testing.T) {
@@ -355,10 +383,6 @@ func TestAPI_ListAccessKeys(t *testing.T) {
 
 		routes.ServeHTTP(resp, req)
 		assert.Equal(t, resp.Code, http.StatusOK)
-
-		var cmpResponse = gocmp.Options{
-			gocmp.FilterPath(pathMapKey(`created`, `lastUsed`, `expires`), cmpApproximateTime),
-		}
 
 		actual := jsonUnmarshal(t, resp.Body.String())
 		expected := jsonUnmarshal(t, fmt.Sprintf(`
