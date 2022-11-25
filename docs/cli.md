@@ -16,24 +16,28 @@ infra login [SERVER] [flags]
 #### Examples
 
 ```bash
-
 # Login
 infra login example.infrahq.com
 
-# Login with username (will prompt for password)
-infra login example.infrahq.com --user foo@gmail.com
+# Login with username and password (prompt for password)
+infra login example.infrahq.com --user user@example.com
 
-# Login with username and password in (non-interactive)
+# Login with access key
 export INFRA_SERVER=example.infrahq.com
-export INFRA_USER=foo@gmail.com
+export INFRA_ACCESS_KEY=2vrEbqFEUr.jtTlxkgYdvghJNdEa8YoUxN0
+infra login example.infrahq.com --user user@example.com
+
+# Login with username and password
+export INFRA_SERVER=example.infrahq.com
+export INFRA_USER=user@example.com
 export INFRA_PASSWORD=p4ssw0rd
 infra login
-		
 ```
 
 #### Options
 
 ```console
+      --key string                       Login with an access key
       --no-agent                         Skip starting the Infra agent in the background
       --non-interactive                  Disable all prompts for input
       --skip-tls-verify                  Skip verifying server TLS certificates

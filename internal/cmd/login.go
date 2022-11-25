@@ -138,7 +138,6 @@ func login(cli *CLI, options loginCmdOptions) error {
 		loginReq.AccessKey = options.AccessKey
 	case options.User != "":
 		if options.Password == "" {
-
 			if options.NonInteractive {
 				return Error{Message: "Non-interactive login requires setting INFRA_PASSWORD environment variables"}
 			}
