@@ -78,7 +78,7 @@ func (req ListUsersRequest) SetPage(page int) Paginatable {
 }
 
 type AddUserPublicKeyRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" note:"Name of the public key, often the name of the device used to create it"`
 	// PublicKey is the key type and base64 encoded public key as it would appear
 	// in an authorized keys file.
 	PublicKey string `json:"publicKey"`

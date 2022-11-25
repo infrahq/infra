@@ -158,7 +158,7 @@ func AddUserPublicKey(c *gin.Context, r *api.AddUserPublicKeyRequest) (*api.User
 	case err != nil:
 		// the error text is always the same "ssh: no key found", so we return
 		// a better error message.
-		return nil, validate.Error{"publicKey": {"must be in authorized keys format"}}
+		return nil, validate.Error{"publicKey": {"must be in authorized_keys format"}}
 	case len(bytes.TrimSpace(rest)) > 0:
 		return nil, validate.Error{"publicKey": {"must be only a single key"}}
 	}

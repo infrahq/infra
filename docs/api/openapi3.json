@@ -6840,6 +6840,7 @@
               "schema": {
                 "properties": {
                   "name": {
+                    "description": "Name of the public key, often the name of the device used to create it",
                     "format": "[a-zA-Z0-9\\-_.]",
                     "maxLength": 256,
                     "minLength": 2,
