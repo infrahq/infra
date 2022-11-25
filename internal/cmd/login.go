@@ -58,7 +58,7 @@ infra login example.infrahq.com --user user@example.com
 # Login with access key
 export INFRA_SERVER=example.infrahq.com
 export INFRA_ACCESS_KEY=2vrEbqFEUr.jtTlxkgYdvghJNdEa8YoUxN0
-infra login example.infrahq.com --user user@example.com
+infra login example.infrahq.com
 
 # Login with username and password
 export INFRA_SERVER=example.infrahq.com
