@@ -12,12 +12,12 @@ looking for ways to improve the project, and well written issues help us find th
 please check to see if it has been filed before.
 
 When filing the issue, we ask that you use good bug/feature etiquette. Make sure that you:
- * Use a clear and descriptive title
- * Include a description of what you expected to happen
- * Attach a screenshot if relevant
- * Include the Infra and Kubernetes versions you're using
- * Describe where you're running Kubernetes
 
+- Use a clear and descriptive title
+- Include a description of what you expected to happen
+- Attach a screenshot if relevant
+- Include the Infra and Kubernetes versions you're using
+- Describe where you're running Kubernetes
 
 ### Fix a Bug or Implement a Feature
 
@@ -28,8 +28,9 @@ changes that we're thinking of making in the future. If you want to talk about a
 
 Our repository follows GitHub's normal forking model. If you have never forked a repository before, follow GitHub's
 documentation which describes how to:
-  * [Fork a repo](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
-  * [Contribute to projects](https://docs.github.com/en/get-started/quickstart/contributing-to-projects)
+
+- [Fork a repo](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+- [Contribute to projects](https://docs.github.com/en/get-started/quickstart/contributing-to-projects)
 
 When you are ready to commit your change, follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 for your commit message. The type must be one of `fix`, `feat`, `improve`, or `maintain`. These types are
@@ -41,10 +42,10 @@ documented in the [commitlint config file](.github/commitlint.config.js).
 
 1. Install [Go 1.19](https://go.dev/dl/#go1.19)
 1. Clone the project
-    ```
-    git clone https://github.com/infrahq/infra
-    cd infra
-    ```
+   ```
+   git clone https://github.com/infrahq/infra
+   cd infra
+   ```
 
 ### Run locally
 
@@ -55,6 +56,7 @@ go run .
 ### Run tests
 
 #### Go tests
+
 ```
 go test ./...
 
@@ -63,7 +65,9 @@ go test -short ./...
 ```
 
 #### JavaScript tests
+
 Within the `ui` directory:
+
 ```
 npm run test
 ```
@@ -99,7 +103,7 @@ make dev flags="-f values.yaml"
 
 Example `values.yaml` files:
 
-* Create an Infra configuration for local development
+- Create an Infra configuration for local development
 
 ```yaml
 ---
@@ -125,23 +129,34 @@ server:
 
 See [Helm Chart reference](./reference/helm-chart.md) for a complete list of options configurable through Helm.
 
-* Add the base domain and an organization domain to your `/etc/hosts` file
+- Add the base domain and an organization domain to your `/etc/hosts` file
+
 ```
 127.0.0.1       acme.internal # the server base domain
 127.0.0.1       dev.acme.internal # an organization sub domain
 ```
 
 #### Using Customized Development Deployment
+
 1. Setup the prerequisites and follow the customization instructions above to create a values.yaml configuration file.
 2. In the root of the directory run:
-  ```
-  $ make dev flags="-f values.yaml"
-  ```
+
+```
+$ make dev flags="-f values.yaml"
+```
+
 3. Navigate to the Infra server UI in a web browser, for example `acme.internal/signup`.
 4. Register an organization with a domain, for example `dev.acme.internal`.
 5. You can now login via the CLI, for example `infra login dev.acme.internal`.
 
+### CLI documentation
+
+To generate CLI documentation, run the `docgen` package:
+
+```
+go run ./internal/docgen
+```
+
 ## Contributor License Agreement
 
 All contributors also need to fill out the Infra's Contributor License Agreement (CLA) before changes can be merged. Infra's CLA assistant bot will automatically prompt for signatures from contributors on pull requests that require it.
-
