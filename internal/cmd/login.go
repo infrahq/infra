@@ -139,11 +139,16 @@ func login(cli *CLI, options loginCmdOptions) error {
 		return err
 	}
 
-	loginReq := &api.LoginRequest{}
+	var loginRes *api.LoginResponse
 
 	switch {
 	case options.AccessKey != "":
-		loginReq.AccessKey = options.AccessKey
+		loginRes, err = lc.APIClient.Login(ctx, &api.LoginRequest{
+			AccessKey: options.AccessKey,
+		})
+		if err != nil {
+			return err
+		}
 	case options.User != "":
 		fmt.Fprintf(cli.Stderr, "  Logging in as user %s\n", termenv.String(options.User).Bold().String())
 
@@ -157,115 +162,58 @@ func login(cli *CLI, options loginCmdOptions) error {
 			}
 		}
 
-		loginReq.PasswordCredentials = &api.LoginRequestPasswordCredentials{
-			Name:     options.User,
-			Password: options.Password,
+		loginRes, err = lc.APIClient.Login(ctx, &api.LoginRequest{
+			PasswordCredentials: &api.LoginRequestPasswordCredentials{
+				Name:     options.User,
+				Password: options.Password,
+			},
+		})
+		if err != nil {
+			if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
+				return &LoginError{Message: "your username or password may be invalid"}
+			}
+
+			return err
 		}
 
+		if loginRes.PasswordUpdateRequired {
+			fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
+
+		PROMPTLOGIN:
+			password, err := promptSetPassword(cli, options.Password)
+			if err != nil {
+				return err
+			}
+
+			logging.Debugf("call server: update user %s", loginRes.UserID)
+			if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
+				ID:          loginRes.UserID,
+				Password:    password,
+				OldPassword: options.Password,
+			}); err != nil {
+				if passwordError(cli, err) {
+					goto PROMPTLOGIN
+				}
+				return err
+			}
+
+			fmt.Fprintf(os.Stderr, "  Updated password\n")
+		}
 	default:
 		if options.NonInteractive {
 			return Error{Message: "Non-interactive login requires setting either the INFRA_ACCESS_KEY or both the INFRA_USER and INFRA_PASSWORD environment variables"}
 		}
 
-		resp, err := deviceFlowLogin(ctx, lc.APIClient, cli)
-		if err != nil {
-			return err
-		}
-
-		loginReq.AccessKey = resp.AccessKey
-		err = updateInfraConfig(lc, resp)
+		loginRes, err = deviceFlowLogin(ctx, lc.APIClient, cli)
 		if err != nil {
 			return err
 		}
 	}
 
-	if err := loginToInfra(cli, lc, loginReq, options.NoAgent); err != nil {
-		return err
-	}
-	if options.InjectUserSSHConfig {
-		return updateUserSSHConfig(cli)
-	}
-	return nil
-}
-
-func equalHosts(x, y string) bool {
-	if x == y {
-		return true
-	}
-	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
-		return true
-	}
-	return false
-}
-
-func loginToInfra(cli *CLI, lc loginClient, loginReq *api.LoginRequest, noAgent bool) error {
-	ctx := context.TODO()
-	loginRes, err := lc.APIClient.Login(ctx, loginReq)
-	if err != nil {
-		if api.ErrorStatusCode(err) == http.StatusUnauthorized || api.ErrorStatusCode(err) == http.StatusNotFound {
-			switch {
-			case loginReq.PasswordCredentials != nil:
-				return &LoginError{Message: "your username or password may be invalid"}
-			}
-		}
-
-		return err
-	}
 	// Update the API client with the new access key from login
 	lc.APIClient.AccessKey = loginRes.AccessKey
 
-	if loginRes.PasswordUpdateRequired {
-		fmt.Fprintf(cli.Stderr, "  Your password has expired. Please update your password.\n")
-
-	PROMPTLOGIN:
-		password, err := promptSetPassword(cli, loginReq.PasswordCredentials.Password)
-		if err != nil {
-			return err
-		}
-
-		logging.Debugf("call server: update user %s", loginRes.UserID)
-		if _, err := lc.APIClient.UpdateUser(ctx, &api.UpdateUserRequest{
-			ID:          loginRes.UserID,
-			Password:    password,
-			OldPassword: loginReq.PasswordCredentials.Password,
-		}); err != nil {
-			if passwordError(cli, err) {
-				goto PROMPTLOGIN
-			}
-			return err
-		}
-
-		fmt.Fprintf(cli.Stderr, "  Updated password\n")
-	}
-
-	if err := updateInfraConfig(lc, loginRes); err != nil {
-		return err
-	}
-
-	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
-		return err
-	}
-
-	backgroundAgentRunning, err := configAgentRunning()
-	if err != nil {
-		// do not block login, just proceed, potentially without the agent
-		logging.Errorf("unable to check background agent: %v", err)
-	}
-
-	if !backgroundAgentRunning && !noAgent {
-		// the agent is started in a separate command so that it continues after the login command has finished
-		if err := execAgent(); err != nil {
-			// user still has a valid session, so do not fail
-			logging.Errorf("Unable to start agent, destinations will not be updated automatically: %v", err)
-		}
-	}
-
-	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
-	return nil
-}
-
-// Updates all configs with the current logged in session
-func updateInfraConfig(lc loginClient, loginRes *api.LoginResponse) error {
+	// Update the local infra config
 	clientHostConfig := ClientHostConfig{
 		Current:   true,
 		UserID:    loginRes.UserID,
@@ -293,7 +241,36 @@ func updateInfraConfig(lc loginClient, loginRes *api.LoginResponse) error {
 		return err
 	}
 
+	if err := updateKubeConfig(lc.APIClient, loginRes.UserID); err != nil {
+		return err
+	}
+
+	backgroundAgentRunning, err := configAgentRunning()
+	if err != nil {
+		// do not block login, just proceed, potentially without the agent
+		logging.Errorf("unable to check background agent: %v", err)
+	}
+
+	if !backgroundAgentRunning && !options.NoAgent {
+		// the agent is started in a separate command so that it continues after the login command has finished
+		if err := execAgent(); err != nil {
+			// user still has a valid session, so do not fail
+			logging.Errorf("Unable to start agent, destinations will not be updated automatically: %v", err)
+		}
+	}
+
+	fmt.Fprintf(cli.Stderr, "  Logged in as %s\n", termenv.String(loginRes.Name).Bold().String())
 	return nil
+}
+
+func equalHosts(x, y string) bool {
+	if x == y {
+		return true
+	}
+	if strings.TrimPrefix(x, "https://") == strings.TrimPrefix(y, "https://") {
+		return true
+	}
+	return false
 }
 
 type loginClient struct {

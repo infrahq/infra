@@ -19,15 +19,15 @@ func (d deviceFlowAuthRequestTable) Table() string {
 }
 
 func (d deviceFlowAuthRequestTable) Columns() []string {
-	return []string{"access_key_id", "access_key_token", "created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code"}
+	return []string{"created_at", "deleted_at", "device_code", "expires_at", "id", "updated_at", "user_code", "user_id", "provider_id"}
 }
 
 func (d deviceFlowAuthRequestTable) Values() []any {
-	return []any{d.AccessKeyID, d.AccessKeyToken, d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode}
+	return []any{d.CreatedAt, d.DeletedAt, d.DeviceCode, d.ExpiresAt, d.ID, d.UpdatedAt, d.UserCode, d.UserID, d.ProviderID}
 }
 
 func (d *deviceFlowAuthRequestTable) ScanFields() []any {
-	return []any{&d.AccessKeyID, &d.AccessKeyToken, &d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode}
+	return []any{&d.CreatedAt, &d.DeletedAt, &d.DeviceCode, &d.ExpiresAt, &d.ID, &d.UpdatedAt, &d.UserCode, &d.UserID, &d.ProviderID}
 }
 
 func validateDeviceFlowAuthRequest(dfar *models.DeviceFlowAuthRequest) error {
@@ -59,14 +59,13 @@ func CreateDeviceFlowAuthRequest(tx WriteTxn, dfar *models.DeviceFlowAuthRequest
 }
 
 type GetDeviceFlowAuthRequestOptions struct {
-	ByID         uid.ID
 	ByDeviceCode string
 	ByUserCode   string
 }
 
 func GetDeviceFlowAuthRequest(tx ReadTxn, opts GetDeviceFlowAuthRequestOptions) (*models.DeviceFlowAuthRequest, error) {
-	if opts.ByDeviceCode == "" && opts.ByUserCode == "" && opts.ByID == 0 {
-		return nil, errors.New("must supply one of device_code, user_code, or id to GetDeviceFlowAuthRequest")
+	if opts.ByDeviceCode == "" && opts.ByUserCode == "" {
+		return nil, errors.New("must supply device_code or user_code to GetDeviceFlowAuthRequest")
 	}
 
 	rec := &deviceFlowAuthRequestTable{}
@@ -75,9 +74,6 @@ func GetDeviceFlowAuthRequest(tx ReadTxn, opts GetDeviceFlowAuthRequestOptions) 
 	query.B("FROM")
 	query.B(rec.Table())
 	query.B("WHERE deleted_at is null")
-	if opts.ByID != 0 {
-		query.B("AND id = ?", opts.ByID)
-	}
 	if opts.ByDeviceCode != "" {
 		query.B("and device_code = ?", opts.ByDeviceCode)
 	}
@@ -92,24 +88,29 @@ func GetDeviceFlowAuthRequest(tx ReadTxn, opts GetDeviceFlowAuthRequestOptions) 
 	return (*models.DeviceFlowAuthRequest)(rec), nil
 }
 
-func SetDeviceFlowAuthRequestAccessKey(tx WriteTxn, dfarID uid.ID, accessKey *models.AccessKey) error {
-	_, err := tx.Exec(`
-		UPDATE device_flow_auth_requests
-		SET 
-			access_key_id = ?,
-			access_key_token = ?
-		WHERE id = ?
-	`, accessKey.ID, models.EncryptedAtRest(accessKey.Token()), dfarID)
+func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
+	query := querybuilder.New("UPDATE device_flow_auth_requests")
+	query.B("SET deleted_at = ?", time.Now().UTC())
+	query.B("WHERE expires_at <= ?", time.Now().UTC().Add(-1*time.Hour)) // leave buffer so keys aren't immediately deleted on expiry.
+
+	_, err := tx.Exec(query.String(), query.Args...)
+	return err
+}
+
+func DeleteDeviceFlowAuthRequest(tx WriteTxn, dfarID uid.ID) error {
+	query := querybuilder.New("UPDATE device_flow_auth_requests")
+	query.B("SET deleted_at = ?", time.Now().UTC())
+	query.B("WHERE id = ?", dfarID)
+
+	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)
 }
 
-func DeleteExpiredDeviceFlowAuthRequests(tx WriteTxn) error {
-	stmt := `
-		DELETE from device_flow_auth_requests
-		WHERE
-			deleted_at IS NOT NULL
-			OR expires_at < ?
-	`
-	_, err := tx.Exec(stmt, time.Now())
+func ApproveDeviceFlowAuthRequest(tx WriteTxn, dfarID uid.ID, userID uid.ID, providerID uid.ID) error {
+	query := querybuilder.New("UPDATE device_flow_auth_requests")
+	query.B("SET user_id = ?, provider_id = ?", userID, providerID)
+	query.B("WHERE id = ?", dfarID)
+
+	_, err := tx.Exec(query.String(), query.Args...)
 	return handleError(err)
 }

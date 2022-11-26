@@ -81,6 +81,7 @@ func migrations() []*migrator.Migration {
 		addUserPubicKeysTable(),
 		addUserSSHLoginName(),
 		makeIdxEmailsProvidersUnique(),
+		deviceFlowAuthRequestsAddUserIDProviderID(),
 		// next one here
 	}
 }
@@ -1048,6 +1049,22 @@ func makeIdxEmailsProvidersUnique() *migrator.Migration {
 				DROP INDEX IF EXISTS idx_emails_providers;
 				CREATE UNIQUE INDEX IF NOT EXISTS idx_emails_providers_identities ON provider_users (email, provider_id, identity_id)`
 			_, err := tx.Exec(stmt)
+			return err
+		},
+	}
+}
+
+func deviceFlowAuthRequestsAddUserIDProviderID() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-27T13:14",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				ALTER TABLE device_flow_auth_requests
+					DROP COLUMN if exists access_key_id,
+					DROP COLUMN if exists access_key_token,
+					ADD COLUMN IF NOT EXISTS user_id bigint,
+					ADD COLUMN IF NOT EXISTS provider_id bigint;
+			`)
 			return err
 		},
 	}

@@ -58,8 +58,6 @@ func TestDeviceFlow(t *testing.T) {
 		resp := httptest.NewRecorder()
 		routes.ServeHTTP(resp, req)
 
-		assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
-
 		if respObj != nil {
 			err := json.Unmarshal(resp.Body.Bytes(), respObj)
 			assert.NilError(t, err)
@@ -69,25 +67,29 @@ func TestDeviceFlow(t *testing.T) {
 
 	// start flow
 	dfResp := &api.DeviceFlowResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
+	resp := doPost(t, "", "http://"+org.Domain+"/api/device", api.EmptyRequest{}, dfResp)
+	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	// get flow status pending
 	statusResp := &api.DeviceFlowStatusResponse{}
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+	resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, statusResp)
+	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	assert.Equal(t, statusResp.Status, "pending")
 
 	// approve
-	doPost(t, key, "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+	resp = doPost(t, key, "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
 		UserCode: dfResp.UserCode,
 	}, nil)
+	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	// get flow status with key
-	doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+	resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 		DeviceCode: dfResp.DeviceCode,
 	}, statusResp)
+	assert.Assert(t, resp.Result().StatusCode < 300, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 	expected := &api.DeviceFlowStatusResponse{
 		Status:     "confirmed",
@@ -129,13 +131,15 @@ func TestDeviceFlow(t *testing.T) {
 		assert.NilError(t, err)
 		assert.NilError(t, tx.Commit())
 
-		doPost(t, otherKey.Token(), "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
+		resp = doPost(t, otherKey.Token(), "http://"+org.Domain+"/api/device/approve", api.ApproveDeviceFlowRequest{
 			UserCode: dfResp.UserCode,
 		}, nil)
+		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
-		doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
+		resp = doPost(t, "", "http://"+org.Domain+"/api/device/status", api.DeviceFlowStatusRequest{
 			DeviceCode: dfResp.DeviceCode,
 		}, statusResp)
+		assert.Assert(t, resp.Result().StatusCode == 404, fmt.Sprintf("http status code %d: %s", resp.Result().StatusCode, resp.Body))
 
 		assert.Equal(t, statusResp.LoginResponse.UserID, user.ID)
 	})
