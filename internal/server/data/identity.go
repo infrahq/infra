@@ -148,10 +148,11 @@ func CreateIdentity(tx WriteTxn, identity *models.Identity) error {
 }
 
 type GetIdentityOptions struct {
-	ByID          uid.ID
-	ByName        string
-	LoadGroups    bool
-	LoadProviders bool
+	ByID           uid.ID
+	ByName         string
+	LoadGroups     bool
+	LoadProviders  bool
+	LoadPublicKeys bool
 }
 
 func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) {
@@ -166,9 +167,9 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
 	switch {
 	case opts.ByID != 0:
-		query.B("AND id = ?", opts.ByID)
+		query.B("AND identities.id = ?", opts.ByID)
 	case opts.ByName != "":
-		query.B("AND name = ?", opts.ByName)
+		query.B("AND identities.name = ?", opts.ByName)
 	default:
 		return nil, fmt.Errorf("GetIdentity must specify id or name")
 	}
@@ -210,6 +211,14 @@ func GetIdentity(tx ReadTxn, opts GetIdentityOptions) (*models.Identity, error) 
 		}
 	}
 
+	// TODO: use a join?
+	if opts.LoadPublicKeys {
+		identity.PublicKeys, err = userPublicKeys(tx, identity.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return (*models.Identity)(identity), nil
 }
 
@@ -222,16 +231,18 @@ func SetIdentityVerified(tx WriteTxn, token string) error {
 }
 
 type ListIdentityOptions struct {
-	ByID          uid.ID
-	ByIDs         []uid.ID
-	ByNotIDs      []uid.ID
-	ByName        string
-	ByNotName     string
-	ByGroupID     uid.ID
-	CreatedBy     uid.ID
-	Pagination    *Pagination
-	LoadGroups    bool
-	LoadProviders bool
+	ByID                   uid.ID
+	ByIDs                  []uid.ID
+	ByNotIDs               []uid.ID
+	ByName                 string
+	ByPublicKeyFingerprint string
+	ByNotName              string
+	ByGroupID              uid.ID
+	CreatedBy              uid.ID
+	Pagination             *Pagination
+	LoadGroups             bool
+	LoadProviders          bool
+	LoadPublicKeys         bool
 }
 
 func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, error) {
@@ -249,31 +260,36 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	if opts.ByGroupID != 0 {
 		query.B("JOIN identities_groups ON identities_groups.identity_id = id")
 	}
-	query.B("WHERE deleted_at IS NULL AND organization_id = ?", tx.OrganizationID())
+	if opts.ByPublicKeyFingerprint != "" {
+		query.B("INNER JOIN user_public_keys ON identities.id = user_public_keys.user_id")
+		query.B("AND user_public_keys.fingerprint = ?", opts.ByPublicKeyFingerprint)
+	}
+	query.B("WHERE identities.deleted_at IS NULL")
+	query.B("AND identities.organization_id = ?", tx.OrganizationID())
 	if opts.ByID != 0 {
-		query.B("AND id = ?", opts.ByID)
+		query.B("AND identities.id = ?", opts.ByID)
 	}
 	if len(opts.ByIDs) > 0 {
-		query.B("AND id IN")
+		query.B("AND identities.id IN")
 		queryInClause(query, opts.ByIDs)
 	}
 	if opts.ByName != "" {
-		query.B("AND name = ?", opts.ByName)
+		query.B("AND identities.name = ?", opts.ByName)
 	}
 	if opts.ByNotName != "" {
-		query.B("AND name != ?", opts.ByNotName)
+		query.B("AND identities.name != ?", opts.ByNotName)
 	}
 	if opts.ByGroupID != 0 {
 		query.B("AND identities_groups.group_id = ?", opts.ByGroupID)
 	}
 	if opts.CreatedBy != 0 {
-		query.B("AND created_by = ?", opts.CreatedBy)
+		query.B("AND identities.created_by = ?", opts.CreatedBy)
 		if len(opts.ByNotIDs) > 0 {
-			query.B("AND id NOT IN ")
+			query.B("AND identities.id NOT IN ")
 			queryInClause(query, opts.ByNotIDs)
 		}
 	}
-	query.B("ORDER BY name ASC")
+	query.B("ORDER BY identities.name ASC")
 	if opts.Pagination != nil {
 		opts.Pagination.PaginateQuery(query)
 	}
@@ -307,6 +323,16 @@ func ListIdentities(tx ReadTxn, opts ListIdentityOptions) ([]models.Identity, er
 	if opts.LoadProviders {
 		if err := loadIdentitiesProviders(tx, result); err != nil {
 			return nil, err
+		}
+	}
+
+	// TODO: use a join?
+	if opts.LoadPublicKeys {
+		for i, identity := range result {
+			result[i].PublicKeys, err = userPublicKeys(tx, identity.ID)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

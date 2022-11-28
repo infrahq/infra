@@ -78,6 +78,7 @@ func migrations() []*migrator.Migration {
 		modifyAccessKeysIndex(),
 		moveAllowedDomainsToOrganizationsTable(),
 		updateAccessKeysTimeoutColumn(),
+		addUserPubicKeysTable(),
 		// next one here
 	}
 }
@@ -961,6 +962,38 @@ func updateAccessKeysTimeoutColumn() *migrator.Migration {
 				return fmt.Errorf("rename access key extension deadline: %w", err)
 			}
 			return nil
+		},
+	}
+}
+
+func addUserPubicKeysTable() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-10-26T18:00",
+		Migrate: func(db migrator.DB) error {
+			stmt := `
+CREATE TABLE IF NOT EXISTS user_public_keys (
+	id bigint NOT NULL,
+	user_id bigint NOT NULL,
+	fingerprint text NOT NULL,
+	key_type text NOT NULL,
+	public_key text NOT NULL,
+	name text,
+	expires_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone
+);
+
+ALTER TABLE ONLY user_public_keys DROP CONSTRAINT IF EXISTS user_public_keys_pkey;
+ALTER TABLE ONLY user_public_keys
+    ADD CONSTRAINT user_public_keys_pkey PRIMARY KEY (id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_public_keys_user_fingerprint ON user_public_keys
+    USING btree (fingerprint) WHERE (deleted_at IS NULL);
+`
+			// TODO: is this the right index for joining to the user table?
+			_, err := db.Exec(stmt)
+			return err
 		},
 	}
 }

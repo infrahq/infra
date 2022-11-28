@@ -1019,6 +1019,41 @@
                   },
                   "type": "array"
                 },
+                "publicKeys": {
+                  "description": "List of the users public keys",
+                  "items": {
+                    "description": "List of the users public keys",
+                    "properties": {
+                      "created": {
+                        "description": "formatted as an RFC3339 date-time",
+                        "example": "2022-03-14T09:48:00Z",
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "fingerprint": {
+                        "description": "SHA256 fingerprint of the key",
+                        "type": "string"
+                      },
+                      "id": {
+                        "example": "4yJ3n3D8E2",
+                        "format": "uid",
+                        "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                        "type": "string"
+                      },
+                      "keyType": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "publicKey": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
                 "updated": {
                   "description": "formatted as an RFC3339 date-time",
                   "example": "2022-03-14T09:48:00Z",
@@ -1258,10 +1293,74 @@
             },
             "type": "array"
           },
+          "publicKeys": {
+            "description": "List of the users public keys",
+            "items": {
+              "description": "List of the users public keys",
+              "properties": {
+                "created": {
+                  "description": "formatted as an RFC3339 date-time",
+                  "example": "2022-03-14T09:48:00Z",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "fingerprint": {
+                  "description": "SHA256 fingerprint of the key",
+                  "type": "string"
+                },
+                "id": {
+                  "example": "4yJ3n3D8E2",
+                  "format": "uid",
+                  "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+                  "type": "string"
+                },
+                "keyType": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "publicKey": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
           "updated": {
             "description": "formatted as an RFC3339 date-time",
             "example": "2022-03-14T09:48:00Z",
             "format": "date-time",
+            "type": "string"
+          }
+        }
+      },
+      "UserPublicKey": {
+        "properties": {
+          "created": {
+            "description": "formatted as an RFC3339 date-time",
+            "example": "2022-03-14T09:48:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "fingerprint": {
+            "description": "SHA256 fingerprint of the key",
+            "type": "string"
+          },
+          "id": {
+            "example": "4yJ3n3D8E2",
+            "format": "uid",
+            "pattern": "[1-9a-km-zA-HJ-NP-Z]{1,11}",
+            "type": "string"
+          },
+          "keyType": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "publicKey": {
             "type": "string"
           }
         }
@@ -6491,6 +6590,15 @@
             }
           },
           {
+            "description": "Find the user with a public key that matches this SHA256 fingerprint.",
+            "in": "query",
+            "name": "publicKeyFingerprint",
+            "schema": {
+              "description": "Find the user with a public key that matches this SHA256 fingerprint.",
+              "type": "string"
+            }
+          },
+          {
             "description": "Page number to retrieve",
             "example": "1",
             "in": "query",
@@ -6693,6 +6801,126 @@
           }
         },
         "summary": "CreateUser",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/users/public-key": {
+      "put": {
+        "description": "AddUserPublicKey",
+        "operationId": "AddUserPublicKey",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Infra-Version",
+            "required": true,
+            "schema": {
+              "description": "Version of the API being requested",
+              "example": "0.0.0",
+              "format": "\\d+\\.\\d+\\(.\\d+)?(-.\\w(+\\w)?)?",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "description": "Bearer followed by your access key",
+              "example": "Bearer ACCESSKEY",
+              "format": "Bearer [\\da-zA-Z]{10}\\.[\\da-zA-Z]{24}",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "name": {
+                    "description": "Name of the public key, often the name of the device used to create it",
+                    "format": "[a-zA-Z0-9\\-_.]",
+                    "maxLength": 256,
+                    "minLength": 2,
+                    "type": "string"
+                  },
+                  "publicKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "publicKey"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Unauthorized: Requestor is not authenticated"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Forbidden: Requestor does not have the right permissions"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Duplicate Record"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPublicKey"
+                }
+              }
+            },
+            "description": "Success"
+          }
+        },
+        "summary": "AddUserPublicKey",
         "tags": [
           "Users"
         ]

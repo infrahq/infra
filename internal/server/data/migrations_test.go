@@ -876,6 +876,12 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-10-26T18:00"),
+			expected: func(t *testing.T, tx WriteTxn) {
+				// schema changes are tested with schema comparison
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

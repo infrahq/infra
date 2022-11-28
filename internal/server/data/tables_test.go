@@ -26,6 +26,7 @@ var tables = []tabler{
 	providersTable{},
 	providerUserTable{},
 	settingsTable{},
+	userPublicKeysTable{},
 }
 
 type tabler interface {

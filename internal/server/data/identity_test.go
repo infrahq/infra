@@ -109,6 +109,16 @@ func TestGetIdentity(t *testing.T) {
 
 		createIdentities(t, db, &bond, &bourne, &bauer)
 
+		bondKey := &models.UserPublicKey{
+			UserID:      bond.ID,
+			Name:        "the-name",
+			PublicKey:   "the-key",
+			KeyType:     "ssh-rsa",
+			Fingerprint: "the-fingerprint",
+		}
+		err = AddUserPublicKey(db, bondKey)
+		assert.NilError(t, err)
+
 		t.Run("ID or name are required", func(t *testing.T) {
 			_, err := GetIdentity(db, GetIdentityOptions{})
 			assert.ErrorContains(t, err, "GetIdentity must specify id or name")
@@ -123,15 +133,32 @@ func TestGetIdentity(t *testing.T) {
 			assert.NilError(t, err)
 			assert.DeepEqual(t, *identity, bond, cmpTimeWithDBPrecision)
 		})
-		t.Run("preload groups", func(t *testing.T) {
+		t.Run("load groups", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bourne.Name, LoadGroups: true})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, *identity, bourne, cmpTimeWithDBPrecision)
 		})
-		t.Run("preload providers", func(t *testing.T) {
+		t.Run("load providers", func(t *testing.T) {
 			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bauer.Name, LoadProviders: true})
 			assert.NilError(t, err)
 			assert.DeepEqual(t, *identity, bauer, cmpTimeWithDBPrecision)
+		})
+		t.Run("load public keys", func(t *testing.T) {
+			identity, err := GetIdentity(db, GetIdentityOptions{ByName: bond.Name, LoadPublicKeys: true})
+			assert.NilError(t, err)
+
+			expected := bond // shallow copy
+			expected.PublicKeys = []models.UserPublicKey{
+				{
+					Model:       bondKey.Model,
+					UserID:      bond.ID,
+					Name:        "the-name",
+					PublicKey:   "the-key",
+					KeyType:     "ssh-rsa",
+					Fingerprint: "the-fingerprint",
+				},
+			}
+			assert.DeepEqual(t, *identity, expected, cmpTimeWithDBPrecision)
 		})
 	})
 }
@@ -238,18 +265,37 @@ func TestListIdentities(t *testing.T) {
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityShallow)
 		})
 
-		t.Run("preload groups", func(t *testing.T) {
+		t.Run("load groups", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{LoadGroups: true})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadGroupsShallow)
 		})
 
-		t.Run("preload providers", func(t *testing.T) {
+		t.Run("load providers", func(t *testing.T) {
 			actual, err := ListIdentities(db, ListIdentityOptions{LoadProviders: true})
 			assert.NilError(t, err)
 			expected := []models.Identity{*connector, bauer, bond, bourne, salt}
 			assert.DeepEqual(t, actual, expected, cmpModelsIdentityPreloadProvidersShallow)
+		})
+		t.Run("by public key fingerprint", func(t *testing.T) {
+			pubKey := &models.UserPublicKey{
+				UserID:      salt.ID,
+				Fingerprint: "the-fingerprint",
+				KeyType:     "ssh-rsa",
+			}
+			assert.NilError(t, AddUserPublicKey(db, pubKey))
+
+			actual, err := ListIdentities(db, ListIdentityOptions{
+				ByPublicKeyFingerprint: "the-fingerprint",
+				LoadPublicKeys:         true,
+			})
+			assert.NilError(t, err)
+			saltWithKey := salt // shallow copy
+			saltWithKey.PublicKeys = []models.UserPublicKey{*pubKey}
+			saltWithKey.Providers = nil
+			expected := []models.Identity{saltWithKey}
+			assert.DeepEqual(t, actual, expected, cmpModel)
 		})
 	})
 }
