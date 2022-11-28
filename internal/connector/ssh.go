@@ -1,9 +1,12 @@
 package connector
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,8 +23,13 @@ import (
 )
 
 type SSHOptions struct {
-	// Group is the name of the group for all local user managed by Infra.
+	// Group is the group to assign to all local users created by the infra connector.
 	Group string
+
+	// SSHDConfigPath is the path to the sshd_config file that is used by the
+	// ssh server that will call infra to authenticate users. Defaults to
+	// /etc/ssh/sshd_config.
+	SSHDConfigPath string `config:"sshd_config_path"`
 }
 
 func runSSHConnector(ctx context.Context, opts Options) error {
@@ -58,7 +66,15 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 }
 
 func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (*api.Destination, error) {
-	hostKeys, err := readHostKeysFromDir("/etc/ssh")
+	config, err := readSSHDConfig(opts.SSH.SSHDConfigPath, "/etc/ssh")
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		config = sshdConfig{}
+	case err != nil:
+		return nil, err
+	}
+
+	hostKeys, err := readSSHHostKeys(config.HostKeys, "/etc/ssh")
 	if err != nil {
 		return nil, err
 	}
@@ -81,33 +97,54 @@ func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (
 	return destination, nil
 }
 
-// TODO: check /etc/ssh/sshd_config for HostKey, HostKeyAlgorithms
-func readHostKeysFromDir(dir string) (string, error) {
+// readSSHHostKeys reads the HostKey settings used by the ssh server. If there are no host keys
+// set in config,  readSSHHostKeys reads all files that match /etc/ssh/host_*_key.pub.
+// readSSHHostKeys does not honor the HostKeyAlgorithms sshd_config setting.
+func readSSHHostKeys(hostKeys []string, dir string) (string, error) {
+	buf := new(strings.Builder)
+
+	if len(hostKeys) > 0 {
+		for _, name := range hostKeys {
+			if !filepath.IsAbs(name) {
+				name = filepath.Join(dir, name)
+			}
+			name += ".pub" // the config lists private keys, we want the public one
+			if err := readHostKeyFile(name, buf); err != nil {
+				return "", err
+			}
+		}
+		return buf.String(), nil
+	}
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return "", fmt.Errorf("read dir: %w", err)
 	}
 
-	buf := new(strings.Builder)
 	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), "ssh_host_") {
+			continue
+		}
 		if !strings.HasSuffix(entry.Name(), "_key.pub") {
 			continue
 		}
 
-		raw, err := os.ReadFile(filepath.Join(dir, entry.Name()))
-		if err != nil {
-			return "", err
-		}
-
-		if err := readHostKeys(raw, buf); err != nil {
+		if err := readHostKeyFile(filepath.Join(dir, entry.Name()), buf); err != nil {
 			return "", err
 		}
 	}
 	return buf.String(), nil
 }
 
-func readHostKeys(in []byte, out io.Writer) error {
-	pub, _, _, _, err := ssh.ParseAuthorizedKey(in)
+// readHostKeyFile opens a file, parses it to ensure that it's an SSH host key,
+// and then writes the key to out. It is important to parse the key to prevent
+// accidentally sending a private key to the API.
+func readHostKeyFile(filename string, out io.Writer) error {
+	raw, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	pub, _, _, _, err := ssh.ParseAuthorizedKey(raw)
 	if err != nil {
 		return err
 	}
@@ -174,4 +211,62 @@ func grantsByUserID(grants []api.Grant) map[string]api.Grant {
 		result[grant.User.String()] = grant
 	}
 	return result
+}
+
+type sshdConfig struct {
+	HostKeys []string
+}
+
+// Merge merges the other config into this config.
+func (c *sshdConfig) Merge(other sshdConfig) {
+	c.HostKeys = append(c.HostKeys, other.HostKeys...)
+}
+
+// readSSHDConfig reads sshd_config at filepath and returns some of the values.
+// This parse is limited to the few fields we care about.
+// See https://man.openbsd.org/sshd_config for details about the file format.
+func readSSHDConfig(filename string, includeBasePath string) (sshdConfig, error) {
+	fh, err := os.Open(filename)
+	if err != nil {
+		return sshdConfig{}, err
+	}
+
+	var result sshdConfig
+
+	scan := bufio.NewScanner(fh)
+	for scan.Scan() {
+		line := strings.TrimSpace(scan.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		keyword := strings.ToLower(fields[0])
+
+		switch keyword {
+		case "include":
+			includeName := fields[1]
+			if !filepath.IsAbs(includeName) {
+				includeName = filepath.Join(includeBasePath, includeName)
+			}
+			includedCfg, err := readSSHDConfig(includeName, includeBasePath)
+			if err != nil {
+				return sshdConfig{}, err
+			}
+
+			result.Merge(includedCfg)
+
+		case "hostkey":
+			result.HostKeys = append(result.HostKeys, fields[1])
+
+			// TODO: end reading at the first Match keyword
+		}
+	}
+	if err := scan.Err(); err != nil {
+		return sshdConfig{}, fmt.Errorf("read sshd_config: %w", err)
+	}
+	return result, nil
 }

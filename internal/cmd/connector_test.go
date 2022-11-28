@@ -394,6 +394,10 @@ addr:
   http: localhost:84
   https: localhost:414
   metrics: 127.0.0.1:8000
+
+ssh:
+  group: the-group
+  sshd_config_path: /opt/sshd
 `,
 			expected: func() connector.Options {
 				return connector.Options{
@@ -412,6 +416,10 @@ addr:
 					},
 					CACert: "/path/to/cert",
 					CAKey:  "/path/to/key",
+					SSH: connector.SSHOptions{
+						Group:          "the-group",
+						SSHDConfigPath: "/opt/sshd",
+					},
 				}
 			},
 		},
