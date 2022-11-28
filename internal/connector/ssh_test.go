@@ -37,7 +37,8 @@ func TestUpdateLocalUsers(t *testing.T) {
 		{ID: 124, User: 2222, Privilege: "connect"},
 	}
 
-	err := updateLocalUsers(ctx, fakeClient, grants)
+	opts := SSHOptions{Group: "infra-users"}
+	err := updateLocalUsers(ctx, fakeClient, opts, grants)
 	assert.NilError(t, err)
 
 	actual, err := os.ReadFile(logFile)
@@ -45,7 +46,7 @@ func TestUpdateLocalUsers(t *testing.T) {
 
 	expected := `pkill '--uid' 'three333' 
 userdel '--remove' 'three333' 
-useradd '--comment' 'Ej,managed by infra' '-m' '-p' '*' 'two222' 
+useradd '--comment' 'Ej,managed by infra' '-m' '-p' '-g' 'infra-users' '*' 'two222' 
 `
 	assert.Equal(t, expected, string(actual))
 }

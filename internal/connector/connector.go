@@ -59,6 +59,8 @@ type Options struct {
 	// Destination.Connection.URL.
 	EndpointAddr types.HostPort
 
+	SSH SSHOptions
+
 	// Kubernetes specific options below here
 
 	CACert     types.StringOrFile

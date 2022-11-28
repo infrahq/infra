@@ -19,6 +19,11 @@ import (
 	"github.com/infrahq/infra/internal/repeat"
 )
 
+type SSHOptions struct {
+	// Group is the name of the group for all local user managed by Infra.
+	Group string
+}
+
 func runSSHConnector(ctx context.Context, opts Options) error {
 	client := opts.APIClient()
 
@@ -44,7 +49,7 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 		}
 		waiter := repeat.NewWaiter(backOff)
 		fn := func(ctx context.Context, grants []api.Grant) error {
-			return updateLocalUsers(ctx, client, grants)
+			return updateLocalUsers(ctx, client, opts.SSH, grants)
 		}
 		return syncGrantsToDestination(ctx, con, waiter, fn)
 	})
@@ -114,7 +119,7 @@ func readHostKeys(in []byte, out io.Writer) error {
 var etcPasswdFilename = "/etc/passwd"
 
 // TODO: grants for groups need to be resolved to a user somehow
-func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant) error {
+func updateLocalUsers(ctx context.Context, client apiClient, opts SSHOptions, grants []api.Grant) error {
 	byUserID := grantsByUserID(grants)
 
 	localUsers, err := linux.ReadLocalUsers(etcPasswdFilename)
@@ -154,7 +159,7 @@ func updateLocalUsers(ctx context.Context, client apiClient, grants []api.Grant)
 			continue
 		}
 
-		if err := linux.AddUser(user); err != nil {
+		if err := linux.AddUser(user, opts.Group); err != nil {
 			return fmt.Errorf("create user: %w", err)
 		}
 		logging.L.Info().Str("username", user.SSHLoginName).Msg("created user")
