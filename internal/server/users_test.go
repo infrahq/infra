@@ -49,7 +49,7 @@ func TestAPI_GetUser(t *testing.T) {
 		assert.NilError(t, err)
 		return respObj.ID
 	}
-	idMe := createID(t, "me@example.com")
+	idMe := createID(t, "mememe@example.com")
 	idHal := createID(t, "HAL@example.com")
 
 	token := &models.AccessKey{
@@ -161,10 +161,11 @@ func TestAPI_GetUser(t *testing.T) {
 				expected := jsonUnmarshal(t, fmt.Sprintf(`
 					{
 						"id": "%[1]v",
-						"name": "me@example.com",
+						"name": "mememe@example.com",
 						"lastSeenAt": "%[2]v",
 						"created": "%[2]v",
 						"providerNames": ["infra"],
+						"sshLoginName": "mememe",
 						"updated": "%[2]v",
 						"publicKeys": [
 							{

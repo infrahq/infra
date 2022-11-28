@@ -882,6 +882,29 @@ INSERT INTO providers(id, name) VALUES (12345, 'okta');
 				// schema changes are tested with schema comparison
 			},
 		},
+		{
+			label: testCaseLine("2022-11-17T14:00"),
+			setup: func(t *testing.T, tx WriteTxn) {
+				stmt := `
+					INSERT INTO identities(id, created_at, updated_at, created_by, last_seen_at, name, organization_id)
+					VALUES (?, ?, ?, ?, ?, ?, 22)`
+				_, err := tx.Exec(stmt, 10222, time.Now(), time.Now(), 77, time.Now(), "susu@example.com")
+				assert.NilError(t, err)
+			},
+			cleanup: func(t *testing.T, tx WriteTxn) {
+				_, err := tx.Exec(`DELETE from identities`)
+				assert.NilError(t, err)
+			},
+			expected: func(t *testing.T, tx WriteTxn) {
+				txn, ok := tx.(*Transaction)
+				assert.Assert(t, ok, "wrong type %T", tx)
+
+				user, err := GetIdentity(txn.WithOrgID(22), GetIdentityOptions{ByID: 10222})
+				assert.NilError(t, err)
+				assert.Equal(t, user.SSHLoginName, "susu")
+				assert.Equal(t, user.OrganizationID, uid.ID(22))
+			},
+		},
 	}
 
 	ids := make(map[string]struct{}, len(testCases))

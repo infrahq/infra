@@ -192,7 +192,8 @@ CREATE TABLE identities (
     created_by bigint,
     organization_id bigint,
     verified boolean DEFAULT false NOT NULL,
-    verification_token text DEFAULT substr(replace(translate(encode(decode(md5((random())::text), 'hex'::text), 'base64'::text), '/+'::text, '=='::text), '='::text, ''::text), 1, 10) NOT NULL
+    verification_token text DEFAULT substr(replace(translate(encode(decode(md5((random())::text), 'hex'::text), 'base64'::text), '/+'::text, '=='::text), '='::text, ''::text), 1, 10) NOT NULL,
+    ssh_login_name text
 );
 
 CREATE TABLE identities_groups (
@@ -369,6 +370,8 @@ CREATE UNIQUE INDEX idx_password_reset_tokens_token ON password_reset_tokens USI
 CREATE UNIQUE INDEX idx_providers_name ON providers USING btree (organization_id, name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX idx_user_public_keys_user_fingerprint ON user_public_keys USING btree (fingerprint) WHERE (deleted_at IS NULL);
+
+CREATE UNIQUE INDEX idx_user_ssh_login_name ON identities USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
 
 CREATE UNIQUE INDEX settings_org_id ON settings USING btree (organization_id) WHERE (deleted_at IS NULL);
 

@@ -79,6 +79,7 @@ func migrations() []*migrator.Migration {
 		moveAllowedDomainsToOrganizationsTable(),
 		updateAccessKeysTimeoutColumn(),
 		addUserPubicKeysTable(),
+		addUserSSHLoginName(),
 		// next one here
 	}
 }
@@ -991,9 +992,49 @@ ALTER TABLE ONLY user_public_keys
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_public_keys_user_fingerprint ON user_public_keys
     USING btree (fingerprint) WHERE (deleted_at IS NULL);
 `
-			// TODO: is this the right index for joining to the user table?
 			_, err := db.Exec(stmt)
 			return err
+		},
+	}
+}
+
+func addUserSSHLoginName() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-17T14:00",
+		Migrate: func(db migrator.DB) error {
+			stmt := `
+ALTER TABLE identities ADD COLUMN IF NOT EXISTS ssh_login_name text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_ssh_login_name ON identities
+	USING btree (organization_id, ssh_login_name) WHERE (deleted_at IS NULL);
+`
+			if _, err := db.Exec(stmt); err != nil {
+				return err
+			}
+
+			stmt = `SELECT id, name, organization_id FROM identities WHERE deleted_at IS NULL AND ssh_login_name IS NULL`
+			rows, err := db.Query(stmt)
+			if err != nil {
+				return err
+			}
+			users, err := scanRows(rows, func(u *models.Identity) []any {
+				return []any{&u.ID, &u.Name, &u.OrganizationID}
+			})
+			if err != nil {
+				return err
+			}
+
+			tx, ok := db.(*Transaction)
+			if !ok {
+				return fmt.Errorf("wrong type for txn: %T", db)
+			}
+
+			for _, user := range users {
+				if _, err := setSSHLoginName(tx, user); err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	}
 }

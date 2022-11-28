@@ -10,6 +10,7 @@ import (
 	"gotest.tools/v3/assert"
 
 	"github.com/infrahq/infra/internal"
+	"github.com/infrahq/infra/internal/generate"
 	"github.com/infrahq/infra/internal/server/models"
 	"github.com/infrahq/infra/uid"
 )
@@ -94,6 +95,122 @@ func TestCreateIdentity_DuplicateNameAfterDelete(t *testing.T) {
 	})
 }
 
+func TestSetSSHLoginName(t *testing.T) {
+	runDBTests(t, func(t *testing.T, db *DB) {
+		type testCase struct {
+			name     string
+			email    string
+			expected string
+			setup    func(t *testing.T, tx *Transaction)
+		}
+
+		run := func(t *testing.T, tc testCase) {
+			tx := txnForTestCase(t, db, db.DefaultOrg.ID)
+
+			if tc.setup != nil {
+				tc.setup(t, tx)
+			}
+
+			user := &models.Identity{Name: tc.email}
+			assert.NilError(t, insert(tx, (*identitiesTable)(user)))
+
+			generate.SetSeed(500)
+
+			username, err := setSSHLoginName(tx, *user)
+			assert.NilError(t, err)
+			assert.Equal(t, username, tc.expected)
+
+			actual, err := GetIdentity(tx, GetIdentityOptions{ByID: user.ID})
+			assert.NilError(t, err)
+			assert.Equal(t, actual.SSHLoginName, username)
+		}
+
+		testCases := []testCase{
+			{
+				name:     "valid name from email",
+				email:    "developer@example.com",
+				expected: "developer",
+			},
+			{
+				name:  "conflict on first try",
+				email: "taken@example.com",
+				setup: func(t *testing.T, tx *Transaction) {
+					user := &models.Identity{
+						Name:              "taken@otherdomain.com",
+						SSHLoginName:      "taken",
+						VerificationToken: "10001",
+					}
+					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
+				},
+				expected: "taken446",
+			},
+			{
+				name:  "conflict on second try",
+				email: "taken@example.com",
+				setup: func(t *testing.T, tx *Transaction) {
+					user := &models.Identity{
+						Name:              "taken@otherdomain.com",
+						SSHLoginName:      "taken",
+						VerificationToken: "10001",
+					}
+					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
+					user = &models.Identity{
+						Name:              "taken@thirddomain.com",
+						SSHLoginName:      "taken446",
+						VerificationToken: "10002",
+					}
+					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
+				},
+				expected: "taken740",
+			},
+			{
+				name:     "uppercase and invalid characters are normalized",
+				email:    "AH.What@example.com",
+				expected: "ahwhat",
+			},
+			{
+				name:     "starts with number is normalized",
+				email:    "12rings@example.com",
+				expected: "u12rings",
+			},
+			{
+				name:     "long username is truncated",
+				email:    "thisusernameisTOOOOOOOOOOlongforlinux@example.com",
+				expected: "thisusernameistoooooooooolon",
+			},
+			{
+				name:  "long username with conflict",
+				email: "thisusernameisTOOOOOOOOOOlongforlinux@example.com",
+				setup: func(t *testing.T, tx *Transaction) {
+					user := &models.Identity{
+						Name:              "taken@otherdomain.com",
+						SSHLoginName:      "thisusernameistoooooooooolon",
+						VerificationToken: "10003",
+					}
+					assert.NilError(t, insert(tx, (*identitiesTable)(user)))
+				},
+				expected: "thisusernameistoooooooooolon446",
+			},
+			{
+				name:     "short username",
+				email:    "m@example.com",
+				expected: "m446",
+			},
+			{
+				name:     "username conflicts with reserved name",
+				email:    "root@example.com",
+				expected: "root446",
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				run(t, tc)
+			})
+		}
+	})
+}
+
 func TestGetIdentity(t *testing.T) {
 	runDBTests(t, func(t *testing.T, db *DB) {
 		group := models.Group{Name: "usa"}
@@ -102,7 +219,7 @@ func TestGetIdentity(t *testing.T) {
 		assert.NilError(t, err)
 
 		var (
-			bond   = models.Identity{Name: "jbond@infrahq.com"}
+			bond   = models.Identity{Name: "jbond@infrahq.com", SSHLoginName: "jbond"}
 			bourne = models.Identity{Name: "jbourne@infrahq.com", Groups: []models.Group{group}}
 			bauer  = models.Identity{Name: "jbauer@infrahq.com", Providers: []models.Provider{*InfraProvider(db)}}
 		)
