@@ -479,7 +479,7 @@ func ServerCompatible(ctx context.Context, client *Client) error {
 		return nil // result inconclusive
 	}
 	if ahead {
-		return fmt.Errorf("client version (%s) is ahead of server version (%s), please upgrade your server", apiVersion, srv.Version)
+		return fmt.Errorf("client version (%s) is ahead of server version (%s)", apiVersion, srv.Version)
 	}
 	return nil
 }

@@ -64,7 +64,9 @@ func (c *CLI) apiClient() (*api.Client, error) {
 
 func (c *CLI) serverCompatible(client *api.Client) error {
 	if !c.RootOptions.SkipAPIVersionCheck && !strings.HasSuffix(client.URL, ".infrahq.com") {
-		return api.ServerCompatible(context.Background(), client)
+		if err := api.ServerCompatible(context.Background(), client); err != nil {
+			return fmt.Errorf("%w, download the CLI version that matches your server, reference https://infrahq.com/docs/reference/self-hosting#cli-versions", err)
+		}
 	}
 
 	return nil
