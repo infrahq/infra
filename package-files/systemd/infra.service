@@ -1,0 +1,14 @@
+[Unit]
+Description=Infra SSH Connector
+Documentation=https://docs.infrahq.com
+Wants=network-online.service
+After=network-online.service
+ConditionPathExists=/etc/infra/connector.yaml
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/infra connector -f /etc/infra/connector.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

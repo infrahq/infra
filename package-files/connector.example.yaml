@@ -1,0 +1,10 @@
+kind: ssh
+
+# Infra destination name
+name: ""
+
+# host and optional port used to connect to this SSH server
+endpointAddr: ""
+
+server:
+  accessKey: "" 
