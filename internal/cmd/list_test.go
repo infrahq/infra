@@ -43,8 +43,13 @@ func TestListCmd(t *testing.T) {
 	ctx := context.Background()
 	runAndWait(ctx, t, srv.Run)
 
-	httpTransport := httpTransportForHostConfig(&ClientHostConfig{SkipTLSVerify: true})
-	c := apiClient(srv.Addrs.HTTPS.String(), "0000000001.adminadminadminadmin1234", httpTransport)
+	clientOpts := &APIClientOpts{
+		Host:      srv.Addrs.HTTPS.String(),
+		AccessKey: "0000000001.adminadminadminadmin1234",
+		Transport: httpTransportForHostConfig(&ClientHostConfig{SkipTLSVerify: true}),
+	}
+	c, err := NewAPIClient(clientOpts)
+	assert.NilError(t, err)
 
 	_, err = c.CreateDestination(ctx, &api.CreateDestinationRequest{
 		UniqueID: "space",

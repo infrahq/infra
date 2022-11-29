@@ -23,12 +23,6 @@ func newKeysCmd(cli *CLI) *cobra.Command {
 		Short:   "Manage access keys",
 		Aliases: []string{"key"},
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newKeysListCmd(cli))
@@ -74,7 +68,7 @@ $ MY_ACCESS_KEY=$(infra keys add -q --name my-key)
 				}
 			}
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -181,7 +175,7 @@ func newKeysRemoveCmd(cli *CLI) *cobra.Command {
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -257,7 +251,7 @@ func newKeysListCmd(cli *CLI) *cobra.Command {
 		Short:   "List access keys",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}

@@ -25,12 +25,6 @@ func newUsersCmd(cli *CLI) *cobra.Command {
 		Short:   "Manage user identities",
 		Aliases: []string{"user"},
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newUsersAddCmd(cli))
@@ -61,7 +55,7 @@ $ infra users add johndoe@example.com`,
 
 			ctx := context.Background()
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -141,7 +135,7 @@ func newUsersListCmd(cli *CLI) *cobra.Command {
 		Short:   "List users",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -212,7 +206,7 @@ $ infra users remove janedoe@example.com`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -263,7 +257,7 @@ $ infra users remove janedoe@example.com`,
 func updateUser(cli *CLI, name string) error {
 	ctx := context.Background()
 
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}

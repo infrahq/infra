@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/ssoroka/slice"
 
 	"github.com/infrahq/infra/internal/logging"
@@ -464,4 +465,36 @@ func HandleConnError(err error) error {
 	}
 
 	return nil
+}
+
+func ServerCompatible(ctx context.Context, client *Client) error {
+	srv, err := client.GetServerVersion(ctx)
+	if err != nil {
+		logging.L.Debug().Err(err).Msg("check server version")
+		return nil // result inconclusive
+	}
+	ahead, err := versionAhead(client.Version, srv.Version)
+	if err != nil {
+		logging.L.Debug().Err(err).Msg("failed to compare client version to server")
+		return nil // result inconclusive
+	}
+	if ahead {
+		return fmt.Errorf("client version (%s) is ahead of server version (%s), please upgrade your server", apiVersion, srv.Version)
+	}
+	return nil
+}
+
+// versionAhead returns if the current semantic version is ahead of the comparison version
+func versionAhead(current, compare string) (bool, error) {
+	v, err := semver.NewVersion(current)
+	if err != nil {
+		return false, fmt.Errorf("could not create semantic current version: %w", err)
+	}
+
+	c, err := semver.NewVersion(compare)
+	if err != nil {
+		return false, fmt.Errorf("could not create semantic comparison version: %w", err)
+	}
+
+	return v.GreaterThan(c), nil
 }

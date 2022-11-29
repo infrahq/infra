@@ -146,7 +146,7 @@ func TestInvalidSessions(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = Run(context.Background(), "destinations", "list")
-		assert.ErrorContains(t, err, "Session expired")
+		assert.ErrorContains(t, err, "Access key is expired, please `infra login` again")
 	})
 
 	t.Run("Logged out session", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestInvalidSessions(t *testing.T) {
 		assert.NilError(t, err)
 
 		err = Run(context.Background(), "destinations", "list")
-		assert.ErrorContains(t, err, "Not logged in")
+		assert.ErrorContains(t, err, "Missing access key, must `infra login` or set INFRA_ACCESS_KEY in your environment")
 	})
 }
 

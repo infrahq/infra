@@ -25,12 +25,6 @@ func newDestinationsCmd(cli *CLI) *cobra.Command {
 		Aliases: []string{"dst", "dest", "destination"},
 		Short:   "Manage destinations",
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newDestinationsListCmd(cli))
@@ -47,7 +41,7 @@ func newDestinationsListCmd(cli *CLI) *cobra.Command {
 		Short:   "List connected destinations",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -127,7 +121,7 @@ func newDestinationsRemoveCmd(cli *CLI) *cobra.Command {
 		Args:    ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}

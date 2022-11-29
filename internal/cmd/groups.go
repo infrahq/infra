@@ -45,12 +45,6 @@ func newGroupsCmd(cli *CLI) *cobra.Command {
 		Short:   "Manage groups of identities",
 		Aliases: []string{"group"},
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newGroupsAddCmd(cli))
@@ -71,7 +65,7 @@ func newGroupsListCmd(cli *CLI) *cobra.Command {
 		Short:   "List groups",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -147,7 +141,7 @@ func newGroupsAddCmd(cli *CLI) *cobra.Command {
 $ infra groups add Engineering`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -176,7 +170,7 @@ $ infra groups remove Engineering`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			name := args[0]
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -222,7 +216,7 @@ $ infra groups adduser johndoe@example.com Engineering
 
 			ctx := context.Background()
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -275,7 +269,7 @@ $ infra groups removeuser johndoe@example.com Engineering
 
 			ctx := context.Background()
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}

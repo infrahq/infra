@@ -18,9 +18,6 @@ func newInfoCmd(cli *CLI) *cobra.Command {
 		Args:    NoArgs,
 		GroupID: groupOther,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := mustBeLoggedIn(); err != nil {
-				return err
-			}
 			return info(cli)
 		},
 	}
@@ -32,7 +29,7 @@ func info(cli *CLI) error {
 		return err
 	}
 
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}
