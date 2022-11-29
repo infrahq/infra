@@ -3,6 +3,7 @@ package providers
 import (
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,6 +96,23 @@ const azureGroupResponse = `{
 	]
 }`
 
+var azureErrorResponse = `
+{
+	"error": {
+		"code": "InvalidAuthenticationToken",
+		"message": "Access token has expired or is not yet valid.",
+		"innerError": {
+			"date": "2022-11-29T15:37:34",
+			"request-id": "aaa",
+			"client-request-id": "bbb"
+		}
+	}
+}
+`
+
+// this access variable are used to infer what the groups response should be
+var validAccess = "valid"
+
 func patchGraphGroupMemberEndpoint(t *testing.T, url string) {
 	orig := graphGroupMemberEndpoint
 	graphGroupMemberEndpoint = url
@@ -106,9 +124,16 @@ func patchGraphGroupMemberEndpoint(t *testing.T, url string) {
 func azureHandlers(t *testing.T, mux *http.ServeMux) {
 	mux.HandleFunc("/v1.0/me/memberOf", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
-		_, err := io.WriteString(w, azureGroupResponse)
-		w.WriteHeader(200)
-		assert.Check(t, err, "failed to write memberOf response")
+		// use the access token to infer what the response should be
+		if strings.Contains(req.Header.Get("Authorization"), validAccess) {
+			w.WriteHeader(http.StatusOK)
+			_, err := io.WriteString(w, azureGroupResponse)
+			assert.Check(t, err, "failed to write memberOf response")
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			_, err := io.WriteString(w, azureErrorResponse)
+			assert.Check(t, err, "failed to write memberOf error response")
+		}
 	})
 }
 
@@ -116,10 +141,33 @@ func TestAzure_GetUserInfo(t *testing.T) {
 	tests := []struct {
 		name         string
 		infoResponse string
+		access       string
 		verifyFunc   func(t *testing.T, info *UserInfoClaims, err error)
 	}{
 		{
-			name: "deleted user's userinfo response causes sync to fail",
+			name:   "error response causes group sync to fail",
+			access: "aaa",
+			infoResponse: `{
+				"sub": "o_aaabbbccc",
+				"sub": "o_aaabbbccc",
+				"name": "Jim Hopper",
+				"family_name": "Hopper",
+				"given_name": "Jim",
+				"picture": "https://graph.microsoft.com/v1.0/me/photo/$value"
+			}`,
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
+				assert.NilError(t, err)
+
+				expected := UserInfoClaims{
+					Name:   "Jim Hopper",
+					Groups: []string{},
+				}
+				assert.DeepEqual(t, *info, expected)
+			},
+		},
+		{
+			name:   "deleted user's userinfo response causes sync to fail",
+			access: "aaa",
 			infoResponse: `{
 				"sub": "o_aaabbbccc",
 				"picture": "https://graph.microsoft.com/v1.0/me/photo/$value"
@@ -130,7 +178,8 @@ func TestAzure_GetUserInfo(t *testing.T) {
 			},
 		},
 		{
-			name: "groups are set from graph response",
+			name:   "groups are set from graph response",
+			access: validAccess,
 			infoResponse: `{
 				"sub": "o_aaabbbccc",
 				"sub": "o_aaabbbccc",
@@ -157,7 +206,7 @@ func TestAzure_GetUserInfo(t *testing.T) {
 			serverURL := server.run(t, azureHandlers)
 			provider := NewOIDCClient(models.Provider{Kind: models.ProviderKindAzure, URL: serverURL, ClientID: "invalid"}, "invalid", "https://example.com/callback")
 			patchGraphGroupMemberEndpoint(t, "https://"+serverURL+"/v1.0/me/memberOf")
-			info, err := provider.GetUserInfo(ctx, &models.ProviderUser{AccessToken: "aaa", RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})
+			info, err := provider.GetUserInfo(ctx, &models.ProviderUser{AccessToken: models.EncryptedAtRest(test.access), RefreshToken: "bbb", ExpiresAt: time.Now().UTC().Add(5 * time.Minute)})
 			test.verifyFunc(t, info, err)
 		})
 	}

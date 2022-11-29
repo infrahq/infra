@@ -31,6 +31,22 @@ type graphResponse struct {
 	Value   []graphObject `json:"value"`
 }
 
+type graphInnerError struct {
+	Date            string `json:"date"`
+	RequestID       string `json:"request-id"`
+	ClientRequestID string `json:"client-request-id"`
+}
+
+type graphError struct {
+	Code       string          `json:"code"`
+	Message    string          `json:"message"`
+	InnerError graphInnerError `json:"innerError"`
+}
+
+type graphErrorResponse struct {
+	GraphError graphError `json:"error"`
+}
+
 type azure struct {
 	OIDCClient OIDCClient
 }
@@ -67,12 +83,14 @@ func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUs
 			return nil, fmt.Errorf("%w: %s", internal.ErrBadGateway, err.Error())
 		}
 
-		if !errors.Is(err, errAzureAuthzFailed) {
+		if !errors.Is(err, errAzureReqFailed) {
 			return nil, fmt.Errorf("could not check azure user groups: %w", err)
 		}
 
+		logging.L.Debug().Err(err).Msg("failed to check Azure groups")
+
 		newGroups = []string{} // set the groups empty to clear them
-		logging.Warnf("Unable to get groups from the Azure API for provider ID:%q. Make sure the application client has the required permissions.", providerUser.ProviderID)
+		logging.Warnf("unable to get groups from the Azure API for provider ID:%q. Make sure the application client has the required permissions.", providerUser.ProviderID)
 	}
 
 	info.Groups = newGroups
@@ -82,7 +100,7 @@ func (a *azure) GetUserInfo(ctx context.Context, providerUser *models.ProviderUs
 	return info, nil
 }
 
-var errAzureAuthzFailed = fmt.Errorf("authorization with azure api failed")
+var errAzureReqFailed = fmt.Errorf("request to azure api failed")
 
 // checkMemberOfGraphGroups calls the Microsoft Graph API to find out what groups a user belongs to
 func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string, error) {
@@ -110,10 +128,6 @@ func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string
 		return nil, fmt.Errorf("failed to query azure for groups: %w", err)
 	}
 
-	if resp.StatusCode == http.StatusForbidden {
-		return nil, errAzureAuthzFailed
-	}
-
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -121,6 +135,18 @@ func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string
 		return nil, fmt.Errorf("could not read azure groups response: %w", err)
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		errResp := graphErrorResponse{}
+		err = json.Unmarshal(body, &errResp)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse azure error response: %w", err)
+		}
+		logging.L.Warn().Err(fmt.Errorf("%s: %s", errResp.GraphError.Code, errResp.GraphError.Message)).Msgf("could not retrieve groups from azure")
+		logging.L.Debug().Msgf("azure error response request ID: %s", errResp.GraphError.InnerError.RequestID)
+		logging.L.Debug().Msgf("azure error response client request ID: %s", errResp.GraphError.InnerError.ClientRequestID)
+
+		return nil, fmt.Errorf("%w: %s", errAzureReqFailed, errResp.GraphError.Message)
+	}
 	graphResp := graphResponse{}
 	err = json.Unmarshal(body, &graphResp)
 	if err != nil {
