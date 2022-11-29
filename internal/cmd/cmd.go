@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,31 +30,6 @@ func Run(ctx context.Context, args ...string) error {
 	return cmd.ExecuteContext(ctx)
 }
 
-func mustBeLoggedIn() error {
-	if _, ok := os.LookupEnv("INFRA_ACCESS_KEY"); ok {
-		// user doesn't need to log in if supplying an access key
-		return nil
-	}
-
-	config, err := currentHostConfig()
-	if err != nil {
-		if errors.Is(err, ErrConfigNotFound) {
-			return Error{Message: "Not logged in; run 'infra login' before running this command"}
-		}
-		return fmt.Errorf("getting host config: %w", err)
-	}
-
-	// Check expired before checking isLoggedin, since if we check isLoggedIn first, we will never know if it's expired
-	if config.isExpired() {
-		return Error{Message: "Session expired; run 'infra login' to start a new session"}
-	}
-
-	if !config.isLoggedIn() {
-		return Error{Message: "Not logged in; run 'infra login' before running this command"}
-	}
-	return nil
-}
-
 func printTable(data interface{}, out io.Writer) {
 	table := tableprinter.New(out)
 
@@ -73,8 +47,14 @@ func printTable(data interface{}, out io.Writer) {
 	table.Print(data)
 }
 
-// Creates a new API Client from the current config
-func defaultAPIClient() (*api.Client, error) {
+type APIClientOpts struct {
+	Host      string
+	AccessKey string
+	Transport *http.Transport
+}
+
+// Creates API Client options from the current config
+func defaultClientOpts() (*APIClientOpts, error) {
 	config, err := currentHostConfig()
 	if err != nil {
 		return nil, err
@@ -101,21 +81,28 @@ func defaultAPIClient() (*api.Client, error) {
 		server = envServer
 	}
 
-	return apiClient(server, accessKey, httpTransportForHostConfig(config)), nil
+	return &APIClientOpts{
+		Host:      server,
+		AccessKey: accessKey,
+		Transport: httpTransportForHostConfig(config),
+	}, nil
 }
 
-func apiClient(host string, accessKey string, transport *http.Transport) *api.Client {
+func NewAPIClient(opts *APIClientOpts) (*api.Client, error) {
+	if opts.Host == "" || opts.Transport == nil {
+		return nil, fmt.Errorf("api client access key, host, and transport are required")
+	}
 	return &api.Client{
 		Name:      "cli",
 		Version:   internal.Version,
-		URL:       "https://" + host,
-		AccessKey: accessKey,
+		URL:       "https://" + opts.Host,
+		AccessKey: opts.AccessKey,
 		HTTP: http.Client{
 			Timeout:   60 * time.Second,
-			Transport: transport,
+			Transport: opts.Transport,
 		},
 		OnUnauthorized: logoutCurrent,
-	}
+	}, nil
 }
 
 func logoutCurrent() {
@@ -186,7 +173,13 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		SilenceUsage:      true,
 		SilenceErrors:     true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			return rootPreRun(cmd.Flags())
+			if err := cliopts.DefaultsFromEnv("INFRA", cmd.Flags()); err != nil {
+				return err
+			}
+			if err := logging.SetLevel(cli.RootOptions.LogLevel); err != nil {
+				return err
+			}
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -232,28 +225,15 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		newConnectorCmd(),
 		newAgentCmd())
 
-	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
+	rootCmd.PersistentFlags().StringVar(&cli.RootOptions.LogLevel, "log-level", "info", "Show logs when running the command [error, warn, info, debug]")
+	rootCmd.PersistentFlags().BoolVar(&cli.RootOptions.SkipAPIVersionCheck, "skip-version-check", false, "Skip checking if the CLI is ahead of the server version")
 
 	rootCmd.SetHelpCommandGroupID(groupOther)
 	rootCmd.AddCommand(newAboutCmd())
 	rootCmd.AddCommand(newCompletionsCmd())
 	rootCmd.SetUsageTemplate(usageTemplate())
 	return rootCmd
-}
-
-func rootPreRun(flags *pflag.FlagSet) error {
-	if err := cliopts.DefaultsFromEnv("INFRA", flags); err != nil {
-		return err
-	}
-	logLevel, err := flags.GetString("log-level")
-	if err != nil {
-		return err
-	}
-	if err := logging.SetLevel(logLevel); err != nil {
-		return err
-	}
-	return nil
 }
 
 func addNonInteractiveFlag(flags *pflag.FlagSet, bind *bool) {

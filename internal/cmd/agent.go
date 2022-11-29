@@ -161,9 +161,13 @@ func writeAgentConfig(pid int) error {
 
 // syncKubeConfig updates the local kubernetes configuration from Infra grants
 func syncKubeConfig(_ context.Context) error {
-	client, err := defaultAPIClient()
+	opts, err := defaultClientOpts()
 	if err != nil {
-		return fmt.Errorf("get api client: %w", err)
+		return err
+	}
+	client, err := NewAPIClient(opts)
+	if err != nil {
+		return err
 	}
 	client.Name = "agent"
 

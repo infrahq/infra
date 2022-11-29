@@ -31,12 +31,6 @@ func newGrantsCmd(cli *CLI) *cobra.Command {
 		Short:   "Manage access to resources",
 		Aliases: []string{"grant"},
 		GroupID: groupManagement,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newGrantsListCmd(cli))
@@ -55,7 +49,7 @@ func newGrantsListCmd(cli *CLI) *cobra.Command {
 		Short:   "List grants",
 		Args:    NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -249,7 +243,7 @@ $ infra grants remove janedoe@example.com infra --role admin
 }
 
 func removeGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}
@@ -357,7 +351,7 @@ $ infra grants add johndoe@example.com infra --role admin
 }
 
 func addGrant(cli *CLI, cmdOptions grantsCmdOptions) error {
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}

@@ -15,12 +15,6 @@ func newTokensCmd(cli *CLI) *cobra.Command {
 		Use:    "tokens",
 		Short:  "Create & manage tokens",
 		Hidden: true,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 	}
 
 	cmd.AddCommand(newTokensAddCmd(cli))
@@ -41,7 +35,7 @@ func newTokensAddCmd(cli *CLI) *cobra.Command {
 
 func tokensCreate(cli *CLI) error {
 	ctx := context.Background()
-	client, err := defaultAPIClient()
+	client, err := cli.apiClient()
 	if err != nil {
 		return err
 	}

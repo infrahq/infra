@@ -224,3 +224,38 @@ func TestListGrants(t *testing.T) {
 		assert.DeepEqual(t, apiError, expected)
 	})
 }
+
+func TestVersionAhead(t *testing.T) {
+	t.Run("patch version", func(t *testing.T) {
+		res, err := versionAhead("1.0.1", "1.0.0")
+		assert.NilError(t, err)
+		assert.Assert(t, res)
+
+		res, err = versionAhead("1.0.0", "1.0.1")
+		assert.NilError(t, err)
+		assert.Assert(t, !res)
+	})
+	t.Run("minor version", func(t *testing.T) {
+		res, err := versionAhead("1.1.0", "1.0.0")
+		assert.NilError(t, err)
+		assert.Assert(t, res)
+
+		res, err = versionAhead("1.0.0", "1.1.0")
+		assert.NilError(t, err)
+		assert.Assert(t, !res)
+	})
+	t.Run("major version", func(t *testing.T) {
+		res, err := versionAhead("2.0.0", "1.0.0")
+		assert.NilError(t, err)
+		assert.Assert(t, res)
+
+		res, err = versionAhead("1.0.0", "2.0.0")
+		assert.NilError(t, err)
+		assert.Assert(t, !res)
+	})
+	t.Run("equal", func(t *testing.T) {
+		res, err := versionAhead("1.0.0", "1.0.0")
+		assert.NilError(t, err)
+		assert.Assert(t, !res)
+	})
+}

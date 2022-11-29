@@ -19,16 +19,10 @@ $ infra use development.kube-system`,
 		Args:              ExactArgs(1),
 		GroupID:           groupCore,
 		ValidArgsFunction: getUseCompletion,
-		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			if err := rootPreRun(cmd.Flags()); err != nil {
-				return err
-			}
-			return mustBeLoggedIn()
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			destination := args[0]
 
-			client, err := defaultAPIClient()
+			client, err := cli.apiClient()
 			if err != nil {
 				return err
 			}
@@ -55,7 +49,11 @@ $ infra use development.kube-system`,
 }
 
 func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	client, err := defaultAPIClient()
+	opts, err := defaultClientOpts()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	client, err := NewAPIClient(opts)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
@@ -88,5 +86,4 @@ func getUseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]s
 	}
 
 	return validArgs, cobra.ShellCompDirectiveNoSpace
-
 }
