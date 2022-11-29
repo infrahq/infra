@@ -19,6 +19,8 @@ import (
 	"github.com/goware/urlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 
 	"github.com/infrahq/infra/api"
@@ -93,6 +95,9 @@ type apiClient interface {
 	CreateDestination(ctx context.Context, req *api.CreateDestinationRequest) (*api.Destination, error)
 	UpdateDestination(ctx context.Context, req api.UpdateDestinationRequest) (*api.Destination, error)
 
+	ListCredentialRequests(ctx context.Context, req api.ListCredentialRequest) (*api.ListCredentialRequestResponse, error)
+	UpdateCredentialRequest(ctx context.Context, r *api.UpdateCredentialRequest) (*api.EmptyResponse, error)
+
 	// GetGroup and GetUser are used to retrieve the name of the group or user.
 	// TODO: we can remove these calls to GetGroup and GetUser by including
 	// the name of the group or user in the ListGrants response.
@@ -108,6 +113,8 @@ type kubeClient interface {
 
 	UpdateClusterRoleBindings(subjects map[string][]rbacv1.Subject) error
 	UpdateRoleBindings(subjects map[kubernetes.ClusterRoleNamespace][]rbacv1.Subject) error
+	CreateServiceAccount(username string) (*corev1.ServiceAccount, error)
+	CreateServiceAccountToken(username string) (*authenticationv1.TokenRequest, error)
 }
 
 var httpErrorLog *log.Logger
@@ -132,11 +139,17 @@ func Run(ctx context.Context, options Options) error {
 		return err
 	}
 
+	// sync destination once to populate the con's destination fields. these get shared across goroutines.
+	err = syncDestination(ctx, con)
+	if err != nil {
+		return err
+	}
+
 	startMetricsService(ctx, con, runGroup)
 	startHealthService(ctx, options, runGroup)
 	startGrantReconciler(ctx, con, runGroup)
 	startDestinationSync(ctx, con, runGroup)
-	startCredentialRequestReconciler(ctx)
+	startCredentialRequestReconciler(ctx, con, runGroup)
 
 	logging.Infof("starting infra k8s connector (%s)", internal.FullVersion())
 
@@ -151,8 +164,65 @@ func Run(ctx context.Context, options Options) error {
 	return err
 }
 
-func startCredentialRequestReconciler(ctx context.Context) {
+func startCredentialRequestReconciler(ctx context.Context, con *k8sConnector, runGroup *errgroup.Group) {
+	runGroup.Go(func() error {
+		lastUpdateIndex := int64(0)
+		for ctx.Err() == nil {
+			resp := pollForCredentialRequestsOnce(ctx, con, lastUpdateIndex)
+			if resp != nil {
+				lastUpdateIndex = resp.MaxUpdateIndex
+			}
+		}
+		return nil
+	})
+}
 
+func pollForCredentialRequestsOnce(ctx context.Context, con *k8sConnector, lastUpdateIndex int64) *api.ListCredentialRequestResponse {
+	client := con.client
+
+	// long-poll credentials against server
+	resp, err := client.ListCredentialRequests(ctx, api.ListCredentialRequest{
+		Destination:     con.destination.Name,
+		LastUpdateIndex: lastUpdateIndex,
+	})
+	if err != nil {
+		logging.Errorf("ListCredentialRequest: %s", err.Error())
+		time.Sleep(1 * time.Second) // don't want to wait long as this is critical path
+		return nil
+	}
+
+	// for each: create service account
+	for _, req := range resp.Items {
+		user, err := con.client.GetUser(ctx, req.UserID)
+		if err != nil {
+			logging.Errorf("GetUser failed, ignoring credential request: %s", err.Error())
+			return nil
+		}
+		// create account if it's missing
+		_, err = con.k8s.CreateServiceAccount(user.Name)
+		if err != nil {
+			logging.Errorf("CreateServiceAccount failed, ignoring credential request: %s", err.Error())
+			return nil
+		}
+		// issue token to user
+		tokenRequest, err := con.k8s.CreateServiceAccountToken(user.Name)
+		if err != nil {
+			logging.Errorf("CreateServiceAccountToken failed, ignoring credential request: %s", err.Error())
+			return nil
+		}
+		// return credentials to user by posting back to the api.
+		_, err = con.client.UpdateCredentialRequest(ctx, &api.UpdateCredentialRequest{
+			ID:             req.ID,
+			OrganizationID: req.OrganizationID,
+			BearerToken:    tokenRequest.Status.Token,
+		})
+		if err != nil {
+			logging.Errorf("UpdateCredentialRequest failed, ignoring credential request: %s", err.Error())
+			return nil
+		}
+	}
+
+	return resp
 }
 
 func newK8sConnector(options Options) (*k8sConnector, error) {
@@ -182,6 +252,9 @@ func newK8sConnector(options Options) (*k8sConnector, error) {
 	}
 
 	u, err := urlx.Parse(options.Server.URL)
+	if err != nil {
+		return nil, err
+	}
 
 	client := &api.Client{
 		Name:      "connector",
@@ -222,16 +295,22 @@ func startGrantReconciler(ctx context.Context, con *k8sConnector, runGroup *errg
 
 func startDestinationSync(ctx context.Context, con *k8sConnector, runGroup *errgroup.Group) {
 	runGroup.Go(func() error {
-		// TODO: how long should this wait? Use exponential backoff on error?
 		waiter := repeat.NewWaiter(backoff.NewConstantBackOff(30 * time.Second))
+		tick := time.NewTicker(5 * time.Minute)
+		defer tick.Stop()
 		for {
-			if err := syncDestination(ctx, con); err != nil {
-				logging.Errorf("failed to update destination in infra: %v", err)
-			} else {
-				waiter.Reset()
-			}
-			if err := waiter.Wait(ctx); err != nil {
-				return err
+			select {
+			case <-tick.C:
+				if err := syncDestination(ctx, con); err != nil {
+					logging.Errorf("failed to update destination in infra: %v", err)
+					if err := waiter.Wait(ctx); err != nil {
+						return err
+					}
+				} else {
+					waiter.Reset()
+				}
+			case <-ctx.Done():
+				return nil
 			}
 		}
 	})
@@ -343,8 +422,7 @@ func httpTransportFromOptions(opts ServerOptions) *http.Transport {
 }
 
 // syncDestination creates and manages the destination record in Infra.
-func syncDestination(ctx context.Context, con k8sConnector) error {
-
+func syncDestination(ctx context.Context, con *k8sConnector) error {
 	endpoint, err := getEndpointHostPort(con.k8s, con.options)
 	if err != nil {
 		logging.L.Warn().Err(err).Msg("could not get host")
@@ -371,6 +449,9 @@ func syncDestination(ctx context.Context, con k8sConnector) error {
 	if err != nil {
 		return fmt.Errorf("could not get kubernetes cluster-roles: %w", err)
 	}
+
+	con.Lock()
+	defer con.Unlock()
 
 	switch {
 	case con.destination.ID == 0:
@@ -436,6 +517,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 		return err
 	}
 
+	con.Lock()
 	client := &api.Client{
 		Name:      "connector",
 		Version:   internal.Version,
@@ -445,16 +527,19 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 			Transport: httpTransportFromOptions(options.Server),
 		},
 		Headers: http.Header{
-			"Infra-Destination": {checkSum},
+			"Infra-Destination": {con.destination.UniqueID},
 		},
 		OnUnauthorized: func() {
 			logging.Errorf("Unauthorized error; token invalid or expired. exiting.")
 		},
 	}
+	con.Unlock()
 
 	sync := func() error {
+		con.Lock()
+		defer con.Unlock()
 		grants, err := client.ListGrants(ctx, api.ListGrantsRequest{
-			Destination:     destination.Name,
+			Destination:     con.destination.Name,
 			BlockingRequest: api.BlockingRequest{LastUpdateIndex: latestIndex},
 		})
 		var apiError api.Error
@@ -473,7 +558,7 @@ func syncGrantsToKubeBindings(ctx context.Context, con *k8sConnector, waiter wai
 			Int("grants", len(grants.Items)).
 			Msg("received grants from server")
 
-		err = updateRoles(ctx, client, k8s, grants.Items)
+		err = updateRoles(ctx, con.client, con.k8s, grants.Items)
 		if err != nil {
 			return fmt.Errorf("update roles: %w", err)
 		}
@@ -529,7 +614,7 @@ func updateRoles(ctx context.Context, c apiClient, k kubeClient, grants []api.Gr
 			}
 
 			name = user.Name
-			kind = rbacv1.UserKind
+			kind = rbacv1.ServiceAccountKind
 		}
 
 		subj := rbacv1.Subject{

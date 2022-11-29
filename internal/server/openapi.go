@@ -544,5 +544,9 @@ func getFieldName(f reflect.StructField, parent reflect.Type) string {
 		return name
 	}
 
+	if parent.Name() == "Time" && parent.PkgPath() == "time" {
+		panic("use api.Time instead of time.Time within the api package")
+	}
+
 	panic(fmt.Sprintf("field %q of struct %q must have a tag (json, form, or uri) with a name or '-'", f.Name, parent.Name()))
 }

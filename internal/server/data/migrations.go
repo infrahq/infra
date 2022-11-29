@@ -71,6 +71,7 @@ func migrations() []*migrator.Migration {
 		addDeviceFlowAuthRequestTable(),
 		modifyDeviceFlowAuthRequestDropApproved(),
 		addExpiresAtIndices(),
+		addCredentialRequests(),
 		// next one here
 	}
 }
@@ -864,6 +865,57 @@ func addExpiresAtIndices() *migrator.Migration {
 				CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at on password_reset_tokens (expires_at);
 			`)
 			return err
+		},
+	}
+}
+
+func addCredentialRequests() *migrator.Migration {
+	return &migrator.Migration{
+		ID: "2022-11-25T14:46",
+		Migrate: func(tx migrator.DB) error {
+			_, err := tx.Exec(`
+				CREATE TABLE IF NOT EXISTS credential_requests (
+					id 							 	bigint NOT NULL,
+					organization_id  	bigint NOT NULL,
+					expires_at 				timestamp with time zone,
+					update_index 			bigint NOT NULL,
+					user_id 					bigint NOT NULL,
+					destination_id 		bigint NOT NULL,
+					answered          bool NOT NULL DEFAULT false,
+					--
+					bearer_token text
+				);
+
+				CREATE INDEX IF NOT EXISTS idx_cred_req_org_dest on credential_requests (organization_id, destination_id);
+
+				CREATE OR REPLACE FUNCTION credential_request_insert_notify() RETURNS trigger
+					LANGUAGE PLPGSQL
+					AS $$
+				BEGIN
+					-- on insert, we notify connector listeners for this destination
+					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id || '_' || NEW.destination_id, NEW.id);
+					RETURN NULL;
+				END; $$;
+
+				CREATE OR REPLACE TRIGGER credreq_notify_trigger AFTER insert
+					ON credential_requests
+					FOR EACH ROW EXECUTE FUNCTION credential_request_insert_notify();
+
+				CREATE OR REPLACE FUNCTION credential_request_update_notify() RETURNS trigger
+					LANGUAGE PLPGSQL
+					AS $$
+				BEGIN
+					-- on update, we notify user listeners for this specific id, waiting to login
+					PERFORM pg_notify(current_schema() || '.credreq_' || NEW.organization_id || '_' || NEW.id, NEW.id);
+					RETURN NULL;
+				END; $$;
+
+				CREATE OR REPLACE TRIGGER credreq_notify_trigger AFTER update
+					ON credential_requests
+					FOR EACH ROW EXECUTE FUNCTION credential_request_update_notify();
+			`)
+			return err
+
 		},
 	}
 }

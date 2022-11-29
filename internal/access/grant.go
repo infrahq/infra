@@ -75,7 +75,7 @@ func ListGrants(c *gin.Context, opts data.ListGrantsOptions, lastUpdateIndex int
 	query := func() (ListGrantsResponse, error) {
 		return listGrantsWithMaxUpdateIndex(rCtx, opts)
 	}
-	return blockingRequest[ListGrantsResponse](rCtx, listenOpts, query, lastUpdateIndex)
+	return blockingRequest(rCtx, listenOpts, query, lastUpdateIndex)
 }
 
 type updateIndexable interface {

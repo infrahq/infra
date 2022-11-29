@@ -94,6 +94,7 @@ func (s *Server) GenerateRoutes() Routes {
 	del(a, authn, "/api/destinations/:id", a.DeleteDestination)
 
 	post(a, authn, "/api/tokens", a.CreateToken)
+	post(a, authn, "/api/credentials", a.CreateCredentialRequest)
 	post(a, authn, "/api/logout", a.Logout)
 
 	// SCIM inbound provisioning
@@ -133,6 +134,9 @@ func (s *Server) GenerateRoutes() Routes {
 	add(a, noAuthnWithOrg, http.MethodGet, "/link", verifyAndRedirectRoute)
 
 	add(a, noAuthnWithOrg, http.MethodGet, "/.well-known/jwks.json", wellKnownJWKsRoute)
+
+	// routes only interesting to connectors
+	get(a, authn, "/api/credentials", a.ListCredentialRequests)
 
 	a.deprecatedRoutes(noAuthnNoOrg)
 

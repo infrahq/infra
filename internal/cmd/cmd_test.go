@@ -21,6 +21,7 @@ import (
 	"github.com/infrahq/infra/api"
 	"github.com/infrahq/infra/internal/certs"
 	"github.com/infrahq/infra/internal/connector"
+	"github.com/infrahq/infra/internal/connectors/k8s3"
 	"github.com/infrahq/infra/uid"
 )
 
@@ -530,7 +531,17 @@ server:
 
 func patchRunConnector(t *testing.T, fn func(context.Context, connector.Options) error) {
 	orig := runConnector
-	runConnector = fn
+	runConnector = func(ctx context.Context, options k8s3.Options) error {
+		return fn(ctx, connector.Options{
+			Server:       connector.ServerOptions(options.Server),
+			Name:         options.Name,
+			CACert:       options.CACert,
+			CAKey:        options.CAKey,
+			Addr:         connector.ListenerOptions(options.Addr),
+			EndpointAddr: options.EndpointAddr,
+			Kubernetes:   connector.KubernetesOptions(options.Kubernetes),
+		})
+	}
 	t.Cleanup(func() {
 		runConnector = orig
 	})

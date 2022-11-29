@@ -23,6 +23,7 @@ import (
 	"github.com/infrahq/infra/internal/cmd/cliopts"
 	"github.com/infrahq/infra/internal/cmd/types"
 	"github.com/infrahq/infra/internal/connector"
+	"github.com/infrahq/infra/internal/connectors/k8s3"
 	"github.com/infrahq/infra/internal/logging"
 )
 
@@ -319,7 +320,16 @@ func newConnectorCmd() *cobra.Command {
 					return err
 				}
 			}
-			return runConnector(cmd.Context(), options)
+			// return runConnector(cmd.Context(), options)
+			return runConnector(cmd.Context(), k8s3.Options{
+				Server:       k8s3.ServerOptions(options.Server),
+				Name:         options.Name,
+				CACert:       options.CACert,
+				CAKey:        options.CAKey,
+				Addr:         k8s3.ListenerOptions(options.Addr),
+				EndpointAddr: options.EndpointAddr,
+				Kubernetes:   k8s3.KubernetesOptions(options.Kubernetes),
+			})
 		},
 	}
 
@@ -335,7 +345,7 @@ func newConnectorCmd() *cobra.Command {
 }
 
 // runConnector is a shim for testing
-var runConnector = connector.Run
+var runConnector = k8s3.Run
 
 func defaultConnectorOptions() connector.Options {
 	return connector.Options{

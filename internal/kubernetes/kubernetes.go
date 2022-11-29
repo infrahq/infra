@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/jessevdk/go-flags"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -567,6 +568,37 @@ func (k *Kubernetes) Service(labels ...string) (*corev1.Service, error) {
 	}
 
 	return &services.Items[0], nil
+}
+
+func (k *Kubernetes) CreateServiceAccountToken(username string) (*authenticationv1.TokenRequest, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+	expirationInSeconds := int64((24 * time.Hour).Seconds())
+	return clientset.CoreV1().ServiceAccounts("default").CreateToken(context.TODO(), username, &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			ExpirationSeconds: &expirationInSeconds,
+		},
+	}, metav1.CreateOptions{})
+}
+
+func (k *Kubernetes) CreateServiceAccount(username string) (*corev1.ServiceAccount, error) {
+	clientset, err := kubernetes.NewForConfig(k.Config)
+	if err != nil {
+		return nil, err
+	}
+	serviceAccount, err := clientset.CoreV1().ServiceAccounts("foo").Create(context.TODO(), &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      username,
+			Namespace: "default",
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return serviceAccount, nil
 }
 
 func (k *Kubernetes) Nodes() ([]corev1.Node, error) {

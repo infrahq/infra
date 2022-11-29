@@ -17,3 +17,7 @@ func RemoveExpiredAccessKeys(ctx context.Context, tx *data.DB) error {
 func RemoveExpiredPasswordResetTokens(ctx context.Context, tx *data.DB) error {
 	return data.RemoveExpiredPasswordResetTokens(tx)
 }
+
+func RemoveExpiredCredentialRequests(ctx context.Context, tx *data.DB) error {
+	return data.RemoveExpiredCredentialRequests(tx)
+}
