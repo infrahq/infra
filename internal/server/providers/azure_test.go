@@ -110,8 +110,18 @@ var azureErrorResponse = `
 }
 `
 
+var azureErrorResponseNoInnerError = `
+{
+	"error": {
+		"code": "InvalidAuthenticationToken",
+		"message": "Access token has expired or is not yet valid."
+	}
+}
+`
+
 // this access variable are used to infer what the groups response should be
 var validAccess = "valid"
+var noNested = "no-nested"
 
 func patchGraphGroupMemberEndpoint(t *testing.T, url string) {
 	orig := graphGroupMemberEndpoint
@@ -125,11 +135,16 @@ func azureHandlers(t *testing.T, mux *http.ServeMux) {
 	mux.HandleFunc("/v1.0/me/memberOf", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		// use the access token to infer what the response should be
-		if strings.Contains(req.Header.Get("Authorization"), validAccess) {
+		switch {
+		case strings.Contains(req.Header.Get("Authorization"), validAccess):
 			w.WriteHeader(http.StatusOK)
 			_, err := io.WriteString(w, azureGroupResponse)
 			assert.Check(t, err, "failed to write memberOf response")
-		} else {
+		case strings.Contains(req.Header.Get("Authorization"), noNested):
+			w.WriteHeader(http.StatusUnauthorized)
+			_, err := io.WriteString(w, azureErrorResponseNoInnerError)
+			assert.Check(t, err, "failed to write memberOf error non-nested response")
+		default:
 			w.WriteHeader(http.StatusUnauthorized)
 			_, err := io.WriteString(w, azureErrorResponse)
 			assert.Check(t, err, "failed to write memberOf error response")
@@ -147,6 +162,27 @@ func TestAzure_GetUserInfo(t *testing.T) {
 		{
 			name:   "error response causes group sync to fail",
 			access: "aaa",
+			infoResponse: `{
+				"sub": "o_aaabbbccc",
+				"sub": "o_aaabbbccc",
+				"name": "Jim Hopper",
+				"family_name": "Hopper",
+				"given_name": "Jim",
+				"picture": "https://graph.microsoft.com/v1.0/me/photo/$value"
+			}`,
+			verifyFunc: func(t *testing.T, info *UserInfoClaims, err error) {
+				assert.NilError(t, err)
+
+				expected := UserInfoClaims{
+					Name:   "Jim Hopper",
+					Groups: []string{},
+				}
+				assert.DeepEqual(t, *info, expected)
+			},
+		},
+		{
+			name:   "error response with no inner error causes group sync to fail",
+			access: noNested,
 			infoResponse: `{
 				"sub": "o_aaabbbccc",
 				"sub": "o_aaabbbccc",

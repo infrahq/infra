@@ -142,8 +142,12 @@ func checkMemberOfGraphGroups(ctx context.Context, accessToken string) ([]string
 			return nil, fmt.Errorf("could not parse azure error response: %w", err)
 		}
 		logging.L.Warn().Err(fmt.Errorf("%s: %s", errResp.GraphError.Code, errResp.GraphError.Message)).Msgf("could not retrieve groups from azure")
-		logging.L.Debug().Msgf("azure error response request ID: %s", errResp.GraphError.InnerError.RequestID)
-		logging.L.Debug().Msgf("azure error response client request ID: %s", errResp.GraphError.InnerError.ClientRequestID)
+		if errResp.GraphError.InnerError.RequestID != "" {
+			logging.L.Debug().Msgf("azure error response request ID: %s", errResp.GraphError.InnerError.RequestID)
+		}
+		if errResp.GraphError.InnerError.ClientRequestID != "" {
+			logging.L.Debug().Msgf("azure error response client request ID: %s", errResp.GraphError.InnerError.ClientRequestID)
+		}
 
 		return nil, fmt.Errorf("%w: %s", errAzureReqFailed, errResp.GraphError.Message)
 	}
