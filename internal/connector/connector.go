@@ -61,6 +61,8 @@ type Options struct {
 
 	SSH SSHOptions
 
+	SetupKind string
+
 	// Kubernetes specific options below here
 	CACert types.StringOrFile
 	CAKey  types.StringOrFile

@@ -104,9 +104,10 @@ func TestReadSSHHostKeys(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		hostKeys, err := readSSHHostKeys(tc.filenames, tc.dir)
+		actual, err := readSSHHostKeys(tc.filenames, tc.dir)
 		assert.NilError(t, err)
-		assert.DeepEqual(t, hostKeys, tc.expected)
+		assert.DeepEqual(t, actual.Values, tc.expected)
+		// TODO: assert filenames
 	}
 
 	cwd, err := os.Getwd()

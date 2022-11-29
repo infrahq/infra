@@ -14,6 +14,7 @@ import (
 
 func newConnectorCmd() *cobra.Command {
 	var configFilename string
+	options := defaultConnectorOptions()
 
 	cmd := &cobra.Command{
 		Use:    "connector",
@@ -23,7 +24,6 @@ func newConnectorCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			logging.UseServerLogger()
 
-			options := defaultConnectorOptions()
 			err := cliopts.Load(&options, cliopts.Options{
 				Filename:  configFilename,
 				EnvPrefix: "INFRA_CONNECTOR",
@@ -57,6 +57,11 @@ func newConnectorCmd() *cobra.Command {
 					return err
 				}
 			}
+
+			if options.SetupKind != "" {
+				return connector.RunSetup(options)
+			}
+
 			return runConnector(cmd.Context(), options)
 		},
 	}
@@ -68,6 +73,8 @@ func newConnectorCmd() *cobra.Command {
 	cmd.Flags().String("ca-cert", "", "Path to CA certificate file")
 	cmd.Flags().String("ca-key", "", "Path to CA key file")
 	cmd.Flags().Bool("server-skip-tls-verify", false, "Skip verifying server TLS certificates")
+	cmd.Flags().StringVar(&options.SetupKind, "setup", "", "Setup and start the connector")
+	cmd.Flags().Lookup("setup").NoOptDefVal = "ssh"
 
 	return cmd
 }

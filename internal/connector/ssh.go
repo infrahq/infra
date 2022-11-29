@@ -3,10 +3,8 @@ package connector
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,34 +73,28 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 func validateOptionsSSH(opts Options) error {
 	switch {
 	case opts.Server.URL.Host == "":
-		return fmt.Errorf("missing server.url")
+		return fmt.Errorf("missing server url")
 	case opts.Server.AccessKey == "":
-		return fmt.Errorf("missing server.acessKey")
+		return fmt.Errorf("missing server acessKey")
 	case opts.Name == "":
 		return fmt.Errorf("missing name")
-
-	// TODO: we can remove this when we add auto-detect
 	case opts.EndpointAddr.Host == "":
 		return fmt.Errorf("missing endpointAddr")
-
 	case opts.SSH.Group == "":
-		return fmt.Errorf("missing ssh.group")
+		return fmt.Errorf("missing ssh group")
 	case opts.SSH.SSHDConfigPath == "":
-		return fmt.Errorf("missing ssh.sshd_config_path")
+		return fmt.Errorf("missing ssh sshd_config_path")
 	}
 	return nil
 }
 
 func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (*api.Destination, error) {
 	config, err := readSSHDConfig(opts.SSH.SSHDConfigPath, "/etc/ssh")
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		config = sshdConfig{}
-	case err != nil:
+	if err != nil {
 		return nil, err
 	}
 
-	hostKeys, err := readSSHHostKeys(config.HostKeys, "/etc/ssh")
+	keys, err := readSSHHostKeys(config.HostKeys, "/etc/ssh")
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +106,7 @@ func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (
 		Kind: "ssh",
 		Connection: api.DestinationConnection{
 			URL: opts.EndpointAddr.String(),
-			CA:  api.PEM(hostKeys),
+			CA:  api.PEM(keys.Values),
 		},
 		// TODO: Roles - the groups available on the system,
 	}
@@ -128,25 +120,28 @@ func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (
 // readSSHHostKeys reads the HostKey settings used by the ssh server. If there are no host keys
 // set in config,  readSSHHostKeys reads all files that match /etc/ssh/host_*_key.pub.
 // readSSHHostKeys does not honor the HostKeyAlgorithms sshd_config setting.
-func readSSHHostKeys(hostKeys []string, dir string) (string, error) {
+func readSSHHostKeys(filenames []string, dir string) (*hostKeys, error) {
 	buf := new(strings.Builder)
+	result := &hostKeys{}
 
-	if len(hostKeys) > 0 {
-		for _, name := range hostKeys {
+	if len(filenames) > 0 {
+		for _, name := range filenames {
 			if !filepath.IsAbs(name) {
 				name = filepath.Join(dir, name)
 			}
 			name += ".pub" // the config lists private keys, we want the public one
 			if err := readHostKeyFile(name, buf); err != nil {
-				return "", err
+				return nil, err
 			}
+			result.Filenames = append(result.Filenames, name)
 		}
-		return buf.String(), nil
+		result.Values = buf.String()
+		return result, nil
 	}
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return "", fmt.Errorf("read dir: %w", err)
+		return nil, fmt.Errorf("read dir: %w", err)
 	}
 
 	for _, entry := range entries {
@@ -157,11 +152,19 @@ func readSSHHostKeys(hostKeys []string, dir string) (string, error) {
 			continue
 		}
 
-		if err := readHostKeyFile(filepath.Join(dir, entry.Name()), buf); err != nil {
-			return "", err
+		name := filepath.Join(dir, entry.Name())
+		if err := readHostKeyFile(name, buf); err != nil {
+			return nil, err
 		}
+		result.Filenames = append(result.Filenames, name)
 	}
-	return buf.String(), nil
+	result.Values = buf.String()
+	return result, nil
+}
+
+type hostKeys struct {
+	Values    string
+	Filenames []string
 }
 
 // readHostKeyFile opens a file, parses it to ensure that it's an SSH host key,
@@ -257,7 +260,13 @@ func grantsByUserID(grants []api.Grant) map[string]api.Grant {
 }
 
 type sshdConfig struct {
+	// HostKeys is a list of the values for HostKey keywords found in the config.
 	HostKeys []string
+	// Includes is a list of the values for Include keywords found in the config.
+	// The included files are already parsed and the values are already included
+	// in this struct. The Include values are saved so that we can check for
+	// the infra config.
+	Includes []string
 }
 
 // Merge merges the other config into this config.
@@ -292,20 +301,32 @@ func readSSHDConfig(filename string, includeBasePath string) (sshdConfig, error)
 		switch keyword {
 		case "include":
 			includeName := fields[1]
+			result.Includes = append(result.Includes, includeName)
+
 			if !filepath.IsAbs(includeName) {
 				includeName = filepath.Join(includeBasePath, includeName)
 			}
-			includedCfg, err := readSSHDConfig(includeName, includeBasePath)
+			matches, err := filepath.Glob(includeName)
 			if err != nil {
 				return sshdConfig{}, err
 			}
 
-			result.Merge(includedCfg)
+			for _, match := range matches {
+				includedCfg, err := readSSHDConfig(match, includeBasePath)
+				if err != nil {
+					return sshdConfig{}, fmt.Errorf("in %v: %w", match, err)
+				}
+
+				result.Merge(includedCfg)
+			}
 
 		case "hostkey":
 			result.HostKeys = append(result.HostKeys, fields[1])
 
-			// TODO: end reading at the first Match keyword
+		// Stop reading at the first Match keyword, because the settings we
+		// care about are not allowed to be scoped by Match.
+		case "match":
+			return result, nil
 		}
 	}
 	if err := scan.Err(); err != nil {
