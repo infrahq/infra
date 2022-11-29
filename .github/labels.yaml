@@ -41,6 +41,8 @@
   color: "F9D0C4"
 - name: "area/destinations/kubernetes"
   color: "F9D0C4"
+- name: "area/destinations/ssh"
+  color: "F9D0C4"
 - name: "area/providers"
   color: "F9D0C4"
 - name: "area/providers/okta"
