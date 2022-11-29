@@ -397,7 +397,7 @@ addr:
 
 ssh:
   group: the-group
-  sshd_config_path: /opt/sshd
+  sshdConfigPath: /opt/sshd
 `,
 			expected: func() connector.Options {
 				return connector.Options{

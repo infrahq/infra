@@ -29,10 +29,14 @@ type SSHOptions struct {
 	// SSHDConfigPath is the path to the sshd_config file that is used by the
 	// ssh server that will call infra to authenticate users. Defaults to
 	// /etc/ssh/sshd_config.
-	SSHDConfigPath string `config:"sshd_config_path"`
+	SSHDConfigPath string `config:"sshdConfigPath"`
 }
 
 func runSSHConnector(ctx context.Context, opts Options) error {
+	if err := validateOptionsSSH(opts); err != nil {
+		return err
+	}
+
 	client := opts.APIClient()
 
 	// TODO: any reason to keep registering in the background?
@@ -63,6 +67,29 @@ func runSSHConnector(ctx context.Context, opts Options) error {
 	})
 
 	return group.Wait()
+}
+
+// validateOptionsSSH validates that all settings required for the infra
+// ssh connector and 'infra sshd auth-keys' have non-zero values.
+func validateOptionsSSH(opts Options) error {
+	switch {
+	case opts.Server.URL.Host == "":
+		return fmt.Errorf("missing server.url")
+	case opts.Server.AccessKey == "":
+		return fmt.Errorf("missing server.acessKey")
+	case opts.Name == "":
+		return fmt.Errorf("missing name")
+
+	// TODO: we can remove this when we add auto-detect
+	case opts.EndpointAddr.Host == "":
+		return fmt.Errorf("missing endpointAddr")
+
+	case opts.SSH.Group == "":
+		return fmt.Errorf("missing ssh.group")
+	case opts.SSH.SSHDConfigPath == "":
+		return fmt.Errorf("missing ssh.sshd_config_path")
+	}
+	return nil
 }
 
 func registerSSHConnector(ctx context.Context, client apiClient, opts Options) (*api.Destination, error) {
