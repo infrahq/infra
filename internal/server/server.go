@@ -230,6 +230,10 @@ func (s *Server) DB() *data.DB {
 	return s.db
 }
 
+func (s *Server) Options() Options {
+	return s.options
+}
+
 func (s *Server) Run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
 

@@ -177,7 +177,10 @@ func login(cli *CLI, options loginCmdOptions) error {
 		}
 	}
 
-	return loginToInfra(cli, lc, loginReq, options.NoAgent)
+	if err := loginToInfra(cli, lc, loginReq, options.NoAgent); err != nil {
+		return err
+	}
+	return updateUserSSHConfig(cli)
 }
 
 func checkDeviceFlowCompatibility(ctx context.Context, api *api.Client) error {

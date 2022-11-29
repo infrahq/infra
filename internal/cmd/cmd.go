@@ -79,7 +79,10 @@ func defaultAPIClient() (*api.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return apiClientFromHostConfig(config)
+}
 
+func apiClientFromHostConfig(config *ClientHostConfig) (*api.Client, error) {
 	server := config.Host
 	var accessKey string
 	if !config.isExpired() {
@@ -230,7 +233,8 @@ func NewRootCmd(cli *CLI) *cobra.Command {
 		newTokensCmd(cli),
 		newServerCmd(),
 		newConnectorCmd(),
-		newAgentCmd())
+		newAgentCmd(),
+		newSSHCmd(cli))
 
 	rootCmd.PersistentFlags().String("log-level", "info", "Show logs when running the command [error, warn, info, debug]")
 	rootCmd.PersistentFlags().Bool("help", false, "Display help")
