@@ -101,6 +101,19 @@ scoop:
   homepage: https://infrahq.com
   description: Infra
   url_template: "https://github.com/infrahq/infra/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+chocolateys:
+  - ids: [zip]
+    owners: Infra Technologies, Inc.
+    authors: Infra Technologies, Inc. <contact@infrahq.com>
+    description: |
+      {{ .ProjectName }} installer. Visit https://docs.infrahq.com to get started.
+    project_url: https://infrahq.com
+    docs_url: https://docs.infrahq.com
+    project_source_url: https://github.com/infrahq/infra
+    bug_tracker_url: https://github.com/infrahq/infra/issues
+    copyright: 2022 Infra Technologies, Inc.
+    license_url: https://github.com/infrahq/infra/blob/main/LICENSE
+    api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
 publishers:
   - name: gemfury
     ids: [packages]
