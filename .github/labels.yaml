@@ -19,6 +19,10 @@
 - name: "kind/question"
   color: "D4C5F9"
   description: A request for more information.
+- name: "kind/epic"
+  color: "D4C5F9"
+- name: "kind/security"
+  color: "D4C5F9"
 
 
 - name: "area/documentation"
@@ -75,12 +79,10 @@
 - name: "status/wip"
   color: "dddddd"
   description: The pull request is a work in progress.
-  from_name: "wip"
 
 - name: "status/stale"
   description: Used by actions/stale to mark an issue or PR as stale.
   color: "dddddd"
-  from_name: "Stale"
 - name: "status/never-stale"
   color: "dddddd"
   description: Indicates to actions/stale that the issue or PR should never be marked stale.
